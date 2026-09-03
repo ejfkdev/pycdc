@@ -2,9 +2,9 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "SIG-DIFF": 27,
+  "SIG-DIFF": 32,
   "INCOMPLETE": 3,
-  "SYNTAX-ERR": 7,
+  "SYNTAX-ERR": 2,
   "PASS": 3
  },
  "results": [
@@ -44,9 +44,9 @@
   {
    "module": "_dummy_thread",
    "verdict": "SIG-DIFF",
-   "ndiff": 263,
+   "ndiff": 272,
    "ntotal": 387,
-   "detail": "line 97: orig ('LOAD_CONST', 'False') | got ('SETUP_FINALLY', 'to 72')\nline 98: orig ('STORE_GLOBAL', '_main') | got ('LOAD_CONST', 'False')\nline 99: orig ('SETUP_FINALLY', 'to 72') | got ('STORE_GLOBAL', '_main')"
+   "detail": "line 97: orig ('LOAD_CONST', 'False') | got ('SETUP_FINALLY', 'to 74')\nline 98: orig ('STORE_GLOBAL', '_main') | got ('LOAD_CONST', 'False')\nline 99: orig ('SETUP_FINALLY', 'to 72') | got ('STORE_GLOBAL', '_main')"
   },
   {
    "module": "_markupbase",
@@ -65,9 +65,9 @@
   {
    "module": "_py_abc",
    "verdict": "SIG-DIFF",
-   "ndiff": 404,
+   "ndiff": 342,
    "ntotal": 487,
-   "detail": "line 78: orig ('LOAD_FAST', 'kwargs') | got ('BUILD_TUPLE_UNPACK_WITH_CALL', '')\nline 79: orig ('CALL_FUNCTION_EX', '') | got ('LOAD_FAST', 'kwargs')\nline 80: orig ('STORE_FAST', 'cls') | got ('CALL_FUNCTION_EX', '')"
+   "detail": "line 81: orig ('LOAD_CONST', '<code <setcomp>>') | got ('LOAD_CLOSURE', 'value')\nline 82: orig ('LOAD_CONST', \"'ABCMeta.__new__.<locals>.<setcomp>'\") | got ('BUILD_TUPLE', '')\nline 83: orig ('MAKE_FUNCTION', '') | got ('LOAD_CONST', '<code <setcomp>>')"
   },
   {
    "module": "_sitebuiltins",
@@ -88,7 +88,7 @@
   {
    "module": "_threading_local",
    "verdict": "SIG-DIFF",
-   "ndiff": 350,
+   "ndiff": 349,
    "ntotal": 406,
    "detail": "line 39: orig ('LOAD_CONST', \"('current_thread', 'RLock')\") | got ('LOAD_CONST', \"('current_thread',)\")\nline 43: orig ('IMPORT_FROM', 'RLock') | got ('POP_TOP', '')\nline 44: orig ('STORE_NAME', 'RLock') | got ('LOAD_CONST', '0')"
   },
@@ -125,8 +125,10 @@
   },
   {
    "module": "asyncore",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: iterable argument unpacking follows keyword argument unpacking"
+   "verdict": "SIG-DIFF",
+   "ndiff": 2104,
+   "ntotal": 2206,
+   "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "base64",
@@ -163,14 +165,14 @@
   {
    "module": "cProfile",
    "verdict": "SIG-DIFF",
-   "ndiff": 419,
+   "ndiff": 422,
    "ntotal": 715,
    "detail": "line 253: orig ('FOR_ITER', 'to 296') | got ('FOR_ITER', 'to 294')\nline 266: orig ('FOR_ITER', 'to 294') | got ('FOR_ITER', 'to 180')\nline 277: orig ('JUMP_FORWARD', 'to 182') | got ('JUMP_ABSOLUTE', '')"
   },
   {
    "module": "calendar",
    "verdict": "SIG-DIFF",
-   "ndiff": 2602,
+   "ndiff": 2603,
    "ntotal": 3067,
    "detail": "line 424: orig ('LOAD_CONST', 'None') | got ('<listcomp>', 1)\nline 425: orig ('RETURN_VALUE', '') | got ('BUILD_LIST', '')\nline 426: orig ('<listcomp>', 1) | got ('LOAD_FAST', '.0')"
   },
@@ -241,23 +243,31 @@
   },
   {
    "module": "contextlib",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: iterable argument unpacking follows keyword argument unpacking"
+   "verdict": "SIG-DIFF",
+   "ndiff": 1515,
+   "ntotal": 1827,
+   "detail": "line 296: orig ('LOAD_DEREF', 'func') | got ('LOAD_FAST', 'func')\nline 298: orig ('LOAD_CLOSURE', 'func') | got ('LOAD_CLOSURE', 'self')\nline 299: orig ('LOAD_CLOSURE', 'self') | got ('BUILD_TUPLE', '')"
   },
   {
    "module": "copy",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: iterable argument unpacking follows keyword argument unpacking"
+   "verdict": "SIG-DIFF",
+   "ndiff": 838,
+   "ntotal": 919,
+   "detail": "line 25: orig ('LOAD_NAME', 'Error') | got ('SETUP_FINALLY', 'to 70')\nline 26: orig ('STORE_NAME', 'error') | got ('LOAD_NAME', 'Error')\nline 27: orig ('SETUP_FINALLY', 'to 70') | got ('STORE_NAME', 'error')"
   },
   {
    "module": "copyreg",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: iterable argument unpacking follows keyword argument unpacking"
+   "verdict": "SIG-DIFF",
+   "ndiff": 355,
+   "ntotal": 544,
+   "detail": "line 175: orig ('FOR_ITER', 'to 54') | got ('FOR_ITER', 'to 40')\nline 182: orig ('LOAD_FAST', 'base') | got ('JUMP_ABSOLUTE', '')\nline 183: orig ('LOAD_ATTR', '__flags__') | got ('LOAD_FAST', 'base')"
   },
   {
    "module": "crypt",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: iterable argument unpacking follows keyword argument unpacking"
+   "verdict": "SIG-DIFF",
+   "ndiff": 276,
+   "ntotal": 412,
+   "detail": "line 7: orig ('SETUP_FINALLY', 'to 26') | got ('LOAD_NAME', '_sys')\nline 8: orig ('LOAD_CONST', '0') | got ('LOAD_ATTR', 'platform')\nline 9: orig ('LOAD_CONST', 'None') | got ('LOAD_CONST', \"'win32'\")"
   }
  ]
 }

@@ -646,12 +646,22 @@ impl<'a> Ctx<'a> {
         if !self.version.at_least(3, 11) || self.inline_comp.is_some() {
             return;
         }
+        let tail_work = matches!(&self.pending_try_ctx,
+            Some(tc) if tc.region_end == pos && tc.region_end > tc.body_end);
+        let open_work = self.try_ctxs.contains_key(&pos);
+        if !tail_work && !open_work {
+            return;
+        }
+        // stores before a try boundary must land in source order
+        if !self.pending_stores.is_empty() {
+            self.flushing = true;
+            self.flush_pending_stores();
+            self.flushing = false;
+        }
         // a pending try's protected region ends here: emit else/finally parts
-        if let Some(tc) = &self.pending_try_ctx {
-            if tc.region_end == pos && tc.region_end > tc.body_end {
-                let tc = self.pending_try_ctx.take().unwrap();
-                self.emit_try_tail(tc, pos);
-            }
+        if tail_work {
+            let tc = self.pending_try_ctx.take().unwrap();
+            self.emit_try_tail(tc, pos);
         }
         if let Some(tc) = self.try_ctxs.get(&pos).cloned() {
             let mut blk = Block::new(BlockType::Try, pos, tc.body_end);
@@ -2335,12 +2345,29 @@ impl<'a> Ctx<'a> {
             | Op::BUILD_MAP_UNPACK_WITH_CALL
             | Op::BUILD_TUPLE_UNPACK_WITH_CALL => {
                 let items = self.pop_n_exprs(arg as usize);
-                let starred: Vec<ExprRef> =
-                    items.into_iter().map(|e| Rc::new(Expr::Starred(e)) as ExprRef).collect();
+                let for_call = matches!(
+                    inst.op,
+                    Op::BUILD_TUPLE_UNPACK | Op::BUILD_TUPLE_UNPACK_WITH_CALL
+                );
+                let mut out: Vec<ExprRef> = Vec::new();
+                for it in items {
+                    if for_call {
+                        // call-argument groups: plain tuples contribute their
+                        // items positionally, everything else is *starred
+                        match &*it {
+                            Expr::Tuple(inner) => out.extend(inner.iter().cloned()),
+                            other => {
+                                out.push(Rc::new(Expr::Starred(Rc::new(other.clone()))))
+                            }
+                        }
+                    } else {
+                        out.push(Rc::new(Expr::Starred(it)));
+                    }
+                }
                 let e = match inst.op {
-                    Op::BUILD_LIST_UNPACK => Expr::List(starred),
-                    Op::BUILD_SET_UNPACK => Expr::Set(starred),
-                    _ => Expr::Tuple(starred),
+                    Op::BUILD_LIST_UNPACK => Expr::List(out),
+                    Op::BUILD_SET_UNPACK => Expr::Set(out),
+                    _ => Expr::Tuple(out),
                 };
                 self.push(Rc::new(e));
                 true
@@ -2538,12 +2565,15 @@ impl<'a> Ctx<'a> {
                     if self.version.at_least(3, 11) {
                         self.pop(); // NULL/self marker
                     }
+                    let (pos, star) = flatten_ex_args(args);
+                    let (mut keywords, star_kw) = flatten_ex_kwargs(kwargs);
+                    let _ = &mut keywords;
                     self.push(Rc::new(Expr::Call {
                         func,
-                        args: Vec::new(),
+                        args: pos,
                         keywords: Vec::new(),
-                        star_args: Some(args),
-                        star_kwargs: Some(kwargs),
+                        star_args: star,
+                        star_kwargs: star_kw,
                     }));
                 } else {
                     let args = self.pop_expr();
@@ -2551,11 +2581,12 @@ impl<'a> Ctx<'a> {
                     if self.version.at_least(3, 11) {
                         self.pop(); // NULL/self marker
                     }
+                    let (pos, star) = flatten_ex_args(args);
                     self.push(Rc::new(Expr::Call {
                         func,
-                        args: Vec::new(),
+                        args: pos,
                         keywords: Vec::new(),
-                        star_args: Some(args),
+                        star_args: star,
                         star_kwargs: None,
                     }));
                 }
@@ -2937,6 +2968,11 @@ impl<'a> Ctx<'a> {
             // ---------- block setup (<= 3.10 era) ----------
             Op::SETUP_LOOP => {
                 let target = inst.target.unwrap_or(inst.end());
+                if !self.pending_stores.is_empty() {
+                    self.flushing = true;
+                    self.flush_pending_stores();
+                    self.flushing = false;
+                }
                 let mut blk = Block::new(BlockType::While, inst.end(), target);
                 blk.cond_set = false;
                 self.blocks.push(blk);
@@ -3583,9 +3619,46 @@ impl<'a> Ctx<'a> {
             }
         }
 
-        // 3) uninitialized While block: this jump is the loop condition
+        // 3) uninitialized While block (SETUP_LOOP era): the first cond
+        // jump is the loop condition only when its target region contains
+        // the body back edge (`while True:` has no cond jump at all, and a
+        // backward cond jump is handled below as the `if c: break` shape)
+        let while_end = self
+            .blocks
+            .last()
+            .filter(|b| matches!(b.kind, BlockType::While) && !b.cond_set)
+            .map(|b| b.end);
+        let cond_like = match (
+            self.idx_of.get(&self.cur_offset),
+            self.idx_of.get(&target),
+            while_end.and_then(|e| self.idx_of.get(&e).copied()),
+        ) {
+            (Some(&ci), Some(&ti), Some(wei)) if ci < ti => {
+                // the body must loop back to the top
+                let region = &self.instrs[ci..ti];
+                let back = region.iter().any(|i| i.is_backward);
+                if !back {
+                    false
+                } else if Some(target) == while_end {
+                    // PJIF straight to the loop exit: canonical `while c:`
+                    true
+                } else if wei > ti {
+                    // while/else candidate: the else region [target, loop
+                    // end) must contain no back edge, break, or return
+                    let else_region = &self.instrs[ti..wei];
+                    !else_region.iter().any(|i| {
+                        i.is_backward
+                            || i.op == Op::BREAK_LOOP
+                            || matches!(i.op, Op::RETURN_VALUE | Op::RETURN_CONST)
+                    }) && !region.iter().any(|i| i.op == Op::BREAK_LOOP)
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        };
         if let Some(top) = self.blocks.last_mut() {
-            if matches!(top.kind, BlockType::While) && !top.cond_set {
+            if matches!(top.kind, BlockType::While) && !top.cond_set && cond_like {
                 let c = if jump_if_true {
                     Rc::new(Expr::Unary {
                         op: UnaryOp::Not,
@@ -3644,10 +3717,13 @@ impl<'a> Ctx<'a> {
                         return;
                     }
                     // backward PJIF to the loop top (`if c: break` shape):
-                    // the then-body runs until the real back edge
+                    // the then-body runs until THIS loop's back edge (not a
+                    // nested loop's)
+                    let loop_start = self.blocks[i].start;
                     if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
                         for inst in self.instrs.iter().skip(ci + 1) {
                             if inst.is_backward
+                                && inst.target == Some(loop_start)
                                 && matches!(
                                     inst.op,
                                     Op::JUMP_ABSOLUTE
@@ -4149,6 +4225,11 @@ impl<'a> Ctx<'a> {
     }
 
     fn handle_for_iter(&mut self, target: usize, is_async: bool) {
+        if !self.pending_stores.is_empty() {
+            self.flushing = true;
+            self.flush_pending_stores();
+            self.flushing = false;
+        }
         let iter = self.pop_expr();
         // FOR_ITER leaves the iterator and pushes the next item; the item is
         // consumed by the following STORE (the loop target), so keep the
@@ -4446,6 +4527,66 @@ fn is_null_marker(e: &ExprRef) -> bool {
 
 fn star_args_none(_args: &[ExprRef]) -> bool {
     true
+}
+
+/// CALL_FUNCTION_EX args come as one tuple, possibly assembled by
+/// BUILD_TUPLE_UNPACK(_WITH_CALL): flatten it into positional args plus an
+/// optional trailing *args.
+fn flatten_ex_args(e: ExprRef) -> (Vec<ExprRef>, Option<ExprRef>) {
+    let mut pos = Vec::new();
+    let mut star = None;
+    let items: Vec<ExprRef> = match &*e {
+        Expr::Tuple(v) => v.clone(),
+        other => vec![Rc::new(other.clone())],
+    };
+    for it in items {
+        match &*it {
+            Expr::Starred(inner) => {
+                if star.is_none() {
+                    star = Some(inner.clone());
+                } else if let Some(prev) = star.take() {
+                    // multiple stars: keep them as positional Starred items
+                    pos.push(Rc::new(Expr::Starred(prev)));
+                    star = Some(inner.clone());
+                }
+            }
+            Expr::Tuple(inner) if star.is_none() => {
+                // BUILD_TUPLE group of plain positional args
+                pos.extend(inner.iter().cloned());
+            }
+            other => pos.push(Rc::new(other.clone())),
+        }
+    }
+    (pos, star)
+}
+
+fn flatten_ex_kwargs(e: ExprRef) -> (Vec<(Option<String>, ExprRef)>, Option<ExprRef>) {
+    match &*e {
+        Expr::Dict(entries) => {
+            let mut kws = Vec::new();
+            let mut star = None;
+            for (k, v) in entries {
+                if let Expr::Starred(inner) = &**k {
+                    star = Some(inner.clone());
+                    continue;
+                }
+                let name = match &**k {
+                    Expr::Const(o) => match &**o {
+                        PyObject::Str(s) => Some(s.clone()),
+                        PyObject::Bytes(b) => {
+                            Some(String::from_utf8_lossy(b).into_owned())
+                        }
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                kws.push((name, v.clone()));
+            }
+            (kws, star)
+        }
+        Expr::Starred(inner) => (Vec::new(), Some(inner.clone())),
+        other => (Vec::new(), Some(Rc::new(other.clone()))),
+    }
 }
 
 fn is_comp_callable(e: &ExprRef) -> bool {

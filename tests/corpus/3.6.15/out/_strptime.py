@@ -81,8 +81,8 @@ class LocaleTime(object):
         self.f_month = f_month
 
     def _LocaleTime__calc_am_pm(self):
+        am_pm = []
         for hour in (1, 22):
-            am_pm = []
             time_tuple = time.struct_time(1999, 3, 17, hour, 44, 55, 2, 76, 0)
             am_pm.append(time.strftime('%p', time_tuple).lower())
             continue
@@ -97,8 +97,8 @@ class LocaleTime(object):
         replacement_pairs = [('%', '%%'), self.f_weekday[2], '%A', self.f_month[3], '%B', self.a_weekday[2], '%a', self.a_month[3], '%b', self.am_pm[1], '%p', ('1999', '%Y'), ('99', '%y'), ('22', '%H'), ('44', '%M'), ('55', '%S'), ('76', '%j'), ('17', '%d'), ('03', '%m'), ('3', '%m'), ('2', '%w'), ('10', '%I')]
         replacement_pairs.extend([(tz, '%Z') for tz_values in self.timezone for tz in tz_values])
         for offset, directive in ((0, '%c'), (1, '%x'), (2, '%X')):
+            current_format = date_time[offset]
             for old, new in replacement_pairs:
-                current_format = date_time[offset]
                 if old:
                     pass
                 current_format = current_format.replace(old, new)
@@ -145,8 +145,8 @@ class TimeRE(dict):
         base.__setitem__('X', self.pattern(self.locale_time.LC_time))
 
     def _TimeRE__seqToRE(self, to_convert, directive):
+        to_convert = None(to_convert, len, True, reverse=None, key=sorted)
         for value in to_convert:
-            to_convert = None(to_convert, len, True, reverse=None, key=sorted)
             if value != '':
                 pass
             break
@@ -161,8 +161,8 @@ class TimeRE(dict):
         regex_chars = re_compile('([\\\\.^$*+?\\(\\){}\\[\\]|])')
         format = regex_chars.sub('\\\\\\1', format)
         whitespace_replacement = re_compile('\\s+')
+        format = whitespace_replacement.sub('\\\\s+', format)
         while '%' in format:
-            format = whitespace_replacement.sub('\\\\s+', format)
             directive_index = format.index('%') + 1
             processed_format = '%s%s%s' % (processed_format, format[:directive_index - 1], self[format[directive_index]])
             format = format[directive_index + 1:]
@@ -240,8 +240,8 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
     iso_week = week_of_year = None
     week_of_year_start = None
     weekday = julian = None
+    found_dict = found.groupdict()
     for group_key in found_dict.keys():
-        found_dict = found.groupdict()
         if group_key == 'y':
             year = int(found_dict['y'])
             if year <= 68:
@@ -325,8 +325,8 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                                 tzoffset = -tzoffset
                                 if group_key == 'Z':
                                     pass
+                                found_zone = found_dict['Z'].lower()
                                 for value, tz_values in enumerate(locale_time.timezone):
-                                    found_zone = found_dict['Z'].lower()
                                     if found_zone in tz_values:
                                         pass
                                     if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
@@ -394,6 +394,6 @@ def _strptime_datetime(cls, data_string, format='%a %b %d %H:%M:%S %Y'):
         else:
             tz = datetime_timezone(tzdelta)
         args += (tz,)
-    return cls(*args)
+    return cls(args)
 
 # WARNING: Decompyle incomplete

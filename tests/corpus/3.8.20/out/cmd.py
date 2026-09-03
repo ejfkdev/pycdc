@@ -183,7 +183,7 @@ class Cmd:
         return dir(self.__class__)
 
     def complete_help(self, *args):
-        commands = set(self.completenames(*args))
+        commands = set(self.completenames(args))
         topics = set((5[None] for a in self.get_names() if a.startswith('help_' + args[0])))
         return list(commands | topics)
 

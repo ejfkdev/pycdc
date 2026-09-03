@@ -282,9 +282,12 @@ class Aifc_read:
             raise Error('not an AIFF or AIFF-C file')
         self._comm_chunk_read = 0
         self._ssnd_chunk = None
-        while None == EOFError:
+        while True:
             self._ssnd_seek_needed = 1
-            break
+            try:
+                chunk = Chunk(self._file)
+            except EOFError:
+                break
             chunkname = chunk.getname()
             if chunkname == b'COMM':
                 self._read_comm_chunk(chunk)
@@ -767,8 +770,8 @@ class Aifc_write:
         if len(self._markers) == 0:
             return
         self._file.write(b'MARK')
+        length = 2
         for marker in self._markers:
-            length = 2
             id, pos, name = marker
             length = length + len(name) + 1 + 6
             if len(name) & 1 == 0:
@@ -820,9 +823,10 @@ if __name__ == '__main__':
             print('Writing', gn)
             with open(gn, 'w') as g:
                 g.setparams(f.getparams())
-                while not data:
+                while True:
                     data = f.readframes(1024)
-                    break
+                    if not data:
+                        break
                     g.writeframes(data)
             print('Done.')
 # WARNING: Decompyle incomplete

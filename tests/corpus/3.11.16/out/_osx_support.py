@@ -40,8 +40,8 @@ _SYSTEM_VERSION = None
 def _get_system_version():
     global _SYSTEM_VERSION
     if not _SYSTEM_VERSION is not None:
+        _SYSTEM_VERSION = ''
         try:
-            _SYSTEM_VERSION = ''
             f = open('/System/Library/CoreServices/SystemVersion.plist', 'utf-8')
         except OSError:
             pass

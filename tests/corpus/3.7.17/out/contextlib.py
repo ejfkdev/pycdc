@@ -51,7 +51,7 @@ class ContextDecorator(object):
         @wraps(func)
         def inner(*args, **kwds):
             with self._recreate_cm():
-                return func(*args, **kwds)
+                return func(args, **kwds)
 
         return inner
 
@@ -60,7 +60,7 @@ class _GeneratorContextManagerBase:
     '''Shared functionality for @contextmanager and @asynccontextmanager.'''
 
     def __init__(self, func, args, kwds):
-        self.gen = func(*args, **kwds)
+        self.gen = func(args, **kwds)
         self.func = func
         self.args = args
         self.kwds = kwds
@@ -212,7 +212,7 @@ class _BaseExitStack:
     def _create_cb_wrapper(*args, **kwds):
         callback, *args = args
         def _exit_wrapper(exc_type, exc, tb):
-            callback(*args, **kwds)
+            callback(args, **kwds)
 
         return _exit_wrapper
 
@@ -252,7 +252,7 @@ class _BaseExitStack:
             self, *args = args
         else:
             raise TypeError('callback expected at least 1 positional argument, got %d' % (len(args) - 1))
-        _exit_wrapper = self._create_cb_wrapper(**(callback,), *args, **kwds)
+        _exit_wrapper = self._create_cb_wrapper(callback, *args, **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper)
         return callback
@@ -284,9 +284,10 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            while exc_context is old_exc:
+            while True:
                 exc_context = new_exc.__context__
-                return
+                if exc_context is old_exc:
+                    return
                 if not exc_context is None:
                     if exc_context is frame_exc:
                         break
@@ -294,8 +295,8 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
             new_exc.__context__ = old_exc
 
         suppressed_exc = False
+        pending_raise = False
         while self._exit_callbacks:
-            pending_raise = False
             is_sync, cb = self._exit_callbacks.pop()
             if not is_sync:
                 raise AssertionError
@@ -340,7 +341,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
     def _create_async_cb_wrapper(*args, **kwds):
         callback, *args = args
         async def _exit_wrapper(exc_type, exc, tb):
-            await callback(*args, **kwds)
+            await callback(args, **kwds)
 
         return _exit_wrapper
 
@@ -371,7 +372,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             self, *args = args
         else:
             raise TypeError('push_async_callback expected at least 1 positional argument, got %d' % (len(args) - 1))
-        _exit_wrapper = self._create_async_cb_wrapper(**(callback,), *args, **kwds)
+        _exit_wrapper = self._create_async_cb_wrapper(callback, *args, **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper, False)
         return callback
@@ -391,9 +392,10 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            while exc_context is old_exc:
+            while True:
                 exc_context = new_exc.__context__
-                return
+                if exc_context is old_exc:
+                    return
                 if not exc_context is None:
                     if exc_context is frame_exc:
                         break
@@ -401,8 +403,9 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             new_exc.__context__ = old_exc
 
         suppressed_exc = False
+        pending_raise = False
         while self._exit_callbacks:
-            pending_raise = False
+            pass
         new_exc_details = sys.exc_info()
         _fix_exception_context(new_exc_details[1], exc_details[1])
         pending_raise = True

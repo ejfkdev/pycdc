@@ -83,7 +83,7 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
 
 def _compile_file_tuple(file_and_dfile, **kwargs):
     file, dfile = file_and_dfile
-    return compile_file(*file, dfile, **kwargs)
+    return compile_file(file, dfile, **kwargs)
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     success = True
@@ -140,8 +140,8 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
+    success = True
     for dir in sys.path:
-        success = True
         if dir:
             if dir == os.curdir and skip_curdir:
                 if quiet < 2:

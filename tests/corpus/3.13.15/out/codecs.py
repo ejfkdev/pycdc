@@ -565,7 +565,7 @@ def getwriter(encoding):
     return lookup(encoding).streamwriter
 
 def iterencode(iterator, encoding, errors='strict', **kwargs):
-    encoder = getincrementalencoder(encoding)(*(errors,), **{**kwargs})
+    encoder = getincrementalencoder(encoding)(errors, **kwargs)
     for input in iterator:
         output = encoder.encode(input)
         if not output:
@@ -577,7 +577,7 @@ def iterencode(iterator, encoding, errors='strict', **kwargs):
         return
 
 def iterdecode(iterator, encoding, errors='strict', **kwargs):
-    decoder = getincrementaldecoder(encoding)(*(errors,), **{**kwargs})
+    decoder = getincrementaldecoder(encoding)(errors, **kwargs)
     for input in iterator:
         output = decoder.decode(input)
         if not output:

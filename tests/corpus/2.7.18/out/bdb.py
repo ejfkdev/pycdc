@@ -32,8 +32,8 @@ def checkfuncname(b, frame):
     return True
 
 def effective(file, line, frame):
+    possibles = Breakpoint.bplist[file, line]
     for i in range(0, len(possibles)):
-        possibles = Breakpoint.bplist[file, line]
         b = possibles[i]
         if b.enabled == 0:
             continue

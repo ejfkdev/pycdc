@@ -38,8 +38,8 @@ class error(Exception):
 
 _names = ['dbhash', 'gdbm', 'dbm', 'dumbdbm']
 _errors = [error]
+_defaultmod = None
 for _name in _names:
-    _defaultmod = None
     if not _defaultmod:
         _defaultmod = _mod
         try:

@@ -72,8 +72,8 @@ def b32encode(s):
         s = s + b'\x00' * (5 - leftover)
     encoded = bytearray()
     from_bytes = int.from_bytes
+    b32tab2 = _b32tab2
     for i in range(0, len(s), 5):
-        b32tab2 = _b32tab2
         c = from_bytes(s[i:i + 5], 'big')
         encoded += b32tab2[c >> 30] + b32tab2[c >> 20 & 1023] + b32tab2[c >> 10 & 1023] + b32tab2[c & 1023]
         continue
@@ -105,8 +105,8 @@ def b32decode(s, casefold=False, map01=None):
     s = s.rstrip(b'=')
     padchars = l - len(s)
     decoded = bytearray()
+    b32rev = _b32rev
     for i in range(0, len(s), 8):
-        b32rev = _b32rev
         quanta = s[i:i + 8]
         try:
             acc = 0
@@ -189,13 +189,13 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
     decoded_append = decoded.append
     curr = []
     curr_append = curr.append
+    curr_clear = curr.clear
     for x in b + b'uuuu':
-        curr_clear = curr.clear
         if 33 <= x <= 117:
             curr_append(x)
             if len(curr) == 5:
+                acc = 0
                 for x in curr:
-                    acc = 0
                     acc = 85 * acc + (x - 33)
                     continue
                 try:
@@ -240,16 +240,16 @@ def b85encode(b, pad=False):
 def b85decode(b):
     global _b85dec
     if _b85dec is None:
+        _b85dec = [None] * 256
         for i, c in enumerate(_b85alphabet):
-            _b85dec = [None] * 256
             _b85dec[c] = i
             continue
     b = _bytes_from_decode_data(b)
     padding = -len(b) % 5
     b = b + b'~' * padding
     out = []
+    packI = struct.Struct('!I').pack
     for i in range(0, len(b), 5):
-        packI = struct.Struct('!I').pack
         chunk = b[i:i + 5]
         try:
             acc = 0
@@ -280,21 +280,25 @@ MAXLINESIZE = 76
 MAXBINSIZE = MAXLINESIZE // 4 * 3
 
 def encode(input, output):
-    while not s:
+    while True:
         s = input.read(MAXBINSIZE)
-        break
-        while len(s) < MAXBINSIZE:
-            ns = input.read(MAXBINSIZE - len(s))
-            if not ns:
-                break
-            s += ns
+        if not s:
+            break
+        while True:
+            if len(s) < MAXBINSIZE:
+                ns = input.read(MAXBINSIZE - len(s))
+                if not ns:
+                    break
+                s += ns
+                continue
         line = binascii.b2a_base64(s)
         output.write(line)
 
 def decode(input, output):
-    while not line:
+    while True:
         line = input.readline()
-        break
+        if not line:
+            break
         s = binascii.a2b_base64(line)
         output.write(s)
 
@@ -315,8 +319,8 @@ def _input_type_check(s):
 
 def encodebytes(s):
     _input_type_check(s)
+    pieces = []
     for i in range(0, len(s), MAXBINSIZE):
-        pieces = []
         chunk = s[i:i + MAXBINSIZE]
         pieces.append(binascii.b2a_base64(chunk))
         continue
@@ -348,8 +352,8 @@ def main():
         print(msg)
         print("usage: %s [-d|-e|-u|-t] [file|-]\n        -d, -u: decode\n        -e: encode (default)\n        -t: encode and decode string 'Aladdin:open sesame'" % sys.argv[0])
         sys.exit(2)
+    func = encode
     for o, a in opts:
-        func = encode
         if o == '-e':
             func = encode
         if o == '-d':

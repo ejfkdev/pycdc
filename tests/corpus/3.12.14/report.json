@@ -2,10 +2,10 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "SIG-DIFF": 30,
+  "SIG-DIFF": 29,
   "PASS": 3,
   "INCOMPLETE": 5,
-  "SYNTAX-ERR": 2
+  "SYNTAX-ERR": 3
  },
  "results": [
   {
@@ -29,16 +29,16 @@
   {
    "module": "_collections_abc",
    "verdict": "SIG-DIFF",
-   "ndiff": 3457,
+   "ndiff": 3463,
    "ntotal": 3688,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "_compat_pickle",
    "verdict": "SIG-DIFF",
-   "ndiff": 41,
+   "ndiff": 38,
    "ntotal": 448,
-   "detail": "line 222: orig ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro | got ('NOP', '')\nline 223: orig ('STORE_NAME', 'PYTHON2_EXCEPTIONS') | got ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro\nline 224: orig ('NOP', '') | got ('STORE_NAME', 'PYTHON2_EXCEPTIONS')"
+   "detail": "line 282: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_NAME', 'AssertionError')\nline 305: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_NAME', 'AssertionError')\nline 403: orig ('JUMP_BACKWARD', 'to 462') | got ('JUMP_BACKWARD', 'to 452')"
   },
   {
    "module": "_compression",
@@ -62,9 +62,9 @@
   {
    "module": "_py_abc",
    "verdict": "SIG-DIFF",
-   "ndiff": 420,
+   "ndiff": 415,
    "ntotal": 503,
-   "detail": "line 71: orig ('LOAD_FAST', 'mcls') | got ('BUILD_LIST', '')\nline 72: orig ('LOAD_FAST', 'name') | got ('LOAD_FAST', 'mcls')\nline 73: orig ('LOAD_FAST', 'bases') | got ('LIST_EXTEND', '')"
+   "detail": "line 81: orig ('LOAD_FAST', 'namespace') | got ('LOAD_FAST', 'bases')\nline 82: orig ('LOAD_ATTR', 'NULL|self + items') | got ('GET_ITER', '')\nline 83: orig ('CALL', '') | got ('FOR_ITER', 'to 200')"
   },
   {
    "module": "_pylong",
@@ -76,7 +76,7 @@
   {
    "module": "_sitebuiltins",
    "verdict": "SIG-DIFF",
-   "ndiff": 282,
+   "ndiff": 284,
    "ntotal": 375,
    "detail": "line 85: orig ('POP_TOP', '') | got ('LOAD_GLOBAL', 'NULL + SystemExit')\nline 86: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'code')\nline 87: orig ('LOAD_GLOBAL', 'NULL + SystemExit') | got ('CALL', '')"
   },
@@ -101,15 +101,15 @@
   {
    "module": "_weakrefset",
    "verdict": "SIG-DIFF",
-   "ndiff": 650,
+   "ndiff": 645,
    "ntotal": 937,
-   "detail": "line 279: orig ('LOAD_FAST', 'self') | got ('NOP', '')\nline 280: orig ('LOAD_ATTR', 'data') | got ('LOAD_FAST', 'self')\nline 281: orig ('LOAD_ATTR', 'discard') | got ('LOAD_ATTR', 'data')"
+   "detail": "line 284: orig ('NOP', '') | got ('PUSH_NULL', '')\nline 285: orig ('PUSH_NULL', '') | got ('LOAD_FAST', 'pop')\nline 286: orig ('LOAD_FAST', 'pop') | got ('CALL', '')"
   },
   {
    "module": "abc",
    "verdict": "SIG-DIFF",
-   "ndiff": 429,
-   "ntotal": 467,
+   "ndiff": 409,
+   "ntotal": 460,
    "detail": "line 33: orig ('LOAD_CONST', \"('get_cache_token', '_abc_init', '_abc_register', '_abc_instancecheck', '_abc_subcla | got ('LOAD_CONST', \"('get_cache_token',)\")\nline 37: orig ('IMPORT_FROM', '_abc_init') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', '_abc_init') | got ('LOAD_CONST', '0')"
   },
   {
@@ -125,7 +125,7 @@
   {
    "module": "bdb",
    "verdict": "SIG-DIFF",
-   "ndiff": 2399,
+   "ndiff": 2416,
    "ntotal": 2530,
    "detail": "line 23: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 27: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 28: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -139,14 +139,14 @@
   {
    "module": "bz2",
    "verdict": "SIG-DIFF",
-   "ndiff": 735,
+   "ndiff": 734,
    "ntotal": 802,
    "detail": "line 29: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 33: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cProfile",
    "verdict": "SIG-DIFF",
-   "ndiff": 507,
+   "ndiff": 508,
    "ntotal": 699,
    "detail": "line 172: orig ('LOAD_CONST', 'None') | got ('NOP', '')\nline 175: orig ('CALL', '') | got ('LOAD_CONST', 'None')\nline 176: orig ('POP_TOP', '') | got ('CALL', '')"
   },
@@ -177,8 +177,8 @@
   {
    "module": "cmd",
    "verdict": "SIG-DIFF",
-   "ndiff": 1152,
-   "ntotal": 1398,
+   "ndiff": 1142,
+   "ntotal": 1397,
    "detail": "line 209: orig ('POP_JUMP_IF_TRUE', 'to 898') | got ('POP_JUMP_IF_TRUE', 'to 552')\nline 219: orig ('JUMP_FORWARD', 'to 788') | got ('JUMP_FORWARD', 'to 546')\nline 222: orig ('POP_JUMP_IF_FALSE', 'to 548') | got ('POP_JUMP_IF_FALSE', 'to 546')"
   },
   {
@@ -191,7 +191,7 @@
   {
    "module": "codecs",
    "verdict": "SIG-DIFF",
-   "ndiff": 2067,
+   "ndiff": 2066,
    "ntotal": 2138,
    "detail": "line 18: orig ('BUILD_LIST', '') | got ('NOP', '')\nline 19: orig ('LOAD_CONST', \"('register', 'lookup', 'open', 'EncodedFile', 'BOM', 'BOM_BE', 'BOM_LE', 'BOM32_BE', | got ('BUILD_LIST', '')\nline 20: orig ('LIST_EXTEND', '') | got ('LOAD_CONST', \"('register', 'lookup', 'open', 'EncodedFile', 'BOM', 'BOM_BE', 'BOM_LE', 'BOM32_BE',"
   },
@@ -218,10 +218,8 @@
   },
   {
    "module": "contextlib",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2088,
-   "ntotal": 2190,
-   "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
+   "verdict": "SYNTAX-ERR",
+   "detail": "t recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/Users/e/.local/share/uv/python/cpython-3.12.14-macos-aarch64-none/lib/python3.12/py_compile.py\", line 150, in compile\n    raise py_exc\npy_compile.PyCompileError: Sorry: IndentationError: unexpected indent (contextlib.py, line 497)\n"
   },
   {
    "module": "copy",
@@ -233,7 +231,7 @@
   {
    "module": "copyreg",
    "verdict": "SIG-DIFF",
-   "ndiff": 409,
+   "ndiff": 406,
    "ntotal": 611,
    "detail": "line 180: orig ('POP_JUMP_IF_TRUE', 'to 16') | got ('POP_JUMP_IF_TRUE', 'to 24')\nline 181: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')\nline 189: orig ('FOR_ITER', 'to 228') | got ('FOR_ITER', 'to 232')"
   },
@@ -247,8 +245,8 @@
   {
    "module": "csv",
    "verdict": "SIG-DIFF",
-   "ndiff": 1638,
-   "ntotal": 1679,
+   "ndiff": 1636,
+   "ntotal": 1677,
    "detail": "line 13: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 17: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {
@@ -261,9 +259,9 @@
   {
    "module": "decimal",
    "verdict": "SIG-DIFF",
-   "ndiff": 46,
+   "ndiff": 43,
    "ntotal": 53,
-   "detail": "line 2: orig ('LOAD_CONST', '\\'Decimal fixed-point and floating-point arithmetic.\\\\n\\\\nThis is an implementation  | got ('NOP', '')\nline 3: orig ('STORE_NAME', '__doc__') | got ('LOAD_CONST', '\\'Decimal fixed-point and floating-point arithmetic.\\\\n\\\\nThis is an implementation \nline 4: orig ('NOP', '') | got ('STORE_NAME', '__doc__')"
+   "detail": "line 10: orig ('LOAD_CONST', '0') | got ('NOP', '')\nline 11: orig ('LOAD_CONST', \"('__version__',)\") | got ('LOAD_CONST', '0')\nline 12: orig ('IMPORT_NAME', '_decimal') | got ('LOAD_CONST', \"('__version__',)\")"
   }
  ]
 }

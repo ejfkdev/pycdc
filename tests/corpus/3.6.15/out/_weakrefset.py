@@ -39,8 +39,8 @@ class WeakSet:
 
     def _commit_removals(self):
         l = self._pending_removals
+        discard = self.data.discard
         while l:
-            discard = self.data.discard
             discard(l.pop())
 
     def __iter__(self):
@@ -77,8 +77,11 @@ class WeakSet:
     def pop(self):
         if self._pending_removals:
             self._commit_removals()
-        while None == KeyError:
-            raise KeyError('pop from empty WeakSet')
+        while True:
+            try:
+                itemref = self.data.pop()
+            except KeyError:
+                raise KeyError('pop from empty WeakSet')
             item = itemref()
             return item
 

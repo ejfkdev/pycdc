@@ -35,7 +35,7 @@ def initlog(*allargs):
         log = nolog
     else:
         log = dolog
-    log(*allargs)
+    log(allargs)
 
 def dolog(fmt, *args):
     logfp.write(fmt % args + '\n')

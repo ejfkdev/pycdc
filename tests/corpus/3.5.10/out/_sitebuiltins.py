@@ -31,8 +31,8 @@ class _Printer(object):
     def _Printer__setup(self):
         if self._Printer__lines:
             return
+        data = None
         for filename in self._Printer__filenames:
-            data = None
             continue
             try:
                 with open(filename, 'r') as fp:
@@ -56,13 +56,18 @@ class _Printer(object):
     def __call__(self):
         self._Printer__setup()
         prompt = 'Hit Return for more, or q (and Return) to quit: '
-        while None == IndexError:
-            lineno = 0
+        lineno = 0
+        while True:
             break
-            break
+            try:
+                for i in range(lineno, lineno + self.MAXLINES):
+                    print(self._Printer__lines[i])
+                    continue
+            except IndexError:
+                break
         lineno += self.MAXLINES
+        key = None
         while key is None:
-            key = None
             key = input(prompt)
             if key not in ('', 'q'):
                 key = None

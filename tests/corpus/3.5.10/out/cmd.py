@@ -99,8 +99,8 @@ class Cmd:
                 self.intro = intro
             if self.intro:
                 self.stdout.write(str(self.intro) + '\n')
+            stop = None
             while not stop:
-                stop = None
                 if self.cmdqueue:
                     line = self.cmdqueue.pop(0)
                 elif self.use_rawinput:
@@ -152,8 +152,8 @@ class Cmd:
                 line = 'shell ' + line[1:]
             else:
                 return None, None, line
+        i, n = 0, len(line)
         while i < n:
-            i, n = 0, len(line)
             if line[i] in self.identchars:
                 i = i + 1
                 continue
@@ -236,15 +236,15 @@ class Cmd:
             names = self.get_names()
             cmds_doc = []
             cmds_undoc = []
+            help = {}
             for name in names:
-                help = {}
                 if name[:5] == 'help_':
                     pass
                 help[name[5:]] = 1
                 continue
         names.sort()
+        prevname = ''
         for name in names:
-            prevname = ''
             if name[:3] == 'do_':
                 pass
             if name == prevname:
@@ -287,10 +287,10 @@ class Cmd:
         for nrows in range(1, len(list)):
             ncols = (size + nrows - 1) // nrows
             colwidths = []
+            totwidth = -2
             for col in range(ncols):
-                totwidth = -2
+                colwidth = 0
                 for row in range(nrows):
-                    colwidth = 0
                     i = row + nrows * col
                     if i >= size:
                         break
@@ -311,8 +311,8 @@ class Cmd:
             ncols = 1
             colwidths = [0]
         for row in range(nrows):
+            texts = []
             for col in range(ncols):
-                texts = []
                 i = row + nrows * col
                 if i >= size:
                     x = ''

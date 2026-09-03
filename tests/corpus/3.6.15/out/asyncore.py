@@ -102,8 +102,8 @@ def poll(timeout=0.0, map=None):
     if map:
         r = []
         w = []
+        e = []
         for fd, obj in list(map.items()):
-            e = []
             is_r = obj.readable()
             is_w = obj.writable()
             if is_r:
@@ -118,8 +118,8 @@ def poll(timeout=0.0, map=None):
         if [] == r and r == w == e:
             time.sleep(timeout)
             return
+        r, w, e = select.select(r, w, e, timeout)
         for fd in r:
-            r, w, e = select.select(r, w, e, timeout)
             obj = map.get(fd)
             if obj is None:
                 continue
@@ -155,8 +155,8 @@ def poll2(timeout=0.0, map=None):
                 pass
             pollster.register(fd, flags)
             continue
+        r = pollster.poll(timeout)
         for fd, flags in r:
-            r = pollster.poll(timeout)
             obj = map.get(fd)
             if obj is None:
                 continue
@@ -173,14 +173,14 @@ def loop(timeout=30.0, use_poll=False, map=None, count=None):
     else:
         poll_fun = poll
     if count is None:
-        while map:
-            poll_fun(timeout, map)
-    else:
-        while map:
-            if count > 0:
+        while True:
+            while map:
                 poll_fun(timeout, map)
-                count = count - 1
-                continue
+            while map:
+                if count > 0:
+                    poll_fun(timeout, map)
+                    count = count - 1
+                    continue
 
 class dispatcher:
     debug = False
@@ -409,7 +409,7 @@ class dispatcher:
     def handle_accept(self):
         pair = self.accept()
         if pair is not None:
-            self.handle_accepted(*pair)
+            self.handle_accepted(pair)
 
     def handle_accepted(self, sock, addr):
         sock.close()
@@ -490,10 +490,10 @@ if os.name == 'posix':
             self.close()
 
         def recv(self, *args):
-            return os.read(**(self.fd,), *args)
+            return os.read(self.fd, *args)
 
         def send(self, *args):
-            return os.write(**(self.fd,), *args)
+            return os.write(self.fd, *args)
 
         def getsockopt(self, level, optname, buflen=None):
             if level == socket.SOL_SOCKET and optname == socket.SO_ERROR and not buflen:

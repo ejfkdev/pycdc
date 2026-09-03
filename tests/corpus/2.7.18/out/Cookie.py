@@ -195,25 +195,26 @@ def _unquote(str):
     str = str[1:-1]
     i = 0
     n = len(str)
-    while 0 <= i < n:
-        res = []
-        Omatch = _OctalPatt.search(str, i)
-        Qmatch = _QuotePatt.search(str, i)
-        if not Omatch and not Qmatch:
-            res.append(str[i:])
-            break
-        j = k = -1
-        if Omatch:
-            j = Omatch.start(0)
-        if Qmatch:
-            k = Qmatch.start(0)
-        if Qmatch:
-            if not not Omatch:
-                if k < j:
-                    res.append(str[i:k])
-                    res.append(str[k + 1])
-                    i = k + 2
-                    continue
+    res = []
+    while True:
+        if 0 <= i < n:
+            Omatch = _OctalPatt.search(str, i)
+            Qmatch = _QuotePatt.search(str, i)
+            if not Omatch and not Qmatch:
+                res.append(str[i:])
+                break
+            j = k = -1
+            if Omatch:
+                j = Omatch.start(0)
+            if Qmatch:
+                k = Qmatch.start(0)
+            if Qmatch:
+                if not not Omatch:
+                    if k < j:
+                        res.append(str[i:k])
+                        res.append(str[k + 1])
+                        i = k + 2
+                        continue
         res.append(str[i:j])
         res.append(chr(int(str[j + 1:j + 4], 8)))
         i = j + 4

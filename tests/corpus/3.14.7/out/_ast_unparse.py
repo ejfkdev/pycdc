@@ -27,8 +27,8 @@ is disregarded.'''
         self._in_interactive = False
 
     def interleave(self, inter, f, seq):
+        seq = iter(seq)
         try:
-            seq = iter(seq)
             f(next(seq))
         except StopIteration:
             pass
@@ -317,8 +317,8 @@ is disregarded.'''
             return
 
     def visit_Try(self, node):
+        prev_in_try_star = self._in_try_star
         try:
-            prev_in_try_star = self._in_try_star
             self._in_try_star = False
             self.do_visit_try(node)
         finally:
@@ -326,8 +326,8 @@ is disregarded.'''
         return self
 
     def visit_TryStar(self, node):
+        prev_in_try_star = self._in_try_star
         try:
-            prev_in_try_star = self._in_try_star
             self._in_try_star = True
             self.do_visit_try(node)
         finally:
@@ -709,7 +709,7 @@ is disregarded.'''
         self.set_precedence(_Precedence.TUPLE, node.target)
         self.traverse(node.target)
         self.write(' in ')
-        self.set_precedence(*[_Precedence.TEST.next(), node.iter, *node.ifs])
+        self.set_precedence([_Precedence.TEST.next(), node.iter, *node.ifs])
         self.traverse(node.iter)
         for if_clause in node.ifs:
             self.write(' if ')
@@ -794,7 +794,7 @@ is disregarded.'''
     cmpops = {'Eq': '==', 'NotEq': '!=', 'Lt': '<', 'LtE': '<=', 'Gt': '>', 'GtE': '>=', 'Is': 'is', 'IsNot': 'is not', 'In': 'in', 'NotIn': 'not in'}
     def visit_Compare(self, node):
         self.require_parens(_Precedence.CMP, node)._Precedence()
-        self.set_precedence(*[_Precedence.CMP.next(), node.left, *node.comparators])
+        self.set_precedence([_Precedence.CMP.next(), node.left, *node.comparators])
         self.traverse(node.left)
         for o, e in zip(node.ops, node.comparators):
             self.write(' ' + self.cmpops[o.__class__.__name__] + ' ')
@@ -953,7 +953,7 @@ is disregarded.'''
         self.traverse(node.args)
         None(None, None, None)
         if buffer:
-            self.write(*[' ', *buffer])
+            self.write([' ', *buffer])
         self.write(': ')
         self.set_precedence(_Precedence.TEST, node.body)
         self.traverse(node.body)
@@ -1051,7 +1051,7 @@ is disregarded.'''
 
     def visit_MatchOr(self, node):
         self.require_parens(_Precedence.BOR, node)._Precedence()
-        self.set_precedence(*[_Precedence.BOR.next(), *node.patterns])
+        self.set_precedence([_Precedence.BOR.next(), *node.patterns])
         self.interleave(lambda: self.write(' | '), self.traverse, node.patterns)
         None(None, None, None)
 

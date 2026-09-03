@@ -102,8 +102,9 @@ class InteractiveConsole(InteractiveInterpreter):
             self.write('Python %s on %s\n%s\n(%s)\n' % (sys.version, sys.platform, cprt, self.__class__.__name__))
         elif banner:
             self.write('%s\n' % str(banner))
+        more = 0
         while True:
-            more = 0
+            pass
         more = 0
         try:
             if more:

@@ -24,7 +24,7 @@ def start_new_thread(function, args, kwargs={}):
         raise TypeError('3rd arg must be a dict')
     try:
         _main = False
-        function(*args, **kwargs)
+        function(args, **kwargs)
     except SystemExit:
         pass
     else:

@@ -116,8 +116,9 @@ Constructor arguments:
                 if is_forwardref_format:
                     return self
                 raise NameError(_NAME_ERROR_MSG.format(name=arg), arg)
+        code = self.__forward_code__
         try:
-            code = self.__forward_code__
+            pass
         except Exception:
             if not is_forwardref_format:
                 raise
@@ -158,8 +159,8 @@ Constructor arguments:
     def __forward_code__(self):
         if not self.__code__ is None:
             return self.__code__
+        arg = self.__forward_arg__
         try:
-            arg = self.__forward_arg__
             self.__code__ = compile(_rewrite_star_unpack(arg), '<string>', 'eval')
         except SyntaxError:
             raise SyntaxError(f'Forward reference must be an expression -- got {arg!r}')

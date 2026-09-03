@@ -94,8 +94,8 @@ def poll(timeout=0.0, map=None):
     if map:
         r = []
         w = []
+        e = []
         for fd, obj in map.items():
-            e = []
             is_r = obj.readable()
             is_w = obj.writable()
             if is_r:
@@ -182,14 +182,14 @@ def loop(timeout=30.0, use_poll=False, map=None, count=None):
     else:
         poll_fun = poll
     if count is None:
-        while map:
-            poll_fun(timeout, map)
-    else:
-        while map:
-            if count > 0:
+        while True:
+            while map:
                 poll_fun(timeout, map)
-                count = count - 1
-                continue
+            while map:
+                if count > 0:
+                    poll_fun(timeout, map)
+                    count = count - 1
+                    continue
 
 class dispatcher:
     pass

@@ -9,24 +9,21 @@ For version X.Y.Z (run with that version's interpreter):
 Usage (via build_corpus.sh or directly):
   <interp> tools/build_corpus.py --stdlib DIR --out DIR [--limit N]
 """
-import argparse
 import os
 import py_compile
 import sys
 
 # modules that are known to be problematic to compile standalone or are
 # platform/generated noise
-SKIP_NAMES = {
-    "this", "antigravity", "__phello__", "_pydecimal",
-}
-SKIP_DIRS = {
+SKIP_NAMES = set(["this", "antigravity", "__phello__", "_pydecimal"])
+SKIP_DIRS = set([
     "test", "tests", "site-packages", "lib2to3", "idle_test", "venv",
-    "distutils", "lib-tk", "lib2to3", "encodings", "email", "importlib",
+    "distutils", "lib-tk", "encodings", "email", "importlib",
     "json", "logging", "unittest", "xml", "http", "asyncio", "collections",
     "concurrent", "ctypes", "curses", "dbm", "sqlite3", "wsgiref",
     "multiprocessing", "tkinter", "ensurepip", "libpasteurize", "future",
-    "idlelib", "pydoc_data", "venv", "__phello__", "msilib",
-}
+    "idlelib", "pydoc_data", "__phello__", "msilib",
+])
 
 
 def candidates(stdlib):
@@ -52,33 +49,33 @@ def candidates(stdlib):
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--stdlib", required=True)
-    ap.add_argument("--out", required=True)
-    ap.add_argument("--limit", type=int, default=40)
-    args = ap.parse_args()
+    # plain argv parsing: Python 2.6 has no argparse
+    argv = sys.argv[1:]
+    stdlib = argv[argv.index("--stdlib") + 1]
+    outdir = argv[argv.index("--out") + 1]
+    limit = int(argv[argv.index("--limit") + 1]) if "--limit" in argv else 40
 
-    if not os.path.isdir(args.out):
-        os.makedirs(args.out)
+    if not os.path.isdir(outdir):
+        os.makedirs(outdir)
     picked = 0
     failed = []
-    for src in candidates(args.stdlib):
-        if picked >= args.limit:
+    for src in candidates(stdlib):
+        if picked >= limit:
             break
         base = os.path.basename(src)[:-3]
-        pyc = os.path.join(args.out, base + ".pyc")
+        pyc = os.path.join(outdir, base + ".pyc")
         try:
             py_compile.compile(src, cfile=pyc, doraise=True)
-        except Exception as e:
-            failed.append((base, str(e)[:120]))
+        except Exception:
+            failed.append((base, str(sys.exc_info()[1])[:120]))
             continue
         with open(src, "rb") as f:
             data = f.read()
-        with open(os.path.join(args.out, base + ".py"), "wb") as f:
+        with open(os.path.join(outdir, base + ".py"), "wb") as f:
             f.write(data)
         picked += 1
     ver = sys.version.split()[0]
-    print("python %s: picked %d modules into %s" % (ver, picked, args.out))
+    print("python %s: picked %d modules into %s" % (ver, picked, outdir))
     for b, e in failed:
         print("  compile-skip %s: %s" % (b, e))
 

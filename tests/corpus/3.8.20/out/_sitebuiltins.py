@@ -85,7 +85,7 @@ class _Helper(object):
 
     def __call__(self, *args, **kwds):
         import pydoc
-        return pydoc.help(*args, **kwds)
+        return pydoc.help(args, **kwds)
 
 
 # WARNING: Decompyle incomplete

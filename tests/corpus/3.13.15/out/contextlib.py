@@ -84,7 +84,7 @@ class _GeneratorContextManagerBase:
     '''Shared functionality for @contextmanager and @asynccontextmanager.'''
 
     def __init__(self, func, args, kwds):
-        self.gen = func(*args, **{**kwds})
+        self.gen = func(args, **kwds)
         self.func = func
         self.args = args
         self.kwds = kwds
@@ -320,7 +320,7 @@ class _BaseExitStack:
     @staticmethod
     def _create_cb_wrapper(callback, /, *args, **kwds):
         def _exit_wrapper(exc_type, exc, tb):
-            callback(*args, **{**kwds})
+            callback(args, **kwds)
 
         return _exit_wrapper
 
@@ -334,8 +334,8 @@ class _BaseExitStack:
         return new_stack
 
     def push(self, exit):
+        _cb_type = type(exit)
         try:
-            _cb_type = type(exit)
             exit_method = _cb_type.__exit__
         except AttributeError:
             self._push_exit_callback(exit)
@@ -343,8 +343,8 @@ class _BaseExitStack:
         return exit
 
     def enter_context(self, cm):
+        cls = type(cm)
         try:
-            cls = type(cm)
             _enter = cls.__enter__
             _exit = cls.__exit__
         except AttributeError:
@@ -354,7 +354,7 @@ class _BaseExitStack:
         return result
 
     def callback(self, callback, /, *args, **kwds):
-        _exit_wrapper = self._create_cb_wrapper(*[callback, *args], **{**kwds})
+        _exit_wrapper = self._create_cb_wrapper([callback, *args], **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper)
         return callback
@@ -407,7 +407,7 @@ For example:
                     exc_details = (None, None, None)
                 else:
                     exc_details = type(exc), exc, exc.__traceback__
-                if cb(*exc_details):
+                if cb(exc_details):
                     suppressed_exc = True
                     pending_raise = False
                     exc = None
@@ -448,13 +448,13 @@ For example:
     @staticmethod
     def _create_async_cb_wrapper(callback, /, *args, **kwds):
         async def _exit_wrapper(exc_type, exc, tb):
-            await callback(*args, **{**kwds})
+            await callback(args, **kwds)
 
         return _exit_wrapper
 
     async def enter_async_context(self, cm):
+        cls = type(cm)
         try:
-            cls = type(cm)
             _enter = cls.__aenter__
             _exit = cls.__aexit__
         except AttributeError:
@@ -464,8 +464,8 @@ For example:
         return result
 
     def push_async_exit(self, exit):
+        _cb_type = type(exit)
         try:
-            _cb_type = type(exit)
             exit_method = _cb_type.__aexit__
         except AttributeError:
             self._push_exit_callback(exit, False)
@@ -473,7 +473,7 @@ For example:
         return exit
 
     def push_async_callback(self, callback, /, *args, **kwds):
-        _exit_wrapper = self._create_async_cb_wrapper(*[callback, *args], **{**kwds})
+        _exit_wrapper = self._create_async_cb_wrapper([callback, *args], **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper, False)
         return callback
@@ -506,20 +506,20 @@ For example:
         suppressed_exc = False
         pending_raise = False
         while self._exit_callbacks:
+            is_sync, cb = self._exit_callbacks.pop()
             try:
-                is_sync, cb = self._exit_callbacks.pop()
                 if not exc is not None:
                     exc_details = (None, None, None)
                 else:
                     exc_details = type(exc), exc, exc.__traceback__
                 if is_sync:
-                    cb_suppress = cb(*exc_details)
+                    cb_suppress = cb(exc_details)
             except BaseException as new_exc:
                 _fix_exception_context(new_exc, exc)
                 pending_raise = True
                 exc = new_exc
             try:
-                cb_suppress = await cb(*exc_details)
+                cb_suppress = await cb(exc_details)
                 if cb_suppress:
                     suppressed_exc = True
                     pending_raise = False

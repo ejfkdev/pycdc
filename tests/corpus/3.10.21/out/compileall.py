@@ -102,7 +102,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         for spart, opart in zip(stripdir_parts, fullname_parts):
             if spart == opart:
                 ddir_parts.remove(spart)
-        dfile = os.path.join(*ddir_parts)
+        dfile = os.path.join(ddir_parts)
     if prependdir is not None:
         if dfile is None:
             dfile = os.path.join(prependdir, fullname)

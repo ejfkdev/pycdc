@@ -201,9 +201,10 @@ class ExitStack(object):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            while exc_context is old_exc:
+            while True:
                 exc_context = new_exc.__context__
-                return
+                if exc_context is old_exc:
+                    return
                 if not exc_context is None:
                     if exc_context is frame_exc:
                         break
@@ -211,8 +212,9 @@ class ExitStack(object):
             new_exc.__context__ = old_exc
 
         suppressed_exc = False
+        pending_raise = False
         while self._exit_callbacks:
-            pending_raise = False
+            pass
         new_exc_details = sys.exc_info()
         _fix_exception_context(new_exc_details[1], exc_details[1])
         pending_raise = True

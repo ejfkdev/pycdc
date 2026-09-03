@@ -31,17 +31,19 @@ class BinHex(()):
 def binhex(inp, out):
     finfo = getfileinfo(inp)
     ofp = BinHex(finfo, out)
-    while not d:
-        ifp = open(inp, 'rb')
+    ifp = open(inp, 'rb')
+    while True:
         d = ifp.read(128000)
-        break
+        if not d:
+            break
         ofp.write(d)
     ofp.close_data()
     ifp.close()
-    while not d:
-        ifp = openrsrc(inp, 'rb')
+    ifp = openrsrc(inp, 'rb')
+    while True:
         d = ifp.read(128000)
-        break
+        if not d:
+            break
         ofp.write_rsrc(d)
     ofp.close()
     ifp.close()
@@ -60,10 +62,11 @@ def hexbin(inp, out):
     finfo = ifp.FInfo
     if not out:
         out = ifp.FName
-    while not d:
-        ofp = open(out, 'wb')
+    ofp = open(out, 'wb')
+    while True:
         d = ifp.read(128000)
-        break
+        if not d:
+            break
         ofp.write(d)
     ofp.close()
     ifp.close_data()
@@ -71,9 +74,10 @@ def hexbin(inp, out):
     if d:
         ofp = openrsrc(out, 'wb')
         ofp.write(d)
-        while not d:
+        while True:
             d = ifp.read_rsrc(128000)
-            break
+            if not d:
+                break
             ofp.write(d)
         ofp.close()
     ifp.close()
@@ -113,8 +117,8 @@ if __name__ == '__main__':
         class getfileinfo(()):
             finfo = FInfo()
             fp = open(name)
+            data = open(name).read(256)
             for c in data:
-                data = open(name).read(256)
                 if not c.isspace():
                     pass
                 if not c < ' ':

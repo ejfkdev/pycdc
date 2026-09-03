@@ -81,8 +81,8 @@ def dump(node, annotate_fields=True, include_attributes=False):
     def _format(node):
         if isinstance(node, AST):
             args = []
+            keywords = annotate_fields
             for field in node._fields:
-                keywords = annotate_fields
                 try:
                     value = getattr(node, field)
                 except AttributeError as keywords:
@@ -194,8 +194,8 @@ def get_docstring(node, clean=True):
 
 def walk(node):
     from collections import deque
+    todo = deque([node])
     while todo:
-        todo = deque([node])
         node = todo.popleft()
         todo.extend(iter_child_nodes(node))
         yield node
@@ -279,8 +279,8 @@ class NodeTransformer(NodeVisitor):
     def generic_visit(self, node):
         for field, old_value in iter_fields(node):
             if isinstance(old_value, list):
+                new_values = []
                 for value in old_value:
-                    new_values = []
                     if isinstance(value, AST):
                         value = self.visit(value)
                         if value is None:

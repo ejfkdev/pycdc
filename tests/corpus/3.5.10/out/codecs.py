@@ -240,10 +240,11 @@ class StreamReader(Codec):
         if self.linebuffer:
             self.charbuffer = self._empty_charbuffer.join(self.linebuffer)
             self.linebuffer = None
-        while chars >= 0:
-            if len(self.charbuffer) >= chars and size >= 0 and len(self.charbuffer) >= size:
-                break
-                break
+        while True:
+            if chars >= 0:
+                if len(self.charbuffer) >= chars and size >= 0 and len(self.charbuffer) >= size:
+                    break
+                    break
             if size < 0:
                 newdata = self.stream.read()
             else:
@@ -286,13 +287,14 @@ class StreamReader(Codec):
                 line = 'keepends'(False)[0]
             return line
         readsize = size or 72
-        while data:
-            line = self._empty_charbuffer
+        line = self._empty_charbuffer
+        while True:
             data = readsize(True, 'firstline')
-            if isinstance(data, str):
-                if not data.endswith('\r'):
-                    if isinstance(data, bytes) and data.endswith(b'\r'):
-                        data = 'size' + 1('chars', 1)
+            if data:
+                if isinstance(data, str):
+                    if not data.endswith('\r'):
+                        if isinstance(data, bytes) and data.endswith(b'\r'):
+                            data = 'size' + 1('chars', 1)
             line += data
             lines = 'keepends'(True)
             if lines and line0withend != line0withoutend:
@@ -536,8 +538,8 @@ def getwriter(encoding):
     return lookup(encoding).streamwriter
 
 def iterencode(iterator, encoding, errors='strict', **kwargs):
+    encoder = errors(kwargs)
     for input in iterator:
-        encoder = errors(kwargs)
         output = encoder.encode(input)
         if output:
             pass
@@ -548,8 +550,8 @@ def iterencode(iterator, encoding, errors='strict', **kwargs):
         yield output
 
 def iterdecode(iterator, encoding, errors='strict', **kwargs):
+    decoder = errors(kwargs)
     for input in iterator:
-        decoder = errors(kwargs)
         output = decoder.decode(input)
         if output:
             pass
@@ -563,8 +565,8 @@ def make_identity_dict(rng):
     return {i: i for i in rng}
 
 def make_encoding_map(decoding_map):
+    m = {}
     for k, v in decoding_map.items():
-        m = {}
         if v not in m:
             m[v] = k
             continue

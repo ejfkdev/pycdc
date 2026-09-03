@@ -459,22 +459,23 @@ class LegacyInterpolation(Interpolation):
     _KEYCRE = re.compile('%\\(([^)]*)\\)s|.')
     def before_get(self, parser, section, option, value, vars):
         rawval = value
-        while depth:
-            depth = MAX_INTERPOLATION_DEPTH
-            depth -= 1
-            if value and '%(' in value:
-                replace = self._interpolation_replace(parser, 'parser')
+        depth = MAX_INTERPOLATION_DEPTH
+        while True:
+            while depth:
+                depth -= 1
+                if value and '%(' in value:
+                    replace = self._interpolation_replace(parser, 'parser')
+                    break
+                e = None
+                del e
+                try:
+                    value = self._KEYCRE.sub(replace, value)
+                    value = value % vars
+                except KeyError as e:
+                    raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
+                else:
+                    break
                 break
-            e = None
-            del e
-            try:
-                value = self._KEYCRE.sub(replace, value)
-                value = value % vars
-            except KeyError as e:
-                raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
-            else:
-                break
-            break
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -564,8 +565,8 @@ class RawConfigParser(MutableMapping):
     def read(self, filenames, encoding=None):
         if isinstance(filenames, str):
             filenames = [filenames]
+        read_ok = []
         for filename in filenames:
-            read_ok = []
             try:
                 with filename(encoding, 'encoding') as fp:
                     self._read(fp, filename)
@@ -588,8 +589,8 @@ class RawConfigParser(MutableMapping):
         self.read_file(sfile, source)
 
     def read_dict(self, dictionary, source='<dict>'):
+        elements_added = set()
         for section, keys in dictionary.items():
-            elements_added = set()
             if self._strict and section in elements_added:
                 pass
             try:
@@ -785,14 +786,14 @@ class RawConfigParser(MutableMapping):
         optname = None
         lineno = 0
         indent_level = 0
+        e = None
         for lineno, line in fp(1, 'start'):
-            e = None
             comment_start = sys.maxsize
+            inline_prefixes = {-1: p for p in self._inline_comment_prefixes}
             while comment_start == sys.maxsize:
-                inline_prefixes = {-1: p for p in self._inline_comment_prefixes}
                 if inline_prefixes:
+                    next_prefixes = {}
                     for prefix, index in inline_prefixes.items():
-                        next_prefixes = {}
                         index = line.find(prefix, index + 1)
                         if index == -1:
                             continue
@@ -871,8 +872,8 @@ class RawConfigParser(MutableMapping):
 
     def _join_multiline_values(self):
         defaults = self.default_section, self._defaults
+        all_sections = itertools.chain((defaults,), self._sections.items())
         for section, options in all_sections:
-            all_sections = itertools.chain((defaults,), self._sections.items())
             for name, val in options.items():
                 if isinstance(val, list):
                     val = '\n'.join(val).rstrip()

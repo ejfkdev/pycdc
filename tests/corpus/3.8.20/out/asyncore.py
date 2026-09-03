@@ -396,7 +396,7 @@ class dispatcher:
     def handle_accept(self):
         pair = self.accept()
         if pair is not None:
-            self.handle_accepted(*pair)
+            self.handle_accepted(pair)
 
     def handle_accepted(self, sock, addr):
         sock.close()
@@ -471,10 +471,10 @@ if os.name == 'posix':
             self.close()
 
         def recv(self, *args):
-            return os.read(**(self.fd,), *args)
+            return os.read(self.fd, *args)
 
         def send(self, *args):
-            return os.write(**(self.fd,), *args)
+            return os.write(self.fd, *args)
 
         def getsockopt(self, level, optname, buflen=None):
             if level == socket.SOL_SOCKET and optname == socket.SO_ERROR:

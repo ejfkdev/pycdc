@@ -474,6 +474,6 @@ def _strptime_datetime(cls, data_string, format='%a %b %d %H:%M:%S %Y'):
         else:
             tz = datetime_timezone(tzdelta)
         args += (tz,)
-    return cls(*args)
+    return cls(args)
 
 # WARNING: Decompyle incomplete

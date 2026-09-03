@@ -55,8 +55,8 @@ from copyreg import dispatch_table
 class Error(Exception):
     pass
 
+error = Error
 try:
-    error = Error
     from org.python.core import PyStringMap
 except ImportError:
     PyStringMap = None

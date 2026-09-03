@@ -43,8 +43,8 @@ async_generator = type(_ag)
 del _ag
 
 def _check_methods(C, *methods):
+    mro = C.__mro__
     for method in methods:
-        mro = C.__mro__
         for B in mro:
             if method in B.__dict__:
                 pass
@@ -632,18 +632,19 @@ class Sequence(Reversible, Collection):
             start = max(len(self) + start, 0)
         if stop is not None and stop < 0:
             stop += len(self)
-        while not stop is None:
-            i = start
-            if i < stop:
-                try:
-                    v = self[i]
-                    if not v is value:
-                        if v == value:
-                            return i
-                except IndexError:
-                    break
-                i += 1
-                continue
+        i = start
+        while True:
+            if not stop is None:
+                if i < stop:
+                    try:
+                        v = self[i]
+                        if not v is value:
+                            if v == value:
+                                return i
+                    except IndexError:
+                        break
+                    i += 1
+                    continue
         raise ValueError
 
     def count(self, value):
@@ -691,8 +692,8 @@ class MutableSequence(Sequence):
             pass
 
     def reverse(self):
+        n = len(self)
         for i in range(n // 2):
-            n = len(self)
             self[i] = self[n - i - 1]
             self[n - i - 1] = self[i]
             continue

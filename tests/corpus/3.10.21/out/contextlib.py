@@ -56,7 +56,7 @@ class ContextDecorator(object):
         def inner(*args, **kwds):
             with self._recreate_cm():
                 pass
-            func(*args, **{**kwds})(None, None, None)
+            func(args, **kwds)(None, None, None)
 
         return inner
 
@@ -72,7 +72,7 @@ class AsyncContextDecorator(object):
         async def inner(*args, **kwds):
             async with self._recreate_cm():
                 pass
-            await (await func(*args, **{**kwds}))(None, None, None)
+            await (await func(args, **kwds))(None, None, None)
 
         return inner
 
@@ -81,7 +81,7 @@ class _GeneratorContextManagerBase:
     '''Shared functionality for @contextmanager and @asynccontextmanager.'''
 
     def __init__(self, func, args, kwds):
-        self.gen = func(*args, **{**kwds})
+        self.gen = func(args, **kwds)
         self.func = func
         self.args = args
         self.kwds = kwds
@@ -337,7 +337,7 @@ class _BaseExitStack:
     @staticmethod
     def _create_cb_wrapper(callback, /, *args, **kwds):
         def _exit_wrapper(exc_type, exc, tb):
-            callback(*args, **{**kwds})
+            callback(args, **kwds)
 
         return _exit_wrapper
 
@@ -368,7 +368,7 @@ class _BaseExitStack:
         return result
 
     def callback(self, callback, /, *args, **kwds):
-        _exit_wrapper = self._create_cb_wrapper(*callback, *args, **{**kwds})
+        _exit_wrapper = self._create_cb_wrapper(callback, *args, **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper)
         return callback
@@ -452,7 +452,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
     @staticmethod
     def _create_async_cb_wrapper(callback, /, *args, **kwds):
         async def _exit_wrapper(exc_type, exc, tb):
-            await callback(*args, **{**kwds})
+            await callback(args, **kwds)
 
         return _exit_wrapper
 
@@ -474,7 +474,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         return exit
 
     def push_async_callback(self, callback, /, *args, **kwds):
-        _exit_wrapper = self._create_async_cb_wrapper(*callback, *args, **{**kwds})
+        _exit_wrapper = self._create_async_cb_wrapper(callback, *args, **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper, False)
         return callback

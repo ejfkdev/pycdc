@@ -445,8 +445,8 @@ def _new(cls, *args, **kwargs):
         if pos < len(args):
             raise TypeError(f'{cls.__name__} got multiple values for argument {key!r}')
     if cls in _const_types:
-        return Constant(*args, **{**kwargs})
-    return Constant.__new__(*cls, *args, **{**kwargs})
+        return Constant(args, **kwargs)
+    return Constant.__new__(cls, *args, **kwargs)
 
 Num = None(/* <function Num> */None, 'Num', Constant, _ABC, metaclass=__build_class__)
 Str = None(/* <function Str> */None, 'Str', Constant, _ABC, metaclass=__build_class__)
@@ -471,7 +471,7 @@ class ExtSlice(slice):
     '''Deprecated AST node class. Use ast.Tuple instead.'''
 
     def __new__(cls, dims=(), **kwargs):
-        return Tuple(*list(dims), Load(), **{**kwargs})
+        return Tuple(list(dims), Load(), **kwargs)
 
 
 if not hasattr(Tuple, 'dims'):
@@ -1122,7 +1122,7 @@ class _Unparser(NodeVisitor):
         self(_Precedence.TUPLE, node.target)
         self.traverse(node.target)
         self.write(' in ')
-        self.set_precedence(*_Precedence.TEST.next(), node.iter, *node.ifs)
+        self.set_precedence(_Precedence.TEST.next(), node.iter, *node.ifs)
         self.traverse(node.iter)
         for if_clause in node.ifs:
             self.write(' if ')
@@ -1214,7 +1214,7 @@ class _Unparser(NodeVisitor):
     cmpops = {'Eq': '==', 'NotEq': '!=', 'Lt': '<', 'LtE': '<=', 'Gt': '>', 'GtE': '>=', 'Is': 'is', 'IsNot': 'is not', 'In': 'in', 'NotIn': 'not in'}
     def visit_Compare(self, node):
         with self(_Precedence.CMP, node):
-            self.set_precedence(*_Precedence.CMP.next(), node.left, *node.comparators)
+            self.set_precedence(_Precedence.CMP.next(), node.left, *node.comparators)
             self.traverse(node.left)
             for o, e in zip(node.ops, node.comparators):
                 self.write(' ' + self.cmpops[o.__class__.__name__] + ' ')

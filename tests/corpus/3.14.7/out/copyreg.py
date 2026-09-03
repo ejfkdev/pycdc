@@ -70,8 +70,8 @@ def _reduce_ex(self, proto):
         if base is cls:
             raise TypeError(f'cannot pickle {cls.__name__!r} object')
         state = base(self)
+    args = cls, base, state
     try:
-        args = cls, base, state
         getstate = self.__getstate__
     except AttributeError:
         if getattr(self, '__slots__', None):
@@ -85,10 +85,10 @@ def _reduce_ex(self, proto):
     return _reconstructor, args
 
 def __newobj__(cls, *args):
-    return cls.__new__(*[cls, *args])
+    return cls.__new__([cls, *args])
 
 def __newobj_ex__(cls, args, kwargs):
-    return [cls, *args](*{**kwargs})
+    return [cls, *args]({**kwargs})
 
 def _slotnames(cls):
     names = cls.__dict__.get('__slotnames__')

@@ -81,8 +81,56 @@ def sig2(code, out):
             sig2(c, out)
 
 
+def sig3_manual(code, out):
+    # Python 3.0-3.3: no dis.get_instructions; walk co_code by hand
+    import opcode
+    out.append((code.co_name, code.co_argcount))
+    bc = code.co_code
+    n = len(bc)
+    bounds = []
+    i = 0
+    while i < n:
+        op = bc[i] if not isinstance(bc, str) else ord(bc[i])
+        start = i
+        i += 1
+        if op >= opcode.HAVE_ARGUMENT:
+            i += 2
+        bounds.append((start, i, op))
+    off2idx = dict((b[0], k) for k, b in enumerate(bounds))
+    for k, (start, end, op) in enumerate(bounds):
+        name = opcode.opname[op]
+        if op >= opcode.HAVE_ARGUMENT:
+            arg = (bc[start + 1] if not isinstance(bc, str) else ord(bc[start + 1])) +                   (bc[start + 2] if not isinstance(bc, str) else ord(bc[start + 2])) * 256
+            if op in opcode.hasjrel:
+                tgt = end + arg
+                r = "#%s" % off2idx.get(tgt, "?")
+            elif op in opcode.hasjabs:
+                r = "#%s" % off2idx.get(arg, "?")
+            elif op in opcode.hasconst:
+                try:
+                    r = repr(code.co_consts[arg])[:60]
+                except Exception:
+                    r = "<const>"
+            elif op in opcode.hasname:
+                r = str(code.co_names[arg])
+            elif op in opcode.haslocal:
+                r = str(code.co_varnames[arg])
+            elif op in opcode.hasfree:
+                r = str((code.co_cellvars + code.co_freevars)[arg])
+            else:
+                r = str(arg)
+            out.append((name, r))
+        else:
+            out.append((name, ""))
+    for c in code.co_consts:
+        if isinstance(c, types.CodeType):
+            sig3_manual(c, out)
+
+
 def sig3(code, out):
     import dis
+    if not hasattr(dis, "get_instructions"):
+        return sig3_manual(code, out)
     out.append((code.co_name, code.co_argcount))
     insts = list(dis.get_instructions(code))
     off2idx = {}

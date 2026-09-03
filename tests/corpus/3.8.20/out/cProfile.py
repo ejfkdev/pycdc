@@ -61,18 +61,18 @@ class Profile(_lsprof.Profiler):
                         callers = callersdicts[id(subentry.code)]
                     except KeyError:
                         pass
-            nc = subentry.callcount
-            cc = nc - subentry.reccallcount
-            tt = subentry.inlinetime
-            ct = subentry.totaltime
-            if func in callers:
-                prev = callers[func]
-                nc += prev[0]
-                cc += prev[1]
-                tt += prev[2]
-                ct += prev[3]
-            callers[func] = nc, cc, tt, ct
-            continue
+                nc = subentry.callcount
+                cc = nc - subentry.reccallcount
+                tt = subentry.inlinetime
+                ct = subentry.totaltime
+                if func in callers:
+                    prev = callers[func]
+                    nc += prev[0]
+                    cc += prev[1]
+                    tt += prev[2]
+                    ct += prev[3]
+                callers[func] = nc, cc, tt, ct
+                continue
 
     def run(self, cmd):
         import __main__
@@ -97,7 +97,7 @@ class Profile(_lsprof.Profiler):
         else:
             raise TypeError('runcall expected at least 1 positional argument, got %d' % (len(args) - 1))
         self.enable()
-        return func(*args, **kw)
+        return func(args, **kw)
         self.disable()
 
     runcall.__text_signature__ = '($self, func, /, *args, **kw)'

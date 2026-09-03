@@ -38,8 +38,8 @@ class fifo(()):
     pass
 
 def find_prefix_at_end(haystack, needle):
+    l = len(needle) - 1
     while l:
-        l = len(needle) - 1
         if not haystack.endswith(needle[:l]):
             l -= 1
             continue

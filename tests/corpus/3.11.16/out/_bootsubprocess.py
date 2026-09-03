@@ -58,15 +58,16 @@ def check_output(cmd, **kwargs):
     tmp_filename = 'check_output.tmp'
     if not isinstance(cmd, str):
         cmd = ' '.join(cmd)
+    cmd = f'{cmd} >{tmp_filename}'
     # WARNING: unrecovered try/except structure
-        cmd = f'{cmd} >{tmp_filename}'
         status = os.system(cmd)
         exitcode = os.waitstatus_to_exitcode(status)
         if exitcode:
             raise ValueError(f'Command {cmd!r} returned non-zero exit status {exitcode!r}')
     with open(tmp_filename, 'rb') as fp:
+        stdout = fp.read()
         try:
-            stdout = fp.read()
+            pass
         except FileNotFoundError:
             stdout = b''
 

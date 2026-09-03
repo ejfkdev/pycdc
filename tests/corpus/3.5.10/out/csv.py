@@ -187,8 +187,8 @@ class Sniffer:
         return dialect
 
     def _guess_quote_and_delimiter(self, data, delimiters):
+        matches = []
         for restr in ('(?P<delim>[^\\w\n"\'])(?P<space> ?)(?P<quote>["\']).*?(?P=quote)(?P=delim)', '(?:^|\n)(?P<quote>["\']).*?(?P=quote)(?P<delim>[^\\w\n"\'])(?P<space> ?)', '(?P<delim>>[^\\w\n"\'])(?P<space> ?)(?P<quote>["\']).*?(?P=quote)(?:$|\n)', '(?:^|\n)(?P<quote>["\']).*?(?P=quote)(?:$|\n)'):
-            matches = []
             regexp = re.compile(restr, re.DOTALL | re.MULTILINE)
             matches = regexp.findall(data)
             if matches:
@@ -200,8 +200,8 @@ class Sniffer:
         quotes = {}
         delims = {}
         spaces = 0
+        groupindex = regexp.groupindex
         for m in matches:
-            groupindex = regexp.groupindex
             n = groupindex['quote'] - 1
             key = m[n]
             if key:
@@ -246,8 +246,8 @@ class Sniffer:
         charFrequency = {}
         modes = {}
         delims = {}
+        start, end = 0, min(chunkLength, len(data))
         while start < len(data):
-            start, end = 0, min(chunkLength, len(data))
             iteration += 1
             for line in data[start:end]:
                 for char in ascii:
@@ -271,8 +271,8 @@ class Sniffer:
             modeList = modes.items()
             total = float(chunkLength * iteration)
             consistency = 1.0
+            threshold = 0.9
             while len(delims) == 0:
-                threshold = 0.9
                 if consistency >= threshold:
                     for k, v in modeList:
                         if v[0] > 0:
@@ -313,12 +313,12 @@ class Sniffer:
         rdr = reader(StringIO(sample), self.sniff(sample))
         header = next(rdr)
         columns = len(header)
+        columnTypes = {}
         for i in range(columns):
-            columnTypes = {}
             columnTypes[i] = None
             continue
+        checked = 0
         for row in rdr:
-            checked = 0
             if checked > 20:
                 break
             checked += 1
@@ -343,8 +343,8 @@ class Sniffer:
                 del columnTypes[col]
                 continue
             continue
+        hasHeader = 0
         for col, colType in columnTypes.items():
-            hasHeader = 0
             if type(colType) == type(0):
                 if len(header[col]) != colType:
                     hasHeader += 1

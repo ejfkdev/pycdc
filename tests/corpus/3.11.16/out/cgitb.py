@@ -237,11 +237,11 @@ class Hook:
         if self.format == 'html':
             pass
         formatter = html or text
+        plain = False
         try:
-            plain = False
             doc = formatter(info, self.context)
         finally:
-            doc = ''.join(traceback.format_exception(*info))
+            doc = ''.join(traceback.format_exception(info))
             plain = True
             if self.display:
                 if plain:

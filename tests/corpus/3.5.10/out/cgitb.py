@@ -67,8 +67,8 @@ def lookup(name, frame, locals):
     return None, __UNDEF__
 
 def scanvars(reader, frame, locals):
+    vars, lasttoken, parent, prefix, value = [], None, None, '', __UNDEF__
     for ttype, token, start, end, line in tokenize.generate_tokens(reader):
-        vars, lasttoken, parent, prefix, value = [], None, None, '', __UNDEF__
         if ttype == tokenize.NEWLINE:
             break
         if ttype == tokenize.NAME and token not in keyword.kwlist:
@@ -97,8 +97,8 @@ def html(einfo, context=5):
     head = '<body bgcolor="#f0f0f8">' + pydoc.html.heading('<big><big>%s</big></big>' % strong(pydoc.html.escape(str(etype))), '#ffffff', '#6622aa', pyver + '<br>' + date) + '\n<p>A problem occurred in a Python script.  Here is the sequence of\nfunction calls leading up to the error, in the order they occurred.</p>'
     indent = '<tt>' + small('&nbsp;' * 5) + '&nbsp;</tt>'
     frames = []
+    records = inspect.getinnerframes(etb, context)
     for frame, file, lnum, func, lines, index in records:
-        records = inspect.getinnerframes(etb, context)
         if file:
             file = os.path.abspath(file)
             link = '<a href="file://%s">%s</a>' % (file, pydoc.html.escape(file))
@@ -119,8 +119,8 @@ def html(einfo, context=5):
         vars = scanvars(reader, frame, locals)
         rows = ['<tr><td bgcolor="#d8bbff">%s%s %s</td></tr>' % ('<big>&nbsp;</big>', link, call)]
         if index is not None:
+            i = lnum - index
             for line in lines:
-                i = lnum - index
                 num = small('&nbsp;' * (5 - len(str(i))) + str(i)) + '&nbsp;'
                 if i in highlight:
                     line = '<tt>=&gt;%s%s</tt>' % (num, pydoc.html.preformat(line))
@@ -130,8 +130,8 @@ def html(einfo, context=5):
                     rows.append('<tr><td>%s</td></tr>' % grey(line))
                 i += 1
                 continue
+        done, dump = {}, []
         for name, where, value in vars:
-            done, dump = {}, []
             if name in done:
                 continue
             done[name] = 1
@@ -149,8 +149,8 @@ def html(einfo, context=5):
         rows.append('<tr><td>%s</td></tr>' % small(grey(', '.join(dump))))
         frames.append('\n<table width="100%%" cellspacing=0 cellpadding=0 border=0>\n%s</table>' % '\n'.join(rows))
         continue
+    exception = ['<p>%s: %s' % (strong(pydoc.html.escape(str(etype))), pydoc.html.escape(str(evalue)))]
     for name in dir(evalue):
-        exception = ['<p>%s: %s' % (strong(pydoc.html.escape(str(etype))), pydoc.html.escape(str(evalue)))]
         if name[:1] == '_':
             continue
         value = pydoc.html.repr(getattr(evalue, name))
@@ -166,8 +166,8 @@ def text(einfo, context=5):
     date = time.ctime(time.time())
     head = '%s\n%s\n%s\n' % (str(etype), pyver, date) + '\nA problem occurred in a Python script.  Here is the sequence of\nfunction calls leading up to the error, in the order they occurred.\n'
     frames = []
+    records = inspect.getinnerframes(etb, context)
     for frame, file, lnum, func, lines, index in records:
-        records = inspect.getinnerframes(etb, context)
         if file:
             pass
         file = os.path.abspath(file) or '?'
@@ -186,14 +186,14 @@ def text(einfo, context=5):
         vars = scanvars(reader, frame, locals)
         rows = [' %s %s' % (file, call)]
         if index is not None:
+            i = lnum - index
             for line in lines:
-                i = lnum - index
                 num = '%5d ' % i
                 rows.append(num + line.rstrip())
                 i += 1
                 continue
+        done, dump = {}, []
         for name, where, value in vars:
-            done, dump = {}, []
             if name in done:
                 continue
             done[name] = 1
@@ -209,8 +209,8 @@ def text(einfo, context=5):
         rows.append('\n'.join(dump))
         frames.append('\n%s\n' % '\n'.join(rows))
         continue
+    exception = ['%s: %s' % (str(etype), str(evalue))]
     for name in dir(evalue):
-        exception = ['%s: %s' % (str(etype), str(evalue))]
         value = pydoc.text.repr(getattr(evalue, name))
         exception.append('\n%s%s = %s' % ('    ', name, value))
         continue

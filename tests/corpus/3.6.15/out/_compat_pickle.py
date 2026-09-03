@@ -10,8 +10,8 @@ else:
 for excname in PYTHON2_EXCEPTIONS:
     NAME_MAPPING['exceptions', excname] = 'builtins', excname
     continue
+MULTIPROCESSING_EXCEPTIONS = ('AuthenticationError', 'BufferTooShort', 'ProcessError', 'TimeoutError')
 for excname in MULTIPROCESSING_EXCEPTIONS:
-    MULTIPROCESSING_EXCEPTIONS = ('AuthenticationError', 'BufferTooShort', 'ProcessError', 'TimeoutError')
     NAME_MAPPING['multiprocessing', excname] = 'multiprocessing.context', excname
     continue
 REVERSE_IMPORT_MAPPING = dict(((v, k) for k in IMPORT_MAPPING.items()))
@@ -24,12 +24,12 @@ IMPORT_MAPPING.update({'cPickle': 'pickle', '_elementtree': 'xml.etree.ElementTr
 REVERSE_IMPORT_MAPPING.update({'_bz2': 'bz2', '_dbm': 'dbm', '_functools': 'functools', '_gdbm': 'gdbm', '_pickle': 'pickle'})
 NAME_MAPPING.update({('__builtin__', 'basestring'): ('builtins', 'str'), ('exceptions', 'StandardError'): ('builtins', 'Exception'), ('UserDict', 'UserDict'): ('collections', 'UserDict'), ('socket', '_socketobject'): ('socket', 'SocketType')})
 REVERSE_NAME_MAPPING.update({('_functools', 'reduce'): ('__builtin__', 'reduce'), ('tkinter.filedialog', 'FileDialog'): ('FileDialog', 'FileDialog'), ('tkinter.filedialog', 'LoadFileDialog'): ('FileDialog', 'LoadFileDialog'), ('tkinter.filedialog', 'SaveFileDialog'): ('FileDialog', 'SaveFileDialog'), ('tkinter.simpledialog', 'SimpleDialog'): ('SimpleDialog', 'SimpleDialog'), ('xmlrpc.server', 'ServerHTMLDoc'): ('DocXMLRPCServer', 'ServerHTMLDoc'), ('xmlrpc.server', 'XMLRPCDocGenerator'): ('DocXMLRPCServer', 'XMLRPCDocGenerator'), ('xmlrpc.server', 'DocXMLRPCRequestHandler'): ('DocXMLRPCServer', 'DocXMLRPCRequestHandler'), ('xmlrpc.server', 'DocXMLRPCServer'): ('DocXMLRPCServer', 'DocXMLRPCServer'), ('xmlrpc.server', 'DocCGIXMLRPCRequestHandler'): ('DocXMLRPCServer', 'DocCGIXMLRPCRequestHandler'), ('http.server', 'SimpleHTTPRequestHandler'): ('SimpleHTTPServer', 'SimpleHTTPRequestHandler'), ('http.server', 'CGIHTTPRequestHandler'): ('CGIHTTPServer', 'CGIHTTPRequestHandler'), ('_socket', 'socket'): ('socket', '_socketobject')})
+PYTHON3_OSERROR_EXCEPTIONS = ('BrokenPipeError', 'ChildProcessError', 'ConnectionAbortedError', 'ConnectionError', 'ConnectionRefusedError', 'ConnectionResetError', 'FileExistsError', 'FileNotFoundError', 'InterruptedError', 'IsADirectoryError', 'NotADirectoryError', 'PermissionError', 'ProcessLookupError', 'TimeoutError')
 for excname in PYTHON3_OSERROR_EXCEPTIONS:
-    PYTHON3_OSERROR_EXCEPTIONS = ('BrokenPipeError', 'ChildProcessError', 'ConnectionAbortedError', 'ConnectionError', 'ConnectionRefusedError', 'ConnectionResetError', 'FileExistsError', 'FileNotFoundError', 'InterruptedError', 'IsADirectoryError', 'NotADirectoryError', 'PermissionError', 'ProcessLookupError', 'TimeoutError')
     REVERSE_NAME_MAPPING['builtins', excname] = ('exceptions', 'OSError')
     continue
+PYTHON3_IMPORTERROR_EXCEPTIONS = ('ModuleNotFoundError',)
 for excname in PYTHON3_IMPORTERROR_EXCEPTIONS:
-    PYTHON3_IMPORTERROR_EXCEPTIONS = ('ModuleNotFoundError',)
     REVERSE_NAME_MAPPING['builtins', excname] = ('exceptions', 'ImportError')
     continue
 # WARNING: Decompyle incomplete

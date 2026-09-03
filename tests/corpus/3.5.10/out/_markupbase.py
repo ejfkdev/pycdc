@@ -129,8 +129,8 @@ class ParserBase:
     def _parse_doctype_subset(self, i, declstartpos):
         rawdata = self.rawdata
         n = len(rawdata)
+        j = i
         while j < n:
-            j = i
             c = rawdata[j]
             if c == '<':
                 s = rawdata[j:j + 2]
@@ -168,8 +168,8 @@ class ParserBase:
                     j = j + 1
                     continue
             if c == ']':
+                j = j + 1
                 while j < n:
-                    j = j + 1
                     if rawdata[j].isspace():
                         j = j + 1
                         continue
@@ -203,9 +203,10 @@ class ParserBase:
             return -1
         if c == '>':
             return j + 1
-        while j < 0:
+        while True:
             name, j = self._scan_name(j, declstartpos)
-            return j
+            if j < 0:
+                return j
             c = rawdata[j:j + 1]
             if c == '':
                 return -1
@@ -246,10 +247,11 @@ class ParserBase:
         name, j = self._scan_name(i, declstartpos)
         if j < 0:
             return j
-        while not c:
-            rawdata = self.rawdata
+        rawdata = self.rawdata
+        while True:
             c = rawdata[j:j + 1]
-            return -1
+            if not c:
+                return -1
             if c == '>':
                 return j + 1
             if c in '\'"':
@@ -264,10 +266,11 @@ class ParserBase:
     def _parse_doctype_entity(self, i, declstartpos):
         rawdata = self.rawdata
         if rawdata[i:i + 1] == '%':
-            while not c:
-                j = i + 1
+            j = i + 1
+            while True:
                 c = rawdata[j:j + 1]
-                return -1
+                if not c:
+                    return -1
                 if c.isspace():
                     j = j + 1
                     continue
@@ -277,9 +280,10 @@ class ParserBase:
         name, j = self._scan_name(j, declstartpos)
         if j < 0:
             return j
-        while not c:
+        while True:
             c = self.rawdata[j:j + 1]
-            return -1
+            if not c:
+                return -1
             if c in '\'"':
                 m = _declstringlit_match(rawdata, j)
                 if m:

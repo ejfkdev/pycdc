@@ -30,10 +30,11 @@ def test(fn=None):
     p.setoutrate(af.getframerate())
     p.setsampwidth(af.getsampwidth())
     p.setnchannels(af.getnchannels())
-    while not data:
-        BUFSIZ = af.getframerate() / af.getsampwidth() / af.getnchannels()
+    BUFSIZ = af.getframerate() / af.getsampwidth() / af.getnchannels()
+    while True:
         data = af.readframes(BUFSIZ)
-        break
+        if not data:
+            break
         print len(data)
         p.writeframes(data)
     p.wait()

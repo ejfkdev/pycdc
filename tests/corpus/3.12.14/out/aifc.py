@@ -311,8 +311,8 @@ with warnings.catch_warnings():
 
         def __init__(self, f):
             if isinstance(f, str):
+                file_object = builtins.open(f, 'rb')
                 try:
-                    file_object = builtins.open(f, 'rb')
                     self.initfp(file_object)
                 finally:
                     file_object.close()
@@ -469,8 +469,8 @@ with warnings.catch_warnings():
             self._compname = b'not compressed'
 
         def _readmark(self, chunk):
+            nmarkers = _read_short(chunk)
             try:
-                nmarkers = _read_short(chunk)
                 for i in range(nmarkers):
                     id = _read_short(chunk)
                     pos = _read_long(chunk)
@@ -485,8 +485,8 @@ with warnings.catch_warnings():
         _file = None
         def __init__(self, f):
             if isinstance(f, str):
+                file_object = builtins.open(f, 'wb')
                 try:
-                    file_object = builtins.open(f, 'wb')
                     self.initfp(file_object)
                 finally:
                     if f.endswith('.aiff'):

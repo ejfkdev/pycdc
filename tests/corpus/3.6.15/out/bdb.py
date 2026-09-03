@@ -201,8 +201,8 @@ class Bdb:
         self._set_stopinfo(self.botframe, None, -1)
         if not self.breaks:
             sys.settrace(None)
+            frame = sys._getframe().f_back
             while frame:
-                frame = sys._getframe().f_back
                 if frame is not self.botframe:
                     del frame.f_trace
                     frame = frame.f_back
@@ -251,8 +251,8 @@ class Bdb:
         if filename not in self.breaks:
             return 'There are no breakpoints in %s' % filename
         for line in self.breaks[filename]:
+            blist = Breakpoint.bplist[filename, line]
             for bp in blist:
-                blist = Breakpoint.bplist[filename, line]
                 bp.deleteMe()
                 continue
             continue
@@ -306,14 +306,15 @@ class Bdb:
         stack = []
         if t and t.tb_frame is f:
             t = t.tb_next
-        while f is not None:
-            stack.append(f, f.f_lineno)
-            if f is self.botframe:
-                break
-            f = f.f_back
+        while True:
+            while f is not None:
+                stack.append(f, f.f_lineno)
+                if f is self.botframe:
+                    break
+                f = f.f_back
         stack.reverse()
+        i = max(0, len(stack) - 1)
         while t is not None:
-            i = max(0, len(stack) - 1)
             stack.append(t.tb_frame, t.tb_lineno)
             t = t.tb_next
         if f is None:
@@ -392,7 +393,7 @@ class Bdb:
         try:
             res = None
             try:
-                res = func(*args, **kwds)
+                res = func(args, **kwds)
             except BdbQuit:
                 pass
         finally:
@@ -497,8 +498,8 @@ def checkfuncname(b, frame):
     return True
 
 def effective(file, line, frame):
+    possibles = Breakpoint.bplist[file, line]
     for b in possibles:
-        possibles = Breakpoint.bplist[file, line]
         if not b.enabled:
             continue
         if not checkfuncname(b, frame):

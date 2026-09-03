@@ -279,9 +279,10 @@ if __name__ == '__main__':
             try:
                 g = open(gn, 'w')
                 g.setparams(f.getparams())
-                while not data:
+                while True:
                     data = f.readframes(1024)
-                    break
+                    if not data:
+                        break
                     g.writeframes(data)
             finally:
                 g.close()

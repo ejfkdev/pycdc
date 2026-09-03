@@ -34,7 +34,7 @@ def initlog(*allargs):
         log = nolog
     else:
         log = dolog
-    log(*allargs)
+    log(allargs)
 
 def dolog(fmt, *args):
     logfp.write(fmt % args + '\n')
@@ -117,8 +117,8 @@ def parse_multipart(fp, pdict, encoding='utf-8', errors='replace', separator='&'
 def _parseparam(s):
     while s[:1] == ';':
         s = s[1:]
+        end = s.find(';')
         while end > 0:
-            end = s.find(';')
             if (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
                 end = s.find(';', end + 1)
                 continue
@@ -131,8 +131,8 @@ def _parseparam(s):
 def parse_header(line):
     parts = _parseparam(';' + line)
     key = parts.__next__()
+    pdict = {}
     for p in parts:
-        pdict = {}
         i = p.find('=')
         if i >= 0:
             pass
@@ -337,8 +337,8 @@ class FieldStorage:
     def __getitem__(self, key):
         if self.list is None:
             raise TypeError('not indexable')
+        found = []
         for item in self.list:
-            found = []
             if item.name == key:
                 pass
             found.append(item)
@@ -427,14 +427,16 @@ class FieldStorage:
         max_num_fields = self.max_num_fields
         if max_num_fields is not None:
             max_num_fields -= len(self.list)
-        while not hdr_text:
+        while True:
             parser = FeedParser()
-            while not data.strip():
-                hdr_text = b''
+            hdr_text = b''
+            while True:
                 data = self.fp.readline()
                 hdr_text += data
-                break
             break
+            continue
+            if not hdr_text:
+                break
             self.bytes_read += len(hdr_text)
             parser.feed(hdr_text.decode(self.encoding, self.errors))
             headers = parser.close()
@@ -469,16 +471,17 @@ class FieldStorage:
         self.file = self.make_file()
         todo = self.length
         if todo >= 0:
-            while todo > 0:
-                data = self.fp(min(todo, self.bufsize))
-                if not isinstance(data, bytes):
-                    raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))
-                self.bytes_read += len(data)
-                if not data:
-                    self.done = -1
-                    break
-                self.file.write(data)
-                todo = todo - len(data)
+            while True:
+                while todo > 0:
+                    data = self.fp(min(todo, self.bufsize))
+                    if not isinstance(data, bytes):
+                        raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))
+                    self.bytes_read += len(data)
+                    if not data:
+                        self.done = -1
+                        break
+                    self.file.write(data)
+                    todo = todo - len(data)
 
     def read_lines(self):
         if self._binary_file:
@@ -504,11 +507,12 @@ class FieldStorage:
             self.file.write(line.decode(self.encoding, self.errors))
 
     def read_lines_to_eof(self):
-        while not line:
+        while True:
             line = self.fp.readline(65536)
             self.bytes_read += len(line)
-            self.done = -1
-            break
+            if not line:
+                self.done = -1
+                break
             self._FieldStorage__write(line)
 
     def read_lines_to_outerboundary(self):
@@ -516,11 +520,12 @@ class FieldStorage:
         last_boundary = next_boundary + b'--'
         delim = b''
         last_line_lfend = True
-        while self.limit is not None:
-            _read = 0
-            if 0 <= self.limit:
-                if self.limit <= _read:
-                    break
+        _read = 0
+        while True:
+            if self.limit is not None:
+                if 0 <= self.limit:
+                    if self.limit <= _read:
+                        break
             line = self.fp.readline(65536)
             self.bytes_read += len(line)
             _read += len(line)
@@ -560,12 +565,13 @@ class FieldStorage:
                 return
         next_boundary = b'--' + self.outerboundary
         last_boundary = next_boundary + b'--'
-        while not line:
-            last_line_lfend = True
+        last_line_lfend = True
+        while True:
             line = self.fp.readline(65536)
             self.bytes_read += len(line)
-            self.done = -1
-            break
+            if not line:
+                self.done = -1
+                break
             if line.endswith(b'--') and last_line_lfend and strippedline == last_boundary:
                 strippedline = line.strip()
                 if strippedline == next_boundary:

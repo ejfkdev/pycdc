@@ -1,4 +1,11 @@
 {
+ "2.6.9": {
+  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
+  "counts": {
+   "INCOMPLETE": 29,
+   "SIG-DIFF": 11
+  }
+ },
  "2.7.18": {
   "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
   "counts": {
@@ -19,18 +26,18 @@
  "3.11.16": {
   "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
   "counts": {
-   "SIG-DIFF": 32,
+   "SIG-DIFF": 31,
    "PASS": 3,
-   "SYNTAX-ERR": 5
+   "SYNTAX-ERR": 6
   }
  },
  "3.12.14": {
   "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
   "counts": {
-   "SIG-DIFF": 30,
+   "SIG-DIFF": 29,
    "PASS": 3,
    "INCOMPLETE": 5,
-   "SYNTAX-ERR": 2
+   "SYNTAX-ERR": 3
   }
  },
  "3.13.15": {
@@ -51,8 +58,34 @@
    "SYNTAX-ERR": 2
   }
  },
+ "3.3.7": {
+  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
+  "counts": {
+   "SIG-DIFF": 34,
+   "SYNTAX-ERR": 5,
+   "INCOMPLETE": 1
+  }
+ },
  "3.5.10": {
   "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
+  "counts": {
+   "SIG-DIFF": 30,
+   "INCOMPLETE": 2,
+   "SYNTAX-ERR": 5,
+   "PASS": 3
+  }
+ },
+ "3.6.15": {
+  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
+  "counts": {
+   "SIG-DIFF": 30,
+   "INCOMPLETE": 2,
+   "SYNTAX-ERR": 5,
+   "PASS": 3
+  }
+ },
+ "3.7.17": {
+  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
   "counts": {
    "SIG-DIFF": 29,
    "INCOMPLETE": 2,
@@ -60,30 +93,12 @@
    "PASS": 3
   }
  },
- "3.6.15": {
-  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
-  "counts": {
-   "SIG-DIFF": 25,
-   "INCOMPLETE": 2,
-   "SYNTAX-ERR": 10,
-   "PASS": 3
-  }
- },
- "3.7.17": {
-  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
-  "counts": {
-   "SIG-DIFF": 24,
-   "INCOMPLETE": 2,
-   "SYNTAX-ERR": 11,
-   "PASS": 3
-  }
- },
  "3.8.20": {
   "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
   "counts": {
-   "SIG-DIFF": 27,
+   "SIG-DIFF": 32,
    "INCOMPLETE": 3,
-   "SYNTAX-ERR": 7,
+   "SYNTAX-ERR": 2,
    "PASS": 3
   }
  },

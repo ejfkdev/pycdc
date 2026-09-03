@@ -634,10 +634,10 @@ class RawConfigParser(MutableMapping):
         return self._interpolation.before_get(self, section, option, value, d)
 
     def _get(self, section, conv, option, **kwargs):
-        return conv(self.get(*section, option, **{**kwargs}))
+        return conv(self.get(section, option, **kwargs))
 
     def _get_conv(self, section, option, conv, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get(*section, conv, option, **{'raw': raw, 'vars': vars, **kwargs})
+        return self._get(section, conv, option, **kwargs)
         return
         try:
             pass
@@ -647,13 +647,13 @@ class RawConfigParser(MutableMapping):
                 pass
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(*section, option, int, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
+        return self._get_conv(section, option, int, **kwargs)
 
     def getfloat(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(*section, option, float, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
+        return self._get_conv(section, option, float, **kwargs)
 
     def getboolean(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(*section, option, self._convert_to_boolean, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
+        return self._get_conv(section, option, self._convert_to_boolean, **kwargs)
 
     def items(self, section=_UNSET, raw=False, vars=None):
         if section is _UNSET:
@@ -942,7 +942,7 @@ class SafeConfigParser(ConfigParser):
     '''ConfigParser alias for backwards compatibility purposes.'''
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **{**kwargs})
+        super().__init__(args, **kwargs)
         None('The SafeConfigParser class has been renamed to ConfigParser in Python 3.2. This alias will be removed in Python 3.12. Use ConfigParser directly instead.', DeprecationWarning, 2, stacklevel=warnings.warn)
 
 
@@ -999,7 +999,7 @@ class SectionProxy(MutableMapping):
     def get(self, option, fallback=None, *, raw=False, vars=None, _impl=None, **kwargs):
         if not _impl:
             _impl = self._parser.get
-        return _impl(*self._name, option, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
+        return _impl(self._name, option, **kwargs)
 
 
 class ConverterMapping(MutableMapping):

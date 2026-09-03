@@ -55,11 +55,17 @@ def find_interpreters():
             if out.returncode != 0:
                 continue
             v = out.stdout.strip().splitlines()[-1]
-            # prefer the first found for each version; pyenv first (sorted above)
             found.setdefault(v, p)
         except Exception:
             continue
-    return found
+    # keep only the newest patch release per X.Y series
+    best = {}
+    for v, p in found.items():
+        parts = tuple(int(x) for x in v.split("."))
+        xy = parts[:2]
+        if xy not in best or parts > best[xy][0]:
+            best[xy] = (parts, v, p)
+    return {v: p for _, v, p in best.values()}
 
 
 def sig_of(interp, pyc_path):

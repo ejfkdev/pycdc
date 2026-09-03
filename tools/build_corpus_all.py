@@ -47,8 +47,15 @@ def main():
                 continue
         stdlib = stdlib_of(interp)
         if not stdlib or not os.path.isdir(stdlib):
-            print("skip %s: no stdlib dir (%s)" % (v, stdlib))
-            continue
+            # Python 2.6 has no sysconfig; fall back to prefix/lib/pythonX.Y
+            prefix = os.path.dirname(os.path.dirname(os.path.realpath(interp)))
+            guess = os.path.join(prefix, "lib",
+                                 "python" + v.rsplit(".", 1)[0])
+            if os.path.isdir(guess):
+                stdlib = guess
+            else:
+                print("skip %s: no stdlib dir (%s)" % (v, stdlib))
+                continue
         os.makedirs(outdir, exist_ok=True)
         print("=== building %s with %s (stdlib %s)" % (v, interp, stdlib))
         subprocess.run(

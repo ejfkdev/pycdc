@@ -401,8 +401,8 @@ def _new(cls, *args, **kwargs):
         if pos < len(args):
             raise TypeError(f'{cls.__name__} got multiple values for argument {key!r}')
     if cls in _const_types:
-        return Constant(*args, **kwargs)
-    return Constant.__new__(**(cls,), *args, **kwargs)
+        return Constant(args, **kwargs)
+    return Constant.__new__(cls, *args, **kwargs)
 
 Num = None(/* <function Num> */None, 'Num', Constant, _ABC, metaclass=__build_class__)
 Str = None(/* <function Str> */None, 'Str', Constant, _ABC, metaclass=__build_class__)

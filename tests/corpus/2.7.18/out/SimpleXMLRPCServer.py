@@ -122,8 +122,8 @@ def list_public_methods(obj):
     return [member for member in dir(obj) if member.startswith('_') if hasattr(getattr(obj, member), '__call__')]
 
 def remove_duplicates(lst):
+    u = {}
     for x in lst:
-        u = {}
         u[x] = 1
         continue
     return u.keys()

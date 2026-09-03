@@ -89,7 +89,7 @@ class DictReader:
         self._fieldnames = fieldnames
         self.restkey = restkey
         self.restval = restval
-        self.reader = reader(*f, dialect, *args, **{**kwds})
+        self.reader = reader(f, dialect, *args, **kwds)
         self.dialect = dialect
         self.line_num = 0
 
@@ -133,7 +133,7 @@ class DictWriter:
         if extrasaction.lower() not in ('raise', 'ignore'):
             raise ValueError("extrasaction (%s) must be 'raise' or 'ignore'" % extrasaction)
         self.extrasaction = extrasaction
-        self.writer = writer(*f, dialect, *args, **{**kwds})
+        self.writer = writer(f, dialect, *args, **kwds)
 
     def writeheader(self):
         header = dict(zip(self.fieldnames, self.fieldnames))

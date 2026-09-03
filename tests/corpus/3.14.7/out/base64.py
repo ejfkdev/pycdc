@@ -108,8 +108,8 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
     b32rev = _b32rev[alphabet]
     for i in range(0, len(s), 8):
         quanta = s[i:i + 8]
+        acc = 0
         try:
-            acc = 0
             for c in quanta:
                 acc = (acc << 5) + b32rev[c]
         except KeyError:
@@ -266,8 +266,8 @@ def b85decode(b):
     packI = struct.Struct('!I').pack
     for i in range(0, len(b), 5):
         chunk = b[i:i + 5]
+        acc = 0
         try:
-            acc = 0
             for c in chunk:
                 acc = acc * 85 + _b85dec[c]
         except TypeError:
@@ -295,8 +295,9 @@ def z85encode(s):
 
 def z85decode(s):
     s = _bytes_from_decode_data(s)
+    s = s.translate(_z85_decode_translation)
     try:
-        s = s.translate(_z85_decode_translation)
+        pass
     except ValueError:
         e = None
         raise ValueError(e.args[0].replace('base85', 'z85')) from None

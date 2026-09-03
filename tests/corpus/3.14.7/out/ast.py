@@ -475,7 +475,7 @@ class ExtSlice(slice):
     '''Deprecated AST node class. Use ast.Tuple instead.'''
 
     def __new__(cls, dims=(), **kwargs):
-        return (list(dims), Load())(*{**kwargs})
+        return (list(dims), Load())({**kwargs})
 
 
 if not hasattr(Tuple, 'dims'):

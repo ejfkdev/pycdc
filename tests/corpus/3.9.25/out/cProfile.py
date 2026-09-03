@@ -63,18 +63,18 @@ class Profile(_lsprof.Profiler):
                         callers = callersdicts[id(subentry.code)]
                     except KeyError:
                         pass
-            nc = subentry.callcount
-            cc = nc - subentry.reccallcount
-            tt = subentry.inlinetime
-            ct = subentry.totaltime
-            if func in callers:
-                prev = callers[func]
-                nc += prev[0]
-                cc += prev[1]
-                tt += prev[2]
-                ct += prev[3]
-            callers[func] = nc, cc, tt, ct
-            continue
+                nc = subentry.callcount
+                cc = nc - subentry.reccallcount
+                tt = subentry.inlinetime
+                ct = subentry.totaltime
+                if func in callers:
+                    prev = callers[func]
+                    nc += prev[0]
+                    cc += prev[1]
+                    tt += prev[2]
+                    ct += prev[3]
+                callers[func] = nc, cc, tt, ct
+                continue
 
     def run(self, cmd):
         import __main__
@@ -90,7 +90,7 @@ class Profile(_lsprof.Profiler):
     def runcall(self, func, /, *args, **kw):
         self.enable()
         self.disable()
-        return func(*args, **{**kw})
+        return func(args, **kw)
         self.disable()
 
     def __enter__(self):

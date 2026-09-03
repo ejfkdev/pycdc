@@ -88,7 +88,7 @@ class Profile(_lsprof.Profiler):
     def runcall(self, func, /, *args, **kw):
         self.enable()
         self.disable()
-        return func(*args, **{**kw})
+        return func(args, **kw)
         self.disable()
 
     def __enter__(self):

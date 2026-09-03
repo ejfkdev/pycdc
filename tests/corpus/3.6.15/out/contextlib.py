@@ -34,7 +34,7 @@ class ContextDecorator(object):
         @wraps(func)
         def inner(*args, **kwds):
             with self._recreate_cm():
-                return func(*args, **kwds)
+                return func(args, **kwds)
 
         return inner
 
@@ -43,7 +43,7 @@ class _GeneratorContextManager(ContextDecorator, AbstractContextManager):
     '''Helper for @contextmanager decorator.'''
 
     def __init__(self, func, args, kwds):
-        self.gen = func(*args, **kwds)
+        self.gen = func(args, **kwds)
         self.func = func
         self.args = args
         self.kwds = kwds
@@ -180,7 +180,7 @@ class ExitStack(AbstractContextManager):
 
     def _push_cm_exit(self, cm, cm_exit):
         def _exit_wrapper(*exc_details):
-            return cm_exit(**(cm,), *exc_details)
+            return cm_exit(cm, *exc_details)
 
         _exit_wrapper.__self__ = cm
         self.push(_exit_wrapper)
@@ -197,7 +197,7 @@ class ExitStack(AbstractContextManager):
 
     def callback(self, callback, *args, **kwds):
         def _exit_wrapper(exc_type, exc, tb):
-            callback(*args, **kwds)
+            callback(args, **kwds)
 
         _exit_wrapper.__wrapped__ = callback
         self.push(_exit_wrapper)
@@ -217,9 +217,10 @@ class ExitStack(AbstractContextManager):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            while exc_context is old_exc:
+            while True:
                 exc_context = new_exc.__context__
-                return
+                if exc_context is old_exc:
+                    return
                 if not exc_context is None:
                     if exc_context is frame_exc:
                         break
@@ -227,8 +228,9 @@ class ExitStack(AbstractContextManager):
             new_exc.__context__ = old_exc
 
         suppressed_exc = False
+        pending_raise = False
         while self._exit_callbacks:
-            pending_raise = False
+            pass
         new_exc_details = sys.exc_info()
         _fix_exception_context(new_exc_details[1], exc_details[1])
         pending_raise = True

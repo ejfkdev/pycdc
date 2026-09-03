@@ -37,8 +37,9 @@ class _Printer(object):
         data = None
         for filename in self._Printer__filenames:
             with open(filename, 'utf-8') as fp:
+                data = fp.read()
                 try:
-                    data = fp.read()
+                    pass
                 except OSError:
                     pass
 
@@ -51,8 +52,8 @@ class _Printer(object):
     def __call__(self):
         self._Printer__setup()
         prompt = 'Hit Return for more, or q (and Return) to quit: '
+        lineno = 0
         try:
-            lineno = 0
             for i in range(lineno, lineno + self.MAXLINES):
                 print(self._Printer__lines[i])
         except IndexError:
@@ -82,7 +83,7 @@ class _Helper(object):
 
     def __call__(self, *args, **kwds):
         import pydoc
-        return pydoc.help(*args, **{**kwds})
+        return pydoc.help(args, **kwds)
 
 
 # WARNING: Decompyle incomplete

@@ -139,8 +139,8 @@ def main():
             with io.open_code(progname) as fp:
                 code = compile(fp.read(), progname, 'exec')
                 spec = importlib.machinery.ModuleSpec(name='__main__', loader=None, origin=progname)
+                globs = {'__spec__': spec, '__file__': spec.origin, '__name__': spec.name, '__package__': None, '__cached__': None}
                 try:
-                    globs = {'__spec__': spec, '__file__': spec.origin, '__name__': spec.name, '__package__': None, '__cached__': None}
                     runctx(code, globs, None, options.outfile, options.sort)
                 except BrokenPipeError as exc:
                     sys.stdout = None

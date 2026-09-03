@@ -1,0 +1,235 @@
+'''RFC 3548: Base16, Base32, Base64 Data Encodings'''
+
+import re
+import struct
+import binascii
+__all__ = ['encode', 'decode', 'encodestring', 'decodestring', 'b64encode', 'b64decode', 'b32encode', 'b32decode', 'b16encode', 'b16decode', 'standard_b64encode', 'standard_b64decode', 'urlsafe_b64encode', 'urlsafe_b64decode']
+_[1] = []
+for _x in range(256):
+    pass
+del _[1]
+_translation = _[1]
+EMPTYSTRING = ''
+
+def _translate(s, altchars):
+    translation = _translation[:]
+    for k, v in altchars.items():
+        translation[ord(k)] = v
+        continue
+    return s.translate(''.join(translation))
+
+def b64encode(s, altchars=None):
+    encoded = binascii.b2a_base64(s)[:-1]
+    /* unsupported opcode: JUMP_IF_FALSE 36 @28 */
+    altchars is not None
+    return _translate(encoded, {'+': altchars[0], '/': altchars[1]})
+
+def b64decode(s, altchars=None):
+    /* unsupported opcode: JUMP_IF_FALSE 41 @9 */
+    altchars is not None
+    s = _translate(s, {altchars[0]: '+', altchars[1]: '/'})
+    /* unsupported opcode: JUMP_IF_FALSE 21 @84 */
+    None == binascii.Error
+    msg = None
+    raise TypeError(msg)
+
+def standard_b64encode(s):
+    return b64encode(s)
+
+def standard_b64decode(s):
+    return b64decode(s)
+
+def urlsafe_b64encode(s):
+    return b64encode(s, '-_')
+
+def urlsafe_b64decode(s):
+    return b64decode(s, '-_')
+
+_b32alphabet = {0: 'A', 9: 'J', 18: 'S', 27: '3', 1: 'B', 10: 'K', 19: 'T', 28: '4', 2: 'C', 11: 'L', 20: 'U', 29: '5', 3: 'D', 12: 'M', 21: 'V', 30: '6', 4: 'E', 13: 'N', 22: 'W', 31: '7', 5: 'F', 14: 'O', 23: 'X', 6: 'G', 15: 'P', 24: 'Y', 7: 'H', 16: 'Q', 25: 'Z', 8: 'I', 17: 'R', 26: '2'}
+_b32tab = _b32alphabet.items()
+_b32tab.sort()
+_[2] = []
+for k, v in _b32tab:
+    pass
+del _[2]
+_b32tab = _[2]
+_[3] = []
+for k, v in _b32alphabet.items():
+    pass
+del _[3]
+_b32rev = [](_[3])
+
+def b32encode(s):
+    parts = []
+    quanta, leftover = divmod(len(s), 5)
+    /* unsupported opcode: JUMP_IF_FALSE 32 @36 */
+    leftover
+    s += '\x00' * (5 - leftover)
+    quanta += 1
+    for i in range(quanta):
+        c1, c2, c3 = struct.unpack('!HHB', s[i * 5:(i + 1) * 5])
+        c2 += (c1 & 1) << 16
+        c3 += (c2 & 3) << 8
+        parts.extend([_b32tab[c1 >> 11], _b32tab[c1 >> 6 & 31], _b32tab[c1 >> 1 & 31], _b32tab[c2 >> 12], _b32tab[c2 >> 7 & 31], _b32tab[c2 >> 2 & 31], _b32tab[c3 >> 5], _b32tab[c3 & 31]])
+        continue
+    encoded = EMPTYSTRING.join(parts)
+    /* unsupported opcode: JUMP_IF_FALSE 13 @318 */
+    leftover == 1
+    return encoded[:-6] + '======'
+
+def b32decode(s, casefold=False, map01=None):
+    quanta, leftover = divmod(len(s), 8)
+    /* unsupported opcode: JUMP_IF_FALSE 16 @30 */
+    leftover
+    raise TypeError('Incorrect padding')
+    /* unsupported opcode: JUMP_IF_FALSE 33 @53 */
+    map01
+    s = _translate(s, {'0': 'O', '1': map01})
+    /* unsupported opcode: JUMP_IF_FALSE 16 @93 */
+    casefold
+    s = s.upper()
+    padchars = 0
+    mo = re.search('(?P<pad>[=]*)$', s)
+    /* unsupported opcode: JUMP_IF_FALSE 53 @140 */
+    mo
+    padchars = len(mo.group('pad'))
+    /* unsupported opcode: JUMP_IF_FALSE 15 @174 */
+    padchars > 0
+    s = s[:-padchars]
+    parts = []
+    acc = 0
+    shift = 35
+    for c in s:
+        val = _b32rev.get(c)
+        /* unsupported opcode: JUMP_IF_FALSE 16 @252 */
+        val is None
+        raise TypeError('Non-base32 digit found')
+        acc += _b32rev[c] << shift
+        shift -= 5
+        /* unsupported opcode: JUMP_IF_FALSE 42 @309 */
+        shift < 0
+        parts.append(binascii.unhexlify('%010x' % acc))
+        acc = 0
+        shift = 35
+        continue
+        continue
+    last = binascii.unhexlify('%010x' % acc)
+    /* unsupported opcode: JUMP_IF_FALSE 10 @387 */
+    padchars == 0
+    last = ''
+    /* unsupported opcode: JUMP_IF_FALSE 14 @410 */
+    padchars == 1
+    last = last[:-1]
+    /* unsupported opcode: JUMP_IF_FALSE 14 @437 */
+    padchars == 3
+    last = last[:-2]
+    /* unsupported opcode: JUMP_IF_FALSE 14 @464 */
+    padchars == 4
+    last = last[:-3]
+    /* unsupported opcode: JUMP_IF_FALSE 14 @491 */
+    padchars == 6
+    last = last[:-4]
+    raise TypeError('Incorrect padding')
+    parts.append(last)
+    return EMPTYSTRING.join(parts)
+
+def b16encode(s):
+    return binascii.hexlify(s).upper()
+
+def b16decode(s, casefold=False):
+    /* unsupported opcode: JUMP_IF_FALSE 16 @3 */
+    casefold
+    s = s.upper()
+    /* unsupported opcode: JUMP_IF_FALSE 16 @38 */
+    re.search('[^0-9A-F]', s)
+    raise TypeError('Non-base16 digit found')
+    return binascii.unhexlify(s)
+
+MAXLINESIZE = 76
+MAXBINSIZE = MAXLINESIZE // 4 * 3
+
+def encode(input, output):
+    while True:
+        /* unsupported opcode: JUMP_IF_FALSE 133 @6 */
+        True
+        s = input.read(MAXBINSIZE)
+        /* unsupported opcode: JUMP_IF_TRUE 5 @28 */
+        s
+        break
+        while True:
+            /* unsupported opcode: JUMP_IF_FALSE 51 @55 */
+            len(s) < MAXBINSIZE
+            ns = input.read(MAXBINSIZE - len(s))
+            /* unsupported opcode: JUMP_IF_TRUE 5 @87 */
+            ns
+            break
+            s += ns
+        line = binascii.b2a_base64(s)
+        output.write(line)
+
+def decode(input, output):
+    while True:
+        /* unsupported opcode: JUMP_IF_FALSE 56 @6 */
+        True
+        line = input.readline()
+        /* unsupported opcode: JUMP_IF_TRUE 5 @25 */
+        line
+        break
+        s = binascii.a2b_base64(line)
+        output.write(s)
+
+def encodestring(s):
+    pieces = []
+    for i in range(0, len(s), MAXBINSIZE):
+        chunk = s[i:i + MAXBINSIZE]
+        pieces.append(binascii.b2a_base64(chunk))
+        continue
+    return ''.join(pieces)
+
+def decodestring(s):
+    return binascii.a2b_base64(s)
+
+def test():
+    import sys
+    import getopt
+    /* unsupported opcode: JUMP_IF_FALSE 55 @72 */
+    None == getopt.error
+    msg = None
+    sys.stdout = sys.stderr
+    print msg
+    print "usage: %s [-d|-e|-u|-t] [file|-]\n        -d, -u: decode\n        -e: encode (default)\n        -t: encode and decode string 'Aladdin:open sesame'" % sys.argv[0]
+    sys.exit(2)
+    func = encode
+    for o, a in opts:
+        /* unsupported opcode: JUMP_IF_FALSE 10 @166 */
+        o == '-e'
+        func = encode
+        /* unsupported opcode: JUMP_IF_FALSE 10 @189 */
+        o == '-d'
+        func = decode
+        /* unsupported opcode: JUMP_IF_FALSE 10 @212 */
+        o == '-u'
+        func = decode
+        /* unsupported opcode: JUMP_IF_FALSE 12 @235 */
+        o == '-t'
+        test1()
+        return
+        continue
+    /* unsupported opcode: JUMP_IF_FALSE 50 @258 */
+    args
+    /* unsupported opcode: JUMP_IF_FALSE 33 @275 */
+    args[0] != '-'
+    func(open(args[0], 'rb'), sys.stdout)
+    func(sys.stdin, sys.stdout)
+
+def test1():
+    s0 = 'Aladdin:open sesame'
+    s1 = encodestring(s0)
+    s2 = decodestring(s1)
+    print s0, repr(s1), s2
+
+/* unsupported opcode: JUMP_IF_FALSE 11 @692 */
+__name__ == '__main__'
+test()
+dict
+# WARNING: Decompyle incomplete

@@ -9,7 +9,7 @@ class SystemLog(io.TextIOWrapper):
     def __init__(self, log_write, level, **kwargs):
         kwargs.setdefault('encoding', 'UTF-8')
         kwargs.setdefault('line_buffering', True)
-        super().__init__(*(LogStream(log_write, level),), **{**kwargs})
+        super().__init__(LogStream(log_write, level), **kwargs)
 
     def __repr__(self):
         return f'<SystemLog (level {self.buffer.level})>'

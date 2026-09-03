@@ -286,7 +286,7 @@ class ParsingError(Error):
         self.errors = []
         self.args = (source,)
         if args:
-            self.append(*args)
+            self.append(args)
             return
 
     def append(self, lineno, line):
@@ -422,8 +422,8 @@ is considered a user error and raises `InterpolationSyntaxError`.'''
                 if not m is not None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
                 var = parser.optionxform(m.group(1))
+                rest = rest[m.end():]
                 try:
-                    rest = rest[m.end():]
                     v = map[var]
                 except KeyError:
                     raise InterpolationMissingOptionError(option, section, rawval, var) from None
@@ -689,8 +689,8 @@ class RawConfigParser(MutableMapping):
         except NoSectionError:
             if fallback is _UNSET:
                 raise
+        option = self.optionxform(option)
         try:
-            option = self.optionxform(option)
             value = d[option]
         except KeyError:
             if fallback is _UNSET:
@@ -701,7 +701,7 @@ class RawConfigParser(MutableMapping):
         return self._interpolation.before_get(self, section, option, value, d)
 
     def _get(self, section, conv, option, **kwargs):
-        return conv((section, option)(*{**kwargs}))
+        return conv((section, option)({**kwargs}))
 
     def _get_conv(self, section, option, conv, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
         try:
@@ -709,23 +709,23 @@ class RawConfigParser(MutableMapping):
         except (NoSectionError, NoOptionError):
             if fallback is _UNSET:
                 raise
-        return (section, conv, option)(*{'raw': raw, 'vars': vars, **kwargs})
+        return (section, conv, option)({'raw': raw, 'vars': vars, **kwargs})
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return (section, option, int)(*{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
+        return (section, option, int)({'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
 
     def getfloat(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return (section, option, float)(*{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
+        return (section, option, float)({'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
 
     def getboolean(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return (section, option, self._convert_to_boolean)(*{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
+        return (section, option, self._convert_to_boolean)({'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
 
     def items(self, section=_UNSET, raw=False, vars=None):
         nonlocal d
         if section is _UNSET:
             return None()
+        d = self._defaults.copy()
         try:
-            d = self._defaults.copy()
             d.update(self._sections[section])
         except KeyError:
             if section != self.default_section:
@@ -950,8 +950,8 @@ class RawConfigParser(MutableMapping):
             self._defaults[self.optionxform(key)] = value
 
     def _unify_values(self, section, vars):
+        sectiondict = {}
         try:
-            sectiondict = {}
             sectiondict = self._sections[section]
         except KeyError:
             if section != self.default_section:
@@ -1071,7 +1071,7 @@ class SectionProxy(MutableMapping):
     def get(self, option, fallback=None, *, raw=False, vars=None, _impl=None, **kwargs):
         if not _impl:
             _impl = self._parser.get
-        return (self._name, option)(*{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
+        return (self._name, option)({'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
 
 
 class ConverterMapping(MutableMapping):

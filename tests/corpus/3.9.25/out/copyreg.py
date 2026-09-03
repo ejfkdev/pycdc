@@ -73,10 +73,10 @@ def _reduce_ex(self, proto):
     return _reconstructor, args
 
 def __newobj__(cls, *args):
-    return cls.__new__(*cls, *args)
+    return cls.__new__(cls, *args)
 
 def __newobj_ex__(cls, args, kwargs):
-    return cls.__new__(*cls, *args, **{**kwargs})
+    return cls.__new__(cls, *args, **kwargs)
 
 def _slotnames(cls):
     names = cls.__dict__.get('__slotnames__')
@@ -93,12 +93,12 @@ def _slotnames(cls):
             for name in slots:
                 if name in ('__dict__', '__weakref__'):
                     continue
-        if name.startswith('__'):
-            if not name.endswith('__'):
-                stripped = c.__name__.lstrip('_')
-                if stripped:
-                    names.append('_%s%s' % (stripped, name))
-                    continue
+            if name.startswith('__'):
+                if not name.endswith('__'):
+                    stripped = c.__name__.lstrip('_')
+                    if stripped:
+                        names.append('_%s%s' % (stripped, name))
+                        continue
         names.append(name)
         continue
         names.append(name)

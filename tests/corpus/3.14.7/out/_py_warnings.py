@@ -93,8 +93,8 @@ def _showwarnmsg_impl(msg):
     if not file is not None or file is not None:
         file = sys.stderr
         return
+    text = _wm._formatwarnmsg(msg)
     try:
-        text = _wm._formatwarnmsg(msg)
         file.write(text)
     except OSError:
         pass
@@ -283,8 +283,8 @@ def _getcategory(category):
         import builtins as m
         klass = category
     else:
+        module, _, klass = category.rpartition('.')
         try:
-            module, _, klass = category.rpartition('.')
             m = __import__(module, None, None, [klass])
         except ImportError:
             raise _wm._OptionError(f'invalid module name: {module!r}') from None
@@ -511,7 +511,7 @@ context.
             log = None
         None(None, None, None)
         if not self._filter is None:
-            self._module.simplefilter(*self._filter)
+            self._module.simplefilter(self._filter)
         return log
 
     def __exit__(self, *exc_info):
@@ -595,7 +595,7 @@ See PEP 702 for details.
                 if cls is arg:
                     _wm.warn(msg, category, stacklevel + 1)
                 if original_new is not object.__new__:
-                    return [cls, *args](*{**kwargs})
+                    return [cls, *args]({**kwargs})
                 if cls.__init__ is object.__init__:
                     if not args:
                         if kwargs:
@@ -610,12 +610,12 @@ See PEP 702 for details.
                 @functools.wraps(original_init_subclass)
                 def __init_subclass__(*args, **kwargs):
                     _wm.warn(msg, category, stacklevel + 1)
-                    return args(*{**kwargs})
+                    return args({**kwargs})
 
             else:
                 def __init_subclass__(cls, *args, **kwargs):
                     _wm.warn(msg, category, stacklevel + 1)
-                    return args(*{**kwargs})
+                    return args({**kwargs})
 
             arg.__init_subclass__ = classmethod(__init_subclass__)
             arg.__deprecated__ = msg
@@ -628,7 +628,7 @@ See PEP 702 for details.
             @functools.wraps(arg)
             def wrapper(*args, **kwargs):
                 _wm.warn(msg, category, stacklevel + 1)
-                return args(*{**kwargs})
+                return args({**kwargs})
 
             if inspect.iscoroutinefunction(arg):
                 wrapper = inspect.markcoroutinefunction(wrapper)

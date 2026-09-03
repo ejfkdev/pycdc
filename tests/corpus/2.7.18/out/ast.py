@@ -156,8 +156,8 @@ def get_docstring(node, clean=True):
 
 def walk(node):
     from collections import deque
+    todo = deque([node])
     while todo:
-        todo = deque([node])
         node = todo.popleft()
         todo.extend(iter_child_nodes(node))
         yield node

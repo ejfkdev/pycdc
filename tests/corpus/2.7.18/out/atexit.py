@@ -10,8 +10,9 @@ import sys
 _exithandlers = []
 
 def _run_exitfuncs():
+    exc_info = None
     while _exithandlers:
-        exc_info = None
+        pass
     import traceback
     print >>sys.stderr, sys.stderr
     traceback.print_exc()

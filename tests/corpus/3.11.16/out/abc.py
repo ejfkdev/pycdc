@@ -86,7 +86,7 @@ class ABCMeta(type):
         """
 
     def __new__(mcls, name, bases, namespace, /, **kwargs):
-        cls = super().__new__(*mcls, name, bases, namespace, **{**kwargs})
+        cls = super().__new__(mcls, name, bases, namespace, **kwargs)
         _abc_init(cls)
         return cls
 

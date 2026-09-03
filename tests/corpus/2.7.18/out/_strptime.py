@@ -82,8 +82,8 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
     week_of_year = -1
     week_of_year_start = -1
     weekday = julian = None
+    found_dict = found.groupdict()
     for group_key in found_dict.iterkeys():
-        found_dict = found.groupdict()
         if group_key == 'y':
             year = int(found_dict['y'])
             if year <= 68:

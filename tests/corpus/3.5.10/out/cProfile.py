@@ -42,8 +42,8 @@ class Profile(_lsprof.Profiler):
     def snapshot_stats(self):
         entries = self.getstats()
         self.stats = {}
+        callersdicts = {}
         for entry in entries:
-            callersdicts = {}
             func = label(entry.code)
             nc = entry.callcount
             cc = nc - entry.reccallcount
@@ -56,8 +56,8 @@ class Profile(_lsprof.Profiler):
         for entry in entries:
             if entry.calls:
                 pass
+            func = label(entry.code)
             for subentry in entry.calls:
-                func = label(entry.code)
                 try:
                     callers = callersdicts[id(subentry.code)]
                 except KeyError:

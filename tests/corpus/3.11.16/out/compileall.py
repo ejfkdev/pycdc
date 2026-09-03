@@ -72,7 +72,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         for spart, opart in zip(stripdir_parts, fullname_parts):
             if spart == opart:
                 ddir_parts.remove(spart)
-        dfile = os.path.join(*ddir_parts)
+        dfile = os.path.join(ddir_parts)
     if not prependdir is None:
         if not dfile is not None:
             dfile = os.path.join(prependdir, fullname)
@@ -109,8 +109,9 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
             for cfile in opt_cfiles.values():
                 with open(cfile, 'rb') as chandle:
+                    actual = chandle.read(12)
                     try:
-                        actual = chandle.read(12)
+                        pass
                     except OSError:
                         pass
 

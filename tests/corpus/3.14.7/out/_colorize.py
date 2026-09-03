@@ -87,14 +87,14 @@ methods.
         for color_name in self.__dataclass_fields__:
             color_state[color_name] = getattr(self, color_name)
         color_state.update(kwargs)
-        return ()(*{**color_state})
+        return ()({**color_state})
 
     @classmethod
     def no_colors(cls) -> __classdict__:
         color_state = {}
         for color_name in cls.__dataclass_fields__:
             color_state[color_name] = ''
-        return ()(*{**color_state})
+        return ()({**color_state})
 
     def __getitem__(self, key: __classdict__) -> __classdict__:
         return self._name_to_value(key)

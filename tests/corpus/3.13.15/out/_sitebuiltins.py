@@ -37,8 +37,9 @@ contributors and the copyright notice.'''
         data = None
         for filename in self._Printer__filenames:
             with open(filename, 'utf-8') as fp:
+                data = fp.read()
                 try:
-                    data = fp.read()
+                    pass
                 except OSError:
                     pass
                 if not data:
@@ -76,7 +77,7 @@ Calling help(thing) prints help for the python object 'thing'.
 
     def __call__(self, *args, **kwds):
         import pydoc
-        return pydoc.help(*args, **{**kwds})
+        return pydoc.help(args, **kwds)
 
 
 # WARNING: Decompyle incomplete

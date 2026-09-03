@@ -44,8 +44,8 @@ class WeakSet:
 
     def _commit_removals(self):
         pop = self._pending_removals.pop
+        discard = self.data.discard
         try:
-            discard = self.data.discard
             item = pop()
         except IndexError:
             pass

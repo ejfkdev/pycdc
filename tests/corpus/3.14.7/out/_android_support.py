@@ -23,7 +23,7 @@ class TextLogStream(io.TextIOWrapper):
             fileno = None
         kwargs.setdefault('encoding', 'UTF-8')
         kwargs.setdefault('errors', 'backslashreplace')
-        (BinaryLogStream(prio, tag, fileno),)(*{**kwargs})
+        (BinaryLogStream(prio, tag, fileno),)({**kwargs})
         self._lock = RLock()
         self._pending_bytes = []
         self._pending_bytes_count = 0

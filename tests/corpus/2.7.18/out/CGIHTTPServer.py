@@ -35,8 +35,8 @@ def _url_collapse_path(path):
     path, _, query = path.partition('?')
     path = urllib.unquote(path)
     path_parts = path.split('/')
+    head_parts = []
     for part in path_parts[:-1]:
-        head_parts = []
         if part == '..':
             head_parts.pop()
             continue

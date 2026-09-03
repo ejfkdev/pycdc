@@ -119,8 +119,8 @@ class InteractiveConsole(InteractiveInterpreter):
             self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
         elif banner:
             self.write('%s\n' % str(banner))
+        more = 0
         try:
-            more = 0
             if more:
                 prompt = sys.ps2
             else:

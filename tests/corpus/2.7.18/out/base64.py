@@ -9,8 +9,8 @@ _translation = [chr(_x) for _x in range(256)]
 EMPTYSTRING = ''
 
 def _translate(s, altchars):
+    translation = _translation[:]
     for k, v in altchars.items():
-        translation = _translation[:]
         translation[ord(k)] = v
         continue
     return s.translate(''.join(translation))
@@ -84,8 +84,8 @@ def b32decode(s, casefold=False, map01=None):
         s = s[:-padchars]
     parts = []
     acc = 0
+    shift = 35
     for c in s:
-        shift = 35
         val = _b32rev.get(c)
         if val is None:
             raise TypeError('Non-base32 digit found')
@@ -129,28 +129,32 @@ MAXBINSIZE = MAXLINESIZE // 4 * 3
 
 def encode(input, output):
     while True:
-        s = input.read(MAXBINSIZE)
-        if not s:
-            break
-        while len(s) < MAXBINSIZE:
-            ns = input.read(MAXBINSIZE - len(s))
-            if not ns:
+        while True:
+            s = input.read(MAXBINSIZE)
+            if not s:
                 break
-            s += ns
-        line = binascii.b2a_base64(s)
-        output.write(line)
+            while True:
+                if len(s) < MAXBINSIZE:
+                    ns = input.read(MAXBINSIZE - len(s))
+                    if not ns:
+                        break
+                    s += ns
+                    continue
+            line = binascii.b2a_base64(s)
+            output.write(line)
 
 def decode(input, output):
     while True:
-        line = input.readline()
-        if not line:
-            break
-        s = binascii.a2b_base64(line)
-        output.write(s)
+        while True:
+            line = input.readline()
+            if not line:
+                break
+            s = binascii.a2b_base64(line)
+            output.write(s)
 
 def encodestring(s):
+    pieces = []
     for i in range(0, len(s), MAXBINSIZE):
-        pieces = []
         chunk = s[i:i + MAXBINSIZE]
         pieces.append(binascii.b2a_base64(chunk))
         continue
@@ -162,8 +166,8 @@ def decodestring(s):
 def test():
     import sys
     import getopt
+    func = encode
     for o, a in opts:
-        func = encode
         if o == '-e':
             func = encode
             try:

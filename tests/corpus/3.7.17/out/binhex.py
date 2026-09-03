@@ -74,8 +74,8 @@ class _Hqxcoderengine:
         self._flush(0)
 
     def _flush(self, force):
+        first = 0
         while first <= len(self.hqxdata) - self.linelen:
-            first = 0
             last = first + self.linelen
             self.ofp.write(self.hqxdata[first:last] + b'\n')
             self.linelen = LINELEN
@@ -198,15 +198,17 @@ def binhex(inp, out):
     finfo = getfileinfo(inp)
     ofp = BinHex(finfo, out)
     with io.open(inp, 'rb') as ifp:
-        while not d:
+        while True:
             d = ifp.read(128000)
-            break
+            if not d:
+                break
             ofp.write(d)
     ofp.close_data()
-    while not d:
-        ifp = openrsrc(inp, 'rb')
+    ifp = openrsrc(inp, 'rb')
+    while True:
         d = ifp.read(128000)
-        break
+        if not d:
+            break
         ofp.write_rsrc(d)
     ofp.close()
     ifp.close()
@@ -220,21 +222,25 @@ class _Hqxdecoderengine:
 
     def read(self, totalwtd):
         decdata = b''
-        while wtd > 0:
-            wtd = totalwtd
-            if self.eof:
-                return decdata
-            wtd = (wtd + 2) // 3 * 4
-            while None == binascii.Incomplete:
+        wtd = totalwtd
+        while True:
+            while wtd > 0:
+                if self.eof:
+                    return decdata
+                wtd = (wtd + 2) // 3 * 4
                 data = self.ifp.read(wtd)
-                newdata = self.ifp.read(1)
-                if not newdata:
-                    raise Error('Premature EOF on binhex file')
-                data = data + newdata
-            decdata = decdata + decdatacur
-            wtd = totalwtd - len(decdata)
-        if not self.eof:
-            pass
+                while True:
+                    try:
+                        decdatacur, self.eof = binascii.a2b_hqx(data)
+                        break
+                    except binascii.Incomplete:
+                        pass
+                    newdata = self.ifp.read(1)
+                    if not newdata:
+                        raise Error('Premature EOF on binhex file')
+                    data = data + newdata
+                decdata = decdata + decdatacur
+                wtd = totalwtd - len(decdata)
         raise Error('Premature EOF on binhex file')
         return decdata
 
@@ -286,9 +292,10 @@ class HexBin:
     def __init__(self, ifp):
         if isinstance(ifp, str):
             ifp = io.open(ifp, 'rb')
-        while not ch:
+        while True:
             ch = ifp.read(1)
-            raise Error('No binhex data found')
+            if not ch:
+                raise Error('No binhex data found')
             if ch == b'\r':
                 continue
             if ch == b':':
@@ -335,8 +342,8 @@ class HexBin:
             n = min(n, self.dlen)
         else:
             n = self.dlen
+        rv = b''
         while len(rv) < n:
-            rv = b''
             rv = rv + self._read(n - len(rv))
         self.dlen = self.dlen - n
         return rv
@@ -380,18 +387,20 @@ def hexbin(inp, out):
     if not out:
         out = ifp.FName
     with io.open(out, 'wb') as ofp:
-        while not d:
+        while True:
             d = ifp.read(128000)
-            break
+            if not d:
+                break
             ofp.write(d)
     ifp.close_data()
     d = ifp.read_rsrc(128000)
     if d:
         ofp = openrsrc(out, 'wb')
         ofp.write(d)
-        while not d:
+        while True:
             d = ifp.read_rsrc(128000)
-            break
+            if not d:
+                break
             ofp.write(d)
         ofp.close()
     ifp.close()

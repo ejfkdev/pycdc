@@ -137,8 +137,8 @@ def _remove_unsupported_archs(_config_vars):
 
 def _override_all_archs(_config_vars):
     if 'ARCHFLAGS' in os.environ:
+        arch = os.environ['ARCHFLAGS']
         for cv in _UNIVERSAL_CONFIG_VARS:
-            arch = os.environ['ARCHFLAGS']
             if cv in _config_vars:
                 pass
             if '-arch' in _config_vars[cv]:
@@ -180,23 +180,25 @@ def compiler_fixup(compiler_so, cc_args):
         stripSysroot = '-isysroot' in cc_args
     if not stripArch:
         if 'ARCHFLAGS' in os.environ:
-            while True:
-                pass
             try:
                 index = compiler_so.index('-arch')
                 del compiler_so[index:index + 2]
             except ValueError:
                 break
+                while True:
+                    while True:
+                        pass
     if 'ARCHFLAGS' in os.environ and not stripArch:
         compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
     if stripSysroot:
-        while True:
-            pass
         try:
             index = compiler_so.index('-isysroot')
             del compiler_so[index:index + 2]
         except ValueError:
             break
+            while True:
+                while True:
+                    pass
     sysroot = None
     if '-isysroot' in cc_args:
         idx = cc_args.index('-isysroot')

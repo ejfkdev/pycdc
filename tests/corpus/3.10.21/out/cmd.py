@@ -198,7 +198,7 @@ class Cmd:
         return dir(self.__class__)
 
     def complete_help(self, *args):
-        commands = set(self.completenames(*args))
+        commands = set(self.completenames(args))
         topics = set((5[None] for a in self.get_names() if a.startswith('help_' + args[0])))
         return list(commands | topics)
 
@@ -298,9 +298,9 @@ class Cmd:
                 while not texts[-1]:
                     del texts[-1]
                     while texts:
-                        if texts[-1]:
-                            for col in range(len(texts)):
-                                texts[col] = texts[col].ljust(colwidths[col])
+                        pass
+            for col in range(len(texts)):
+                texts[col] = texts[col].ljust(colwidths[col])
             self.stdout.write('%s\n' % str('  '.join(texts)))
 
 

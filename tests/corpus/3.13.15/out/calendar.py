@@ -517,9 +517,9 @@ def main(args=None):
         optdict = dict(encoding=encoding, css=options.css)
         write = sys.stdout.buffer.write
         if not options.year is not None:
-            write(cal.formatyearpage(*(datetime.date.today().year,), **{**optdict}))
+            write(cal.formatyearpage(datetime.date.today().year, **optdict))
             return
-        write(cal.formatyearpage(*(options.year,), **{**optdict}))
+        write(cal.formatyearpage(options.year, **optdict))
         return
     if options.locale:
         cal = LocaleTextCalendar(locale=locale)
@@ -533,11 +533,11 @@ def main(args=None):
     if not options.month is None:
         _validate_month(options.month)
     if not options.year is not None:
-        result = cal.formatyear(*(datetime.date.today().year,), **{**optdict})
+        result = cal.formatyear(datetime.date.today().year, **optdict)
     if not options.month is not None:
-        result = cal.formatyear(*(options.year,), **{**optdict})
+        result = cal.formatyear(options.year, **optdict)
     else:
-        result = cal.formatmonth(*options.year, options.month, **{**optdict})
+        result = cal.formatmonth(options.year, options.month, **optdict)
     write = sys.stdout.write
     if options.encoding:
         result = result.encode(options.encoding)

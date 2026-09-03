@@ -462,20 +462,21 @@ class LegacyInterpolation(Interpolation):
     _KEYCRE = re.compile('%\\(([^)]*)\\)s|.')
     def before_get(self, parser, section, option, value, vars):
         rawval = value
-        while depth:
-            depth = MAX_INTERPOLATION_DEPTH
-            depth -= 1
-            if value and '%(' in value:
-                replace = None(self._interpolation_replace, parser, parser=functools.partial)
+        depth = MAX_INTERPOLATION_DEPTH
+        while True:
+            while depth:
+                depth -= 1
+                if value and '%(' in value:
+                    replace = None(self._interpolation_replace, parser, parser=functools.partial)
+                    break
+                try:
+                    value = self._KEYCRE.sub(replace, value)
+                    value = value % vars
+                except KeyError as e:
+                    raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
+                else:
+                    break
                 break
-            try:
-                value = self._KEYCRE.sub(replace, value)
-                value = value % vars
-            except KeyError as e:
-                raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
-            else:
-                break
-            break
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -563,8 +564,8 @@ class RawConfigParser(MutableMapping):
     def read(self, filenames, encoding=None):
         if isinstance(filenames, str, bytes, os.PathLike):
             filenames = [filenames]
+        read_ok = []
         for filename in filenames:
-            read_ok = []
             try:
                 with None(filename, encoding, encoding=open) as fp:
                     self._read(fp, filename)
@@ -589,8 +590,8 @@ class RawConfigParser(MutableMapping):
         self.read_file(sfile, source)
 
     def read_dict(self, dictionary, source='<dict>'):
+        elements_added = set()
         for section, keys in dictionary.items():
-            elements_added = set()
             if self._strict and section in elements_added:
                 pass
             try:
@@ -636,19 +637,19 @@ class RawConfigParser(MutableMapping):
         return self._interpolation.before_get(self, section, option, value, d)
 
     def _get(self, section, conv, option, **kwargs):
-        return conv(self.get(*section, option, **kwargs))
+        return conv(self.get(section, option, **kwargs))
 
     def _get_conv(self, section, option, conv, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
         pass
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(*section, option, int, ***{'raw': raw, 'vars': vars, 'fallback': fallback}, *kwargs)
+        return self._get_conv(section, option, int, ***{'raw': raw, 'vars': vars, 'fallback': fallback}, *kwargs)
 
     def getfloat(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(*section, option, float, ***{'raw': raw, 'vars': vars, 'fallback': fallback}, *kwargs)
+        return self._get_conv(section, option, float, ***{'raw': raw, 'vars': vars, 'fallback': fallback}, *kwargs)
 
     def getboolean(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(*section, option, self._convert_to_boolean, ***{'raw': raw, 'vars': vars, 'fallback': fallback}, *kwargs)
+        return self._get_conv(section, option, self._convert_to_boolean, ***{'raw': raw, 'vars': vars, 'fallback': fallback}, *kwargs)
 
     def items(self, section=_UNSET, raw=False, vars=None):
         if section is _UNSET:
@@ -781,14 +782,14 @@ class RawConfigParser(MutableMapping):
         optname = None
         lineno = 0
         indent_level = 0
+        e = None
         for lineno, line in None(fp, 1, start=enumerate):
-            e = None
             comment_start = sys.maxsize
+            inline_prefixes = {-1: p for p in self._inline_comment_prefixes}
             while comment_start == sys.maxsize:
-                inline_prefixes = {-1: p for p in self._inline_comment_prefixes}
                 if inline_prefixes:
+                    next_prefixes = {}
                     for prefix, index in inline_prefixes.items():
-                        next_prefixes = {}
                         index = line.find(prefix, index + 1)
                         if index == -1:
                             continue
@@ -867,8 +868,8 @@ class RawConfigParser(MutableMapping):
 
     def _join_multiline_values(self):
         defaults = self.default_section, self._defaults
+        all_sections = itertools.chain((defaults,), self._sections.items())
         for section, options in all_sections:
-            all_sections = itertools.chain((defaults,), self._sections.items())
             for name, val in options.items():
                 if isinstance(val, list):
                     val = '\n'.join(val).rstrip()
@@ -949,7 +950,7 @@ class SafeConfigParser(ConfigParser):
     '''ConfigParser alias for backwards compatibility purposes.'''
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(args, **kwargs)
         None('The SafeConfigParser class has been renamed to ConfigParser in Python 3.2. This alias will be removed in future versions. Use ConfigParser directly instead.', DeprecationWarning, 2, stacklevel=warnings.warn)
 
 
@@ -1007,7 +1008,7 @@ class SectionProxy(MutableMapping):
     def get(self, option, fallback=None, *, raw=False, vars=None, _impl=None, **kwargs):
         if not _impl:
             _impl = self._parser.get
-        return _impl(*self._name, option, ***{'raw': raw, 'vars': vars, 'fallback': fallback}, *kwargs)
+        return _impl(self._name, option, ***{'raw': raw, 'vars': vars, 'fallback': fallback}, *kwargs)
 
 
 class ConverterMapping(MutableMapping):

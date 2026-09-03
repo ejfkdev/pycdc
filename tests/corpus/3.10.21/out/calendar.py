@@ -493,10 +493,10 @@ def main(args):
         optdict = None(encoding, options.css, css=None, encoding=dict)
         write = sys.stdout.buffer.write
         if options.year is None:
-            write(cal.formatyearpage(*(datetime.date.today().year,), **{**optdict}))
+            write(cal.formatyearpage(datetime.date.today().year, **optdict))
             return
         if options.month is None:
-            write(cal.formatyearpage(*(options.year,), **{**optdict}))
+            write(cal.formatyearpage(options.year, **optdict))
             return
         parser.error('incorrect number of arguments')
         sys.exit(1)
@@ -510,11 +510,11 @@ def main(args):
         optdict['c'] = options.spacing
         optdict['m'] = options.months
     if options.year is None:
-        result = cal.formatyear(*(datetime.date.today().year,), **{**optdict})
+        result = cal.formatyear(datetime.date.today().year, **optdict)
     elif options.month is None:
-        result = cal.formatyear(*(options.year,), **{**optdict})
+        result = cal.formatyear(options.year, **optdict)
     else:
-        result = cal.formatmonth(*options.year, options.month, **{**optdict})
+        result = cal.formatmonth(options.year, options.month, **optdict)
     write = sys.stdout.write
     if options.encoding:
         result = result.encode(options.encoding)

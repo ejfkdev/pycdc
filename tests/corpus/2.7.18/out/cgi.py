@@ -96,64 +96,70 @@ def parse_multipart(fp, pdict):
     nextpart = '--' + boundary
     lastpart = '--' + boundary + '--'
     partdict = {}
-    while terminator != lastpart:
-        terminator = ''
-        bytes = -1
-        data = None
-        if terminator:
-            headers = mimetools.Message(fp)
-            clength = headers.getheader('content-length')
-            if clength:
+    terminator = ''
+    while True:
+        while terminator != lastpart:
+            bytes = -1
+            data = None
+            if terminator:
+                headers = mimetools.Message(fp)
+                clength = headers.getheader('content-length')
+                if clength:
+                    continue
+            if bytes > 0:
+                if maxlen and bytes > maxlen:
+                    raise ValueError # WARNING: raise cause dropped (py2)
+                    try:
+                        bytes = int(clength)
+                    except ValueError:
+                        pass
+                data = fp.read(bytes)
                 continue
-        if bytes > 0:
-            if maxlen and bytes > maxlen:
-                raise ValueError # WARNING: raise cause dropped (py2)
-                try:
-                    bytes = int(clength)
-                except ValueError:
-                    pass
-            data = fp.read(bytes)
-            continue
-        data = ''
-        while not line:
+            data = ''
             lines = []
-            line = fp.readline()
-            terminator = lastpart
-            break
-            if line[:2] == '--' and terminator in (nextpart, lastpart):
-                terminator = line.strip()
+            while True:
+                line = fp.readline()
+                if not line:
+                    terminator = lastpart
+                    break
+                if line[:2] == '--' and terminator in (nextpart, lastpart):
+                    terminator = line.strip()
+                    break
+                    continue
+                lines.append(line)
+            if not data is None:
                 break
-                continue
-            lines.append(line)
-        if not data is None:
-            break
-    if bytes < 0 and lines:
-        line = lines[-1]
-        if line[-2:] == '\r\n':
-            line = line[:-2]
-        elif line[-1:] == '\n':
-            line = line[:-1]
-        lines[-1] = line
-        data = ''.join(lines)
-    line = headers['content-disposition']
-    if not line:
-        pass
-    key, params = parse_header(line)
-    if key != 'form-data':
-        pass
-    if 'name' in params:
-        pass
-    name = params['name']
-    if name in partdict:
-        partdict[name].append(data)
-    partdict[name] = [data]
+        break
+        if bytes < 0 and lines:
+            line = lines[-1]
+            if line[-2:] == '\r\n':
+                line = line[:-2]
+            elif line[-1:] == '\n':
+                line = line[:-1]
+            lines[-1] = line
+            data = ''.join(lines)
+            continue
+        line = headers['content-disposition']
+        if not line:
+            continue
+        key, params = parse_header(line)
+        if key != 'form-data':
+            continue
+        if 'name' in params:
+            name = params['name']
+        else:
+            continue
+        if name in partdict:
+            partdict[name].append(data)
+            continue
+        partdict[name] = [data]
     return partdict
 
 def _parseparam(s):
     while s[:1] == ';':
         s = s[1:]
+        end = s.find(';')
         while end > 0:
-            end = s.find(';')
             if (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
                 end = s.find(';', end + 1)
                 continue
@@ -166,8 +172,8 @@ def _parseparam(s):
 def parse_header(line):
     parts = _parseparam(';' + line)
     key = parts.next()
+    pdict = {}
     for p in parts:
-        pdict = {}
         i = p.find('=')
         if i >= 0:
             pass

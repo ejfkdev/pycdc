@@ -138,8 +138,8 @@ def _remove_unsupported_archs(_config_vars):
 
 def _override_all_archs(_config_vars):
     if 'ARCHFLAGS' in os.environ:
+        arch = os.environ['ARCHFLAGS']
         for cv in _UNIVERSAL_CONFIG_VARS:
-            arch = os.environ['ARCHFLAGS']
             if cv in _config_vars:
                 pass
             if '-arch' in _config_vars[cv]:

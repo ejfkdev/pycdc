@@ -477,9 +477,9 @@ is determined by the __name__ in the frame globals.
     def runcall(self, func, /, *args, **kwds):
         self.reset()
         sys.settrace(self.trace_dispatch)
+        res = None
         try:
-            res = None
-            res = func(*args, **{**kwds})
+            res = func(args, **kwds)
         except BdbQuit:
             pass
         self.quitting = True

@@ -15,8 +15,8 @@ def test():
         file = '/etc/passwd'
     lines = open(file, 'r').readlines()
     text = open(file, 'r').read()
+    f = StringIO()
     for line in lines[:-2]:
-        f = StringIO()
         f.write(line)
         continue
     f.writelines(lines[-2:])

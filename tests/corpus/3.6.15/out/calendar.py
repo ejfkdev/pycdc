@@ -112,10 +112,13 @@ class Calendar(object):
         date = datetime.date(year, month, 1)
         days = (date.weekday() - self.firstweekday) % 7
         date = None - date(days, days=datetime.timedelta)
-        while None == OverflowError:
-            oneday = None(1, days=datetime.timedelta)
+        oneday = None(1, days=datetime.timedelta)
+        while True:
             yield date
-            break
+            try:
+                date += oneday
+            except OverflowError:
+                break
             if date.month != month:
                 if date.weekday() == self.firstweekday:
                     break
@@ -219,8 +222,8 @@ class TextCalendar(Calendar):
         a = v.append
         a(repr(theyear).center(colwidth * m + c * (m - 1)).rstrip())
         a('\n' * l)
+        header = self.formatweekheader(w)
         for i, row in enumerate(self.yeardays2calendar(theyear, m)):
-            header = self.formatweekheader(w)
             months = range(m * i + 1, min(m * (i + 1) + 1, 13))
             a('\n' * l)
             names = (self.formatmonthname(theyear, k, colwidth, False) for k in months)
@@ -229,10 +232,10 @@ class TextCalendar(Calendar):
             headers = (header for k in months)
             a(formatstring(headers, colwidth, c).rstrip())
             a('\n' * l)
+            height = max((len(cal) for cal in row))
             for j in range(height):
-                height = max((len(cal) for cal in row))
+                weeks = []
                 for cal in row:
-                    weeks = []
                     if j >= len(cal):
                         weeks.append('')
                     else:
@@ -473,9 +476,9 @@ def main(args):
         optdict = None(encoding, options.css, css=None, encoding=dict)
         write = sys.stdout.buffer.write
         if options.year is None:
-            write(cal.formatyearpage(*(datetime.date.today().year,), **optdict))
+            write(cal.formatyearpage(datetime.date.today().year, **optdict))
         elif options.month is None:
-            write(cal.formatyearpage(*(options.year,), **optdict))
+            write(cal.formatyearpage(options.year, **optdict))
         else:
             parser.error('incorrect number of arguments')
             sys.exit(1)
@@ -489,11 +492,11 @@ def main(args):
             optdict['c'] = options.spacing
             optdict['m'] = options.months
         if options.year is None:
-            result = cal.formatyear(*(datetime.date.today().year,), **optdict)
+            result = cal.formatyear(datetime.date.today().year, **optdict)
         elif options.month is None:
-            result = cal.formatyear(*(options.year,), **optdict)
+            result = cal.formatyear(options.year, **optdict)
         else:
-            result = cal.formatmonth(*options.year, options.month, **optdict)
+            result = cal.formatmonth(options.year, options.month, **optdict)
         write = sys.stdout.write
         if options.encoding:
             result = result.encode(options.encoding)

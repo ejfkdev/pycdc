@@ -64,8 +64,8 @@ class Coroutine(Awaitable):
     @classmethod
     def __subclasshook__(cls, C):
         if cls is Coroutine:
+            mro = C.__mro__
             for method in ('__await__', 'send', 'throw', 'close'):
-                mro = C.__mro__
                 for base in mro:
                     if method in base.__dict__:
                         pass
@@ -158,8 +158,8 @@ class Generator(Iterator):
     @classmethod
     def __subclasshook__(cls, C):
         if cls is Generator:
+            mro = C.__mro__
             for method in ('__iter__', '__next__', 'send', 'throw', 'close'):
-                mro = C.__mro__
                 for base in mro:
                     if method in base.__dict__:
                         pass
@@ -595,16 +595,17 @@ class Sequence(Sized, Iterable, Container):
             start = max(len(self) + start, 0)
         if stop is not None and stop < 0:
             stop += len(self)
-        while not stop is None:
-            i = start
-            if i < stop:
-                try:
-                    if self[i] == value:
-                        return i
-                except IndexError:
-                    break
-                i += 1
-                continue
+        i = start
+        while True:
+            if not stop is None:
+                if i < stop:
+                    try:
+                        if self[i] == value:
+                            return i
+                    except IndexError:
+                        break
+                    i += 1
+                    continue
         raise ValueError
 
     def count(self, value):
@@ -652,8 +653,8 @@ class MutableSequence(Sequence):
             pass
 
     def reverse(self):
+        n = len(self)
         for i in range(n // 2):
-            n = len(self)
             self[i] = self[n - i - 1]
             self[n - i - 1] = self[i]
             continue

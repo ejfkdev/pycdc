@@ -41,8 +41,8 @@ contributors and the copyright notice.'''
             except OSError:
                 pass
             fp = open(filename, 'utf-8')._Printer__filenames()
+            data = fp.read()
             try:
-                data = fp.read()
                 None(None, None, None)
             except OSError:
                 pass
@@ -80,7 +80,7 @@ Calling help(thing) prints help for the python object 'thing'.
 
     def __call__(self, *args, **kwds):
         import pydoc
-        return args(*{**kwds})
+        return args({**kwds})
 
 
 # WARNING: Decompyle incomplete

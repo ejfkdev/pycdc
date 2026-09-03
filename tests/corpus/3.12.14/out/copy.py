@@ -83,7 +83,7 @@ def copy(x):
             raise Error('un(shallow)copyable object of type %s' % cls)
     if isinstance(rv, str):
         return x
-    return _reconstruct(*[x, None, *rv])
+    return _reconstruct([x, None, *rv])
 
 _copy_dispatch = d = {}
 
@@ -133,7 +133,7 @@ def deepcopy(x, memo=None, _nil=[]):
             if isinstance(rv, str):
                 y = x
             else:
-                y = _reconstruct(*[x, memo, *rv])
+                y = _reconstruct([x, memo, *rv])
     if y is not x:
         memo[d] = y
         _keep_alive(x, memo)
@@ -172,8 +172,9 @@ def _deepcopy_list(x, memo, deepcopy=deepcopy):
 d[list] = _deepcopy_list
 
 def _deepcopy_tuple(x, memo, deepcopy=deepcopy):
+    y = [deepcopy(a, memo) for a in x]
     try:
-        y = [deepcopy(a, memo) for a in x]
+        pass
     except KeyError:
         pass
     return memo[id(x)]
@@ -205,7 +206,7 @@ def _reconstruct(x, memo, func, args, state=None, listiter=None, dictiter=None, 
     deep = memo is not None
     if deep and args:
         args = (deepcopy(arg, memo) for arg in args)
-    y = func(*args)
+    y = func(args)
     if deep:
         memo[id(x)] = y
     if not state is None:

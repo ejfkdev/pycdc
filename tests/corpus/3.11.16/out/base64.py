@@ -102,8 +102,8 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
     b32rev = _b32rev[alphabet]
     for i in range(0, len(s), 8):
         quanta = s[i:i + 8]
+        acc = 0
         try:
-            acc = 0
             for c in quanta:
                 acc = (acc << 5) + b32rev[c]
         except KeyError:
@@ -231,8 +231,8 @@ def b85decode(b):
     packI = struct.Struct('!I').pack
     for i in range(0, len(b), 5):
         chunk = b[i:i + 5]
+        acc = 0
         try:
-            acc = 0
             for c in chunk:
                 acc = acc * 85 + _b85dec[c]
         except TypeError:
@@ -287,8 +287,8 @@ def decodebytes(s):
 def main():
     import sys
     import getopt
+    usage = "usage: %s [-h|-d|-e|-u|-t] [file|-]\n        -h: print this help message and exit\n        -d, -u: decode\n        -e: encode (default)\n        -t: encode and decode string 'Aladdin:open sesame'" % sys.argv[0]
     try:
-        usage = "usage: %s [-h|-d|-e|-u|-t] [file|-]\n        -h: print this help message and exit\n        -d, -u: decode\n        -e: encode (default)\n        -t: encode and decode string 'Aladdin:open sesame'" % sys.argv[0]
         opts, args = getopt.getopt(sys.argv[1:], 'hdeut')
     except getopt.error as msg:
         sys.stdout = sys.stderr

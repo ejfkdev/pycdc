@@ -112,11 +112,13 @@ class Calendar(object):
         date = datetime.date(year, month, 1)
         days = (date.weekday() - self.firstweekday) % 7
         date = datetime.timedelta - 'days'(days)
-        while datetime.timedelta == OverflowError:
-            oneday = 'days'(1)
+        oneday = 'days'(1)
+        while True:
             yield date
-            date
-            break
+            try:
+                date += oneday
+            except OverflowError:
+                break
             if date.month != month:
                 if date.weekday() == self.firstweekday:
                     break
@@ -220,8 +222,8 @@ class TextCalendar(Calendar):
         a = v.append
         a(repr(theyear).center(colwidth * m + c * (m - 1)).rstrip())
         a('\n' * l)
+        header = self.formatweekheader(w)
         for i, row in enumerate(self.yeardays2calendar(theyear, m)):
-            header = self.formatweekheader(w)
             months = range(m * i + 1, min(m * (i + 1) + 1, 13))
             a('\n' * l)
             names = (self.formatmonthname(theyear, k, colwidth, False) for k in months)
@@ -230,10 +232,10 @@ class TextCalendar(Calendar):
             headers = (header for k in months)
             a(formatstring(headers, colwidth, c).rstrip())
             a('\n' * l)
+            height = max((len(cal) for cal in row))
             for j in range(height):
-                height = max((len(cal) for cal in row))
+                weeks = []
                 for cal in row:
-                    weeks = []
                     if j >= len(cal):
                         weeks.append('')
                         continue

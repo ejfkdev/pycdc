@@ -61,7 +61,7 @@ class _GeneratorContextManagerBase:
     '''Shared functionality for @contextmanager and @asynccontextmanager.'''
 
     def __init__(self, func, args, kwds):
-        self.gen = func(*args, **kwds)
+        self.gen = func(args, **kwds)
         self.func = func
         self.args = args
         self.kwds = kwds
@@ -211,7 +211,7 @@ class _BaseExitStack:
     @staticmethod
     def _create_cb_wrapper(callback, /, *args, **kwds):
         def _exit_wrapper(exc_type, exc, tb):
-            callback(*args, **kwds)
+            callback(args, **kwds)
 
         return _exit_wrapper
 
@@ -253,7 +253,7 @@ class _BaseExitStack:
             None("Passing 'callback' as keyword argument is deprecated", DeprecationWarning, 2, stacklevel=warnings.warn)
         else:
             raise TypeError('callback expected at least 1 positional argument, got %d' % (len(args) - 1))
-        _exit_wrapper = self._create_cb_wrapper(**(callback,), *args, **kwds)
+        _exit_wrapper = self._create_cb_wrapper(callback, *args, **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper)
         return callback
@@ -338,7 +338,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
     @staticmethod
     def _create_async_cb_wrapper(callback, /, *args, **kwds):
         async def _exit_wrapper(exc_type, exc, tb):
-            await callback(*args, **kwds)
+            await callback(args, **kwds)
 
         return _exit_wrapper
 
@@ -371,7 +371,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             None("Passing 'callback' as keyword argument is deprecated", DeprecationWarning, 2, stacklevel=warnings.warn)
         else:
             raise TypeError('push_async_callback expected at least 1 positional argument, got %d' % (len(args) - 1))
-        _exit_wrapper = self._create_async_cb_wrapper(**(callback,), *args, **kwds)
+        _exit_wrapper = self._create_async_cb_wrapper(callback, *args, **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper, False)
         return callback
