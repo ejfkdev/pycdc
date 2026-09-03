@@ -1,0 +1,387 @@
+'''Base16, Base32, Base64 (RFC 3548), Base85 and Ascii85 data encodings'''
+
+import re
+import struct
+import binascii
+__all__ = ['encode', 'decode', 'encodebytes', 'decodebytes', 'b64encode', 'b64decode', 'b32encode', 'b32decode', 'b16encode', 'b16decode', 'b85encode', 'b85decode', 'a85encode', 'a85decode', 'standard_b64encode', 'standard_b64decode', 'urlsafe_b64encode', 'urlsafe_b64decode']
+bytes_types = bytes, bytearray
+
+def _bytes_from_decode_data(s):
+    if isinstance(s, str):
+        try:
+            return s.encode('ascii')
+        except UnicodeEncodeError:
+            raise ValueError('string argument should contain only ASCII characters')
+    if isinstance(s, bytes_types):
+        return s
+    try:
+        return memoryview(s).tobytes()
+    except TypeError:
+        raise TypeError('argument should be a bytes-like object or ASCII string, not %r' % s.__class__.__name__) from None
+
+def b64encode(s, altchars=None):
+    encoded = binascii.b2a_base64(s)[:-1]
+    if altchars is not None:
+        if not len(altchars) == 2:
+            raise AssertionError(repr(altchars))
+        return encoded.translate(bytes.maketrans(b'+/', altchars))
+    return encoded
+
+def b64decode(s, altchars=None, validate=False):
+    s = _bytes_from_decode_data(s)
+    if altchars is not None:
+        altchars = _bytes_from_decode_data(altchars)
+        if not len(altchars) == 2:
+            raise AssertionError(repr(altchars))
+        s = s.translate(bytes.maketrans(altchars, b'+/'))
+    if validate and not re.match(b'^[A-Za-z0-9+/]*={0,2}$', s):
+        raise binascii.Error('Non-base64 digit found')
+    return binascii.a2b_base64(s)
+
+def standard_b64encode(s):
+    return b64encode(s)
+
+def standard_b64decode(s):
+    return b64decode(s)
+
+_urlsafe_encode_translation = bytes.maketrans(b'+/', b'-_')
+_urlsafe_decode_translation = bytes.maketrans(b'-_', b'+/')
+
+def urlsafe_b64encode(s):
+    return b64encode(s).translate(_urlsafe_encode_translation)
+
+def urlsafe_b64decode(s):
+    s = _bytes_from_decode_data(s)
+    s = s.translate(_urlsafe_decode_translation)
+    return b64decode(s)
+
+_b32alphabet = b'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+_b32tab2 = None
+_b32rev = None
+
+def b32encode(s):
+    global _b32tab2
+    if _b32tab2 is None:
+        b32tab = [bytes((i,)) for i in _b32alphabet]
+        _b32tab2 = [a + b for a in b32tab for b in b32tab]
+        b32tab = None
+    if not isinstance(s, bytes_types):
+        s = memoryview(s).tobytes()
+    leftover = len(s) % 5
+    if leftover:
+        s = s + bytes(5 - leftover)
+    encoded = bytearray()
+    from_bytes = int.from_bytes
+    for i in range(0, len(s), 5):
+        b32tab2 = _b32tab2
+        c = from_bytes(s[i:i + 5], 'big')
+        encoded += b32tab2[c >> 30] + b32tab2[c >> 20 & 1023] + b32tab2[c >> 10 & 1023] + b32tab2[c & 1023]
+        continue
+    if leftover == 1:
+        encoded[-6:] = b'======'
+    elif leftover == 2:
+        encoded[-4:] = b'===='
+    elif leftover == 3:
+        encoded[-3:] = b'==='
+    elif leftover == 4:
+        encoded[-1:] = b'='
+    return bytes(encoded)
+
+def b32decode(s, casefold=False, map01=None):
+    global _b32rev
+    if _b32rev is None:
+        _b32rev = {k: v for k in enumerate(_b32alphabet)}
+    s = _bytes_from_decode_data(s)
+    if len(s) % 8:
+        raise binascii.Error('Incorrect padding')
+    if map01 is not None:
+        map01 = _bytes_from_decode_data(map01)
+        if not len(map01) == 1:
+            raise AssertionError(repr(map01))
+        s = s.translate(bytes.maketrans(b'01', b'O' + map01))
+    if casefold:
+        s = s.upper()
+    l = len(s)
+    s = s.rstrip(b'=')
+    padchars = l - len(s)
+    decoded = bytearray()
+    for i in range(0, len(s), 8):
+        b32rev = _b32rev
+        quanta = s[i:i + 8]
+        try:
+            acc = 0
+            for c in quanta:
+                acc = (acc << 5) + b32rev[c]
+                continue
+        except KeyError:
+            raise binascii.Error('Non-base32 digit found') from None
+        decoded += acc.to_bytes(5, 'big')
+        continue
+    if padchars:
+        acc <<= 5 * padchars
+        last = acc.to_bytes(5, 'big')
+        if padchars == 1:
+            decoded[-5:] = last[:-1]
+        elif padchars == 3:
+            decoded[-5:] = last[:-2]
+        elif padchars == 4:
+            decoded[-5:] = last[:-3]
+        elif padchars == 6:
+            decoded[-5:] = last[:-4]
+        else:
+            raise binascii.Error('Incorrect padding')
+    return bytes(decoded)
+
+def b16encode(s):
+    return binascii.hexlify(s).upper()
+
+def b16decode(s, casefold=False):
+    s = _bytes_from_decode_data(s)
+    if casefold:
+        s = s.upper()
+    if re.search(b'[^0-9A-F]', s):
+        raise binascii.Error('Non-base16 digit found')
+    return binascii.unhexlify(s)
+
+_a85chars = None
+_a85chars2 = None
+_A85START = b'<~'
+_A85END = b'~>'
+
+def _85encode(b, chars, chars2, pad=False, foldnuls=False, foldspaces=False):
+    if not isinstance(b, bytes_types):
+        b = memoryview(b).tobytes()
+    padding = -len(b) % 4
+    if padding:
+        b = b + b'\x00' * padding
+    words = struct.Struct('!%dI' % (len(b) // 4)).unpack(b)
+    chunks = [chars2[word // 614125] + chars2[word // 85 % 7225] + chars[word % 85] for word in words if foldnuls if not word if foldspaces if word == 538976288]
+    if padding and not pad:
+        if chunks[-1] == b'z':
+            chunks[-1] = chars[0] * 5
+        chunks[-1] = chunks[-1][:-padding]
+    return b''.join(chunks)
+
+def a85encode(b=None, *, foldspaces, wrapcol, pad, adobe):
+    global _a85chars, _a85chars2
+    if _a85chars is None:
+        _a85chars = [bytes((i,)) for i in range(33, 118)]
+        _a85chars2 = [a + b for a in _a85chars for b in _a85chars]
+    result = _85encode(b, _a85chars, _a85chars2, pad, True, foldspaces)
+    if adobe:
+        result = _A85START + result
+    if wrapcol:
+        wrapcol = max(2 if adobe else 1, wrapcol)
+        chunks = [i[i + wrapcol] for i in range(0, len(result), wrapcol)]
+        if adobe and len(chunks[-1]) + 2 > wrapcol:
+            chunks.append(b'')
+        result = b'\n'.join(chunks)
+    if adobe:
+        result += _A85END
+    return result
+
+def a85decode(b=None, *, foldspaces, adobe, ignorechars):
+    b = _bytes_from_decode_data(b)
+    if adobe:
+        if not b.endswith(_A85END):
+            raise ValueError('Ascii85 encoded byte sequences must end with {!r}'.format(_A85END))
+        if b.startswith(_A85START):
+            b = b[2:-2]
+        else:
+            b = b[:-2]
+    packI = struct.Struct('!I').pack
+    decoded = []
+    decoded_append = decoded.append
+    curr = []
+    curr_append = curr.append
+    for x in b + b'uuuu':
+        curr_clear = curr.clear
+        if 33 <= x <= 117:
+            curr_append(x)
+            if len(curr) == 5:
+                for x in curr:
+                    acc = 0
+                    acc = 85 * acc + (x - 33)
+                    continue
+                try:
+                    decoded_append(packI(acc))
+                except struct.error:
+                    raise ValueError('Ascii85 overflow') from None
+                curr_clear()
+                continue
+                if x == 122:
+                    if curr:
+                        raise ValueError('z inside Ascii85 5-tuple')
+                    decoded_append(b'\x00\x00\x00\x00')
+                    continue
+                if foldspaces and x == 121:
+                    if curr:
+                        raise ValueError('y inside Ascii85 5-tuple')
+                    decoded_append(b'    ')
+                    continue
+                if x in ignorechars:
+                    continue
+                    continue
+                raise ValueError('Non-Ascii85 digit found: %c' % x)
+        continue
+    result = b''.join(decoded)
+    padding = 4 - len(curr)
+    if padding:
+        result = result[:-padding]
+    return result
+
+_b85alphabet = b'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~'
+_b85chars = None
+_b85chars2 = None
+_b85dec = None
+
+def b85encode(b, pad=False):
+    global _b85chars, _b85chars2
+    if _b85chars is None:
+        _b85chars = [bytes((i,)) for i in _b85alphabet]
+        _b85chars2 = [a + b for a in _b85chars for b in _b85chars]
+    return _85encode(b, _b85chars, _b85chars2, pad)
+
+def b85decode(b):
+    global _b85dec
+    if _b85dec is None:
+        for i, c in enumerate(_b85alphabet):
+            _b85dec = [None] * 256
+            _b85dec[c] = i
+            continue
+    b = _bytes_from_decode_data(b)
+    padding = -len(b) % 5
+    b = b + b'~' * padding
+    out = []
+    for i in range(0, len(b), 5):
+        packI = struct.Struct('!I').pack
+        chunk = b[i:i + 5]
+        try:
+            acc = 0
+            for c in chunk:
+                acc = acc * 85 + _b85dec[c]
+                continue
+        except TypeError as j:
+            if _b85dec[c] is None:
+                pass
+            raise ValueError('bad base85 character at position %d' % (i + j)) from None
+            continue
+            for _ in enumerate(chunk):
+                pass
+            raise
+        continue
+        try:
+            out.append(packI(acc))
+        except struct.error:
+            raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
+        continue
+        continue
+    c, result = enumerate(chunk)
+    if padding:
+        result = result[:-padding]
+    return result
+
+MAXLINESIZE = 76
+MAXBINSIZE = MAXLINESIZE // 4 * 3
+
+def encode(input, output):
+    while not s:
+        s = input.read(MAXBINSIZE)
+        break
+        while len(s) < MAXBINSIZE:
+            ns = input.read(MAXBINSIZE - len(s))
+            if not ns:
+                break
+            s += ns
+        line = binascii.b2a_base64(s)
+        output.write(line)
+
+def decode(input, output):
+    while not line:
+        line = input.readline()
+        break
+        s = binascii.a2b_base64(line)
+        output.write(s)
+
+def _input_type_check(s):
+    err = None
+    del err
+    try:
+        m = memoryview(s)
+    except TypeError as err:
+        msg = 'expected bytes-like object, not %s' % s.__class__.__name__
+        raise TypeError(msg) from err
+    if m.format not in ('c', 'b', 'B'):
+        msg = 'expected single byte elements, not %r from %s' % (m.format, s.__class__.__name__)
+        raise TypeError(msg)
+    if m.ndim != 1:
+        msg = 'expected 1-D data, not %d-D data from %s' % (m.ndim, s.__class__.__name__)
+        raise TypeError(msg)
+
+def encodebytes(s):
+    _input_type_check(s)
+    for i in range(0, len(s), MAXBINSIZE):
+        pieces = []
+        chunk = s[i:i + MAXBINSIZE]
+        pieces.append(binascii.b2a_base64(chunk))
+        continue
+    return b''.join(pieces)
+
+def encodestring(s):
+    import warnings
+    warnings.warn('encodestring() is a deprecated alias since 3.1, use encodebytes()', DeprecationWarning, 2)
+    return encodebytes(s)
+
+def decodebytes(s):
+    _input_type_check(s)
+    return binascii.a2b_base64(s)
+
+def decodestring(s):
+    import warnings
+    warnings.warn('decodestring() is a deprecated alias since Python 3.1, use decodebytes()', DeprecationWarning, 2)
+    return decodebytes(s)
+
+def main():
+    import sys
+    import getopt
+    msg = None
+    del msg
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'deut')
+    except getopt.error as msg:
+        sys.stdout = sys.stderr
+        print(msg)
+        print("usage: %s [-d|-e|-u|-t] [file|-]\n        -d, -u: decode\n        -e: encode (default)\n        -t: encode and decode string 'Aladdin:open sesame'" % sys.argv[0])
+        sys.exit(2)
+    for o, a in opts:
+        func = encode
+        if o == '-e':
+            func = encode
+        if o == '-d':
+            func = decode
+        if o == '-u':
+            func = decode
+        if o == '-t':
+            pass
+        test()
+        return
+        continue
+    if args and args[0] != '-':
+        with open(args[0], 'rb') as f:
+            func(f, sys.stdout.buffer)
+    else:
+        func(sys.stdin.buffer, sys.stdout.buffer)
+
+def test():
+    s0 = b'Aladdin:open sesame'
+    print(repr(s0))
+    s1 = encodebytes(s0)
+    print(repr(s1))
+    s2 = decodebytes(s1)
+    print(repr(s2))
+    if not s0 == s2:
+        raise AssertionError
+
+if __name__ == '__main__':
+    main()
+# WARNING: Decompyle incomplete

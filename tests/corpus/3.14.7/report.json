@@ -1,0 +1,264 @@
+{
+ "version": "3.14.7",
+ "interp": "/opt/homebrew/bin/python3.14",
+ "counts": {
+  "SIG-DIFF": 28,
+  "PASS": 4,
+  "INCOMPLETE": 6,
+  "SYNTAX-ERR": 2
+ },
+ "results": [
+  {
+   "module": "__future__",
+   "verdict": "SIG-DIFF",
+   "ndiff": 4,
+   "ntotal": 171,
+   "detail": "line 167: orig ('BUILD_TUPLE', '') | got ('CALL', '')\nline 168: orig ('CALL', '') | got ('BINARY_OP', '+')\nline 169: orig ('BINARY_OP', '+') | got ('RETURN_VALUE', '')"
+  },
+  {
+   "module": "__hello__",
+   "verdict": "PASS"
+  },
+  {
+   "module": "_aix_support",
+   "verdict": "SIG-DIFF",
+   "ndiff": 264,
+   "ntotal": 329,
+   "detail": "line 62: orig ('COPY', '') | got ('LOAD_ATTR', 'contextlib + NULL|self')\nline 63: orig ('LOAD_SPECIAL', '__exit__') | got ('CALL', '')\nline 64: orig ('SWAP', '') | got ('STORE_FAST', 'fp')"
+  },
+  {
+   "module": "_android_support",
+   "verdict": "SIG-DIFF",
+   "ndiff": 632,
+   "ntotal": 689,
+   "detail": "line 17: orig ('LOAD_CONST', \"('sleep', 'time')\") | got ('LOAD_CONST', \"('sleep',)\")\nline 21: orig ('IMPORT_FROM', 'time') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'time') | got ('LOAD_SMALL_INT', '')"
+  },
+  {
+   "module": "_apple_support",
+   "verdict": "SIG-DIFF",
+   "ndiff": 234,
+   "ntotal": 277,
+   "detail": "line 40: orig ('LOAD_CONST', \"('errors',)\") | got ('CALL', '')\nline 41: orig ('CALL_KW', '') | got ('LOAD_GLOBAL', 'sys')\nline 42: orig ('LOAD_GLOBAL', 'sys') | got ('STORE_ATTR', 'stdout')"
+  },
+  {
+   "module": "_ast_unparse",
+   "verdict": "SIG-DIFF",
+   "ndiff": 6915,
+   "ntotal": 7127,
+   "detail": "line 11: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')\nline 12: orig ('LOAD_CONST', \"('NodeVisitor',)\") | got ('LOAD_SMALL_INT', '')\nline 13: orig ('IMPORT_NAME', 'ast') | got ('LOAD_CONST', \"('NodeVisitor',)\")"
+  },
+  {
+   "module": "_collections_abc",
+   "verdict": "SIG-DIFF",
+   "ndiff": 3623,
+   "ntotal": 4049,
+   "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_SMALL_INT', '')"
+  },
+  {
+   "module": "_colorize",
+   "verdict": "INCOMPLETE",
+   "detail": "SyntaxError: invalid syntax"
+  },
+  {
+   "module": "_compat_pickle",
+   "verdict": "SIG-DIFF",
+   "ndiff": 11,
+   "ntotal": 492,
+   "detail": "line 227: orig ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro | got ('NOP', '')\nline 228: orig ('STORE_NAME', 'PYTHON2_EXCEPTIONS') | got ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro\nline 229: orig ('NOP', '') | got ('STORE_NAME', 'PYTHON2_EXCEPTIONS')"
+  },
+  {
+   "module": "_ios_support",
+   "verdict": "SIG-DIFF",
+   "ndiff": 185,
+   "ntotal": 199,
+   "detail": "line 8: orig ('LOAD_CONST', \"('cdll', 'c_void_p', 'c_char_p', 'util')\") | got ('LOAD_CONST', \"('cdll',)\")\nline 12: orig ('IMPORT_FROM', 'c_void_p') | got ('POP_TOP', '')\nline 13: orig ('STORE_NAME', 'c_void_p') | got ('LOAD_SMALL_INT', '')"
+  },
+  {
+   "module": "_markupbase",
+   "verdict": "SIG-DIFF",
+   "ndiff": 935,
+   "ntotal": 1352,
+   "detail": "line 212: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 213: orig ('LOAD_CONST', \"'unexpected call to parse_declaration'\") | got ('PUSH_NULL', '')\nline 293: orig ('POP_JUMP_IF_FALSE', 'to L19') | got ('POP_JUMP_IF_FALSE', 'to L18')"
+  },
+  {
+   "module": "_opcode_metadata",
+   "verdict": "PASS"
+  },
+  {
+   "module": "_osx_support",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1571,
+   "ntotal": 1771,
+   "detail": "line 161: orig ('SWAP', '') | got ('POP_TOP', '')\nline 163: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', 'None')\nline 164: orig ('END_FOR', '') | got ('RETURN_VALUE', '')"
+  },
+  {
+   "module": "_py_abc",
+   "verdict": "SIG-DIFF",
+   "ndiff": 549,
+   "ntotal": 587,
+   "detail": "line 27: orig ('MAKE_CELL', '__class__') | got ('MAKE_CELL', '__classdict__')\nline 28: orig ('MAKE_CELL', '__classdict__') | got ('RESUME', '')\nline 29: orig ('RESUME', '') | got ('LOAD_NAME', '__name__')"
+  },
+  {
+   "module": "_py_warnings",
+   "verdict": "SYNTAX-ERR",
+   "detail": "SyntaxError: no binding for nonlocal 'msg' found"
+  },
+  {
+   "module": "_pylong",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1201,
+   "ntotal": 1531,
+   "detail": "line 139: orig ('POP_JUMP_IF_FALSE', 'to L7') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 151: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L2')\nline 168: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L3')"
+  },
+  {
+   "module": "_sitebuiltins",
+   "verdict": "SIG-DIFF",
+   "ndiff": 264,
+   "ntotal": 372,
+   "detail": "line 90: orig ('LOAD_FAST', 'code') | got ('LOAD_FAST_BORROW', 'code')\nline 94: orig ('POP_TOP', '') | got ('LOAD_GLOBAL', 'SystemExit + NULL')\nline 95: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'code')"
+  },
+  {
+   "module": "_strptime",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2496,
+   "ntotal": 3196,
+   "detail": "line 49: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 53: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 54: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_SMALL_INT', '')"
+  },
+  {
+   "module": "_sysconfigdata__darwin_darwin",
+   "verdict": "PASS"
+  },
+  {
+   "module": "_threading_local",
+   "verdict": "SIG-DIFF",
+   "ndiff": 458,
+   "ntotal": 511,
+   "detail": "line 39: orig ('LOAD_CONST', \"('current_thread', 'RLock')\") | got ('LOAD_CONST', \"('current_thread',)\")\nline 43: orig ('IMPORT_FROM', 'RLock') | got ('POP_TOP', '')\nline 44: orig ('STORE_NAME', 'RLock') | got ('LOAD_SMALL_INT', '')"
+  },
+  {
+   "module": "_weakrefset",
+   "verdict": "SIG-DIFF",
+   "ndiff": 466,
+   "ntotal": 767,
+   "detail": "line 239: orig ('LOAD_FAST_LOAD_FAST', 'wr, self') | got ('LOAD_FAST_CHECK', 'wr')\nline 240: orig ('LOAD_ATTR', 'data') | got ('LOAD_FAST_BORROW', 'self')\nline 241: orig ('CONTAINS_OP', 'in') | got ('LOAD_ATTR', 'data')"
+  },
+  {
+   "module": "abc",
+   "verdict": "SIG-DIFF",
+   "ndiff": 422,
+   "ntotal": 469,
+   "detail": "line 33: orig ('LOAD_CONST', \"('get_cache_token', '_abc_init', '_abc_register', '_abc_instancecheck', '_abc_subcla | got ('LOAD_CONST', \"('get_cache_token',)\")\nline 37: orig ('IMPORT_FROM', '_abc_init') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', '_abc_init') | got ('LOAD_SMALL_INT', '')"
+  },
+  {
+   "module": "annotationlib",
+   "verdict": "INCOMPLETE",
+   "detail": "SyntaxError: invalid syntax"
+  },
+  {
+   "module": "ast",
+   "verdict": "SYNTAX-ERR",
+   "detail": "SyntaxError: name 'level' is parameter and nonlocal"
+  },
+  {
+   "module": "base64",
+   "verdict": "INCOMPLETE",
+   "detail": "SyntaxError: invalid syntax"
+  },
+  {
+   "module": "bdb",
+   "verdict": "SIG-DIFF",
+   "ndiff": 3869,
+   "ntotal": 4001,
+   "detail": "line 31: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 35: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 36: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_SMALL_INT', '')"
+  },
+  {
+   "module": "bisect",
+   "verdict": "SIG-DIFF",
+   "ndiff": 170,
+   "ntotal": 269,
+   "detail": "line 46: orig ('LOAD_NAME', 'bisect_right') | got ('NOP', '')\nline 47: orig ('STORE_NAME', 'bisect') | got ('LOAD_NAME', 'bisect_right')\nline 48: orig ('LOAD_NAME', 'insort_right') | got ('STORE_NAME', 'bisect')"
+  },
+  {
+   "module": "bz2",
+   "verdict": "SIG-DIFF",
+   "ndiff": 782,
+   "ntotal": 880,
+   "detail": "line 31: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 35: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 36: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_SMALL_INT', '')"
+  },
+  {
+   "module": "cProfile",
+   "verdict": "SIG-DIFF",
+   "ndiff": 564,
+   "ntotal": 768,
+   "detail": "line 97: orig ('LOAD_FAST_BORROW', 'locals') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'locals, filename')\nline 98: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'filename, sort') | got ('LOAD_FAST_BORROW', 'sort')\nline 187: orig ('COPY', '') | got ('LOAD_ATTR', 'open + NULL|self')"
+  },
+  {
+   "module": "calendar",
+   "verdict": "SIG-DIFF",
+   "ndiff": 4174,
+   "ntotal": 4326,
+   "detail": "line 13: orig ('LOAD_CONST', \"('IntEnum', 'global_enum')\") | got ('LOAD_CONST', \"('IntEnum',)\")\nline 17: orig ('IMPORT_FROM', 'global_enum') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'global_enum') | got ('LOAD_SMALL_INT', '')"
+  },
+  {
+   "module": "cmd",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1171,
+   "ntotal": 1457,
+   "detail": "line 159: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 164: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 196: orig ('JUMP_FORWARD', 'to L3') | got ('JUMP_FORWARD', 'to L2')"
+  },
+  {
+   "module": "code",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1060,
+   "ntotal": 1108,
+   "detail": "line 17: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 21: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'compile_command') | got ('LOAD_SMALL_INT', '')"
+  },
+  {
+   "module": "codecs",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2305,
+   "ntotal": 2373,
+   "detail": "line 18: orig ('BUILD_LIST', '') | got ('NOP', '')\nline 19: orig ('LOAD_CONST', \"'register'\") | got ('BUILD_LIST', '')\nline 20: orig ('LIST_APPEND', '') | got ('LOAD_CONST', \"'register'\")"
+  },
+  {
+   "module": "codeop",
+   "verdict": "SIG-DIFF",
+   "ndiff": 299,
+   "ntotal": 411,
+   "detail": "line 104: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 107: orig ('POP_TOP', '') | got ('JUMP_BACKWARD', 'to L1')\nline 108: orig ('JUMP_FORWARD', 'to L5') | got ('END_FOR', '')"
+  },
+  {
+   "module": "colorsys",
+   "verdict": "PASS"
+  },
+  {
+   "module": "compileall",
+   "verdict": "INCOMPLETE",
+   "detail": "SyntaxError: invalid syntax"
+  },
+  {
+   "module": "configparser",
+   "verdict": "INCOMPLETE",
+   "detail": "SyntaxError: invalid syntax"
+  },
+  {
+   "module": "contextlib",
+   "verdict": "INCOMPLETE",
+   "detail": "SyntaxError: invalid syntax"
+  },
+  {
+   "module": "copy",
+   "verdict": "SIG-DIFF",
+   "ndiff": 585,
+   "ntotal": 874,
+   "detail": "line 232: orig ('JUMP_FORWARD', 'to L8') | got ('JUMP_FORWARD', 'to L6')\nline 240: orig ('POP_JUMP_IF_NONE', 'to L6') | got ('POP_JUMP_IF_NONE', 'to L7')\nline 247: orig ('JUMP_FORWARD', 'to L8') | got ('JUMP_FORWARD', 'to L9')"
+  },
+  {
+   "module": "copyreg",
+   "verdict": "SIG-DIFF",
+   "ndiff": 450,
+   "ntotal": 691,
+   "detail": "line 211: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 235: orig ('POP_TOP', '') | got ('JUMP_FORWARD', 'to L4')"
+  }
+ ]
+}

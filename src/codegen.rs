@@ -358,9 +358,27 @@ impl Printer {
                 orelse,
                 finalbody,
             } => {
+                // a bare `except:` must be last (and unique); drop extras
+                let mut handlers = handlers.clone();
+                handlers.sort_by_key(|h| if h.type_.is_none() { 1 } else { 0 });
+                let bare_pos = handlers.iter().position(|h| h.type_.is_none());
+                if let Some(bp) = bare_pos {
+                    handlers.truncate(bp + 1);
+                }
+                if handlers.is_empty() && finalbody.is_empty() {
+                    // A try without except/finally is invalid Python — the
+                    // structure was only partially recovered; keep the body
+                    // statements so the output stays compilable.
+                    self.write_line("# WARNING: unrecovered try/except structure");
+                    self.block(body);
+                    if !orelse.is_empty() {
+                        self.block(orelse);
+                    }
+                    return;
+                }
                 self.write_line("try:");
                 self.block(body);
-                for h in handlers {
+                for h in &handlers {
                     self.write("except");
                     if let Some(t) = &h.type_ {
                         self.write(" ");
@@ -385,10 +403,6 @@ impl Printer {
                 if !finalbody.is_empty() {
                     self.write_line("finally:");
                     self.block(finalbody);
-                }
-                if handlers.is_empty() && finalbody.is_empty() {
-                    // try without except/finally is invalid; add a marker
-                    self.write_line("# WARNING: recovered try block lacks handlers");
                 }
             }
             Stmt::With {
@@ -669,7 +683,17 @@ impl Printer {
             Expr::Const(o) => self.const_expr(o),
             Expr::Name(n) => self.write(n),
             Expr::Attribute { value, attr } => {
-                self.expr(value, prec::ATOM);
+                // `0.attr` parses as a float literal — parenthesize numeric
+                // constant receivers
+                let needs_paren = matches!(&**value, Expr::Const(o)
+                    if matches!(&**o, crate::object::PyObject::Int(_)));
+                if needs_paren {
+                    self.write("(");
+                    self.expr(value, prec::ATOM);
+                    self.write(")");
+                } else {
+                    self.expr(value, prec::ATOM);
+                }
                 self.write(&format!(".{attr}"));
             }
             Expr::Subscript { value, index } => {
@@ -752,12 +776,14 @@ impl Printer {
                     self.expr(a, 0);
                 }
                 if let Some(sa) = star_args {
-                    if !first {
-                        self.write(", ");
+                    if !is_empty_tuple(sa) {
+                        if !first {
+                            self.write(", ");
+                        }
+                        first = false;
+                        self.write("*");
+                        self.expr(sa, 0);
                     }
-                    first = false;
-                    self.write("*");
-                    self.expr(sa, 0);
                 }
                 for (k, v) in keywords {
                     if !first {
@@ -770,16 +796,20 @@ impl Printer {
                     self.expr(v, 0);
                 }
                 if let Some(sk) = star_kwargs {
-                    if !first {
-                        self.write(", ");
+                    if !is_empty_tuple(sk) {
+                        if !first {
+                            self.write(", ");
+                        }
+                        self.write("**");
+                        self.expr(sk, 0);
                     }
-                    self.write("**");
-                    self.expr(sk, 0);
                 }
                 self.write(")");
             }
             Expr::Tuple(items) => {
-                if items.len() == 1 {
+                if items.is_empty() {
+                    self.write("()");
+                } else if items.len() == 1 {
                     self.write("(");
                     self.expr(&items[0], 0);
                     self.write(",)");
@@ -886,7 +916,8 @@ impl Printer {
                 }
                 self.parameters(params);
                 self.write(": ");
-                self.expr(body, 0);
+                // yield bodies need parens inside a lambda
+                self.expr(body, 1);
                 self.in_lambda = old;
             }
             Expr::Function(fd) => {
@@ -933,14 +964,17 @@ impl Printer {
     }
 
     fn fstring(&mut self, fs: &FString) {
-        // alternate quotes with nesting depth; prefer the other quote when
-        // literals contain the candidate
-        let primary = if self.fstring_depth % 2 == 0 { '"' } else { '\'' };
-        let secondary = if primary == '"' { '\'' } else { '"' };
-        let has_primary = fs.parts.iter().any(|p| {
-            matches!(p, FStringPart::Literal(s) if s.contains(primary))
-        });
-        let quote = if has_primary { secondary } else { primary };
+        // pick a quote that appears in NO literal of the whole f-string tree
+        // (pre-3.12 forbids reusing the outer quote anywhere inside)
+        let mut text = String::new();
+        collect_fstring_literals(fs, &mut text);
+        let quote = if !text.contains('\'') {
+            '\''
+        } else if !text.contains('"') {
+            '"'
+        } else {
+            '\''
+        };
         self.write(&format!("f{quote}"));
         for part in &fs.parts {
             match part {
@@ -1052,13 +1086,10 @@ impl Printer {
                 self.write_str_literal(s, false);
             }
             PyObject::Bytes(b) => {
-                let s = String::from_utf8_lossy(b);
                 if self.version.major >= 3 {
                     self.write("b");
-                    self.write_bytes_literal(&s);
-                } else {
-                    self.write_str_literal(&s, false);
                 }
+                self.write_raw_bytes_literal(b);
             }
             PyObject::Tuple(items) => {
                 if items.len() == 1 {
@@ -1141,11 +1172,19 @@ impl Printer {
         if docstring {
             let q3 = quote.to_string().repeat(3);
             self.write(&q3);
-            let body = if s.ends_with(quote) || s.contains(&q3) {
-                s.replace(quote, &format!("\\{quote}"))
-            } else {
-                s.to_string()
-            };
+            // escape backslashes so \uXXXX etc. in the original text survive;
+            // keep real newlines as-is
+            let mut body = String::new();
+            for ch in s.chars() {
+                if ch == '\\' {
+                    body.push_str("\\\\");
+                } else if quote.starts_with(ch) && (s.ends_with(quote) || s.contains(&q3)) {
+                    body.push('\\');
+                    body.push(ch);
+                } else {
+                    body.push(ch);
+                }
+            }
             self.write(&body);
             self.write(&q3);
             return;
@@ -1172,6 +1211,34 @@ impl Printer {
         self.write(quote);
     }
 
+    /// Render raw bytes with proper \xNN escapes (never lossy).
+    fn write_raw_bytes_literal(&mut self, b: &[u8]) {
+        // choose quote minimizing escapes
+        let sq = b.iter().filter(|&&x| x == b'\'').count();
+        let dq = b.iter().filter(|&&x| x == b'"').count();
+        let quote = if sq <= dq { "\u{27}" } else { "\"" };
+        let qch = quote.chars().next().unwrap();
+        self.write(quote);
+        for &byte in b {
+            match byte {
+                b'\n' => self.write("\\n"),
+                b'\r' => self.write("\\r"),
+                b'\t' => self.write("\\t"),
+                b'\\' => self.write("\\\\"),
+                x if x == qch as u8 => {
+                    self.write("\\");
+                    self.write(&qch.to_string());
+                }
+                x if x.is_ascii_graphic() || x == b' ' => self.out.push(x as char),
+                x => {
+                    let _ = write!(self.out, "\\x{x:02x}");
+                }
+            }
+        }
+        self.write(quote);
+    }
+
+    #[allow(dead_code)]
     fn write_bytes_literal(&mut self, s: &str) {
         let quote = choose_quote(s);
         self.write(quote);
@@ -1256,6 +1323,23 @@ pub fn cmpop_text(op: &CmpOp) -> &'static str {
         CmpOp::IsNot => "is not",
         CmpOp::ExceptionMatch => "==",
     }
+}
+
+fn collect_fstring_literals(fs: &FString, out: &mut String) {
+    for p in &fs.parts {
+        match p {
+            FStringPart::Literal(s) => out.push_str(s),
+            FStringPart::Value { format_spec, .. } => {
+                if let Some(spec) = format_spec {
+                    collect_fstring_literals(spec, out);
+                }
+            }
+        }
+    }
+}
+
+fn is_empty_tuple(e: &ExprRef) -> bool {
+    matches!(&**e, Expr::Tuple(v) if v.is_empty())
 }
 
 fn needs_blank_line(cur: &Stmt, prev: Option<&Stmt>) -> bool {

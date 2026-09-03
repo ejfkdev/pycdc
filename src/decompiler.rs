@@ -156,6 +156,25 @@ struct InlineComp {
     target_seen: bool,
 }
 
+/// Pre-3.11 try statement collected across its handler chain.
+#[derive(Debug, Clone)]
+struct LegacyTry {
+    body: Vec<Stmt>,
+    handlers: Vec<ExceptHandler>,
+    orelse: Vec<Stmt>,
+    finalbody: Vec<Stmt>,
+    /// offset where the handler chain begins
+    handler_start: usize,
+    has_finally: bool,
+}
+
+#[derive(Debug, Clone)]
+struct LegacyHandler {
+    type_: Option<ExprRef>,
+    name: Option<ExprRef>,
+    body: Vec<Stmt>,
+}
+
 /// Reconstructed try-statement region (3.11+ exception-table driven).
 #[derive(Debug, Clone)]
 struct TryCtx {
@@ -223,6 +242,18 @@ struct Ctx<'a> {
     active_try: Option<TryCtx>,
     /// try context awaiting else/finally emission
     pending_try_ctx: Option<TryCtx>,
+    /// pre-3.11 try awaiting its out-of-line handler chain
+    legacy_try: Option<LegacyTry>,
+    /// pre-3.11 except clause being collected
+    legacy_handler: Option<LegacyHandler>,
+    /// where the current legacy handler body ends (mismatch jump target)
+    legacy_handler_end: Option<usize>,
+    /// next STORE_* is the `except ... as name` binding (swallow it)
+    legacy_handler_name_store: bool,
+    /// next STORE_*/DELETE_* is the implicit handler-name cleanup
+    legacy_handler_cleanup: bool,
+    /// inside the exception-bookkeeping prelude of a legacy handler
+    in_handler_prelude: bool,
 
     // side tables used while blocks are open
     pending_then: Vec<Vec<Stmt>>,
@@ -380,6 +411,12 @@ pub fn decompile(code: &CodeObject, version: PythonVersion) -> crate::Result<Dec
         with_regions: with_regions.clone(),
         active_try: None,
         pending_try_ctx: None,
+        legacy_try: None,
+        legacy_handler: None,
+        legacy_handler_end: None,
+        legacy_handler_name_store: false,
+        legacy_handler_cleanup: false,
+        in_handler_prelude: false,
         pending_then: Vec::new(),
         pending_handlers: Vec::new(),
         pending_try_body: Vec::new(),
@@ -484,7 +521,7 @@ pub fn decompile(code: &CodeObject, version: PythonVersion) -> crate::Result<Dec
     }
 
     Ok(Decompiled {
-        body,
+        body: postprocess_body(body, code),
         clean: ctx.clean,
     })
 }
@@ -525,6 +562,32 @@ impl<'a> Ctx<'a> {
                     self.pop();
                     self.finish_inline_comp();
                 }
+            }
+
+            // pre-3.11 handler-chain bookkeeping
+            self.legacy_chain_step(&inst);
+            if self.in_handler_prelude
+                && !matches!(
+                    inst.op,
+                    Op::POP_TOP
+                        | Op::SETUP_FINALLY
+                        | Op::SETUP_EXCEPT
+                        | Op::SETUP_CLEANUP
+                        | Op::DUP_TOP
+                        | Op::ROT_THREE
+                        | Op::ROT_FOUR
+                        | Op::ROT_TWO
+                        | Op::SWAP
+                        | Op::STORE_FAST
+                        | Op::STORE_NAME
+                        | Op::STORE_DEREF
+                        | Op::LOAD_CONST
+                        | Op::NOP
+                        | Op::POP_BLOCK
+                        | Op::COPY
+                )
+            {
+                self.in_handler_prelude = false;
             }
 
             // 3.11+: open try blocks driven by the exception table
@@ -601,13 +664,10 @@ impl<'a> Ctx<'a> {
     /// Emit the else/finally structure of a completed try region and
     /// decompile the out-of-line handlers.
     fn emit_try_tail(&mut self, tc: TryCtx, pos: usize) {
-        // `else:` clause = statements collected between body end and cover end
-        let has_else = {
-            let top_stmts = self.blocks.last().map(|b| b.stmts.len()).unwrap_or(0);
-            top_stmts > 0
-        };
+        // `else:` clause exists only when the protected region extends past
+        // the try body (finally covers body+else)
         let mut orelse = Vec::new();
-        if has_else {
+        if tc.region_end > tc.body_end {
             if let Some(top) = self.blocks.last_mut() {
                 orelse = std::mem::take(&mut top.stmts);
             }
@@ -772,10 +832,19 @@ impl<'a> Ctx<'a> {
                     });
                     continue;
                 }
-                Op::RERAISE | Op::POP_EXCEPT => {
+                Op::RERAISE => {
+                    pc += 1;
+                    // the dispatch chain ends at its fall-through RERAISE
+                    if !handlers.is_empty() || pattern.is_none() {
+                        break;
+                    }
+                    continue;
+                }
+                Op::POP_EXCEPT => {
                     pc += 1;
                     continue;
                 }
+                Op::RETURN_VALUE | Op::RETURN_CONST | Op::END_FINALLY => break,
                 _ => {
                     pc += 1;
                 }
@@ -934,6 +1003,168 @@ impl<'a> Ctx<'a> {
             }
         }
         end
+    }
+
+    /// Drive the pre-3.11 try/except handler chain state machine.
+    fn legacy_chain_step(&mut self, inst: &Instruction) {
+        if self.version.at_least(3, 11) {
+            return;
+        }
+        let Some(lt) = self.legacy_try.clone() else {
+            return;
+        };
+        let pos = inst.offset;
+
+        // current handler body ends at the mismatch jump
+        if self.legacy_handler.is_some() {
+            let end = self.legacy_handler_end.unwrap_or(usize::MAX);
+            if pos >= end {
+                if let Some(h) = self.legacy_handler.take() {
+                    if let Some(lt) = self.legacy_try.as_mut() {
+                        lt.handlers.push(ExceptHandler {
+                            type_: h.type_,
+                            name: h.name,
+                            body: h.body,
+                        });
+                    }
+                }
+                self.legacy_handler_end = None;
+            }
+        }
+
+        // swallow the implicit `name = None; del name` handler cleanup
+        if self.legacy_handler.is_some() {
+            let hname = self
+                .legacy_handler
+                .as_ref()
+                .and_then(|h| match &h.name {
+                    Some(e) => match &**e {
+                        Expr::Name(n) => Some(n.clone()),
+                        _ => None,
+                    },
+                    None => None,
+                });
+            if let Some(hname) = hname {
+                let nm = match inst.op {
+                    Op::STORE_NAME | Op::DELETE_NAME => {
+                        Some(self.const_name(inst.arg as usize))
+                    }
+                    Op::STORE_FAST | Op::DELETE_FAST => {
+                        Some(self.local_name(inst.arg as usize))
+                    }
+                    Op::STORE_DEREF | Op::DELETE_DEREF => self
+                        .code
+                        .deref_name(inst.arg as usize)
+                        .map(str::to_string),
+                    _ => None,
+                };
+                if nm.as_deref() == Some(hname.as_str()) {
+                    self.legacy_handler_cleanup = true;
+                }
+            }
+        }
+
+        match inst.op {
+            // `except E as name:` — the store right after the match jump
+            Op::STORE_FAST | Op::STORE_NAME | Op::STORE_DEREF => {
+                let wants_name = self
+                    .legacy_handler
+                    .as_ref()
+                    .map(|h| h.name.is_none() && h.body.is_empty() && h.type_.is_some())
+                    .unwrap_or(false);
+                if wants_name {
+                    // the `as name` store follows the match jump; let
+                    // emit_store capture the target expression
+                    self.legacy_handler_name_store = true;
+                }
+            }
+            // end of a handler body
+            Op::POP_EXCEPT => {
+                self.in_handler_prelude = false;
+                if let Some(h) = self.legacy_handler.take() {
+                    if let Some(l) = self.legacy_try.as_mut() {
+                        l.handlers.push(ExceptHandler {
+                            type_: h.type_,
+                            name: h.name,
+                            body: h.body,
+                        });
+                    }
+                }
+                self.legacy_handler_end = None;
+            }
+            // RERAISE ends the current handler; a mismatch-path RERAISE with
+            // no open handler ends the whole chain
+            Op::RERAISE => {
+                self.in_handler_prelude = false;
+                if let Some(h) = self.legacy_handler.take() {
+                    self.legacy_handler_end = None;
+                    if let Some(l) = self.legacy_try.as_mut() {
+                        l.handlers.push(ExceptHandler {
+                            type_: h.type_,
+                            name: h.name,
+                            body: h.body,
+                        });
+                    }
+                } else if self
+                    .legacy_try
+                    .as_ref()
+                    .map(|l| !l.handlers.is_empty())
+                    .unwrap_or(false)
+                {
+                    let l = self.legacy_try.take().unwrap();
+                    self.push_stmt(Stmt::Try {
+                        body: l.body,
+                        handlers: l.handlers,
+                        orelse: l.orelse,
+                        finalbody: l.finalbody,
+                    });
+                }
+            }
+            // END_FINALLY closes a finally handler (and the statement)
+            Op::END_FINALLY => {
+                if let Some(l) = self.legacy_try.as_mut() {
+                    if l.has_finally {
+                        let l = self.legacy_try.take().unwrap();
+                        self.push_stmt(Stmt::Try {
+                            body: l.body,
+                            handlers: l.handlers,
+                            orelse: l.orelse,
+                            finalbody: l.finalbody,
+                        });
+                    }
+                }
+            }
+            // a JUMP_FORWARD inside a handler (not part of an open handler
+            // body anymore) ends the chain: emit try (+else target region)
+            Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE => {
+                if self.legacy_handler.is_none() && !lt.handlers.is_empty() {
+                    if let Some(target) = inst.target {
+                        if target > pos && !lt.has_finally {
+                            // else region spans [next, target)
+                            let l = self.legacy_try.take().unwrap();
+                            let else_stmts = self.decompile_region(inst.end(), target);
+                            self.push_stmt(Stmt::Try {
+                                body: l.body,
+                                handlers: l.handlers,
+                                orelse: else_stmts,
+                                finalbody: l.finalbody,
+                            });
+                            self.skip_until = Some(target);
+                        } else if !lt.has_finally {
+                            let l = self.legacy_try.take().unwrap();
+                            self.push_stmt(Stmt::Try {
+                                body: l.body,
+                                handlers: l.handlers,
+                                orelse: l.orelse,
+                                finalbody: l.finalbody,
+                            });
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+        let _ = &lt;
     }
 
     /// Close every block whose `end == pos` (innermost first).
@@ -1218,14 +1449,24 @@ impl<'a> Ctx<'a> {
                     let mut fin = Block::new(BlockType::Finally, pos, usize::MAX);
                     fin.finally_target = Some(finally_target);
                     self.blocks.push(fin);
-                } else {
-                    // try/except whose handlers were collected inline
+                } else if self.version.at_least(3, 11) {
                     let handlers = std::mem::take(&mut self.pending_handlers);
                     self.push_stmt(Stmt::Try {
                         body,
                         handlers,
                         orelse: Vec::new(),
                         finalbody: Vec::new(),
+                    });
+                } else {
+                    // pre-3.11: handlers live out-of-line starting at `pos`;
+                    // defer emission until the chain completes
+                    self.legacy_try = Some(LegacyTry {
+                        body,
+                        handlers: Vec::new(),
+                        orelse: Vec::new(),
+                        finalbody: Vec::new(),
+                        handler_start: pos,
+                        has_finally: false,
                     });
                 }
             }
@@ -1385,6 +1626,12 @@ impl<'a> Ctx<'a> {
             self.flushing = false;
         }
         self.last_flush_offset = self.cur_offset;
+        if self.legacy_handler.is_some() {
+            if let Some(h) = self.legacy_handler.as_mut() {
+                h.body.push(stmt);
+            }
+            return;
+        }
         if let Some(top) = self.blocks.last_mut() {
             top.stmts.push(stmt);
         }
@@ -1480,6 +1727,7 @@ impl<'a> Ctx<'a> {
                 let e = self.const_expr(arg as usize);
                 self.emit_return(Some(e));
                 !matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
+                    || self.legacy_try.is_some()
             }
             Op::LOAD_NAME => {
                 let n = self.const_name(arg as usize);
@@ -1727,14 +1975,9 @@ impl<'a> Ctx<'a> {
                 // STORE_ATTR uses the plain name index in all versions
                 let idx = arg as usize;
                 let attr = self.const_name(idx);
-                // 3.11+: [value, obj] (obj on top); earlier: [obj, value]
-                let (obj, val) = if self.version.at_least(3, 11) {
-                    (self.pop_expr(), self.pop_expr())
-                } else {
-                    let obj = self.pop_expr();
-                    let val = self.pop_expr();
-                    (val, obj)
-                };
+                // all CPython versions push value first, owner on top
+                let obj = self.pop_expr();
+                let val = self.pop_expr();
                 let target: ExprRef = Rc::new(Expr::Attribute { value: obj, attr });
                 self.emit_store(target, val);
                 true
@@ -2411,8 +2654,10 @@ impl<'a> Ctx<'a> {
                 let e = self.pop_expr();
                 self.emit_return(Some(e));
                 // at function top level a RETURN ends the meaningful stream;
-                // trailing bytes are exception-table cleanup paths
+                // trailing bytes are exception-table cleanup paths — unless
+                // a pre-3.11 handler chain still needs to run
                 !matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
+                    || self.legacy_try.is_some()
             }
             Op::YIELD_VALUE => {
                 if self.await_mode {
@@ -2610,7 +2855,8 @@ impl<'a> Ctx<'a> {
                     operands: vec![val, Rc::new(Expr::Const(Rc::new(PyObject::None)))],
                     ops: vec![CmpOp::Is],
                 });
-                self.handle_cond_jump(cond, false, target);
+                // jumps when the comparison is TRUE
+                self.handle_cond_jump(cond, true, target);
                 true
             }
             Op::POP_JUMP_IF_NOT_NONE
@@ -2622,7 +2868,7 @@ impl<'a> Ctx<'a> {
                     operands: vec![val, Rc::new(Expr::Const(Rc::new(PyObject::None)))],
                     ops: vec![CmpOp::IsNot],
                 });
-                self.handle_cond_jump(cond, false, target);
+                self.handle_cond_jump(cond, true, target);
                 true
             }
             Op::JUMP_IF_TRUE_OR_POP => {
@@ -2697,22 +2943,26 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::SETUP_EXCEPT => {
-                let target = inst.target.unwrap_or(inst.end());
-                if let Some(top) = self.blocks.last_mut() {
-                    top.loop_else_end = Some(target);
+                // compiler-internal exception-state finally inside a
+                // legacy handler body (e.g. `raise` in except on 3.8-3.10)
+                if self.legacy_handler.is_some() {
+                    return true;
                 }
+                let target = inst.target.unwrap_or(inst.end());
                 self.blocks.push(Block::new(BlockType::Try, inst.end(), target));
                 true
             }
             Op::SETUP_FINALLY => {
+                // compiler-internal exception-state finally inside a
+                // legacy handler body (e.g. `raise` in except on 3.8-3.10)
+                if self.legacy_handler.is_some() {
+                    return true;
+                }
                 let target = inst.target.unwrap_or(inst.end());
                 if self.version.at_least(3, 8) {
-                    // 3.8+: also used for except handlers; treat like SETUP_EXCEPT
-                    if let Some(top) = self.blocks.last_mut() {
-                        top.loop_else_end = Some(target);
-                    }
+                    // 3.8+: also used for except handlers; the legacy chain
+                    // machinery decides except-vs-finally at close time
                     let mut t = Block::new(BlockType::Try, inst.end(), target);
-                    t.finally_target = Some(target);
                     self.blocks.push(t);
                 } else {
                     let mut cont = Block::new(BlockType::Container, inst.end(), usize::MAX);
@@ -2725,12 +2975,13 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::SETUP_CLEANUP => {
-                let target = inst.target.unwrap_or(inst.end());
-                if let Some(top) = self.blocks.last_mut() {
-                    top.loop_else_end = Some(target);
+                // compiler-internal exception-state finally inside a
+                // legacy handler body (e.g. `raise` in except on 3.8-3.10)
+                if self.legacy_handler.is_some() {
+                    return true;
                 }
+                let target = inst.target.unwrap_or(inst.end());
                 let mut t = Block::new(BlockType::Try, inst.end(), target);
-                t.finally_target = Some(target);
                 self.blocks.push(t);
                 true
             }
@@ -2799,7 +3050,9 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::POP_BLOCK => {
-                self.handle_pop_block();
+                if self.legacy_handler.is_none() {
+                    self.handle_pop_block();
+                }
                 true
             }
             Op::POP_EXCEPT => {
@@ -2813,6 +3066,11 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::END_FINALLY => {
+                if self.legacy_handler.is_some() {
+                    // internal cleanup inside a handler body
+                    self.pop();
+                    return true;
+                }
                 self.pop();
                 self.close_finally();
                 true
@@ -2883,7 +3141,12 @@ impl<'a> Ctx<'a> {
             Op::JUMP_IF_NOT_EXC_MATCH => {
                 let target = inst.target.unwrap_or(inst.end());
                 let pattern = self.pop_expr();
-                let exc = self.pop_expr();
+                // the exception value comes from VM state we do not model;
+                // popping an empty stack here is not an error
+                let exc = match self.stack.pop() {
+                    Some(Sv::E(e)) => e,
+                    Some(_) | None => Rc::new(Expr::Name("__exc__".to_string())),
+                };
                 let cond = Rc::new(Expr::Compare {
                     operands: vec![exc, pattern],
                     ops: vec![CmpOp::ExceptionMatch],
@@ -2925,8 +3188,9 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::PRINT_ITEM_TO => {
-                // [dest, item] with item on top? py2: PRINT_ITEM_TO pops item then leaves dest? 
+                // 2.7: stream (DUPed) sits below the item; both are consumed
                 let v = self.pop_expr();
+                self.pop(); // this item's stream copy
                 self.pending_print.push(v);
                 true
             }
@@ -3084,13 +3348,9 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::CALL_INTRINSIC_1 | Op::CALL_INTRINSIC_2 => {
-                // 3.11: {1: async_gen_wrap, 2: import_star, 3: stopiteration}
-                // 3.12+: {0: print_expr, 1: import_star, 2: async_gen_wrap}
-                let import_star = if self.version.at_least(3, 12) {
-                    arg == 1
-                } else {
-                    arg == 2
-                };
+                // 3.11: {1: async_gen_wrap, 2: import_star};
+                // 3.12+: {2: import_star} (verified against real bytecode)
+                let import_star = arg == 2;
                 if import_star && inst.op == Op::CALL_INTRINSIC_1 {
                     if let Some(Sv::ImportModule { level, module, .. }) = self.pop() {
                         self.push_stmt(Stmt::ImportFrom {
@@ -3099,6 +3359,8 @@ impl<'a> Ctx<'a> {
                             names: vec![("*".to_string(), None)],
                         });
                     }
+                    // the intrinsic leaves a result that POP_TOP discards
+                    self.push(Rc::new(Expr::Const(Rc::new(PyObject::None))));
                 }
                 // all other intrinsics are value-preserving pass-throughs
                 true
@@ -3570,6 +3832,17 @@ impl<'a> Ctx<'a> {
     }
 
     fn open_except_block(&mut self, target: usize, pattern: Option<ExprRef>) {
+        if self.legacy_try.is_some() {
+            // handler body collects into the legacy handler, not a block
+            self.legacy_handler = Some(LegacyHandler {
+                type_: pattern,
+                name: None,
+                body: Vec::new(),
+            });
+            self.legacy_handler_end = Some(target);
+            self.in_handler_prelude = true;
+            return;
+        }
         // The Try block on the stack ends at the handler start (== where we
         // are now). Open an Except block ending at `target` (the jump out of
         // the handler).
@@ -3862,8 +4135,17 @@ impl<'a> Ctx<'a> {
                 }
             }
         }
-        // backward jump into an outer loop = continue
-        self.push_stmt(Stmt::Continue);
+        // backward jump that matches no open loop: only emit `continue`
+        // when one is actually on the block stack
+        if self
+            .blocks
+            .iter()
+            .any(|b| matches!(b.kind, BlockType::While | BlockType::For))
+        {
+            self.push_stmt(Stmt::Continue);
+        } else {
+            self.mark_unclean();
+        }
     }
 
     fn handle_for_iter(&mut self, target: usize, is_async: bool) {
@@ -4153,6 +4435,15 @@ fn keywords_empty(_args: &[ExprRef]) -> bool {
     true
 }
 
+/// Sentinel used by the comprehension mini-simulator for the NULL/self slot.
+fn null_marker() -> ExprRef {
+    Rc::new(Expr::Name("\u{0}null".to_string()))
+}
+
+fn is_null_marker(e: &ExprRef) -> bool {
+    matches!(&**e, Expr::Name(n) if n.starts_with('\u{0}'))
+}
+
 fn star_args_none(_args: &[ExprRef]) -> bool {
     true
 }
@@ -4299,6 +4590,11 @@ fn cmp_from_index(idx: usize) -> CmpOp {
 
 impl<'a> Ctx<'a> {
     fn handle_pop_top(&mut self) {
+        // handler-entry prelude pops (exception bookkeeping we do not model)
+        if self.legacy_handler.is_some() && self.in_handler_prelude {
+            self.pop();
+            return;
+        }
         // inside an inline comprehension, POP_TOP is iterator/cleanup
         // bookkeeping (3.13 pairs END_FOR with POP_TOP), never a statement
         if self.inline_comp.is_some() {
@@ -4344,10 +4640,19 @@ impl<'a> Ctx<'a> {
                 }
                 self.push_stmt(Stmt::Expr(e));
             }
-            Some(Sv::ImportModule { module, .. }) => {
-                self.push_stmt(Stmt::Import {
-                    names: vec![(module, None)],
-                });
+            Some(Sv::ImportModule { module, level, fromlist }) => {
+                if !self.import_names.is_empty() {
+                    // `from module import a, b` finished
+                    let names = std::mem::take(&mut self.import_names);
+                    self.import_module = None;
+                    self.push_stmt(Stmt::ImportFrom { module, level, names });
+                } else if fromlist.is_none() {
+                    self.push_stmt(Stmt::Import {
+                        names: vec![(module, None)],
+                    });
+                } else {
+                    let _ = fromlist;
+                }
             }
             Some(Sv::ImportFrom { .. }) => {
                 // leftover single from-import name (import without store?)
@@ -4411,11 +4716,15 @@ impl<'a> Ctx<'a> {
         loop {
             match self.stack.pop() {
                 Some(Sv::Null) => continue,
-                other => {
-                    return other.unwrap_or_else(|| {
+                Some(other) => return other,
+                None => {
+                    // inside legacy handler preludes the VM stack carries
+                    // phantom exception values we do not model; an empty
+                    // simulation stack there is not an error
+                    if self.legacy_handler.is_none() {
                         self.clean = false;
-                        Sv::E(Rc::new(Expr::Const(Rc::new(PyObject::None))))
-                    })
+                    }
+                    return Sv::E(Rc::new(Expr::Const(Rc::new(PyObject::None))));
                 }
             }
         }
@@ -4473,9 +4782,20 @@ impl<'a> Ctx<'a> {
                         names,
                     });
                 } else {
+                    // `import a.b` binds the top module (STORE a);
+                    // `import a.b as c` stores c
                     let asname = match &*target {
-                        Expr::Name(t) if dotted_last(module.as_str()) != t.as_str() => {
-                            Some(t.clone())
+                        Expr::Name(t) => {
+                            let top = module.split('.').next().unwrap_or(&module);
+                            if t.as_str() != top && dotted_last(module.as_str()) != t.as_str() {
+                                Some(t.clone())
+                            } else if t.as_str() != top {
+                                // stored the leaf name for a dotted module:
+                                // plain `import a.b` form
+                                None
+                            } else {
+                                None
+                            }
                         }
                         _ => None,
                     };
@@ -4493,6 +4813,19 @@ impl<'a> Ctx<'a> {
     /// Common path for every store instruction: unpack bookkeeping,
     /// import stores, function/class def detection, else plain assignment.
     fn emit_store(&mut self, target: ExprRef, val: ExprRef) {
+        if self.legacy_handler_cleanup {
+            self.legacy_handler_cleanup = false;
+            return;
+        }
+        if self.legacy_handler_name_store {
+            self.legacy_handler_name_store = false;
+            if let Some(h) = self.legacy_handler.as_mut() {
+                if h.name.is_none() {
+                    h.name = Some(target);
+                }
+            }
+            return;
+        }
         // post-comprehension restore of a cleared outer variable
         if let Expr::Name(n) = &*target {
             if let Some(pos) = self.pending_restore_vars.iter().position(|v| v == n) {
@@ -4785,6 +5118,10 @@ impl<'a> Ctx<'a> {
     }
 
     fn emit_delete(&mut self, target: ExprRef) {
+        if self.legacy_handler_cleanup {
+            self.legacy_handler_cleanup = false;
+            return;
+        }
         // drop stale exhausted frames (stores rerouted elsewhere)
         while matches!(self.unpack_frames.last(), Some((0, _, _, _))) {
             self.unpack_frames.pop();
@@ -5125,11 +5462,11 @@ impl<'a> Ctx<'a> {
 
     fn make_function(&mut self, inst: &Instruction, flags: u32) {
         // Stack layout by era:
-        //  py2-3.5: [defaults..., code] (MAKE_CLOSURE inserts closure tuple
+        //  py2-3.2: [defaults..., code] (MAKE_CLOSURE inserts closure tuple
         //           below code)
-        //  3.6-3.10: [..., code, qualname] — qualname on top
+        //  3.3-3.10: [..., code, qualname] — qualname on top (PEP 3155)
         //  3.11+: qualname lives in the code object; code on top
-        let code_e = if self.version.at_least(3, 6) && !self.version.at_least(3, 11) {
+        let code_e = if self.version.at_least(3, 3) && !self.version.at_least(3, 11) {
             let qualname = self.pop_expr();
             let _ = qualname;
             self.pop_expr()
@@ -6194,12 +6531,24 @@ impl<'a> Ctx<'a> {
                     } else {
                         inst.arg as usize
                     };
+                    let is_method = inst.op == Op::LOAD_METHOD
+                        || (inst.op == Op::LOAD_ATTR
+                            && self.version.at_least(3, 12)
+                            && inst.arg & 1 != 0);
                     let attr = name_of_arg(code, idx);
                     if let Some(v) = stack.pop() {
                         let e: ExprRef = Rc::new(Expr::Attribute { value: v.clone(), attr });
-                        if inst.op == Op::LOAD_METHOD {
-                            stack.push(e);
-                            stack.push(v);
+                        if is_method {
+                            if self.version.at_least(3, 14) {
+                                stack.push(e);
+                                stack.push(v);
+                            } else if self.version.at_least(3, 11) {
+                                stack.push(v);
+                                stack.push(e);
+                            } else {
+                                stack.push(e);
+                                stack.push(v);
+                            }
                         } else {
                             stack.push(e);
                         }
@@ -6440,10 +6789,32 @@ impl<'a> Ctx<'a> {
                             }
                         }
                     }
-                    if inst.op != Op::CALL_FUNCTION && self.version.at_least(3, 7) {
-                        stack.pop(); // marker/self slot
-                    }
-                    let func = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                    let underflow = || Rc::new(Expr::Name("?".to_string()));
+                    let func = if inst.op == Op::CALL_FUNCTION {
+                        // pre-3.7 calling convention: no marker slot
+                        stack.pop().unwrap_or_else(underflow)
+                    } else if self.version.at_least(3, 14) {
+                        // [callable, marker, args]
+                        if matches!(stack.last(), Some(m) if is_null_marker(m)) {
+                            stack.pop();
+                        }
+                        stack.pop().unwrap_or_else(underflow)
+                    } else if self.version.at_least(3, 11) {
+                        // [marker, callable, args]
+                        let f = stack.pop().unwrap_or_else(underflow);
+                        if matches!(&*f, Expr::Attribute { .. }) {
+                            stack.pop(); // method receiver slot
+                        } else if matches!(stack.last(), Some(m) if is_null_marker(m)) {
+                            stack.pop();
+                        }
+                        f
+                    } else {
+                        // 3.7-3.10: CALL_METHOD has [callable, marker, args]
+                        if inst.op == Op::CALL_METHOD {
+                            stack.pop();
+                        }
+                        stack.pop().unwrap_or_else(underflow)
+                    };
                     // comprehension instantiation with the iterator passed
                     // as the single argument (<=3.11 listcomp/genexpr)
                     if args.len() == 1 && keywords_empty(&args) {

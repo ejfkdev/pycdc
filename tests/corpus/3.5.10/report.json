@@ -1,0 +1,267 @@
+{
+ "version": "3.5.10",
+ "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
+ "counts": {
+  "SIG-DIFF": 29,
+  "INCOMPLETE": 2,
+  "SYNTAX-ERR": 6,
+  "PASS": 3
+ },
+ "results": [
+  {
+   "module": "__future__",
+   "verdict": "SIG-DIFF",
+   "ndiff": 4,
+   "ntotal": 156,
+   "detail": "line 152: orig ('BUILD_TUPLE', '') | got ('CALL_FUNCTION', '3 positional, 0 keyword pair')\nline 153: orig ('CALL_FUNCTION', '1 positional, 0 keyword pair') | got ('BINARY_ADD', '')\nline 154: orig ('BINARY_ADD', '') | got ('RETURN_VALUE', '')"
+  },
+  {
+   "module": "_bootlocale",
+   "verdict": "SIG-DIFF",
+   "ndiff": 68,
+   "ntotal": 92,
+   "detail": "line 22: orig ('JUMP_FORWARD', 'to 128') | got ('SETUP_EXCEPT', 'to 77')\nline 23: orig ('SETUP_EXCEPT', 'to 80') | got ('LOAD_NAME', '_locale')\nline 24: orig ('LOAD_NAME', '_locale') | got ('LOAD_ATTR', 'CODESET')"
+  },
+  {
+   "module": "_collections_abc",
+   "verdict": "INCOMPLETE",
+   "detail": "SyntaxError: invalid syntax"
+  },
+  {
+   "module": "_compat_pickle",
+   "verdict": "SIG-DIFF",
+   "ndiff": 566,
+   "ntotal": 654,
+   "detail": "line 87: orig ('LOAD_CONST', \"('__builtin__', 'xrange')\") | got ('LOAD_CONST', \"'__builtin__'\")\nline 88: orig ('LOAD_CONST', \"('builtins', 'range')\") | got ('LOAD_CONST', \"'xrange'\")\nline 89: orig ('LOAD_CONST', \"('__builtin__', 'reduce')\") | got ('BUILD_TUPLE', '')"
+  },
+  {
+   "module": "_compression",
+   "verdict": "SIG-DIFF",
+   "ndiff": 304,
+   "ntotal": 490,
+   "detail": "line 184: orig ('LOAD_ATTR', '_decomp_factory') | got ('LOAD_ATTR', '_decomp_args')\nline 185: orig ('LOAD_FAST', 'self') | got ('CALL_FUNCTION', '0 positional, 0 keyword pair')\nline 186: orig ('LOAD_ATTR', '_decomp_args') | got ('LOAD_FAST', 'self')"
+  },
+  {
+   "module": "_dummy_thread",
+   "verdict": "SIG-DIFF",
+   "ndiff": 183,
+   "ntotal": 291,
+   "detail": "line 87: orig ('LOAD_CONST', 'False') | got ('SETUP_EXCEPT', 'to 104')\nline 88: orig ('STORE_GLOBAL', '_main') | got ('LOAD_CONST', 'False')\nline 89: orig ('SETUP_EXCEPT', 'to 104') | got ('STORE_GLOBAL', '_main')"
+  },
+  {
+   "module": "_markupbase",
+   "verdict": "SIG-DIFF",
+   "ndiff": 899,
+   "ntotal": 1372,
+   "detail": "line 356: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 532')\nline 369: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 532')\nline 379: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 532')"
+  },
+  {
+   "module": "_osx_support",
+   "verdict": "SYNTAX-ERR",
+   "detail": "SyntaxError: 'break' outside loop"
+  },
+  {
+   "module": "_sitebuiltins",
+   "verdict": "SYNTAX-ERR",
+   "detail": "SyntaxError: 'break' outside loop"
+  },
+  {
+   "module": "_strptime",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1758,
+   "ntotal": 1848,
+   "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
+  },
+  {
+   "module": "_sysconfigdata",
+   "verdict": "PASS"
+  },
+  {
+   "module": "_threading_local",
+   "verdict": "SIG-DIFF",
+   "ndiff": 352,
+   "ntotal": 401,
+   "detail": "line 39: orig ('LOAD_CONST', \"('current_thread', 'RLock')\") | got ('LOAD_CONST', \"('current_thread',)\")\nline 43: orig ('IMPORT_FROM', 'RLock') | got ('POP_TOP', '')\nline 44: orig ('STORE_NAME', 'RLock') | got ('LOAD_CONST', '0')"
+  },
+  {
+   "module": "_weakrefset",
+   "verdict": "SIG-DIFF",
+   "ndiff": 550,
+   "ntotal": 914,
+   "detail": "line 298: orig ('LOAD_FAST', 'self') | got ('SETUP_LOOP', 'to 50')\nline 299: orig ('LOAD_ATTR', 'data') | got ('LOAD_FAST', 'l')\nline 300: orig ('LOAD_ATTR', 'discard') | got ('POP_JUMP_IF_FALSE', '')"
+  },
+  {
+   "module": "abc",
+   "verdict": "INCOMPLETE",
+   "detail": "SyntaxError: invalid syntax"
+  },
+  {
+   "module": "aifc",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2226,
+   "ntotal": 3025,
+   "detail": "line 229: orig ('LOAD_NAME', 'f') | got ('LOAD_NAME', 'data')\nline 230: orig ('LOAD_ATTR', 'readframes') | got ('UNARY_NOT', '')\nline 231: orig ('LOAD_CONST', '1024') | got ('POP_JUMP_IF_FALSE', '')"
+  },
+  {
+   "module": "ast",
+   "verdict": "SIG-DIFF",
+   "ndiff": 889,
+   "ntotal": 999,
+   "detail": "line 85: orig ('LOAD_GLOBAL', 'parse') | got ('LOAD_FAST', 'node_or_string')\nline 86: orig ('LOAD_FAST', 'node_or_string') | got ('LOAD_CONST', \"'eval'\")\nline 88: orig ('LOAD_CONST', \"'eval'\") | got ('CALL_FUNCTION', '2 positional, 0 keyword pair')"
+  },
+  {
+   "module": "asynchat",
+   "verdict": "SYNTAX-ERR",
+   "detail": "SyntaxError: 'break' outside loop"
+  },
+  {
+   "module": "asyncore",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2128,
+   "ntotal": 2211,
+   "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
+  },
+  {
+   "module": "base64",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1769,
+   "ntotal": 1972,
+   "detail": "line 122: orig ('LOAD_CONST', \"'foldspaces'\") | got ('LOAD_CONST', 'None')\nline 123: orig ('LOAD_CONST', 'False') | got ('LOAD_CONST', '<code a85encode>')\nline 124: orig ('LOAD_CONST', \"'wrapcol'\") | got ('LOAD_CONST', \"'a85encode'\")"
+  },
+  {
+   "module": "bdb",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1554,
+   "ntotal": 2332,
+   "detail": "line 451: orig ('LOAD_ATTR', 'user_line') | got ('LOAD_ATTR', 'quitting')\nline 452: orig ('LOAD_FAST', 'frame') | got ('POP_JUMP_IF_FALSE', '')\nline 453: orig ('CALL_FUNCTION', '1 positional, 0 keyword pair') | got ('LOAD_FAST', 'self')"
+  },
+  {
+   "module": "binhex",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1230,
+   "ntotal": 1817,
+   "detail": "line 332: orig ('LOAD_CONST', '0') | got ('SETUP_LOOP', 'to 102')\nline 333: orig ('STORE_FAST', 'first') | got ('LOAD_FAST', 'first')\nline 334: orig ('SETUP_LOOP', 'to 102') | got ('LOAD_GLOBAL', 'len')"
+  },
+  {
+   "module": "bisect",
+   "verdict": "PASS"
+  },
+  {
+   "module": "bz2",
+   "verdict": "SIG-DIFF",
+   "ndiff": 834,
+   "ntotal": 899,
+   "detail": "line 57: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 61: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 62: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
+  },
+  {
+   "module": "cProfile",
+   "verdict": "SIG-DIFF",
+   "ndiff": 316,
+   "ntotal": 562,
+   "detail": "line 193: orig ('BUILD_MAP', '') | got ('SETUP_LOOP', 'to 155')\nline 194: orig ('STORE_FAST', 'callersdicts') | got ('LOAD_FAST', 'entries')\nline 195: orig ('SETUP_LOOP', 'to 152') | got ('GET_ITER', '')"
+  },
+  {
+   "module": "calendar",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2434,
+   "ntotal": 2894,
+   "detail": "line 403: orig ('LOAD_CONST', 'None') | got ('<listcomp>', 1)\nline 404: orig ('RETURN_VALUE', '') | got ('BUILD_LIST', '')\nline 405: orig ('<listcomp>', 1) | got ('LOAD_FAST', '.0')"
+  },
+  {
+   "module": "cgi",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2894,
+   "ntotal": 3039,
+   "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
+  },
+  {
+   "module": "cgitb",
+   "verdict": "SYNTAX-ERR",
+   "detail": "SyntaxError: non-default argument follows default argument"
+  },
+  {
+   "module": "chunk",
+   "verdict": "SIG-DIFF",
+   "ndiff": 7,
+   "ntotal": 442,
+   "detail": "line 413: orig ('SETUP_LOOP', 'to 219') | got ('SETUP_LOOP', 'to 207')\nline 434: orig ('LOAD_FAST', 'dummy') | got ('JUMP_ABSOLUTE', '')\nline 435: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_BLOCK', '')"
+  },
+  {
+   "module": "cmd",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1023,
+   "ntotal": 1310,
+   "detail": "line 221: orig ('SETUP_FINALLY', 'to 430') | got ('SETUP_FINALLY', 'to 433')\nline 243: orig ('LOAD_CONST', 'None') | got ('SETUP_LOOP', 'to 429')\nline 244: orig ('STORE_FAST', 'stop') | got ('LOAD_FAST', 'stop')"
+  },
+  {
+   "module": "code",
+   "verdict": "SYNTAX-ERR",
+   "detail": "SyntaxError: 'break' outside loop"
+  },
+  {
+   "module": "codecs",
+   "verdict": "SYNTAX-ERR",
+   "detail": "SyntaxError: 'break' outside loop"
+  },
+  {
+   "module": "codeop",
+   "verdict": "SIG-DIFF",
+   "ndiff": 241,
+   "ntotal": 330,
+   "detail": "line 65: orig ('SETUP_LOOP', 'to 79') | got ('SETUP_LOOP', 'to 83')\nline 71: orig ('FOR_ITER', 'to 60') | got ('FOR_ITER', 'to 82')\nline 87: orig ('POP_BLOCK', '') | got ('LOAD_FAST', 'symbol')"
+  },
+  {
+   "module": "colorsys",
+   "verdict": "PASS"
+  },
+  {
+   "module": "compileall",
+   "verdict": "SIG-DIFF",
+   "ndiff": 969,
+   "ntotal": 1026,
+   "detail": "line 31: orig ('JUMP_FORWARD', 'to 113') | got ('JUMP_FORWARD', 'to 126')\nline 37: orig ('POP_TOP', '') | got ('STORE_NAME', 'ProcessPoolExecutor')\nline 39: orig ('LOAD_CONST', 'None') | got ('SETUP_FINALLY', 'to 112')"
+  },
+  {
+   "module": "configparser",
+   "verdict": "SIG-DIFF",
+   "ndiff": 4193,
+   "ntotal": 4295,
+   "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
+  },
+  {
+   "module": "contextlib",
+   "verdict": "SIG-DIFF",
+   "ndiff": 689,
+   "ntotal": 881,
+   "detail": "line 181: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')\nline 182: orig ('LOAD_FAST', 'kwds') | got ('STORE_ATTR', 'func')\nline 183: orig ('ROT_THREE', '') | got ('LOAD_FAST', 'args')"
+  },
+  {
+   "module": "copy",
+   "verdict": "SIG-DIFF",
+   "ndiff": 920,
+   "ntotal": 1015,
+   "detail": "line 29: orig ('LOAD_NAME', 'Error') | got ('SETUP_EXCEPT', 'to 109')\nline 30: orig ('STORE_NAME', 'error') | got ('LOAD_NAME', 'Error')\nline 31: orig ('SETUP_EXCEPT', 'to 109') | got ('STORE_NAME', 'error')"
+  },
+  {
+   "module": "copyreg",
+   "verdict": "SIG-DIFF",
+   "ndiff": 305,
+   "ntotal": 525,
+   "detail": "line 169: orig ('SETUP_LOOP', 'to 77') | got ('SETUP_LOOP', 'to 79')\nline 174: orig ('FOR_ITER', 'to 70') | got ('FOR_ITER', 'to 78')\nline 185: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
+  },
+  {
+   "module": "crypt",
+   "verdict": "SIG-DIFF",
+   "ndiff": 110,
+   "ntotal": 214,
+   "detail": "line 83: orig ('BUILD_LIST', '') | got ('SETUP_LOOP', 'to 326')\nline 84: orig ('STORE_NAME', 'methods') | got ('LOAD_NAME', 'METHOD_SHA512')\nline 85: orig ('SETUP_LOOP', 'to 323') | got ('LOAD_NAME', 'METHOD_SHA256')"
+  },
+  {
+   "module": "csv",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1645,
+   "ntotal": 1675,
+   "detail": "line 8: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 12: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 13: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
+  }
+ ]
+}
