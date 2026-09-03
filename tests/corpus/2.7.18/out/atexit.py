@@ -19,8 +19,8 @@ def _run_exitfuncs():
         exc_info = sys.exc_info()
         try:
             func(*targs, **kargs)
-        except SystemExit, exc_info:
-            pass
+        except SystemExit:
+            exc_info = sys.exc_info()
     if exc_info is not None:
         raise exc_info[1] # WARNING: raise cause dropped (py2)
 

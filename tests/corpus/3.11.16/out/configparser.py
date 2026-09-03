@@ -437,7 +437,7 @@ class ExtendedInterpolation(Interpolation):
                         opt = parser.optionxform(path[1])
                         v = parser.get(sect, opt, True)
                     else:
-                        raise InterpolationSyntaxError(option, section, f"More than one ':' found: {rest!r}")
+                        raise InterpolationSyntaxError(option, section, f'More than one \':\' found: {rest!r}')
                 except (KeyError, NoSectionError, NoOptionError):
                     raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
 

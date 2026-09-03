@@ -3,9 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 4,
-  "SIG-DIFF": 30,
-  "INCOMPLETE": 5,
-  "SYNTAX-ERR": 1
+  "SIG-DIFF": 31,
+  "INCOMPLETE": 5
  },
  "results": [
   {
@@ -205,8 +204,10 @@
   },
   {
    "module": "compileall",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: 'continue' not properly in loop"
+   "verdict": "SIG-DIFF",
+   "ndiff": 1441,
+   "ntotal": 1501,
+   "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "configparser",

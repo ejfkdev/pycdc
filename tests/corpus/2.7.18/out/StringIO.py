@@ -32,8 +32,8 @@ Notes:
 if __name__ == '__main__':
     try:
         from errno import EINVAL
-    except ImportError, EINVAL:
-        pass
+    except ImportError:
+        EINVAL = 22
     else:
         __all__ = ['StringIO']
         def _complain_ifclosed(closed):

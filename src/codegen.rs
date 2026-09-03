@@ -76,6 +76,8 @@ pub struct Printer {
     fstring_depth: usize,
     /// quote characters of the enclosing f-strings (innermost last)
     fstring_quotes: Vec<char>,
+    /// inside a loop body: break/continue are only legal when > 0
+    loop_depth: usize,
 }
 
 pub fn generate(body: &[Stmt], version: PythonVersion, clean: bool) -> String {
@@ -87,6 +89,7 @@ pub fn generate(body: &[Stmt], version: PythonVersion, clean: bool) -> String {
         in_lambda: false,
         fstring_depth: 0,
         fstring_quotes: Vec::new(),
+        loop_depth: 0,
     };
     p.module(body);
     if !clean {
@@ -264,8 +267,16 @@ impl Printer {
                 self.newline();
             }
             Stmt::Pass => self.write_line("pass"),
-            Stmt::Break => self.write_line("break"),
-            Stmt::Continue => self.write_line("continue"),
+            Stmt::Break | Stmt::Continue => {
+                let kw = if matches!(s, Stmt::Break) { "break" } else { "continue" };
+                if self.loop_depth == 0 {
+                    // structural recovery failed somewhere upstream; emit a
+                    // comment so the output still compiles
+                    self.write_line(&format!("# WARNING: {kw} outside loop (unrecovered structure)"));
+                } else {
+                    self.write_line(kw);
+                }
+            }
             Stmt::Import { names } => {
                 self.write("import ");
                 for (i, (m, a)) in names.iter().enumerate() {
@@ -327,7 +338,9 @@ impl Printer {
                 self.expr(cond, 0);
                 self.write(":");
                 self.newline();
+                self.loop_depth += 1;
                 self.block(body);
+                self.loop_depth -= 1;
                 if !orelse.is_empty() {
                     self.write_line("else:");
                     self.block(orelse);
@@ -349,7 +362,9 @@ impl Printer {
                 self.expr(iter, 0);
                 self.write(":");
                 self.newline();
+                self.loop_depth += 1;
                 self.block(body);
+                self.loop_depth -= 1;
                 if !orelse.is_empty() {
                     self.write_line("else:");
                     self.block(orelse);
@@ -981,8 +996,32 @@ impl Printer {
                 '\''
             }
         } else {
-            let ok_single = !text.contains('\'') && !self.fstring_quotes.contains(&'\'');
-            let ok_double = !text.contains('"') && !self.fstring_quotes.contains(&'"');
+            // embedded string constants (pre-3.12) cannot escape quotes and
+            // cannot reuse the outer quote: each forces the outer choice
+            let mut consts = Vec::new();
+            for p in &fs.parts {
+                if let FStringPart::Value { value, .. } = p {
+                    collect_expr_strings(value, &mut consts);
+                }
+            }
+            let mut ok_single = !self.fstring_quotes.contains(&'\'');
+            let mut ok_double = !self.fstring_quotes.contains(&'"');
+            let mut impossible = false;
+            for c in &consts {
+                let (hs, hd) = (c.contains('\''), c.contains('"'));
+                match (hs, hd) {
+                    (true, true) => impossible = true,
+                    // inner must use the other quote -> outer is forced
+                    (true, false) => ok_double = false,
+                    (false, true) => ok_single = false,
+                    (false, false) => {}
+                }
+            }
+            if impossible || (!ok_single && !ok_double) {
+                // unrenderable as an f-string: fall back to concatenation
+                self.fstring_concat(fs);
+                return;
+            }
             match (ok_single, ok_double) {
                 (true, _) => '\'',
                 (_, true) => '"',
@@ -1051,6 +1090,60 @@ impl Printer {
         }
         self.write(&quote.to_string());
         self.fstring_quotes.pop();
+    }
+
+    /// Render an f-string that cannot be quoted legally (pre-3.12 with
+    /// embedded constants needing both quote characters) as a concatenation.
+    fn fstring_concat(&mut self, fs: &FString) {
+        self.write("(");
+        let mut first = true;
+        for part in &fs.parts {
+            match part {
+                FStringPart::Literal(s) => {
+                    if s.is_empty() {
+                        continue;
+                    }
+                    if !first {
+                        self.write(" + ");
+                    }
+                    first = false;
+                    self.write_str_literal(s, false);
+                }
+                FStringPart::Value { value, conversion, format_spec } => {
+                    if !first {
+                        self.write(" + ");
+                    }
+                    first = false;
+                    match format_spec {
+                        Some(spec) => {
+                            let mut spec_text = String::new();
+                            for p in &spec.parts {
+                                match p {
+                                    FStringPart::Literal(t) => spec_text.push_str(t),
+                                    FStringPart::Value { .. } => {}
+                                }
+                            }
+                            self.write("format(");
+                            self.expr(value, 0);
+                            self.write(", ");
+                            self.write_str_literal(&spec_text, false);
+                            self.write(")");
+                        }
+                        None => {
+                            let f = match conversion {
+                                Some('r') => "repr",
+                                Some('a') => "ascii",
+                                _ => "str",
+                            };
+                            self.write(&format!("{f}("));
+                            self.expr(value, 0);
+                            self.write(")");
+                        }
+                    }
+                }
+            }
+        }
+        self.write(")");
     }
 
     fn const_expr(&mut self, o: &ObjectRef) {
@@ -1362,6 +1455,78 @@ fn collect_fstring_literals(fs: &FString, out: &mut String) {
                 }
             }
         }
+    }
+}
+
+/// Collect the raw contents of every string constant embedded in `e`
+/// (these must be quotable inside the f-string pre-3.12).
+fn collect_expr_strings(e: &ExprRef, out: &mut Vec<String>) {
+    match &**e {
+        Expr::Const(o) => match &**o {
+            PyObject::Str(s) => out.push(s.clone()),
+            PyObject::Tuple(items) | PyObject::List(items) | PyObject::Set(items) => {
+                for it in items {
+                    if let PyObject::Str(s) = &**it {
+                        out.push(s.clone());
+                    }
+                }
+            }
+            _ => {}
+        },
+        Expr::Name(_) => {}
+        Expr::Attribute { value, .. } | Expr::Starred(value) | Expr::Await(value) => {
+            collect_expr_strings(value, out)
+        }
+        Expr::Subscript { value, index } => {
+            collect_expr_strings(value, out);
+            collect_expr_strings(index, out);
+        }
+        Expr::Unary { operand, .. } => collect_expr_strings(operand, out),
+        Expr::Binary { left, right, .. } => {
+            collect_expr_strings(left, out);
+            collect_expr_strings(right, out);
+        }
+        Expr::Compare { operands, .. } | Expr::BoolOp { values: operands, .. } => {
+            for o in operands {
+                collect_expr_strings(o, out);
+            }
+        }
+        Expr::Call { func, args, keywords, star_args, star_kwargs } => {
+            collect_expr_strings(func, out);
+            for a in args {
+                collect_expr_strings(a, out);
+            }
+            for (_, v) in keywords {
+                collect_expr_strings(v, out);
+            }
+            if let Some(x) = star_args { collect_expr_strings(x, out); }
+            if let Some(x) = star_kwargs { collect_expr_strings(x, out); }
+        }
+        Expr::Tuple(v) | Expr::List(v) | Expr::Set(v) => {
+            for it in v { collect_expr_strings(it, out); }
+        }
+        Expr::Dict(entries) => {
+            for (k, v) in entries {
+                collect_expr_strings(k, out);
+                collect_expr_strings(v, out);
+            }
+        }
+        Expr::Ternary { cond, then_expr, else_expr } => {
+            collect_expr_strings(cond, out);
+            collect_expr_strings(then_expr, out);
+            collect_expr_strings(else_expr, out);
+        }
+        Expr::FString(fs) => {
+            let mut text = String::new();
+            collect_fstring_literals(fs, &mut text);
+            out.push(text);
+            for p in &fs.parts {
+                if let FStringPart::Value { value, .. } = p {
+                    collect_expr_strings(value, out);
+                }
+            }
+        }
+        _ => {}
     }
 }
 

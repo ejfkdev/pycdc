@@ -301,7 +301,7 @@ class _BaseExitStack:
             _enter = cls.__enter__
             _exit = cls.__exit__
         except AttributeError:
-            raise TypeError(f"'{cls.__module__}.{cls.__qualname__}' object does not support the context manager protocol") from None
+            raise TypeError(f'\'{cls.__module__}.{cls.__qualname__}\' object does not support the context manager protocol') from None
 
     def callback(self, callback, /, *args, **kwds):
         _exit_wrapper = self._create_cb_wrapper(callback, *args, **kwds)
@@ -405,7 +405,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             _enter = cls.__aenter__
             _exit = cls.__aexit__
         except AttributeError:
-            raise TypeError(f"'{cls.__module__}.{cls.__qualname__}' object does not support the asynchronous context manager protocol") from None
+            raise TypeError(f'\'{cls.__module__}.{cls.__qualname__}\' object does not support the asynchronous context manager protocol') from None
 
     def push_async_exit(self, exit):
         _cb_type = type(exit)

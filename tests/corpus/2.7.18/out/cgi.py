@@ -135,32 +135,31 @@ if __name__ == '__main__':
                             break
                             continue
                         lines.append(line)
-                    if not data is None:
-                        break
-                break
-                if bytes < 0 and lines:
-                    line = lines[-1]
-                    if line[-2:] == '\r\n':
-                        line = line[:-2]
-                    elif line[-1:] == '\n':
-                        line = line[:-1]
-                    lines[-1] = line
-                    data = ''.join(lines)
-                    continue
-                line = headers['content-disposition']
-                if not line:
-                    continue
-                key, params = parse_header(line)
-                if key != 'form-data':
-                    continue
-                if 'name' in params:
-                    name = params['name']
-                else:
-                    continue
-                if name in partdict:
-                    partdict[name].append(data)
-                    continue
-                partdict[name] = [data]
+                    if data is None:
+                        continue
+                    if bytes < 0 and lines:
+                        line = lines[-1]
+                        if line[-2:] == '\r\n':
+                            line = line[:-2]
+                        elif line[-1:] == '\n':
+                            line = line[:-1]
+                        lines[-1] = line
+                        data = ''.join(lines)
+                        continue
+                    line = headers['content-disposition']
+                    if not line:
+                        continue
+                    key, params = parse_header(line)
+                    if key != 'form-data':
+                        continue
+                    if 'name' in params:
+                        name = params['name']
+                    else:
+                        continue
+                    if name in partdict:
+                        partdict[name].append(data)
+                        continue
+                    partdict[name] = [data]
             return partdict
 
         def _parseparam(s):
@@ -264,7 +263,8 @@ if __name__ == '__main__':
             print '<H3>Current Working Directory:</H3>'
             try:
                 pwd = os.getcwd()
-            except os.error, msg:
+            except os.error:
+                msg = None
                 print 'os.error:', escape(str(msg))
             else:
                 print escape(pwd)

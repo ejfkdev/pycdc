@@ -9,9 +9,8 @@
  "2.7.18": {
   "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
   "counts": {
-   "SIG-DIFF": 38,
-   "PASS": 1,
-   "SYNTAX-ERR": 1
+   "SIG-DIFF": 39,
+   "PASS": 1
   }
  },
  "3.10.21": {
@@ -25,17 +24,15 @@
   "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
   "counts": {
    "PASS": 4,
-   "SIG-DIFF": 35,
-   "SYNTAX-ERR": 1
+   "SIG-DIFF": 36
   }
  },
  "3.12.14": {
   "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
   "counts": {
    "PASS": 4,
-   "SIG-DIFF": 30,
-   "INCOMPLETE": 5,
-   "SYNTAX-ERR": 1
+   "SIG-DIFF": 31,
+   "INCOMPLETE": 5
   }
  },
  "3.13.15": {
@@ -57,9 +54,8 @@
  "3.3.7": {
   "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
   "counts": {
-   "SIG-DIFF": 38,
-   "INCOMPLETE": 1,
-   "SYNTAX-ERR": 1
+   "SIG-DIFF": 39,
+   "INCOMPLETE": 1
   }
  },
  "3.5.10": {

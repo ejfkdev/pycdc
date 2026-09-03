@@ -169,7 +169,8 @@ def test():
     for o, a in opts:
         try:
             opts, args = getopt.getopt(sys.argv[1:], 'deut')
-        except getopt.error, msg:
+        except getopt.error:
+            msg = None
             sys.stdout = sys.stderr
             print msg
             print "usage: %s [-d|-e|-u|-t] [file|-]\n        -d, -u: decode\n        -e: encode (default)\n        -t: encode and decode string 'Aladdin:open sesame'" % sys.argv[0]

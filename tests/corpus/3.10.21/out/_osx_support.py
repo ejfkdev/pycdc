@@ -225,7 +225,7 @@ def compiler_fixup(compiler_so, cc_args):
         sysroot = argvar[idx][len('-isysroot'):]
     if sysroot:
         if not os.path.isdir(sysroot):
-            sys.stderr.write(f"Compiling with an SDK that doesn't seem to exist: {sysroot}\n")
+            sys.stderr.write(f'Compiling with an SDK that doesn\'t seem to exist: {sysroot}\n')
             sys.stderr.write('Please check your Xcode installation\n')
             sys.stderr.flush()
     return compiler_so

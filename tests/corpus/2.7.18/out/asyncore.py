@@ -43,8 +43,8 @@ _DISCONNECTED = frozenset((ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE,
 if os.name == 'posix':
     try:
         socket_map
-    except NameError, socket_map:
-        pass
+    except NameError:
+        socket_map = {}
     else:
         def _strerror(err):
             pass
@@ -85,7 +85,8 @@ if os.name == 'posix':
                     obj.handle_expt_event()
                 if flags & (select.POLLHUP | select.POLLERR | select.POLLNVAL):
                     obj.handle_close()
-            except socket.error, e:
+            except socket.error:
+                e = None
                 if e.args[0] not in _DISCONNECTED:
                     obj.handle_error()
                 else:
@@ -119,7 +120,8 @@ if os.name == 'posix':
                 for fd in r:
                     try:
                         r, w, e = select.select(r, w, e, timeout)
-                    except select.error, err:
+                    except select.error:
+                        err = None
                         if err.args[0] != EINTR:
                             raise
                         else:
@@ -165,7 +167,8 @@ if os.name == 'posix':
                 for fd, flags in r:
                     try:
                         r = pollster.poll(timeout)
-                    except select.error, err:
+                    except select.error:
+                        err = None
                         if err.args[0] != EINTR:
                             raise
                         r = []
@@ -188,6 +191,7 @@ if os.name == 'posix':
                 while True:
                     while map:
                         poll_fun(timeout, map)
+                    break
                     while map:
                         if count > 0:
                             poll_fun(timeout, map)
@@ -222,7 +226,8 @@ if os.name == 'posix':
                     continue
                 try:
                     x.close()
-                except OSError, x:
+                except OSError:
+                    x = None
                     if x.args[0] == EBADF:
                         continue
                     if not ignore_all:

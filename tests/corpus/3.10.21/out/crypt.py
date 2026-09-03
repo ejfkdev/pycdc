@@ -52,7 +52,7 @@ else:
                         raise ValueError('rounds out of the range 1000 to 999_999_999')
                 s += f'rounds={rounds}$'
         elif rounds is not None:
-            raise ValueError(f"{method} doesn't support the rounds argument")
+            raise ValueError(f'{method} doesn\'t support the rounds argument')
         s += ''.join((_sr.choice(_saltchars) for char in range(method.salt_chars)))
         return s
 

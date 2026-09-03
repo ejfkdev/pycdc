@@ -285,6 +285,9 @@ struct Ctx<'a> {
     prev_op_at_exec: Option<Op>,
     /// instruction offsets to skip (false-path cleanup of value merges)
     skip_until: Option<usize>,
+    /// loop top of a loop that saw BREAK_LOOP: dead back edges after the
+    /// break (<=3.7 padding) must not mark the output unclean
+    broken_loop_top: Option<usize>,
     /// PEP 709 inline comprehension state (3.12+ listcomp/setcomp/dictcomp)
     inline_comp: Option<InlineComp>,
     inline_comp_stack: Vec<InlineComp>,
@@ -444,6 +447,7 @@ pub fn decompile(code: &CodeObject, version: PythonVersion) -> crate::Result<Dec
         prev_op: None,
         prev_op_at_exec: None,
         skip_until: None,
+        broken_loop_top: None,
         inline_comp: None,
         inline_comp_stack: Vec::new(),
         pending_restore_vars: Vec::new(),
@@ -1111,13 +1115,16 @@ impl<'a> Ctx<'a> {
         }
 
         match inst.op {
-            // `except E as name:` — the store right after the match jump
+            // `except E as name:` — the store right after the match jump.
+            // py2 `except E, n:` assigns implicitly (no store instruction),
+            // so never capture there: the first store is real code.
             Op::STORE_FAST | Op::STORE_NAME | Op::STORE_DEREF => {
-                let wants_name = self
-                    .legacy_handler
-                    .as_ref()
-                    .map(|h| h.name.is_none() && h.body.is_empty() && h.type_.is_some())
-                    .unwrap_or(false);
+                let wants_name = self.version.at_least(3, 0)
+                    && self
+                        .legacy_handler
+                        .as_ref()
+                        .map(|h| h.name.is_none() && h.body.is_empty() && h.type_.is_some())
+                        .unwrap_or(false);
                 if wants_name {
                     // the `as name` store follows the match jump; let
                     // emit_store capture the target expression
@@ -3093,6 +3100,14 @@ impl<'a> Ctx<'a> {
             }
             Op::BREAK_LOOP => {
                 self.push_stmt(Stmt::Break);
+                if self.broken_loop_top.is_none() {
+                    self.broken_loop_top = self
+                        .blocks
+                        .iter()
+                        .rev()
+                        .find(|b| matches!(b.kind, BlockType::While | BlockType::For))
+                        .map(|b| b.start);
+                }
                 true
             }
 
@@ -4251,9 +4266,13 @@ impl<'a> Ctx<'a> {
                         .iter()
                         .find(|i| i.end() == b.cond_end && i.target.is_some())?
                         .target
+                } else if b.end < usize::MAX && b.start < b.end {
+                    // SETUP_LOOP era: the block end IS the loop exit
+                    Some(b.end)
                 } else {
-                    // SETUP_LOOP era: back edge jumps to b.start; the
-                    // following instruction offset is the exit
+                    // 3.8+ `while True`: no SETUP_LOOP and no cond jump;
+                    // back edge jumps to b.start, the following instruction
+                    // offset is the exit
                     self.back_edge_exit(b.start)
                 }
             }
@@ -4373,6 +4392,38 @@ impl<'a> Ctx<'a> {
                 if b.cond_end != 0 && target == b.cond_end && b.start < target {
                     return;
                 }
+                // 3.12+: the then-branch of an if/else inside a loop can
+                // end with JUMP_BACKWARD straight to the loop top (the
+                // compiler fuses "skip else" and "continue"). Close the
+                // then-part, open the Else region ending at the loop's own
+                // back edge, and let that back edge close everything.
+                if b.start == target || b.cond_end == target {
+                    let top_is_pending_if = matches!(
+                        self.blocks.last(),
+                        Some(t) if t.kind == BlockType::If
+                            && t.else_end.is_none()
+                            && t.short_circuit.is_none()
+                            && t.end > self.cur_offset
+                    );
+                    if top_is_pending_if {
+                        let else_end = self
+                            .instrs
+                            .iter()
+                            .filter(|x| {
+                                x.is_backward
+                                    && x.target == Some(target)
+                                    && x.offset > self.cur_offset
+                            })
+                            .map(|x| x.offset)
+                            .next()
+                            .unwrap_or(b.end);
+                        let t = self.blocks.last_mut().unwrap();
+                        t.else_end = Some(else_end);
+                        let end = t.end;
+                        self.force_close_top(end);
+                        return;
+                    }
+                }
                 if b.start == target || b.end == target {
                     while self.blocks.len() > i {
                         self.force_close_top(target);
@@ -4397,6 +4448,8 @@ impl<'a> Ctx<'a> {
             .any(|b| matches!(b.kind, BlockType::While | BlockType::For))
         {
             self.push_stmt(Stmt::Continue);
+        } else if self.broken_loop_top == Some(target) {
+            // dead back-edge padding after a `break` closed the loop
         } else {
             self.mark_unclean();
         }

@@ -454,10 +454,9 @@ class FieldStorage:
             self.bytes_read += part.bytes_read
             self.list.append(part)
             if not part.done:
-                if not self.bytes_read >= self.length:
-                    break
-                if self.length > 0:
-                    pass
+                if self.bytes_read >= self.length:
+                    if self.length > 0:
+                        pass
             else:
                 break
         self.skip_lines()

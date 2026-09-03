@@ -113,7 +113,7 @@ def _find_appropriate_compiler(_config_vars):
     if not _find_executable(cc):
         cc = _find_build_tool('clang')
     elif os.path.basename(cc).startswith('gcc') and data and 'llvm-gcc' in data:
-        data = _read_output(f"'{cc.replace("'", '\'"\'"\'')!s}' --version")
+        data = _read_output(("'" + str(cc.replace("'", '\'"\'"\'')) + "' --version"))
         cc = _find_build_tool('clang')
     if not cc:
         raise SystemError('Cannot locate working compiler')
@@ -138,7 +138,7 @@ def _remove_unsupported_archs(_config_vars):
     if 'CC' in os.environ:
         return _config_vars
     if not re.search('-arch\\s+ppc', _config_vars['CFLAGS']) is None:
-        status = os.system(f"echo 'int main{{}};' | '{_config_vars['CC'].replace("'", '\'"\'"\'')!s}' -c -arch ppc -x c -o /dev/null /dev/null 2>/dev/null")
+        status = os.system(("echo 'int main{};' | '" + str(_config_vars['CC'].replace("'", '\'"\'"\'')) + "' -c -arch ppc -x c -o /dev/null /dev/null 2>/dev/null"))
         if status:
             for cv in _UNIVERSAL_CONFIG_VARS:
                 if cv in _config_vars and cv not in os.environ:

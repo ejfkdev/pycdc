@@ -293,11 +293,10 @@ class HexBin:
             ch = ifp.read(1)
             if not ch:
                 raise Error('No binhex data found')
-            if not ch == b'\r':
+            if ch == b'\r':
+                continue
+            if ch == b':':
                 break
-        if ch == b':':
-            pass
-        break
         hqxifp = _Hqxdecoderengine(ifp)
         self.ifp = _Rledecoderengine(hqxifp)
         self.crc = 0

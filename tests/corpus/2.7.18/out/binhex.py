@@ -42,8 +42,11 @@ if __name__ == '__main__':
                 mode = '*' + mode[0]
             return openrf(name, mode)
 
-    except ImportError, FInfo:
-        class getfileinfo(()):
+    except ImportError:
+        class FInfo(()):
+            pass
+
+        def getfileinfo(name):
             finfo = FInfo()
             fp = open(name)
             data = open(name).read(256)

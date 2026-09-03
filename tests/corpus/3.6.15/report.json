@@ -122,8 +122,8 @@
   {
    "module": "asyncore",
    "verdict": "SIG-DIFF",
-   "ndiff": 2147,
-   "ntotal": 2222,
+   "ndiff": 2124,
+   "ntotal": 2223,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -235,8 +235,8 @@
   {
    "module": "configparser",
    "verdict": "SIG-DIFF",
-   "ndiff": 4182,
-   "ntotal": 4354,
+   "ndiff": 4202,
+   "ntotal": 4352,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },
   {

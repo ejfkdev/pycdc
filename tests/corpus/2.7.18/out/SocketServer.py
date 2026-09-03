@@ -138,7 +138,8 @@ def _eintr_retry(func, *args):
     while True:
         try:
             return func(*args)
-        except (OSError, select.error), e:
+        except (OSError, select.error):
+            e = None
             if e.args[0] != errno.EINTR:
                 raise
                 continue

@@ -139,32 +139,31 @@ def parse_multipart(fp, pdict):
                     bytes = int(clength)
                 except ValueError:
                     pass
-            if not data is None:
-                break
-        break
-        if bytes < 0 and lines:
-            line = lines[-1]
-            if line[-2:] == b'\r\n':
-                line = line[:-2]
-            elif line[-1:] == b'\n':
-                line = line[:-1]
-            lines[-1] = line
-            data = b''.join(lines)
-            continue
-        line = headers['content-disposition']
-        if not line:
-            continue
-        key, params = parse_header(line)
-        if key != 'form-data':
-            continue
-        if 'name' in params:
-            name = params['name']
-        else:
-            continue
-        if name in partdict:
-            partdict[name].append(data)
-            continue
-        partdict[name] = [data]
+            if data is None:
+                continue
+            if bytes < 0 and lines:
+                line = lines[-1]
+                if line[-2:] == b'\r\n':
+                    line = line[:-2]
+                elif line[-1:] == b'\n':
+                    line = line[:-1]
+                lines[-1] = line
+                data = b''.join(lines)
+                continue
+            line = headers['content-disposition']
+            if not line:
+                continue
+            key, params = parse_header(line)
+            if key != 'form-data':
+                continue
+            if 'name' in params:
+                name = params['name']
+            else:
+                continue
+            if name in partdict:
+                partdict[name].append(data)
+                continue
+            partdict[name] = [data]
     return partdict
 
 def _parseparam(s):
@@ -509,6 +508,7 @@ class FieldStorage:
                         break
                     self.file.write(data)
                     todo = todo - len(data)
+                break
 
     def read_lines(self):
         if self._binary_file:

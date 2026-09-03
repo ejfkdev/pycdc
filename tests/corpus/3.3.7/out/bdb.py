@@ -194,6 +194,7 @@ class Bdb:
                     del frame.f_trace
                     frame = frame.f_back
                     continue
+                break
 
     def set_quit(self):
         self.stopframe = self.botframe

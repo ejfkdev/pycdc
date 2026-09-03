@@ -33,8 +33,8 @@ def _read_output(commandstring):
             try:
                 import tempfile
                 fp = tempfile.NamedTemporaryFile()
-            except ImportError, fp:
-                pass
+            except ImportError:
+                fp = open('/tmp/_osx_support.%s' % (os.getpid(),), 'w+b')
             else:
                 cmd = "%s 2>/dev/null >'%s'" % (commandstring, fp.name)
                 return fp.read().strip()
@@ -192,6 +192,7 @@ def compiler_fixup(compiler_so, cc_args):
                         del compiler_so[index:index + 2]
                     except ValueError:
                         break
+                break
     if 'ARCHFLAGS' in os.environ and not stripArch:
         compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
     if stripSysroot:
@@ -202,6 +203,7 @@ def compiler_fixup(compiler_so, cc_args):
                     del compiler_so[index:index + 2]
                 except ValueError:
                     break
+            break
     sysroot = None
     if '-isysroot' in cc_args:
         idx = cc_args.index('-isysroot')
@@ -237,9 +239,10 @@ def get_platform_osx(_config_vars, osname, release, machine):
         osname = 'macosx'
         cflags = _config_vars.get(_INITPRE + 'CFLAGS', _config_vars.get('CFLAGS', ''))
         if macrelease:
+            macrelease = (10, 0)
             try:
                 macrelease = tuple((int(i) for i in macrelease.split('.')[0:2]))
-            except ValueError, macrelease:
+            except ValueError:
                 pass
         else:
             macrelease = (10, 0)

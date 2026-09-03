@@ -3,8 +3,7 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
   "PASS": 4,
-  "SIG-DIFF": 35,
-  "SYNTAX-ERR": 1
+  "SIG-DIFF": 36
  },
  "results": [
   {
@@ -59,8 +58,10 @@
   },
   {
    "module": "_osx_support",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: unexpected character after line continuation character"
+   "verdict": "SIG-DIFF",
+   "ndiff": 1380,
+   "ntotal": 1551,
+   "detail": "line 137: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 436') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 438')\nline 140: orig ('FOR_ITER', 'to 432') | got ('FOR_ITER', 'to 434')\nline 156: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 430') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 432')"
   },
   {
    "module": "_py_abc",

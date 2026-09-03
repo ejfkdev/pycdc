@@ -107,8 +107,8 @@ import re
 if __name__ == '__main__':
     try:
         import fcntl
-    except ImportError, fcntl:
-        pass
+    except ImportError:
+        fcntl = None
     else:
         def resolve_dotted_attribute(obj, attr, allow_dotted_names=True):
             if allow_dotted_names:

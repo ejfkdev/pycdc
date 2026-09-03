@@ -469,13 +469,11 @@ class LegacyInterpolation(Interpolation):
                 if value and '%(' in value:
                     replace = functools.partial(self._interpolation_replace, parser=parser)
                     value = self._KEYCRE.sub(replace, value)
-                    break
-                break
+                    continue
                 try:
                     value = value % vars
                 except KeyError as e:
                     raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
-            break
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value

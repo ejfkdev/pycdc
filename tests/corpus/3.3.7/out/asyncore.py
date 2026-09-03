@@ -187,6 +187,7 @@ def loop(timeout=30.0, use_poll=False, map=None, count=None):
         while True:
             while map:
                 poll_fun(timeout, map)
+            break
             while map:
                 if count > 0:
                     poll_fun(timeout, map)

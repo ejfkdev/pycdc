@@ -146,7 +146,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             try:
                 os.unlink(cfile)
                 os.link(previous_cfile, cfile)
-                continue
+                # WARNING: continue outside loop (unrecovered structure)
             finally:
                 return success
                 if not quiet:
