@@ -563,8 +563,8 @@ def make_encoding_map(decoding_map):
     for k, v in decoding_map.items():
         if v not in m:
             m[v] = k
-            continue
-        m[v] = None
+        else:
+            m[v] = None
     return m
 
 namereplace_errors = None

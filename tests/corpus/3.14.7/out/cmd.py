@@ -250,13 +250,10 @@ in order to inherit Cmd's methods and encapsulate action methods.
         topics = set()
         for name in names:
             if not name[:slice(5, None, None)] == 'help_':
-                continue
-            topics.add(name[5])
+                pass
         names.sort()
         prevname = ''
         for name in names:
-            if not name[:slice(3, None, None)] == 'do_':
-                continue
             if name == prevname:
                 continue
             prevname = name
@@ -311,13 +308,12 @@ in order to inherit Cmd's methods and encapsulate action methods.
                 colwidths.append(colwidth)
                 totwidth += colwidth + 2
                 if not totwidth > displaywidth:
-                    continue
-            if not totwidth <= displaywidth:
-                continue
-        else:
-            nrows = len(list)
-            ncols = 1
-            colwidths = [0]
+                    pass
+        if not totwidth <= displaywidth:
+            pass
+        nrows = len(list)
+        ncols = 1
+        colwidths = [0]
         for row in range(nrows):
             texts = []
             for col in range(ncols):

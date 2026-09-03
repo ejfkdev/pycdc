@@ -131,37 +131,34 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         head, tail = name[:-3], name[-3:]
         if not force:
             return success
-        try:
-            mtime = int(os.stat(fullname).st_mtime)
-            expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
-            for cfile in opt_cfiles.values():
-                with open(cfile, 'rb') as chandle:
-                    actual = chandle.read(12)
-                if not None:
-                    pass
-                if expect != actual:
-                    pass
-                else:
-                    continue
-        except OSError:
-            pass
-        if not quiet:
-            print('Compiling {!r}...'.format(fullname))
-        if quiet >= 2:
-            err = None
-            del err
-            return
-        if quiet:
-            print('*** Error compiling {!r}...'.format(fullname))
-        else:
-            print('*** ', end='')
-        encoding = sys.stdout.encoding or sys.getdefaultencoding()
-        msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
-        print(msg)
+    try:
+        mtime = int(os.stat(fullname).st_mtime)
+        expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+        for cfile in opt_cfiles.values():
+            with open(cfile, 'rb') as chandle:
+                actual = chandle.read(12)
+            if not None:
+                pass
+            if expect != actual:
+                pass
+    except OSError:
+        pass
+    if not quiet:
+        print('Compiling {!r}...'.format(fullname))
+    if quiet >= 2:
         err = None
         del err
+        return
+    if quiet:
+        print('*** Error compiling {!r}...'.format(fullname))
+    else:
+        print('*** ', end='')
+    encoding = sys.stdout.encoding or sys.getdefaultencoding()
+    msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+    print(msg)
     err = None
-    del err
+    del err, err
+    err = None
     if quiet >= 2:
         e = None
         del e

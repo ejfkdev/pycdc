@@ -143,9 +143,9 @@ class Cmd:
         while i < n:
             if line[i] in self.identchars:
                 i = i + 1
-                continue
-        cmd, arg = line[:i], line[i:].strip()
-        return cmd, arg, line
+            else:
+                cmd, arg = line[:i], line[i:].strip()
+                return cmd, arg, line
 
     def onecmd(self, line):
         cmd, arg, line = self.parseline(line)
@@ -238,11 +238,10 @@ class Cmd:
             if cmd in help:
                 cmds_doc.append(cmd)
                 del help[cmd]
-                continue
-            if getattr(self, name).__doc__:
+            elif getattr(self, name).__doc__:
                 cmds_doc.append(cmd)
-                continue
-            cmds_undoc.append(cmd)
+            else:
+                cmds_undoc.append(cmd)
         self.stdout.write('%s\n' % str(self.doc_leader))
         self.print_topics(self.doc_header, cmds_doc, 15, 80)
         self.print_topics(self.misc_header, list(help.keys()), 15, 80)
@@ -303,10 +302,11 @@ class Cmd:
             while texts:
                 if not texts[-1]:
                     del texts[-1]
+                else:
+                    for col in range(len(texts)):
+                        texts[col] = texts[col].ljust(colwidths[col])
+                    self.stdout.write('%s\n' % str('  '.join(texts)))
                     continue
-            for col in range(len(texts)):
-                texts[col] = texts[col].ljust(colwidths[col])
-            self.stdout.write('%s\n' % str('  '.join(texts)))
 
 
 # WARNING: Decompyle incomplete

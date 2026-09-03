@@ -230,68 +230,67 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             year = int(found_dict['y'])
             if year <= 68:
                 year += 2000
-                continue
-        year += 1900
-    else:
-        if group_key == 'Y':
+            else:
+                year += 1900
+        elif group_key == 'Y':
             year = int(found_dict['Y'])
-        if group_key == 'm':
+        elif group_key == 'm':
             month = int(found_dict['m'])
-        if group_key == 'B':
+        elif group_key == 'B':
             month = locale_time.f_month.index(found_dict['B'].lower())
-        if group_key == 'b':
+        elif group_key == 'b':
             month = locale_time.a_month.index(found_dict['b'].lower())
-        if group_key == 'd':
+        elif group_key == 'd':
             day = int(found_dict['d'])
-        if group_key == 'H':
+        elif group_key == 'H':
             hour = int(found_dict['H'])
-        if group_key == 'I':
+        elif group_key == 'I':
             hour = int(found_dict['I'])
             ampm = found_dict.get('p', '').lower()
             if (ampm in ('', locale_time.am_pm[0]) and hour == 12 or ampm == locale_time.am_pm[1]) and hour != 12:
                 hour += 12
-                if group_key == 'M':
-                    minute = int(found_dict['M'])
-                if group_key == 'S':
-                    second = int(found_dict['S'])
-                if group_key == 'f':
-                    s = found_dict['f']
-                    s += '0' * (6 - len(s))
-                    fraction = int(s)
-                if group_key == 'A':
-                    weekday = locale_time.f_weekday.index(found_dict['A'].lower())
-                if group_key == 'a':
-                    weekday = locale_time.a_weekday.index(found_dict['a'].lower())
-                if group_key == 'w':
-                    weekday = int(found_dict['w'])
-                    if weekday == 0:
-                        weekday = 6
+                continue
+        if group_key == 'M':
+            minute = int(found_dict['M'])
+        elif group_key == 'S':
+            second = int(found_dict['S'])
+        elif group_key == 'f':
+            s = found_dict['f']
+            s += '0' * (6 - len(s))
+            fraction = int(s)
+        elif group_key == 'A':
+            weekday = locale_time.f_weekday.index(found_dict['A'].lower())
+        elif group_key == 'a':
+            weekday = locale_time.a_weekday.index(found_dict['a'].lower())
+        elif group_key == 'w':
+            weekday = int(found_dict['w'])
+            if weekday == 0:
+                weekday = 6
+            else:
+                weekday -= 1
+        elif group_key == 'j':
+            julian = int(found_dict['j'])
+        elif group_key in ('U', 'W'):
+            week_of_year = int(found_dict[group_key])
+            if group_key == 'U':
+                week_of_year_start = 6
+            else:
+                week_of_year_start = 0
+        elif group_key == 'z':
+            z = found_dict['z']
+            tzoffset = int(z[1:3]) * 60 + int(z[3:5])
+            if z.startswith('-'):
+                tzoffset = -tzoffset
+                continue
+        if group_key == 'Z':
+            found_zone = found_dict['Z'].lower()
+            for value, tz_values in enumerate(locale_time.timezone):
+                if found_zone in tz_values:
+                    if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
+                        break
                     else:
-                        weekday -= 1
-                else:
-                    if group_key == 'j':
-                        julian = int(found_dict['j'])
-                    if group_key in ('U', 'W'):
-                        week_of_year = int(found_dict[group_key])
-                        if group_key == 'U':
-                            week_of_year_start = 6
-                        else:
-                            week_of_year_start = 0
-                    elif group_key == 'z':
-                        z = found_dict['z']
-                        tzoffset = int(z[1:3]) * 60 + int(z[3:5])
-                        if z.startswith('-'):
-                            tzoffset = -tzoffset
-                            if group_key == 'Z':
-                                pass
-                            found_zone = found_dict['Z'].lower()
-                            for value, tz_values in enumerate(locale_time.timezone):
-                                if found_zone in tz_values:
-                                    if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                                        break
-                                        continue
-                                tz = value
-                                break
+                        tz = value
+                        break
     leap_year_fix = False
     if year is None and month == 2 and day == 29:
         year = 1904

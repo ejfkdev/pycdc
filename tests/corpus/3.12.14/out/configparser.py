@@ -376,8 +376,10 @@ class BasicInterpolation(Interpolation):
             else:
                 raise InterpolationSyntaxError(option, section, f"'%' must be followed by '%' or '(', found: {rest!r}")
             if rest:
-                continue
-            return
+                pass
+            else:
+                return
+                return
 
 
 class ExtendedInterpolation(Interpolation):
@@ -440,8 +442,10 @@ class ExtendedInterpolation(Interpolation):
             else:
                 raise InterpolationSyntaxError(option, section, f"'$' must be followed by '$' or '{{', found: {rest!r}")
             if rest:
-                continue
-            return
+                pass
+            else:
+                return
+                return
 
 
 class LegacyInterpolation(Interpolation):
@@ -787,14 +791,14 @@ class RawConfigParser(MutableMapping):
                         continue
                     next_prefixes[prefix] = index
                     if not index == 0:
-                        if not index > 0:
-                            continue
+                        if not line[index - 1].isspace():
+                            pass
                 inline_prefixes = next_prefixes
                 continue
-            try:
-                for prefix in self._comment_prefixes:
-                    if not line.strip().startswith(prefix):
-                        continue
+            for prefix in self._comment_prefixes:
+                if not line.strip().startswith(prefix):
+                    pass
+                else:
                     try:
                         comment_start = 0
                         if comment_start == sys.maxsize:
@@ -855,12 +859,11 @@ class RawConfigParser(MutableMapping):
                         self._join_multiline_values()
                         if e:
                             raise e
-            finally:
-                return
-                try:
-                    p = None
-                finally:
-                    self._join_multiline_values()
+                    return
+                    try:
+                        p = None
+                    finally:
+                        self._join_multiline_values()
 
     def _join_multiline_values(self):
         defaults = self.default_section, self._defaults

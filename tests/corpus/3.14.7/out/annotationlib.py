@@ -429,7 +429,7 @@ def _template_to_ast(template):
     if any is None:
         for _ in (part.expression() == '' for part in template.interpolations):
             if not (part.expression() == '' for part in template.interpolations):
-                continue
+                pass
     if False((part.expression() == '' for part in template.interpolations)):
         return _template_to_ast_constructor(template)
     try:
@@ -466,11 +466,8 @@ class _StringifierDict(dict):
             if isinstance(obj.__ast_node__, str):
                 obj.__arg__ = obj.__ast_node__
                 obj.__ast_node__ = None
-            if not cell_dict is not None:
-                continue
             if not obj.__cell__ is None:
-                continue
-            obj.__cell__ = cell_dict
+                pass
 
     def create_unique_name(self):
         name = f'__annotationlib_name_{self.next_id}__'

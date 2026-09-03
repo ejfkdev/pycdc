@@ -939,8 +939,7 @@ is disregarded.'''
                 self.write('=')
                 self.traverse(d)
             if not index == len(node.posonlyargs):
-                continue
-            self.write(', /')
+                pass
         if not node.vararg:
             if node.kwonlyargs and node.vararg and node.vararg.annotation:
                 if first:
@@ -956,18 +955,21 @@ is disregarded.'''
                 self.write(', ')
                 self.traverse(a)
                 if not d:
-                    continue
-                self.write('=')
-                self.traverse(d)
-        if node.kwarg:
-            if first:
-                first = False
-            else:
-                self.write(', ')
-            self.write('**' + node.kwarg.arg)
-            if node.kwarg.annotation:
-                self.write(': ')
-                self.traverse(node.kwarg.annotation)
+                    pass
+                else:
+                    self.write('=')
+                    self.traverse(d)
+        else:
+            if node.kwarg:
+                if first:
+                    first = False
+                else:
+                    self.write(', ')
+                self.write('**' + node.kwarg.arg)
+                if node.kwarg.annotation:
+                    self.write(': ')
+                    self.traverse(node.kwarg.annotation)
+                    return
                 return
             return
 

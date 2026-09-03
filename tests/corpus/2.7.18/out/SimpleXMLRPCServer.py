@@ -118,8 +118,8 @@ if __name__ == '__main__':
             for i in attrs:
                 if i.startswith('_'):
                     raise AttributeError('attempt to access private attribute "%s"' % i)
-                    continue
-                obj = getattr(obj, i)
+                else:
+                    obj = getattr(obj, i)
             return obj
 
         def list_public_methods(obj):

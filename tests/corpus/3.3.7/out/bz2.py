@@ -189,9 +189,10 @@ class BZ2File(io.BufferedIOBase):
                     blocks.append(data)
                 self._pos += len(data)
                 n -= len(data)
-                continue
-        if return_data:
-            return b''.join(blocks)
+            else:
+                if return_data:
+                    return b''.join(blocks)
+                return
 
     def peek(self, n=0):
         with self._lock:

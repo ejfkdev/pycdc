@@ -132,8 +132,7 @@ def iter_child_nodes(node):
     for name, field in iter_fields(node):
         if isinstance(field, AST):
             yield field
-            continue
-        if isinstance(field, list):
+        elif isinstance(field, list):
             for item in field:
                 if isinstance(item, AST):
                     yield item
@@ -247,17 +246,17 @@ class NodeTransformer(NodeVisitor):
                             continue
                     if not isinstance(value, AST):
                         new_values.extend(value)
-                        continue
-                    new_values.append(value)
+                    else:
+                        new_values.append(value)
                 old_value[:] = new_values
-                continue
-            if isinstance(old_value, AST):
-                new_node = self.visit(old_value)
-                if new_node is None:
-                    delattr(node, field)
-                    continue
-            setattr(node, field, new_node)
-        return node
+            else:
+                if isinstance(old_value, AST):
+                    new_node = self.visit(old_value)
+                    if new_node is None:
+                        delattr(node, field)
+                    else:
+                        setattr(node, field, new_node)
+                return node
 
 
 # WARNING: Decompyle incomplete

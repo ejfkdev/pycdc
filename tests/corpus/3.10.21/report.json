@@ -210,7 +210,7 @@
    "module": "cgitb",
    "ast_detail": "diff at token 36: orig  orelse=[Return(value=Constant(value=''))])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1087,
+   "ndiff": 1086,
    "ntotal": 1432,
    "detail": "line 161: orig ('LOAD_FAST', 'frame') | got ('LOAD_GLOBAL', 'hasattr')\nline 162: orig ('LOAD_ATTR', 'f_globals') | got ('LOAD_FAST', 'builtins')\nline 163: orig ('LOAD_CONST', \"'__builtins__'\") | got ('LOAD_FAST', 'name')"
   },

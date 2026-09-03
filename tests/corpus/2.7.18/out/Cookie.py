@@ -220,11 +220,12 @@ if __name__ == '__main__':
                                 res.append(str[i:k])
                                 res.append(str[k + 1])
                                 i = k + 2
-                                continue
-                res.append(str[i:j])
-                res.append(chr(int(str[j + 1:j + 4], 8)))
-                i = j + 4
-            return _nulljoin(res)
+                            else:
+                                res.append(str[i:j])
+                                res.append(chr(int(str[j + 1:j + 4], 8)))
+                                i = j + 4
+                    else:
+                        return _nulljoin(res)
 
         _weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
         _monthname = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -288,17 +289,14 @@ if __name__ == '__main__':
                         continue
                     if K == 'expires' and type(V) == type(1):
                         RA('%s=%s' % (self._reserved[K], _getdate(V)))
-                        continue
-                    if K == 'max-age' and type(V) == type(1):
+                    elif K == 'max-age' and type(V) == type(1):
                         RA('%s=%d' % (self._reserved[K], V))
-                        continue
-                    if K == 'secure':
+                    elif K == 'secure':
                         RA(str(self._reserved[K]))
-                        continue
-                    if K == 'httponly':
+                    elif K == 'httponly':
                         RA(str(self._reserved[K]))
-                        continue
-                    RA('%s=%s' % (self._reserved[K], V))
+                    else:
+                        RA('%s=%s' % (self._reserved[K], V))
                 return _semispacejoin(result)
 
 
@@ -378,6 +376,9 @@ if __name__ == '__main__':
                                     if K.lower() in Morsel._flags:
                                         M[K] = True
                                         continue
+                    continue
+                    M[K] = _unquote(V)
+                    continue
                 if V is not None:
                     pass
                 rval, cval = self.value_decode(V)

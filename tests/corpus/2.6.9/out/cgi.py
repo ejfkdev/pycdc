@@ -157,8 +157,6 @@ if __name__ == '__main__':
                         continue
                     if 'name' in params:
                         name = params['name']
-                    else:
-                        continue
                     if name in partdict:
                         partdict[name].append(data)
                         continue

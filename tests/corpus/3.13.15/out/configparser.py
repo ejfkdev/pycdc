@@ -417,8 +417,10 @@ is considered a user error and raises `InterpolationSyntaxError`.'''
             else:
                 raise InterpolationSyntaxError(option, section, f"'%' must be followed by '%' or '(', found: {rest!r}")
             if rest:
-                continue
-            return
+                pass
+            else:
+                return
+                return
 
 
 class ExtendedInterpolation(Interpolation):
@@ -483,8 +485,10 @@ class ExtendedInterpolation(Interpolation):
                 accum.append(v)
             raise InterpolationSyntaxError(option, section, f"'$' must be followed by '$' or '{{', found: {rest!r}")
             if rest:
-                continue
-            return
+                pass
+            else:
+                return
+                return
 
 
 class _ReadState:

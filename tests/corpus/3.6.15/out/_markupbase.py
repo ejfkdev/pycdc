@@ -144,18 +144,18 @@ class ParserBase:
                 if rawdata[j:j + 4] == '<!--':
                     j = self.parse_comment(j, report=0)
                     return j
-                    continue
-            name, j = self._scan_name(j + 2, declstartpos)
-            if j == -1:
-                return -1
-            if name not in frozenset({'entity', 'notation', 'element', 'attlist'}):
-                self.updatepos(declstartpos, j + 2)
-                self.error('unknown declaration %r in internal subset' % name)
-            meth = getattr(self, '_parse_doctype_' + name)
-            j = meth(j, declstartpos)
-            if j < 0:
-                return j
-                continue
+                else:
+                    name, j = self._scan_name(j + 2, declstartpos)
+                    if j == -1:
+                        return -1
+                    if name not in frozenset({'entity', 'notation', 'element', 'attlist'}):
+                        self.updatepos(declstartpos, j + 2)
+                        self.error('unknown declaration %r in internal subset' % name)
+                    meth = getattr(self, '_parse_doctype_' + name)
+                    j = meth(j, declstartpos)
+                    if j < 0:
+                        return j
+                        continue
             if c == '%':
                 if j + 1 == n:
                     return -1
@@ -170,20 +170,20 @@ class ParserBase:
                 while j < n:
                     if rawdata[j].isspace():
                         j = j + 1
+                    else:
+                        if j < n:
+                            if rawdata[j] == '>':
+                                return j
+                            self.updatepos(declstartpos, j)
+                            self.error('unexpected char after internal subset')
+                        else:
+                            return -1
                         continue
-                if j < n:
-                    if rawdata[j] == '>':
-                        return j
-                    self.updatepos(declstartpos, j)
-                    self.error('unexpected char after internal subset')
-                else:
-                    return -1
-                continue
-            if c.isspace():
+            elif c.isspace():
                 j = j + 1
-                continue
-            self.updatepos(declstartpos, j)
-            self.error('unexpected char %r in internal subset' % c)
+            else:
+                self.updatepos(declstartpos, j)
+                self.error('unexpected char %r in internal subset' % c)
         return -1
 
     def _parse_doctype_element(self, i, declstartpos):
@@ -260,9 +260,9 @@ class ParserBase:
                 if not m:
                     return -1
                 j = m.end()
-                continue
-            name, j = self._scan_name(j, declstartpos)
-            return j
+            else:
+                name, j = self._scan_name(j, declstartpos)
+                return j
 
     def _parse_doctype_entity(self, i, declstartpos):
         rawdata = self.rawdata
@@ -274,10 +274,10 @@ class ParserBase:
                     return -1
                 if c.isspace():
                     j = j + 1
-                    continue
+                else:
+                    break
                 break
-        else:
-            j = i
+                j = i
         name, j = self._scan_name(j, declstartpos)
         if j < 0:
             return j
@@ -289,14 +289,13 @@ class ParserBase:
                 m = _declstringlit_match(rawdata, j)
                 if m:
                     j = m.end()
-                    continue
-            return -1
-        if c == '>':
-            return j + 1
-        name, j = self._scan_name(j, declstartpos)
-        if j < 0:
-            pass
-        return j
+                else:
+                    return -1
+            else:
+                if c == '>':
+                    return j + 1
+                name, j = self._scan_name(j, declstartpos)
+                return j
 
     def _scan_name(self, i, declstartpos):
         rawdata = self.rawdata

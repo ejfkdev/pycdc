@@ -40,17 +40,8 @@ def _walk_dir(dir, maxlevels, quiet=0):
         if not os.path.isdir(fullname):
             yield fullname
             continue
-        if not maxlevels > 0:
-            continue
-        if not name != os.curdir:
-            continue
-        if not name != os.pardir:
-            continue
-        if not os.path.isdir(fullname):
-            continue
         if os.path.islink(fullname):
-            continue
-        _walk_dir(fullname, maxlevels - 1, quiet)
+            pass
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     ProcessPoolExecutor = None
@@ -86,8 +77,7 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
                 return success
                 for file in files:
                     if compile_file(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir, prependdir, limit_sl_dest, hardlink_dupes):
-                        continue
-                    success = False
+                        pass
                 return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
@@ -143,15 +133,9 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         head, tail = name[:-3], name[-3:]
         if not force:
             try:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
-                for cfile in opt_cfiles.values():
-                    with open(cfile, 'rb') as chandle:
-                        actual = chandle.read(12)
-                        try:
-                            pass
-                        except OSError:
-                            pass
+                os.unlink(cfile)
+                os.link(previous_cfile, cfile)
+                # WARNING: continue outside loop (unrecovered structure)
             finally:
                 if not expect != actual:
                     try:
@@ -170,29 +154,26 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                         cfile = opt_cfiles[opt_level]
                         ok = py_compile.compile(fullname, cfile, dfile, True, opt_level, invalidation_mode)
                         if not index > 0:
-                            continue
-                        try:
                             pass
-                        except py_compile./*bad-name-80*/ as err:
-                            success = False
-                            if quiet >= 2:
+                        else:
+                            try:
                                 pass
+                            except py_compile./*bad-name-80*/ as err:
+                                success = False
+                                if quiet >= 2:
+                                    pass
+                            if not hardlink_dupes:
+                                pass
+                            else:
+                                try:
+                                    previous_cfile = opt_cfiles[optimize[index - 1]]
+                                except py_compile./*bad-name-80*/ as err:
+                                    success = False
+                                    if quiet >= 2:
+                                        pass
+                                if not filecmp.cmp(cfile, previous_cfile, False):
+                                    pass
                 finally:
-                    if not hardlink_dupes:
-                        try:
-                            previous_cfile = opt_cfiles[optimize[index - 1]]
-                        except py_compile./*bad-name-80*/ as err:
-                            success = False
-                            if quiet >= 2:
-                                pass
-                    if not filecmp.cmp(cfile, previous_cfile, False):
-                        try:
-                            os.unlink(cfile)
-                            os.link(previous_cfile, cfile)
-                        except py_compile./*bad-name-80*/ as err:
-                            success = False
-                            if quiet >= 2:
-                                pass
                     if ok == 0:
                         success = False
                     return success

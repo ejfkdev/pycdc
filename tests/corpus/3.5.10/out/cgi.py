@@ -143,29 +143,27 @@ def parse_multipart(fp, pdict):
                     break
                 lines.append(line)
             if data is None:
-                continue
-            if bytes < 0 and lines:
-                line = lines[-1]
-                if line[-2:] == b'\r\n':
-                    line = line[:-2]
-                elif line[-1:] == b'\n':
-                    line = line[:-1]
-                lines[-1] = line
-                data = b''.join(lines)
-            line = headers['content-disposition']
-            if not line:
-                continue
-            key, params = parse_header(line)
-            if key != 'form-data':
-                continue
-            if 'name' in params:
-                name = params['name']
+                pass
             else:
-                continue
-            if name in partdict:
-                partdict[name].append(data)
-                continue
-            partdict[name] = [data]
+                if bytes < 0 and lines:
+                    line = lines[-1]
+                    if line[-2:] == b'\r\n':
+                        line = line[:-2]
+                    elif line[-1:] == b'\n':
+                        line = line[:-1]
+                    lines[-1] = line
+                    data = b''.join(lines)
+                line = headers['content-disposition']
+                if not line:
+                    pass
+                else:
+                    key, params = parse_header(line)
+                    if 'name' in params:
+                        name = params['name']
+                    elif name in partdict:
+                        partdict[name].append(data)
+                    else:
+                        partdict[name] = [data]
     return partdict
 
 def _parseparam(s):
@@ -175,12 +173,13 @@ def _parseparam(s):
         while end > 0:
             if (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
                 end = s.find(';', end + 1)
+            else:
+                if end < 0:
+                    end = len(s)
+                f = s[:end]
+                yield f.strip()
+                s = s[end:]
                 continue
-        if end < 0:
-            end = len(s)
-        f = s[:end]
-        yield f.strip()
-        s = s[end:]
 
 def parse_header(line):
     parts = _parseparam(';' + line)
@@ -470,29 +469,30 @@ class FieldStorage:
             if first_line:
                 first_line = self.fp.readline()
                 self.bytes_read += len(first_line)
-                continue
-        while True:
-            parser = FeedParser()
-            hdr_text = b''
-            while True:
-                data = self.fp.readline()
-                hdr_text += data
-                if not data.strip():
-                    break
-            if not hdr_text:
-                break
-            self.bytes_read += len(hdr_text)
-            parser.feed(hdr_text.decode(self.encoding, self.errors))
-            headers = parser.close()
-            if 'content-length' in headers:
-                del headers['content-length']
-            part = klass(self.fp, headers, ib, environ, keep_blank_values, strict_parsing, self.limit - self.bytes_read, self.encoding, self.errors)
-            self.bytes_read += part.bytes_read
-            self.list.append(part)
-            if not part.done:
-                if self.bytes_read >= self.length and self.length > 0:
-                    break
-        self.skip_lines()
+            else:
+                while True:
+                    parser = FeedParser()
+                    hdr_text = b''
+                    while True:
+                        data = self.fp.readline()
+                        hdr_text += data
+                        if not data.strip():
+                            break
+                    if not hdr_text:
+                        break
+                    self.bytes_read += len(hdr_text)
+                    parser.feed(hdr_text.decode(self.encoding, self.errors))
+                    headers = parser.close()
+                    if 'content-length' in headers:
+                        del headers['content-length']
+                    part = klass(self.fp, headers, ib, environ, keep_blank_values, strict_parsing, self.limit - self.bytes_read, self.encoding, self.errors)
+                    self.bytes_read += part.bytes_read
+                    self.list.append(part)
+                    if not part.done:
+                        if self.bytes_read >= self.length and self.length > 0:
+                            break
+                self.skip_lines()
+                return
 
     def read_single(self):
         if self.length >= 0:

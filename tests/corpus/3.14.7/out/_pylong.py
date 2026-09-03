@@ -35,59 +35,55 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
         need.add(which)
         ws.add(which)
         if not lo != hi:
-            continue
-        ws.add(w - which)
+            pass
     cands = need.copy()
     extra = set()
     while cands:
         w = max(cands)
         cands.remove(w)
         lo = w >> 1
-        if not lo > more_than:
-            continue
-        if not w - 1 not in cands:
-            continue
         if not lo not in cands:
-            continue
-        extra.add(lo)
-        cands.add(lo)
-    if not need_hi:
-        if extra:
-            raise None
-    d = {}
-    for n in sorted(need | extra):
-        lo = n >> 1
-        hi = n - lo
-        if n - 1 in d:
-            if show:
-                print('* base', '')
-            result = d[n - 1] * base
-        elif lo in d:
-            if show:
-                print('square', '')
-            result = d[lo] * d[lo]
-            if hi != lo:
-                if show:
-                    print(' * base', '')
-                if not 2 * lo + 1 == n:
-                    raise None
-                result *= base
+            pass
         else:
-            if show:
-                print('pow', '')
-            result = base ** n
-        if show:
-            print(' at', n, 'needed' if n in need else 'extra')
-        d[n] = result
-    if not need <= d.keys():
-        raise None
-    if d.keys() - need:
-        excess = d.keys() - need
-        if not need_hi:
-            raise None
-        for n in excess:
-            del d[n]
-    return d
+            extra.add(lo)
+            cands.add(lo)
+            if not need_hi:
+                if extra:
+                    raise None
+            d = {}
+            for n in sorted(need | extra):
+                lo = n >> 1
+                hi = n - lo
+                if n - 1 in d:
+                    if show:
+                        print('* base', '')
+                    result = d[n - 1] * base
+                elif lo in d:
+                    if show:
+                        print('square', '')
+                    result = d[lo] * d[lo]
+                    if hi != lo:
+                        if show:
+                            print(' * base', '')
+                        if not 2 * lo + 1 == n:
+                            raise None
+                        result *= base
+                else:
+                    if show:
+                        print('pow', '')
+                    result = base ** n
+                if show:
+                    print(' at', n, 'needed' if n in need else 'extra')
+                d[n] = result
+            if not need <= d.keys():
+                raise None
+            if d.keys() - need:
+                excess = d.keys() - need
+                if not need_hi:
+                    raise None
+                for n in excess:
+                    del d[n]
+            return d
 
 _unbounded_dec_context = decimal.getcontext().copy()
 _unbounded_dec_context.prec = decimal.MAX_PREC

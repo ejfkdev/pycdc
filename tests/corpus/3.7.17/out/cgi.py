@@ -122,12 +122,13 @@ def _parseparam(s):
         while end > 0:
             if (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
                 end = s.find(';', end + 1)
+            else:
+                if end < 0:
+                    end = len(s)
+                f = s[:end]
+                yield f.strip()
+                s = s[end:]
                 continue
-        if end < 0:
-            end = len(s)
-        f = s[:end]
-        yield f.strip()
-        s = s[end:]
 
 def parse_header(line):
     parts = _parseparam(';' + line)
@@ -420,41 +421,42 @@ class FieldStorage:
             if first_line:
                 first_line = self.fp.readline()
                 self.bytes_read += len(first_line)
-                continue
-        max_num_fields = self.max_num_fields
-        if max_num_fields is not None:
-            max_num_fields -= len(self.list)
-        while True:
-            parser = FeedParser()
-            hdr_text = b''
-            while True:
-                data = self.fp.readline()
-                hdr_text += data
-                if not data.strip():
-                    break
-            if not hdr_text:
-                break
-            self.bytes_read += len(hdr_text)
-            parser.feed(hdr_text.decode(self.encoding, self.errors))
-            headers = parser.close()
-            if 'content-length' in headers:
-                del headers['content-length']
-            limit = None if self.limit is None else self.limit - self.bytes_read
-            part = klass(self.fp, headers, ib, environ, keep_blank_values, strict_parsing, limit, self.encoding, self.errors, max_num_fields, self.separator)
-            if max_num_fields is not None and max_num_fields < 0:
-                max_num_fields -= 1
-                if part.list:
-                    max_num_fields -= len(part.list)
-                raise ValueError('Max number of fields exceeded')
-            self.bytes_read += part.bytes_read
-            self.list.append(part)
-            if not part.done:
-                if self.bytes_read >= self.length:
-                    if self.length > 0:
-                        pass
             else:
-                break
-        self.skip_lines()
+                max_num_fields = self.max_num_fields
+                if max_num_fields is not None:
+                    max_num_fields -= len(self.list)
+                while True:
+                    parser = FeedParser()
+                    hdr_text = b''
+                    while True:
+                        data = self.fp.readline()
+                        hdr_text += data
+                        if not data.strip():
+                            break
+                    if not hdr_text:
+                        break
+                    self.bytes_read += len(hdr_text)
+                    parser.feed(hdr_text.decode(self.encoding, self.errors))
+                    headers = parser.close()
+                    if 'content-length' in headers:
+                        del headers['content-length']
+                    limit = None if self.limit is None else self.limit - self.bytes_read
+                    part = klass(self.fp, headers, ib, environ, keep_blank_values, strict_parsing, limit, self.encoding, self.errors, max_num_fields, self.separator)
+                    if max_num_fields is not None and max_num_fields < 0:
+                        max_num_fields -= 1
+                        if part.list:
+                            max_num_fields -= len(part.list)
+                        raise ValueError('Max number of fields exceeded')
+                    self.bytes_read += part.bytes_read
+                    self.list.append(part)
+                    if not part.done:
+                        if self.bytes_read >= self.length:
+                            if self.length > 0:
+                                pass
+                    else:
+                        break
+                self.skip_lines()
+                return
 
     def read_single(self):
         if self.length >= 0:

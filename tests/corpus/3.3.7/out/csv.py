@@ -258,8 +258,8 @@ class Sniffer:
                     modes[char] = max(items, key=(lambda x: x[1]))
                     items.remove(modes[char])
                     modes[char] = modes[char][0], modes[char][1] - sum((item[1] for item in items))
-                    continue
-                modes[char] = items[0]
+                else:
+                    modes[char] = items[0]
             modeList = modes.items()
             total = float(chunkLength * iteration)
             consistency = 1.0
@@ -322,24 +322,21 @@ class Sniffer:
                 if thisType != columnTypes[col]:
                     if columnTypes[col] is None:
                         columnTypes[col] = thisType
-                        continue
-                del columnTypes[col]
-            else:
-                continue
+                    else:
+                        del columnTypes[col]
         hasHeader = 0
         for col, colType in columnTypes.items():
             if type(colType) == type(0):
                 if len(header[col]) != colType:
                     hasHeader += 1
-                    continue
-            hasHeader -= 1
+                else:
+                    hasHeader -= 1
+        try:
+            colType(header[col])
+        except (ValueError, TypeError) as hasHeader:
+            pass
         else:
-            try:
-                colType(header[col])
-            except (ValueError, TypeError) as hasHeader:
-                pass
-            else:
-                hasHeader -= 1
+            hasHeader -= 1
         return hasHeader > 0
 
 

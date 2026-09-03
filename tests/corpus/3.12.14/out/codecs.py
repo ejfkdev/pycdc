@@ -565,8 +565,7 @@ def iterencode(iterator, encoding, errors='strict', **kwargs):
     for input in iterator:
         output = encoder.encode(input)
         if not output:
-            continue
-        yield output
+            pass
     output = encoder.encode('', True)
     if output:
         yield output
@@ -577,8 +576,7 @@ def iterdecode(iterator, encoding, errors='strict', **kwargs):
     for input in iterator:
         output = decoder.decode(input)
         if not output:
-            continue
-        yield output
+            pass
     output = decoder.decode(b'', True)
     if output:
         yield output

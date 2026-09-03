@@ -180,7 +180,8 @@ def loop(timeout=30.0, use_poll=False, map=None, count=None):
                 if count > 0:
                     poll_fun(timeout, map)
                     count = count - 1
-                    continue
+                else:
+                    return
 
 class dispatcher:
     debug = False

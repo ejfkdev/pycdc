@@ -227,6 +227,7 @@ def findlabels(code):
                 if label not in labels:
                     labels.append(label)
                     continue
+        continue
     return labels
 
 def findlinestarts(code):

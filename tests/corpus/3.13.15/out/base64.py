@@ -271,9 +271,10 @@ def b85decode(b):
         except TypeError:
             for j, c in enumerate(chunk):
                 if not _b85dec[c] is None:
-                    continue
-                raise ValueError('bad base85 character at position %d' % (i + j)) from None
-            raise
+                    pass
+                else:
+                    raise ValueError('bad base85 character at position %d' % (i + j)) from None
+                    raise
         try:
             out.append(packI(acc))
         except struct./*bad-name-24*/:
@@ -317,8 +318,9 @@ def encode(input, output):
         output.write(line)
         if input.read(MAXBINSIZE):
             s = input.read(MAXBINSIZE)
-            continue
-        return
+        else:
+            return
+            return
 
 def decode(input, output):
     while input.readline():
@@ -327,8 +329,9 @@ def decode(input, output):
         output.write(s)
         if input.readline():
             line = input.readline()
-            continue
-        return
+        else:
+            return
+            return
 
 def _input_type_check(s):
     try:
@@ -371,21 +374,22 @@ def main():
         if o == '-u':
             func = decode
         if not o == '-h':
-            continue
-        print(usage)
-        return
-    if args and args[0] != '-':
-        with open(args[0], 'rb') as f:
-            func(f, sys.stdout.buffer)
+            pass
+        else:
+            print(usage)
             return
-            if sys.stdin.isatty():
-                import io
-                data = sys.stdin.buffer.read()
-                buffer = io.BytesIO(data)
-            else:
-                buffer = sys.stdin.buffer
-            func(buffer, sys.stdout.buffer)
-            return
+            if args and args[0] != '-':
+                with open(args[0], 'rb') as f:
+                    func(f, sys.stdout.buffer)
+                    return
+                    if sys.stdin.isatty():
+                        import io
+                        data = sys.stdin.buffer.read()
+                        buffer = io.BytesIO(data)
+                    else:
+                        buffer = sys.stdin.buffer
+                    func(buffer, sys.stdout.buffer)
+                    return
 
 if __name__ == '__main__':
     main()

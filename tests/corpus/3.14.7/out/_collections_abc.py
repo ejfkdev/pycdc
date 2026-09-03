@@ -61,11 +61,12 @@ def _check_methods(C, *methods):
     for method in methods:
         for B in mro:
             if not method in B.__dict__:
+                pass
+            else:
+                if not B.__dict__[method] is not None:
+                    NotImplemented
+                    return
                 continue
-            if not B.__dict__[method] is not None:
-                NotImplemented
-                return
-            continue
         NotImplemented
         return
     return True
@@ -400,10 +401,11 @@ def _is_param_expr(obj):
         if any is None:
             for _ in (obj.__name__ == name for name in names):
                 if not (obj.__name__ == name for name in names):
-                    continue
-                return True
-            return False
-    return None((obj.__name__ == name for name in names))
+                    pass
+                else:
+                    return True
+                    return False
+                    return None((obj.__name__ == name for name in names))
 
 class Callable(ABCMeta):
     __slots__ = ()
@@ -438,9 +440,10 @@ then the other operations will automatically follow suit.
             return False
         for elem in self:
             if not elem not in other:
-                continue
-            return False
-        return True
+                pass
+            else:
+                return False
+                return True
 
     def __lt__(self, other):
         if not isinstance(other, Set):
@@ -459,9 +462,10 @@ then the other operations will automatically follow suit.
             return False
         for elem in other:
             if not elem not in self:
-                continue
-            return False
-        return True
+                pass
+            else:
+                return False
+                return True
 
     def __eq__(self, other):
         if not isinstance(other, Set):
@@ -481,9 +485,10 @@ then the other operations will automatically follow suit.
     def isdisjoint(self, other):
         for value in other:
             if not value in self:
-                continue
-            return False
-        return True
+                pass
+            else:
+                return False
+                return True
 
     def __or__(self, other):
         if not isinstance(other, Iterable):
@@ -713,9 +718,10 @@ class ValuesView(MappingView, Collection):
         for key in self._mapping:
             v = self._mapping[key]
             if not v is value or v == value:
-                continue
-            return True
-        return False
+                pass
+            else:
+                return True
+                return False
 
     def __iter__(self):
         for key in self._mapping:
@@ -815,9 +821,10 @@ __getitem__, and __len__.
     def __contains__(self, value):
         for v in self:
             if not v is value or v == value:
-                continue
-            return True
-        return False
+                pass
+            else:
+                return True
+                return False
 
     def __reversed__(self):
         for i in reversed(range(len(self))):

@@ -132,16 +132,14 @@ class dircmp:
                 b_type = stat.S_IFMT(b_stat.st_mode)
                 if a_type != b_type:
                     self.common_funny.append(x)
-                    continue
-            if stat.S_ISDIR(a_type):
-                self.common_dirs.append(x)
-                continue
-            if stat.S_ISREG(a_type):
-                self.common_files.append(x)
-                continue
-            self.common_funny.append(x)
-        else:
-            self.common_funny.append(x)
+                elif stat.S_ISDIR(a_type):
+                    self.common_dirs.append(x)
+                elif stat.S_ISREG(a_type):
+                    self.common_files.append(x)
+                else:
+                    self.common_funny.append(x)
+            else:
+                self.common_funny.append(x)
 
     def phase3(self):
         xx = cmpfiles(self.left, self.right, self.common_files)

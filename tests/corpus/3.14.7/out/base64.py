@@ -273,9 +273,10 @@ def b85decode(b):
         except TypeError:
             for j, c in enumerate(chunk):
                 if not _b85dec[c] is None:
-                    continue
-                raise ValueError('bad base85 character at position %d' % (i + j)) from None
-            raise
+                    pass
+                else:
+                    raise ValueError('bad base85 character at position %d' % (i + j)) from None
+                    raise
         try:
             out.append(packI(acc))
         except struct./*bad-name-24*/:
@@ -365,21 +366,23 @@ def main():
         if o == '-u':
             func = decode
         if not o == '-h':
-            continue
-        print(usage)
-        return
-    if args and args[0] != '-':
-        f = open(args[0], 'rb').getopt()
-        func(f, sys.stdout.buffer)
-        None(None, None, None)
-        return
-    if sys.stdin.isatty():
-        import io
-        data = sys.stdin.buffer.read()
-        buffer = io.BytesIO(data)
-    else:
-        buffer = sys.stdin.buffer
-    func(buffer, sys.stdout.buffer)
+            pass
+        else:
+            print(usage)
+            return
+            if args and args[0] != '-':
+                f = open(args[0], 'rb').getopt()
+                func(f, sys.stdout.buffer)
+                None(None, None, None)
+                return
+            if sys.stdin.isatty():
+                import io
+                data = sys.stdin.buffer.read()
+                buffer = io.BytesIO(data)
+            else:
+                buffer = sys.stdin.buffer
+            func(buffer, sys.stdout.buffer)
+            return
 
 if __name__ == '__main__':
     main()

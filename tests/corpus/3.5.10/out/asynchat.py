@@ -80,35 +80,35 @@ class async_chat(asyncore.dispatcher):
                 if not terminator:
                     self.collect_incoming_data(self.ac_in_buffer)
                     self.ac_in_buffer = b''
-                    continue
-                if isinstance(terminator, int):
+                elif isinstance(terminator, int):
                     n = terminator
                     if lb < n:
                         self.collect_incoming_data(self.ac_in_buffer)
                         self.ac_in_buffer = b''
                         self.terminator = self.terminator - lb
-                        continue
-                self.collect_incoming_data(self.ac_in_buffer[:n])
-                self.ac_in_buffer = self.ac_in_buffer[n:]
-                self.terminator = 0
-                self.found_terminator()
-            terminator_len = len(terminator)
-            index = self.ac_in_buffer.find(terminator)
-            if index != -1:
-                if index > 0:
-                    self.collect_incoming_data(self.ac_in_buffer[:index])
-                self.ac_in_buffer = self.ac_in_buffer[index + terminator_len:]
-                self.found_terminator()
-                continue
-            index = find_prefix_at_end(self.ac_in_buffer, terminator)
-            if index:
-                if index != lb:
-                    self.collect_incoming_data(self.ac_in_buffer[:-index])
-                    self.ac_in_buffer = self.ac_in_buffer[-index:]
-                break
-                continue
-            self.collect_incoming_data(self.ac_in_buffer)
-            self.ac_in_buffer = b''
+                    else:
+                        self.collect_incoming_data(self.ac_in_buffer[:n])
+                        self.ac_in_buffer = self.ac_in_buffer[n:]
+                        self.terminator = 0
+                        self.found_terminator()
+                else:
+                    terminator_len = len(terminator)
+                    index = self.ac_in_buffer.find(terminator)
+                    if index != -1:
+                        if index > 0:
+                            self.collect_incoming_data(self.ac_in_buffer[:index])
+                        self.ac_in_buffer = self.ac_in_buffer[index + terminator_len:]
+                        self.found_terminator()
+                    else:
+                        index = find_prefix_at_end(self.ac_in_buffer, terminator)
+                        if index:
+                            if index != lb:
+                                self.collect_incoming_data(self.ac_in_buffer[:-index])
+                                self.ac_in_buffer = self.ac_in_buffer[-index:]
+                            break
+                        else:
+                            self.collect_incoming_data(self.ac_in_buffer)
+                            self.ac_in_buffer = b''
 
     def handle_write(self):
         self.initiate_send()
@@ -226,7 +226,7 @@ def find_prefix_at_end(haystack, needle):
     while l:
         if not haystack.endswith(needle[:l]):
             l -= 1
-            continue
-    return l
+        else:
+            return l
 
 # WARNING: Decompyle incomplete

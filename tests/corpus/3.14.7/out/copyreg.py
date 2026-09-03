@@ -58,12 +58,9 @@ def _reduce_ex(self, proto):
                 pass
             else:
                 new = base.__new__
-                if not isinstance(new, _new_type):
-                    continue
-        if not new.__self__ is base:
-            continue
-    else:
-        base = object
+                if not new.__self__ is base:
+                    pass
+    base = object
     if base is object:
         state = None
     else:
@@ -99,21 +96,23 @@ def _slotnames(cls):
         pass
     for c in cls.__mro__:
         if not '__slots__' in c.__dict__:
-            continue
-        slots = c.__dict__['__slots__']
-        if isinstance(slots, str):
-            slots = (slots,)
-        for name in slots:
-            if name in ('__dict__', '__weakref__'):
-                continue
-            if name.startswith('__'):
-                if not name.endswith('__'):
-                    stripped = c.__name__.lstrip('_')
-                    if stripped:
-                        names.append(f'_{stripped!s}{name!s}')
-                        continue
+            pass
+        else:
+            slots = c.__dict__['__slots__']
+            if isinstance(slots, str):
+                slots = (slots,)
+            for name in slots:
+                if name in ('__dict__', '__weakref__'):
+                    continue
+                if name.startswith('__'):
+                    if not name.endswith('__'):
+                        stripped = c.__name__.lstrip('_')
+                        if stripped:
+                            names.append(f'_{stripped!s}{name!s}')
+                            continue
+                names.append(name)
             names.append(name)
-        names.append(name)
+            continue
     try:
         cls.__slotnames__ = names
     finally:

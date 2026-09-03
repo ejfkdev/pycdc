@@ -52,9 +52,7 @@ def _reduce_ex(self, proto):
                 if isinstance(new, _new_type):
                     if new.__self__ is base:
                         pass
-                    else:
-                        continue
-    base = object
+                base = object
     if base is object:
         state = None
     else:

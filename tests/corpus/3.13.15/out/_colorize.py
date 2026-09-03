@@ -49,8 +49,7 @@ class ANSIColors:
 NoColors = ANSIColors()
 for attr in dir(NoColors):
     if attr.startswith('__'):
-        continue
-    setattr(NoColors, attr, '')
+        pass
 
 def get_colors(colorize=False, *, file=None):
     if not colorize:

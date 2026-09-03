@@ -450,7 +450,18 @@ class ConfigParser(RawConfigParser):
         value = rawval
         depth = MAX_INTERPOLATION_DEPTH
         while True:
-            pass
+            while depth:
+                depth -= 1
+                if '%(' in value:
+                    value = self._KEYCRE.sub(self._interpolation_replace, value)
+                    continue
+                break
+                try:
+                    value = value % vars
+                except KeyError:
+                    e = None
+                    raise InterpolationMissingOptionError(option, section, rawval, e.args[0])
+                    continue
         if '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value

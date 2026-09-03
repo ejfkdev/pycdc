@@ -110,8 +110,8 @@ class Bdb:
                 if frame is self.botframe:
                     return True
                 frame = frame.f_back
-                continue
-        return False
+            else:
+                return False
 
     def break_here(self, frame):
         filename = self.canonic(frame.f_code.co_filename)
@@ -190,8 +190,10 @@ class Bdb:
                 if frame is not self.botframe:
                     del frame.f_trace
                     frame = frame.f_back
-                    continue
-                break
+                else:
+                    break
+        else:
+            return
 
     def set_quit(self):
         self.stopframe = self.botframe
@@ -495,6 +497,10 @@ def effective(file, line, frame):
             if b.ignore > 0:
                 b.ignore -= 1
                 continue
+        continue
+        return b, True
+    else:
+        return b, False
     return (None, None)
 
 class Tdb(Bdb):

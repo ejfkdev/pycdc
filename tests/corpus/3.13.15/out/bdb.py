@@ -156,9 +156,10 @@ is determined by the __name__ in the frame globals.
             return False
         for pattern in self.skip:
             if not fnmatch.fnmatch(module_name, pattern):
-                continue
-            return True
-        return False
+                pass
+            else:
+                return True
+                return False
 
     def stop_here(self, frame):
         if self.skip and self.is_skipped_module(frame.f_globals.get('__name__')):
@@ -218,9 +219,11 @@ is determined by the __name__ in the frame globals.
                     return
                 frame = frame.f_back
                 if not frame is None:
-                    continue
-                return
-            return
+                    pass
+                else:
+                    return
+                    return
+                    return
 
     def _set_stopinfo(self, stopframe, returnframe, stoplineno=0, opcode=False, cmdframe=None, cmdlineno=None):
         self.stopframe = stopframe
@@ -360,8 +363,7 @@ is determined by the __name__ in the frame globals.
             return 'There are no breakpoints'
         for bp in Breakpoint.bpbynumber:
             if not bp:
-                continue
-            bp.deleteMe()
+                pass
         self.breaks = {}
 
     def get_bpbynumber(self, arg):

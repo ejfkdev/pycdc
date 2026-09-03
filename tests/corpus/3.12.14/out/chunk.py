@@ -151,7 +151,9 @@ class Chunk:
             if not dummy:
                 raise EOFError
             if self.size_read < self.chunksize:
-                continue
-            return
+                pass
+            else:
+                return
+                return
 
 

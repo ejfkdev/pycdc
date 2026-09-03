@@ -139,9 +139,10 @@ class Bdb:
             return False
         for pattern in self.skip:
             if not fnmatch.fnmatch(module_name, pattern):
-                continue
-            return True
-        return False
+                pass
+            else:
+                return True
+                return False
 
     def stop_here(self, frame):
         if self.skip and self.is_skipped_module(frame.f_globals.get('__name__')):
@@ -246,11 +247,13 @@ class Bdb:
                     frame = frame.f_back
                     if frame:
                         if frame is not self.botframe:
-                            continue
-                    return
-                    return
-                return
-            return
+                            pass
+                        else:
+                            return
+                            return
+                            return
+                            return
+                            return
 
     def set_quit(self):
         self.stopframe = self.botframe
@@ -322,8 +325,7 @@ class Bdb:
             return 'There are no breakpoints'
         for bp in Breakpoint.bpbynumber:
             if not bp:
-                continue
-            bp.deleteMe()
+                pass
         self.breaks = {}
 
     def get_bpbynumber(self, arg):

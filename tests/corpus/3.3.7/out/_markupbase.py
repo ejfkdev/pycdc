@@ -171,20 +171,19 @@ class ParserBase:
                 while j < n:
                     if rawdata[j].isspace():
                         j = j + 1
-                        continue
-                if j < n:
-                    if rawdata[j] == '>':
-                        return j
-                    self.updatepos(declstartpos, j)
-                    self.error('unexpected char after internal subset')
-                else:
-                    return -1
-            else:
-                if c.isspace():
-                    j = j + 1
-                self.updatepos(declstartpos, j)
-                self.error('unexpected char %r in internal subset' % c)
-        return -1
+                    else:
+                        if j < n:
+                            if rawdata[j] == '>':
+                                return j
+                            self.updatepos(declstartpos, j)
+                            self.error('unexpected char after internal subset')
+                        else:
+                            return -1
+                        if c.isspace():
+                            j = j + 1
+                        self.updatepos(declstartpos, j)
+                        self.error('unexpected char %r in internal subset' % c)
+                        return -1
 
     def _parse_doctype_element(self, i, declstartpos):
         name, j = self._scan_name(i, declstartpos)
@@ -260,9 +259,9 @@ class ParserBase:
                 if not m:
                     return -1
                 j = m.end()
-                continue
-            name, j = self._scan_name(j, declstartpos)
-            return j
+            else:
+                name, j = self._scan_name(j, declstartpos)
+                return j
 
     def _parse_doctype_entity(self, i, declstartpos):
         rawdata = self.rawdata
@@ -274,10 +273,10 @@ class ParserBase:
                     return -1
                 if c.isspace():
                     j = j + 1
-                    continue
+                else:
+                    break
                 break
-        else:
-            j = i
+                j = i
         name, j = self._scan_name(j, declstartpos)
         if j < 0:
             return j
@@ -289,14 +288,13 @@ class ParserBase:
                 m = _declstringlit_match(rawdata, j)
                 if m:
                     j = m.end()
-                    continue
-            return -1
-        if c == '>':
-            return j + 1
-        name, j = self._scan_name(j, declstartpos)
-        if j < 0:
-            pass
-        return j
+                else:
+                    return -1
+            else:
+                if c == '>':
+                    return j + 1
+                name, j = self._scan_name(j, declstartpos)
+                return j
 
     def _scan_name(self, i, declstartpos):
         rawdata = self.rawdata

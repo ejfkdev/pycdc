@@ -383,8 +383,7 @@ class ForkingMixIn:
                 e = None
                 if e.errno == errno.ECHILD:
                     self.active_children.clear()
-                    continue
-                if e.errno != errno.EINTR:
+                elif e.errno != errno.EINTR:
                     break
                     continue
                 continue

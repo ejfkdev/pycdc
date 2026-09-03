@@ -133,6 +133,34 @@ class HTMLParser(markupbase.ParserBase):
                             k = k - 1
                         i = self.updatepos(i, k)
                         continue
+                continue
+                if ';' in rawdata[i:]:
+                    self.handle_data(rawdata[0:2])
+                    i = self.updatepos(i, 2)
+                break
+            if startswith('&', i):
+                match = entityref.match(rawdata, i)
+                if match:
+                    name = match.group(1)
+                    self.handle_entityref(name)
+                    k = match.end()
+                    if not startswith(';', k - 1):
+                        k = k - 1
+                    i = self.updatepos(i, k)
+                    continue
+            match = incomplete.match(rawdata, i)
+            if match:
+                if end and match.group() == rawdata[i:]:
+                    self.error('EOF in middle of entity or char ref')
+                break
+                continue
+            if i + 1 < n:
+                self.handle_data('&')
+                i = self.updatepos(i, i + 1)
+                continue
+            break
+            if not 0:
+                raise AssertionError # WARNING: raise cause dropped (py2)
         if end and i < n:
             self.handle_data(rawdata[i:n])
             i = self.updatepos(i, n)

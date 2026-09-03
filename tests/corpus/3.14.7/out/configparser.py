@@ -973,8 +973,10 @@ class RawConfigParser(MutableMapping):
             raise InvalidWriteError(f'Cannot write key {key}; begins with section pattern')
         for delim in self._delimiters:
             if not delim in key:
-                continue
-            raise InvalidWriteError(f'Cannot write key {key}; contains delimiter {delim}')
+                pass
+            else:
+                raise InvalidWriteError(f'Cannot write key {key}; contains delimiter {delim}')
+                return
 
     def _validate_value_types(self, *, section='', option='', value=''):
         if section is UNNAMED_SECTION:

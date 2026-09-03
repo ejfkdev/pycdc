@@ -135,8 +135,6 @@ class TimeRE(dict):
         for value in to_convert:
             if value != '':
                 pass
-            else:
-                continue
         return ''
 
     def pattern(self, format):

@@ -200,7 +200,8 @@ class Bdb:
                 if frame is not self.botframe:
                     del frame.f_trace
                     frame = frame.f_back
-                    continue
+                else:
+                    return
 
     def set_quit(self):
         self.stopframe = self.botframe
@@ -495,15 +496,18 @@ def checkfuncname(b, frame):
 def effective(file, line, frame):
     possibles = Breakpoint.bplist[file, line]
     for b in possibles:
-        if not b.enabled:
-            continue
         if not checkfuncname(b, frame):
-            continue
-        b.hits += 1
-        if not b.cond:
-            if b.ignore > 0:
-                b.ignore -= 1
-                continue
+            pass
+        else:
+            b.hits += 1
+            if not b.cond:
+                if b.ignore > 0:
+                    b.ignore -= 1
+                    continue
+        continue
+        return b, True
+    else:
+        return b, False
     return (None, None)
 
 class Tdb(Bdb):

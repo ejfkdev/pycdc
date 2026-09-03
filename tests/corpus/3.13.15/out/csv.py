@@ -260,7 +260,7 @@ Returns a Dialect object.
             regexp = re.compile(restr % body, re.DOTALL | re.MULTILINE)
             matches = regexp.findall(data)
             if not matches:
-                continue
+                pass
         if not matches:
             return ('', False, None, 0)
         quotes = {}
@@ -286,8 +286,7 @@ Returns a Dialect object.
             except KeyError:
                 pass
             if not m[n]:
-                continue
-            spaces += 1
+                pass
         quotechar = max(quotes, quotes.get)
         if delims:
             delim = max(delims, delims.get)
@@ -335,37 +334,39 @@ Returns a Dialect object.
             total = float(min(chunkLength * iteration, len(data)))
             consistency = 1.0
             threshold = 0.9
-            if len(delims) == 0 and consistency >= threshold and len(delims) == 0 and consistency >= threshold:
+            if len(delims) == 0 and consistency >= threshold:
                 for k, v in modeList:
-                    if not v[0] > 0:
-                        continue
-                    if not v[1] > 0:
-                        continue
-                    if not v[1] / total >= consistency:
-                        continue
                     if not delimiters is None or k in delimiters:
-                        continue
-                    delims[k] = v
-                consistency -= 0.01
-                continue
-            if len(delims) == 1:
-                delim = list(delims.keys())[0]
-                skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
-                return delim, skipinitialspace
-            start = end
-            end += chunkLength
+                        pass
+                    else:
+                        consistency -= 0.01
+                        if len(delims) == 0 and consistency >= threshold:
+                            continue
+            else:
+                if len(delims) == 1:
+                    delim = list(delims.keys())[0]
+                    skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
+                    return delim, skipinitialspace
+                start = end
+                end += chunkLength
+                if not start < len(data):
+                    break
         if not delims:
             return ('', 0)
         if len(delims) > 1:
             for d in self.preferred:
                 if not d in delims.keys():
-                    continue
-                skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
-                d, skipinitialspace
-                return
-        items.sort()
-        items, delim = delims.items()
-        return delim, skipinitialspace
+                    pass
+                else:
+                    skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
+                    d, skipinitialspace
+                    return
+                    items.sort()
+                    items, delim = delims.items()
+                    return delim, skipinitialspace
+                    data[0].count(delim) == data[0].count('%c ' % delim)
+                    c = None
+                    v, k = None, None
 
     def has_header(self, sample):
         rdr = reader(StringIO(sample), self.sniff(sample))
@@ -388,8 +389,6 @@ Returns a Dialect object.
                     thisType(row[col])
                 except (ValueError, OverflowError):
                     thisType = len(row[col])
-                if not thisType != columnTypes[col]:
-                    continue
                 if not columnTypes[col] is not None:
                     columnTypes[col] = thisType
                     continue

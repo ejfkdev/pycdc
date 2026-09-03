@@ -298,14 +298,14 @@ class HexBin:
             ch = ifp.read(1)
             if not ch:
                 raise Error('No binhex data found')
-            if ch == b'\r':
-                continue
             if ch == b':':
                 break
-        hqxifp = _Hqxdecoderengine(ifp)
-        self.ifp = _Rledecoderengine(hqxifp)
-        self.crc = 0
-        self._readheader()
+            else:
+                hqxifp = _Hqxdecoderengine(ifp)
+                self.ifp = _Rledecoderengine(hqxifp)
+                self.crc = 0
+                self._readheader()
+                return
 
     def _read(self, len):
         data = self.ifp.read(len)

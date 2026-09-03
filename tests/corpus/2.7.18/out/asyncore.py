@@ -184,7 +184,8 @@ if os.name == 'posix':
                         if count > 0:
                             poll_fun(timeout, map)
                             count = count - 1
-                            continue
+                        else:
+                            return
 
         class dispatcher:
             debug = False
@@ -428,8 +429,6 @@ if os.name == 'posix':
                     x.close()
                 except OSError:
                     x = None
-                    if x.args[0] == EBADF:
-                        continue
                     if not ignore_all:
                         raise
                         continue

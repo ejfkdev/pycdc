@@ -33,20 +33,20 @@ def _walk_dir(dir, ddir=None, maxlevels=10, quiet=0):
     names.sort()
     for name in names:
         if name == '__pycache__':
-            continue
-        fullname = os.path.join(dir, name)
-        if ddir is not None:
-            dfile = os.path.join(ddir, name)
+            pass
         else:
-            dfile = None
-        if not os.path.isdir(fullname):
-            yield (fullname, ddir)
-            continue
-        if maxlevels > 0:
-            if name != os.curdir:
-                if name != os.pardir:
-                    if os.path.isdir(fullname):
-                        pass
+            fullname = os.path.join(dir, name)
+            if ddir is not None:
+                dfile = os.path.join(ddir, name)
+            else:
+                dfile = None
+            if not os.path.isdir(fullname):
+                yield (fullname, ddir)
+            elif maxlevels > 0:
+                if name != os.curdir:
+                    if name != os.pardir:
+                        if os.path.isdir(fullname):
+                            pass
     yield from _walk_dir(fullname, ddir=dfile, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None):

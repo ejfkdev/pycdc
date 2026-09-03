@@ -88,8 +88,8 @@ def dump(node, annotate_fields=True, include_attributes=False):
                         pass
                     else:
                         args.append('%s=%s' % (field, _format(value)))
-                    continue
-                args.append(_format(value))
+                else:
+                    args.append(_format(value))
             if include_attributes and node._attributes:
                 for a in node._attributes:
                     try:
@@ -97,9 +97,10 @@ def dump(node, annotate_fields=True, include_attributes=False):
                     except AttributeError:
                         pass
             return '%s(%s)' % (node.__class__.__name__, ', '.join(args))
-        if isinstance(node, list):
-            return '[%s]' % ', '.join((_format(x) for x in node))
-        return repr(node)
+        else:
+            if isinstance(node, list):
+                return '[%s]' % ', '.join((_format(x) for x in node))
+            return repr(node)
 
     if not isinstance(node, AST):
         raise TypeError('expected AST, got %r' % node.__class__.__name__)
@@ -148,8 +149,7 @@ def iter_child_nodes(node):
     for name, field in iter_fields(node):
         if isinstance(field, AST):
             yield field
-            continue
-        if isinstance(field, list):
+        elif isinstance(field, list):
             for item in field:
                 if isinstance(item, AST):
                     yield item
@@ -264,17 +264,17 @@ class NodeTransformer(NodeVisitor):
                             continue
                     if not isinstance(value, AST):
                         new_values.extend(value)
-                        continue
-                    new_values.append(value)
+                    else:
+                        new_values.append(value)
                 old_value[:] = new_values
-                continue
-            if isinstance(old_value, AST):
-                new_node = self.visit(old_value)
-                if new_node is None:
-                    delattr(node, field)
-                    continue
-            setattr(node, field, new_node)
-        return node
+            else:
+                if isinstance(old_value, AST):
+                    new_node = self.visit(old_value)
+                    if new_node is None:
+                        delattr(node, field)
+                    else:
+                        setattr(node, field, new_node)
+                return node
 
 
 # WARNING: Decompyle incomplete

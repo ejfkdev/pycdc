@@ -118,8 +118,10 @@ def _parseparam(s):
         yield f.strip()
         s = s[end:]
         if s[:1] == ';':
-            continue
-        return
+            pass
+        else:
+            return
+            return
 
 def parse_header(line):
     parts = _parseparam(';' + line)
@@ -128,16 +130,17 @@ def parse_header(line):
     for p in parts:
         i = p.find('=')
         if not i >= 0:
-            continue
-        name = p[:i].strip().lower()
-        value = p[i + 1:].strip()
-        if len(value) >= 2:
-            if value[0] == value[-1]:
-                if value[-1] == '"':
-                    pass
-            value = value[1:-1]
-            value = value.replace('\\\\', '\\').replace('\\"', '"')
-        pdict[name] = value
+            pass
+        else:
+            name = p[:i].strip().lower()
+            value = p[i + 1:].strip()
+            if len(value) >= 2:
+                if value[0] == value[-1]:
+                    if value[-1] == '"':
+                        pass
+                value = value[1:-1]
+                value = value.replace('\\\\', '\\').replace('\\"', '"')
+            pdict[name] = value
     return key, pdict
 
 class MiniFieldStorage:
@@ -335,8 +338,7 @@ class FieldStorage:
         found = []
         for item in self.list:
             if not item.name == key:
-                continue
-            found.append(item)
+                pass
         if not found:
             raise KeyError(key)
         if len(found) == 1:
@@ -469,9 +471,11 @@ class FieldStorage:
                 self.file.write(data)
                 todo = todo - len(data)
                 if todo > 0:
-                    continue
-                return
-            return
+                    pass
+                else:
+                    return
+                    return
+                    return
 
     def read_lines(self):
         if self._binary_file:

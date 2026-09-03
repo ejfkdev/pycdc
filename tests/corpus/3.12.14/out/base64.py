@@ -215,26 +215,29 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
                 pass
         curr_append(x)
         if not len(curr) == 5:
+            pass
+        else:
+            acc = 0
+            for x in curr:
+                acc = 85 * acc + (x - 33)
+            try:
+                decoded_append(packI(acc))
+            except struct./*bad-name-26*/:
+                raise ValueError('Ascii85 overflow') from None
+            curr_clear()
+        if x == 122:
+            if curr:
+                raise ValueError('z inside Ascii85 5-tuple')
+            decoded_append(b'\x00\x00\x00\x00')
             continue
-        acc = 0
-        for x in curr:
-            acc = 85 * acc + (x - 33)
-        try:
-            decoded_append(packI(acc))
-        except struct./*bad-name-26*/:
-            raise ValueError('Ascii85 overflow') from None
-        curr_clear()
-    if x == 122:
-        if curr:
-            raise ValueError('z inside Ascii85 5-tuple')
-        decoded_append(b'\x00\x00\x00\x00')
-    if foldspaces and x == 121:
-        if curr:
-            raise ValueError('y inside Ascii85 5-tuple')
-        decoded_append(b'    ')
-    if x in ignorechars:
-        pass
-    raise ValueError('Non-Ascii85 digit found: %c' % x)
+        if foldspaces and x == 121:
+            if curr:
+                raise ValueError('y inside Ascii85 5-tuple')
+            decoded_append(b'    ')
+            continue
+        if x in ignorechars:
+            continue
+        raise ValueError('Non-Ascii85 digit found: %c' % x)
     result = b''.join(decoded)
     padding = 4 - len(curr)
     if padding:
@@ -273,9 +276,10 @@ def b85decode(b):
         except TypeError:
             for j, c in enumerate(chunk):
                 if not _b85dec[c] is None:
-                    continue
-                raise ValueError('bad base85 character at position %d' % (i + j)) from None
-            raise
+                    pass
+                else:
+                    raise ValueError('bad base85 character at position %d' % (i + j)) from None
+                    raise
         try:
             out.append(packI(acc))
         except struct./*bad-name-24*/:
@@ -300,8 +304,9 @@ def encode(input, output):
         output.write(line)
         if input.read(MAXBINSIZE):
             s = input.read(MAXBINSIZE)
-            continue
-        return
+        else:
+            return
+            return
 
 def decode(input, output):
     while input.readline():
@@ -310,8 +315,9 @@ def decode(input, output):
         output.write(s)
         if input.readline():
             line = input.readline()
-            continue
-        return
+        else:
+            return
+            return
 
 def _input_type_check(s):
     try:
@@ -354,15 +360,16 @@ def main():
         if o == '-u':
             func = decode
         if not o == '-h':
-            continue
-        print(usage)
-        return
-    if args and args[0] != '-':
-        with open(args[0], 'rb') as f:
-            func(f, sys.stdout.buffer)
+            pass
+        else:
+            print(usage)
             return
-            func(sys.stdin.buffer, sys.stdout.buffer)
-            return
+            if args and args[0] != '-':
+                with open(args[0], 'rb') as f:
+                    func(f, sys.stdout.buffer)
+                    return
+                    func(sys.stdin.buffer, sys.stdout.buffer)
+                    return
 
 if __name__ == '__main__':
     main()

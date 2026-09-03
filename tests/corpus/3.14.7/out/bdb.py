@@ -45,8 +45,7 @@ class _MonitoringTracer:
             callback = self.callback_wrapper(getattr(self, f'{cb_name}_callback'), event)
             sys.monitoring.register_callback(self._tool_id, event, callback)
             if not event != E.INSTRUCTION:
-                continue
-            all_events |= event
+                pass
         self.update_local_events()
         sys.monitoring.set_events(self._tool_id, self.GLOBAL_EVENTS)
         self._enabled = True
@@ -351,9 +350,10 @@ is determined by the __name__ in the frame globals.
             return False
         for pattern in self.skip:
             if not fnmatch.fnmatch(module_name, pattern):
-                continue
-            return True
-        return False
+                pass
+            else:
+                return True
+                return False
 
     def stop_here(self, frame):
         if self.skip and self.is_skipped_module(frame.f_globals.get('__name__')):
@@ -391,9 +391,10 @@ is determined by the __name__ in the frame globals.
             return False
         for lineno in self.breaks[filename]:
             if not self._lineno_in_frame(lineno, frame):
-                continue
-            return True
-        return False
+                pass
+            else:
+                return True
+                return False
 
     def _lineno_in_frame(self, lineno, frame):
         code = frame.f_code
@@ -574,8 +575,7 @@ is determined by the __name__ in the frame globals.
             return 'There are no breakpoints'
         for bp in Breakpoint.bpbynumber:
             if not bp:
-                continue
-            bp.deleteMe()
+                pass
         self.breaks = {}
 
     def get_bpbynumber(self, arg):

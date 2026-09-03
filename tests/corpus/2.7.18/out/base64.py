@@ -132,9 +132,10 @@ def encode(input, output):
                     if not ns:
                         break
                     s += ns
+                else:
+                    line = binascii.b2a_base64(s)
+                    output.write(line)
                     continue
-            line = binascii.b2a_base64(s)
-            output.write(line)
 
 def decode(input, output):
     while True:

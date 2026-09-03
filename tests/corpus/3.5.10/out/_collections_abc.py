@@ -432,8 +432,8 @@ class MutableSet(Set):
             for value in it:
                 if value in self:
                     self.discard(value)
-                    continue
-                self.add(value)
+                else:
+                    self.add(value)
         return self
 
     def __isub__(self, it):
@@ -662,8 +662,9 @@ class Sequence(Sized, Iterable, Container):
                     except IndexError:
                         break
                     i += 1
-                    continue
-        raise ValueError
+                else:
+                    raise ValueError
+                    return
 
     def count(self, value):
         return sum((1 for v in self if v == value))

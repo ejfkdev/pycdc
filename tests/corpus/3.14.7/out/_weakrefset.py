@@ -20,8 +20,7 @@ class WeakSet:
         for itemref in self.data.copy():
             item = itemref()
             if not item is not None:
-                continue
-            yield item
+                pass
 
     def __len__(self):
         return len(self.data)

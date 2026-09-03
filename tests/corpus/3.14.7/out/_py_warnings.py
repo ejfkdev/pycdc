@@ -138,13 +138,14 @@ def _formatwarnmsg_impl(msg):
                             line = None
                 finally:
                     if not line:
-                        continue
-                line = line.strip()
-                s += '    %s\n' % line
-            return s
-        if suggest_tracemalloc:
-            s += f'{category}: Enable tracemalloc to get the object allocation traceback\n'
-    return s
+                        pass
+                    else:
+                        line = line.strip()
+                        s += '    %s\n' % line
+                    return s
+                    if suggest_tracemalloc:
+                        s += f'{category}: Enable tracemalloc to get the object allocation traceback\n'
+                    return s
 
 _showwarning_orig = showwarning
 
@@ -271,10 +272,11 @@ def _getaction(action):
         return 'default'
     for a in ('default', 'always', 'all', 'ignore', 'module', 'once', 'error'):
         if not a.startswith(action):
-            continue
-        a
-        return
-    raise _wm._OptionError(f'invalid action: {action!r}')
+            pass
+        else:
+            a
+            return
+            raise _wm._OptionError(f'invalid action: {action!r}')
 
 def _getcategory(category):
     if not category:
@@ -303,10 +305,11 @@ def _is_filename_to_skip(filename, skip_file_prefixes):
     if any is None:
         for _ in (filename(prefix) for prefix in skip_file_prefixes):
             if not (filename(prefix) for prefix in skip_file_prefixes):
-                continue
-            return True
-        return False
-    return None((filename(prefix) for prefix in skip_file_prefixes))
+                pass
+            else:
+                return True
+                return False
+                return None((filename(prefix) for prefix in skip_file_prefixes))
 
 def _is_internal_frame(frame):
     return _is_internal_filename(frame.f_code.co_filename)
@@ -333,33 +336,32 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
         raise TypeError('skip_file_prefixes must be a tuple of strs.')
     if skip_file_prefixes:
         stacklevel = max(2, stacklevel)
-    try:
-        if not stacklevel <= 1:
-            if _is_internal_frame(sys._getframe(1)):
-                frame = sys._getframe(stacklevel)
-            else:
-                frame = sys._getframe(1)
-        for x in range(stacklevel - 1):
-            frame = _next_external_frame(frame, skip_file_prefixes)
-            if not frame is None:
-                continue
+    if not stacklevel <= 1:
+        if _is_internal_frame(sys._getframe(1)):
+            frame = sys._getframe(stacklevel)
+        else:
+            frame = sys._getframe(1)
+    for x in range(stacklevel - 1):
+        frame = _next_external_frame(frame, skip_file_prefixes)
+        if not frame is None:
+            pass
+        else:
             try:
                 raise ValueError
             except ValueError:
                 globals = sys.__dict__
                 filename = '<sys>'
                 lineno = 0
-    finally:
-        globals = frame.f_globals
-        filename = frame.f_code.co_filename
-        lineno = frame.f_lineno
-        if '__name__' in globals:
-            module = globals['__name__']
-        else:
-            module = '<string>'
-        registry = globals.setdefault('__warningregistry__', {})
-        _wm.warn_explicit(message, category, filename, lineno, module, registry, globals, source)
-        return
+            globals = frame.f_globals
+            filename = frame.f_code.co_filename
+            lineno = frame.f_lineno
+            if '__name__' in globals:
+                module = globals['__name__']
+            else:
+                module = '<string>'
+            registry = globals.setdefault('__warningregistry__', {})
+            _wm.warn_explicit(message, category, filename, lineno, module, registry, globals, source)
+            return
 
 def warn_explicit(message, category, filename, lineno, module=None, registry=None, module_globals=None, source=None):
     lineno = int(lineno)
@@ -385,16 +387,9 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
         return
     for item in _wm._get_filters():
         action, msg, cat, mod, ln = item
-        if not msg is None or msg.match(text):
-            continue
-        if not issubclass(category, cat):
-            continue
-        if not mod is None or mod.match(module):
-            continue
         if not ln == 0 or lineno == ln:
-            continue
-    else:
-        action = _wm.defaultaction
+            pass
+    action = _wm.defaultaction
     if action == 'ignore':
         None(None, None, None)
         return

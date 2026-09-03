@@ -23,8 +23,7 @@ class ABCMeta(type):
         for abstracts, base in bases:
             for value in getattr(base, '__abstractmethods__', set()):
                 if not getattr(value, '__isabstractmethod__', False):
-                    continue
-                abstracts.add(name)
+                    pass
         cls.__abstractmethods__ = frozenset(abstracts)
         cls._abc_registry = WeakSet()
         cls._abc_cache = WeakSet()
@@ -48,11 +47,12 @@ class ABCMeta(type):
         print(f'Inv. counter: {get_cache_token()}', file)
         for name in cls.__dict__:
             if not name.startswith('_abc_'):
-                continue
-            value = getattr(cls, name)
-            if isinstance(value, WeakSet):
-                value = set(value)
-            print(f'{name}: {value!r}', file)
+                pass
+            else:
+                value = getattr(cls, name)
+                if isinstance(value, WeakSet):
+                    value = set(value)
+                print(f'{name}: {value!r}', file)
 
     def _abc_registry_clear(cls):
         cls._abc_registry.clear()
@@ -95,15 +95,17 @@ class ABCMeta(type):
             return True
         for rcls in cls._abc_registry:
             if not issubclass(subclass, rcls):
-                continue
-            cls._abc_cache.add(subclass)
-            return True
-        for scls in cls.__subclasses__():
-            if not issubclass(subclass, scls):
-                continue
-            cls._abc_cache.add(subclass)
-            return True
-        cls._abc_negative_cache.add(subclass)
-        return False
+                pass
+            else:
+                cls._abc_cache.add(subclass)
+                return True
+                for scls in cls.__subclasses__():
+                    if not issubclass(subclass, scls):
+                        pass
+                    else:
+                        cls._abc_cache.add(subclass)
+                        return True
+                        cls._abc_negative_cache.add(subclass)
+                        return False
 
 

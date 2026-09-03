@@ -94,7 +94,7 @@
    "module": "_strptime",
    "ast_detail": "diff at token 62: orig  attr='__calc_weekday' | dec  attr='_LocaleTime__calc_weekday'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2044,
+   "ndiff": 2040,
    "ntotal": 2142,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -170,7 +170,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 285: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2245,
+   "ndiff": 2246,
    "ntotal": 2340,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -222,7 +222,7 @@
    "module": "cgitb",
    "ast_detail": "diff at token 36: orig  orelse=[Return(value=Constant(value=''))])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1320,
+   "ndiff": 1315,
    "ntotal": 1456,
    "detail": "line 111: orig ('LOAD_CONST', 'None') | got ('strong', 1)\nline 112: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'text')\nline 113: orig ('strong', 1) | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -238,7 +238,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 0: orig Module(body=[Import(names=[alias(name='string') | dec Module(body=[Import(names=[alias(name='string')])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1088,
+   "ndiff": 1089,
    "ntotal": 1329,
    "detail": "line 218: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'self')\nline 219: orig ('SETUP_FINALLY', 'to 380') | got ('LOAD_ATTR', 'use_rawinput')\nline 220: orig ('LOAD_FAST', 'intro') | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -262,9 +262,9 @@
    "module": "codeop",
    "ast_detail": "diff at token 53: orig  If(test=BoolOp(op=And() | dec  If(test=Name(id='line'",
    "verdict": "SIG-DIFF",
-   "ndiff": 224,
+   "ndiff": 262,
    "ntotal": 356,
-   "detail": "line 86: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 101: orig ('LOAD_CONST', 'None') | got ('SETUP_FINALLY', 'to 98')\nline 102: orig ('DUP_TOP', '') | got ('LOAD_CONST', 'None')"
+   "detail": "line 72: orig ('FOR_ITER', 'to 44') | got ('FOR_ITER', 'to 40')\nline 86: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 87: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'symbol')"
   },
   {
    "module": "colorsys",
@@ -274,7 +274,7 @@
    "module": "compileall",
    "ast_detail": "diff at token 63: orig  Try(body=[Assign(targets=[Name(id='names' | dec  Assign(targets=[Name(id='names'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1310,
+   "ndiff": 1263,
    "ntotal": 1513,
    "detail": "line 121: orig ('SETUP_FINALLY', 'to 64') | got ('BUILD_LIST', '')\nline 122: orig ('LOAD_GLOBAL', 'os') | got ('STORE_FAST', 'names')\nline 123: orig ('LOAD_METHOD', 'listdir') | got ('SETUP_FINALLY', 'to 68')"
   },
@@ -282,7 +282,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 623: orig  orelse=[If(test=BoolOp(op=And() | dec  orelse=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2850,
+   "ndiff": 2799,
    "ntotal": 4333,
    "detail": "line 671: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 673: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1017: orig ('LOAD_FAST', 'rest') | got ('SETUP_FINALLY', 'to 250')"
   },
@@ -298,15 +298,15 @@
    "module": "copy",
    "ast_detail": "diff at token 11: orig  Assign(targets=[Name(id='error' | dec  Try(body=[Assign(targets=[Name(id='error'",
    "verdict": "SIG-DIFF",
-   "ndiff": 861,
-   "ntotal": 919,
+   "ndiff": 860,
+   "ntotal": 917,
    "detail": "line 25: orig ('LOAD_NAME', 'Error') | got ('SETUP_FINALLY', 'to 70')\nline 26: orig ('STORE_NAME', 'error') | got ('LOAD_NAME', 'Error')\nline 27: orig ('SETUP_FINALLY', 'to 70') | got ('STORE_NAME', 'error')"
   },
   {
    "module": "copyreg",
    "ast_detail": "diff at token 158: orig  value=BinOp(left=Constant(value=1) | dec  value=Constant(value=512))",
    "verdict": "SIG-DIFF",
-   "ndiff": 367,
+   "ndiff": 358,
    "ntotal": 563,
    "detail": "line 176: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 82')\nline 188: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 189: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'base')"
   }

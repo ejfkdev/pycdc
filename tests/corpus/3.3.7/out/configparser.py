@@ -352,8 +352,7 @@ class BasicInterpolation(Interpolation):
             if c == '%':
                 accum.append('%')
                 rest = rest[2:]
-                continue
-            if c == '(':
+            elif c == '(':
                 m = self._KEYCRE.match(rest)
                 if m is None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
@@ -365,10 +364,10 @@ class BasicInterpolation(Interpolation):
                     raise InterpolationMissingOptionError(option, section, rest, var)
                 if '%' in v:
                     self._interpolate_some(parser, option, accum, v, section, map, depth + 1)
-                    continue
-            accum.append(v)
-        else:
-            raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
+                else:
+                    accum.append(v)
+            else:
+                raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
 
 
 class ExtendedInterpolation(Interpolation):
@@ -403,8 +402,7 @@ class ExtendedInterpolation(Interpolation):
             if c == '$':
                 accum.append('$')
                 rest = rest[2:]
-                continue
-            if c == '{':
+            elif c == '{':
                 m = self._KEYCRE.match(rest)
                 if m is None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
@@ -426,10 +424,10 @@ class ExtendedInterpolation(Interpolation):
                     raise InterpolationMissingOptionError(option, section, rest, ':'.join(path))
                 if '$' in v:
                     self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
-                    continue
-            accum.append(v)
-        else:
-            raise InterpolationSyntaxError(option, section, "'$' must be followed by '$' or '{', found: %r" % (rest,))
+                else:
+                    accum.append(v)
+            else:
+                raise InterpolationSyntaxError(option, section, "'$' must be followed by '$' or '{', found: %r" % (rest,))
 
 
 class LegacyInterpolation(Interpolation):
@@ -453,6 +451,8 @@ class LegacyInterpolation(Interpolation):
                     value = value % vars
                 except KeyError as e:
                     raise InterpolationMissingOptionError(option, section, rawval, e.args[0])
+                continue
+            break
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value

@@ -187,8 +187,6 @@ def _deepcopy_tuple(x, memo, deepcopy=deepcopy):
     for k, j in zip(x, y):
         if k is not j:
             y = tuple(y)
-        else:
-            continue
     y = x
     return y
 

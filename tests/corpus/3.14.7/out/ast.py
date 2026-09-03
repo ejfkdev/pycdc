@@ -158,18 +158,13 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None, s
 
 def copy_location(new_node, old_node):
     for attr in ('lineno', 'col_offset', 'end_lineno', 'end_col_offset'):
-        if not attr in old_node._attributes:
-            continue
         if not attr in new_node._attributes:
-            continue
-        value = getattr(old_node, attr, None)
-        if not value is not None:
-            if not hasattr(old_node, attr):
-                continue
-        if not attr.startswith('end_'):
-            continue
-        setattr(new_node, attr, value)
-    return new_node
+            pass
+        else:
+            value = getattr(old_node, attr, None)
+            if not value is not None:
+                if not attr.startswith('end_'):
+                    pass
 
 def fix_missing_locations(node):
     def _fix(node, lineno, col_offset, end_lineno, end_col_offset):
@@ -206,13 +201,11 @@ def increment_lineno(node, n=1):
             continue
         if 'lineno' in child._attributes:
             child.lineno = getattr(child, 'lineno', 0) + n
-        if not 'end_lineno' in child._attributes:
-            continue
         if not getattr(child, 'end_lineno', 0) is not None:
             end_lineno = getattr(child, 'end_lineno', 0)
-            continue
-        child.end_lineno = end_lineno + n
-    return node
+        else:
+            child.end_lineno = end_lineno + n
+            return node
 
 def iter_fields(node):
     for field in node._fields:
@@ -227,11 +220,7 @@ def iter_child_nodes(node):
             yield field
             continue
         if not isinstance(field, list):
-            continue
-        for item in field:
-            if not isinstance(item, AST):
-                continue
-            yield item
+            pass
 
 def get_docstring(node, clean=True):
     if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
@@ -318,10 +307,11 @@ def compare(a, b, /, *, compare_attributes=False):
                 return False
             for a_item, b_item in zip(a, b):
                 if _compare(a_item, b_item):
-                    continue
-                return False
-            return True
-        return type(a) is type(b) and a == b
+                    pass
+                else:
+                    return False
+                    return True
+                    return type(a) is type(b) and a == b
 
     def _compare_fields(a, b):
         if a._fields != b._fields:
@@ -335,9 +325,10 @@ def compare(a, b, /, *, compare_attributes=False):
                 if b_field is sentinel:
                     return False
             if _compare(a_field, b_field):
-                continue
-            return False
-        return True
+                pass
+            else:
+                return False
+                return True
 
     def _compare_attributes(a, b):
         if a._attributes != b._attributes:
@@ -348,9 +339,10 @@ def compare(a, b, /, *, compare_attributes=False):
             if a_attr is sentinel and b_attr is sentinel:
                 continue
             if not a_attr != b_attr:
-                continue
-            return False
-        return True
+                pass
+            else:
+                return False
+                return True
 
     if type(a) is not type(b):
         return False
@@ -391,12 +383,9 @@ allows modifications.
             if isinstance(value, list):
                 for item in value:
                     if not isinstance(item, AST):
-                        continue
-                    self.visit(item)
-                continue
-            if not isinstance(value, AST):
-                continue
-            self.visit(value)
+                        pass
+            elif not isinstance(value, AST):
+                pass
 
 
 class NodeTransformer(NodeVisitor):
@@ -451,11 +440,12 @@ Usually you use the transformer like this::
                 old_value[slice(None, None, None)] = new_values
                 continue
             if not isinstance(old_value, AST):
-                continue
-            new_node = self.visit(old_value)
-            if not new_node is not None:
-                delattr(node, field)
-                continue
+                pass
+            else:
+                new_node = self.visit(old_value)
+                if not new_node is not None:
+                    delattr(node, field)
+                    continue
             setattr(node, field, new_node)
         return node
 

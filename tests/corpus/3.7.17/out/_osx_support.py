@@ -177,27 +177,28 @@ def compiler_fixup(compiler_so, cc_args):
             index = indices[0]
             if compiler_so[index] == '-isysroot':
                 del compiler_so[index:index + 2]
-                continue
-            del compiler_so[index:index + 1]
-    sysroot = None
-    argvar = cc_args
-    indices = [i for i, x in enumerate(cc_args) if x.startswith('-isysroot')]
-    if not indices:
-        argvar = compiler_so
-        indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
-    for idx in indices:
-        if argvar[idx] == '-isysroot':
-            sysroot = argvar[idx + 1]
-            break
-        else:
-            sysroot = argvar[idx][len('-isysroot'):]
-            break
-    if sysroot:
-        if not os.path.isdir(sysroot):
-            from distutils import log
-            log.warn("Compiling with an SDK that doesn't seem to exist: %s", sysroot)
-            log.warn('Please check your Xcode installation')
-    return compiler_so
+            else:
+                del compiler_so[index:index + 1]
+    else:
+        sysroot = None
+        argvar = cc_args
+        indices = [i for i, x in enumerate(cc_args) if x.startswith('-isysroot')]
+        if not indices:
+            argvar = compiler_so
+            indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
+        for idx in indices:
+            if argvar[idx] == '-isysroot':
+                sysroot = argvar[idx + 1]
+                break
+            else:
+                sysroot = argvar[idx][len('-isysroot'):]
+                break
+        if sysroot:
+            if not os.path.isdir(sysroot):
+                from distutils import log
+                log.warn("Compiling with an SDK that doesn't seem to exist: %s", sysroot)
+                log.warn('Please check your Xcode installation')
+        return compiler_so
 
 def customize_config_vars(_config_vars):
     if not _supports_universal_builds():

@@ -207,13 +207,11 @@ def a85decode(b=None, *, foldspaces, adobe, ignorechars):
             if curr:
                 raise ValueError('z inside Ascii85 5-tuple')
             decoded_append(b'\x00\x00\x00\x00')
-            continue
-        if foldspaces and x == 121:
+        elif foldspaces and x == 121:
             if curr:
                 raise ValueError('y inside Ascii85 5-tuple')
             decoded_append(b'    ')
-            continue
-        if x in ignorechars:
+        elif x in ignorechars:
             continue
     else:
         raise ValueError('Non-Ascii85 digit found: %c' % x)
@@ -281,9 +279,10 @@ def encode(input, output):
                 if not ns:
                     break
                 s += ns
+            else:
+                line = binascii.b2a_base64(s)
+                output.write(line)
                 continue
-        line = binascii.b2a_base64(s)
-        output.write(line)
 
 def decode(input, output):
     while True:

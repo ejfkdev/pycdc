@@ -43,13 +43,10 @@ PyCF_ALLOW_INCOMPLETE_INPUT = 16384
 def _maybe_compile(compiler, source, filename, symbol):
     for line in source.split('\n'):
         line = line.strip()
-        if not line:
-            continue
         if not line[0] != '#':
-            continue
-    else:
-        if symbol != 'eval':
-            source = 'pass'
+            pass
+    if symbol != 'eval':
+        source = 'pass'
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
         try:
@@ -87,8 +84,7 @@ with the statement in force.'''
             return codeob
         for feature in _features:
             if not codeob.co_flags & feature.compiler_flag:
-                continue
-            self.flags |= feature.compiler_flag
+                pass
         return codeob
 
 

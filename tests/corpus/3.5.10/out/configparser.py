@@ -373,8 +373,7 @@ class BasicInterpolation(Interpolation):
             if c == '%':
                 accum.append('%')
                 rest = rest[2:]
-                continue
-            if c == '(':
+            elif c == '(':
                 m = self._KEYCRE.match(rest)
                 if m is None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
@@ -386,10 +385,10 @@ class BasicInterpolation(Interpolation):
                     raise InterpolationMissingOptionError(option, section, rawval, var) from None
                 if '%' in v:
                     self._interpolate_some(parser, option, accum, v, section, map, depth + 1)
-                    continue
-            accum.append(v)
-        else:
-            raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
+                else:
+                    accum.append(v)
+            else:
+                raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
 
 
 class ExtendedInterpolation(Interpolation):
@@ -425,8 +424,7 @@ class ExtendedInterpolation(Interpolation):
             if c == '$':
                 accum.append('$')
                 rest = rest[2:]
-                continue
-            if c == '{':
+            elif c == '{':
                 m = self._KEYCRE.match(rest)
                 if m is None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
@@ -448,10 +446,10 @@ class ExtendedInterpolation(Interpolation):
                     raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
                 if '$' in v:
                     self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
-                    continue
-            accum.append(v)
-        else:
-            raise InterpolationSyntaxError(option, section, "'$' must be followed by '$' or '{', found: %r" % (rest,))
+                else:
+                    accum.append(v)
+            else:
+                raise InterpolationSyntaxError(option, section, "'$' must be followed by '$' or '{', found: %r" % (rest,))
 
 
 class LegacyInterpolation(Interpolation):
@@ -475,6 +473,8 @@ class LegacyInterpolation(Interpolation):
                     value = value % vars
                 except KeyError as e:
                     raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
+                continue
+            break
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -790,26 +790,27 @@ class RawConfigParser(MutableMapping):
                     for prefix, index in inline_prefixes.items():
                         index = line.find(prefix, index + 1)
                         if index == -1:
-                            continue
-                        next_prefixes[prefix] = index
-                        if not index == 0:
-                            if index > 0:
-                                if line[index - 1].isspace():
-                                    comment_start = min(comment_start, index)
+                            pass
+                        else:
+                            next_prefixes[prefix] = index
+                            if not index == 0:
+                                if index > 0:
+                                    if line[index - 1].isspace():
+                                        comment_start = min(comment_start, index)
                     inline_prefixes = next_prefixes
-                    continue
-            for prefix in self._comment_prefixes:
-                if line.strip().startswith(prefix):
-                    comment_start = 0
-                    break
-            if comment_start == sys.maxsize:
-                comment_start = None
-            value = line[:comment_start].strip()
-            if not value:
-                if self._empty_lines_in_values:
-                    if comment_start is None and cursect is not None and optname and cursect[optname] is not None:
-                        cursect[optname].append('')
-                        continue
+                else:
+                    for prefix in self._comment_prefixes:
+                        if line.strip().startswith(prefix):
+                            comment_start = 0
+                            break
+                    if comment_start == sys.maxsize:
+                        comment_start = None
+                    value = line[:comment_start].strip()
+                    if not value:
+                        if self._empty_lines_in_values:
+                            if comment_start is None and cursect is not None and optname and cursect[optname] is not None:
+                                cursect[optname].append('')
+                                continue
             indent_level = sys.maxsize
         else:
             first_nonspace = self.NONSPACECRE.search(line)

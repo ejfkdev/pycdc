@@ -121,18 +121,17 @@ def poll(timeout=0.0, map=None):
         for fd in r:
             obj = map.get(fd)
             if obj is None:
-                continue
-            read(obj)
+                pass
         for fd in w:
             obj = map.get(fd)
             if obj is None:
-                continue
-            write(obj)
+                pass
         for fd in e:
             obj = map.get(fd)
             if obj is None:
-                continue
-            _exception(obj)
+                pass
+    else:
+        return
 
 def poll2(timeout=0.0, map=None):
     if map is None:
@@ -153,8 +152,9 @@ def poll2(timeout=0.0, map=None):
         for fd, flags in r:
             obj = map.get(fd)
             if obj is None:
-                continue
-            readwrite(obj, flags)
+                pass
+    else:
+        return
 
 poll3 = poll2
 
@@ -174,7 +174,8 @@ def loop(timeout=30.0, use_poll=False, map=None, count=None):
                 if count > 0:
                     poll_fun(timeout, map)
                     count = count - 1
-                    continue
+                else:
+                    return
 
 class dispatcher:
     debug = False

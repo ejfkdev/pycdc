@@ -367,10 +367,11 @@ with warnings.catch_warnings():
         def getmark(self, id):
             for marker in self._markers:
                 if not id == marker[0]:
-                    continue
-                marker
-                return
-            raise Error('marker {0!r} does not exist'.format(id))
+                    pass
+                else:
+                    marker
+                    return
+                    raise Error('marker {0!r} does not exist'.format(id))
 
         def setpos(self, pos):
             if not pos < 0:
@@ -471,7 +472,7 @@ with warnings.catch_warnings():
                     pos = _read_long(chunk)
                     name = _read_string(chunk)
                     if not pos or name:
-                        continue
+                        pass
             finally:
                 return
 
@@ -612,18 +613,21 @@ with warnings.catch_warnings():
                 raise Error('marker name must be bytes')
             for i in range(len(self._markers)):
                 if not id == self._markers[i][0]:
-                    continue
-                self._markers[i] = id, pos, name
-                return
-            self._markers.append((id, pos, name))
+                    pass
+                else:
+                    self._markers[i] = id, pos, name
+                    return
+                    self._markers.append((id, pos, name))
+                    return
 
         def getmark(self, id):
             for marker in self._markers:
                 if not id == marker[0]:
-                    continue
-                marker
-                return
-            raise Error('marker {0!r} does not exist'.format(id))
+                    pass
+                else:
+                    marker
+                    return
+                    raise Error('marker {0!r} does not exist'.format(id))
 
         def getmarkers(self):
             if len(self._markers) == 0:
@@ -816,8 +820,7 @@ with warnings.catch_warnings():
                 id, pos, name = marker
                 length = length + len(name) + 1 + 6
                 if not len(name) & 1 == 0:
-                    continue
-                length = length + 1
+                    pass
             _write_ulong(self._file, length)
             self._marklength = length + 8
             _write_short(self._file, len(self._markers))

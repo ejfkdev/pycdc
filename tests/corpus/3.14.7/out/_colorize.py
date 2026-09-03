@@ -65,9 +65,10 @@ ColorCodes = set()
 NoColors = ANSIColors()
 for attr, code in ANSIColors.__dict__.items():
     if attr.startswith('__'):
-        continue
-    ColorCodes.add(code)
-    setattr(NoColors, attr, '')
+        pass
+    else:
+        ColorCodes.add(code)
+        setattr(NoColors, attr, '')
 
 class ThemeSection(Mapping[str, str]):
     '''A mixin/base class for theme sections.
