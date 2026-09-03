@@ -69,6 +69,30 @@ cargo build                                                 # 重新嵌入
 
 在 pycdc 官方测试集（166 个 2.x/3.x `.pyc`）上：**0 个加载/反编译错误**，约 78% 输出无 incomplete 警告。
 
+## 真实语料库验证（tests/corpus/）
+
+用 pyenv/uv 安装的 **13 个历史版本解释器**（2.6.9、2.7.18、3.3.7、3.5.10、3.6.15、3.7.17、3.8.20、3.9.25、3.10.21、3.11.16、3.12.14、3.13.15、3.14.7）把各版本**自带标准库源码**编译成 `.pyc`，源码与 pyc 按版本目录存放，共 **520 个模块**。验证流程（`tools/verify_corpus.py`）：
+
+1. `pycdc` 反编译每个 `.pyc`；
+2. 用**同版本解释器**重新编译反编译输出；
+3. 对比原始 pyc 与重编译 pyc 的**结构化字节码签名**（opname + argrepr，跳转目标归一为标签）；
+4. 签名不一致时再用 `tools/ast_compare.py` 做**归一化 AST 语义对比**（同版本解释器执行；归一化：相邻 import 合并、global/nonlocal 提升、`while 1`≡`while True`、终结分支 else 展平、set/list(genexpr)≡推导式、数值常量折叠）。
+
+判级：`PASS`（字节码签名一致）＞ `AST-PASS`（AST 语义等价，即用户验收标准"执行逻辑语义相等"）＞ `INCOMPLETE`（含占位标记）＞ `SIG-DIFF`（可编译但结构有差）＞ `SYNTAX-ERR`。
+
+当前结果（520 模块）：
+
+| 指标 | 数量 |
+|---|---|
+| PASS（字节码级一致） | 52（10.0%） |
+| AST-PASS（语义等价） | 9 |
+| **语义等价合计** | **61（11.7%）** |
+| INCOMPLETE（可编译、含占位） | 17 |
+| SIG-DIFF（可编译、结构有差） | 442 |
+| SYNTAX-ERR | **0（所有输出都能在对应版本编译）** |
+
+每个版本目录下的 `report.json` 保存逐模块判级与首个差异位置，便于聚类修复。
+
 ## 已知限制
 
 - try/except 的 3.8–3.10 SETUP_* 时代结构与 bare `except:` 还原不完整；3.11+ 基于异常表重建，主体正确。
@@ -102,6 +126,11 @@ configs/
 tools/
   gen_configs.py        配置生成器（xdis + 原生解释器导出）
   dump_native.py        3.11+ 原生导出脚本
+  build_corpus.py       单版本语料构建（2.6 兼容）
+  build_corpus_all.py   全版本语料构建驱动
+  verify_corpus.py      语料验证（反编译→重编译→签名/AST 对比）
+  sig_dump.py           结构化字节码签名导出（目标版本解释器执行）
+  ast_compare.py        归一化 AST 语义对比（2.6+ 兼容）
 tests/
   roundtrip.py          多版本编译-反编译-重编译对比矩阵
   integration.rs        Rust 集成测试（内置 fixture）
