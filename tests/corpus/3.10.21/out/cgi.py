@@ -579,9 +579,8 @@ def test(environ=os.environ):
     print('Content-type: text/html')
     print()
     sys.stderr = sys.stdout
-    print_exception()
-    return
-    print_exception()
+    print('<H1>Second try with a small maxlen...</H1>')
+    maxlen = 50
 
 def print_exception(type=None, value=None, tb=None, limit=None):
     if type is None:

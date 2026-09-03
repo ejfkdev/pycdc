@@ -216,8 +216,6 @@ class BaseServer:
     def _handle_request_noblock(self):
         if self.verify_request(request, client_address):
             pass
-        self.handle_error(request, client_address)
-        self.close_request(request)
 
     def handle_timeout(self):
         pass
@@ -386,8 +384,10 @@ class ForkingMixIn:
             self.close_request(request)
             return
         try:
+            self.finish_request(request, client_address)
+            os._exit(0)
+        except:
             self.handle_error(request, client_address)
-        finally:
             os._exit(1)
 
 
@@ -396,8 +396,12 @@ class ThreadingMixIn:
 
     daemon_threads = False
     def process_request_thread(self, request, client_address):
-        self.handle_error(request, client_address)
-        self.close_request(request)
+        try:
+            self.finish_request(request, client_address)
+            self.close_request(request)
+        except:
+            self.handle_error(request, client_address)
+            self.close_request(request)
 
     def process_request(self, request, client_address):
         t = threading.Thread(target=self.process_request_thread, args=(request, client_address))

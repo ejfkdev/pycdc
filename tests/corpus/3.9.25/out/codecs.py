@@ -500,8 +500,13 @@ def open(filename, mode='r', encoding=None, errors='strict', buffering=-1):
     if encoding is None:
         return file
     return srw
-    file.close()
-    raise
+    try:
+        info = lookup(encoding)
+        srw = StreamReaderWriter(file, info.streamreader, info.streamwriter, errors)
+        srw.encoding = encoding
+    except:
+        file.close()
+        raise
 
 def EncodedFile(file, data_encoding, file_encoding=None, errors='strict'):
     if file_encoding is None:

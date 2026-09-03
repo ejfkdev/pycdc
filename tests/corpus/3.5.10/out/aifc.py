@@ -297,7 +297,15 @@ class Aifc_read:
             raise Error('COMM chunk and/or SSND chunk missing')
 
     def __init__(self, f):
-        pass
+        if isinstance(f, str):
+            file_object = builtins.open(f, 'rb')
+            try:
+                self.initfp(file_object)
+            except:
+                file_object.close()
+                raise
+        else:
+            self.initfp(f)
 
     def __enter__(self):
         return self
@@ -443,8 +451,13 @@ class Aifc_write:
     def __init__(self, f):
         if isinstance(f, str):
             file_object = builtins.open(f, 'wb')
-            file_object.close()
-            raise
+            try:
+                self.initfp(file_object)
+            except:
+                file_object.close()
+                raise
+            if f.endswith('.aiff'):
+                self._aifc = 0
         else:
             self.initfp(f)
 

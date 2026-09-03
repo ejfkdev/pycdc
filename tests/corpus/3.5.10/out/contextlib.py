@@ -231,10 +231,17 @@ class ExitStack(object):
         pending_raise = False
         while self._exit_callbacks:
             cb = self._exit_callbacks.pop()
-            new_exc_details = sys.exc_info()
-            _fix_exception_context(new_exc_details[1], exc_details[1])
-            pending_raise = True
-            exc_details = new_exc_details
+            try:
+                if cb(*exc_details):
+                    suppressed_exc = True
+                    pending_raise = False
+                    exc_details = (None, None, None)
+            except:
+                new_exc_details = sys.exc_info()
+                _fix_exception_context(new_exc_details[1], exc_details[1])
+                pending_raise = True
+                exc_details = new_exc_details
+            continue
         if pending_raise:
             pass
         try:

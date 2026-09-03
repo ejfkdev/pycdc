@@ -179,8 +179,17 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 if sts:
                     self.log_error('CGI script exit status %#x', sts)
                 return
-            self.server.handle_error(self.request, self.client_address)
-            os._exit(127)
+            try:
+                try:
+                    os.setuid(nobody)
+                except os.error:
+                    pass
+                os.dup2(self.rfile.fileno(), 0)
+                os.dup2(self.wfile.fileno(), 1)
+                os.execve(scriptfile, args, env)
+            except:
+                self.server.handle_error(self.request, self.client_address)
+                os._exit(127)
         else:
             import subprocess
             cmdline = [scriptfile]

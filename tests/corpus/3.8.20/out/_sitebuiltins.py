@@ -13,7 +13,11 @@ class Quitter(object):
         return 'Use %s() or %s to exit' % (self.name, self.eof)
 
     def __call__(self, code=None):
-        pass
+        try:
+            sys.stdin.close()
+        except:
+            pass
+        raise SystemExit(code)
 
 
 class _Printer(object):

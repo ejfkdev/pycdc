@@ -147,10 +147,6 @@ class BinHex:
             ofname = ofp
             ofp = io.open(ofname, 'wb')
             close_on_error = True
-        return
-        if close_on_error:
-            ofp.close()
-        raise
 
     def _writeinfo(self, name, finfo):
         nl = len(name)

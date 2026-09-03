@@ -315,10 +315,17 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
             assert is_sync
-            new_exc_details = sys.exc_info()
-            _fix_exception_context(new_exc_details[1], exc_details[1])
-            pending_raise = True
-            exc_details = new_exc_details
+            try:
+                if cb(*exc_details):
+                    suppressed_exc = True
+                    pending_raise = False
+                    exc_details = (None, None, None)
+            except:
+                new_exc_details = sys.exc_info()
+                _fix_exception_context(new_exc_details[1], exc_details[1])
+                pending_raise = True
+                exc_details = new_exc_details
+            continue
         if pending_raise:
             pass
         try:
@@ -422,10 +429,21 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         pending_raise = False
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
-            new_exc_details = sys.exc_info()
-            _fix_exception_context(new_exc_details[1], exc_details[1])
-            pending_raise = True
-            exc_details = new_exc_details
+            try:
+                if is_sync:
+                    cb_suppress = cb(*exc_details)
+                else:
+                    cb_suppress = await cb(*exc_details)
+                if cb_suppress:
+                    suppressed_exc = True
+                    pending_raise = False
+                    exc_details = (None, None, None)
+            except:
+                new_exc_details = sys.exc_info()
+                _fix_exception_context(new_exc_details[1], exc_details[1])
+                pending_raise = True
+                exc_details = new_exc_details
+            continue
         if pending_raise:
             pass
         try:

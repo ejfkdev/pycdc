@@ -358,8 +358,12 @@ class MultiPathXMLRPCServer(SimpleXMLRPCServer):
         return self.dispatchers[path]
 
     def _marshaled_dispatch(self, data, dispatch_method=None, path=None):
-        exc_type, exc_value = sys.exc_info()[:2]
-        response = xmlrpclib.dumps(xmlrpclib.Fault(1, '%s:%s' % (exc_type, exc_value)), encoding=self.encoding, allow_none=self.allow_none)
+        try:
+            response = self.dispatchers[path]._marshaled_dispatch(data, dispatch_method, path)
+        except:
+            exc_type, exc_value = sys.exc_info()[:2]
+            response = xmlrpclib.dumps(xmlrpclib.Fault(1, '%s:%s' % (exc_type, exc_value)), encoding=self.encoding, allow_none=self.allow_none)
+        return response
 
 
 class CGIXMLRPCRequestHandler(SimpleXMLRPCDispatcher):

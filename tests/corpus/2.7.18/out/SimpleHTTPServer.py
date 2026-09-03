@@ -68,8 +68,11 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 return self.list_directory(path)
         else:
             ctype = self.guess_type(path)
-        f.close()
-        raise
+        try:
+            pass
+        except:
+            f.close()
+            raise
 
     def list_directory(self, path):
         for name in list:

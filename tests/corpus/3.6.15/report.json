@@ -65,11 +65,11 @@
   },
   {
    "module": "_sitebuiltins",
-   "ast_detail": "diff at token 63: orig  body=[Try(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='sys' | dec  body=[Pass()]",
+   "ast_detail": "diff at token 204: orig  finalbody=[])] | dec  finalbody=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 296,
+   "ndiff": 158,
    "ntotal": 369,
-   "detail": "line 72: orig ('SETUP_EXCEPT', 'to 16') | got ('LOAD_CONST', 'None')\nline 73: orig ('LOAD_GLOBAL', 'sys') | got ('RETURN_VALUE', '')\nline 74: orig ('LOAD_ATTR', 'stdin') | got ('_Printer', 0)"
+   "detail": "line 176: orig ('SETUP_LOOP', 'to 88') | got ('SETUP_LOOP', 'to 90')\nline 180: orig ('FOR_ITER', 'to 86') | got ('FOR_ITER', 'to 88')\nline 212: orig ('POP_BLOCK', '') | got ('JUMP_ABSOLUTE', '')"
   },
   {
    "module": "_strptime",
@@ -111,7 +111,7 @@
    "module": "aifc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2489,
+   "ndiff": 2411,
    "ntotal": 3059,
    "detail": "line 467: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 468: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 469: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },
@@ -135,8 +135,8 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2125,
-   "ntotal": 2210,
+   "ndiff": 2140,
+   "ntotal": 2222,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -159,9 +159,9 @@
    "module": "binhex",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1207,
+   "ndiff": 724,
    "ntotal": 1817,
-   "detail": "line 570: orig ('SETUP_EXCEPT', 'to 130') | got ('LOAD_FAST', 'close_on_error')\nline 571: orig ('LOAD_FAST', 'ofp') | got ('POP_JUMP_IF_FALSE', '')\nline 572: orig ('LOAD_ATTR', 'write') | got ('LOAD_FAST', 'ofp')"
+   "detail": "line 920: orig ('SETUP_WITH', 'to 76') | got ('SETUP_WITH', 'to 68')\nline 938: orig ('LOAD_FAST', 'ofp') | got ('POP_BLOCK', '')\nline 939: orig ('LOAD_ATTR', 'close_data') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "bisect",
@@ -191,15 +191,15 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3025,
-   "ntotal": 3160,
+   "ndiff": 3003,
+   "ntotal": 3163,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cgitb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1296,
+   "ndiff": 1290,
    "ntotal": 1435,
    "detail": "line 111: orig ('LOAD_CONST', 'None') | got ('strong', 1)\nline 112: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'text')\nline 113: orig ('strong', 1) | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -263,7 +263,7 @@
    "module": "contextlib",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 666,
+   "ndiff": 665,
    "ntotal": 934,
    "detail": "line 246: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')\nline 247: orig ('LOAD_FAST', 'kwds') | got ('STORE_ATTR', 'func')\nline 248: orig ('ROT_THREE', '') | got ('LOAD_FAST', 'args')"
   },
@@ -279,7 +279,7 @@
    "module": "copyreg",
    "ast_detail": "diff at token 266: orig  Try(body=[Assign(targets=[Name(id='getstate' | dec  Assign(targets=[Name(id='dict'",
    "verdict": "SIG-DIFF",
-   "ndiff": 352,
+   "ndiff": 347,
    "ntotal": 542,
    "detail": "line 169: orig ('SETUP_LOOP', 'to 58') | got ('SETUP_LOOP', 'to 56')\nline 174: orig ('FOR_ITER', 'to 52') | got ('FOR_ITER', 'to 50')\nline 185: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },

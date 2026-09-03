@@ -503,8 +503,6 @@ def open(filename, mode='r', encoding=None, errors='strict', buffering=-1):
     if encoding is None:
         return file
     return srw
-    file.close()
-    raise
 
 def EncodedFile(file, data_encoding, file_encoding=None, errors='strict'):
     if file_encoding is None:

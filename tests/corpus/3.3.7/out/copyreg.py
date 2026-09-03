@@ -89,6 +89,11 @@ def _slotnames(cls):
                         names.append(name)
                 else:
                     continue
+    try:
+        cls.__slotnames__ = names
+    except:
+        pass
+    return names
 
 _extension_registry = {}
 _inverted_registry = {}

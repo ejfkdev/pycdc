@@ -1116,6 +1116,35 @@ impl<'a> Ctx<'a> {
         };
         let pos = inst.offset;
 
+        // bare `except:` entry: the handler starts with POP_TOPs instead of
+        // DUP_TOP + COMPARE_OP + PJIF — open a typeless legacy handler whose
+        // end is the first POP_EXCEPT / END_FINALLY / RERAISE
+        if self.legacy_handler.is_none()
+            && lt.handlers.is_empty()
+            && lt.else_start.is_none()
+            && pos == lt.handler_start
+            && inst.op == Op::POP_TOP
+        {
+            let mut hend = usize::MAX;
+            for ins in self.instrs.iter() {
+                if ins.offset <= pos {
+                    continue;
+                }
+                if matches!(ins.op, Op::POP_EXCEPT | Op::END_FINALLY | Op::RERAISE) {
+                    hend = ins.offset;
+                    break;
+                }
+            }
+            self.legacy_handler = Some(LegacyHandler {
+                type_: None,
+                name: None,
+                body: Vec::new(),
+                block_depth: self.blocks.len(),
+            });
+            self.legacy_handler_end = Some(hend);
+            self.in_handler_prelude = true;
+        }
+
         // current handler body ends at the mismatch jump
         if self.legacy_handler.is_some() {
             let end = self.legacy_handler_end.unwrap_or(usize::MAX);
@@ -1353,9 +1382,17 @@ impl<'a> Ctx<'a> {
                                         })
                                     })
                             });
+                        // a handler chain starting with POP_TOP (no
+                        // DUP_TOP+match) is a bare `except:` — the body-end
+                        // jump flies over the whole chain, there is no else
+                        let bare_chain = self
+                            .idx_of
+                            .get(&lt.handler_start)
+                            .and_then(|&hi2| self.instrs.get(hi2))
+                            .map_or(false, |hx| hx.op == Op::POP_TOP);
                         if lt.handlers.is_empty() && lt.else_start.is_none()
                             && target > pos && target > lt.handler_start
-                            && !onto_loop_back_edge
+                            && !onto_loop_back_edge && !bare_chain
                         {
                             // end of the try body: forward jump over the
                             // handler chain into the else region. Handlers

@@ -214,10 +214,13 @@ class Bdb:
             del self.breaks[filename]
 
     def clear_bpbynumber(self, arg):
-        return 'Non-numeric breakpoint number (%s)' % arg
+        try:
+            number = int(arg)
+        except:
+            return 'Non-numeric breakpoint number (%s)' % arg
         if not bp:
             try:
-                pass
+                bp = Breakpoint.bpbynumber[number]
             except IndexError:
                 return 'Breakpoint number (%d) out of range' % number
             else:

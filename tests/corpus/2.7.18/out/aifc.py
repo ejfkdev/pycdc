@@ -306,7 +306,15 @@ class Aifc_read:
             self._decomp.SetParams(params)
 
     def __init__(self, f):
-        pass
+        if isinstance(f, basestring):
+            f = __builtin__.open(f, 'rb')
+            try:
+                self.initfp(f)
+            except:
+                f.close()
+                raise
+        else:
+            self.initfp(f)
 
     def getfp(self):
         return self._file

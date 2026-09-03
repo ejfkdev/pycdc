@@ -234,16 +234,37 @@ class Hook:
             pass
         formatter = html if html else text
         plain = False
-        import traceback
-        doc = ''.join(traceback.format_exception(*info))
-        plain = True
+        try:
+            doc = formatter(info, self.context)
+        except:
+            import traceback
+            doc = ''.join(traceback.format_exception(*info))
+            plain = True
         if self.display:
             if plain:
-                pass
+                doc = doc.replace('&', '&amp;').replace('<', '&lt;')
+                self.file.write('<pre>' + doc + '</pre>\n')
             else:
                 self.file.write(doc + '\n')
         else:
             self.file.write('<p>A problem occurred in a Python script.\n')
+        if self.logdir is not None:
+            import os
+            import tempfile
+            suffix = ['.txt', '.html'][self.format == 'html']
+            fd, path = tempfile.mkstemp(suffix=suffix, dir=self.logdir)
+            try:
+                file = os.fdopen(fd, 'w')
+                file.write(doc)
+                file.close()
+                msg = '<p> %s contains the description of this error.' % path
+            except:
+                msg = '<p> Tried to save traceback to %s, but failed.' % path
+            self.file.write(msg + '\n')
+        try:
+            self.file.flush()
+        except:
+            pass
 
 
 handler = Hook().handle

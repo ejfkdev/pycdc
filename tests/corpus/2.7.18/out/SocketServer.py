@@ -226,7 +226,14 @@ class BaseServer:
         self._handle_request_noblock()
 
     def _handle_request_noblock(self):
-        pass
+        if self.verify_request(request, client_address):
+            try:
+                pass
+            except:
+                self.handle_error(request, client_address)
+                self.shutdown_request(request)
+        else:
+            self.shutdown_request(request)
 
     def handle_timeout(self):
         pass
@@ -313,8 +320,6 @@ class TCPServer(BaseServer):
         self.socket = socket.socket(self.address_family, self.socket_type)
         if bind_and_activate:
             pass
-        self.server_close()
-        raise
 
     def server_bind(self):
         if self.allow_reuse_address:
@@ -407,9 +412,12 @@ class ForkingMixIn:
             self.close_request(request)
             return
         try:
+            self.finish_request(request, client_address)
+            self.shutdown_request(request)
+            os._exit(0)
+        except:
             self.handle_error(request, client_address)
             self.shutdown_request(request)
-        finally:
             os._exit(1)
 
 
@@ -418,8 +426,12 @@ class ThreadingMixIn:
 
     daemon_threads = False
     def process_request_thread(self, request, client_address):
-        self.handle_error(request, client_address)
-        self.shutdown_request(request)
+        try:
+            self.finish_request(request, client_address)
+            self.shutdown_request(request)
+        except:
+            self.handle_error(request, client_address)
+            self.shutdown_request(request)
 
     def process_request(self, request, client_address):
         t = threading.Thread(target=self.process_request_thread, args=(request, client_address))

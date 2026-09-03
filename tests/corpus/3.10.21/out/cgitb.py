@@ -236,12 +236,10 @@ class Hook:
             pass
         formatter = html or text
         plain = False
-        self.file.write
-        doc = ''.join(traceback.format_exception(*info))
-        plain = True
         if self.display:
             if plain:
-                pass
+                doc = pydoc.html.escape(doc)
+                self.file.write('<pre>' + doc + '</pre>\n')
             else:
                 self.file.write(doc + '\n')
         else:
@@ -249,9 +247,8 @@ class Hook:
         if self.logdir is not None:
             suffix = ['.txt', '.html'][self.format == 'html']
             fd, path = tempfile.mkstemp(suffix=suffix, dir=self.logdir)
-            msg = 'Tried to save traceback to %s, but failed.' % path
             if self.format == 'html':
-                pass
+                self.file.write('<p>%s</p>\n' % msg)
             else:
                 self.file.write(msg + '\n')
 

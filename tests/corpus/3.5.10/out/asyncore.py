@@ -374,7 +374,12 @@ class dispatcher:
 
     def handle_error(self):
         nil, t, v, tbinfo = compact_traceback()
-        self_repr = '<__repr__(self) failed for object at %0x>' % id(self)
+        try:
+            self_repr = repr(self)
+        except:
+            self_repr = '<__repr__(self) failed for object at %0x>' % id(self)
+        self.log_info('uncaptured python exception, closing channel %s (%s:%s %s)' % (self_repr, t, v, tbinfo), 'error')
+        self.handle_close()
 
     def handle_expt(self):
         self.log_info('unhandled incoming priority event', 'warning')
