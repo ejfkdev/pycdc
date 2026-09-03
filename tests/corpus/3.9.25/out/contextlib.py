@@ -96,7 +96,8 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
                 next(self.gen)
             except StopIteration:
                 pass
-            raise RuntimeError("generator didn't stop")
+            else:
+                raise RuntimeError("generator didn't stop")
         elif value is None:
             value = typ()
         exc = None
@@ -104,33 +105,29 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
         return
         exc = None
         del exc
+        if exc is value:
+            exc = None
+            del exc
+            return False
+        if isinstance(value, StopIteration) and exc.__cause__ is value:
+            exc = None
+            del exc
+            return False
+        raise
+        exc = None
+        del exc
         try:
             self.gen.throw(typ, value, traceback)
         except StopIteration as exc:
             pass
+        except RuntimeError as exc:
+            pass
         exc = None
         del exc, exc
         exc = None
-        exc = None
-        del exc
         return False
         exc = None
         del exc
-        try:
-            exc = None
-            if exc is value:
-                exc = None
-                del exc
-                return False
-            if isinstance(value, StopIteration) and exc.__cause__ is value:
-                exc = None
-                del exc
-                return False
-            raise
-        except BaseException as exc:
-            raise
-            if exc is not value:
-                pass
         raise RuntimeError("generator didn't stop after throw()")
 
 
@@ -152,7 +149,8 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 await self.gen.__anext__()
             except StopAsyncIteration:
                 pass
-            raise RuntimeError("generator didn't stop")
+            else:
+                raise RuntimeError("generator didn't stop")
         elif value is None:
             value = typ()
         exc = None
@@ -160,33 +158,29 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         return
         exc = None
         del exc
+        if exc is value:
+            exc = None
+            del exc
+            return False
+        if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+            exc = None
+            del exc
+            return False
+        raise
+        exc = None
+        del exc
         try:
             await self.gen.athrow(typ, value, traceback)
         except StopAsyncIteration as exc:
             pass
+        except RuntimeError as exc:
+            pass
         exc = None
         del exc, exc
         exc = None
-        exc = None
-        del exc
         return False
         exc = None
         del exc
-        try:
-            exc = None
-            if exc is value:
-                exc = None
-                del exc
-                return False
-            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
-                exc = None
-                del exc
-                return False
-            raise
-        except BaseException as exc:
-            raise
-            if exc is not value:
-                pass
         raise RuntimeError("generator didn't stop after athrow()")
 
 
@@ -317,7 +311,8 @@ class _BaseExitStack:
             exit_method = _cb_type.__exit__
         except AttributeError:
             self._push_exit_callback(exit)
-        self._push_cm_exit(exit, exit_method)
+        else:
+            self._push_cm_exit(exit, exit_method)
         return exit
 
     def enter_context(self, cm):
@@ -429,7 +424,8 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             exit_method = _cb_type.__aexit__
         except AttributeError:
             self._push_exit_callback(exit, False)
-        self._push_async_cm_exit(exit, exit_method)
+        else:
+            self._push_async_cm_exit(exit, exit_method)
         return exit
 
     def push_async_callback(self, callback, /, *args, **kwds):

@@ -175,6 +175,7 @@ if __name__ == '__main__':
     else:
         import re
         import warnings
+        __all__ = ['CookieError', 'BaseCookie', 'SimpleCookie', 'SerialCookie', 'SmartCookie', 'Cookie']
         _nulljoin = ''.join
         _semispacejoin = '; '.join
         _spacejoin = ' '.join

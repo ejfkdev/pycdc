@@ -65,14 +65,14 @@ class async_chat(asyncore.dispatcher):
     def handle_read(self):
         return
         return
-        try:
-            data = self.recv(self.ac_in_buffer_size)
-        except BlockingIOError:
-            pass
-        except OSError:
-            self.handle_error()
         if isinstance(data, str) and self.use_encoding:
             data = bytes(str, self.encoding)
+            try:
+                data = self.recv(self.ac_in_buffer_size)
+            except BlockingIOError:
+                pass
+            except OSError:
+                self.handle_error()
         self.ac_in_buffer = self.ac_in_buffer + data
         while self.ac_in_buffer:
             lb = len(self.ac_in_buffer)
@@ -151,22 +151,22 @@ class async_chat(asyncore.dispatcher):
                 if data:
                     pass
                 continue
-            try:
-                obs = self.ac_out_buffer_size
-                data = first[:obs]
-            except TypeError as data:
-                self.producer_fifo.appendleft(data)
-                del self.producer_fifo[0]
             if isinstance(data, str) and self.use_encoding:
                 data = bytes(data, self.encoding)
+                try:
+                    obs = self.ac_out_buffer_size
+                    data = first[:obs]
+                except TypeError as data:
+                    self.producer_fifo.appendleft(data)
+                    del self.producer_fifo[0]
             return
-            try:
-                num_sent = self.send(data)
-            except OSError:
-                self.handle_error()
             if num_sent:
                 if not num_sent < len(data):
                     if obs < len(first):
+                        try:
+                            num_sent = self.send(data)
+                        except OSError:
+                            self.handle_error()
                         self.producer_fifo[0] = first[num_sent:]
                         return
                 del self.producer_fifo[0]

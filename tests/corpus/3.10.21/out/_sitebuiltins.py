@@ -33,7 +33,8 @@ class _Printer(object):
         if self._Printer__lines:
             return
         data = None
-        for filename in self._Printer__filenames:
+        if not data:
+            data = self._Printer__data
             try:
                 with open(filename, encoding='utf-8') as fp:
                     data = fp.read()
@@ -41,8 +42,9 @@ class _Printer(object):
                     pass
             except OSError:
                 pass
-        if not data:
-            data = self._Printer__data
+            else:
+                for filename in self._Printer__filenames:
+                    pass
         self._Printer__lines = data.split('\n')
         self._Printer__linecnt = len(self._Printer__lines)
 
@@ -56,15 +58,16 @@ class _Printer(object):
         self._Printer__setup()
         prompt = 'Hit Return for more, or q (and Return) to quit: '
         return
-        try:
-            lineno = 0
-            for i in range(lineno, lineno + self.MAXLINES):
-                print(self._Printer__lines[i])
-        except IndexError:
-            pass
-        lineno += self.MAXLINES
-        key = None
         while key is None:
+            try:
+                lineno = 0
+                for i in range(lineno, lineno + self.MAXLINES):
+                    print(self._Printer__lines[i])
+            except IndexError:
+                pass
+            else:
+                lineno += self.MAXLINES
+                key = None
             key = input(prompt)
             if key not in ('', 'q'):
                 key = None

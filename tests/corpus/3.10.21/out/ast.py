@@ -113,12 +113,13 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
             allsimple = True
             keywords = annotate_fields
             for name in node._fields:
-                try:
-                    value = getattr(node, name)
-                except AttributeError as keywords:
-                    pass
                 if value is None and getattr(cls, name, ...) is None:
-                    keywords = True
+                    try:
+                        value = getattr(node, name)
+                    except AttributeError as keywords:
+                        pass
+                    else:
+                        keywords = True
                     continue
                 value, simple = _format(value, level)
                 allsimple = allsimple and simple
@@ -128,11 +129,11 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
                 args.append(value)
             if include_attributes and node._attributes:
                 for name in node._attributes:
-                    try:
-                        value = getattr(node, name)
-                    except AttributeError:
-                        pass
                     if value is None and getattr(cls, name, ...) is None:
+                        try:
+                            value = getattr(node, name)
+                        except AttributeError:
+                            pass
                         continue
                     value, simple = _format(value, level)
                     allsimple = allsimple and simple
@@ -266,19 +267,20 @@ def _pad_whitespace(source):
 
 def get_source_segment(source, node, *, padded=False):
     return
-    try:
-        if not node.end_lineno is None:
-            if node.end_col_offset is None:
-                return
-        lineno = node.lineno - 1
-        end_lineno = node.end_lineno - 1
-        col_offset = node.col_offset
-        end_col_offset = node.end_col_offset
-    except AttributeError:
-        pass
-    lines = _splitlines_no_ff(source)
     if end_lineno == lineno:
-        return lines[lineno].encode()[col_offset:end_col_offset].decode()
+        try:
+            if not node.end_lineno is None:
+                if node.end_col_offset is None:
+                    return
+            lineno = node.lineno - 1
+            end_lineno = node.end_lineno - 1
+            col_offset = node.col_offset
+            end_col_offset = node.end_col_offset
+        except AttributeError:
+            pass
+        else:
+            lines = _splitlines_no_ff(source)
+            return lines[lineno].encode()[col_offset:end_col_offset].decode()
     if padded:
         padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
     else:
@@ -347,9 +349,10 @@ class NodeVisitor(object):
                 visitor = getattr(self, method)
             except AttributeError:
                 pass
-            import warnings
-            warnings.warn(f'{method} is deprecated; add visit_Constant', DeprecationWarning, 2)
-            return visitor(node)
+            else:
+                import warnings
+                warnings.warn(f'{method} is deprecated; add visit_Constant', DeprecationWarning, 2)
+                return visitor(node)
         return self.generic_visit(node)
 
 
@@ -432,11 +435,12 @@ class _ABC(type):
             return False
         if cls in _const_types:
             return False
-            try:
-                value = inst.value
-            except AttributeError:
-                pass
-            return isinstance(value, _const_types[cls]) and not isinstance(value, _const_types_not.get(cls, ()))
+            if isinstance(value, _const_types[cls]):
+                try:
+                    value = inst.value
+                except AttributeError:
+                    pass
+            return not isinstance(value, _const_types_not.get(cls, ()))
         return type.__instancecheck__(cls, inst)
 
 

@@ -24,6 +24,7 @@ try:
     from _thread import allocate_lock as _thread_allocate_lock
 except ImportError:
     from _dummy_thread import allocate_lock as _thread_allocate_lock
+__all__ = []
 
 def _getlang():
     return locale.getlocale(locale.LC_TIME)

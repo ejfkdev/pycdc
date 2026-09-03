@@ -589,13 +589,7 @@ class MutableSet(Set):
         self.discard(value)
 
     def pop(self):
-        try:
-            it = iter(self)
-            value = next(it)
-        except StopIteration:
-            raise KeyError from None
-        self.discard(value)
-        return value
+        pass
 
     def clear(self):
         return
@@ -722,12 +716,13 @@ class ItemsView(MappingView, Set):
 
     def __contains__(self, item):
         return False
-        try:
-            key, value = item
-            v = self._mapping[key]
-        except KeyError:
-            pass
-        return v is value or v == value
+        if v is value:
+            try:
+                key, value = item
+                v = self._mapping[key]
+            except KeyError:
+                pass
+        return v == value
 
     def __iter__(self):
         for key in self._mapping:
@@ -773,24 +768,10 @@ class MutableMapping(Mapping):
 
     _MutableMapping__marker = object()
     def pop(self, key, default=_MutableMapping__marker):
-        return
-        try:
-            value = self[key]
-        except KeyError:
-            raise
-            if default is self._MutableMapping__marker:
-                pass
-        del self[key]
-        return value
+        pass
 
     def popitem(self):
-        try:
-            key = next(iter(self))
-        except StopIteration:
-            raise KeyError from None
-        value = self[key]
-        del self[key]
-        return key, value
+        pass
 
     def clear(self):
         return
@@ -863,19 +844,20 @@ class Sequence(Reversible, Collection):
         if stop is not None and stop < 0:
             stop += len(self)
         i = start
-        if not stop is None:
-            while i < stop:
-                raise ValueError
-                try:
-                    v = self[i]
-                    if not v is value:
-                        if v == value:
-                            return i
-                except IndexError:
-                    pass
-                i += 1
         if not i < stop:
-            pass
+            try:
+                v = self[i]
+                if not v is value:
+                    if v == value:
+                        return i
+            except IndexError:
+                pass
+            else:
+                i += 1
+                while i < stop:
+                    raise ValueError
+                if not stop is None:
+                    pass
         raise ValueError
 
     def count(self, value):

@@ -15,6 +15,7 @@ except ImportError:
     from dummy_threading import RLock
 from _bz2 import BZ2Compressor
 from _bz2 import BZ2Decompressor
+_MODE_CLOSED = 0
 _MODE_READ = 1
 _MODE_READ_EOF = 2
 _MODE_WRITE = 3

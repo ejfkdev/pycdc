@@ -1149,13 +1149,25 @@ impl<'a> Ctx<'a> {
                     .map(|l| !l.handlers.is_empty())
                     .unwrap_or(false)
                 {
-                    let l = self.legacy_try.take().unwrap();
-                    self.push_stmt(Stmt::Try {
-                        body: l.body,
-                        handlers: l.handlers,
-                        orelse: l.orelse,
-                        finalbody: l.finalbody,
-                    });
+                    let has_else_after = self
+                        .legacy_try
+                        .as_ref()
+                        .map_or(false, |l| l.else_start.map_or(true, |es| pos >= es) == false);
+                    if has_else_after {
+                        // an else region follows the chain: defer emission
+                        // until the region is consumed
+                        if let Some(l) = self.legacy_try.as_mut() {
+                            l.chain_done = true;
+                        }
+                    } else {
+                        let l = self.legacy_try.take().unwrap();
+                        self.push_stmt(Stmt::Try {
+                            body: l.body,
+                            handlers: l.handlers,
+                            orelse: l.orelse,
+                            finalbody: l.finalbody,
+                        });
+                    }
                 }
             }
             // END_FINALLY closes a finally handler (and the statement)
@@ -4992,6 +5004,10 @@ impl<'a> Ctx<'a> {
 
     /// Store routing that understands import markers.
     fn emit_store_sv(&mut self, target: ExprRef, sv: Sv) {
+        if matches!(sv, Sv::ImportFrom { .. } | Sv::ImportModule { .. }) {
+            // an import store is not the handler's `as` name
+            self.legacy_handler_name_store = false;
+        }
         match sv {
             Sv::E(val) => self.emit_store(target, val),
             Sv::ImportFrom { level, module, name } => {
@@ -5079,12 +5095,16 @@ impl<'a> Ctx<'a> {
         }
         if self.legacy_handler_name_store {
             self.legacy_handler_name_store = false;
-            if let Some(h) = self.legacy_handler.as_mut() {
-                if h.name.is_none() {
-                    h.name = Some(target);
+            if matches!(&*target, Expr::Name(_)) {
+                if let Some(h) = self.legacy_handler.as_mut() {
+                    if h.name.is_none() {
+                        h.name = Some(target);
+                        return;
+                    }
                 }
             }
-            return;
+            // not a valid as-name (attribute/subscript store): fall through
+            // and emit it as a normal assignment
         }
         // post-comprehension restore of a cleared outer variable
         if let Expr::Name(n) = &*target {

@@ -110,7 +110,8 @@ class Coroutine(Awaitable):
             self(GeneratorExit)
         except (GeneratorExit, StopIteration):
             pass
-        raise RuntimeError('coroutine ignored GeneratorExit')
+        else:
+            raise RuntimeError('coroutine ignored GeneratorExit')
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -175,7 +176,8 @@ class AsyncGenerator(AsyncIterator):
             await self(GeneratorExit)
         except (GeneratorExit, StopAsyncIteration):
             pass
-        raise RuntimeError('asynchronous generator ignored GeneratorExit')
+        else:
+            raise RuntimeError('asynchronous generator ignored GeneratorExit')
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -267,7 +269,8 @@ class Generator(Iterator):
             self(GeneratorExit)
         except (GeneratorExit, StopIteration):
             pass
-        raise RuntimeError('generator ignored GeneratorExit')
+        else:
+            raise RuntimeError('generator ignored GeneratorExit')
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -599,11 +602,6 @@ class Mapping(Collection):
 
     def __contains__(self, key):
         return False
-        try:
-            self[key]
-        except KeyError:
-            pass
-        return True
 
     def keys(self):
         return KeysView(self)
@@ -659,12 +657,13 @@ class ItemsView(MappingView, Set):
 
     def __contains__(self, item):
         return False
-        try:
-            key, value = item
-            v = self._mapping[key]
-        except KeyError:
-            pass
-        return v is value or v == value
+        if v is value:
+            try:
+                key, value = item
+                v = self._mapping[key]
+            except KeyError:
+                pass
+        return v == value
 
     def __iter__(self):
         for key in self._mapping:
@@ -702,15 +701,7 @@ class MutableMapping(Mapping):
 
     _MutableMapping__marker = object()
     def pop(self, key, default=_MutableMapping__marker):
-        return
-        try:
-            value = self[key]
-        except KeyError:
-            raise
-            if default is self._MutableMapping__marker:
-                pass
-        del self[key]
-        return value
+        pass
 
     def popitem(self):
         try:
@@ -764,14 +755,7 @@ class Sequence(Reversible, Collection):
         raise IndexError
 
     def __iter__(self):
-        return
-        try:
-            i = 0
-            v = self[i]
-            yield v
-            i += 1
-        except IndexError:
-            pass
+        pass
 
     def __contains__(self, value):
         for v in self:

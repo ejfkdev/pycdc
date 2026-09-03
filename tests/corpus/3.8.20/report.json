@@ -3,8 +3,7 @@
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
   "PASS": 4,
-  "SIG-DIFF": 35,
-  "SYNTAX-ERR": 1
+  "SIG-DIFF": 36
  },
  "results": [
   {
@@ -101,8 +100,10 @@
   },
   {
    "module": "abc",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: invalid syntax"
+   "verdict": "SIG-DIFF",
+   "ndiff": 340,
+   "ntotal": 379,
+   "detail": "line 31: orig ('SETUP_FINALLY', 'to 106') | got ('SETUP_FINALLY', 'to 162')\nline 33: orig ('LOAD_CONST', \"('get_cache_token', '_abc_init', '_abc_register', '_abc_instancecheck', '_abc_subcla | got ('LOAD_CONST', \"('get_cache_token',)\")\nline 37: orig ('IMPORT_FROM', '_abc_init') | got ('POP_TOP', '')"
   },
   {
    "module": "aifc",

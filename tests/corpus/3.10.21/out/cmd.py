@@ -206,16 +206,17 @@ class Cmd:
         if arg:
             if doc:
                 return
+            self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
+            return
             try:
                 func = getattr(self, 'help_' + arg)
             except AttributeError as doc:
                 self.stdout.write('%s\n' % str(doc))
             except AttributeError:
                 pass
-            self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
-            return
-            func()
-            return
+            else:
+                func()
+                return
         names = self.get_names()
         cmds_doc = []
         cmds_undoc = []

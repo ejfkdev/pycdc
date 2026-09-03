@@ -72,7 +72,8 @@ class Chunk:
             self.offset = self.file.tell()
         except (AttributeError, OSError):
             self.seekable = False
-        self.seekable = True
+        else:
+            self.seekable = True
 
     def getname(self):
         return self.chunkname

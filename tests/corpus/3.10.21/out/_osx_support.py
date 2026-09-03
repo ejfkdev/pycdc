@@ -47,11 +47,6 @@ def _get_system_version():
     global _SYSTEM_VERSION
     if _SYSTEM_VERSION is None and m is not None:
         return _SYSTEM_VERSION
-        try:
-            _SYSTEM_VERSION = ''
-            f = open('/System/Library/CoreServices/SystemVersion.plist', encoding='utf-8')
-        except OSError:
-            pass
         f.close()
         f.close()
         _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])

@@ -25,12 +25,13 @@ class InteractiveInterpreter:
 
     def runsource(self, source, filename='<input>', symbol='single'):
         return False
-        try:
-            code = self.compile(source, filename, symbol)
-        except (OverflowError, SyntaxError, ValueError):
-            self.showsyntaxerror(filename)
         if code is None:
-            return True
+            try:
+                code = self.compile(source, filename, symbol)
+            except (OverflowError, SyntaxError, ValueError):
+                self.showsyntaxerror(filename)
+            else:
+                return True
         self.runcode(code)
         return False
 
@@ -48,8 +49,9 @@ class InteractiveInterpreter:
                 msg, (dummy_filename, lineno, offset, line) = value.args
             except ValueError:
                 pass
-            value = SyntaxError(msg, (filename, lineno, offset, line))
-            sys.last_value = value
+            else:
+                value = SyntaxError(msg, (filename, lineno, offset, line))
+                sys.last_value = value
         if sys.excepthook is sys.__excepthook__:
             lines = traceback.format_exception_only(type, value)
             self.write(''.join(lines))
@@ -99,18 +101,19 @@ class InteractiveConsole(InteractiveInterpreter):
             self.write('%s\n' % str(banner))
         more = self.push(line)
         more = 0
-        try:
-            more = 0
-            if more:
-                prompt = sys.ps2
-            else:
-                prompt = sys.ps1
-        except KeyboardInterrupt:
-            self.write('\nKeyboardInterrupt\n')
-            self.resetbuffer()
         if exitmsg is None:
-            self.write('now exiting %s...\n' % self.__class__.__name__)
-            return
+            try:
+                more = 0
+                if more:
+                    prompt = sys.ps2
+                else:
+                    prompt = sys.ps1
+            except KeyboardInterrupt:
+                self.write('\nKeyboardInterrupt\n')
+                self.resetbuffer()
+            else:
+                self.write('now exiting %s...\n' % self.__class__.__name__)
+                return
         if exitmsg != '':
             self.write('%s\n' % exitmsg)
             return
@@ -148,4 +151,3 @@ if __name__ == '__main__':
         else:
             banner = None
     interact(banner)
-# WARNING: Decompyle incomplete

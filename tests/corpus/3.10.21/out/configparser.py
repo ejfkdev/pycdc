@@ -381,13 +381,14 @@ class BasicInterpolation(Interpolation):
                     if m is None:
                         raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
                     var = parser.optionxform(m.group(1))
-                    try:
-                        rest = rest[m.end():]
-                        v = map[var]
-                    except KeyError:
-                        raise InterpolationMissingOptionError(option, section, rawval, var) from None
                     if '%' in v:
-                        self._interpolate_some(parser, option, accum, v, section, map, depth + 1)
+                        try:
+                            rest = rest[m.end():]
+                            v = map[var]
+                        except KeyError:
+                            raise InterpolationMissingOptionError(option, section, rawval, var) from None
+                        else:
+                            self._interpolate_some(parser, option, accum, v, section, map, depth + 1)
                     else:
                         accum.append(v)
                 raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
@@ -434,21 +435,22 @@ class ExtendedInterpolation(Interpolation):
                     path = m.group(1).split(':')
                     rest = rest[m.end():]
                     sect = section
-                    try:
-                        opt = option
-                        if len(path) == 1:
-                            opt = parser.optionxform(path[0])
-                            v = map[opt]
-                        elif len(path) == 2:
-                            sect = path[0]
-                            opt = parser.optionxform(path[1])
-                            v = parser.get(sect, opt, raw=True)
-                        else:
-                            raise InterpolationSyntaxError(option, section, "More than one ':' found: %r" % (rest,))
-                    except (KeyError, NoSectionError, NoOptionError):
-                        raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
                     if '$' in v:
-                        self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
+                        try:
+                            opt = option
+                            if len(path) == 1:
+                                opt = parser.optionxform(path[0])
+                                v = map[opt]
+                            elif len(path) == 2:
+                                sect = path[0]
+                                opt = parser.optionxform(path[1])
+                                v = parser.get(sect, opt, raw=True)
+                            else:
+                                raise InterpolationSyntaxError(option, section, "More than one ':' found: %r" % (rest,))
+                        except (KeyError, NoSectionError, NoOptionError):
+                            raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
+                        else:
+                            self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
                     else:
                         accum.append(v)
                 raise InterpolationSyntaxError(option, section, "'$' must be followed by '$' or '{', found: %r" % (rest,))
@@ -462,17 +464,16 @@ class LegacyInterpolation(Interpolation):
     def before_get(self, parser, section, option, value, vars):
         rawval = value
         depth = MAX_INTERPOLATION_DEPTH
-        while depth:
-            depth -= 1
-            if value and '%(' in value:
-                replace = functools.partial(self._interpolation_replace, parser=parser)
-                try:
-                    value = self._KEYCRE.sub(replace, value)
-                    value = value % vars
-                except KeyError as e:
-                    raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
-            else:
-                break
+        try:
+            value = self._KEYCRE.sub(replace, value)
+            value = value % vars
+        except KeyError as e:
+            raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
+        else:
+            while depth:
+                depth -= 1
+                if value and '%(' in value:
+                    replace = functools.partial(self._interpolation_replace, parser=parser)
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -551,12 +552,7 @@ class RawConfigParser(MutableMapping):
         return section in self._sections
 
     def options(self, section):
-        try:
-            opts = self._sections[section].copy()
-        except KeyError:
-            raise NoSectionError(section) from None
-        opts.update(self._defaults)
-        return list(opts.keys())
+        pass
 
     def read(self, filenames, encoding=None):
         if isinstance(filenames, (str, bytes, os.PathLike)):
@@ -564,15 +560,15 @@ class RawConfigParser(MutableMapping):
         encoding = io.text_encoding(encoding)
         read_ok = []
         for filename in filenames:
-            try:
-                with open(filename, encoding=encoding) as fp:
-                    self._read(fp, filename)
-                if not None:
-                    pass
-            except OSError:
-                pass
             if isinstance(filename, os.PathLike):
                 filename = os.fspath(filename)
+                try:
+                    with open(filename, encoding=encoding) as fp:
+                        self._read(fp, filename)
+                    if not None:
+                        pass
+                except OSError:
+                    pass
             read_ok.append(filename)
         return read_ok
 
@@ -614,22 +610,15 @@ class RawConfigParser(MutableMapping):
 
     def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
         return
-        try:
-            d = self._unify_values(section, vars)
-        except NoSectionError:
-            raise
-            if fallback is _UNSET:
-                pass
         return
-        try:
-            option = self.optionxform(option)
-            value = d[option]
-        except KeyError:
-            raise NoOptionError(option, section)
-            if fallback is _UNSET:
-                pass
         if not raw:
             if value is None:
+                try:
+                    pass
+                except KeyError:
+                    raise NoOptionError(option, section)
+                    if fallback is _UNSET:
+                        pass
                 return value
         return self._interpolation.before_get(self, section, option, value, d)
 
@@ -701,11 +690,6 @@ class RawConfigParser(MutableMapping):
         if section:
             if section == self.default_section:
                 sectdict = self._defaults
-        try:
-            sectdict = self._sections[section]
-        except KeyError:
-            raise NoSectionError(section) from None
-        sectdict[self.optionxform(option)] = value
 
     def write(self, fp, space_around_delimiters=True):
         if space_around_delimiters:
@@ -733,14 +717,15 @@ class RawConfigParser(MutableMapping):
         if section:
             if section == self.default_section:
                 sectdict = self._defaults
-        try:
-            sectdict = self._sections[section]
-        except KeyError:
-            raise NoSectionError(section) from None
-        option = self.optionxform(option)
-        existed = option in sectdict
         if existed:
-            del sectdict[option]
+            try:
+                sectdict = self._sections[section]
+            except KeyError:
+                raise NoSectionError(section) from None
+            else:
+                option = self.optionxform(option)
+                existed = option in sectdict
+                del sectdict[option]
         return existed
 
     def remove_section(self, section):
@@ -1025,12 +1010,13 @@ class ConverterMapping(MutableMapping):
         return self._data[key]
 
     def __setitem__(self, key, value):
-        try:
-            k = 'get' + key
-        except TypeError:
-            raise ValueError('Incompatible key: {} (type: {})'.format(key, type(key)))
         if k == 'get':
-            raise ValueError('Incompatible key: cannot use "" as a name')
+            try:
+                k = 'get' + key
+            except TypeError:
+                raise ValueError('Incompatible key: {} (type: {})'.format(key, type(key)))
+            else:
+                raise ValueError('Incompatible key: cannot use "" as a name')
         self._data[key] = value
         func = functools.partial(self._parser._get_conv, conv=value)
         func.converter = value
@@ -1044,7 +1030,8 @@ class ConverterMapping(MutableMapping):
             k = 'get' + (key or None)
         except TypeError:
             raise KeyError(key)
-        del self._data[key]
+        else:
+            del self._data[key]
         for inst in itertools.chain((self._parser,), self._parser.values()):
             try:
                 delattr(inst, k)

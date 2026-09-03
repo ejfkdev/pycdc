@@ -300,7 +300,8 @@ class dispatcher:
             pass
         except OSError as why:
             pass
-        return conn, addr
+        else:
+            return conn, addr
 
     def send(self, data):
         return result

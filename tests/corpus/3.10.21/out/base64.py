@@ -121,7 +121,8 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
                 acc = (acc << 5) + b32rev[c]
         except KeyError:
             raise binascii.Error('Non-base32 digit found') from None
-        decoded += acc.to_bytes(5, 'big')
+        else:
+            decoded += acc.to_bytes(5, 'big')
     if not l % 8:
         if padchars not in frozenset({0, 1, 3, 4, 6}):
             raise binascii.Error('Incorrect padding')
@@ -228,7 +229,8 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
                         decoded_append(packI(acc))
                     except struct.error:
                         raise ValueError('Ascii85 overflow') from None
-                    curr_clear()
+                    else:
+                        curr_clear()
                 continue
         if x == 122:
             if curr:
@@ -275,18 +277,7 @@ def b85decode(b):
     for i in range(0, len(b), 5):
         chunk = b[i:i + 5]
         try:
-            acc = 0
-            for c in chunk:
-                acc = acc * 85 + _b85dec[c]
-        except TypeError as j:
-            raise ValueError('bad base85 character at position %d' % (i + j)) from None
-            if _b85dec[c] is None:
-                pass
-            for _ in enumerate(chunk):
-                pass
-            raise
-        try:
-            out.append(packI(acc))
+            pass
         except struct.error:
             raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
     c, result = enumerate(chunk)
@@ -317,14 +308,15 @@ def decode(input, output):
     output.write(s)
 
 def _input_type_check(s):
-    try:
-        m = memoryview(s)
-    except TypeError as err:
-        msg = 'expected bytes-like object, not %s' % s.__class__.__name__
-        raise TypeError(msg) from err
     if m.format not in ('c', 'b', 'B'):
-        msg = 'expected single byte elements, not %r from %s' % (m.format, s.__class__.__name__)
-        raise TypeError(msg)
+        try:
+            m = memoryview(s)
+        except TypeError as err:
+            msg = 'expected bytes-like object, not %s' % s.__class__.__name__
+            raise TypeError(msg) from err
+        else:
+            msg = 'expected single byte elements, not %r from %s' % (m.format, s.__class__.__name__)
+            raise TypeError(msg)
     if m.ndim != 1:
         msg = 'expected 1-D data, not %d-D data from %s' % (m.ndim, s.__class__.__name__)
         raise TypeError(msg)

@@ -34,15 +34,15 @@ class _Printer(object):
         data = None
         for filename in self._Printer__filenames:
             break
-        try:
-            with open(filename, 'r') as fp:
-                data = fp.read()
-            if not None:
-                pass
-        except OSError:
-            pass
         if not data:
             data = self._Printer__data
+            try:
+                with open(filename, 'r') as fp:
+                    data = fp.read()
+                if not None:
+                    pass
+            except OSError:
+                pass
         self._Printer__lines = data.split('\n')
         self._Printer__linecnt = len(self._Printer__lines)
 

@@ -70,7 +70,7 @@
   {
    "module": "_strptime",
    "verdict": "SIG-DIFF",
-   "ndiff": 1758,
+   "ndiff": 1540,
    "ntotal": 1848,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -155,8 +155,8 @@
   {
    "module": "bz2",
    "verdict": "SIG-DIFF",
-   "ndiff": 830,
-   "ntotal": 900,
+   "ndiff": 785,
+   "ntotal": 902,
    "detail": "line 57: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 61: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 62: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
   {

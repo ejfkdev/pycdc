@@ -7,6 +7,10 @@ try:
 except ImportError:
     import _bootsubprocess as subprocess
 
+def _aix_tag(vrtl, bd):
+    _sz = 32 if sys.maxsize == 2147483647 else 64
+    return 'aix-{:1x}{:1d}{:02d}-{:04d}-{}'.format(vrtl[0], vrtl[1], vrtl[2], bd, _sz)
+
 def _aix_vrtl(vrmf):
     v, r, tl = vrmf.split('.')[:3]
     return [int(v[-1]), int(r), int(tl)]
@@ -28,10 +32,5 @@ def _aix_bgt():
     return _aix_vrtl(vrmf=gnu_type)
 
 def aix_buildtag():
-    try:
-        build_date = sysconfig.get_config_var('AIX_BUILDDATE')
-        build_date = int(build_date)
-    except (ValueError, TypeError):
-        raise ValueError(f'AIX_BUILDDATE is not defined or invalid: {build_date!r}')
-    return _aix_tag(_aix_bgt(), build_date)
+    pass
 

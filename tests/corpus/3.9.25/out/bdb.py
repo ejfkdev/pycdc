@@ -249,12 +249,6 @@ class Bdb:
         return
         err = None
         del err
-        try:
-            bp = self.get_bpbynumber(arg)
-        except ValueError as err:
-            pass
-        bp.deleteMe()
-        self._prune_breaks(bp.file, bp.line)
 
     def clear_all_file_breaks(self, filename):
         filename = self.canonic(filename)

@@ -117,6 +117,78 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     if limit_sl_dest is not None and os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
         return success
     opt_cfiles = {}
+    if os.path.isfile(fullname) and tail == '.py' and ok == 0:
+        for opt_level in optimize:
+            if legacy:
+                opt_cfiles[opt_level] = fullname + 'c'
+            elif opt_level >= 0:
+                opt = opt_level if opt_level >= 1 else ''
+                cfile = importlib.util.cache_from_source(fullname, optimization=opt)
+                opt_cfiles[opt_level] = cfile
+            else:
+                cfile = importlib.util.cache_from_source(fullname)
+                opt_cfiles[opt_level] = cfile
+        head, tail = name[:-3], name[-3:]
+        if not force:
+            return success
+            try:
+                mtime = int(os.stat(fullname).st_mtime)
+                expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+                for cfile in opt_cfiles.values():
+                    with open(cfile, 'rb') as chandle:
+                        actual = chandle.read(12)
+                    if not None:
+                        pass
+                    if expect != actual:
+                        pass
+                    else:
+                        continue
+            except OSError:
+                pass
+        if not quiet:
+            print('Compiling {!r}...'.format(fullname))
+        if quiet >= 2:
+            err = None
+            del err
+            return
+        if quiet:
+            print('*** Error compiling {!r}...'.format(fullname))
+        else:
+            print('*** ', end='')
+        encoding = sys.stdout.encoding or sys.getdefaultencoding()
+        msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+        print(msg)
+        err = None
+        del err, err
+        err = None
+        if quiet >= 2:
+            e = None
+            del e
+            return
+        if quiet:
+            print('*** Error compiling {!r}...'.format(fullname))
+        else:
+            print('*** ', end='')
+        print(e.__class__.__name__ + ':', e)
+        e = None
+        del e, e
+        e = None
+        success = False
+        try:
+            for index, opt_level in enumerate(optimize):
+                cfile = opt_cfiles[opt_level]
+                ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
+                if index > 0:
+                    if hardlink_dupes:
+                        previous_cfile = opt_cfiles[optimize[index - 1]]
+                        if filecmp.cmp(cfile, previous_cfile, shallow=False):
+                            os.unlink(cfile)
+                            os.link(previous_cfile, cfile)
+        except py_compile.PyCompileError as err:
+            success = False
+        except (SyntaxError, UnicodeError, OSError) as e:
+            success = False
+    return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     success = True
@@ -168,10 +240,7 @@ def main():
         if not args.stripdir is not None:
             if args.prependdir is not None:
                 parser.error('-d cannot be used in combination with -s or -p')
-    if args.flist:
-        if args.quiet < 2:
-            pass
-        return False
+    if args.invalidation_mode:
         try:
             with sys.stdin if args.flist == '-' else open(args.flist) as f:
                 for line in f:
@@ -180,27 +249,19 @@ def main():
                 pass
         except OSError:
             print('Error reading file list {}'.format(args.flist))
-    if args.invalidation_mode:
-        ivl_mode = args.invalidation_mode.replace('-', '_').upper()
-        invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
+        else:
+            if args.flist:
+                if args.quiet < 2:
+                    pass
+                return False
+            ivl_mode = args.invalidation_mode.replace('-', '_').upper()
+            invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:
         invalidation_mode = None
     return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
     if args.quiet < 2:
         pass
     return False
-    try:
-        success = True
-        if compile_dests:
-            for dest in compile_dests:
-                if os.path.isfile(dest):
-                    if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
-                        success = False
-            success = False
-            return success
-    except KeyboardInterrupt:
-        print('\n[interrupted]')
-    return True
 
 if __name__ == '__main__':
     exit_status = int(not main())

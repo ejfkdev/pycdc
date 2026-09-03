@@ -25,6 +25,7 @@ if __name__ == '__main__':
     except ImportError:
         from StringIO import StringIO
     else:
+        __all__ = ['MiniFieldStorage', 'FieldStorage', 'FormContentDict', 'SvFormContentDict', 'InterpFormContentDict', 'FormContent', 'parse', 'parse_qs', 'parse_qsl', 'parse_multipart', 'parse_header', 'print_exception', 'print_environ', 'print_form', 'print_directory', 'print_arguments', 'print_environ_usage', 'escape']
         logfile = ''
         logfp = None
         def initlog(*allargs):

@@ -46,7 +46,8 @@ class WeakSet:
             item = pop()
         except IndexError:
             pass
-        discard(item)
+        else:
+            discard(item)
 
     def __iter__(self):
         with _IterationGuard(self):
@@ -62,11 +63,6 @@ class WeakSet:
 
     def __contains__(self, item):
         return False
-        try:
-            wr = ref(item)
-        except TypeError:
-            pass
-        return wr in self.data
 
     def __reduce__(self):
         return self.__class__, (list(self),), getattr(self, '__dict__', None)

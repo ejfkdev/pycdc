@@ -22,7 +22,10 @@ if __name__ == '__main__':
     except ImportError:
         from StringIO import StringIO
     else:
-        class test(BaseHTTPServer.BaseHTTPRequestHandler):
+        class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+            pass
+
+        def test(HandlerClass=SimpleHTTPRequestHandler, ServerClass=BaseHTTPServer.HTTPServer):
             BaseHTTPServer.test(HandlerClass, ServerClass)
 
         test()

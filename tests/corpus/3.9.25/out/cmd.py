@@ -147,12 +147,6 @@ class Cmd:
             self.lastcmd = ''
         if cmd == '':
             return self.default(line)
-        return
-        try:
-            func = getattr(self, 'do_' + cmd)
-        except AttributeError:
-            pass
-        return func(arg)
 
     def emptyline(self):
         if self.lastcmd:
@@ -206,15 +200,16 @@ class Cmd:
         if arg:
             if doc:
                 return
+            self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
+            return
             try:
                 func = getattr(self, 'help_' + arg)
             except AttributeError as doc:
                 self.stdout.write('%s\n' % str(doc))
             except AttributeError:
                 pass
-            self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
-            return
-            func()
+            else:
+                func()
         else:
             names = self.get_names()
             cmds_doc = []

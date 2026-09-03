@@ -131,6 +131,7 @@ if hasattr(socket, 'AF_UNIX'):
     except ImportError:
         import dummy_threading as threading
     else:
+        __all__ = ['TCPServer', 'UDPServer', 'ForkingUDPServer', 'ForkingTCPServer', 'ThreadingUDPServer', 'ThreadingTCPServer', 'BaseRequestHandler', 'StreamRequestHandler', 'DatagramRequestHandler', 'ThreadingMixIn', 'ForkingMixIn']
         __all__.extend(['UnixStreamServer', 'UnixDatagramServer', 'ThreadingUnixStreamServer', 'ThreadingUnixDatagramServer'])
 
 def _eintr_retry(func, *args):

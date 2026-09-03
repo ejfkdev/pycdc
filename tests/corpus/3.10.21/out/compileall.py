@@ -63,7 +63,8 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
             _check_system_limits()
         except NotImplementedError as workers:
             pass
-        from concurrent.futures import ProcessPoolExecutor
+        else:
+            from concurrent.futures import ProcessPoolExecutor
     if maxlevels is None:
         maxlevels = sys.getrecursionlimit()
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels)
@@ -166,6 +167,21 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         return success
         err = None
         del err
+        if quiet >= 2:
+            e = None
+            del e
+            return
+        if quiet:
+            print('*** Error compiling {!r}...'.format(fullname))
+        else:
+            print('*** ', end='')
+        print(e.__class__.__name__ + ':', e)
+        e = None
+        del e
+        return success
+        e = None
+        del e
+        success = False
         try:
             for index, opt_level in enumerate(optimize):
                 cfile = opt_cfiles[opt_level]
@@ -176,12 +192,8 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     os.link(previous_cfile, cfile)
         except py_compile.PyCompileError as err:
             success = False
-        e = None
-        del e
-        return success
-        e = None
-        del e
-        success = False
+        except (SyntaxError, UnicodeError, OSError) as e:
+            success = False
     return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
@@ -234,10 +246,7 @@ def main():
         if not args.stripdir is not None:
             if args.prependdir is not None:
                 parser.error('-d cannot be used in combination with -s or -p')
-    if args.flist:
-        if args.quiet < 2:
-            pass
-        return False
+    if args.invalidation_mode:
         try:
             with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
                 for line in f:
@@ -246,9 +255,13 @@ def main():
                 pass
         except OSError:
             print('Error reading file list {}'.format(args.flist))
-    if args.invalidation_mode:
-        ivl_mode = args.invalidation_mode.replace('-', '_').upper()
-        invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
+        else:
+            if args.flist:
+                if args.quiet < 2:
+                    pass
+                return False
+            ivl_mode = args.invalidation_mode.replace('-', '_').upper()
+            invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:
         invalidation_mode = None
     return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)

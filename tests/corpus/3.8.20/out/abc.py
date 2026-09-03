@@ -45,9 +45,10 @@ try:
     from _abc import _get_dump
     from _abc import _reset_registry
     from _abc import _reset_caches
-except ImportError as ABCMeta.__module__:
+except ImportError:
     from _py_abc import ABCMeta
     from _py_abc import get_cache_token
+    ABCMeta.__module__ = 'abc'
 else:
     class ABCMeta(type):
         """Metaclass for defining Abstract Base Classes (ABCs).

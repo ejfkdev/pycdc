@@ -267,12 +267,6 @@ class Bdb:
         return
         err = None
         del err
-        try:
-            bp = self.get_bpbynumber(arg)
-        except ValueError as err:
-            pass
-        bp.deleteMe()
-        self._prune_breaks(bp.file, bp.line)
 
     def clear_all_file_breaks(self, filename):
         filename = self.canonic(filename)
@@ -295,16 +289,13 @@ class Bdb:
     def get_bpbynumber(self, arg):
         if not arg:
             raise ValueError('Breakpoint number expected')
-        try:
-            number = int(arg)
-        except ValueError:
-            raise ValueError('Non-numeric breakpoint number %s' % arg) from None
-        try:
-            bp = Breakpoint.bpbynumber[number]
-        except IndexError:
-            raise ValueError('Breakpoint number %d out of range' % number) from None
         if bp is None:
-            raise ValueError('Breakpoint %d already deleted' % number)
+            try:
+                pass
+            except IndexError:
+                raise ValueError('Breakpoint number %d out of range' % number) from None
+            else:
+                raise ValueError('Breakpoint %d already deleted' % number)
         return bp
 
     def get_break(self, filename, lineno):
