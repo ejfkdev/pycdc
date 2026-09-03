@@ -2511,9 +2511,9 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::BUILD_MAP => {
-                if self.version.major == 2 {
-                    // py2: oparg is a size hint only; entries are added by
-                    // STORE_MAP from values pushed *below* the dict
+                if !self.version.at_least(3, 5) {
+                    // py2-3.4: oparg is a size hint only; entries are added
+                    // by STORE_MAP from values pushed *below* the dict
                     self.push(Rc::new(Expr::Dict(Vec::new())));
                 } else {
                     let n = arg as usize;

@@ -476,7 +476,7 @@ class RawConfigParser(MutableMapping):
     OPTCRE = re.compile(_OPT_TMPL.format(delim='=|:'), re.VERBOSE)
     OPTCRE_NV = re.compile(_OPT_NV_TMPL.format(delim='=|:'), re.VERBOSE)
     NONSPACECRE = re.compile('\\S')
-    BOOLEAN_STATES = {None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, '1': True, 'yes': True, 'true': True, 'on': True, '0': False, 'no': False, 'false': False, 'off': False}
+    BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True, '0': False, 'no': False, 'false': False, 'off': False}
     def __init__(self=None, defaults=None, dict_type=None, allow_no_value=None, *, delimiters, comment_prefixes, inline_comment_prefixes, strict, empty_lines_in_values, default_section, interpolation):
         self._dict = dict_type
         self._sections = self._dict()
@@ -734,7 +734,7 @@ class RawConfigParser(MutableMapping):
             self._defaults.clear()
         elif key in self._sections:
             self._sections[key].clear()
-        None({None: self.read_dict, key: value})
+        self.read_dict({key: value})
 
     def __delitem__(self, key):
         if key == self.default_section:

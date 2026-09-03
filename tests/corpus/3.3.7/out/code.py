@@ -19,7 +19,7 @@ class InteractiveInterpreter:
 
     def __init__(self, locals=None):
         if locals is None:
-            locals = {None: None, None: None, '__name__': '__console__', '__doc__': None}
+            locals = {'__name__': '__console__', '__doc__': None}
         self.locals = locals
         self.compile = CommandCompiler()
 

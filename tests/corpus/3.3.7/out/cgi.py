@@ -274,7 +274,7 @@ class FieldStorage:
         qs = qs.encode(locale.getpreferredencoding(), 'surrogateescape')
         fp = BytesIO(qs)
         if headers is None:
-            headers = {None: None, 'content-type': 'application/x-www-form-urlencoded'}
+            headers = {'content-type': 'application/x-www-form-urlencoded'}
         if headers is None:
             headers = {}
             if method == 'POST':

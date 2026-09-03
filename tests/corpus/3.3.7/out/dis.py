@@ -55,7 +55,7 @@ def distb(tb=None):
             tb = tb.tb_next
     disassemble(tb.tb_frame.f_code, tb.tb_lasti)
 
-COMPILER_FLAG_NAMES = {None: None, None: None, None: None, None: None, None: None, None: None, None: None, 1: 'OPTIMIZED', 2: 'NEWLOCALS', 4: 'VARARGS', 8: 'VARKEYWORDS', 16: 'NESTED', 32: 'GENERATOR', 64: 'NOFREE'}
+COMPILER_FLAG_NAMES = {1: 'OPTIMIZED', 2: 'NEWLOCALS', 4: 'VARARGS', 8: 'VARKEYWORDS', 16: 'NESTED', 32: 'GENERATOR', 64: 'NOFREE'}
 
 def pretty_flags(flags):
     names = []

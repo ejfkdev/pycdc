@@ -31,7 +31,7 @@ def parse(source, filename='<unknown>', mode='exec'):
     return compile(source, filename, mode, PyCF_ONLY_AST)
 
 def literal_eval(node_or_string):
-    _safe_names = {None: None, None: None, None: None, 'None': None, 'True': True, 'False': False}
+    _safe_names = {'None': None, 'True': True, 'False': False}
     if isinstance(node_or_string, str):
         node_or_string = parse(node_or_string, mode='eval')
     if isinstance(node_or_string, Expression):

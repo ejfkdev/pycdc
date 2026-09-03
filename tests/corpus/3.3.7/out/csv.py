@@ -226,7 +226,7 @@ class Sniffer:
         else:
             delim = ''
             skipinitialspace = 0
-        dq_regexp = None(None % {None: None, re.compile: '((%(delim)s)|^)\\W*%(quote)s[^%(delim)s\\n]*%(quote)s[^%(delim)s\\n]*%(quote)s\\W*((%(delim)s)|$)', 'delim': re.escape(delim), 'quote': quotechar}, re.MULTILINE)
+        dq_regexp = re.compile('((%(delim)s)|^)\\W*%(quote)s[^%(delim)s\\n]*%(quote)s[^%(delim)s\\n]*%(quote)s\\W*((%(delim)s)|$)' % {'delim': re.escape(delim), 'quote': quotechar}, re.MULTILINE)
         if dq_regexp.search(data):
             doublequote = True
         else:

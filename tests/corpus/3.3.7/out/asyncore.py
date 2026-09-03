@@ -350,7 +350,7 @@ class dispatcher:
         except AttributeError:
             raise AttributeError("%s instance has no attribute '%s'" % (self.__class__.__name__, attr))
         else:
-            msg = None % {None: None, None: '%(me)s.%(attr)s is deprecated; use %(me)s.socket.%(attr)s instead', 'me': self.__class__.__name__, 'attr': attr}
+            msg = '%(me)s.%(attr)s is deprecated; use %(me)s.socket.%(attr)s instead' % {'me': self.__class__.__name__, 'attr': attr}
             warnings.warn(msg, DeprecationWarning, stacklevel=2)
             return retattr
 

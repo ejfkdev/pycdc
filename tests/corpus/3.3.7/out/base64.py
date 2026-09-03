@@ -55,7 +55,7 @@ def urlsafe_b64decode(s):
     s = s.translate(_urlsafe_decode_translation)
     return b64decode(s)
 
-_b32alphabet = {None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, None: None, 0: b'A', 9: b'J', 18: b'S', 27: b'3', 1: b'B', 10: b'K', 19: b'T', 28: b'4', 2: b'C', 11: b'L', 20: b'U', 29: b'5', 3: b'D', 12: b'M', 21: b'V', 30: b'6', 4: b'E', 13: b'N', 22: b'W', 31: b'7', 5: b'F', 14: b'O', 23: b'X', 6: b'G', 15: b'P', 24: b'Y', 7: b'H', 16: b'Q', 25: b'Z', 8: b'I', 17: b'R', 26: b'2'}
+_b32alphabet = {0: b'A', 9: b'J', 18: b'S', 27: b'3', 1: b'B', 10: b'K', 19: b'T', 28: b'4', 2: b'C', 11: b'L', 20: b'U', 29: b'5', 3: b'D', 12: b'M', 21: b'V', 30: b'6', 4: b'E', 13: b'N', 22: b'W', 31: b'7', 5: b'F', 14: b'O', 23: b'X', 6: b'G', 15: b'P', 24: b'Y', 7: b'H', 16: b'Q', 25: b'Z', 8: b'I', 17: b'R', 26: b'2'}
 _b32tab = [v[0] for k, v in sorted(_b32alphabet.items())]
 _b32rev = dict([(v[0], k) for k, v in _b32alphabet.items()])
 
