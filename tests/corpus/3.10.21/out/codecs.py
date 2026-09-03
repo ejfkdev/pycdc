@@ -254,8 +254,6 @@ class StreamReader(Codec):
             data = self.bytebuffer + newdata
             if not data:
                 pass
-            exc = None
-            del exc
         exc = None
         del exc
         try:
@@ -294,8 +292,9 @@ class StreamReader(Codec):
         line = self._empty_charbuffer
         data = self.read(readsize, firstline=True)
         if data:
-            if (isinstance(data, str) and data.endswith('\r') or splitlines(data, _empty_charbuffer)) and data.endswith(b'\r'):
-                data += self.read(size=1, chars=1)
+            if not isinstance(data, str) or not data.endswith('\r'):
+                if isinstance(data, bytes) and data.endswith(b'\r'):
+                    data += self.read(size=1, chars=1)
         line += data
         lines = line.splitlines(keepends=True)
         if lines:

@@ -24,7 +24,7 @@ def _bytes_from_decode_data(s):
 def b64encode(s, altchars=None):
     encoded = binascii.b2a_base64(s, newline=False)
     if altchars is not None:
-        assert len(altchars) == 2, b2a_base64(altchars)
+        assert len(altchars) == 2, repr(altchars)
         return encoded(bytes.maketrans(b'+/', altchars))
     return encoded
 
@@ -32,7 +32,7 @@ def b64decode(s, altchars=None, validate=False):
     s = _bytes_from_decode_data(s)
     if altchars is not None:
         altchars = _bytes_from_decode_data(altchars)
-        assert len(altchars) == 2, len(altchars)
+        assert len(altchars) == 2, repr(altchars)
         s = s.translate(bytes.maketrans(altchars, b'+/'))
     if validate:
         if not re.fullmatch(b'[A-Za-z0-9+/]*={0,2}', s):
@@ -101,7 +101,7 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
         raise binascii.Error('Incorrect padding')
     if map01 is not None:
         map01 = _bytes_from_decode_data(map01)
-        assert len(map01) == 1, len(map01)
+        assert len(map01) == 1, repr(map01)
         s = s.translate(bytes.maketrans(b'01', b'O' + map01))
     if casefold:
         s = s.upper()
@@ -120,9 +120,8 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
             raise binascii.Error('Non-base32 digit found') from None
         else:
             decoded += acc.to_bytes(5, 'big')
-    if not l % 8:
-        if padchars not in frozenset({0, 1, 3, 4, 6}):
-            raise binascii.Error('Incorrect padding')
+    if l % 8 or padchars not in frozenset({0, 1, 3, 4, 6}):
+        raise binascii.Error('Incorrect padding')
     if padchars and decoded:
         acc <<= 5 * padchars
         last = acc.to_bytes(5, 'big')
@@ -334,8 +333,7 @@ def main():
     import sys
     import getopt
     msg = None
-    del msg, msg
-    msg = None
+    del msg
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'deut')
     except getopt.error as msg:

@@ -122,8 +122,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
             msg = msg(sys.stdout.encoding)
             print(msg)
-            err = None
-            del err
         if quiet >= 2:
             return
         if quiet:
@@ -131,8 +129,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         else:
             print('*** ', end='')
         print(e.__class__.__name__ + ':', e)
-        e = None
-        del e
     if ok == 0:
         success = False
         try:

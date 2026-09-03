@@ -257,4 +257,4 @@ def _reconstruct(x, memo, func, args, state=None, listiter=None, dictiter=None, 
             y[key] = value
     return y
 
-del types, weakref, PyStringMap
+del types, weakref

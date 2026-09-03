@@ -60,8 +60,6 @@ class async_chat(asyncore.dispatcher):
         return self.terminator
 
     def handle_read(self):
-        why = None
-        del why
         try:
             data = self.recv(self.ac_in_buffer_size)
         except socket.error as why:
@@ -160,10 +158,9 @@ class async_chat(asyncore.dispatcher):
                 self.handle_error()
                 return
             if num_sent:
-                if not num_sent < len(data):
-                    if obs < len(first):
-                        self.producer_fifo[0] = first[num_sent:]
-                        continue
+                if num_sent < len(data) or obs < len(first):
+                    self.producer_fifo[0] = first[num_sent:]
+                    continue
             del self.producer_fifo[0]
             return
 

@@ -97,8 +97,6 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
         elif value is None:
             value = type()
         return
-        exc = None
-        del exc
         try:
             self.gen.throw(type, value, traceback)
         except StopIteration as exc:
@@ -130,8 +128,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         elif value is None:
             value = typ()
         return
-        exc = None
-        del exc
         try:
             await self.gen.athrow(typ, value, traceback)
             raise RuntimeError("generator didn't stop after athrow()")

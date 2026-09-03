@@ -700,9 +700,8 @@ class Sequence(Reversible, Collection):
                 if i < stop:
                     try:
                         v = self[i]
-                        if not v is value:
-                            if v == value:
-                                return i
+                        if v is value or v == value:
+                            return i
                     except IndexError:
                         break
                     i += 1

@@ -19,9 +19,8 @@ BUFSIZE = 8192
 def cmp(f1, f2, shallow=True):
     s1 = _sig(os.stat(f1))
     s2 = _sig(os.stat(f2))
-    if not s1[0] != stat.S_IFREG:
-        if s2[0] != stat.S_IFREG:
-            return False
+    if s1[0] != stat.S_IFREG or s2[0] != stat.S_IFREG:
+        return False
     if shallow and s1 == s2:
         return True
     if s1[1] != s2[1]:
@@ -115,14 +114,10 @@ class dircmp:
             a_path = os.path.join(self.left, x)
             b_path = os.path.join(self.right, x)
             ok = 1
-            why = None
-            del why
             try:
                 a_stat = os.stat(a_path)
             except os.error as why:
                 ok = 0
-            why = None
-            del why
             try:
                 b_stat = os.stat(b_path)
             except os.error as why:

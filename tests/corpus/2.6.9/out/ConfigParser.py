@@ -368,21 +368,20 @@ class RawConfigParser:
                         value = line.strip()
                         if value:
                             cursect[optname] = '%s\n%s' % (cursect[optname], value)
+                    else:
+                        mo = self.SECTCRE.match(line)
+                        if mo:
+                            sectname = mo.group('header')
+                            if sectname in self._sections:
+                                cursect = self._sections[sectname]
+                            elif sectname == DEFAULTSECT:
+                                cursect = self._defaults
+                            else:
+                                cursect = self._dict()
+                                cursect['__name__'] = sectname
+                                self._sections[sectname] = cursect
+                            optname = None
                             continue
-            continue
-            mo = self.SECTCRE.match(line)
-            if mo:
-                sectname = mo.group('header')
-                if sectname in self._sections:
-                    cursect = self._sections[sectname]
-                elif sectname == DEFAULTSECT:
-                    cursect = self._defaults
-                else:
-                    cursect = self._dict()
-                    cursect['__name__'] = sectname
-                    self._sections[sectname] = cursect
-                optname = None
-                continue
             if cursect is None:
                 raise MissingSectionHeaderError(fpname, lineno, line)
                 continue
@@ -462,7 +461,14 @@ class ConfigParser(RawConfigParser):
             depth -= 1
             if '%(' in value:
                 value = self._KEYCRE.sub(self._interpolation_replace, value)
+                try:
+                    value = value % vars
+                except KeyError:
+                    e = None
+                    raise InterpolationMissingOptionError(option, section, rawval, e.args[0])
                 continue
+            break
+            continue
         if '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -510,11 +516,10 @@ class SafeConfigParser(ConfigParser):
                     raise InterpolationMissingOptionError(option, section, rest, var)
                 if '%' in v:
                     self._interpolate_some(option, accum, v, section, map, depth + 1)
-                    continue
-            accum.append(v)
-            continue
-            raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
-            continue
+                else:
+                    accum.append(v)
+            else:
+                raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
 
     def set(self, section, option, value):
         if not isinstance(value, basestring):

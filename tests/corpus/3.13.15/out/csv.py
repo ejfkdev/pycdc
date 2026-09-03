@@ -337,7 +337,7 @@ Returns a Dialect object.
             threshold = 0.9
             if len(delims) == 0 and consistency >= threshold:
                 for k, v in modeList:
-                    if not delimiters is None or k in delimiters:
+                    if not delimiters is None and not k in delimiters:
                         pass
                     else:
                         consistency -= 0.01

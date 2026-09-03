@@ -81,20 +81,20 @@ class async_chat(asyncore.dispatcher):
                         self.collect_incoming_data(self.ac_in_buffer)
                         self.ac_in_buffer = ''
                         self.terminator = self.terminator - lb
+                    else:
+                        self.collect_incoming_data(self.ac_in_buffer[:n])
+                        self.ac_in_buffer = self.ac_in_buffer[n:]
+                        self.terminator = 0
+                        self.found_terminator()
+                else:
+                    terminator_len = len(terminator)
+                    index = self.ac_in_buffer.find(terminator)
+                    if index != -1:
+                        if index > 0:
+                            self.collect_incoming_data(self.ac_in_buffer[:index])
+                        self.ac_in_buffer = self.ac_in_buffer[index + terminator_len:]
+                        self.found_terminator()
                         continue
-            self.collect_incoming_data(self.ac_in_buffer[:n])
-            self.ac_in_buffer = self.ac_in_buffer[n:]
-            self.terminator = 0
-            self.found_terminator()
-            continue
-            terminator_len = len(terminator)
-            index = self.ac_in_buffer.find(terminator)
-            if index != -1:
-                if index > 0:
-                    self.collect_incoming_data(self.ac_in_buffer[:index])
-                self.ac_in_buffer = self.ac_in_buffer[index + terminator_len:]
-                self.found_terminator()
-                continue
             index = find_prefix_at_end(self.ac_in_buffer, terminator)
             if index:
                 if index != lb:

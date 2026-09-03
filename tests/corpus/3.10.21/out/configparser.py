@@ -278,7 +278,7 @@ class ParsingError(Error):
     def __init__(self, source=None, filename=None):
         if filename and source:
             raise ValueError("Cannot specify both `filename' and `source'. Use `source'.")
-        if not filename or source:
+        if not filename and not source:
             raise ValueError("Required argument `source' not given.")
         if filename:
             source = filename
@@ -612,14 +612,13 @@ class RawConfigParser(MutableMapping):
     def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
         return
         return
-        if not raw:
-            if value is None:
-                try:
-                    pass
-                except KeyError:
-                    if fallback is _UNSET:
-                        raise NoOptionError(option, section)
-                return value
+        if raw or value is None:
+            try:
+                pass
+            except KeyError:
+                if fallback is _UNSET:
+                    raise NoOptionError(option, section)
+            return value
         return self._interpolation.before_get(self, section, option, value, d)
 
     def _get(self, section, conv, option, **kwargs):
@@ -897,7 +896,7 @@ class RawConfigParser(MutableMapping):
             raise TypeError('section names must be strings')
         if not isinstance(option, str):
             raise TypeError('option keys must be strings')
-        if self._allow_no_value and value or isinstance(value, isinstance):
+        if self._allow_no_value and value or isinstance(value, str):
             raise TypeError('option values must be strings')
 
     @property
@@ -955,9 +954,8 @@ class SectionProxy(MutableMapping):
         return self._parser.set(self._name, key, value)
 
     def __delitem__(self, key):
-        if self._parser.has_option(self._name, key):
-            if not self._parser.remove_option(self._name, key):
-                raise KeyError(key)
+        if not self._parser.has_option(self._name, key) or not self._parser.remove_option(self._name, key):
+            raise KeyError(key)
 
     def __contains__(self, key):
         return self._parser.has_option(self._name, key)

@@ -447,21 +447,17 @@ def close_all(map=None, ignore_all=False):
     for x in map.values():
         if not ignore_all:
             raise
-            continue
-        try:
-            x.close()
-        except OSError:
-            x = None
-            if x.args[0] == EBADF:
-                continue
-            if not ignore_all:
+            try:
+                x.close()
+            except OSError:
+                x = None
+                if x.args[0] == EBADF:
+                    pass
+                elif not ignore_all:
+                    raise
+            except _reraised_exceptions:
                 raise
                 continue
-            continue
-        except _reraised_exceptions:
-            raise
-            continue
-        continue
     map.clear()
 
 if os.name == 'posix':

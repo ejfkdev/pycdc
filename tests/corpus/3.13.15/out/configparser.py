@@ -840,7 +840,7 @@ class RawConfigParser(MutableMapping):
         for st.lineno, line in enumerate(map(Line, fp), 1):
             if not line.clean:
                 if self._empty_lines_in_values:
-                    if not line.has_comments or st.cursect is None:
+                    if not line.has_comments and not st.cursect is None:
                         if st.optname:
                             if not st.cursect[st.optname] is None:
                                 st.cursect[st.optname].append('')
@@ -869,7 +869,7 @@ class RawConfigParser(MutableMapping):
                 self._handle_header(st, UNNAMED_SECTION, fpname)
         st.indent_level = st.cur_indent_level
         mo = self.SECTCRE.match(line.clean)
-        if not mo or st.cursect is not None:
+        if not mo and not st.cursect is not None:
             raise MissingSectionHeaderError(fpname, st.lineno, line)
         if mo:
             self._handle_header(st, mo.group('header'), fpname)
@@ -1002,9 +1002,8 @@ class SectionProxy(MutableMapping):
         return self._parser.set(self._name, key, value)
 
     def __delitem__(self, key):
-        if self._parser.has_option(self._name, key):
-            if not self._parser.remove_option(self._name, key):
-                raise KeyError(key)
+        if not self._parser.has_option(self._name, key) or not self._parser.remove_option(self._name, key):
+            raise KeyError(key)
 
     def __contains__(self, key):
         return self._parser.has_option(self._name, key)

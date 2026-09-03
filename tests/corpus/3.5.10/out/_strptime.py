@@ -57,9 +57,8 @@ class LocaleTime(object):
         self.__calc_date_time()
         if _getlang() != self.lang:
             raise ValueError('locale changed during initialization')
-        if not time.tzname != self.tzname:
-            if time.daylight != self.daylight:
-                raise ValueError('timezone changed during initialization')
+        if time.tzname != self.tzname or time.daylight != self.daylight:
+            raise ValueError('timezone changed during initialization')
 
     def __pad(self, seq, front):
         seq = list(seq)
@@ -192,8 +191,8 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
     raise TypeError(msg.format(index, type(arg)))
     with _cache_lock:
         locale_time = _TimeRE_cache.locale_time
-        if not _getlang() != locale_time.lang or time.tzname != locale_time.tzname:
-            if time.daylight != locale_time.daylight:
+        if not _getlang() != locale_time.lang:
+            if time.tzname != locale_time.tzname or time.daylight != locale_time.daylight:
                 _TimeRE_cache = TimeRE()
                 _regex_cache.clear()
                 locale_time = _TimeRE_cache.locale_time
@@ -201,8 +200,6 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             _regex_cache.clear()
         format_regex = _regex_cache.get(format)
         if not format_regex:
-            err = None
-            del err
             try:
                 format_regex = _TimeRE_cache.compile(format)
             except KeyError as err:

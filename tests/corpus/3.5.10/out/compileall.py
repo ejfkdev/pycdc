@@ -105,10 +105,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 pass
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
-            err = None
-            del err
-        e = None
-        del e
     if ok == 0:
         success = 0
         try:

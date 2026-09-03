@@ -267,16 +267,17 @@ class FieldStorage:
         if 'REQUEST_METHOD' in environ:
             method = environ['REQUEST_METHOD'].upper()
         self.qs_on_post = None
-        if (method == 'GET' or method == 'HEAD') or 'QUERY_STRING' in environ:
-            qs = environ['QUERY_STRING']
-        elif sys.argv[1:]:
-            qs = sys.argv[1]
-        else:
-            qs = ''
-        qs = qs.encode(locale.getpreferredencoding(), 'surrogateescape')
-        fp = BytesIO(qs)
-        if headers is None:
-            headers = {'content-type': 'application/x-www-form-urlencoded'}
+        if method == 'GET' or method == 'HEAD':
+            if 'QUERY_STRING' in environ:
+                qs = environ['QUERY_STRING']
+            elif sys.argv[1:]:
+                qs = sys.argv[1]
+            else:
+                qs = ''
+            qs = qs.encode(locale.getpreferredencoding(), 'surrogateescape')
+            fp = BytesIO(qs)
+            if headers is None:
+                headers = {'content-type': 'application/x-www-form-urlencoded'}
         if headers is None:
             headers = {}
             if method == 'POST':
@@ -319,11 +320,10 @@ class FieldStorage:
         self._binary_file = self.filename is not None
         if 'content-type' in self.headers:
             ctype, pdict = parse_header(self.headers['content-type'])
-        elif not self.outerboundary:
-            if method != 'POST':
-                ctype, pdict = 'text/plain', {}
-            else:
-                ctype, pdict = 'application/x-www-form-urlencoded', {}
+        elif self.outerboundary or method != 'POST':
+            ctype, pdict = 'text/plain', {}
+        else:
+            ctype, pdict = 'application/x-www-form-urlencoded', {}
         self.type = ctype
         self.type_options = pdict
         if 'boundary' in pdict:
@@ -584,9 +584,8 @@ class FieldStorage:
             continue
 
     def skip_lines(self):
-        if not not self.outerboundary:
-            if self.done:
-                return
+        if not self.outerboundary or self.done:
+            return
         next_boundary = b'--' + self.outerboundary
         last_boundary = next_boundary + b'--'
         last_line_lfend = True
@@ -659,8 +658,6 @@ def print_form(form):
 def print_directory():
     print()
     print('<H3>Current Working Directory:</H3>')
-    msg = None
-    del msg
     try:
         pwd = os.getcwd()
     except os.error as msg:

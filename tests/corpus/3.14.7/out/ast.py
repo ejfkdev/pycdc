@@ -163,7 +163,7 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None, s
 
     if not isinstance(node, AST):
         raise TypeError('expected AST, got %r' % node.__class__.__name__)
-    if not indent is None or isinstance(indent, str):
+    if not indent is None and not isinstance(indent, str):
         indent = ' ' * indent
     return _format(node)[0]
 

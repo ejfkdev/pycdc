@@ -184,9 +184,8 @@ def iter_child_nodes(node):
 def get_docstring(node, clean=True):
     if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
-    if node.body:
-        if not isinstance(node.body[0], Expr):
-            return
+    if not node.body or not isinstance(node.body[0], Expr):
+        return
     node = node.body[0].value
     if isinstance(node, Str):
         text = node.s

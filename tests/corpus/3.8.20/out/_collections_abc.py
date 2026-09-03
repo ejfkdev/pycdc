@@ -694,9 +694,8 @@ class Sequence(Reversible, Collection):
                 pass
         try:
             v = self[i]
-            if not v is value:
-                if v == value:
-                    return i
+            if v is value or v == value:
+                return i
         except IndexError:
             pass
         i += 1

@@ -163,10 +163,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-q', 'store_true', "don't print version and copyright messages")
     args = parser.parse_args()
-    if not args.q:
-        if sys.flags.quiet:
-            banner = ''
-        else:
-            banner = None
+    if args.q or sys.flags.quiet:
+        banner = ''
+    else:
+        banner = None
     interact(banner)
 # WARNING: Decompyle incomplete

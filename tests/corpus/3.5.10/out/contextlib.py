@@ -52,8 +52,6 @@ class _GeneratorContextManager(ContextDecorator):
                 raise RuntimeError("generator didn't stop")
         elif value is None:
             value = type()
-        exc = None
-        del exc
         try:
             self.gen.throw(type, value, traceback)
         except StopIteration as exc:

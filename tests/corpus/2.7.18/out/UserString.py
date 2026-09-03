@@ -243,9 +243,8 @@ class MutableString(UserString, collections.MutableSequence):
         else:
             if index < 0:
                 index += len(self.data)
-            if not index < 0:
-                if index >= len(self.data):
-                    raise IndexError
+            if index < 0 or index >= len(self.data):
+                raise IndexError
             self.data = self.data[:index] + sub + self.data[index + 1:]
 
     def __delitem__(self, index):
@@ -260,9 +259,8 @@ class MutableString(UserString, collections.MutableSequence):
         else:
             if index < 0:
                 index += len(self.data)
-            if not index < 0:
-                if index >= len(self.data):
-                    raise IndexError
+            if index < 0 or index >= len(self.data):
+                raise IndexError
             self.data = self.data[:index] + self.data[index + 1:]
 
     def __setslice__(self, start, end, sub):

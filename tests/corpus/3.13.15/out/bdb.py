@@ -94,8 +94,8 @@ is determined by the __name__ in the frame globals.
             return
 
     def dispatch_line(self, frame):
-        if (self.stop_here(frame) or self.cmdlineno(frame)) or self.f_lineno == frame:
-            if not self.cmdlineno == frame.f_lineno:
+        if self.stop_here(frame) or self.break_here(frame):
+            if not self.cmdframe == frame or not self.cmdlineno == frame.f_lineno:
                 self.user_line(frame)
                 if self.quitting:
                     raise BdbQuit
@@ -105,7 +105,7 @@ is determined by the __name__ in the frame globals.
         if not self.botframe is not None:
             self.botframe = frame.f_back
             return self.trace_dispatch
-        if not self.stop_here(frame) or self.break_anywhere(frame):
+        if not self.stop_here(frame) and not self.break_anywhere(frame):
             return
         if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
             return self.trace_dispatch
@@ -148,11 +148,10 @@ is determined by the __name__ in the frame globals.
         return self.trace_dispatch
 
     def dispatch_opcode(self, frame, arg):
-        if not self.stop_here(frame):
-            if self.break_here(frame):
-                self.user_opcode(frame)
-                if self.quitting:
-                    raise BdbQuit
+        if self.stop_here(frame) or self.break_here(frame):
+            self.user_opcode(frame)
+            if self.quitting:
+                raise BdbQuit
         return self.trace_dispatch
 
     def is_skipped_module(self, module_name):

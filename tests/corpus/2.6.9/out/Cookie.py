@@ -377,17 +377,13 @@ class BaseCookie(dict):
             if K[0] == '$':
                 if M:
                     M[K[1:]] = V
-                    continue
-            continue
-            if K.lower() in Morsel._reserved:
+            elif K.lower() in Morsel._reserved:
                 if M:
                     M[K] = _unquote(V)
-                    continue
-            continue
-            rval, cval = self.value_decode(V)
-            self.__set(K, rval, cval)
-            M = self[K]
-            continue
+            else:
+                rval, cval = self.value_decode(V)
+                self.__set(K, rval, cval)
+                M = self[K]
 
 
 class SimpleCookie(BaseCookie):

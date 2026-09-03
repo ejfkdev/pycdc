@@ -78,8 +78,6 @@ def readwrite(obj, flags):
         obj.handle_error()
     else:
         obj.handle_close()
-        e = None
-        del e
         return
     e = None
     del e
@@ -115,9 +113,8 @@ def poll(timeout=0.0, map=None):
             if is_w:
                 if not obj.accepting:
                     w.append(fd)
-            if not is_r:
-                if is_w:
-                    e.append(fd)
+            if is_r or is_w:
+                e.append(fd)
         if [] == r:
             if r == w:
                 if w == e:
@@ -205,8 +202,6 @@ class dispatcher:
             self.set_socket(sock, map)
             self.connected = True
             return
-            err = None
-            del err
             return
             err = None
             del err
@@ -300,8 +295,6 @@ class dispatcher:
         return conn, addr
         return
         if why.errno in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
-            why = None
-            del why
             return
         raise
         why = None
@@ -316,8 +309,6 @@ class dispatcher:
     def send(self, data):
         return result
         if why.errno == EWOULDBLOCK:
-            why = None
-            del why
             return 0
         if why.errno in _DISCONNECTED:
             self.handle_close()
@@ -336,8 +327,6 @@ class dispatcher:
         return data
         if why.errno in _DISCONNECTED:
             self.handle_close()
-            why = None
-            del why
             return b''
         raise
         why = None
@@ -357,8 +346,6 @@ class dispatcher:
         self.del_channel()
         if self.socket is not None:
             return
-            why = None
-            del why
             return
             why = None
             del why
@@ -481,8 +468,6 @@ def close_all(map=None, ignore_all=False):
     if map is None:
         map = socket_map
     for x in list(map.values()):
-        x = None
-        del x
         try:
             x.close()
         except OSError as x:

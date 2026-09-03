@@ -55,12 +55,11 @@ class BZ2File(_compression.BaseStream):
             self._fp = _builtin_open(filename, mode)
             self._closefp = True
             self._mode = mode_code
-        elif not hasattr(filename, 'read'):
-            if hasattr(filename, 'write'):
-                self._fp = filename
-                self._mode = mode_code
-            else:
-                raise TypeError('filename must be a str, bytes, file or PathLike object')
+        elif hasattr(filename, 'read') or hasattr(filename, 'write'):
+            self._fp = filename
+            self._mode = mode_code
+        else:
+            raise TypeError('filename must be a str, bytes, file or PathLike object')
         if self._mode == _MODE_READ:
             raw = _compression.DecompressReader(self._fp, BZ2Decompressor, OSError)
             self._buffer = io.BufferedReader(raw)

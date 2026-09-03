@@ -54,9 +54,8 @@ class LocaleTime(object):
         self.__calc_date_time()
         if _getlang() != self.lang:
             raise ValueError('locale changed during initialization')
-        if not time.tzname != self.tzname:
-            if time.daylight != self.daylight:
-                raise ValueError('timezone changed during initialization')
+        if time.tzname != self.tzname or time.daylight != self.daylight:
+            raise ValueError('timezone changed during initialization')
 
     def __calc_weekday(self):
         a_weekday = [calendar.day_abbr[i].lower() for i in range(7)]
@@ -188,8 +187,8 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
     raise TypeError(msg.format(index, type(arg)))
     with _cache_lock:
         locale_time = _TimeRE_cache.locale_time
-        if not _getlang() != locale_time.lang or time.tzname != locale_time.tzname:
-            if time.daylight != locale_time.daylight:
+        if not _getlang() != locale_time.lang:
+            if time.tzname != locale_time.tzname or time.daylight != locale_time.daylight:
                 _TimeRE_cache = TimeRE()
                 _regex_cache.clear()
                 locale_time = _TimeRE_cache.locale_time
@@ -334,9 +333,8 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                                     continue
         continue
     if year is None and iso_year is not None:
-        if not iso_week is None:
-            if weekday is None:
-                raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")
+        if iso_week is None or weekday is None:
+            raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")
         if julian is not None:
             raise ValueError("Day of the year directive '%j' is not compatible with ISO year directive '%G'. Use '%Y' instead.")
     elif week_of_year is None and iso_week is not None:

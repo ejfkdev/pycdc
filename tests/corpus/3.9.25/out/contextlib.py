@@ -100,14 +100,10 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
                 raise RuntimeError("generator didn't stop")
         elif value is None:
             value = typ()
-        exc = None
-        del exc
         return
         exc = None
         del exc
         if exc is value:
-            exc = None
-            del exc
             return False
         if isinstance(value, StopIteration) and exc.__cause__ is value:
             exc = None
@@ -153,14 +149,10 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 raise RuntimeError("generator didn't stop")
         elif value is None:
             value = typ()
-        exc = None
-        del exc
         return
         exc = None
         del exc
         if exc is value:
-            exc = None
-            del exc
             return False
         if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
             exc = None
@@ -355,9 +347,8 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
             exc_context = new_exc.__context__
-            if not exc_context is None:
-                if exc_context is old_exc:
-                    return
+            if exc_context is None or exc_context is old_exc:
+                return
             if exc_context is frame_exc:
                 pass
             else:
@@ -449,9 +440,8 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
             exc_context = new_exc.__context__
-            if not exc_context is None:
-                if exc_context is old_exc:
-                    return
+            if exc_context is None or exc_context is old_exc:
+                return
             if exc_context is frame_exc:
                 pass
             else:

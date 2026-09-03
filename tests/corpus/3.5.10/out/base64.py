@@ -291,8 +291,6 @@ def decode(input, output):
         output.write(s)
 
 def _input_type_check(s):
-    err = None
-    del err
     try:
         m = memoryview(s)
     except TypeError as err:
@@ -330,8 +328,6 @@ def decodestring(s):
 def main():
     import sys
     import getopt
-    msg = None
-    del msg
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'deut')
     except getopt.error as msg:

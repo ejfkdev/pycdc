@@ -97,9 +97,11 @@ class ABCMeta(type):
         subtype = type(instance)
         if subtype is _InstanceType:
             subtype = subclass
-        if ((subtype is subclass or subclass is None) or cls._abc_negative_cache_version == ABCMeta._abc_invalidation_counter) and subtype in cls._abc_negative_cache:
-            return False
-        return cls.__subclasscheck__(subtype)
+        if subtype is subclass or subclass is None:
+            if cls._abc_negative_cache_version == ABCMeta._abc_invalidation_counter and subtype in cls._abc_negative_cache:
+                return False
+            return cls.__subclasscheck__(subtype)
+        return cls.__subclasscheck__(subclass) or cls.__subclasscheck__(subtype)
 
     def __subclasscheck__(cls, subclass):
         if subclass in cls._abc_cache:

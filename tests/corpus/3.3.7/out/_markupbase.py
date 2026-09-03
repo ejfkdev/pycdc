@@ -164,9 +164,7 @@ class ParserBase:
                     return j
                 if rawdata[j] == ';':
                     j = j + 1
-                    continue
-            continue
-            if c == ']':
+            elif c == ']':
                 j = j + 1
                 while j < n:
                     if rawdata[j].isspace():

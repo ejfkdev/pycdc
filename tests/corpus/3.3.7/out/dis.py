@@ -28,8 +28,6 @@ def dis(x=None):
         for name, x1 in items:
             if isinstance(x1, _have_code):
                 print('Disassembly of %s:' % name)
-                msg = None
-                del msg
                 try:
                     dis(x1)
                 except TypeError as msg:
@@ -66,8 +64,6 @@ def pretty_flags(flags):
             flags ^= flag
             if not flags:
                 break
-                continue
-        continue
     else:
         names.append(hex(flags))
     return ', '.join(names)
@@ -227,7 +223,6 @@ def findlabels(code):
             if label >= 0:
                 if label not in labels:
                     labels.append(label)
-                    continue
     return labels
 
 def findlinestarts(code):
@@ -252,9 +247,8 @@ def _test():
             sys.stderr.write('usage: python dis.py [-|file]\n')
             sys.exit(2)
         fn = sys.argv[1]
-        if not not fn:
-            if fn == '-':
-                fn = None
+        if not fn or fn == '-':
+            fn = None
     else:
         fn = None
     if fn is None:

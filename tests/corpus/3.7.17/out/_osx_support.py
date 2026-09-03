@@ -165,15 +165,14 @@ def compiler_fixup(compiler_so, cc_args):
     else:
         stripArch = '-arch' in cc_args
         stripSysroot = any((arg for arg in cc_args if arg.startswith('-isysroot')))
-    if not stripArch:
-        if 'ARCHFLAGS' in os.environ:
-            while True:
-                try:
-                    index = compiler_so.index('-arch')
-                    del compiler_so[index:index + 2]
-                except ValueError:
-                    break
-                continue
+    if stripArch or 'ARCHFLAGS' in os.environ:
+        while True:
+            try:
+                index = compiler_so.index('-arch')
+                del compiler_so[index:index + 2]
+            except ValueError:
+                break
+            continue
     if 'ARCHFLAGS' in os.environ:
         if not stripArch:
             compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()

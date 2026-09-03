@@ -220,9 +220,8 @@ class Sniffer:
             except KeyError:
                 pass
             if key:
-                if not delimiters is None:
-                    if key in delimiters:
-                        delims[key] = delims.get(key, 0) + 1
+                if delimiters is None or key in delimiters:
+                    delims[key] = delims.get(key, 0) + 1
             try:
                 n = groupindex['space'] - 1
             except KeyError:
@@ -278,7 +277,7 @@ class Sniffer:
             threshold = 0.9
             if len(delims) == 0 and consistency >= threshold:
                 for k, v in modeList:
-                    if not delimiters is None or k in delimiters:
+                    if not delimiters is None and not k in delimiters:
                         pass
                     else:
                         consistency -= 0.01

@@ -72,20 +72,14 @@ def _maybe_compile(compiler, source, filename, symbol):
             source = 'pass'
     err = err1 = err2 = None
     code = code1 = code2 = None
-    err = None
-    del err
     try:
         code = compiler(source, filename, symbol)
     except SyntaxError as err:
         pass
-    e = None
-    del e
     try:
         code1 = compiler(source + '\n', filename, symbol)
     except SyntaxError as e:
         err1 = e
-    e = None
-    del e
     try:
         code2 = compiler(source + '\n\n', filename, symbol)
     except SyntaxError as e:

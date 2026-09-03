@@ -50,9 +50,8 @@ def mksalt(method=None, *, rounds=None):
     return s
 
 def crypt(word, salt=None):
-    if not salt is None:
-        if isinstance(salt, _Method):
-            salt = mksalt(salt)
+    if salt is None or isinstance(salt, _Method):
+        salt = mksalt(salt)
     return _crypt.crypt(word, salt)
 
 methods = []

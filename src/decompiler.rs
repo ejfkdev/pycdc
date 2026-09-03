@@ -303,6 +303,11 @@ struct Ctx<'a> {
     /// loop tops whose loop already closed via their back edge: later dead
     /// back edges to the same top are padding, not `continue`
     closed_loop_tops: Vec<usize>,
+    /// `except E as name` cleanup (`name = None; del name`) that follows a
+    /// folded handler: the None-store is held until the matching delete
+    /// confirms it (a real `x = None` statement must not be swallowed)
+    pending_as_cleanup: Option<String>,
+    held_cleanup_store: Option<(ExprRef, ExprRef)>,
     /// enclosing class names for private-name (PEP 8 mangling) restoration
     class_scope: Vec<String>,
     /// PEP 709 inline comprehension state (3.12+ listcomp/setcomp/dictcomp)
@@ -477,6 +482,8 @@ pub fn decompile_in_scope(
         broken_loop_top: None,
         py2_else_pop_at: None,
         closed_loop_tops: Vec::new(),
+        pending_as_cleanup: None,
+        held_cleanup_store: None,
         class_scope: class_scope.to_vec(),
         inline_comp: None,
         inline_comp_stack: Vec::new(),
@@ -1114,6 +1121,11 @@ impl<'a> Ctx<'a> {
             let end = self.legacy_handler_end.unwrap_or(usize::MAX);
             if pos >= end {
                 if let Some(h) = self.legacy_handler.take() {
+                    if let Some(he) = &h.name {
+                        if let Expr::Name(n) = &**he {
+                            self.pending_as_cleanup = Some(n.clone());
+                        }
+                    }
                     if let Some(lt) = self.legacy_try.as_mut() {
                         lt.handlers.push(ExceptHandler {
                             type_: h.type_,
@@ -1179,6 +1191,11 @@ impl<'a> Ctx<'a> {
             Op::POP_EXCEPT => {
                 self.in_handler_prelude = false;
                 if let Some(h) = self.legacy_handler.take() {
+                    if let Some(he) = &h.name {
+                        if let Expr::Name(n) = &**he {
+                            self.pending_as_cleanup = Some(n.clone());
+                        }
+                    }
                     if let Some(l) = self.legacy_try.as_mut() {
                         l.handlers.push(ExceptHandler {
                             type_: h.type_,
@@ -1194,6 +1211,11 @@ impl<'a> Ctx<'a> {
             Op::RERAISE => {
                 self.in_handler_prelude = false;
                 if let Some(h) = self.legacy_handler.take() {
+                    if let Some(he) = &h.name {
+                        if let Expr::Name(n) = &**he {
+                            self.pending_as_cleanup = Some(n.clone());
+                        }
+                    }
                     self.legacy_handler_end = None;
                     if let Some(l) = self.legacy_try.as_mut() {
                         l.handlers.push(ExceptHandler {
@@ -1298,8 +1320,29 @@ impl<'a> Ctx<'a> {
                                 l.else_start = None;
                             }
                         }
+                        let onto_loop_back_edge = self
+                            .idx_of
+                            .get(&target)
+                            .and_then(|&ti| self.instrs.get(ti))
+                            .map_or(false, |x| {
+                                x.is_backward
+                                    && matches!(
+                                        x.op,
+                                        Op::JUMP_ABSOLUTE
+                                            | Op::JUMP_BACKWARD
+                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    )
+                                    && x.target.map_or(false, |t| {
+                                        self.blocks.iter().any(|b| {
+                                            matches!(b.kind, BlockType::While | BlockType::For)
+                                                && (b.start == t
+                                                    || (b.cond_end > 0 && b.cond_end == t))
+                                        })
+                                    })
+                            });
                         if lt.handlers.is_empty() && lt.else_start.is_none()
                             && target > pos && target > lt.handler_start
+                            && !onto_loop_back_edge
                         {
                             // end of the try body: forward jump over the
                             // handler chain into the else region. Handlers
@@ -3297,9 +3340,11 @@ impl<'a> Ctx<'a> {
                     }
                     // not folded: run the deferred block close, then decide
                     // again — the branch block that ended at this jump may
-                    // have been the only thing making this a nested continue
+                    // have been the only thing making this a nested continue.
+                    // A jump landing ON the loop's back edge just flows into
+                    // the iteration end (compiler fusion), never a continue.
                     self.close_blocks_at(self.cur_offset);
-                    if self.is_continue_jump(target) {
+                    if !lands_on_back_edge && self.is_continue_jump(target) {
                         // continue of an outer loop: emit first, then close
                         // the inner blocks it jumps out of
                         self.push_stmt(Stmt::Continue);
@@ -4248,6 +4293,115 @@ impl<'a> Ctx<'a> {
         Some((merged, then_start, e))
     }
 
+    /// Detect `if a or b: body` / mixed and-chains: J1 (this jump) targets
+    /// the body start; [next, target) is a pure operand region ending in an
+    /// opposite-polarity cond jump J0 to the if exit; the merged If covers
+    /// [target, J0.target). Returns (cond, body_start, exit).
+    fn try_merge_or_cond(
+        &self,
+        cond: &ExprRef,
+        jump_if_true: bool,
+        target: usize,
+    ) -> Option<(ExprRef, usize, usize)> {
+        let Some(&ci) = self.idx_of.get(&self.cur_offset) else {
+            return None;
+        };
+        let Some(&ti) = self.idx_of.get(&target) else {
+            return None;
+        };
+        if ti <= ci + 1 || ti >= self.instrs.len() {
+            return None;
+        }
+        // operand region [ci+1, ti): pure values then a cond jump
+        let mut j0 = None;
+        for k in ci + 1..ti {
+            let ins = &self.instrs[k];
+            if matches!(
+                ins.op,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+            ) {
+                if k + 1 == ti {
+                    j0 = Some((k, ins.op, ins.target?));
+                    break;
+                }
+                return None;
+            }
+            if !is_pure_value_op(ins.op) {
+                return None;
+            }
+        }
+        let (j0k, j0op, exit) = j0?;
+        let j0_true = matches!(
+            j0op,
+            Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+        );
+        if j0_true == jump_if_true {
+            return None; // same polarity is the py2 boolop shape, not this
+        }
+        if exit <= target || !self.idx_of.contains_key(&exit) {
+            return None;
+        }
+        // don't fire inside loops whose exit this might be (break shape)
+        if self.find_loop_exit(exit).is_some() || self.find_loop_exit(target).is_some() {
+            return None;
+        }
+        // rotated `while a or b:` — the body region loops back to this
+        // condition; leave it to the while machinery
+        if let (Some(&bi), Some(&ei)) = (self.idx_of.get(&target), self.idx_of.get(&exit)) {
+            if self.instrs[bi..ei]
+                .iter()
+                .any(|x| x.is_backward && x.target.map_or(false, |t| t <= self.cur_offset))
+            {
+                return None;
+            }
+        }
+        // 3+-operand chains (`a or b or c`): the operand region itself
+        // contains another cond jump — let the generic block flow handle it
+        for k in ci + 1..j0k {
+            let ins = &self.instrs[k];
+            if matches!(
+                ins.op,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                    | Op::JUMP_IF_FALSE_OR_POP
+                    | Op::JUMP_IF_TRUE_OR_POP
+            ) {
+                return None;
+            }
+        }
+        let rhs = self.sim_value_region(ci + 1, j0k)?;
+        // each operand joins the body either through its jump (polarity) or
+        // the fall-through; normalize both to their body-reaching form
+        let c1 = if jump_if_true {
+            cond.clone()
+        } else {
+            Rc::new(Expr::Unary { op: UnaryOp::Not, operand: cond.clone() })
+        };
+        let c2 = if j0_true {
+            Rc::new(Expr::Unary { op: UnaryOp::Not, operand: rhs })
+        } else {
+            rhs
+        };
+        let kind = if jump_if_true != j0_true {
+            // opposite polarities with body at J1's target: `or` when J1
+            // jumps on false (body reached by jumping OR falling through
+            // the negated second operand)
+            BoolOpKind::Or
+        } else {
+            BoolOpKind::And
+        };
+        let merged = Rc::new(Expr::BoolOp {
+            op: kind,
+            values: vec![c1, c2],
+        }) as ExprRef;
+        Some((merged, target, exit))
+    }
+
     /// Evaluate a straight-line value-expression instruction region on a
     /// scratch stack (py2 boolop condition merging). Returns None when any
     /// instruction is not pure value computation.
@@ -4265,7 +4419,7 @@ impl<'a> Ctx<'a> {
                     if ins.op == Op::STORE_FAST {
                         return None;
                     }
-                    let n = if ins.op == Op::LOAD_GLOBAL && self.version.at_least(3, 10) {
+                    let n = if ins.op == Op::LOAD_GLOBAL && self.version.at_least(3, 11) {
                         self.const_name(arg >> 1)
                     } else {
                         self.const_name(arg)
@@ -4289,7 +4443,12 @@ impl<'a> Ctx<'a> {
                 }
                 Op::LOAD_ATTR | Op::LOAD_METHOD => {
                     let v = pop1(&mut st);
-                    let a = self.const_name(arg);
+                    let idx = if ins.op == Op::LOAD_ATTR && self.version.at_least(3, 12) {
+                        arg >> 1
+                    } else {
+                        arg
+                    };
+                    let a = self.const_name(idx);
                     st.push(Rc::new(Expr::Attribute { value: v, attr: a }));
                 }
                 Op::COMPARE_OP => {
@@ -4417,6 +4576,22 @@ impl<'a> Ctx<'a> {
             matches!(b.kind, BlockType::While) && (!b.cond_set || b.cond_end > 0)
         });
         if !while_top {
+            // `if a or b:` (and mixed-polarity and-chains): this cond jump
+            // targets the BODY start; the region up to it is the second
+            // operand ending in an opposite-polarity cond jump to the if's
+            // exit. Merge into one BoolOp cond over [target, exit).
+            if let Some((merged_cond, body_start, exit)) =
+                self.try_merge_or_cond(&cond, jump_if_true, target)
+            {
+                let mut blk = Block::new(BlockType::If, body_start, exit);
+                blk.cond = Some(merged_cond);
+                blk.cond_set = true;
+                blk.jump_if_true = false;
+                blk.stack_depth = self.stack.len();
+                self.blocks.push(blk);
+                self.skip_until = Some(body_start);
+                return;
+            }
             if let Some((merged, then_start, e)) =
                 self.try_merge_py2_boolop(&cond, jump_if_true, target)
             {
@@ -4516,14 +4691,32 @@ impl<'a> Ctx<'a> {
         if split_cond {
             if let Some(top) = self.blocks.last_mut() {
                 let prev = top.cond.take().unwrap();
-                let kind = if jump_if_true {
-                    BoolOpKind::Or
+                // two same-target cond jumps always AND: the body runs only
+                // when NEITHER jump is taken (`if a and b` = two PJIFs,
+                // `if not a and not b` = two PJITs)
+                let kind = BoolOpKind::And;
+                // `top.cond` stores the branch-taken polarity; the second
+                // jump's operand must be normalized the same way (`if not a
+                // and not b` compiles to two PJITs and must merge to
+                // And(Not a, Not b))
+                let c2 = if jump_if_true {
+                    // branch-taken polarity: negate, cancelling a double
+                    // negation when the operand is itself `not x`
+                    match &*cond {
+                        Expr::Unary { op: UnaryOp::Not, operand } => {
+                            operand.clone()
+                        }
+                        _ => Rc::new(Expr::Unary {
+                            op: UnaryOp::Not,
+                            operand: cond,
+                        }),
+                    }
                 } else {
-                    BoolOpKind::And
+                    cond
                 };
                 let mut values = Vec::new();
                 flatten_boolop(prev, kind, &mut values);
-                flatten_boolop(cond, kind, &mut values);
+                flatten_boolop(c2, kind, &mut values);
                 top.cond = Some(Rc::new(Expr::BoolOp { op: kind, values }));
                 return;
             }
@@ -5005,6 +5198,10 @@ impl<'a> Ctx<'a> {
                 body: Vec::new(),
                 block_depth: self.blocks.len(),
             });
+            // a previous handler's unconfirmed cleanup marker must not
+            // swallow this handler's `as` name store
+            self.pending_as_cleanup = None;
+            self.held_cleanup_store = None;
             self.legacy_handler_end = Some(target);
             self.in_handler_prelude = true;
             return;
@@ -6255,6 +6452,17 @@ impl<'a> Ctx<'a> {
             self.legacy_handler_cleanup = false;
             return;
         }
+        // post-handler `as`-name cleanup: hold `name = None` until the
+        // matching `del name` confirms it; anything else flushes it as a
+        // real assignment
+        if let Expr::Name(n) = &*target {
+            if self.pending_as_cleanup.as_deref() == Some(n.as_str())
+                && matches!(&*val, Expr::Const(o) if matches!(&**o, PyObject::None))
+            {
+                self.held_cleanup_store = Some((target, val));
+                return;
+            }
+        }
         if self.legacy_handler_name_store {
             self.legacy_handler_name_store = false;
             if matches!(&*target, Expr::Name(_)) {
@@ -6640,6 +6848,13 @@ impl<'a> Ctx<'a> {
         if self.legacy_handler_cleanup {
             self.legacy_handler_cleanup = false;
             return;
+        }
+        if let Expr::Name(n) = &*target {
+            if self.pending_as_cleanup.as_deref() == Some(n.as_str()) {
+                self.pending_as_cleanup = None;
+                self.held_cleanup_store = None;
+                return;
+            }
         }
         // drop stale exhausted frames (stores rerouted elsewhere)
         while matches!(self.unpack_frames.last(), Some((0, _, _, _))) {

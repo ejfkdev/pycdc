@@ -9,8 +9,6 @@ Written by Marc-Andre Lemburg (mal@lemburg.com).
 
 import builtins
 import sys
-why = None
-del why
 try:
     from _codecs import *
 except ImportError as why:
@@ -253,8 +251,6 @@ class StreamReader(Codec):
             data = self.bytebuffer + newdata
             if not data:
                 break
-            exc = None
-            del exc
             try:
                 newchars, decodedbytes = self.decode(data, self.errors)
             except UnicodeDecodeError as exc:
@@ -292,8 +288,9 @@ class StreamReader(Codec):
         while True:
             data = self.read(readsize, firstline=True)
             if data:
-                if (isinstance(data, str) and data.endswith('\r') or isinstance(data, bytes)) and data.endswith(b'\r'):
-                    data += self.read(size=1, chars=1)
+                if not isinstance(data, str) or not data.endswith('\r'):
+                    if isinstance(data, bytes) and data.endswith(b'\r'):
+                        data += self.read(size=1, chars=1)
             line += data
             lines = line.splitlines(keepends=True)
             if lines:

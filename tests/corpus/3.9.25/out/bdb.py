@@ -69,18 +69,17 @@ class Bdb:
         return self.trace_dispatch
 
     def dispatch_line(self, frame):
-        if not self.stop_here(frame):
-            if self.break_here(frame):
-                self.user_line(frame)
-                if self.quitting:
-                    raise BdbQuit
+        if self.stop_here(frame) or self.break_here(frame):
+            self.user_line(frame)
+            if self.quitting:
+                raise BdbQuit
         return self.trace_dispatch
 
     def dispatch_call(self, frame, arg):
         if self.botframe is None:
             self.botframe = frame.f_back
             return self.trace_dispatch
-        if not self.stop_here(frame) or self.break_anywhere(frame):
+        if not self.stop_here(frame) and not self.break_anywhere(frame):
             return
         if self.stopframe:
             if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
@@ -91,21 +90,22 @@ class Bdb:
         return self.trace_dispatch
 
     def dispatch_return(self, frame, arg):
-        if (self.stop_here(frame) or frame == self.returnframe) or self.stopframe:
-            if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
-                return self.trace_dispatch
-        self.frame_returning = None
-        self.frame_returning = None
-        if self.quitting:
-            pass
-        if self.stopframe is frame and self.stoplineno != -1:
-            self._set_stopinfo(None, None)
+        if self.stop_here(frame) or frame == self.returnframe:
+            if self.stopframe:
+                if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
+                    return self.trace_dispatch
+            self.frame_returning = None
+            self.frame_returning = None
+            if self.quitting:
+                pass
+            if self.stopframe is frame and self.stoplineno != -1:
+                self._set_stopinfo(None, None)
         return self.trace_dispatch
 
     def dispatch_exception(self, frame, arg):
         if self.stop_here(frame):
-            if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] is StopIteration:
-                if not arg[2] is None:
+            if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
+                if not arg[0] is StopIteration or not arg[2] is None:
                     self.user_exception(frame, arg)
                     if self.quitting:
                         raise BdbQuit
@@ -251,8 +251,6 @@ class Bdb:
         self._prune_breaks(filename, lineno)
 
     def clear_bpbynumber(self, arg):
-        err = None
-        del err
         return
         err = None
         del err

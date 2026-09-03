@@ -40,17 +40,13 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=False,
         if not os.path.isdir(fullname):
             if not compile_file(fullname, ddir, force, rx, quiet, legacy, optimize):
                 success = 0
-                continue
-        continue
-        if maxlevels > 0:
+        elif maxlevels > 0:
             if name != os.curdir:
                 if name != os.pardir:
                     if os.path.isdir(fullname):
                         if not os.path.islink(fullname):
                             if not compile_dir(fullname, maxlevels - 1, dfile, force, rx, quiet, legacy, optimize):
                                 success = 0
-                                continue
-        continue
     return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=False, optimize=-1):
@@ -88,9 +84,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=
                 pass
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
-            err = None
-            del err, e
-            e = None
             if ok == 0:
                 try:
                     ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
@@ -137,9 +130,8 @@ def main():
     args = parser.parse_args()
     compile_dests = args.compile_dest
     if args.ddir:
-        if not len(compile_dests) != 1:
-            if not os.path.isdir(compile_dests[0]):
-                parser.exit('-d destdir requires exactly one directory argument')
+        if len(compile_dests) != 1 or not os.path.isdir(compile_dests[0]):
+            parser.exit('-d destdir requires exactly one directory argument')
     if args.rx:
         import re
         args.rx = re.compile(args.rx)
@@ -152,18 +144,17 @@ def main():
                 if os.path.isfile(dest):
                     if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy):
                         success = False
-                        continue
-                try:
-                    with sys.stdin if args.flist == '-' else open(args.flist) as f:
-                        for line in f:
-                            compile_dests.append(line.strip())
-                except EnvironmentError:
-                    print('Error reading file list {}'.format(args.flist))
-                    return False
-                continue
+                    try:
+                        with sys.stdin if args.flist == '-' else open(args.flist) as f:
+                            for line in f:
+                                compile_dests.append(line.strip())
+                    except EnvironmentError:
+                        print('Error reading file list {}'.format(args.flist))
+                        return False
             success = False
             return success
-        return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)
+        else:
+            return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)
     except KeyboardInterrupt:
         print('\n[interrupted]')
         return False

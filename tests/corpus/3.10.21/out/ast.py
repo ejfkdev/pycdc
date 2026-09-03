@@ -225,9 +225,8 @@ def iter_child_nodes(node):
 def get_docstring(node, clean=True):
     if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
-    if node.body:
-        if not isinstance(node.body[0], Expr):
-            return
+    if not node.body or not isinstance(node.body[0], Expr):
+        return
     node = node.body[0].value
     if isinstance(node, Str):
         text = node.s
@@ -272,9 +271,8 @@ def get_source_segment(source, node, *, padded=False):
     return
     if end_lineno == lineno:
         try:
-            if not node.end_lineno is None:
-                if node.end_col_offset is None:
-                    return
+            if node.end_lineno is None or node.end_col_offset is None:
+                return
             lineno = node.lineno - 1
             end_lineno = node.end_lineno - 1
             col_offset = node.col_offset
@@ -1341,16 +1339,17 @@ class _Unparser(NodeVisitor):
                 self.traverse(d)
             if index == len(node.posonlyargs):
                 self.write(', /')
-        if (node.vararg or node.kwonlyargs) or first:
-            first = False
-        else:
-            self.write(', ')
-        self.write('*')
-        if node.vararg:
-            self.write(node.vararg.arg)
-            if node.vararg.annotation:
-                self.write(': ')
-                self.traverse(node.vararg.annotation)
+        if node.vararg or node.kwonlyargs:
+            if first:
+                first = False
+            else:
+                self.write(', ')
+            self.write('*')
+            if node.vararg:
+                self.write(node.vararg.arg)
+                if node.vararg.annotation:
+                    self.write(': ')
+                    self.traverse(node.vararg.annotation)
         if node.kwonlyargs:
             for a, d in zip(node.kwonlyargs, node.kw_defaults):
                 self.write(', ')

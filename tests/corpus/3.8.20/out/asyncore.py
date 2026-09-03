@@ -284,8 +284,6 @@ class dispatcher:
         if why.args[0] in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
             return
         raise
-        why = None
-        del why
         try:
             conn, addr = self.socket.accept()
         except TypeError:
@@ -303,8 +301,6 @@ class dispatcher:
             self.handle_close()
             return 0
         raise
-        why = None
-        del why
         try:
             result = self.socket.send(data)
         except OSError as why:
@@ -316,8 +312,6 @@ class dispatcher:
             self.handle_close()
             return b''
         raise
-        why = None
-        del why
         try:
             data = self.socket.recv(buffer_size)
             if not data:

@@ -52,8 +52,6 @@ def _maybe_compile(compiler, source, filename, symbol):
         warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
     return
     if 'incomplete input' in str(e):
-        e = None
-        del e
         None(None, None, None)
         return
     e = None

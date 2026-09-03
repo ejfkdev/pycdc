@@ -23,9 +23,8 @@ def mksalt(method=None):
     return s
 
 def crypt(word, salt=None):
-    if not salt is None:
-        if isinstance(salt, _Method):
-            salt = mksalt(salt)
+    if salt is None or isinstance(salt, _Method):
+        salt = mksalt(salt)
     return _crypt.crypt(word, salt)
 
 METHOD_CRYPT = _Method('CRYPT', None, 2, 13)

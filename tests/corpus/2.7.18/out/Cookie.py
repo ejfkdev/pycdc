@@ -196,9 +196,8 @@ _QuotePatt = re.compile('[\\\\].')
 def _unquote(str):
     if len(str) < 2:
         return str
-    if not str[0] != '"':
-        if str[-1] != '"':
-            return str
+    if str[0] != '"' or str[-1] != '"':
+        return str
     str = str[1:-1]
     i = 0
     n = len(str)

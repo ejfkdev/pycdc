@@ -239,8 +239,8 @@ def _write_float(f, x):
         lomant = 0
     else:
         fmant, expon = math.frexp(x)
-        if not expon > 16384 or fmant >= 1:
-            if fmant != fmant:
+        if not expon > 16384:
+            if fmant >= 1 or fmant != fmant:
                 expon = sign | 32767
                 himant = 0
                 lomant = 0

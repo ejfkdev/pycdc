@@ -62,12 +62,11 @@ class BZ2File(io.BufferedIOBase):
             self._fp = builtins.open(filename, mode)
             self._closefp = True
             self._mode = mode_code
-        elif not hasattr(filename, 'read'):
-            if hasattr(filename, 'write'):
-                self._fp = filename
-                self._mode = mode_code
-            else:
-                raise TypeError('filename must be a str or bytes object, or a file')
+        elif hasattr(filename, 'read') or hasattr(filename, 'write'):
+            self._fp = filename
+            self._mode = mode_code
+        else:
+            raise TypeError('filename must be a str or bytes object, or a file')
 
     def close(self):
         with self._lock:

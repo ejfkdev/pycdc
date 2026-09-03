@@ -210,16 +210,17 @@ class FieldStorage:
         if 'REQUEST_METHOD' in environ:
             method = environ['REQUEST_METHOD'].upper()
         self.qs_on_post = None
-        if (method == 'GET' or method == 'HEAD') or 'QUERY_STRING' in environ:
-            qs = environ['QUERY_STRING']
-        elif sys.argv[1:]:
-            qs = sys.argv[1]
-        else:
-            qs = ''
-        qs = qs(locale.getpreferredencoding(), 'surrogateescape')
-        fp = BytesIO(qs)
-        if headers is None:
-            headers = {'content-type': 'application/x-www-form-urlencoded'}
+        if method == 'GET' or method == 'HEAD':
+            if 'QUERY_STRING' in environ:
+                qs = environ['QUERY_STRING']
+            elif sys.argv[1:]:
+                qs = sys.argv[1]
+            else:
+                qs = ''
+            qs = qs(locale.getpreferredencoding(), 'surrogateescape')
+            fp = BytesIO(qs)
+            if headers is None:
+                headers = {'content-type': 'application/x-www-form-urlencoded'}
         if headers is None:
             headers = {}
             if method == 'POST':
@@ -238,9 +239,8 @@ class FieldStorage:
         elif isinstance(fp, TextIOWrapper):
             self.fp = fp.buffer
         else:
-            if hasattr(fp, 'read'):
-                if not hasattr(fp, 'readline'):
-                    raise TypeError('fp must be file pointer')
+            if not hasattr(fp, 'read') or not hasattr(fp, 'readline'):
+                raise TypeError('fp must be file pointer')
             self.fp = fp
         self.encoding = encoding
         self.errors = errors
@@ -263,11 +263,10 @@ class FieldStorage:
         self._binary_file = self.filename is not None
         if 'content-type' in self.headers:
             ctype, pdict = parse_header(self.headers['content-type'])
-        elif not self.outerboundary:
-            if method != 'POST':
-                ctype, pdict = 'text/plain', {}
-            else:
-                ctype, pdict = 'application/x-www-form-urlencoded', {}
+        elif self.outerboundary or method != 'POST':
+            ctype, pdict = 'text/plain', {}
+        else:
+            ctype, pdict = 'application/x-www-form-urlencoded', {}
         self.type = ctype
         self.type_options = pdict
         if 'boundary' in pdict:
@@ -623,8 +622,7 @@ def print_directory():
     print()
     print('<H3>Current Working Directory:</H3>')
     msg = None
-    del msg, msg
-    msg = None
+    del msg
     try:
         pwd = os.getcwd()
     except OSError as msg:

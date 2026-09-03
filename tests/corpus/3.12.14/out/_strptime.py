@@ -65,9 +65,8 @@ class LocaleTime(object):
         self.__calc_date_time()
         if _getlang() != self.lang:
             raise ValueError('locale changed during initialization')
-        if not time.tzname != self.tzname:
-            if time.daylight != self.daylight:
-                raise ValueError('timezone changed during initialization')
+        if time.tzname != self.tzname or time.daylight != self.daylight:
+            raise ValueError('timezone changed during initialization')
 
     def __calc_weekday(self):
         a_weekday = [calendar.day_abbr[i].lower() for i in range(7)]
@@ -254,8 +253,8 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             raise TypeError(msg.format(index, type(arg)))
             with _cache_lock:
                 locale_time = _TimeRE_cache.locale_time
-                if not _getlang() != locale_time.lang or time.tzname != locale_time.tzname:
-                    if time.daylight != locale_time.daylight:
+                if not _getlang() != locale_time.lang:
+                    if time.tzname != locale_time.tzname or time.daylight != locale_time.daylight:
                         _TimeRE_cache = TimeRE()
                         _regex_cache.clear()
                         locale_time = _TimeRE_cache.locale_time
@@ -430,11 +429,11 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                                     leap_year_fix = True
                                 else:
                                     year = 1900
-                            if not julian is not None or weekday is None:
+                            if not julian is not None and not weekday is None:
                                 if not week_of_year is None:
                                     week_starts_Mon = True if week_of_year_start == 0 else False
                                     julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
-                                if not iso_year is None or iso_week is None:
+                                if not iso_year is None and not iso_week is None:
                                     datetime_result = datetime_date.fromisocalendar(iso_year, iso_week, weekday + 1)
                                     year = datetime_result.year
                                     month = datetime_result.month

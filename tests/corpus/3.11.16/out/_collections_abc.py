@@ -686,9 +686,8 @@ class ValuesView(MappingView, Collection):
     def __contains__(self, value):
         for key in self._mapping:
             v = self._mapping[key]
-            if not v is value:
-                if v == value:
-                    return True
+            if v is value or v == value:
+                return True
         return False
 
     def __iter__(self):
@@ -785,9 +784,8 @@ class Sequence(Reversible, Collection):
 
     def __contains__(self, value):
         for v in self:
-            if not v is value:
-                if v == value:
-                    return True
+            if v is value or v == value:
+                return True
         return False
 
     def __reversed__(self):
@@ -802,12 +800,11 @@ class Sequence(Reversible, Collection):
             if stop < 0:
                 stop += len(self)
         i = start
-        if not stop is None:
-            while i < stop:
-                try:
-                    v = self[i]
-                except IndexError:
-                    pass
+        if stop is None or i < stop:
+            try:
+                v = self[i]
+            except IndexError:
+                pass
 
     def count(self, value):
         return sum((1 for v in self if v is value if v == value))

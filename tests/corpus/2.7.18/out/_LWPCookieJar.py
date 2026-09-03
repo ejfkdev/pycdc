@@ -115,9 +115,8 @@ class LWPCookieJar(FileCookieJar):
                             lc = k.lower()
                         else:
                             lc = None
-                        if not lc in value_attrs:
-                            if lc in boolean_attrs:
-                                k = lc
+                        if lc in value_attrs or lc in boolean_attrs:
+                            k = lc
                         if k in boolean_attrs:
                             if v is None:
                                 v = True

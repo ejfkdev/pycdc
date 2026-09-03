@@ -248,9 +248,8 @@ class NodeTransformer(NodeVisitor):
                 new_node = self.visit(old_value)
                 if new_node is None:
                     delattr(node, field)
-                    continue
-            setattr(node, field, new_node)
-            continue
+                else:
+                    setattr(node, field, new_node)
         return node
 
 

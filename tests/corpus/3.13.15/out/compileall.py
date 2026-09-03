@@ -183,7 +183,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     success = True
     for dir in sys.path:
-        if (dir and dir == os./*bad-name-6*/) and skip_curdir:
+        if (dir and dir == os.curdir) and skip_curdir:
             if quiet < 2:
                 print('Skipping current directory')
                 continue

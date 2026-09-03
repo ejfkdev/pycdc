@@ -134,9 +134,8 @@ def add_extension(module, name, code):
 
 def remove_extension(module, name, code):
     key = module, name
-    if not _extension_registry.get(key) != code:
-        if _inverted_registry.get(code) != key:
-            raise ValueError(f'key {key!s} is not registered with code {code!s}')
+    if _extension_registry.get(key) != code or _inverted_registry.get(code) != key:
+        raise ValueError(f'key {key!s} is not registered with code {code!s}')
     del _extension_registry[key], _inverted_registry[code]
     if code in _extension_cache:
         del _extension_cache[code]

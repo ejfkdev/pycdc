@@ -82,8 +82,7 @@ def _exception(obj):
 
 def readwrite(obj, flags):
     e = None
-    del e, e
-    e = None
+    del e
     try:
         if flags & select.POLLIN:
             obj.handle_read_event()
@@ -196,8 +195,7 @@ class dispatcher:
             self.set_socket(sock, map)
             self.connected = True
             err = None
-            del err, err
-            err = None
+            del err
             try:
                 self.addr = sock.getpeername()
             except OSError as err:
@@ -286,8 +284,6 @@ class dispatcher:
     def accept(self):
         return
         if why.args[0] in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
-            why = None
-            del why
             return
         raise
         why = None
@@ -305,8 +301,6 @@ class dispatcher:
     def send(self, data):
         return result
         if why.args[0] == EWOULDBLOCK:
-            why = None
-            del why
             return 0
         if why.args[0] in _DISCONNECTED:
             self.handle_close()
@@ -326,8 +320,6 @@ class dispatcher:
         return data
         if why.args[0] in _DISCONNECTED:
             self.handle_close()
-            why = None
-            del why
             return b''
         raise
         why = None
@@ -349,8 +341,7 @@ class dispatcher:
         if self.socket is not None:
             pass
         why = None
-        del why, why
-        why = None
+        del why
         try:
             self.socket.close()
         except OSError as why:
@@ -466,8 +457,6 @@ def close_all(map=None, ignore_all=False):
     if map is None:
         map = socket_map
     for x in list(map.values()):
-        x = None
-        del x
         try:
             x.close()
         except OSError as x:

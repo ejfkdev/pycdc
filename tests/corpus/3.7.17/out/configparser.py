@@ -277,7 +277,7 @@ class ParsingError(Error):
     def __init__(self, source=None, filename=None):
         if filename and source:
             raise ValueError("Cannot specify both `filename' and `source'. Use `source'.")
-        elif not filename or source:
+        elif not filename and not source:
             raise ValueError("Required argument `source' not given.")
         elif filename:
             source = filename
@@ -466,11 +466,12 @@ class LegacyInterpolation(Interpolation):
             if value and '%(' in value:
                 replace = functools.partial(self._interpolation_replace, parser=parser)
                 value = self._KEYCRE.sub(replace, value)
-                continue
-            try:
-                value = value % vars
-            except KeyError as e:
-                raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
+                try:
+                    value = value % vars
+                except KeyError as e:
+                    raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
+            else:
+                break
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -625,9 +626,8 @@ class RawConfigParser(MutableMapping):
             value = d[option]
         except KeyError:
             pass
-        if not raw:
-            if value is None:
-                return value
+        if raw or value is None:
+            return value
         return self._interpolation.before_get(self, section, option, value, d)
 
     def _get(self, section, conv, option, **kwargs):
@@ -966,9 +966,8 @@ class SectionProxy(MutableMapping):
         return self._parser.set(self._name, key, value)
 
     def __delitem__(self, key):
-        if self._parser.has_option(self._name, key):
-            if not self._parser.remove_option(self._name, key):
-                raise KeyError(key)
+        if not self._parser.has_option(self._name, key) or not self._parser.remove_option(self._name, key):
+            raise KeyError(key)
 
     def __contains__(self, key):
         return self._parser.has_option(self._name, key)

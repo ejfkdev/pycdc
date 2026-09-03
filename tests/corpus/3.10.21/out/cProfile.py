@@ -136,8 +136,6 @@ def main():
             pass
         globs = {'__file__': progname, '__name__': '__main__', '__package__': None, '__cached__': None}
         return parser
-        exc = None
-        del exc
         return parser
         exc = None
         del exc

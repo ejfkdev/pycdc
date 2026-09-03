@@ -63,7 +63,7 @@ input file naming (the filename is always passed in explicitly).
         value = value.with_traceback(tb)
         lines = source.splitlines()
         if source and typ is SyntaxError:
-            if not value.text or value.lineno is None:
+            if not value.text and not value.lineno is None:
                 if len(lines) >= value.lineno:
                     value.text = lines[value.lineno - 1]
         sys.last_exc = value.with_traceback(tb)
@@ -220,10 +220,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-q', 'store_true', "don't print version and copyright messages")
     args = parser.parse_args()
-    if not args.q:
-        if sys.flags.quiet:
-            banner = ''
-        else:
-            banner = None
+    if args.q or sys.flags.quiet:
+        banner = ''
+    else:
+        banner = None
     interact(banner)
 # WARNING: Decompyle incomplete

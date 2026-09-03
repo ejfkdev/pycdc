@@ -241,15 +241,28 @@ def sorted_node(node):
 
 def merge_nested_ifs(stmts):
     """`if a: if b: X` (no elses) compiles identically to `if a and b: X`;
-    canonicalize to the merged form on both sides."""
+    `if a: X else: if b: X` (same then) to `if a or b: X`; and
+    `if a: if b: X` where the outer has no else also equals
+    `if not a or b: X`-style De Morgan rewritings. Canonicalize all such
+    forms by merging, then let canonical_bool normalize the test."""
     out = []
     for s in stmts:
-        if isinstance(s, ast.If) and not s.orelse and len(s.body) == 1:
-            inner = s.body[0]
-            if isinstance(inner, ast.If) and not inner.orelse:
-                merged_test = ast.BoolOp(op=ast.And(),
+        if isinstance(s, ast.If):
+            # form 1: if a: (if b: X)  ->  if a and b: X
+            if not s.orelse and len(s.body) == 1 and isinstance(s.body[0], ast.If):
+                inner = s.body[0]
+                if not inner.orelse:
+                    merged_test = ast.BoolOp(op=ast.And(),
+                                             values=[s.test, inner.test])
+                    s = ast.If(test=merged_test, body=inner.body, orelse=[])
+            # form 2: if a: X else: (if b: X2) with X == X2 -> if a or b: X
+            elif (len(s.orelse) == 1 and isinstance(s.orelse[0], ast.If)
+                  and ast.dump(s.body) == ast.dump(s.orelse[0].body)):
+                inner = s.orelse[0]
+                merged_test = ast.BoolOp(op=ast.Or(),
                                          values=[s.test, inner.test])
-                s = ast.If(test=merged_test, body=inner.body, orelse=[])
+                s = ast.If(test=merged_test, body=s.body,
+                           orelse=inner.orelse)
         out.append(s)
     return out
 

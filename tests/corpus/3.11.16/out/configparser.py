@@ -278,7 +278,7 @@ class ParsingError(Error):
     def __init__(self, source=None, filename=None):
         if filename and source:
             raise ValueError("Cannot specify both `filename' and `source'. Use `source'.")
-        if not filename or source:
+        if not filename and not source:
             raise ValueError("Required argument `source' not given.")
         if filename:
             source = filename
@@ -760,7 +760,7 @@ class RawConfigParser(MutableMapping):
                 value = line[:comment_start].strip()
                 if not value:
                     if self._empty_lines_in_values:
-                        if not comment_start is not None or cursect is None:
+                        if not comment_start is not None and not cursect is None:
                             if optname:
                                 if not cursect[optname] is None:
                                     cursect[optname].append('')

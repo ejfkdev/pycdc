@@ -96,9 +96,8 @@ class Chunk:
             pos = pos + self.size_read
         elif whence == 2:
             pos = pos + self.chunksize
-        if not pos < 0:
-            if pos > self.chunksize:
-                raise RuntimeError
+        if pos < 0 or pos > self.chunksize:
+            raise RuntimeError
         self.file.seek(self.offset + pos, 0)
         self.size_read = pos
 

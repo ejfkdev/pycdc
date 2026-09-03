@@ -79,8 +79,6 @@ def _exception(obj):
         raise
 
 def readwrite(obj, flags):
-    e = None
-    del e
     try:
         if flags & select.POLLIN:
             obj.handle_read_event()
@@ -204,8 +202,6 @@ class dispatcher:
             sock.setblocking(0)
             self.set_socket(sock, map)
             self.connected = True
-            err = None
-            del err
             try:
                 self.addr = sock.getpeername()
             except socket.error as err:
@@ -289,8 +285,6 @@ class dispatcher:
             raise socket.error(err, errorcode[err])
 
     def accept(self):
-        why = None
-        del why
         try:
             conn, addr = self.socket.accept()
         except TypeError:
@@ -303,8 +297,6 @@ class dispatcher:
             return conn, addr
 
     def send(self, data):
-        why = None
-        del why
         try:
             result = self.socket.send(data)
             return result
@@ -317,8 +309,6 @@ class dispatcher:
             raise
 
     def recv(self, buffer_size):
-        why = None
-        del why
         try:
             data = self.socket.recv(buffer_size)
             if not data:
@@ -336,8 +326,6 @@ class dispatcher:
         self.accepting = False
         self.connecting = False
         self.del_channel()
-        why = None
-        del why
         try:
             self.socket.close()
         except socket.error as why:
@@ -463,8 +451,6 @@ def close_all(map=None, ignore_all=False):
     if map is None:
         map = socket_map
     for x in list(map.values()):
-        x = None
-        del x
         try:
             x.close()
         except OSError as x:

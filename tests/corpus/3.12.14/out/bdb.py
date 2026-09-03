@@ -87,18 +87,17 @@ class Bdb:
             return
 
     def dispatch_line(self, frame):
-        if not self.stop_here(frame):
-            if self.break_here(frame):
-                self.user_line(frame)
-                if self.quitting:
-                    raise BdbQuit
+        if self.stop_here(frame) or self.break_here(frame):
+            self.user_line(frame)
+            if self.quitting:
+                raise BdbQuit
         return self.trace_dispatch
 
     def dispatch_call(self, frame, arg):
         if not self.botframe is not None:
             self.botframe = frame.f_back
             return self.trace_dispatch
-        if not self.stop_here(frame) or self.break_anywhere(frame):
+        if not self.stop_here(frame) and not self.break_anywhere(frame):
             return
         if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
             return self.trace_dispatch
@@ -108,19 +107,20 @@ class Bdb:
         return self.trace_dispatch
 
     def dispatch_return(self, frame, arg):
-        if ((self.stop_here(frame) or frame == self.stopframe) or self.co_flags) and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
-            return self.trace_dispatch
-        try:
-            self.frame_returning = frame
-            self.user_return(frame, arg)
-        finally:
-            self.frame_returning = None
-            if self.quitting:
-                raise BdbQuit
-            if self.stopframe is frame and self.stoplineno != -1:
-                self._set_stopinfo(None, None)
-            if self.stoplineno != -1:
-                self._set_caller_tracefunc(frame)
+        if self.stop_here(frame) or frame == self.returnframe:
+            if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
+                return self.trace_dispatch
+            try:
+                self.frame_returning = frame
+                self.user_return(frame, arg)
+            finally:
+                self.frame_returning = None
+                if self.quitting:
+                    raise BdbQuit
+                if self.stopframe is frame and self.stoplineno != -1:
+                    self._set_stopinfo(None, None)
+                if self.stoplineno != -1:
+                    self._set_caller_tracefunc(frame)
 
     def dispatch_exception(self, frame, arg):
         if self.stop_here(frame):

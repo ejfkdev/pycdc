@@ -807,7 +807,7 @@ class RawConfigParser(MutableMapping):
                         value = line[:comment_start].strip()
                         if not value:
                             if self._empty_lines_in_values:
-                                if not comment_start is not None or cursect is None:
+                                if not comment_start is not None and not cursect is None:
                                     if optname:
                                         if not cursect[optname] is None:
                                             cursect[optname].append('')
@@ -963,9 +963,8 @@ class SectionProxy(MutableMapping):
         return self._parser.set(self._name, key, value)
 
     def __delitem__(self, key):
-        if self._parser.has_option(self._name, key):
-            if not self._parser.remove_option(self._name, key):
-                raise KeyError(key)
+        if not self._parser.has_option(self._name, key) or not self._parser.remove_option(self._name, key):
+            raise KeyError(key)
 
     def __contains__(self, key):
         return self._parser.has_option(self._name, key)

@@ -158,16 +158,15 @@ class async_chat(asyncore.dispatcher):
             while self.producer_fifo:
                 pass
         if num_sent:
-            if not num_sent < len(data):
-                if obs < len(first):
-                    try:
-                        num_sent = self.send(data)
-                    except socket.error:
-                        self.handle_error()
-                        return
-                    self.producer_fifo[0] = first[num_sent:]
-                else:
-                    del self.producer_fifo[0]
+            if num_sent < len(data) or obs < len(first):
+                try:
+                    num_sent = self.send(data)
+                except socket.error:
+                    self.handle_error()
+                    return
+                self.producer_fifo[0] = first[num_sent:]
+            else:
+                del self.producer_fifo[0]
 
     def discard_buffers(self):
         self.ac_in_buffer = ''

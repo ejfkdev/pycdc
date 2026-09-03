@@ -55,11 +55,10 @@ def open(file, flag='r', mode=438):
     from whichdb import whichdb
     result = whichdb(file)
     if result is None:
-        if not 'c' in flag:
-            if 'n' in flag:
-                mod = _defaultmod
-            else:
-                raise error # WARNING: raise cause dropped (py2)
+        if 'c' in flag or 'n' in flag:
+            mod = _defaultmod
+        else:
+            raise error # WARNING: raise cause dropped (py2)
     elif result == '':
         raise error # WARNING: raise cause dropped (py2)
     else:

@@ -57,9 +57,8 @@ else:
         return s
 
     def crypt(word, salt=None):
-        if not salt is None:
-            if isinstance(salt, _Method):
-                salt = mksalt(salt)
+        if salt is None or isinstance(salt, _Method):
+            salt = mksalt(salt)
         return _crypt.crypt(word, salt)
 
     methods = []
@@ -69,8 +68,6 @@ else:
         salt = mksalt(method, rounds=rounds)
         result = None
         if e.errno in {errno.EINVAL, errno.EPERM, errno.ENOSYS}:
-            e = None
-            del e
             return False
         raise
         e = None

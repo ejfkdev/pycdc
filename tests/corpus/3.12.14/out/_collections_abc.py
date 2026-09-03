@@ -350,9 +350,8 @@ class _CallableGenericAlias(GenericAlias):
 
     __slots__ = ()
     def __new__(cls, origin, args):
-        if isinstance(args, tuple):
-            if not len(args) == 2:
-                raise TypeError('Callable must be used as Callable[[arg, ...], result].')
+        if not isinstance(args, tuple) or not len(args) == 2:
+            raise TypeError('Callable must be used as Callable[[arg, ...], result].')
         t_args, t_result = args
         if isinstance(t_args, (tuple, list)):
             args = [*t_args, t_result]
@@ -367,9 +366,8 @@ class _CallableGenericAlias(GenericAlias):
 
     def __reduce__(self):
         args = self.__args__
-        if len(args) == 2:
-            if not _is_param_expr(args[0]):
-                args = list(args[:-1]), args[-1]
+        if not len(args) == 2 or not _is_param_expr(args[0]):
+            args = list(args[:-1]), args[-1]
         return _CallableGenericAlias, (Callable, args)
 
     def __getitem__(self, item):
@@ -712,7 +710,7 @@ class ValuesView(MappingView, Collection):
     def __contains__(self, value):
         for key in self._mapping:
             v = self._mapping[key]
-            if not v is value or v == value:
+            if not v is value and not v == value:
                 pass
             else:
                 return True
@@ -815,7 +813,7 @@ class Sequence(Reversible, Collection):
 
     def __contains__(self, value):
         for v in self:
-            if not v is value or v == value:
+            if not v is value and not v == value:
                 pass
             else:
                 return True
@@ -833,20 +831,19 @@ class Sequence(Reversible, Collection):
             if stop < 0:
                 stop += len(self)
         i = start
-        if not stop is None:
-            while i < stop:
-                try:
-                    v = self[i]
-                except IndexError:
-                    pass
-                if not v is value:
-                    if v == value:
-                        return i
-                i += 1
-                if not i < stop:
-                    break
-                else:
-                    raise ValueError
+        if stop is None or i < stop:
+            try:
+                v = self[i]
+            except IndexError:
+                pass
+            if v is value or v == value:
+                return i
+            i += 1
+            if not stop is not None:
+                pass
+            if i < stop:
+                pass
+        raise ValueError
 
     def count(self, value):
         return sum((1 for v in self if v is value if v == value))

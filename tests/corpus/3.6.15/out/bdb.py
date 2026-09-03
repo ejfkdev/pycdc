@@ -63,11 +63,10 @@ class Bdb:
         return self.trace_dispatch
 
     def dispatch_line(self, frame):
-        if not self.stop_here(frame):
-            if self.break_here(frame):
-                self.user_line(frame)
-                if self.quitting:
-                    raise BdbQuit
+        if self.stop_here(frame) or self.break_here(frame):
+            self.user_line(frame)
+            if self.quitting:
+                raise BdbQuit
         return self.trace_dispatch
 
     def dispatch_call(self, frame, arg):
@@ -85,18 +84,19 @@ class Bdb:
         return self.trace_dispatch
 
     def dispatch_return(self, frame, arg):
-        if (self.stop_here(frame) or frame == self.returnframe) or self.stopframe:
-            if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
-                return self.trace_dispatch
-        try:
-            self.frame_returning = frame
-            self.user_return(frame, arg)
-        finally:
-            self.frame_returning = None
-        if self.quitting:
-            raise BdbQuit
-        if self.stopframe is frame and self.stoplineno != -1:
-            self._set_stopinfo(None, None)
+        if self.stop_here(frame) or frame == self.returnframe:
+            if self.stopframe:
+                if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
+                    return self.trace_dispatch
+            try:
+                self.frame_returning = frame
+                self.user_return(frame, arg)
+            finally:
+                self.frame_returning = None
+            if self.quitting:
+                raise BdbQuit
+            if self.stopframe is frame and self.stoplineno != -1:
+                self._set_stopinfo(None, None)
         return self.trace_dispatch
 
     def dispatch_exception(self, frame, arg):

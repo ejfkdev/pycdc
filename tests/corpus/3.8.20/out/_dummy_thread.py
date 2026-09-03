@@ -66,10 +66,9 @@ class LockType(object):
         self.locked_status = False
 
     def acquire(self, waitflag=None, timeout=-1):
-        if not waitflag is None:
-            if waitflag:
-                self.locked_status = True
-                return True
+        if waitflag is None or waitflag:
+            self.locked_status = True
+            return True
         if not self.locked_status:
             self.locked_status = True
             return True

@@ -330,8 +330,6 @@ class _CallableGenericAlias(GenericAlias):
     __slots__ = ()
     def __new__(cls, origin, args):
         return cls.__create_ga(origin, args)
-        exc = None
-        del exc
         return
         exc = None
         del exc
@@ -360,9 +358,8 @@ class _CallableGenericAlias(GenericAlias):
 
     def __reduce__(self):
         args = self.__args__
-        if len(args) == 2:
-            if not args[0] is Ellipsis:
-                args = list(args[:-1]), args[-1]
+        if not len(args) == 2 or not args[0] is Ellipsis:
+            args = list(args[:-1]), args[-1]
         return _CallableGenericAlias, (Callable, args)
 
     def __getitem__(self, item):
@@ -779,9 +776,8 @@ class Sequence(Reversible, Collection):
                 pass
         try:
             v = self[i]
-            if not v is value:
-                if v == value:
-                    return i
+            if v is value or v == value:
+                return i
         except IndexError:
             pass
         i += 1

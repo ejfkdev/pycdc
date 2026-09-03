@@ -116,8 +116,6 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
         if value is None:
             value = typ()
         raise RuntimeError("generator didn't stop after throw()")
-        exc = None
-        del exc
         return
         exc = None
         del exc
@@ -125,8 +123,6 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             self.gen.throw(typ, value, traceback)
         except StopIteration as exc:
             pass
-        exc = None
-        del exc
         return False
         exc = None
         del exc
@@ -167,8 +163,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         if value is None:
             value = typ()
         raise RuntimeError("generator didn't stop after athrow()")
-        exc = None
-        del exc
         return
         exc = None
         del exc
@@ -176,8 +170,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             await self.gen.athrow(typ, value, traceback)
         except StopAsyncIteration as exc:
             pass
-        exc = None
-        del exc
         return False
         exc = None
         del exc
@@ -390,9 +382,8 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
             exc_context = new_exc.__context__
-            if not exc_context is None:
-                if exc_context is old_exc:
-                    return
+            if exc_context is None or exc_context is old_exc:
+                return
             if exc_context is frame_exc:
                 pass
             else:
@@ -470,9 +461,8 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
             exc_context = new_exc.__context__
-            if not exc_context is None:
-                if exc_context is old_exc:
-                    return
+            if exc_context is None or exc_context is old_exc:
+                return
             if exc_context is frame_exc:
                 pass
             else:

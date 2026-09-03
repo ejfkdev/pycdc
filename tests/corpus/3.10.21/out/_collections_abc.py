@@ -331,9 +331,8 @@ class _CallableGenericAlias(GenericAlias):
 
     __slots__ = ()
     def __new__(cls, origin, args):
-        if isinstance(args, tuple):
-            if not len(args) == 2:
-                raise TypeError('Callable must be used as Callable[[arg, ...], result].')
+        if not isinstance(args, tuple) or not len(args) == 2:
+            raise TypeError('Callable must be used as Callable[[arg, ...], result].')
         t_args, t_result = args
         if isinstance(t_args, list):
             args = *t_args, t_result
@@ -362,9 +361,8 @@ class _CallableGenericAlias(GenericAlias):
 
     def __reduce__(self):
         args = self.__args__
-        if len(args) == 2:
-            if not _is_param_expr(args[0]):
-                args = list(args[:-1]), args[-1]
+        if not len(args) == 2 or not _is_param_expr(args[0]):
+            args = list(args[:-1]), args[-1]
         return _CallableGenericAlias, (Callable, args)
 
     def __getitem__(self, item):
@@ -738,9 +736,8 @@ class ValuesView(MappingView, Collection):
     def __contains__(self, value):
         for key in self._mapping:
             v = self._mapping[key]
-            if not v is value:
-                if v == value:
-                    return True
+            if v is value or v == value:
+                return True
         return False
 
     def __iter__(self):
@@ -831,9 +828,8 @@ class Sequence(Reversible, Collection):
 
     def __contains__(self, value):
         for v in self:
-            if not v is value:
-                if v == value:
-                    return True
+            if v is value or v == value:
+                return True
         return False
 
     def __reversed__(self):
@@ -846,20 +842,19 @@ class Sequence(Reversible, Collection):
         if stop is not None and stop < 0:
             stop += len(self)
         i = start
-        if not i < stop:
-            try:
-                v = self[i]
-                if not v is value:
-                    if v == value:
+        if stop is None or i < stop:
+            raise ValueError
+            if not i < stop:
+                try:
+                    v = self[i]
+                    if v is value or v == value:
                         return i
-            except IndexError:
-                pass
-            else:
-                i += 1
-                while i < stop:
-                    raise ValueError
-                if not stop is None:
+                except IndexError:
                     pass
+                else:
+                    i += 1
+                    if not stop is None:
+                        pass
         raise ValueError
 
     def count(self, value):

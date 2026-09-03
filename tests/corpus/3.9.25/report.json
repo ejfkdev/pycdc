@@ -25,7 +25,7 @@
   },
   {
    "module": "_bootsubprocess",
-   "ast_detail": "diff at token 43: orig  keywords=[])) | dec  keywords=[]))]",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 300,
    "ntotal": 357,
@@ -33,7 +33,7 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "diff at token 275: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 3351,
    "ntotal": 3420,
@@ -45,7 +45,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 234: orig  ctx=Store())) | dec  ctx=Store()))]",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 203,
    "ntotal": 515,
@@ -53,7 +53,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 469: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 968,
    "ntotal": 1391,
@@ -61,7 +61,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 126: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  Expr(value=Name(id='f'",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 1254,
    "ntotal": 1437,
@@ -69,7 +69,7 @@
   },
   {
    "module": "_py_abc",
-   "ast_detail": "diff at token 559: orig  body=[If(test=Call(func=Name(id='issubclass' | dec  body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='cls'",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 44,
    "ntotal": 489,
@@ -85,9 +85,9 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 104: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2045,
+   "ndiff": 2053,
    "ntotal": 2142,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -117,15 +117,15 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 23: orig  body=[Try(body=[Return(value=Subscript(value=Call(func=Attribute(value=Name(id='struct' | dec  body=[Return(value=Subscript(value=Call(func=Attribute(value=Name(id='struct'",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2707,
+   "ndiff": 2706,
    "ntotal": 3098,
    "detail": "line 171: orig ('SETUP_WITH', 'to 588') | got ('SETUP_WITH', 'to 582')\nline 242: orig ('SETUP_WITH', 'to 548') | got ('SETUP_WITH', 'to 542')\nline 259: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 528')"
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 136: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 6112,
    "ntotal": 7149,
@@ -133,7 +133,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 200: orig  body=[Try(body=[Assign(targets=[Name(id='data' | dec  body=[Return()",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 554,
    "ntotal": 797,
@@ -141,15 +141,15 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 42: orig  body=[Assign(targets=[Name(id='socket_map' | dec  name='socket_map'",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2134,
+   "ndiff": 1957,
    "ntotal": 2212,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 44: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 1478,
    "ntotal": 1868,
@@ -157,15 +157,15 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 285: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2246,
+   "ndiff": 2251,
    "ntotal": 2340,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "binhex",
-   "ast_detail": "diff at token 123: orig  Assign(targets=[Tuple(elts=[Name(id='dir' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 1559,
    "ntotal": 2036,
@@ -177,7 +177,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 73: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 984,
    "ntotal": 1051,
@@ -187,13 +187,13 @@
    "module": "cProfile",
    "ast_detail": "diff at token 158: orig  keywords=[]))])] | dec  keywords=[]))])",
    "verdict": "SIG-DIFF",
-   "ndiff": 386,
+   "ndiff": 385,
    "ntotal": 686,
    "detail": "line 259: orig ('FOR_ITER', 'to 294') | got ('FOR_ITER', 'to 290')\nline 272: orig ('FOR_ITER', 'to 292') | got ('FOR_ITER', 'to 288')\nline 283: orig ('JUMP_FORWARD', 'to 180') | got ('JUMP_FORWARD', 'to 176')"
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 447: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 2625,
    "ntotal": 3063,
@@ -201,15 +201,15 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 52: orig  'logfile' | dec  'logfp'])",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2769,
+   "ndiff": 2771,
    "ntotal": 2887,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 125: orig  If(test=Compare(left=Call(func=Name(id='type' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 1315,
    "ntotal": 1456,
@@ -217,7 +217,7 @@
   },
   {
    "module": "chunk",
-   "ast_detail": "diff at token 173: orig  body=[Try(body=[Expr(value=Call(func=Attribute(value=Name(id='self' | dec  body=[Assign(targets=[Attribute(value=Name(id='self'",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 252,
    "ntotal": 438,
@@ -225,7 +225,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 142: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()]",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 1088,
    "ntotal": 1329,
@@ -233,7 +233,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 59: orig  body=[Try(body=[Assign(targets=[Name(id='code' | dec  body=[Return(value=Constant(value=False))",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 633,
    "ntotal": 665,
@@ -241,9 +241,9 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 2: orig  Try(body=[ImportFrom(module='_codecs' | dec  Assign(targets=[Name(id='why'",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2067,
+   "ndiff": 2071,
    "ntotal": 2146,
    "detail": "line 11: orig ('SETUP_FINALLY', 'to 34') | got ('LOAD_CONST', 'None')\nline 12: orig ('LOAD_CONST', '0') | got ('STORE_NAME', 'why')\nline 13: orig ('LOAD_CONST', \"('*',)\") | got ('DELETE_NAME', 'why')"
   },
@@ -253,7 +253,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 217,
    "ntotal": 356,
-   "detail": "line 86: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 128: orig ('SETUP_WITH', 'to 276') | got ('SETUP_WITH', 'to 300')\nline 135: orig ('SETUP_FINALLY', 'to 158') | got ('LOAD_CONST', 'None')"
+   "detail": "line 86: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 128: orig ('SETUP_WITH', 'to 276') | got ('SETUP_WITH', 'to 288')\nline 135: orig ('SETUP_FINALLY', 'to 158') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "colorsys",
@@ -261,34 +261,34 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 63: orig  Try(body=[Assign(targets=[Name(id='names' | dec  Assign(targets=[Name(id='names'",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1261,
+   "ndiff": 1313,
    "ntotal": 1513,
    "detail": "line 121: orig ('SETUP_FINALLY', 'to 64') | got ('BUILD_LIST', '')\nline 122: orig ('LOAD_GLOBAL', 'os') | got ('STORE_FAST', 'names')\nline 123: orig ('LOAD_METHOD', 'listdir') | got ('SETUP_FINALLY', 'to 68')"
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 624: orig  If(test=BoolOp(op=And() | dec  If(test=BoolOp(op=Or()",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2839,
+   "ndiff": 2824,
    "ntotal": 4333,
-   "detail": "line 671: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 673: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1068: orig ('JUMP_FORWARD', 'to 334') | got ('JUMP_ABSOLUTE', '')"
+   "detail": "line 1068: orig ('JUMP_FORWARD', 'to 334') | got ('JUMP_ABSOLUTE', '')\nline 1393: orig ('JUMP_FORWARD', 'to 470') | got ('JUMP_ABSOLUTE', '')\nline 1451: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')"
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 59: orig  body=[Return(value=Constant(value=None))] | dec  body=[Pass()]",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1694,
+   "ndiff": 1693,
    "ntotal": 1750,
    "detail": "line 28: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 32: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 20: orig  body=[Assign(targets=[Name(id='PyStringMap' | dec  name='PyStringMap'",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 857,
-   "ntotal": 919,
+   "ndiff": 860,
+   "ntotal": 918,
    "detail": "line 35: orig ('JUMP_FORWARD', 'to 92') | got ('JUMP_FORWARD', 'to 106')\nline 40: orig ('POP_TOP', '') | got ('STORE_NAME', 'PyStringMap')\nline 42: orig ('LOAD_CONST', 'None') | got ('SETUP_FINALLY', 'to 96')"
   },
   {

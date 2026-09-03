@@ -308,19 +308,17 @@ class RawConfigParser:
         return optionstr.lower()
 
     def has_option(self, section, option):
-        if not not section:
-            if section == DEFAULTSECT:
-                option = self.optionxform(option)
-                return option in self._defaults
+        if not section or section == DEFAULTSECT:
+            option = self.optionxform(option)
+            return option in self._defaults
         if section not in self._sections:
             return False
         option = self.optionxform(option)
         return option in self._sections[section] or option in self._defaults
 
     def set(self, section, option, value=None):
-        if not not section:
-            if section == DEFAULTSECT:
-                sectdict = self._defaults
+        if not section or section == DEFAULTSECT:
+            sectdict = self._defaults
         try:
             sectdict = self._sections[section]
         except KeyError:
@@ -338,16 +336,14 @@ class RawConfigParser:
             for key, value in self._sections[section].items():
                 if key == '__name__':
                     continue
-                if not value is not None:
-                    if self._optcre == self.OPTCRE:
-                        key = ' = '.join((key, str(value).replace('\n', '\n\t')))
+                if value is not None or self._optcre == self.OPTCRE:
+                    key = ' = '.join((key, str(value).replace('\n', '\n\t')))
                 fp.write('%s\n' % key)
             fp.write('\n')
 
     def remove_option(self, section, option):
-        if not not section:
-            if section == DEFAULTSECT:
-                sectdict = self._defaults
+        if not section or section == DEFAULTSECT:
+            sectdict = self._defaults
         try:
             sectdict = self._sections[section]
         except KeyError:
@@ -482,9 +478,8 @@ class ConfigParser(RawConfigParser):
             value = d[option]
         except KeyError:
             raise NoOptionError(option, section)
-        if not raw:
-            if value is None:
-                return value
+        if raw or value is None:
+            return value
         return self._interpolate(section, option, value, d)
 
     def items(self, section, raw=False, vars=None):
@@ -511,7 +506,13 @@ class ConfigParser(RawConfigParser):
             depth -= 1
             if value and '%(' in value:
                 value = self._KEYCRE.sub(self._interpolation_replace, value)
-                continue
+                try:
+                    value = value % vars
+                except KeyError:
+                    e = None
+                    raise InterpolationMissingOptionError(option, section, rawval, e.args[0])
+            else:
+                break
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -564,8 +565,9 @@ class SafeConfigParser(ConfigParser):
                 raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
 
     def set(self, section, option, value=None):
-        if (self._optcre is self.OPTCRE or value) and isinstance(value, basestring):
-            raise TypeError('option values must be strings')
+        if self._optcre is self.OPTCRE or value:
+            if not isinstance(value, basestring):
+                raise TypeError('option values must be strings')
         if value is not None:
             tmp_value = value.replace('%%', '')
             tmp_value = self._interpvar_re.sub('', tmp_value)

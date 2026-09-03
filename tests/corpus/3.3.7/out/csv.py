@@ -45,8 +45,6 @@ class Dialect:
         self._validate()
 
     def _validate(self):
-        e = None
-        del e
         try:
             _Dialect(self)
         except TypeError as e:
@@ -209,9 +207,8 @@ class Sniffer:
             except KeyError:
                 continue
             if key:
-                if not delimiters is None:
-                    if key in delimiters:
-                        delims[key] = delims.get(key, 0) + 1
+                if delimiters is None or key in delimiters:
+                    delims[key] = delims.get(key, 0) + 1
             try:
                 n = regexp.groupindex['space'] - 1
             except KeyError:
@@ -274,8 +271,6 @@ class Sniffer:
                                     if not delimiters is None:
                                         if k in delimiters:
                                             delims[k] = v
-                                            continue
-                        continue
                     consistency -= 0.01
                 else:
                     if len(delims) == 1:

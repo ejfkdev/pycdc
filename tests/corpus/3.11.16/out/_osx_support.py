@@ -181,13 +181,12 @@ def compiler_fixup(compiler_so, cc_args):
     else:
         stripArch = '-arch' in cc_args
         stripSysroot = any((arg for arg in cc_args if arg.startswith('-isysroot')))
-    if not stripArch:
-        if 'ARCHFLAGS' in os.environ:
-            try:
-                index = compiler_so.index('-arch')
-                del compiler_so[index:index + 2]
-            except ValueError:
-                pass
+    if stripArch or 'ARCHFLAGS' in os.environ:
+        try:
+            index = compiler_so.index('-arch')
+            del compiler_so[index:index + 2]
+        except ValueError:
+            pass
 
 def customize_config_vars(_config_vars):
     if not _supports_universal_builds():

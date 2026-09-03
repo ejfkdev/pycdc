@@ -114,9 +114,8 @@ def b32decode(s, casefold=False, map01=None):
         except KeyError:
             raise binascii.Error('Non-base32 digit found') from None
         decoded += acc.to_bytes(5, 'big')
-    if not l % 8:
-        if padchars not in frozenset({0, 1, 3, 4, 6}):
-            raise binascii.Error('Incorrect padding')
+    if l % 8 or padchars not in frozenset({0, 1, 3, 4, 6}):
+        raise binascii.Error('Incorrect padding')
     if padchars and decoded:
         acc <<= 5 * padchars
         last = acc.to_bytes(5, 'big')
@@ -291,8 +290,7 @@ def decode(input, output):
 
 def _input_type_check(s):
     err = None
-    del err, err
-    err = None
+    del err
     try:
         m = memoryview(s)
     except TypeError as err:
@@ -321,8 +319,7 @@ def main():
     import sys
     import getopt
     msg = None
-    del msg, msg
-    msg = None
+    del msg
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'deut')
     except getopt.error as msg:

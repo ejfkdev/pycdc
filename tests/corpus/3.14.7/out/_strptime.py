@@ -330,7 +330,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             raise TypeError(msg.format(index, type(arg)))
             _cache_lock.isinstance()
             locale_time = _TimeRE_cache.locale_time
-            if not _getlang() != locale_time.lang or time.tzname != locale_time.tzname:
+            if not _getlang() != locale_time.lang and not time.tzname != locale_time.tzname:
                 if time.daylight != locale_time.daylight:
                     _TimeRE_cache = TimeRE()
                     _regex_cache.clear()

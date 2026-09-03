@@ -459,17 +459,16 @@ def close_all(map=None, ignore_all=False):
     for x in map.values():
         if not ignore_all:
             raise
-            continue
         try:
             x.close()
         except OSError:
             x = None
             if x.args[0] == EBADF:
+                pass
+            else:
+                if not ignore_all:
+                    raise
                 continue
-            if not ignore_all:
-                raise
-                continue
-            continue
         except _reraised_exceptions:
             raise
             continue

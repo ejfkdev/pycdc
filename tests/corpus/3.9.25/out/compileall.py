@@ -50,9 +50,8 @@ def _walk_dir(dir, maxlevels, quiet=0):
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     ProcessPoolExecutor = None
     if ddir is not None:
-        if not stripdir is not None:
-            if prependdir is not None:
-                raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
+        if stripdir is not None or prependdir is not None:
+            raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
     if ddir is not None:
         stripdir = dir
         prependdir = ddir
@@ -83,9 +82,8 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     if ddir is not None:
-        if not stripdir is not None:
-            if prependdir is not None:
-                raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
+        if stripdir is not None or prependdir is not None:
+            raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
     success = True
     if quiet < 2 and isinstance(fullname, os.PathLike):
         fullname = os.fspath(fullname)
@@ -149,8 +147,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     if not quiet:
         print('Compiling {!r}...'.format(fullname))
     if quiet >= 2:
-        err = None
-        del err
         return
     if quiet:
         print('*** Error compiling {!r}...'.format(fullname))
@@ -163,8 +159,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     del err, err
     err = None
     if quiet >= 2:
-        e = None
-        del e
         return
     if quiet:
         print('*** Error compiling {!r}...'.format(fullname))
@@ -238,9 +232,8 @@ def main():
     if len(args.opt_levels) == 1 and args.hardlink_dupes:
         parser.error('Hardlinking of duplicated bytecode makes sense only for more than one optimization level.')
     if args.ddir is not None:
-        if not args.stripdir is not None:
-            if args.prependdir is not None:
-                parser.error('-d cannot be used in combination with -s or -p')
+        if args.stripdir is not None or args.prependdir is not None:
+            parser.error('-d cannot be used in combination with -s or -p')
     if args.flist:
         pass
     if args.quiet < 2:

@@ -141,7 +141,6 @@ def _eintr_retry(func, *args):
             e = None
             if e.args[0] != errno.EINTR:
                 raise
-                continue
             continue
 
 class BaseServer:
@@ -385,8 +384,6 @@ class ForkingMixIn:
                     self.active_children.clear()
                 elif e.errno != errno.EINTR:
                     break
-                    continue
-                continue
         for pid in self.active_children.copy():
             try:
                 pid, _ = os.waitpid(pid, os.WNOHANG)
@@ -395,7 +392,6 @@ class ForkingMixIn:
                 e = None
                 if e.errno == errno.ECHILD:
                     self.active_children.discard(pid)
-                    continue
                 continue
 
     def handle_timeout(self):

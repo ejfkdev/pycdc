@@ -255,7 +255,7 @@ class _Hqxdecoderengine:
             if not newdata:
                 raise Error('Premature EOF on binhex file')
             data = data + newdata
-            if not decdata or self.eof:
+            if not decdata and not self.eof:
                 try:
                     with _ignore_deprecation_warning():
                         decdatacur, self.eof = binascii.a2b_hqx(data)

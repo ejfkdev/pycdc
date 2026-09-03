@@ -233,8 +233,8 @@ def _write_float(f, x):
         lomant = 0
     else:
         fmant, expon = math.frexp(x)
-        if not expon > 16384 or fmant >= 1:
-            if fmant != fmant:
+        if not expon > 16384:
+            if fmant >= 1 or fmant != fmant:
                 expon = sign | 32767
                 himant = 0
                 lomant = 0
@@ -303,9 +303,8 @@ class Aifc_read:
         elif chunkname == b'MARK':
             self._readmark(chunk)
         chunk.skip()
-        if self._comm_chunk_read:
-            if not self._ssnd_chunk:
-                raise Error('COMM chunk and/or SSND chunk missing')
+        if not self._comm_chunk_read or not self._ssnd_chunk:
+            raise Error('COMM chunk and/or SSND chunk missing')
 
     def __init__(self, f):
         if isinstance(f, str):
@@ -372,9 +371,8 @@ class Aifc_read:
         raise Error('marker {0!r} does not exist'.format(id))
 
     def setpos(self, pos):
-        if not pos < 0:
-            if pos > self._nframes:
-                raise Error('position not in range')
+        if pos < 0 or pos > self._nframes:
+            raise Error('position not in range')
         self._soundpos = pos
         self._ssnd_seek_needed = 1
 
@@ -457,9 +455,8 @@ class Aifc_read:
                 id = _read_short(chunk)
                 pos = _read_long(chunk)
                 name = _read_string(chunk)
-                if not pos:
-                    if name:
-                        self._markers.append((id, pos, name))
+                if pos or name:
+                    self._markers.append((id, pos, name))
         except EOFError as w:
             warnings.warn(w)
 
@@ -527,9 +524,8 @@ class Aifc_write:
     def setsampwidth(self, sampwidth):
         if self._nframeswritten:
             raise Error('cannot change parameters after starting to write')
-        if not sampwidth < 1:
-            if sampwidth > 4:
-                raise Error('bad sample width')
+        if sampwidth < 1 or sampwidth > 4:
+            raise Error('bad sample width')
         self._sampwidth = sampwidth
 
     def getsampwidth(self):
@@ -584,8 +580,8 @@ class Aifc_write:
         self.setcomptype(comptype, compname)
 
     def getparams(self):
-        if self._nchannels and self._sampwidth:
-            if not self._framerate:
+        if self._nchannels:
+            if not self._sampwidth or not self._framerate:
                 raise Error('not all parameters set')
         return _aifc_params(self._nchannels, self._sampwidth, self._framerate, self._nframes, self._comptype, self._compname)
 
@@ -630,10 +626,9 @@ class Aifc_write:
 
     def writeframes(self, data):
         self.writeframesraw(data)
-        if not self._nframeswritten != self._nframes:
-            if self._datalength != self._datawritten:
-                self._patchheader()
-                return
+        if self._nframeswritten != self._nframes or self._datalength != self._datawritten:
+            self._patchheader()
+            return
 
     def close(self):
         if self._file is None:

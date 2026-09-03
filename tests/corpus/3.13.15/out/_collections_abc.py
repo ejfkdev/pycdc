@@ -356,9 +356,8 @@ Example: ``Callable[[int, str], float]`` sets ``__args__`` to
 
     __slots__ = ()
     def __new__(cls, origin, args):
-        if isinstance(args, tuple):
-            if not len(args) == 2:
-                raise TypeError('Callable must be used as Callable[[arg, ...], result].')
+        if not isinstance(args, tuple) or not len(args) == 2:
+            raise TypeError('Callable must be used as Callable[[arg, ...], result].')
         t_args, t_result = args
         if isinstance(t_args, (tuple, list)):
             args = [*t_args, t_result]
@@ -373,9 +372,8 @@ Example: ``Callable[[int, str], float]`` sets ``__args__`` to
 
     def __reduce__(self):
         args = self.__args__
-        if len(args) == 2:
-            if not _is_param_expr(args[0]):
-                args = list(args[:-1]), args[-1]
+        if not len(args) == 2 or not _is_param_expr(args[0]):
+            args = list(args[:-1]), args[-1]
         return _CallableGenericAlias, (Callable, args)
 
     def __getitem__(self, item):
