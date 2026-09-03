@@ -136,24 +136,71 @@ affects what we see:
 __all__ = ['local']
 
 class _localbase(object):
-    pass
+    __slots__ = ('_local__key', '_local__args', '_local__lock')
+    def __new__(cls, *args, **kw):
+        self = object.__new__(cls)
+        key = '_local__key', 'thread.local.' + str(id(self))
+        object.__setattr__(self, '_local__key', key)
+        object.__setattr__(self, '_local__args', (args, kw))
+        object.__setattr__(self, '_local__lock', RLock())
+        if not args:
+            if kw and cls.__init__ is object.__init__:
+                raise TypeError('Initialization arguments are not supported')
+        dict = object.__getattribute__(self, '__dict__')
+        current_thread().__dict__[key] = dict
+        return self
+
 
 def _patch(self):
     key = object.__getattribute__(self, '_local__key')
     d = current_thread().__dict__.get(key)
-    /* unsupported opcode: JUMP_IF_FALSE 123 @48 */
-    d is None
-    d = {}
-    current_thread().__dict__[key] = d
-    object.__setattr__(self, '__dict__', d)
-    cls = type(self)
-    /* unsupported opcode: JUMP_IF_FALSE 47 @120 */
-    cls.__init__ is not object.__init__
-    args, kw = object.__getattribute__(self, '_local__args')
-    cls.__init__(self, *args, **kw)
+    if d is None:
+        d = {}
+        current_thread().__dict__[key] = d
+        object.__setattr__(self, '__dict__', d)
+        cls = type(self)
+        if cls.__init__ is not object.__init__:
+            args, kw = object.__getattribute__(self, '_local__args')
+            cls.__init__(self, *args, **kw)
+    else:
+        object.__setattr__(self, '__dict__', d)
 
 class local(_localbase):
-    pass
+    def __getattribute__(self, name):
+        lock = object.__getattribute__(self, '_local__lock')
+        lock.acquire()
+        try:
+            _patch(self)
+            return object.__getattribute__(self, name)
+        finally:
+            lock.release()
+
+    def __setattr__(self, name, value):
+        lock = object.__getattribute__(self, '_local__lock')
+        lock.acquire()
+        try:
+            _patch(self)
+            return object.__setattr__(self, name, value)
+        finally:
+            lock.release()
+
+    def __delattr__(self, name):
+        lock = object.__getattribute__(self, '_local__lock')
+        lock.acquire()
+        try:
+            _patch(self)
+            return object.__delattr__(self, name)
+        finally:
+            lock.release()
+
+    def __del__(self):
+        import threading
+        key = object.__getattribute__(self, '_local__key')
+        return
+        for thread in threads:
+            if key in __dict__:
+                continue
+
 
 from threading import current_thread
 from threading import RLock

@@ -31,7 +31,7 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
         seen.add(w)
         lo = w >> 1
         hi = w - lo
-        which = hi if need_hi else lo
+        which = lo
         need.add(which)
         ws.add(which)
         if not lo != hi:

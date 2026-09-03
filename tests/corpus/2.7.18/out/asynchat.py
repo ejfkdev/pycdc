@@ -29,13 +29,174 @@ from warnings import catch_warnings
 _BLOCKING_IO_ERRORS = errno.EAGAIN, errno.EALREADY, errno.EINPROGRESS, errno.EWOULDBLOCK
 
 class async_chat(asyncore.dispatcher):
-    pass
+    '''This is an abstract class.  You must derive from this class, and add
+    the two methods collect_incoming_data() and found_terminator()'''
 
-class simple_producer(()):
-    pass
+    ac_in_buffer_size = 4096
+    ac_out_buffer_size = 4096
+    def __init__(self, sock=None, map=None):
+        self.ac_in_buffer = ''
+        self.incoming = []
+        self.producer_fifo = deque()
+        asyncore.dispatcher.__init__(self, sock, map)
 
-class fifo(()):
-    pass
+    def collect_incoming_data(self, data):
+        raise NotImplementedError('must be implemented in subclass')
+
+    def _collect_incoming_data(self, data):
+        self.incoming.append(data)
+
+    def _get_data(self):
+        d = ''.join(self.incoming)
+        del self.incoming[:]
+        return d
+
+    def found_terminator(self):
+        raise NotImplementedError('must be implemented in subclass')
+
+    def set_terminator(self, term):
+        self.terminator = term
+
+    def get_terminator(self):
+        return self.terminator
+
+    def handle_read(self):
+        while True:
+            try:
+                data = self.recv(self.ac_in_buffer_size)
+            except socket.error:
+                why = None
+                if why.args[0] in _BLOCKING_IO_ERRORS:
+                    return
+                self.handle_error()
+                return
+            else:
+                self.ac_in_buffer = self.ac_in_buffer + data
+            while self.ac_in_buffer:
+                lb = len(self.ac_in_buffer)
+                terminator = self.get_terminator()
+                if not terminator:
+                    self.collect_incoming_data(self.ac_in_buffer)
+                    self.ac_in_buffer = ''
+                    continue
+                if isinstance(terminator, (int, long)):
+                    n = terminator
+                    if lb < n:
+                        self.collect_incoming_data(self.ac_in_buffer)
+                        self.ac_in_buffer = ''
+                        self.terminator = self.terminator - lb
+                        continue
+                self.collect_incoming_data(self.ac_in_buffer[:n])
+                self.ac_in_buffer = self.ac_in_buffer[n:]
+                self.terminator = 0
+                self.found_terminator()
+            terminator_len = len(terminator)
+            index = self.ac_in_buffer.find(terminator)
+            if index != -1:
+                if index > 0:
+                    self.collect_incoming_data(self.ac_in_buffer[:index])
+                self.ac_in_buffer = self.ac_in_buffer[index + terminator_len:]
+                self.found_terminator()
+                continue
+            index = find_prefix_at_end(self.ac_in_buffer, terminator)
+            if index:
+                if index != lb:
+                    self.collect_incoming_data(self.ac_in_buffer[:-index])
+                    self.ac_in_buffer = self.ac_in_buffer[-index:]
+                break
+                continue
+            self.collect_incoming_data(self.ac_in_buffer)
+            self.ac_in_buffer = ''
+
+    def handle_write(self):
+        self.initiate_send()
+
+    def handle_close(self):
+        self.close()
+
+    def push(self, data):
+        sabs = self.ac_out_buffer_size
+        if len(data) > sabs:
+            for i in xrange(0, len(data), sabs):
+                self.producer_fifo.append(data[i:i + sabs])
+                continue
+                break
+                self.producer_fifo.append(data)
+        self.initiate_send()
+
+    def push_with_producer(self, producer):
+        self.producer_fifo.append(producer)
+        self.initiate_send()
+
+    def readable(self):
+        return 1
+
+    def writable(self):
+        return self.producer_fifo or not self.connected
+
+    def close_when_done(self):
+        self.producer_fifo.append(None)
+
+    def initiate_send(self):
+        while self.producer_fifo:
+            if num_sent:
+                if not num_sent < len(data):
+                    if obs < len(first):
+                        try:
+                            pass
+                        except socket.error:
+                            self.handle_error()
+                            return
+                        self.producer_fifo[0] = first[num_sent:]
+                        continue
+            del self.producer_fifo[0]
+            return
+
+    def discard_buffers(self):
+        self.ac_in_buffer = ''
+        del self.incoming[:]
+        self.producer_fifo.clear()
+
+
+class simple_producer:
+    def __init__(self, data, buffer_size=512):
+        self.data = data
+        self.buffer_size = buffer_size
+
+    def more(self):
+        if len(self.data) > self.buffer_size:
+            result = self.data[:self.buffer_size]
+            self.data = self.data[self.buffer_size:]
+            return result
+        result = self.data
+        self.data = ''
+        return result
+
+
+class fifo:
+    def __init__(self, list=None):
+        if not list:
+            self.list = deque()
+        else:
+            self.list = deque(list)
+
+    def __len__(self):
+        return len(self.list)
+
+    def is_empty(self):
+        return not self.list
+
+    def first(self):
+        return self.list[0]
+
+    def push(self, data):
+        self.list.append(data)
+
+    def pop(self):
+        if self.list:
+            return 1, self.list.popleft()
+        return (0, None)
+
 
 def find_prefix_at_end(haystack, needle):
     l = len(needle) - 1
@@ -45,3 +206,4 @@ def find_prefix_at_end(haystack, needle):
             continue
     return l
 
+# WARNING: Decompyle incomplete

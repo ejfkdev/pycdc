@@ -199,10 +199,223 @@ if os.name == 'posix':
                             continue
 
         class dispatcher:
-            pass
+            debug = False
+            connected = False
+            accepting = False
+            connecting = False
+            closing = False
+            addr = None
+            ignore_log_types = frozenset(['warning'])
+            def __init__(self, sock=None, map=None):
+                if map is None:
+                    self._map = socket_map
+                else:
+                    self._map = map
+                self._fileno = None
+                if sock:
+                    sock.setblocking(0)
+                    self.set_socket(sock, map)
+                    self.connected = True
+                    try:
+                        self.addr = sock.getpeername()
+                    except socket.error:
+                        err = None
+                        if err.args[0] in (ENOTCONN, EINVAL):
+                            self.connected = False
+                        else:
+                            self.del_channel(map)
+                            raise
+                else:
+                    self.socket = None
+
+            def __repr__(self):
+                status = [self.__class__.__module__ + '.' + self.__class__.__name__]
+                if self.accepting and self.addr:
+                    status.append('listening')
+                elif self.connected:
+                    status.append('connected')
+                if self.addr is not None:
+                    pass
+
+            __str__ = __repr__
+            def add_channel(self, map=None):
+                if map is None:
+                    map = self._map
+                map[self._fileno] = self
+
+            def del_channel(self, map=None):
+                fd = self._fileno
+                if map is None:
+                    map = self._map
+                if fd in map:
+                    del map[fd]
+                self._fileno = None
+
+            def create_socket(self, family, type):
+                self.family_and_type = family, type
+                sock = socket.socket(family, type)
+                sock.setblocking(0)
+                self.set_socket(sock)
+
+            def set_socket(self, sock, map=None):
+                self.socket = sock
+                self._fileno = sock.fileno()
+                self.add_channel(map)
+
+            def set_reuse_addr(self):
+                pass
+
+            def readable(self):
+                return True
+
+            def writable(self):
+                return True
+
+            def listen(self, num):
+                self.accepting = True
+                if os.name == 'nt' and num > 5:
+                    num = 5
+                return self.socket.listen(num)
+
+            def bind(self, addr):
+                self.addr = addr
+                return self.socket.bind(addr)
+
+            def connect(self, address):
+                self.connected = False
+                self.connecting = True
+                err = self.socket.connect_ex(address)
+                if not err in (EINPROGRESS, EALREADY, EWOULDBLOCK):
+                    if err == EINVAL and os.name in ('nt', 'ce'):
+                        self.addr = address
+                        return
+                if err in (0, EISCONN):
+                    self.addr = address
+                    self.handle_connect_event()
+                else:
+                    raise socket.error(err, errorcode[err])
+
+            def accept(self):
+                try:
+                    conn, addr = self.socket.accept()
+                except TypeError:
+                    return
+                except socket.error:
+                    why = None
+                    if why.args[0] in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
+                        return
+                    raise
+                else:
+                    return conn, addr
+
+            def send(self, data):
+                pass
+
+            def recv(self, buffer_size):
+                pass
+
+            def close(self):
+                self.connected = False
+                self.accepting = False
+                self.connecting = False
+                self.del_channel()
+
+            def __getattr__(self, attr):
+                try:
+                    retattr = getattr(self.socket, attr)
+                except AttributeError:
+                    raise AttributeError("%s instance has no attribute '%s'" % (self.__class__.__name__, attr))
+                else:
+                    msg = '%(me)s.%(attr)s is deprecated. Use %(me)s.socket.%(attr)s instead.' % {'me': self.__class__.__name__, 'attr': attr}
+                    warnings.warn(msg, DeprecationWarning, stacklevel=2)
+                    return retattr
+
+            def log(self, message):
+                sys.stderr.write('log: %s\n' % str(message))
+
+            def log_info(self, message, type='info'):
+                if type not in self.ignore_log_types:
+                    print '%s: %s' % (type, message)
+
+            def handle_read_event(self):
+                if self.accepting:
+                    self.handle_accept()
+                elif not self.connected:
+                    if self.connecting:
+                        self.handle_connect_event()
+                    self.handle_read()
+                else:
+                    self.handle_read()
+
+            def handle_connect_event(self):
+                err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+                if err != 0:
+                    raise socket.error(err, _strerror(err))
+                self.handle_connect()
+                self.connected = True
+                self.connecting = False
+
+            def handle_write_event(self):
+                if self.accepting:
+                    return
+                if not self.connected:
+                    if self.connecting:
+                        self.handle_connect_event()
+                self.handle_write()
+
+            def handle_expt_event(self):
+                err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+                if err != 0:
+                    self.handle_close()
+                else:
+                    self.handle_expt()
+
+            def handle_error(self):
+                nil, t, v, tbinfo = compact_traceback()
+                self_repr = '<__repr__(self) failed for object at %0x>' % id(self)
+
+            def handle_expt(self):
+                self.log_info('unhandled incoming priority event', 'warning')
+
+            def handle_read(self):
+                self.log_info('unhandled read event', 'warning')
+
+            def handle_write(self):
+                self.log_info('unhandled write event', 'warning')
+
+            def handle_connect(self):
+                self.log_info('unhandled connect event', 'warning')
+
+            def handle_accept(self):
+                self.log_info('unhandled accept event', 'warning')
+
+            def handle_close(self):
+                self.log_info('unhandled close event', 'warning')
+                self.close()
+
 
         class dispatcher_with_send(dispatcher):
-            pass
+            def __init__(self, sock=None, map=None):
+                dispatcher.__init__(self, sock, map)
+                self.out_buffer = ''
+
+            def initiate_send(self):
+                num_sent = 0
+                num_sent = dispatcher.send(self, self.out_buffer[:512])
+                self.out_buffer = self.out_buffer[num_sent:]
+
+            def handle_write(self):
+                self.initiate_send()
+
+            def writable(self):
+                return not self.connected or len(self.out_buffer)
+
+            def send(self, data):
+                if self.debug:
+                    self.log_info('sending %s' % repr(data))
+                self.out_buffer = self.out_buffer + data
+                self.initiate_send()
+
 
         def compact_traceback():
             t, v, tb = sys.exc_info()
@@ -241,9 +454,42 @@ if os.name == 'posix':
 
         import fcntl
         class file_wrapper:
-            pass
+            def __init__(self, fd):
+                self.fd = os.dup(fd)
+
+            def recv(self, *args):
+                return os.read(self.fd, *args)
+
+            def send(self, *args):
+                return os.write(self.fd, *args)
+
+            def getsockopt(self, level, optname, buflen=None):
+                if level == socket.SOL_SOCKET and optname == socket.SO_ERROR and not buflen:
+                    return 0
+                raise NotImplementedError('Only asyncore specific behaviour implemented.')
+
+            read = recv
+            write = send
+            def close(self):
+                if self.fd < 0:
+                    return
+                fd = self.fd
+                self.fd = -1
+                os.close(fd)
+
+            def fileno(self):
+                return self.fd
+
 
         class file_dispatcher(dispatcher):
-            pass
+            def __init__(self, fd, map=None):
+                dispatcher.__init__(self, None, map)
+                self.connected = True
+
+            def set_file(self, fd):
+                self.socket = file_wrapper(fd)
+                self._fileno = self.socket.fileno()
+                self.add_channel()
+
 
 # WARNING: Decompyle incomplete

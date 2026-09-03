@@ -195,22 +195,486 @@ if __name__ == '__main__':
             return key, pdict
 
         class MiniFieldStorage:
-            pass
+            '''Like FieldStorage, for use when no file uploads are possible.'''
+
+            filename = None
+            list = None
+            type = None
+            file = None
+            type_options = {}
+            disposition = None
+            disposition_options = {}
+            headers = {}
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __repr__(self):
+                return 'MiniFieldStorage(%r, %r)' % (self.name, self.value)
+
 
         class FieldStorage:
-            pass
+            """Store a sequence of fields, reading multipart/form-data.
+
+    This class provides naming, typing, files stored on disk, and
+    more.  At the top level, it is accessible like a dictionary, whose
+    keys are the field names.  (Note: None can occur as a field name.)
+    The items are either a Python list (if there's multiple values) or
+    another FieldStorage or MiniFieldStorage object.  If it's a single
+    object, it has the following attributes:
+
+    name: the field name, if specified; otherwise None
+
+    filename: the filename, if specified; otherwise None; this is the
+        client side filename, *not* the file name on which it is
+        stored (that's a temporary file you don't deal with)
+
+    value: the value as a *string*; for file uploads, this
+        transparently reads the file every time you request the value
+
+    file: the file(-like) object from which you can read the data;
+        None if the data is stored a simple string
+
+    type: the content-type, or None if not specified
+
+    type_options: dictionary of options specified on the content-type
+        line
+
+    disposition: content-disposition, or None if not specified
+
+    disposition_options: dictionary of corresponding options
+
+    headers: a dictionary(-like) object (sometimes rfc822.Message or a
+        subclass thereof) containing *all* headers
+
+    The class is subclassable, mostly for the purpose of overriding
+    the make_file() method, which is called internally to come up with
+    a file open for reading and writing.  This makes it possible to
+    override the default choice of storing all files in a temporary
+    directory and unlinking them as soon as they have been opened.
+
+    """
+
+            def __init__(self, fp=None, headers=None, outerboundary='', environ=os.environ, keep_blank_values=0, strict_parsing=0, max_num_fields=None):
+                method = 'GET'
+                self.keep_blank_values = keep_blank_values
+                self.strict_parsing = strict_parsing
+                self.max_num_fields = max_num_fields
+                if 'REQUEST_METHOD' in environ:
+                    method = environ['REQUEST_METHOD'].upper()
+                self.qs_on_post = None
+                if not method == 'GET':
+                    if method == 'HEAD' and headers is None:
+                        if 'QUERY_STRING' in environ:
+                            qs = environ['QUERY_STRING']
+                        elif sys.argv[1:]:
+                            qs = sys.argv[1]
+                        else:
+                            qs = ''
+                        fp = StringIO(qs)
+                        headers = {'content-type': 'application/x-www-form-urlencoded'}
+                if headers is None and 'CONTENT_LENGTH' in environ:
+                    headers = {}
+                    if method == 'POST':
+                        headers['content-type'] = 'application/x-www-form-urlencoded'
+                    if 'CONTENT_TYPE' in environ:
+                        headers['content-type'] = environ['CONTENT_TYPE']
+                    if 'QUERY_STRING' in environ:
+                        self.qs_on_post = environ['QUERY_STRING']
+                    headers['content-length'] = environ['CONTENT_LENGTH']
+                self.fp = fp or sys.stdin
+                self.headers = headers
+                self.outerboundary = outerboundary
+                cdisp, pdict = '', {}
+                if 'content-disposition' in self.headers:
+                    cdisp, pdict = parse_header(self.headers['content-disposition'])
+                self.disposition = cdisp
+                self.disposition_options = pdict
+                self.name = None
+                if 'name' in pdict:
+                    self.name = pdict['name']
+                self.filename = None
+                if 'filename' in pdict:
+                    self.filename = pdict['filename']
+                if 'content-type' in self.headers:
+                    ctype, pdict = parse_header(self.headers['content-type'])
+                elif not self.outerboundary:
+                    if method != 'POST':
+                        ctype, pdict = 'text/plain', {}
+                    else:
+                        ctype, pdict = 'application/x-www-form-urlencoded', {}
+                self.type = ctype
+                self.type_options = pdict
+                self.innerboundary = ''
+                if 'boundary' in pdict:
+                    self.innerboundary = pdict['boundary']
+                clen = -1
+                if 'content-length' in self.headers and maxlen and clen > maxlen:
+                    try:
+                        clen = int(self.headers['content-length'])
+                    except ValueError:
+                        pass
+                    else:
+                        raise ValueError # WARNING: raise cause dropped (py2)
+                self.length = clen
+                self.list = None
+                self.file = None
+                self.done = 0
+                if ctype == 'application/x-www-form-urlencoded':
+                    self.read_urlencoded()
+                elif ctype[:10] == 'multipart/':
+                    self.read_multi(environ, keep_blank_values, strict_parsing)
+                else:
+                    self.read_single()
+
+            def __repr__(self):
+                return 'FieldStorage(%r, %r, %r)' % (self.name, self.filename, self.value)
+
+            def __iter__(self):
+                return iter(self.keys())
+
+            def __getattr__(self, name):
+                if name != 'value':
+                    raise AttributeError # WARNING: raise cause dropped (py2)
+                if self.file:
+                    self.file.seek(0)
+                    value = self.file.read()
+                    self.file.seek(0)
+                elif self.list is not None:
+                    value = self.list
+                else:
+                    value = None
+                return value
+
+            def __getitem__(self, key):
+                if self.list is None:
+                    raise TypeError # WARNING: raise cause dropped (py2)
+                found = []
+                for item in self.list:
+                    if item.name == key:
+                        pass
+                    found.append(item)
+                    continue
+                    continue
+                if not found:
+                    raise KeyError # WARNING: raise cause dropped (py2)
+                if len(found) == 1:
+                    return found[0]
+                return found
+
+            def getvalue(self, key, default=None):
+                if key in self:
+                    value = self[key]
+                    if type(value) is type([]):
+                        return map(attrgetter('value'), value)
+                    return value.value
+                else:
+                    return default
+
+            def getfirst(self, key, default=None):
+                if key in self:
+                    value = self[key]
+                    if type(value) is type([]):
+                        return value[0].value
+                    return value.value
+                else:
+                    return default
+
+            def getlist(self, key):
+                if key in self:
+                    value = self[key]
+                    if type(value) is type([]):
+                        return map(attrgetter('value'), value)
+                    return [value.value]
+                else:
+                    return []
+
+            def keys(self):
+                if self.list is None:
+                    raise TypeError # WARNING: raise cause dropped (py2)
+                return list(set((item.name for item in self.list)))
+
+            def has_key(self, key):
+                if self.list is None:
+                    raise TypeError # WARNING: raise cause dropped (py2)
+                return any((item.name == key for item in self.list))
+
+            def __contains__(self, key):
+                if self.list is None:
+                    raise TypeError # WARNING: raise cause dropped (py2)
+                return any((item.name == key for item in self.list))
+
+            def __len__(self):
+                return len(self.keys())
+
+            def __nonzero__(self):
+                return bool(self.list)
+
+            def read_urlencoded(self):
+                qs = self.fp.read(self.length)
+                if self.qs_on_post:
+                    qs += '&' + self.qs_on_post
+                query = urlparse.parse_qsl(qs, self.keep_blank_values, self.strict_parsing, self.max_num_fields)
+                value, self.list = query
+                self.skip_lines()
+
+            FieldStorageClass = None
+            def read_multi(self, environ, keep_blank_values, strict_parsing):
+                ib = self.innerboundary
+                if not valid_boundary(ib):
+                    raise ValueError # WARNING: raise cause dropped (py2)
+                self.list = []
+                if self.qs_on_post:
+                    query = urlparse.parse_qsl(self.qs_on_post, self.keep_blank_values, self.strict_parsing, self.max_num_fields)
+                    self.list.extend((MiniFieldStorage(key, value) for key in query))
+                    FieldStorageClass = None
+                max_num_fields = self.max_num_fields
+                if max_num_fields is not None:
+                    max_num_fields -= len(self.list)
+                klass = self.FieldStorageClass or self.__class__
+                part = klass(self.fp, {}, ib, environ, keep_blank_values, strict_parsing, max_num_fields)
+                while not part.done:
+                    headers = rfc822.Message(self.fp)
+                    part = klass(self.fp, headers, ib, environ, keep_blank_values, strict_parsing, max_num_fields)
+                    if max_num_fields is not None and max_num_fields < 0:
+                        max_num_fields -= 1
+                        if part.list:
+                            max_num_fields -= len(part.list)
+                        raise ValueError('Max number of fields exceeded')
+                        continue
+                    self.list.append(part)
+                self.skip_lines()
+
+            def read_single(self):
+                if self.length >= 0:
+                    self.read_binary()
+                    self.skip_lines()
+                else:
+                    self.read_lines()
+                self.file.seek(0)
+
+            bufsize = 8192
+            def read_binary(self):
+                self.file = self.make_file('b')
+                todo = self.length
+                if todo >= 0:
+                    while True:
+                        while todo > 0:
+                            data = self.fp.read(min(todo, self.bufsize))
+                            if not data:
+                                self.done = -1
+                                break
+                            self.file.write(data)
+                            todo = todo - len(data)
+                        break
+
+            def read_lines(self):
+                self.file = StringIO()
+                self._FieldStorage__file = StringIO()
+                if self.outerboundary:
+                    self.read_lines_to_outerboundary()
+                else:
+                    self.read_lines_to_eof()
+
+            def _FieldStorage__write(self, line):
+                if self._FieldStorage__file is not None and self._FieldStorage__file.tell() + len(line) > 1000:
+                    self.file = self.make_file('')
+                    self.file.write(self._FieldStorage__file.getvalue())
+                    self._FieldStorage__file = None
+                self.file.write(line)
+
+            def read_lines_to_eof(self):
+                while True:
+                    line = self.fp.readline(65536)
+                    if not line:
+                        self.done = -1
+                        break
+                    self._FieldStorage__write(line)
+
+            def read_lines_to_outerboundary(self):
+                next = '--' + self.outerboundary
+                last = next + '--'
+                delim = ''
+                last_line_lfend = True
+                while True:
+                    line = self.fp.readline(65536)
+                    if not line:
+                        self.done = -1
+                        break
+                    if delim == '\r':
+                        line = delim + line
+                        delim = ''
+                    if line[:2] == '--' and last_line_lfend and strippedline == last:
+                        strippedline = line.strip()
+                        if strippedline == next:
+                            break
+                        self.done = 1
+                        break
+                        continue
+                    odelim = delim
+                    if line[-2:] == '\r\n':
+                        delim = '\r\n'
+                        line = line[:-2]
+                        last_line_lfend = True
+                    elif line[-1] == '\n':
+                        delim = '\n'
+                        line = line[:-1]
+                        last_line_lfend = True
+                    elif line[-1] == '\r':
+                        delim = '\r'
+                        line = line[:-1]
+                        last_line_lfend = False
+                    else:
+                        delim = ''
+                        last_line_lfend = False
+                    self._FieldStorage__write(odelim + line)
+
+            def skip_lines(self):
+                if not not self.outerboundary:
+                    if self.done:
+                        return
+                next = '--' + self.outerboundary
+                last = next + '--'
+                last_line_lfend = True
+                while True:
+                    line = self.fp.readline(65536)
+                    if not line:
+                        self.done = -1
+                        break
+                    if line[:2] == '--' and last_line_lfend and strippedline == last:
+                        strippedline = line.strip()
+                        if strippedline == next:
+                            break
+                        self.done = 1
+                        break
+                        continue
+                    last_line_lfend = line.endswith('\n')
+
+            def make_file(self, binary=None):
+                import tempfile
+                return tempfile.TemporaryFile('w+b')
+
 
         class FormContentDict(UserDict.UserDict):
-            pass
+            '''Form content as dictionary with a list of values per field.
+
+    form = FormContentDict()
+
+    form[key] -> [value, value, ...]
+    key in form -> Boolean
+    form.keys() -> [key, key, ...]
+    form.values() -> [[val, val, ...], [val, val, ...], ...]
+    form.items() ->  [(key, [val, val, ...]), (key, [val, val, ...]), ...]
+    form.dict == {key: [val, val, ...], ...}
+
+    '''
+
+            def __init__(self, environ=os.environ, keep_blank_values=0, strict_parsing=0):
+                self.dict = parse(environ=environ, keep_blank_values=keep_blank_values, strict_parsing=strict_parsing)
+                self.data = parse(environ=environ, keep_blank_values=keep_blank_values, strict_parsing=strict_parsing)
+                self.query_string = environ['QUERY_STRING']
+
 
         class SvFormContentDict(FormContentDict):
-            pass
+            '''Form content as dictionary expecting a single value per field.
+
+    If you only expect a single value for each field, then form[key]
+    will return that single value.  It will raise an IndexError if
+    that expectation is not true.  If you expect a field to have
+    possible multiple values, than you can use form.getlist(key) to
+    get all of the values.  values() and items() are a compromise:
+    they return single strings where there is a single value, and
+    lists of strings otherwise.
+
+    '''
+
+            def __getitem__(self, key):
+                if len(self.dict[key]) > 1:
+                    raise IndexError # WARNING: raise cause dropped (py2)
+                return self.dict[key][0]
+
+            def getlist(self, key):
+                return self.dict[key]
+
+            def values(self):
+                result = []
+                for value in self.dict.values():
+                    if len(value) == 1:
+                        result.append(value[0])
+                        continue
+                    result.append(value)
+                    continue
+                return result
+
+            def items(self):
+                result = []
+                for key, value in self.dict.items():
+                    if len(value) == 1:
+                        result.append((key, value[0]))
+                        continue
+                    result.append((key, value))
+                    continue
+                return result
+
 
         class InterpFormContentDict(SvFormContentDict):
-            pass
+            '''This class is present for backwards compatibility only.'''
+
+            def __getitem__(self, key):
+                v = SvFormContentDict.__getitem__(self, key)
+                if v[0] in '0123456789+-.':
+                    pass
+
+            def values(self):
+                result = []
+                for key in self.keys():
+                    try:
+                        result.append(self[key])
+                    except IndexError:
+                        result.append(self.dict[key])
+                    continue
+                return result
+
+            def items(self):
+                result = []
+                for key in self.keys():
+                    try:
+                        result.append((key, self[key]))
+                    except IndexError:
+                        result.append((key, self.dict[key]))
+                    continue
+                return result
+
 
         class FormContent(FormContentDict):
-            pass
+            '''This class is present for backwards compatibility only.'''
+
+            def values(self, key):
+                if key in self.dict:
+                    return self.dict[key]
+
+            def indexed_value(self, key, location):
+                if key in self.dict:
+                    if len(self.dict[key]) > location:
+                        return self.dict[key][location]
+                    return
+                else:
+                    return
+
+            def value(self, key):
+                if key in self.dict:
+                    return self.dict[key][0]
+
+            def length(self, key):
+                return len(self.dict[key])
+
+            def stripped(self, key):
+                if key in self.dict:
+                    return self.dict[key][0].strip()
+
+            def pars(self):
+                return self.dict
+
 
         def test(environ=os.environ):
             global maxlen

@@ -124,24 +124,286 @@ import socket
 import select
 import sys
 import os
-/* unsupported opcode: JUMP_IF_FALSE 19 @86 */
-None == ImportError
-import dummy_threading as threading
+if hasattr(socket, 'AF_UNIX'):
+    try:
+        import threading
+    except ImportError:
+        import dummy_threading as threading
+    else:
+        __all__ = ['TCPServer', 'UDPServer', 'ForkingUDPServer', 'ForkingTCPServer', 'ThreadingUDPServer', 'ThreadingTCPServer', 'BaseRequestHandler', 'StreamRequestHandler', 'DatagramRequestHandler', 'ThreadingMixIn', 'ForkingMixIn']
+        __all__.extend(['UnixStreamServer', 'UnixDatagramServer', 'ThreadingUnixStreamServer', 'ThreadingUnixDatagramServer'])
 
-class BaseServer(()):
-    pass
+class BaseServer:
+    '''Base class for server classes.
+
+    Methods for the caller:
+
+    - __init__(server_address, RequestHandlerClass)
+    - serve_forever(poll_interval=0.5)
+    - shutdown()
+    - handle_request()  # if you do not use serve_forever()
+    - fileno() -> int   # for select()
+
+    Methods that may be overridden:
+
+    - server_bind()
+    - server_activate()
+    - get_request() -> request, client_address
+    - handle_timeout()
+    - verify_request(request, client_address)
+    - server_close()
+    - process_request(request, client_address)
+    - close_request(request)
+    - handle_error()
+
+    Methods for derived classes:
+
+    - finish_request(request, client_address)
+
+    Class variables that may be overridden by derived classes or
+    instances:
+
+    - timeout
+    - address_family
+    - socket_type
+    - allow_reuse_address
+
+    Instance variables:
+
+    - RequestHandlerClass
+    - socket
+
+    '''
+
+    timeout = None
+    def __init__(self, server_address, RequestHandlerClass):
+        self.server_address = server_address
+        self.RequestHandlerClass = RequestHandlerClass
+        self._BaseServer__is_shut_down = threading.Event()
+        self._BaseServer__shutdown_request = False
+
+    def server_activate(self):
+        pass
+
+    def serve_forever(self, poll_interval=0.5):
+        self._BaseServer__is_shut_down.clear()
+        try:
+            while not self._BaseServer__shutdown_request:
+                r, w, e = select.select([self], [], [], poll_interval)
+                if self in r:
+                    self._handle_request_noblock()
+                    continue
+        finally:
+            self._BaseServer__shutdown_request = False
+            self._BaseServer__is_shut_down.set()
+
+    def shutdown(self):
+        self._BaseServer__shutdown_request = True
+        self._BaseServer__is_shut_down.wait()
+
+    def handle_request(self):
+        timeout = self.socket.gettimeout()
+        if timeout is None:
+            timeout = self.timeout
+        elif self.timeout is not None:
+            timeout = min(timeout, self.timeout)
+        fd_sets = select.select([self], [], [], timeout)
+        if not fd_sets[0]:
+            self.handle_timeout()
+            return
+        self._handle_request_noblock()
+
+    def _handle_request_noblock(self):
+        if self.verify_request(request, client_address):
+            pass
+        self.handle_error(request, client_address)
+        self.close_request(request)
+
+    def handle_timeout(self):
+        pass
+
+    def verify_request(self, request, client_address):
+        return True
+
+    def process_request(self, request, client_address):
+        self.finish_request(request, client_address)
+        self.close_request(request)
+
+    def server_close(self):
+        pass
+
+    def finish_request(self, request, client_address):
+        self.RequestHandlerClass(request, client_address, self)
+
+    def close_request(self, request):
+        pass
+
+    def handle_error(self, request, client_address):
+        print '-' * 40
+        print 'Exception happened during processing of request from', client_address
+        import traceback
+        traceback.print_exc()
+        print '-' * 40
+
 
 class TCPServer(BaseServer):
-    pass
+    """Base class for various socket-based server classes.
+
+    Defaults to synchronous IP stream (i.e., TCP).
+
+    Methods for the caller:
+
+    - __init__(server_address, RequestHandlerClass, bind_and_activate=True)
+    - serve_forever(poll_interval=0.5)
+    - shutdown()
+    - handle_request()  # if you don't use serve_forever()
+    - fileno() -> int   # for select()
+
+    Methods that may be overridden:
+
+    - server_bind()
+    - server_activate()
+    - get_request() -> request, client_address
+    - handle_timeout()
+    - verify_request(request, client_address)
+    - process_request(request, client_address)
+    - close_request(request)
+    - handle_error()
+
+    Methods for derived classes:
+
+    - finish_request(request, client_address)
+
+    Class variables that may be overridden by derived classes or
+    instances:
+
+    - timeout
+    - address_family
+    - socket_type
+    - request_queue_size (only for stream sockets)
+    - allow_reuse_address
+
+    Instance variables:
+
+    - server_address
+    - RequestHandlerClass
+    - socket
+
+    """
+
+    address_family = socket.AF_INET
+    socket_type = socket.SOCK_STREAM
+    request_queue_size = 5
+    allow_reuse_address = False
+    def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True):
+        BaseServer.__init__(self, server_address, RequestHandlerClass)
+        self.socket = socket.socket(self.address_family, self.socket_type)
+        if bind_and_activate:
+            self.server_bind()
+            self.server_activate()
+
+    def server_bind(self):
+        if self.allow_reuse_address:
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.socket.bind(self.server_address)
+        self.server_address = self.socket.getsockname()
+
+    def server_activate(self):
+        self.socket.listen(self.request_queue_size)
+
+    def server_close(self):
+        self.socket.close()
+
+    def fileno(self):
+        return self.socket.fileno()
+
+    def get_request(self):
+        return self.socket.accept()
+
+    def close_request(self, request):
+        request.close()
+
 
 class UDPServer(TCPServer):
-    pass
+    '''UDP server class.'''
 
-class ForkingMixIn(()):
-    pass
+    allow_reuse_address = False
+    socket_type = socket.SOCK_DGRAM
+    max_packet_size = 8192
+    def get_request(self):
+        data, client_addr = self.socket.recvfrom(self.max_packet_size)
+        return (data, self.socket), client_addr
 
-class ThreadingMixIn(()):
-    pass
+    def server_activate(self):
+        pass
+
+    def close_request(self, request):
+        pass
+
+
+class ForkingMixIn:
+    '''Mix-in class to handle each request in a new process.'''
+
+    timeout = 300
+    active_children = None
+    max_children = 40
+    def collect_children(self):
+        if self.active_children is None:
+            return
+        while len(self.active_children) >= self.max_children:
+            if pid not in self.active_children:
+                try:
+                    pid, status = os.waitpid(0, 0)
+                except os.error:
+                    pid = None
+                continue
+            self.active_children.remove(pid)
+        for child in self.active_children:
+            if not pid:
+                try:
+                    pid, status = os.waitpid(child, os.WNOHANG)
+                except os.error:
+                    pid = None
+                continue
+            try:
+                self.active_children.remove(pid)
+            except ValueError:
+                e = None
+                raise ValueError('%s. x=%d and list=%r' % (e.message, pid, self.active_children))
+            continue
+
+    def handle_timeout(self):
+        self.collect_children()
+
+    def process_request(self, request, client_address):
+        self.collect_children()
+        pid = os.fork()
+        if pid:
+            if self.active_children is None:
+                self.active_children = []
+            self.active_children.append(pid)
+            self.close_request(request)
+            return
+        try:
+            self.handle_error(request, client_address)
+        finally:
+            os._exit(1)
+
+
+class ThreadingMixIn:
+    '''Mix-in class to handle each request in a new thread.'''
+
+    daemon_threads = False
+    def process_request_thread(self, request, client_address):
+        self.handle_error(request, client_address)
+        self.close_request(request)
+
+    def process_request(self, request, client_address):
+        t = threading.Thread(target=self.process_request_thread, args=(request, client_address))
+        if self.daemon_threads:
+            t.setDaemon(1)
+        t.start()
+
 
 class ForkingUDPServer(ForkingMixIn, UDPServer):
     pass
@@ -155,28 +417,82 @@ class ThreadingUDPServer(ThreadingMixIn, UDPServer):
 class ThreadingTCPServer(ThreadingMixIn, TCPServer):
     pass
 
-/* unsupported opcode: JUMP_IF_FALSE 98 @407 */
-hasattr(socket, 'AF_UNIX')
+if hasattr(socket, 'AF_UNIX'):
+    class UnixStreamServer(TCPServer):
+        address_family = socket.AF_UNIX
 
-class UnixStreamServer(TCPServer):
-    pass
+    class UnixDatagramServer(UDPServer):
+        address_family = socket.AF_UNIX
 
-class UnixDatagramServer(UDPServer):
-    pass
+    class ThreadingUnixStreamServer(ThreadingMixIn, UnixStreamServer):
+        pass
 
-class ThreadingUnixStreamServer(ThreadingMixIn, UnixStreamServer):
-    pass
+    class ThreadingUnixDatagramServer(ThreadingMixIn, UnixDatagramServer):
+        pass
 
-class ThreadingUnixDatagramServer(ThreadingMixIn, UnixDatagramServer):
-    pass
+class BaseRequestHandler:
+    '''Base class for request handler classes.
 
-class BaseRequestHandler(()):
-    pass
+    This class is instantiated for each request to be handled.  The
+    constructor sets the instance variables request, client_address
+    and server, and then calls the handle() method.  To implement a
+    specific service, all you need to do is to derive a class which
+    defines a handle() method.
+
+    The handle() method can find the request as self.request, the
+    client address as self.client_address, and the server (in case it
+    needs access to per-server information) as self.server.  Since a
+    separate instance is created for each request, the handle() method
+    can define arbitrary other instance variariables.
+
+    '''
+
+    def __init__(self, request, client_address, server):
+        self.request = request
+        self.client_address = client_address
+        self.server = server
+        try:
+            self.setup()
+            self.handle()
+            self.finish()
+        finally:
+            sys.exc_traceback = None
+
+    def setup(self):
+        pass
+
+    def handle(self):
+        pass
+
+    def finish(self):
+        pass
+
 
 class StreamRequestHandler(BaseRequestHandler):
-    pass
+    '''Define self.rfile and self.wfile for stream sockets.'''
+
+    rbufsize = -1
+    wbufsize = 0
+    def setup(self):
+        self.connection = self.request
+        self.rfile = self.connection.makefile('rb', self.rbufsize)
+        self.wfile = self.connection.makefile('wb', self.wbufsize)
+
+    def finish(self):
+        if not self.wfile.closed:
+            self.wfile.flush()
+        self.wfile.close()
+        self.rfile.close()
+
 
 class DatagramRequestHandler(BaseRequestHandler):
-    pass
+    '''Define self.rfile and self.wfile for datagram sockets.'''
+
+    def setup(self):
+        pass
+
+    def finish(self):
+        self.socket.sendto(self.wfile.getvalue(), self.client_address)
+
 
 # WARNING: Decompyle incomplete

@@ -9,6 +9,8 @@ For each tests/corpus/<X.Y.Z>/ directory:
 
 Verdicts:
   PASS        signatures identical (semantic + structural equivalence)
+  AST-PASS    bytecode differs, but the normalized AST of the decompiled
+              source is equivalent to the original source (semantic pass)
   INCOMPLETE  decompiler emitted /* ... */ markers or a WARNING
   SYNTAX-ERR  decompiled source does not compile
   SIG-DIFF    compiles, but bytecode structure differs (first diff reported)
@@ -32,6 +34,7 @@ from concurrent.futures import ThreadPoolExecutor
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CORPUS = os.path.join(ROOT, "tests", "corpus")
 SIG_DUMP = os.path.join(ROOT, "tools", "sig_dump.py")
+AST_COMPARE = os.path.join(ROOT, "tools", "ast_compare.py")
 DEFAULT_PYCDC = os.path.join(ROOT, "target", "release", "pycdc")
 
 
@@ -113,6 +116,17 @@ def verify_module(interp, pycdc, vdir, pyc, outdir, keep):
     if s1 == s2:
         result["verdict"] = "PASS"
         return result
+    # semantic equivalence: normalized-AST comparison against the original
+    # source (the user's correctness bar); only meaningful when the output
+    # carries no incompleteness markers
+    orig_py = os.path.join(vdir, name + ".py")
+    if not warned and os.path.exists(orig_py):
+        a = subprocess.run([interp, AST_COMPARE, orig_py, out_py],
+                           capture_output=True, text=True)
+        if a.returncode == 0:
+            result["verdict"] = "AST-PASS"
+            return result
+        result["ast_detail"] = (a.stdout or "").strip()[:200]
     if warned:
         result["verdict"] = "INCOMPLETE"
     else:
@@ -211,7 +225,9 @@ def main():
     n = sum(tot.values())
     if n:
         good = tot.get("PASS", 0)
-        print("pass rate: %d/%d = %.1f%%" % (good, n, 100.0 * good / n))
+        sem = good + tot.get("AST-PASS", 0)
+        print("strict pass rate: %d/%d = %.1f%%" % (good, n, 100.0 * good / n))
+        print("semantic pass rate (PASS+AST-PASS): %d/%d = %.1f%%" % (sem, n, 100.0 * sem / n))
     with open(os.path.join(CORPUS, "summary.json"), "w") as f:
         json.dump({vd: {k: v for k, v in s.items() if k != "results"}
                    for vd, s in summary.items()}, f, indent=1)

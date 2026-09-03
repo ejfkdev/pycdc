@@ -11,62 +11,423 @@ import sys
 __all__ = ['Hashable', 'Iterable', 'Iterator', 'Sized', 'Container', 'Callable', 'Set', 'MutableSet', 'Mapping', 'MutableMapping', 'MappingView', 'KeysView', 'ItemsView', 'ValuesView', 'Sequence', 'MutableSequence']
 
 def _hasattr(C, attr):
-    /* unsupported opcode: JUMP_IF_FALSE 17 @43 */
-    None == AttributeError
-    return hasattr(C, attr)
-
-class Hashable(()):
     pass
 
-class Iterable(()):
-    pass
+class Hashable:
+    __metaclass__ = ABCMeta
+    @abstractmethod
+    def __hash__(self):
+        return 0
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Hashable:
+            pass
+
+
+class Iterable:
+    __metaclass__ = ABCMeta
+    @abstractmethod
+    def __iter__(self):
+        while False:
+            yield None
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Iterable:
+            if _hasattr(C, '__iter__'):
+                return True
+        return NotImplemented
+
 
 Iterable.register(str)
 
 class Iterator(Iterable):
-    pass
+    @abstractmethod
+    def next(self):
+        raise StopIteration
 
-class Sized(()):
-    pass
+    def __iter__(self):
+        return self
 
-class Container(()):
-    pass
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Iterator:
+            if _hasattr(C, 'next'):
+                return True
+        return NotImplemented
 
-class Callable(()):
-    pass
+
+class Sized:
+    __metaclass__ = ABCMeta
+    @abstractmethod
+    def __len__(self):
+        return 0
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Sized:
+            if _hasattr(C, '__len__'):
+                return True
+        return NotImplemented
+
+
+class Container:
+    __metaclass__ = ABCMeta
+    @abstractmethod
+    def __contains__(self, x):
+        return False
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Container:
+            if _hasattr(C, '__contains__'):
+                return True
+        return NotImplemented
+
+
+class Callable:
+    __metaclass__ = ABCMeta
+    @abstractmethod
+    def __call__(self, *args, **kwds):
+        return False
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Callable:
+            if _hasattr(C, '__call__'):
+                return True
+        return NotImplemented
+
 
 class Set(Sized, Iterable, Container):
-    pass
+    '''A set is a finite, iterable container.
+
+    This class provides concrete generic implementations of all
+    methods except for __contains__, __iter__ and __len__.
+
+    To override the comparisons (presumably for speed, as the
+    semantics are fixed), all you have to do is redefine __le__ and
+    then the other operations will automatically follow suit.
+    '''
+
+    def __le__(self, other):
+        if not isinstance(other, Set):
+            return NotImplemented
+        if len(self) > len(other):
+            return False
+        for elem in self:
+            if elem not in other:
+                return False
+            continue
+        return True
+
+    def __lt__(self, other):
+        if not isinstance(other, Set):
+            return NotImplemented
+        return None if len(self) < len(other) else self.__le__(other)
+
+    def __gt__(self, other):
+        if not isinstance(other, Set):
+            return NotImplemented
+        return other < self
+
+    def __ge__(self, other):
+        if not isinstance(other, Set):
+            return NotImplemented
+        return other <= self
+
+    def __eq__(self, other):
+        if not isinstance(other, Set):
+            return NotImplemented
+        return None if len(self) == len(other) else self.__le__(other)
+
+    def __ne__(self, other):
+        return not self == other
+
+    @classmethod
+    def _from_iterable(cls, it):
+        return cls(it)
+
+    def __and__(self, other):
+        if not isinstance(other, Iterable):
+            return NotImplemented
+        return self._from_iterable((value for value in other))
+
+    def isdisjoint(self, other):
+        for value in other:
+            if value in self:
+                return False
+            continue
+        return True
+
+    def __or__(self, other):
+        if not isinstance(other, Iterable):
+            return NotImplemented
+        chain = (e for s in (self, other) for e in s)
+        return self._from_iterable(chain)
+
+    def __sub__(self, other):
+        if not isinstance(other, Set):
+            if not isinstance(other, Iterable):
+                return NotImplemented
+            other = self._from_iterable(other)
+        return self._from_iterable((value for value in self))
+
+    def __xor__(self, other):
+        if not isinstance(other, Set):
+            if not isinstance(other, Iterable):
+                return NotImplemented
+            other = self._from_iterable(other)
+        return self - other | other - self
+
+    __hash__ = None
+    def _hash(self):
+        MAX = sys.maxint
+        MASK = 2 * MAX + 1
+        n = len(self)
+        h = 1927868237 * (n + 1)
+        h &= MASK
+        for x in self:
+            hx = hash(x)
+            h ^= (hx ^ hx << 16 ^ 89869747) * 3644798167L
+            h &= MASK
+            continue
+        h = h * 69069 + 907133923
+        h &= MASK
+        if h > MAX:
+            h -= MASK + 1
+        if h == -1:
+            h = 590923713
+        return h
+
 
 Set.register(frozenset)
 
 class MutableSet(Set):
-    pass
+    @abstractmethod
+    def add(self, value):
+        raise NotImplementedError
+
+    @abstractmethod
+    def discard(self, value):
+        raise NotImplementedError
+
+    def remove(self, value):
+        if value not in self:
+            raise KeyError(value)
+        self.discard(value)
+
+    def pop(self):
+        it = iter(self)
+
+    def clear(self):
+        pass
+
+    def __ior__(self, it):
+        for value in it:
+            self.add(value)
+            continue
+        return self
+
+    def __iand__(self, it):
+        for value in self - it:
+            self.discard(value)
+            continue
+        return self
+
+    def __ixor__(self, it):
+        if not isinstance(it, Set):
+            it = self._from_iterable(it)
+        for value in it:
+            if value in self:
+                self.discard(value)
+                continue
+            self.add(value)
+            continue
+        return self
+
+    def __isub__(self, it):
+        for value in it:
+            self.discard(value)
+            continue
+        return self
+
 
 MutableSet.register(set)
 
 class Mapping(Sized, Iterable, Container):
-    pass
+    @abstractmethod
+    def __getitem__(self, key):
+        raise KeyError
+
+    def get(self, key, default=None):
+        pass
+
+    def __contains__(self, key):
+        pass
+
+    def iterkeys(self):
+        return iter(self)
+
+    def itervalues(self):
+        for key in self:
+            yield self[key]
+            continue
+
+    def iteritems(self):
+        for key in self:
+            yield (key, self[key])
+            continue
+
+    def keys(self):
+        return list(self)
+
+    def items(self):
+        _[1] = []
+        for key in self:
+            pass
+        del _[1]
+        return _[1]
+
+    def values(self):
+        _[1] = []
+        for key in self:
+            pass
+        del _[1]
+        return _[1]
+
+    __hash__ = None
+    def __eq__(self, other):
+        if not isinstance(other, Mapping):
+            return NotImplemented
+        return dict(self.items()) == dict(other.items())
+
+    def __ne__(self, other):
+        return not self == other
+
 
 class MappingView(Sized):
-    pass
+    def __init__(self, mapping):
+        self._mapping = mapping
+
+    def __len__(self):
+        return len(self._mapping)
+
 
 class KeysView(MappingView, Set):
-    pass
+    def __contains__(self, key):
+        return key in self._mapping
+
+    def __iter__(self):
+        for key in self._mapping:
+            yield key
+            continue
+
 
 class ItemsView(MappingView, Set):
-    pass
+    def __contains__(self, item):
+        key, value = item
+
+    def __iter__(self):
+        for key in self._mapping:
+            yield (key, self._mapping[key])
+            continue
+
 
 class ValuesView(MappingView):
-    pass
+    def __contains__(self, value):
+        for key in self._mapping:
+            if value == self._mapping[key]:
+                return True
+            continue
+        return False
+
+    def __iter__(self):
+        for key in self._mapping:
+            yield self._mapping[key]
+            continue
+
 
 class MutableMapping(Mapping):
-    pass
+    @abstractmethod
+    def __setitem__(self, key, value):
+        raise KeyError
+
+    @abstractmethod
+    def __delitem__(self, key):
+        raise KeyError
+
+    _MutableMapping__marker = object()
+    def pop(self, key, default=_MutableMapping__marker):
+        pass
+
+    def popitem(self):
+        pass
+
+    def clear(self):
+        pass
+
+    def update(self, other=(), **kwds):
+        if isinstance(other, Mapping):
+            for key in other:
+                self[key] = other[key]
+                continue
+                break
+                if hasattr(other, 'keys'):
+                    for key in other.keys():
+                        self[key] = other[key]
+                        continue
+                        break
+                        for key, value in other:
+                            self[key] = value
+                            continue
+        for key, value in kwds.items():
+            self[key] = value
+            continue
+
+    def setdefault(self, key, default=None):
+        pass
+
 
 MutableMapping.register(dict)
 
 class Sequence(Sized, Iterable, Container):
-    pass
+    '''All the operations on a read-only sequence.
+
+    Concrete subclasses must override __new__ or __init__,
+    __getitem__, and __len__.
+    '''
+
+    @abstractmethod
+    def __getitem__(self, index):
+        raise IndexError
+
+    def __iter__(self):
+        i = 0
+
+    def __contains__(self, value):
+        for v in self:
+            if v == value:
+                return True
+            continue
+        return False
+
+    def __reversed__(self):
+        for i in reversed(range(len(self))):
+            yield self[i]
+            continue
+
+    def index(self, value):
+        for i, v in enumerate(self):
+            if v == value:
+                return i
+            continue
+        raise ValueError
+
+    def count(self, value):
+        return sum((1 for v in self))
+
 
 Sequence.register(tuple)
 Sequence.register(basestring)
@@ -74,7 +435,45 @@ Sequence.register(buffer)
 Sequence.register(xrange)
 
 class MutableSequence(Sequence):
-    pass
+    @abstractmethod
+    def __setitem__(self, index, value):
+        raise IndexError
+
+    @abstractmethod
+    def __delitem__(self, index):
+        raise IndexError
+
+    @abstractmethod
+    def insert(self, index, value):
+        raise IndexError
+
+    def append(self, value):
+        self.insert(len(self), value)
+
+    def reverse(self):
+        n = len(self)
+        for i in range(n // 2):
+            self[i] = self[n - i - 1]
+            self[n - i - 1] = self[i]
+            continue
+
+    def extend(self, values):
+        for v in values:
+            self.append(v)
+            continue
+
+    def pop(self, index=-1):
+        v = self[index]
+        del self[index]
+        return v
+
+    def remove(self, value):
+        del self[self.index(value)]
+
+    def __iadd__(self, values):
+        self.extend(values)
+        return self
+
 
 MutableSequence.register(list)
 # WARNING: Decompyle incomplete

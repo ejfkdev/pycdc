@@ -33,75 +33,72 @@ def parse(expr, filename='<unknown>', mode='exec'):
 
 def literal_eval(node_or_string):
     _safe_names = {'None': None, 'True': True, 'False': False}
-    /* unsupported opcode: JUMP_IF_FALSE 22 @39 */
-    isinstance(node_or_string, basestring)
-    node_or_string = parse(node_or_string, mode='eval')
-    /* unsupported opcode: JUMP_IF_FALSE 13 @77 */
-    isinstance(node_or_string, Expression)
-    node_or_string = node_or_string.body
+    if isinstance(node_or_string, basestring):
+        node_or_string = parse(node_or_string, mode='eval')
+    if isinstance(node_or_string, Expression):
+        node_or_string = node_or_string.body
     def _convert(node):
-        /* unsupported opcode: JUMP_IF_FALSE 8 @12 */
-        isinstance(node, Str)
-        return node.s
+        if isinstance(node, Str):
+            return node.s
+        if isinstance(node, Num):
+            return node.n
+        if isinstance(node, Tuple):
+            return tuple(map(_convert, node.elts))
+        if isinstance(node, List):
+            return list(map(_convert, node.elts))
+        if isinstance(node, Dict):
+            return dict(((_convert(k), _convert(v)) for k in zip(node.keys, node.values)))
+        if isinstance(node, Name):
+            if node.id in _safe_names:
+                return _safe_names[node.id]
+        raise ValueError('malformed string')
 
     return _convert(node_or_string)
 
 def dump(node, annotate_fields=True, include_attributes=False):
     def _format(node):
-        /* unsupported opcode: JUMP_IF_FALSE 217 @12 */
-        isinstance(node, AST)
-        _[1] = []
-        for a, b in iter_fields(node):
-            pass
-        del _[1]
-        fields = _[1]
-        /* unsupported opcode: JUMP_IF_FALSE 17 @94 */
-        annotate_fields
-        ('%s=%s' % field for field in fields)
-        rv = '%s(%s' % (node.__class__.__name__, ', '.join((b for a in fields)))
-        /* unsupported opcode: JUMP_IF_FALSE 79 @141 */
-        include_attributes
-        /* unsupported opcode: JUMP_IF_FALSE 69 @151 */
-        node._attributes
-        /* unsupported opcode: JUMP_IF_FALSE 7 @161 */
-        fields
-        /* unsupported opcode: JUMP_IF_TRUE 4 @168 */
-        ', '
-        rv += ' '
-        rv += ', '.join(('%s=%s' % (a, _format(getattr(node, a))) for a in node._attributes))
-        []
-        return rv + ')'
+        if isinstance(node, AST):
+            _[1] = []
+            for a, b in iter_fields(node):
+                pass
+            del _[1]
+            fields = _[1]
+            rv = '%s(%s' % (node.__class__.__name__, ', '.join(('%s=%s' % field for field in fields) if annotate_fields else (b for a in fields)))
+            if include_attributes and node._attributes:
+                if fields:
+                    pass
+                rv += ', ' if ', ' else ' '
+                rv += ', '.join(('%s=%s' % (a, _format(getattr(node, a))) for a in node._attributes))
+            []
+            return rv + ')'
+        if isinstance(node, list):
+            return '[%s]' % ', '.join((_format(x) for x in node))
+        return repr(node)
 
-    /* unsupported opcode: JUMP_IF_TRUE 26 @33 */
-    isinstance(node, AST)
-    raise TypeError('expected AST, got %r' % node.__class__.__name__)
+    if not isinstance(node, AST):
+        raise TypeError('expected AST, got %r' % node.__class__.__name__)
     return _format(node)
 
 def copy_location(new_node, old_node):
     for attr in ('lineno', 'col_offset'):
-        /* unsupported opcode: JUMP_IF_FALSE 61 @25 */
-        attr in old_node._attributes
-        /* unsupported opcode: JUMP_IF_FALSE 45 @41 */
-        attr in new_node._attributes
-        /* unsupported opcode: JUMP_IF_FALSE 29 @57 */
-        hasattr(old_node, attr)
-        setattr(new_node, attr, getattr(old_node, attr))
-        continue
+        if attr in old_node._attributes and attr in new_node._attributes and hasattr(old_node, attr):
+            setattr(new_node, attr, getattr(old_node, attr))
+            continue
         continue
     return new_node
 
 def fix_missing_locations(node):
     def _fix(node, lineno, col_offset):
-        /* unsupported opcode: JUMP_IF_FALSE 42 @12 */
-        'lineno' in node._attributes
-        /* unsupported opcode: JUMP_IF_TRUE 13 @28 */
-        hasattr(node, 'lineno')
-        node.lineno = lineno
-        /* unsupported opcode: JUMP_IF_FALSE 42 @70 */
-        'col_offset' in node._attributes
-        /* unsupported opcode: JUMP_IF_TRUE 13 @86 */
-        hasattr(node, 'col_offset')
-        node.col_offset = col_offset
+        if 'lineno' in node._attributes:
+            if not hasattr(node, 'lineno'):
+                node.lineno = lineno
+            else:
+                lineno = node.lineno
+        if 'col_offset' in node._attributes:
+            if not hasattr(node, 'col_offset'):
+                node.col_offset = col_offset
+            else:
+                col_offset = node.col_offset
         for child in iter_child_nodes(node):
             _fix(child, lineno, col_offset)
             continue
@@ -110,68 +107,154 @@ def fix_missing_locations(node):
     return node
 
 def increment_lineno(node, n=1):
-    /* unsupported opcode: JUMP_IF_FALSE 29 @12 */
-    'lineno' in node._attributes
-    node.lineno = getattr(node, 'lineno', 0) + n
+    if 'lineno' in node._attributes:
+        node.lineno = getattr(node, 'lineno', 0) + n
     for child in walk(node):
-        /* unsupported opcode: JUMP_IF_FALSE 29 @76 */
-        'lineno' in child._attributes
-        child.lineno = getattr(child, 'lineno', 0) + n
-        continue
+        if 'lineno' in child._attributes:
+            child.lineno = getattr(child, 'lineno', 0) + n
+            continue
         continue
     return node
 
 def iter_fields(node):
     for field in node._fields:
-        /* unsupported opcode: JUMP_IF_FALSE 7 @50 */
-        None == AttributeError
+        try:
+            yield (field, getattr(node, field))
+        except AttributeError:
+            pass
+        continue
 
 def iter_child_nodes(node):
     for name, field in iter_fields(node):
-        /* unsupported opcode: JUMP_IF_FALSE 9 @37 */
-        isinstance(field, AST)
-        yield field
-        continue
-        /* unsupported opcode: JUMP_IF_FALSE 46 @62 */
-        isinstance(field, list)
-        for item in field:
-            /* unsupported opcode: JUMP_IF_FALSE 9 @91 */
-            isinstance(item, AST)
-            yield item
+        if isinstance(field, AST):
+            yield field
             continue
-            continue
-            continue
+        if isinstance(field, list):
+            for item in field:
+                if isinstance(item, AST):
+                    yield item
+                    continue
+                continue
+                continue
         continue
 
 def get_docstring(node, clean=True):
-    /* unsupported opcode: JUMP_IF_TRUE 26 @21 */
-    isinstance(node, (FunctionDef, ClassDef, Module))
-    raise TypeError("%r can't have docstrings" % node.__class__.__name__)
-    /* unsupported opcode: JUMP_IF_FALSE 113 @57 */
-    node.body
-    /* unsupported opcode: JUMP_IF_FALSE 90 @80 */
-    isinstance(node.body[0], Expr)
-    /* unsupported opcode: JUMP_IF_FALSE 64 @106 */
-    isinstance(node.body[0].value, Str)
-    /* unsupported opcode: JUMP_IF_FALSE 39 @113 */
-    clean
-    import inspect
-    return inspect.cleandoc(node.body[0].value.s)
+    if not isinstance(node, (FunctionDef, ClassDef, Module)):
+        raise TypeError("%r can't have docstrings" % node.__class__.__name__)
+    if node.body and isinstance(node.body[0], Expr) and isinstance(node.body[0].value, Str):
+        if clean:
+            import inspect
+            return inspect.cleandoc(node.body[0].value.s)
+        return node.body[0].value.s
 
 def walk(node):
     from collections import deque
     todo = deque([node])
-    while True:
-        /* unsupported opcode: JUMP_IF_FALSE 40 @37 */
-        todo
+    while todo:
         node = todo.popleft()
         todo.extend(iter_child_nodes(node))
         yield node
 
 class NodeVisitor(object):
-    pass
+    """
+    A node visitor base class that walks the abstract syntax tree and calls a
+    visitor function for every node found.  This function may return a value
+    which is forwarded by the `visit` method.
+
+    This class is meant to be subclassed, with the subclass adding visitor
+    methods.
+
+    Per default the visitor functions for the nodes are ``'visit_'`` +
+    class name of the node.  So a `TryFinally` node visit function would
+    be `visit_TryFinally`.  This behavior can be changed by overriding
+    the `visit` method.  If no visitor function exists for a node
+    (return value `None`) the `generic_visit` visitor is used instead.
+
+    Don't use the `NodeVisitor` if you want to apply changes to nodes during
+    traversing.  For this a special visitor exists (`NodeTransformer`) that
+    allows modifications.
+    """
+
+    def visit(self, node):
+        method = 'visit_' + node.__class__.__name__
+        visitor = getattr(self, method, self.generic_visit)
+        return visitor(node)
+
+    def generic_visit(self, node):
+        for field, value in iter_fields(node):
+            if isinstance(value, list):
+                for item in value:
+                    if isinstance(item, AST):
+                        self.visit(item)
+                        continue
+                    continue
+                    continue
+                    if not isinstance(value, AST):
+                        break
+                    self.visit(value)
+                    continue
+            continue
+
 
 class NodeTransformer(NodeVisitor):
-    pass
+    """
+    A :class:`NodeVisitor` subclass that walks the abstract syntax tree and
+    allows modification of nodes.
+
+    The `NodeTransformer` will walk the AST and use the return value of the
+    visitor methods to replace or remove the old node.  If the return value of
+    the visitor method is ``None``, the node will be removed from its location,
+    otherwise it is replaced with the return value.  The return value may be the
+    original node in which case no replacement takes place.
+
+    Here is an example transformer that rewrites all occurrences of name lookups
+    (``foo``) to ``data['foo']``::
+
+       class RewriteName(NodeTransformer):
+
+           def visit_Name(self, node):
+               return copy_location(Subscript(
+                   value=Name(id='data', ctx=Load()),
+                   slice=Index(value=Str(s=node.id)),
+                   ctx=node.ctx
+               ), node)
+
+    Keep in mind that if the node you're operating on has child nodes you must
+    either transform the child nodes yourself or call the :meth:`generic_visit`
+    method for the node first.
+
+    For nodes that were part of a collection of statements (that applies to all
+    statement nodes), the visitor may also return a list of nodes rather than
+    just a single node.
+
+    Usually you use the transformer like this::
+
+       node = YourTransformer().visit(node)
+    """
+
+    def generic_visit(self, node):
+        for field, old_value in iter_fields(node):
+            old_value = getattr(node, field, None)
+            if isinstance(old_value, list):
+                new_values = []
+                for value in old_value:
+                    if isinstance(value, AST):
+                        value = self.visit(value)
+                        if value is None:
+                            continue
+                    new_values.append(value)
+                    continue
+                new_values[:] = old_value
+                continue
+            if isinstance(old_value, AST):
+                new_node = self.visit(old_value)
+                if new_node is None:
+                    delattr(node, field)
+                    continue
+            setattr(node, field, new_node)
+            continue
+            continue
+        return node
+
 
 # WARNING: Decompyle incomplete

@@ -40,7 +40,89 @@ def help():
     print "in the Python Library Reference, section 'The Python Profiler'."
 
 class Profile(_lsprof.Profiler):
-    pass
+    '''Profile(timer=None, timeunit=None, subcalls=True, builtins=True)
+
+    Builds a profiler object using the specified timer function.
+    The default timer is a fast built-in one based on real time.
+    For custom timer functions returning integers, timeunit can
+    be a float specifying a scale (i.e. how long each integer unit
+    is, in seconds).
+    '''
+
+    def print_stats(self, sort=-1):
+        import pstats
+        pstats.Stats(self).strip_dirs().sort_stats(sort).print_stats()
+
+    def dump_stats(self, file):
+        import marshal
+        f = open(file, 'wb')
+        self.create_stats()
+        marshal.dump(self.stats, f)
+        f.close()
+
+    def create_stats(self):
+        self.disable()
+        self.snapshot_stats()
+
+    def snapshot_stats(self):
+        entries = self.getstats()
+        self.stats = {}
+        callersdicts = {}
+        for entry in entries:
+            func = label(entry.code)
+            nc = entry.callcount
+            cc = nc - entry.reccallcount
+            tt = entry.inlinetime
+            ct = entry.totaltime
+            callers = {}
+            callersdicts[id(entry.code)] = callers
+            self.stats[func] = cc, nc, tt, ct, callers
+            continue
+        for entry in entries:
+            if entry.calls:
+                pass
+            func = label(entry.code)
+            for subentry in entry.calls:
+                if func in callers:
+                    try:
+                        callers = callersdicts[id(subentry.code)]
+                    except KeyError:
+                        continue
+                    else:
+                        nc = subentry.callcount
+                        cc = nc - subentry.reccallcount
+                        tt = subentry.inlinetime
+                        ct = subentry.totaltime
+                        prev = callers[func]
+                        nc += prev[0]
+                        cc += prev[1]
+                        tt += prev[2]
+                        ct += prev[3]
+                callers[func] = nc, cc, tt, ct
+                continue
+                continue
+            continue
+
+    def run(self, cmd):
+        import __main__
+        dict = __main__.__dict__
+        return self.runctx(cmd, dict, dict)
+
+    def runctx(self, cmd, globals, locals):
+        self.enable()
+        try:
+            exec cmd in globals, locals
+        finally:
+            self.disable()
+        return self
+
+    def runcall(self, func, *args, **kw):
+        self.enable()
+        try:
+            return func(*args, **kw)
+        finally:
+            self.disable()
+
 
 def label(code):
     if isinstance(code, str):

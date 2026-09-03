@@ -2,128 +2,169 @@
  "version": "2.6.9",
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
-  "INCOMPLETE": 28,
-  "SIG-DIFF": 12
+  "SIG-DIFF": 39,
+  "AST-PASS": 1
  },
  "results": [
   {
    "module": "BaseHTTPServer",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/BaseHTTPServer.py', 28, 1, '/* unsupported opcode: JUMP_IF_FALSE 20 @109 */\\n'))"
+   "ast_detail": "diff at token 20: orig  With(context_expr=Call(func=Name(id='catch_warnings' | dec  Expr(value=Call(func=Attribute(value=Call(func=Name(id='catch_warnings'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1119,
+   "ntotal": 1191,
+   "detail": "line 22: orig ('LOAD_CONST', \"('filterwarnings', 'catch_warnings')\") | got ('LOAD_CONST', \"('filterwarnings',)\")\nline 26: orig ('IMPORT_FROM', 'catch_warnings') | got ('POP_TOP', '')\nline 27: orig ('STORE_NAME', 'catch_warnings') | got ('LOAD_CONST', '-1')"
   },
   {
    "module": "Bastion",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/Bastion.py', 41, 9, '        /* unsupported opcode: JUMP_IF_FALSE 43 @9 */\\n'))"
+   "ast_detail": "diff at token 122: orig  inst=Str(s='This code is not secure in Python 2.2 and later') | dec  inst=None",
+   "verdict": "SIG-DIFF",
+   "ndiff": 160,
+   "ntotal": 263,
+   "detail": "line 28: orig ('LOAD_CONST', '<code object BastionClass at 0x786416030, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object BastionClass at 0xa1e856030, file \"/Users/e/Doc')\nline 33: orig ('LOAD_CONST', '<code object <lambda> at 0x7864160a8, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object <lambda> at 0xa1e8560a8, file \"/Users/e/Documen')\nline 37: orig ('LOAD_CONST', '<code object Bastion at 0x786416288, file \"/Users/e/.pyenv/v') | got ('LOAD_CONST', '<code object Bastion at 0xa1e856288, file \"/Users/e/Document')"
   },
   {
    "module": "CGIHTTPServer",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/CGIHTTPServer.py', 36, 5, '    /* unsupported opcode: JUMP_IF_FALSE 5 @3 */\\n'))"
+   "ast_detail": "diff at token 111: orig  orelse=[Return(value=Call(func=Attribute(value=Attribute(value=Name(id='SimpleHTTPServer' | dec  orelse=[])",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1069,
+   "ntotal": 1239,
+   "detail": "line 36: orig ('LOAD_CONST', '<code object CGIHTTPRequestHandler at 0xc7040a198, file \"/Us') | got ('LOAD_CONST', '<code object CGIHTTPRequestHandler at 0x994856198, file \"/Us')\nline 41: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 43: orig ('LOAD_CONST', '<code object nobody_uid at 0xc7040a288, file \"/Users/e/.pyen') | got ('LOAD_CONST', '<code object nobody_uid at 0x994856210, file \"/Users/e/Docum')"
   },
   {
    "module": "ConfigParser",
+   "ast_detail": "diff at token 35: orig  attr='__message' | dec  attr='_Error__message'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2036,
+   "ndiff": 1591,
    "ntotal": 2156,
-   "detail": "line 29: orig ('LOAD_CONST', '<code object Error at 0x910856120, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Error at 0xad2850eb8, file \"/Users/e/Documents/')\nline 37: orig ('LOAD_CONST', '<code object NoSectionError at 0x910856210, file \"/Users/e/.') | got ('LOAD_CONST', '<code object NoSectionError at 0xad2850f30, file \"/Users/e/D')\nline 45: orig ('LOAD_CONST', '<code object DuplicateSectionError at 0x9108566c0, file \"/Us') | got ('LOAD_CONST', '<code object DuplicateSectionError at 0xad2856300, file \"/Us')"
+   "detail": "line 29: orig ('LOAD_CONST', '<code object Error at 0xc4684a120, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Error at 0x8a0856120, file \"/Users/e/Documents/')\nline 37: orig ('LOAD_CONST', '<code object NoSectionError at 0xc4684a210, file \"/Users/e/.') | got ('LOAD_CONST', '<code object NoSectionError at 0x8a0856210, file \"/Users/e/D')\nline 45: orig ('LOAD_CONST', '<code object DuplicateSectionError at 0xc4684a6c0, file \"/Us') | got ('LOAD_CONST', '<code object DuplicateSectionError at 0x8a08566c0, file \"/Us')"
   },
   {
    "module": "Cookie",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/Cookie.py', 168, 1, '/* unsupported opcode: JUMP_IF_FALSE 29 @54 */\\n'))"
+   "ast_detail": "diff at token 2: orig  TryExcept(body=[ImportFrom(module='cPickle' | dec  If(test=Compare(left=Name(id='__name__'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1868,
+   "ntotal": 1912,
+   "detail": "line 7: orig ('SETUP_EXCEPT', '#17') | got ('LOAD_NAME', '__name__')\nline 8: orig ('LOAD_CONST', '-1') | got ('LOAD_CONST', \"'__main__'\")\nline 9: orig ('LOAD_CONST', \"('dumps', 'loads')\") | got ('COMPARE_OP', '2')"
   },
   {
    "module": "DocXMLRPCServer",
+   "ast_detail": "diff at token 369: orig  body=[Assign(targets=[Name(id='anchor' | dec  body=[If(test=Name(id='cl'",
    "verdict": "SIG-DIFF",
-   "ndiff": 872,
-   "ntotal": 896,
+   "ndiff": 894,
+   "ntotal": 928,
    "detail": "line 20: orig ('LOAD_CONST', \"('SimpleXMLRPCServer', 'SimpleXMLRPCRequestHandler', 'CGIXML\") | got ('LOAD_CONST', \"('SimpleXMLRPCServer',)\")\nline 24: orig ('IMPORT_FROM', 'SimpleXMLRPCRequestHandler') | got ('POP_TOP', '')\nline 25: orig ('STORE_NAME', 'SimpleXMLRPCRequestHandler') | got ('LOAD_CONST', '-1')"
   },
   {
    "module": "HTMLParser",
+   "ast_detail": "diff at token 2: orig  Import(names=[alias(name='re' | dec  Import(names=[alias(name='replaceEntities'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1334,
+   "ndiff": 1291,
    "ntotal": 1416,
    "detail": "line 9: orig ('IMPORT_NAME', 're') | got ('IMPORT_NAME', 'replaceEntities')\nline 10: orig ('STORE_NAME', 're') | got ('STORE_NAME', 'replaceEntities')\nline 11: orig ('LOAD_NAME', 're') | got ('LOAD_NAME', 'replaceEntities')"
   },
   {
    "module": "MimeWriter",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/MimeWriter.py', 20, 1, '/* unsupported opcode: JUMP_IF_FALSE 16 @86 */\\n'))"
+   "ast_detail": "diff at token 64: orig  While(test=BoolOp(op=And() | dec  While(test=Name(id='lines'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 197,
+   "ntotal": 292,
+   "detail": "line 23: orig ('LOAD_CONST', '<code object MimeWriter at 0xaa0856210, file \"/Users/e/.pyen') | got ('LOAD_CONST', '<code object MimeWriter at 0x952856210, file \"/Users/e/Docum')\nline 46: orig ('LOAD_CONST', '<code object __init__ at 0xaa0850eb8, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object __init__ at 0x952850eb8, file \"/Users/e/Documen')\nline 50: orig ('LOAD_CONST', '<code object addheader at 0xaa0850f30, file \"/Users/e/.pyenv') | got ('LOAD_CONST', '<code object addheader at 0x952850f30, file \"/Users/e/Docume')"
   },
   {
    "module": "Queue",
+   "ast_detail": "diff at token 21: orig  body=[Pass()] | dec  body=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 654,
+   "ndiff": 584,
    "ntotal": 718,
-   "detail": "line 29: orig ('LOAD_CONST', '<code object Empty at 0xa50004eb8, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Empty at 0x890844eb8, file \"/Users/e/Documents/')\nline 37: orig ('LOAD_CONST', '<code object Full at 0xa50004f30, file \"/Users/e/.pyenv/vers') | got ('LOAD_CONST', '<code object Full at 0x890844f30, file \"/Users/e/Documents/p')\nline 43: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')"
+   "detail": "line 29: orig ('LOAD_CONST', '<code object Empty at 0x9aa450eb8, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Empty at 0xc32850eb8, file \"/Users/e/Documents/')\nline 37: orig ('LOAD_CONST', '<code object Full at 0x9aa450f30, file \"/Users/e/.pyenv/vers') | got ('LOAD_CONST', '<code object Full at 0xc32850f30, file \"/Users/e/Documents/p')\nline 44: orig ('LOAD_CONST', '<code object Queue at 0x9aa485dc8, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Queue at 0xc32885dc8, file \"/Users/e/Documents/')"
   },
   {
    "module": "SimpleHTTPServer",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/SimpleHTTPServer.py', 18, 1, '/* unsupported opcode: JUMP_IF_FALSE 23 @147 */\\n'))"
+   "ast_detail": "diff at token 23: orig  TryExcept(body=[ImportFrom(module='cStringIO' | dec  If(test=Compare(left=Name(id='__name__'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 459,
+   "ntotal": 676,
+   "detail": "line 40: orig ('SETUP_EXCEPT', '#48') | got ('LOAD_NAME', '__name__')\nline 41: orig ('LOAD_CONST', '-1') | got ('LOAD_CONST', \"'__main__'\")\nline 42: orig ('LOAD_CONST', \"('StringIO',)\") | got ('COMPARE_OP', '2')"
   },
   {
    "module": "SimpleXMLRPCServer",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/SimpleXMLRPCServer.py', 105, 1, '/* unsupported opcode: JUMP_IF_FALSE 13 @120 */\\n'))"
+   "ast_detail": "diff at token 16: orig  TryExcept(body=[Import(names=[alias(name='fcntl' | dec  If(test=Compare(left=Name(id='__name__'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1223,
+   "ntotal": 1298,
+   "detail": "line 33: orig ('SETUP_EXCEPT', '#39') | got ('LOAD_NAME', '__name__')\nline 34: orig ('LOAD_CONST', '-1') | got ('LOAD_CONST', \"'__main__'\")\nline 35: orig ('LOAD_CONST', 'None') | got ('COMPARE_OP', '2')"
   },
   {
    "module": "SocketServer",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/SocketServer.py', 127, 1, '/* unsupported opcode: JUMP_IF_FALSE 19 @86 */\\n'))"
+   "ast_detail": "diff at token 11: orig  TryExcept(body=[Import(names=[alias(name='threading' | dec  If(test=Call(func=Name(id='hasattr'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 985,
+   "ntotal": 1268,
+   "detail": "line 21: orig ('SETUP_EXCEPT', '#27') | got ('LOAD_NAME', 'hasattr')\nline 22: orig ('LOAD_CONST', '-1') | got ('LOAD_NAME', 'socket')\nline 23: orig ('LOAD_CONST', 'None') | got ('LOAD_CONST', \"'AF_UNIX'\")"
   },
   {
    "module": "StringIO",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/StringIO.py', 32, 1, '/* unsupported opcode: JUMP_IF_FALSE 13 @36 */\\n'))"
+   "ast_detail": "diff at token 0: orig Module(body=[TryExcept(body=[ImportFrom(module='errno' | dec Module(body=[If(test=Compare(left=Name(id='__name__'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 950,
+   "ntotal": 985,
+   "detail": "line 3: orig ('SETUP_EXCEPT', '#11') | got ('LOAD_NAME', '__name__')\nline 4: orig ('LOAD_CONST', '-1') | got ('LOAD_CONST', \"'__main__'\")\nline 5: orig ('LOAD_CONST', \"('EINVAL',)\") | got ('COMPARE_OP', '2')"
   },
   {
    "module": "UserDict",
+   "ast_detail": "diff at token 96: orig  orelse=[Return(value=Call(func=Name(id='cmp' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 888,
+   "ndiff": 696,
    "ntotal": 923,
-   "detail": "line 4: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 5: orig ('LOAD_CONST', '<code object UserDict at 0x79e8893f0, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object UserDict at 0x868004eb8, file \"/Users/e/Documen')\nline 13: orig ('LOAD_CONST', '<code object IterableUserDict at 0x79e889558, file \"/Users/e') | got ('LOAD_CONST', '<code object IterableUserDict at 0x868004f30, file \"/Users/e')"
+   "detail": "line 5: orig ('LOAD_CONST', '<code object UserDict at 0x75e8893f0, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object UserDict at 0xc0e8893f0, file \"/Users/e/Documen')\nline 13: orig ('LOAD_CONST', '<code object IterableUserDict at 0x75e889558, file \"/Users/e') | got ('LOAD_CONST', '<code object IterableUserDict at 0xc0e889558, file \"/Users/e')\nline 30: orig ('LOAD_CONST', '<code object DictMixin at 0x75e889e40, file \"/Users/e/.pyenv') | got ('LOAD_CONST', '<code object DictMixin at 0xc0e889dc8, file \"/Users/e/Docume')"
   },
   {
    "module": "UserList",
+   "ast_detail": "diff at token 44: orig  body=[Assign(targets=[Subscript(value=Attribute(value=Name(id='self' | dec  body=[Assign(targets=[Subscript(value=Name(id='initlist'",
    "verdict": "SIG-DIFF",
-   "ndiff": 613,
+   "ndiff": 410,
    "ntotal": 633,
-   "detail": "line 11: orig ('LOAD_CONST', '<code object UserList at 0xc3c889828, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object UserList at 0xaa6844eb8, file \"/Users/e/Documen')\nline 21: orig ('LOAD_CONST', 'None') | got ('LOAD_LOCALS', '')\nline 22: orig ('LOAD_CONST', '<code object __init__ at 0xc3c850eb8, file \"/Users/e/.pyenv/') | got ('RETURN_VALUE', '')"
+   "detail": "line 11: orig ('LOAD_CONST', '<code object UserList at 0xa94889828, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object UserList at 0xbcc889828, file \"/Users/e/Documen')\nline 22: orig ('LOAD_CONST', '<code object __init__ at 0xa94850eb8, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object __init__ at 0xbcc850eb8, file \"/Users/e/Documen')\nline 25: orig ('LOAD_CONST', '<code object __repr__ at 0xa94850f30, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object __repr__ at 0xbcc850f30, file \"/Users/e/Documen')"
   },
   {
    "module": "UserString",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/UserString.py', 17, 1, '/* unsupported opcode: JUMP_IF_FALSE 136 @104 */\\n'))"
+   "ast_detail": "diff at token 212: orig  orelse=[Return(value=Call(func=Name(id='cmp' | dec  orelse=[])",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1010,
+   "ntotal": 1385,
+   "detail": "line 19: orig ('LOAD_CONST', '<code object UserString at 0x7b04903f0, file \"/Users/e/.pyen') | got ('LOAD_CONST', '<code object UserString at 0xba888d3f0, file \"/Users/e/Docum')\nline 29: orig ('LOAD_CONST', '<code object MutableString at 0x7b04908a0, file \"/Users/e/.p') | got ('LOAD_CONST', '<code object MutableString at 0xba888d8a0, file \"/Users/e/Do')\nline 94: orig ('LOAD_CONST', '<code object __init__ at 0x7b0444eb8, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object __init__ at 0xba7c04eb8, file \"/Users/e/Documen')"
   },
   {
    "module": "_LWPCookieJar",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/_LWPCookieJar.py', 28, 5, '    /* unsupported opcode: JUMP_IF_FALSE 26 @57 */\\n'))"
+   "ast_detail": "diff at token 1: orig  asname=None) | dec  asname=None)])",
+   "verdict": "SIG-DIFF",
+   "ndiff": 635,
+   "ntotal": 662,
+   "detail": "line 12: orig ('LOAD_CONST', \"('_warn_unhandled_exception', 'FileCookieJar', 'LoadError', \") | got ('LOAD_CONST', \"('_warn_unhandled_exception',)\")\nline 16: orig ('IMPORT_FROM', 'FileCookieJar') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'FileCookieJar') | got ('LOAD_CONST', '-1')"
   },
   {
    "module": "_MozillaCookieJar",
+   "ast_detail": "diff at token 1: orig  asname=None) | dec  asname=None)])",
    "verdict": "SIG-DIFF",
-   "ndiff": 410,
+   "ndiff": 407,
    "ntotal": 426,
    "detail": "line 12: orig ('LOAD_CONST', \"('_warn_unhandled_exception', 'FileCookieJar', 'LoadError', \") | got ('LOAD_CONST', \"('_warn_unhandled_exception',)\")\nline 16: orig ('IMPORT_FROM', 'FileCookieJar') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'FileCookieJar') | got ('LOAD_CONST', '-1')"
   },
   {
    "module": "__future__",
-   "verdict": "SIG-DIFF",
-   "ndiff": 49,
-   "ntotal": 132,
-   "detail": "line 32: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 33: orig ('LOAD_CONST', '<code object _Feature at 0x7108560a8, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object _Feature at 0xa3a450eb8, file \"/Users/e/Documen')\nline 85: orig ('LOAD_CONST', '<code object __init__ at 0x710850eb8, file \"/Users/e/.pyenv/') | got ('LOAD_LOCALS', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_abcoll",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/_abcoll.py', 14, 5, '    /* unsupported opcode: JUMP_IF_FALSE 17 @43 */\\n'))"
+   "ast_detail": "diff at token 35: orig  body=[TryExcept(body=[Return(value=Call(func=Name(id='any' | dec  body=[Pass()]",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2078,
+   "ntotal": 2125,
+   "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '-1')"
   },
   {
    "module": "_strptime",
+   "ast_detail": "diff at token 18: orig  TryExcept(body=[ImportFrom(module='thread' | dec  ImportFrom(module='dummy_thread'",
    "verdict": "SIG-DIFF",
    "ndiff": 1651,
    "ntotal": 1690,
@@ -131,104 +172,155 @@
   },
   {
    "module": "_threading_local",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/_threading_local.py', 144, 5, '    /* unsupported opcode: JUMP_IF_FALSE 123 @48 */\\n'))"
+   "ast_detail": "diff at token 91: orig  If(test=BoolOp(op=Or() | dec  If(test=UnaryOp(op=Not()",
+   "verdict": "SIG-DIFF",
+   "ndiff": 344,
+   "ntotal": 377,
+   "detail": "line 9: orig ('LOAD_CONST', '<code object _localbase at 0x874850f30, file \"/Users/e/.pyen') | got ('LOAD_CONST', '<code object _localbase at 0xa32856030, file \"/Users/e/Docum')\nline 14: orig ('LOAD_CONST', '<code object _patch at 0x874856030, file \"/Users/e/.pyenv/ve') | got ('LOAD_CONST', '<code object _patch at 0xa32856120, file \"/Users/e/Documents')\nline 20: orig ('LOAD_CONST', '<code object local at 0x8748808a0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object local at 0xa32885468, file \"/Users/e/Documents/')"
   },
   {
    "module": "abc",
+   "ast_detail": "diff at token 88: orig  generators=[comprehension(target=Tuple(elts=[Name(id='name' | dec  generators=[comprehension(target=Name(id='name'",
    "verdict": "SIG-DIFF",
-   "ndiff": 471,
+   "ndiff": 384,
    "ntotal": 516,
-   "detail": "line 4: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 5: orig ('LOAD_CONST', '<code object _C at 0xbe6450eb8, file \"/Users/e/.pyenv/versio') | got ('LOAD_CONST', '<code object _C at 0x7ae850eb8, file \"/Users/e/Documents/pro')\nline 15: orig ('LOAD_CONST', '<code object abstractmethod at 0xbe6450f30, file \"/Users/e/.') | got ('LOAD_CONST', '<code object abstractmethod at 0x7ae850f30, file \"/Users/e/D')"
+   "detail": "line 5: orig ('LOAD_CONST', '<code object _C at 0x70e004eb8, file \"/Users/e/.pyenv/versio') | got ('LOAD_CONST', '<code object _C at 0x88e850eb8, file \"/Users/e/Documents/pro')\nline 15: orig ('LOAD_CONST', '<code object abstractmethod at 0x70e004f30, file \"/Users/e/.') | got ('LOAD_CONST', '<code object abstractmethod at 0x88e850f30, file \"/Users/e/D')\nline 21: orig ('LOAD_CONST', '<code object abstractproperty at 0x70e00a300, file \"/Users/e') | got ('LOAD_CONST', '<code object abstractproperty at 0x88e856300, file \"/Users/e')"
   },
   {
    "module": "aifc",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/aifc.py', 147, 5, '    /* unsupported opcode: JUMP_IF_FALSE 13 @46 */\\n'))"
+   "ast_detail": "diff at token 24: orig  body=[TryExcept(body=[Return(value=Subscript(value=Call(func=Attribute(value=Name(id='str | dec  body=[Pass()]",
+   "verdict": "SIG-DIFF",
+   "ndiff": 3115,
+   "ntotal": 3376,
+   "detail": "line 19: orig ('LOAD_CONST', '<code object Error at 0xa10004eb8, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Error at 0xbe2850eb8, file \"/Users/e/Documents/')\nline 26: orig ('LOAD_CONST', '<code object _read_long at 0xa10004f30, file \"/Users/e/.pyen') | got ('LOAD_CONST', '<code object _read_long at 0xbe2850f30, file \"/Users/e/Docum')\nline 29: orig ('LOAD_CONST', '<code object _read_ulong at 0xa1000a300, file \"/Users/e/.pye') | got ('LOAD_CONST', '<code object _read_ulong at 0xbe2856300, file \"/Users/e/Docu')"
   },
   {
    "module": "anydbm",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/anydbm.py', 52, 5, '    /* unsupported opcode: JUMP_IF_FALSE 10 @100 */\\n'))"
+   "ast_detail": "diff at token 25: orig  body=[TryExcept(body=[Assign(targets=[Name(id='_mod' | dec  body=[If(test=UnaryOp(op=Not()",
+   "verdict": "SIG-DIFF",
+   "ndiff": 110,
+   "ntotal": 143,
+   "detail": "line 6: orig ('LOAD_CONST', '<code object error at 0x84e004eb8, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object error at 0x770850eb8, file \"/Users/e/Documents/')\nline 27: orig ('SETUP_EXCEPT', '#33') | got ('LOAD_NAME', '_defaultmod')\nline 28: orig ('LOAD_NAME', '__import__') | got ('JUMP_IF_TRUE', '#50')"
   },
   {
    "module": "ast",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/ast.py', 36, 5, '    /* unsupported opcode: JUMP_IF_FALSE 22 @39 */\\n'))"
+   "ast_detail": "diff at token 103: orig  orelse=[If(test=Call(func=Name(id='isinstance' | dec  orelse=[])",
+   "verdict": "SIG-DIFF",
+   "ndiff": 776,
+   "ntotal": 1017,
+   "detail": "line 15: orig ('LOAD_CONST', '<code object parse at 0x7fa850eb8, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object parse at 0xba4850eb8, file \"/Users/e/Documents/')\nline 18: orig ('LOAD_CONST', '<code object literal_eval at 0x7fa856030, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object literal_eval at 0xba4856030, file \"/Users/e/Doc')\nline 23: orig ('LOAD_CONST', '<code object dump at 0x7fa880300, file \"/Users/e/.pyenv/vers') | got ('LOAD_CONST', '<code object dump at 0xba4880300, file \"/Users/e/Documents/p')"
   },
   {
    "module": "asynchat",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/asynchat.py', 41, 9, '        /* unsupported opcode: JUMP_IF_FALSE 35 @22 */\\n'))"
+   "ast_detail": "diff at token 192: orig  body=[TryExcept(body=[Assign(targets=[Name(id='data' | dec  body=[While(test=Name(id='True'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 797,
+   "ntotal": 849,
+   "detail": "line 24: orig ('LOAD_CONST', \"('filterwarnings', 'catch_warnings')\") | got ('LOAD_CONST', \"('filterwarnings',)\")\nline 28: orig ('IMPORT_FROM', 'catch_warnings') | got ('POP_TOP', '')\nline 29: orig ('STORE_NAME', 'catch_warnings') | got ('LOAD_CONST', '-1')"
   },
   {
    "module": "asyncore",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/asyncore.py', 38, 1, '/* unsupported opcode: JUMP_IF_FALSE 13 @160 */\\n'))"
+   "ast_detail": "diff at token 34: orig  TryExcept(body=[Expr(value=Name(id='socket_map' | dec  If(test=Compare(left=Attribute(value=Name(id='os'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2163,
+   "ntotal": 2267,
+   "detail": "line 24: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EN\") | got ('LOAD_CONST', \"('EALREADY',)\")\nline 28: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 29: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '-1')"
   },
   {
    "module": "atexit",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/atexit.py', 15, 9, '        /* unsupported opcode: JUMP_IF_FALSE 129 @12 */\\n'))"
+   "ast_detail": "diff at token 36: orig  TryExcept(body=[Expr(value=Call(func=Name(id='func' | dec  Import(names=[alias(name='traceback'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 100,
+   "ntotal": 191,
+   "detail": "line 12: orig ('LOAD_CONST', '<code object _run_exitfuncs at 0xa28010eb8, file \"/Users/e/.') | got ('LOAD_CONST', '<code object _run_exitfuncs at 0xbbc850eb8, file \"/Users/e/D')\nline 15: orig ('LOAD_CONST', '<code object register at 0xa28010f30, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object register at 0xbbc850f30, file \"/Users/e/Documen')\nline 39: orig ('LOAD_CONST', '<code object x1 at 0xa28016300, file \"/Users/e/.pyenv/versio') | got ('LOAD_CONST', '<code object x1 at 0xbbc856300, file \"/Users/e/Documents/pro')"
   },
   {
    "module": "audiodev",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/audiodev.py', 18, 5, '    /* unsupported opcode: JUMP_IF_FALSE 109 @26 */\\n'))"
+   "ast_detail": "diff at token 150: orig  asname=None) | dec  asname=None)])",
+   "verdict": "SIG-DIFF",
+   "ndiff": 651,
+   "ntotal": 1017,
+   "detail": "line 23: orig ('LOAD_CONST', '<code object error at 0xa66850eb8, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object error at 0x982004eb8, file \"/Users/e/Documents/')\nline 30: orig ('LOAD_CONST', '<code object Play_Audio_sgi at 0xa66880cd8, file \"/Users/e/.') | got ('LOAD_CONST', '<code object Play_Audio_sgi at 0x982034b70, file \"/Users/e/D')\nline 37: orig ('LOAD_CONST', '<code object Play_Audio_sun at 0xa668895d0, file \"/Users/e/.') | got ('LOAD_CONST', '<code object Play_Audio_sun at 0x98203d558, file \"/Users/e/D')"
   },
   {
    "module": "base64",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/base64.py', 23, 5, '    /* unsupported opcode: JUMP_IF_FALSE 36 @28 */\\n'))"
+   "ast_detail": "diff at token 23: orig  Assign(targets=[Name(id='_translation' | dec  Assign(targets=[Subscript(value=Name(id='_'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1025,
+   "ntotal": 1133,
+   "detail": "line 32: orig ('DUP_TOP', '') | got ('LOAD_NAME', '_')\nline 33: orig ('STORE_NAME', '_[1]') | got ('LOAD_CONST', '1')\nline 34: orig ('LOAD_NAME', 'range') | got ('STORE_SUBSCR', '')"
   },
   {
    "module": "bdb",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/bdb.py', 21, 5, '    /* unsupported opcode: JUMP_IF_TRUE 29 @6 */\\n'))"
+   "ast_detail": "diff at token 281: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1816,
+   "ntotal": 2242,
+   "detail": "line 23: orig ('LOAD_CONST', '<code object BdbQuit at 0xbc0450eb8, file \"/Users/e/.pyenv/v') | got ('LOAD_CONST', '<code object BdbQuit at 0xa48010eb8, file \"/Users/e/Document')\nline 30: orig ('LOAD_CONST', '<code object Bdb at 0xbc0489e40, file \"/Users/e/.pyenv/versi') | got ('LOAD_CONST', '<code object Bdb at 0xa48049e40, file \"/Users/e/Documents/pr')\nline 35: orig ('LOAD_CONST', '<code object set_trace at 0xbc0489eb8, file \"/Users/e/.pyenv') | got ('LOAD_CONST', '<code object set_trace at 0xa48049eb8, file \"/Users/e/Docume')"
   },
   {
    "module": "binhex",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/binhex.py', 21, 1, '/* unsupported opcode: JUMP_IF_FALSE 54 @206 */\\n'))"
+   "ast_detail": "diff at token 19: orig  Assign(targets=[List(elts=[Name(id='_DID_HEADER' | dec  Assign(targets=[Tuple(elts=[Name(id='_DID_HEADER'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1879,
+   "ntotal": 2036,
+   "detail": "line 27: orig ('LOAD_CONST', '<code object Error at 0x72e850eb8, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Error at 0x90e850eb8, file \"/Users/e/Documents/')\nline 47: orig ('SETUP_EXCEPT', '#69') | got ('LOAD_NAME', '__name__')\nline 48: orig ('LOAD_CONST', '-1') | got ('LOAD_CONST', \"'__main__'\")"
   },
   {
    "module": "bisect",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/bisect.py', 4, 5, '    /* unsupported opcode: JUMP_IF_FALSE 16 @9 */\\n'))"
+   "ast_detail": "diff at token 67: orig  ctx=Load()))] | dec  ctx=Load()))",
+   "verdict": "SIG-DIFF",
+   "ndiff": 263,
+   "ntotal": 291,
+   "detail": "line 5: orig ('LOAD_CONST', '<code object insort_right at 0x82e004eb8, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object insort_right at 0x8a0850eb8, file \"/Users/e/Doc')\nline 12: orig ('LOAD_CONST', '<code object bisect_right at 0x82e004f30, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object bisect_right at 0x8a0850f30, file \"/Users/e/Doc')\nline 19: orig ('LOAD_CONST', '<code object insort_left at 0x82e00a300, file \"/Users/e/.pye') | got ('LOAD_CONST', '<code object insort_left at 0x8a0856300, file \"/Users/e/Docu')"
   },
   {
    "module": "cProfile",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/cProfile.py', 12, 9, '        /* unsupported opcode: JUMP_IF_FALSE 7 @47 */\\n'))"
+   "ast_detail": "diff at token 29: orig  Assign(targets=[Name(id='result' | dec  TryFinally(body=[Assign(targets=[Name(id='result'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 358,
+   "ntotal": 605,
+   "detail": "line 15: orig ('LOAD_CONST', '<code object run at 0xa38850eb8, file \"/Users/e/.pyenv/versi') | got ('LOAD_CONST', '<code object run at 0x8a2010eb8, file \"/Users/e/Documents/pr')\nline 19: orig ('LOAD_CONST', '<code object runctx at 0xa38850f30, file \"/Users/e/.pyenv/ve') | got ('LOAD_CONST', '<code object runctx at 0x8a2010f30, file \"/Users/e/Documents')\nline 22: orig ('LOAD_CONST', '<code object help at 0xa38856300, file \"/Users/e/.pyenv/vers') | got ('LOAD_CONST', '<code object help at 0x8a2016300, file \"/Users/e/Documents/p')"
   },
   {
    "module": "calendar",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/calendar.py', 37, 5, '    /* unsupported opcode: JUMP_IF_FALSE 31 @13 */\\n'))"
+   "ast_detail": "diff at token 119: orig  body=[Assign(targets=[Name(id='_months' | dec  body=[Assign(targets=[Subscript(value=Name(id='_'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2205,
+   "ntotal": 2868,
+   "detail": "line 40: orig ('LOAD_CONST', '<code object IllegalMonthError at 0x8f484a300, file \"/Users/') | got ('LOAD_CONST', '<code object IllegalMonthError at 0x9f0856300, file \"/Users/')\nline 48: orig ('LOAD_CONST', '<code object IllegalWeekdayError at 0x8f484a120, file \"/User') | got ('LOAD_CONST', '<code object IllegalWeekdayError at 0x9f0856120, file \"/User')\nline 74: orig ('LOAD_CONST', '<code object _localized_month at 0x8f4874300, file \"/Users/e') | got ('LOAD_CONST', '<code object _localized_month at 0x9f0880300, file \"/Users/e')"
   },
   {
    "module": "cgi",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/cgi.py', 18, 1, '/* unsupported opcode: JUMP_IF_FALSE 20 @143 */\\n'))"
+   "ast_detail": "diff at token 25: orig  With(context_expr=Call(func=Name(id='catch_warnings' | dec  Expr(value=Call(func=Attribute(value=Call(func=Name(id='catch_warnings'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2974,
+   "ntotal": 3213,
+   "detail": "line 32: orig ('LOAD_CONST', \"('filterwarnings', 'catch_warnings', 'warn')\") | got ('LOAD_CONST', \"('filterwarnings',)\")\nline 36: orig ('IMPORT_FROM', 'catch_warnings') | got ('POP_TOP', '')\nline 37: orig ('STORE_NAME', 'catch_warnings') | got ('LOAD_CONST', '-1')"
   },
   {
    "module": "cgitb",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/cgitb.py', 34, 5, '    /* unsupported opcode: JUMP_IF_FALSE 13 @3 */\\n'))"
+   "ast_detail": "diff at token 33: orig  orelse=[Return(value=Str(s=''))])] | dec  orelse=[])",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1442,
+   "ntotal": 1541,
+   "detail": "line 11: orig ('LOAD_CONST', '<code object reset at 0x778850eb8, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object reset at 0xa42850eb8, file \"/Users/e/Documents/')\nline 16: orig ('LOAD_CONST', '<code object small at 0x778850f30, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object small at 0xa42850f30, file \"/Users/e/Documents/')\nline 19: orig ('LOAD_CONST', '<code object strong at 0x778856300, file \"/Users/e/.pyenv/ve') | got ('LOAD_CONST', '<code object strong at 0xa42856300, file \"/Users/e/Documents')"
   },
   {
    "module": "chunk",
+   "ast_detail": "diff at token 77: orig  TryExcept(body=[Assign(targets=[Attribute(value=Name(id='self' | dec  If(test=Name(id='inclheader'",
    "verdict": "SIG-DIFF",
-   "ndiff": 474,
+   "ndiff": 329,
    "ntotal": 487,
-   "detail": "line 4: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 5: orig ('LOAD_CONST', '<code object Chunk at 0xc2e8566c0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Chunk at 0xbfc850eb8, file \"/Users/e/Documents/')\nline 15: orig ('LOAD_NAME', 'True') | got ('LOAD_LOCALS', '')"
+   "detail": "line 5: orig ('LOAD_CONST', '<code object Chunk at 0x76e4566c0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Chunk at 0x80a8566c0, file \"/Users/e/Documents/')\nline 18: orig ('LOAD_CONST', '<code object __init__ at 0x76e450eb8, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object __init__ at 0x80a850eb8, file \"/Users/e/Documen')\nline 21: orig ('LOAD_CONST', '<code object getname at 0x76e450f30, file \"/Users/e/.pyenv/v') | got ('LOAD_CONST', '<code object getname at 0x80a850f30, file \"/Users/e/Document')"
   },
   {
    "module": "cmd",
+   "ast_detail": "diff at token 155: orig  body=[TryExcept(body=[Import(names=[alias(name='readline' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1320,
+   "ndiff": 1124,
    "ntotal": 1350,
-   "detail": "line 21: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 22: orig ('LOAD_CONST', '<code object Cmd at 0x70c885d50, file \"/Users/e/.pyenv/versi') | got ('LOAD_CONST', '<code object Cmd at 0xc8a850f30, file \"/Users/e/Documents/pr')\nline 32: orig ('LOAD_CONST', '\"A simple framework for writing line-oriented command interp') | got ('LOAD_LOCALS', '')"
+   "detail": "line 22: orig ('LOAD_CONST', '<code object Cmd at 0x792485d50, file \"/Users/e/.pyenv/versi') | got ('LOAD_CONST', '<code object Cmd at 0xbc6885d50, file \"/Users/e/Documents/pr')\nline 59: orig ('LOAD_CONST', '<code object __init__ at 0x792450f30, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object __init__ at 0xbc6850f30, file \"/Users/e/Documen')\nline 63: orig ('LOAD_CONST', '<code object cmdloop at 0x792456030, file \"/Users/e/.pyenv/v') | got ('LOAD_CONST', '<code object cmdloop at 0xbc6856030, file \"/Users/e/Document')"
   }
  ]
 }

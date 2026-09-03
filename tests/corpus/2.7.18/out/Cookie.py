@@ -236,22 +236,236 @@ if __name__ == '__main__':
             return '%s, %02d %3s %4d %02d:%02d:%02d GMT' % (weekdayname[wd], day, monthname[month], year, hh, mm, ss)
 
         class Morsel(dict):
-            pass
+            _reserved = {'expires': 'expires', 'path': 'Path', 'comment': 'Comment', 'domain': 'Domain', 'max-age': 'Max-Age', 'secure': 'secure', 'httponly': 'httponly', 'version': 'Version'}
+            _flags = {'secure', 'httponly'}
+            def __init__(self):
+                self.key = None
+                self.value = None
+                self.coded_value = None
+                for K in self._reserved:
+                    dict.__setitem__(self, K, '')
+                    continue
+
+            def __setitem__(self, K, V):
+                K = K.lower()
+                if K not in self._reserved:
+                    raise CookieError('Invalid Attribute %s' % K)
+                dict.__setitem__(self, K, V)
+
+            def isReservedKey(self, K):
+                return K.lower() in self._reserved
+
+            def set(self, key, val, coded_val, LegalChars=_LegalChars, idmap=_idmap, translate=string.translate):
+                if key.lower() in self._reserved:
+                    raise CookieError('Attempt to set a reserved key: %s' % key)
+                if '' != translate(key, idmap, LegalChars):
+                    raise CookieError('Illegal key value: %s' % key)
+                self.key = key
+                self.value = val
+                self.coded_value = coded_val
+
+            def output(self, attrs=None, header='Set-Cookie:'):
+                return '%s %s' % (header, self.OutputString(attrs))
+
+            __str__ = output
+            def __repr__(self):
+                return '<%s: %s=%s>' % (self.__class__.__name__, self.key, repr(self.value))
+
+            def js_output(self, attrs=None):
+                return '\n        <script type="text/javascript">\n        <!-- begin hiding\n        document.cookie = "%s";\n        // end hiding -->\n        </script>\n        ' % (self.OutputString(attrs).replace('"', '\\"'),)
+
+            def OutputString(self, attrs=None):
+                result = []
+                RA = result.append
+                RA('%s=%s' % (self.key, self.coded_value))
+                if attrs is None:
+                    attrs = self._reserved
+                items = self.items()
+                items.sort()
+                for K, V in items:
+                    if V == '':
+                        continue
+                    if K not in attrs:
+                        continue
+                    if K == 'expires' and type(V) == type(1):
+                        RA('%s=%s' % (self._reserved[K], _getdate(V)))
+                        continue
+                    if K == 'max-age' and type(V) == type(1):
+                        RA('%s=%d' % (self._reserved[K], V))
+                        continue
+                    if K == 'secure':
+                        RA(str(self._reserved[K]))
+                        continue
+                    if K == 'httponly':
+                        RA(str(self._reserved[K]))
+                        continue
+                    RA('%s=%s' % (self._reserved[K], V))
+                    continue
+                return _semispacejoin(result)
+
 
         _LegalKeyChars = "\\w\\d!#%&'~_`><@,:/\\$\\*\\+\\-\\.\\^\\|\\)\\(\\?\\}\\{\\="
         _LegalValueChars = _LegalKeyChars + '\\[\\]'
         _CookiePattern = re.compile('(?x)\\s*(?P<key>[' + _LegalKeyChars + ']+?)(\\s*=\\s*(?P<val>"(?:[^\\\\"]|\\\\.)*"|\\w{3},\\s[\\s\\w\\d-]{9,11}\\s[\\d:]{8}\\sGMT|[' + _LegalValueChars + ']*))?\\s*(\\s+|;|$)')
         class BaseCookie(dict):
-            pass
+            def value_decode(self, val):
+                return val, val
+
+            def value_encode(self, val):
+                strval = str(val)
+                return strval, strval
+
+            def __init__(self, input=None):
+                if input:
+                    self.load(input)
+
+            def _BaseCookie__set(self, key, real_value, coded_value):
+                M = self.get(key, Morsel())
+                M.set(key, real_value, coded_value)
+                dict.__setitem__(self, key, M)
+
+            def __setitem__(self, key, value):
+                if isinstance(value, Morsel):
+                    dict.__setitem__(self, key, value)
+                else:
+                    rval, cval = self.value_encode(value)
+                    self._BaseCookie__set(key, rval, cval)
+
+            def output(self, attrs=None, header='Set-Cookie:', sep='\r\n'):
+                result = []
+                items = self.items()
+                items.sort()
+                for K, V in items:
+                    result.append(V.output(attrs, header))
+                    continue
+                return sep.join(result)
+
+            __str__ = output
+            def __repr__(self):
+                L = []
+                items = self.items()
+                items.sort()
+                for K, V in items:
+                    L.append('%s=%s' % (K, repr(V.value)))
+                    continue
+                return '<%s: %s>' % (self.__class__.__name__, _spacejoin(L))
+
+            def js_output(self, attrs=None):
+                result = []
+                items = self.items()
+                items.sort()
+                for K, V in items:
+                    result.append(V.js_output(attrs))
+                    continue
+                return _nulljoin(result)
+
+            def load(self, rawdata):
+                if type(rawdata) == type(''):
+                    self._BaseCookie__ParseString(rawdata)
+                else:
+                    for k, v in rawdata.items():
+                        self[k] = v
+                        continue
+
+            def _BaseCookie__ParseString(self, str, patt=_CookiePattern):
+                i = 0
+                n = len(str)
+                M = None
+                while True:
+                    if 0 <= i < n:
+                        match = patt.match(str, i)
+                        if not match:
+                            break
+                        K, V = match.group('key'), match.group('val')
+                        i = match.end(0)
+                        if K[0] == '$':
+                            if M:
+                                M[K[1:]] = V
+                                continue
+                if K.lower() in Morsel._reserved:
+                    if M:
+                        if V is None:
+                            if K.lower() in Morsel._flags:
+                                M[K] = True
+                        else:
+                            M[K] = _unquote(V)
+                else:
+                    if V is not None:
+                        pass
+                    rval, cval = self.value_decode(V)
+                    self._BaseCookie__set(K, rval, cval)
+                    M = self[K]
+
 
         class SimpleCookie(BaseCookie):
-            pass
+            '''SimpleCookie
+    SimpleCookie supports strings as cookie values.  When setting
+    the value using the dictionary assignment notation, SimpleCookie
+    calls the builtin str() to convert the value to a string.  Values
+    received from HTTP are kept as strings.
+    '''
+
+            def value_decode(self, val):
+                return _unquote(val), val
+
+            def value_encode(self, val):
+                strval = str(val)
+                return strval, _quote(strval)
+
 
         class SerialCookie(BaseCookie):
-            pass
+            '''SerialCookie
+    SerialCookie supports arbitrary objects as cookie values. All
+    values are serialized (using cPickle) before being sent to the
+    client.  All incoming values are assumed to be valid Pickle
+    representations.  IF AN INCOMING VALUE IS NOT IN A VALID PICKLE
+    FORMAT, THEN AN EXCEPTION WILL BE RAISED.
+
+    Note: Large cookie values add overhead because they must be
+    retransmitted on every HTTP transaction.
+
+    Note: HTTP has a 2k limit on the size of a cookie.  This class
+    does not check for this limit, so be careful!!!
+    '''
+
+            def __init__(self, input=None):
+                warnings.warn('SerialCookie class is insecure; do not use it', DeprecationWarning)
+                BaseCookie.__init__(self, input)
+
+            def value_decode(self, val):
+                return loads(_unquote(val)), val
+
+            def value_encode(self, val):
+                return val, _quote(dumps(val))
+
 
         class SmartCookie(BaseCookie):
-            pass
+            '''SmartCookie
+    SmartCookie supports arbitrary objects as cookie values.  If the
+    object is a string, then it is quoted.  If the object is not a
+    string, however, then SmartCookie will use cPickle to serialize
+    the object into a string representation.
+
+    Note: Large cookie values add overhead because they must be
+    retransmitted on every HTTP transaction.
+
+    Note: HTTP has a 2k limit on the size of a cookie.  This class
+    does not check for this limit, so be careful!!!
+    '''
+
+            def __init__(self, input=None):
+                warnings.warn('Cookie/SmartCookie class is insecure; do not use it', DeprecationWarning)
+                BaseCookie.__init__(self, input)
+
+            def value_decode(self, val):
+                strval = _unquote(val)
+                return strval, val
+
+            def value_encode(self, val):
+                if type(val) == type(''):
+                    return val, _quote(val)
+                return val, _quote(dumps(val))
+
 
         Cookie = SmartCookie
         def _test():

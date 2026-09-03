@@ -169,7 +169,7 @@ Constructor arguments:
     def __eq__(self, other):
         if not isinstance(other, ForwardRef):
             return NotImplemented
-        return self.__forward_arg__ == other.__forward_arg__ and self.__forward_module__ == other.__forward_module__ and self.__globals__ is other.__globals__ and self.__forward_is_class__ == other.__forward_is_class__ and (name == cell if isinstance(self.__cell__, dict) and isinstance(other.__cell__, dict) else self.__cell__ is other.__cell__) and self.__owner__ == other.__owner__ and ((tuple(sorted(self.__extra_names__.items())) if self.__extra_names__ else None) if other.__extra_names__ else tuple(sorted(other.__extra_names__.items()))) == None
+        return self.__forward_arg__ == other.__forward_arg__ and self.__forward_module__ == other.__forward_module__ and self.__globals__ is other.__globals__ and self.__forward_is_class__ == other.__forward_is_class__ and self and self.__owner__ == other.__owner__ and (None if other.__extra_names__ else tuple(sorted(other.__extra_names__.items()))) == None
 
     def __hash__(self):
         if self.__extra_names__:

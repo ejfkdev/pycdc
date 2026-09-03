@@ -20,17 +20,187 @@ from SimpleXMLRPCServer import CGIXMLRPCRequestHandler
 from SimpleXMLRPCServer import resolve_dotted_attribute
 
 class ServerHTMLDoc(pydoc.HTMLDoc):
-    pass
+    '''Class used to generate pydoc HTML document for a server'''
 
-class XMLRPCDocGenerator(()):
-    pass
+    def markup(self, text, escape=None, funcs={}, classes={}, methods={}):
+        escape = escape or self.escape
+        results = []
+        here = 0
+        pattern = re.compile('\\b((http|ftp)://\\S+[\\w/]|RFC[- ]?(\\d+)|PEP[- ]?(\\d+)|(self\\.)?((?:\\w|\\.)+))\\b')
+        while True:
+            match = pattern.search(text, here)
+            if not match:
+                break
+            start, end = match.span()
+            results.append(escape(text[here:start]))
+            all, scheme, rfc, pep, selfdot, name = match.groups()
+            if scheme:
+                url = escape(all).replace('"', '&quot;')
+                results.append('<a href="%s">%s</a>' % (url, url))
+            elif rfc:
+                url = 'http://www.rfc-editor.org/rfc/rfc%d.txt' % int(rfc)
+                results.append('<a href="%s">%s</a>' % (url, escape(all)))
+            elif pep:
+                url = 'http://www.python.org/dev/peps/pep-%04d/' % int(pep)
+                results.append('<a href="%s">%s</a>' % (url, escape(all)))
+            elif text[end:end + 1] == '(':
+                results.append(self.namelink(name, methods, funcs, classes))
+            elif selfdot:
+                results.append('self.<strong>%s</strong>' % name)
+            else:
+                results.append(self.namelink(name, classes))
+            here = end
+        results.append(escape(text[here:]))
+        return ''.join(results)
+
+    def docroutine(self, object, name, mod=None, funcs={}, classes={}, methods={}, cl=None):
+        if cl:
+            pass
+        anchor = (cl.__name__ if cl.__name__ else '') + '-' + name
+        note = ''
+        title = '<a name="%s"><strong>%s</strong></a>' % (self.escape(anchor), self.escape(name))
+        if inspect.ismethod(object):
+            args, varargs, varkw, defaults = inspect.getargspec(object.im_func)
+            argspec = inspect.formatargspec(args[1:], varargs, varkw, defaults, formatvalue=self.formatvalue)
+        elif inspect.isfunction(object):
+            args, varargs, varkw, defaults = inspect.getargspec(object)
+            argspec = inspect.formatargspec(args, varargs, varkw, defaults, formatvalue=self.formatvalue)
+        else:
+            argspec = '(...)'
+        if isinstance(object, tuple):
+            argspec = None if object[0] else argspec
+            docstring = object[1] or ''
+        else:
+            docstring = pydoc.getdoc(object)
+        decl = None + (title + argspec if note else self.grey('<font face="helvetica, arial">%s</font>' % note))
+        doc = self.markup(docstring, self.preformat, funcs, classes, methods)
+        doc = doc and '<dd><tt>%s</tt></dd>' % doc
+        return '<dl><dt>%s</dt>%s</dl>\n' % (decl, doc)
+
+    def docserver(self, server_name, package_documentation, methods):
+        fdict = {}
+        for key, value in methods.items():
+            fdict[key] = '#-' + key
+            fdict[value] = fdict[key]
+            continue
+        server_name = self.escape(server_name)
+        head = '<big><big><strong>%s</strong></big></big>' % server_name
+        result = self.heading(head, '#ffffff', '#7799ee')
+        doc = self.markup(package_documentation, self.preformat, fdict)
+        doc = doc and '<tt>%s</tt>' % doc
+        result = result + '<p>%s</p>\n' % doc
+        contents = []
+        method_items = sorted(methods.items())
+        for key, value in method_items:
+            contents.append(self.docroutine(value, key, funcs=fdict))
+            continue
+        result = result + self.bigsection('Methods', '#ffffff', '#eeaa77', pydoc.join(contents))
+        return result
+
+
+class XMLRPCDocGenerator:
+    '''Generates documentation for an XML-RPC server.
+
+    This class is designed as mix-in and should not
+    be constructed directly.
+    '''
+
+    def __init__(self):
+        self.server_name = 'XML-RPC Server Documentation'
+        self.server_documentation = 'This server exports the following methods through the XML-RPC protocol.'
+        self.server_title = 'XML-RPC Server Documentation'
+
+    def set_server_title(self, server_title):
+        self.server_title = server_title
+
+    def set_server_name(self, server_name):
+        self.server_name = server_name
+
+    def set_server_documentation(self, server_documentation):
+        self.server_documentation = server_documentation
+
+    def generate_html_documentation(self):
+        methods = {}
+        for method_name in self.system_listMethods():
+            if method_name in self.funcs:
+                method = self.funcs[method_name]
+            elif self.instance is not None:
+                method_info = [None, None]
+                if hasattr(self.instance, '_get_method_argstring'):
+                    method_info[0] = self.instance._get_method_argstring(method_name)
+                if hasattr(self.instance, '_methodHelp'):
+                    method_info[1] = self.instance._methodHelp(method_name)
+                method_info = tuple(method_info)
+                if method_info != (None, None):
+                    method = method_info
+                    continue
+            if not hasattr(self.instance, '_dispatch'):
+                continue
+            if not 0:
+                raise AssertionError # WARNING: raise cause dropped (py2)
+            methods[method_name] = method
+            try:
+                method = resolve_dotted_attribute(self.instance, method_name)
+            except AttributeError:
+                pass
+            else:
+                method = method_info
+            continue
+        documenter = ServerHTMLDoc()
+        documentation = documenter.docserver(self.server_name, self.server_documentation, methods)
+        return documenter.page(self.server_title, documentation)
+
 
 class DocXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
-    pass
+    '''XML-RPC and documentation request handler class.
+
+    Handles all HTTP POST requests and attempts to decode them as
+    XML-RPC requests.
+
+    Handles all HTTP GET requests and interprets them as requests
+    for documentation.
+    '''
+
+    def do_GET(self):
+        if not self.is_rpc_path_valid():
+            self.report_404()
+            return
+        response = self.server.generate_html_documentation()
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.send_header('Content-length', str(len(response)))
+        self.end_headers()
+        self.wfile.write(response)
+        self.wfile.flush()
+        self.connection.shutdown(1)
+
 
 class DocXMLRPCServer(SimpleXMLRPCServer, XMLRPCDocGenerator):
-    pass
+    '''XML-RPC and HTML documentation server.
+
+    Adds the ability to serve server documentation to the capabilities
+    of SimpleXMLRPCServer.
+    '''
+
+    def __init__(self, addr, requestHandler=DocXMLRPCRequestHandler, logRequests=1, allow_none=False, encoding=None, bind_and_activate=True):
+        SimpleXMLRPCServer.__init__(self, addr, requestHandler, logRequests, allow_none, encoding, bind_and_activate)
+        XMLRPCDocGenerator.__init__(self)
+
 
 class DocCGIXMLRPCRequestHandler(CGIXMLRPCRequestHandler, XMLRPCDocGenerator):
-    pass
+    '''Handler for XML-RPC data and documentation requests passed through
+    CGI'''
 
+    def handle_get(self):
+        response = self.generate_html_documentation()
+        print 'Content-Type: text/html'
+        print 'Content-Length: %d' % len(response)
+        print
+        sys.stdout.write(response)
+
+    def __init__(self):
+        CGIXMLRPCRequestHandler.__init__(self)
+        XMLRPCDocGenerator.__init__(self)
+
+
+# WARNING: Decompyle incomplete

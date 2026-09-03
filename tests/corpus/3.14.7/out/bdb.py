@@ -191,7 +191,7 @@ is determined by the __name__ in the frame globals.
 '''
 
     def __init__(self, skip=None, backend='settrace'):
-        self.skip = set(skip) if skip else None
+        self.skip = None
         self.breaks = {}
         self.fncache = {}
         self.frame_trace_lines_opcodes = {}

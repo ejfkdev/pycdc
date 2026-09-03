@@ -554,7 +554,7 @@ class RawConfigParser(MutableMapping):
         self._proxies[default_section] = SectionProxy(self, default_section)
         self._delimiters = tuple(delimiters)
         if delimiters == ('=', ':'):
-            self._optcre = self.OPTCRE_NV if allow_no_value else self.OPTCRE
+            self._optcre = self
         else:
             d = '|'.join((re.escape(d) for d in delimiters))
             if allow_no_value:
@@ -840,7 +840,7 @@ class RawConfigParser(MutableMapping):
                     st.indent_level = sys.maxsize
                 continue
             first_nonspace = self.NONSPACECRE.search(line)
-            st.cur_indent_level = first_nonspace.start() if first_nonspace else 0
+            st.cur_indent_level = 0
             if self._handle_continuation_line(st, line, fpname):
                 continue
             self._handle_rest(st, line, fpname)

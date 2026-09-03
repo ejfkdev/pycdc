@@ -52,5 +52,52 @@ def lwp_cookie_str(cookie):
     return join_header_words([h])
 
 class LWPCookieJar(FileCookieJar):
-    pass
+    '''
+    The LWPCookieJar saves a sequence of "Set-Cookie3" lines.
+    "Set-Cookie3" is the format used by the libwww-perl library, not known
+    to be compatible with any browser, but which is easy to read and
+    doesn't lose information about RFC 2965 cookies.
 
+    Additional methods
+
+    as_lwp_str(ignore_discard=True, ignore_expired=True)
+
+    '''
+
+    def as_lwp_str(self, ignore_discard=True, ignore_expires=True):
+        now = time.time()
+        r = []
+        for cookie in self:
+            if not ignore_discard and cookie.discard:
+                continue
+            if not ignore_expires and cookie.is_expired(now):
+                continue
+            r.append('Set-Cookie3: %s' % lwp_cookie_str(cookie))
+            continue
+        return '\n'.join(r + [''])
+
+    def save(self, filename=None, ignore_discard=False, ignore_expires=False):
+        if filename is None:
+            if self.filename is not None:
+                filename = self.filename
+            else:
+                raise ValueError(MISSING_FILENAME_TEXT)
+        try:
+            f = open(filename, 'w')
+            f.write('#LWP-Cookies-2.0\n')
+            f.write(self.as_lwp_str(ignore_discard, ignore_expires))
+        finally:
+            f.close()
+
+    def _really_load(self, f, filename, ignore_discard, ignore_expires):
+        magic = f.readline()
+        if not re.search(self.magic_re, magic):
+            msg = '%r does not look like a Set-Cookie3 (LWP) format file' % filename
+            raise LoadError(msg)
+        now = time.time()
+        header = 'Set-Cookie3:'
+        boolean_attrs = ('port_spec', 'path_spec', 'domain_dot', 'secure', 'discard')
+        value_attrs = ('version', 'port', 'path', 'domain', 'expires', 'comment', 'commenturl')
+
+
+# WARNING: Decompyle incomplete

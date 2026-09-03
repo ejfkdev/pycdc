@@ -32,30 +32,58 @@ del warnpy3k
 __all__ = ['BastionClass', 'Bastion']
 from types import MethodType
 
-class BastionClass(()):
-    pass
+class BastionClass:
+    '''Helper class used by the Bastion() function.
+
+    You could subclass this and pass the subclass as the bastionclass
+    argument to the Bastion() function, as long as the constructor has
+    the same signature (a get() function and a name for the object).
+
+    '''
+
+    def __init__(self, get, name):
+        self._get_ = get
+        self._name_ = name
+
+    def __repr__(self):
+        return '<Bastion for %s>' % self._name_
+
+    def __getattr__(self, name):
+        attribute = self._get_(name)
+        self.__dict__[name] = attribute
+        return attribute
+
 
 def Bastion(object, filter=lambda name: name[:1] != '_', name=None, bastionclass=BastionClass):
     raise RuntimeError # WARNING: raise cause dropped (py2)
     def get1(name, object=object, filter=filter):
-        /* unsupported opcode: JUMP_IF_FALSE 43 @9 */
-        filter(name)
-        attribute = getattr(object, name)
-        /* unsupported opcode: JUMP_IF_FALSE 5 @43 */
-        type(attribute) == MethodType
-        return attribute
+        if filter(name):
+            attribute = getattr(object, name)
+            if type(attribute) == MethodType:
+                return attribute
+        raise AttributeError # WARNING: raise cause dropped (py2)
 
     def get2(name, get1=get1):
         return get1(name)
 
-    /* unsupported opcode: JUMP_IF_FALSE 16 @45 */
-    name is None
-    name = repr(object)
+    if name is None:
+        name = repr(object)
     return bastionclass(get2, name)
 
 def _test():
-    class Original(()):
-        pass
+    class Original:
+        def __init__(self):
+            self.sum = 0
+
+        def add(self, n):
+            self._add(n)
+
+        def _add(self, n):
+            self.sum = self.sum + n
+
+        def total(self):
+            return self.sum
+
 
     o = Original()
     b = Bastion(o)
@@ -68,7 +96,5 @@ def _test():
     m.b = b
     r.r_exec(testcode)
 
-/* unsupported opcode: JUMP_IF_FALSE 11 @127 */
-__name__ == '__main__'
-_test()
-# WARNING: Decompyle incomplete
+if __name__ == '__main__':
+    _test()

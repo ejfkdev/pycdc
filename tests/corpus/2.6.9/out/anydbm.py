@@ -49,25 +49,32 @@ _names = ['dbhash', 'gdbm', 'dbm', 'dumbdbm']
 _errors = [error]
 _defaultmod = None
 for _name in _names:
-    /* unsupported opcode: JUMP_IF_FALSE 10 @100 */
-    None == ImportError
+    if not _defaultmod:
+        try:
+            _mod = __import__(_name)
+        except ImportError:
+            pass
+        else:
+            _defaultmod = _mod
     _errors.append(_mod.error)
     continue
-/* unsupported opcode: JUMP_IF_TRUE 17 @155 */
-_defaultmod
-raise ImportError # WARNING: raise cause dropped (py2)
+if not _defaultmod:
+    raise ImportError # WARNING: raise cause dropped (py2)
 error = tuple(_errors)
 
 def open(file, flag='r', mode=438):
     from whichdb import whichdb
     result = whichdb(file)
-    /* unsupported opcode: JUMP_IF_FALSE 49 @37 */
-    result is None
-    /* unsupported opcode: JUMP_IF_TRUE 13 @50 */
-    'c' in flag
-    /* unsupported opcode: JUMP_IF_FALSE 10 @63 */
-    'n' in flag
-    mod = _defaultmod
+    if result is None:
+        if not 'c' in flag:
+            if 'n' in flag:
+                mod = _defaultmod
+            else:
+                raise error # WARNING: raise cause dropped (py2)
+    elif result == '':
+        raise error # WARNING: raise cause dropped (py2)
+    else:
+        mod = __import__(result)
     return mod.open(file, flag, mode)
 
 # WARNING: Decompyle incomplete

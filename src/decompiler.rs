@@ -288,6 +288,9 @@ struct Ctx<'a> {
     /// loop top of a loop that saw BREAK_LOOP: dead back edges after the
     /// break (<=3.7 padding) must not mark the output unclean
     broken_loop_top: Option<usize>,
+    /// py2 `if` statement: offset of the else-branch POP_TOP absorbed by
+    /// the JUMP_IF_FALSE/TRUE rewrite (it must not pop a real value)
+    py2_else_pop_at: Option<usize>,
     /// PEP 709 inline comprehension state (3.12+ listcomp/setcomp/dictcomp)
     inline_comp: Option<InlineComp>,
     inline_comp_stack: Vec<InlineComp>,
@@ -448,6 +451,7 @@ pub fn decompile(code: &CodeObject, version: PythonVersion) -> crate::Result<Dec
         prev_op_at_exec: None,
         skip_until: None,
         broken_loop_top: None,
+        py2_else_pop_at: None,
         inline_comp: None,
         inline_comp_stack: Vec::new(),
         pending_restore_vars: Vec::new(),
@@ -1415,6 +1419,23 @@ impl<'a> Ctx<'a> {
                     // both branches produce values — merge into chain compare
                     // or ternary and skip the false-path instructions
                     if let Some(_kind) = b.value_merge {
+                        if !body.is_empty() {
+                            // py2 if/else STATEMENT compiled value-preserving:
+                            // body holds the then statements; open the Else
+                            // region and let execution collect the else body
+                            let is_elif = self.starts_with_cond_jump(pos, else_end);
+                            let real_end = if is_elif {
+                                else_end
+                            } else {
+                                self.next_boundary(pos, else_end)
+                            };
+                            let mut else_blk = Block::new(BlockType::Else, pos, real_end);
+                            else_blk.cond = Some(cond);
+                            else_blk.is_elif = is_elif;
+                            self.pending_then.push(body);
+                            self.blocks.push(else_blk);
+                            return;
+                        }
                         if body.is_empty() {
                             if let Some(Sv::E(v)) = self.stack.last() {
                                 let v = v.clone();
@@ -1435,6 +1456,22 @@ impl<'a> Ctx<'a> {
                                     self.skip_until = Some(else_end);
                                     return;
                                 }
+                                // py2 short-circuit `a and b` / `a or b`:
+                                // the cond was popped by the branch POP_TOP
+                                // and the fall-through produced one value
+                                let kind = b.value_merge.unwrap();
+                                let cond = if b.jump_if_true {
+                                    simplify_not(cond)
+                                } else {
+                                    cond
+                                };
+                                self.stack.pop();
+                                let mut values = Vec::new();
+                                flatten_boolop(cond, kind, &mut values);
+                                flatten_boolop(v, kind, &mut values);
+                                self.push(Rc::new(Expr::BoolOp { op: kind, values }));
+                                self.skip_until = Some(else_end);
+                                return;
                             }
                         }
                     }
@@ -2742,11 +2779,12 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::BUILD_CLASS => {
-                // py2: [methods_dict, bases_tuple, name] (name on top);
-                // the class object result is stored by the next STORE_NAME
-                let name = self.pop_expr();
-                let bases = self.pop_expr();
+                // py2 stack bottom..top: [name, bases_tuple, namespace_dict]
+                // (the namespace is the CALL_FUNCTION result of the class
+                // body function); the result is stored by the next STORE_NAME
                 let methods = self.pop_expr();
+                let bases = self.pop_expr();
+                let name = self.pop_expr();
                 self.pending_py2_class = Some((name, bases, methods));
                 self.push(self.name_expr("/*class-object*/"));
                 true
@@ -3038,6 +3076,67 @@ impl<'a> Ctx<'a> {
                 // `and`
                 let target = inst.target.unwrap_or(inst.end());
                 self.handle_short_circuit(false, target);
+                true
+            }
+            Op::JUMP_IF_FALSE | Op::JUMP_IF_TRUE => {
+                // py2 value-preserving cond jump. Two shapes:
+                //   if-stmt:  JUMP_IF_FALSE L; POP_TOP; then; JUMP_FORWARD E;
+                //             L: POP_TOP; else; E:
+                //   value:    JUMP_IF_FALSE L; POP_TOP; b; L:   (and/or/ternary)
+                let target = inst.target.unwrap_or(inst.end());
+                let jump_if_true = inst.op == Op::JUMP_IF_TRUE;
+                let ci = self.idx_of.get(&inst.offset).copied();
+                let next_pop = ci
+                    .and_then(|i| self.instrs.get(i + 1))
+                    .map(|x| x.op == Op::POP_TOP)
+                    .unwrap_or(false);
+                let target_pop = self
+                    .idx_of
+                    .get(&target)
+                    .and_then(|i| self.instrs.get(*i))
+                    .map(|x| x.op == Op::POP_TOP)
+                    .unwrap_or(false);
+                if next_pop && target_pop {
+                    // if-statement shape: both paths discard the value
+                    let cond = self.pop_expr();
+                    let else_body = self
+                        .idx_of
+                        .get(&target)
+                        .map(|&ti| self.instrs[ti].end())
+                        .unwrap_or(target);
+                    self.py2_else_pop_at = Some(target);
+                    // skip the then-branch POP_TOP (cond already popped)
+                    if let Some(i) = ci {
+                        if let Some(pop) = self.instrs.get(i + 1) {
+                            self.skip_until = Some(pop.end());
+                        }
+                    }
+                    self.handle_cond_jump(cond, jump_if_true, else_body);
+                    return true;
+                }
+                // short-circuit / ternary shape: the target region carries a
+                // value that merges at `target`
+                let cond = match self.stack.last() {
+                    Some(Sv::E(e)) => e.clone(),
+                    _ => self.name_expr("???"),
+                };
+                let c = if jump_if_true {
+                    simplify_not(cond)
+                } else {
+                    cond
+                };
+                let mut blk = Block::new(BlockType::If, self.cur_next, target);
+                blk.cond = Some(c);
+                blk.cond_set = true;
+                blk.jump_if_true = false;
+                blk.value_merge = Some(if jump_if_true {
+                    BoolOpKind::Or
+                } else {
+                    BoolOpKind::And
+                });
+                blk.else_end = Some(target);
+                blk.stack_depth = self.stack.len();
+                self.blocks.push(blk);
                 true
             }
             Op::FOR_ITER => {
@@ -4950,6 +5049,12 @@ fn cmp_from_index(idx: usize) -> CmpOp {
 
 impl<'a> Ctx<'a> {
     fn handle_pop_top(&mut self) {
+        // py2 if-statement: the else branch starts with a POP_TOP that
+        // discards the cond value we already popped at the JUMP_IF_*
+        if self.py2_else_pop_at == Some(self.cur_offset) {
+            self.py2_else_pop_at = None;
+            return;
+        }
         // handler-entry prelude pops (exception bookkeeping we do not model)
         if self.legacy_handler.is_some() && self.in_handler_prelude {
             self.pop();
@@ -4973,6 +5078,8 @@ impl<'a> Ctx<'a> {
                 | Some(Op::POP_JUMP_BACKWARD_IF_TRUE)
                 | Some(Op::JUMP_IF_FALSE_OR_POP)
                 | Some(Op::JUMP_IF_TRUE_OR_POP)
+                | Some(Op::JUMP_IF_FALSE)
+                | Some(Op::JUMP_IF_TRUE)
                 | Some(Op::TO_BOOL)
                 | Some(Op::END_FOR)
         ) {
@@ -5338,17 +5445,56 @@ impl<'a> Ctx<'a> {
             if let (Some((name_e, bases_e, methods)), Expr::Name(cname)) =
                 (self.pending_py2_class.take(), &*target)
             {
-                let _ = (name_e, methods);
+                let _ = name_e;
                 let bases = match &*bases_e {
                     Expr::Tuple(v) => v.clone(),
+                    // py2 `class X:` pushes the empty bases as a CONST tuple
+                    Expr::Const(o) => match &**o {
+                        PyObject::Tuple(items) => items
+                            .iter()
+                            .map(|i| Rc::new(Expr::Const(i.clone())) as ExprRef)
+                            .collect(),
+                        _ => vec![bases_e.clone()],
+                    },
                     other => vec![Rc::new(other.clone())],
                 };
-                let body = match &*val {
-                    Expr::Function(fd) => self
-                        .decompile_function(&fd.code)
-                        .unwrap_or_else(|| vec![Stmt::Pass]),
-                    _ => vec![Stmt::Pass],
+                // the class body is the MAKE_FUNCTION'd code object that
+                // CALL_FUNCTION executed into the namespace dict (`methods`),
+                // not the stored BUILD_CLASS result; py2 stores it either as
+                // a bare Function or as the zero-arg Call of that Function
+                let extract_code = |e: &ExprRef| -> Option<Rc<CodeObject>> {
+                    match &**e {
+                        Expr::Function(fd) => Some(fd.code.clone()),
+                        Expr::Call { func, args, keywords, .. }
+                            if args.is_empty() && keywords.is_empty() =>
+                        {
+                            match &**func {
+                                Expr::Function(fd) => Some(fd.code.clone()),
+                                _ => None,
+                            }
+                        }
+                        _ => None,
+                    }
                 };
+                let body_src = extract_code(&methods).or_else(|| extract_code(&val));
+                let mut body = match body_src {
+                    Some(code) => self
+                        .decompile_function(&code)
+                        .unwrap_or_else(|| vec![Stmt::Pass]),
+                    None => vec![Stmt::Pass],
+                };
+                // py2 class bodies end with `return locals()` (the namespace
+                // the CALL_FUNCTION consumed) — not real source
+                while matches!(
+                    body.last(),
+                    Some(Stmt::Return(Some(e)))
+                        if matches!(&**e, Expr::Name(n) if n == "locals()")
+                ) {
+                    body.pop();
+                }
+                if body.is_empty() {
+                    body.push(Stmt::Pass);
+                }
                 let decorators = std::mem::take(&mut self.pending_class_decorators);
                 self.push_stmt(Stmt::ClassDef {
                     name: cname.clone(),

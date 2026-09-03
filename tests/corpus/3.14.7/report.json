@@ -17,6 +17,7 @@
   },
   {
    "module": "_aix_support",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 263,
    "ntotal": 329,
@@ -24,6 +25,7 @@
   },
   {
    "module": "_android_support",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 637,
    "ntotal": 689,
@@ -31,6 +33,7 @@
   },
   {
    "module": "_apple_support",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 233,
    "ntotal": 277,
@@ -38,6 +41,7 @@
   },
   {
    "module": "_ast_unparse",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 6936,
    "ntotal": 7127,
@@ -45,6 +49,7 @@
   },
   {
    "module": "_collections_abc",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 3636,
    "ntotal": 4049,
@@ -57,6 +62,7 @@
   },
   {
    "module": "_compat_pickle",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 8,
    "ntotal": 492,
@@ -64,6 +70,7 @@
   },
   {
    "module": "_ios_support",
+   "ast_detail": "diff at token 2: orig  names=[alias(name='cdll') | dec  names=[alias(name='cdll')]",
    "verdict": "SIG-DIFF",
    "ndiff": 185,
    "ntotal": 199,
@@ -71,6 +78,7 @@
   },
   {
    "module": "_markupbase",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 935,
    "ntotal": 1352,
@@ -82,6 +90,7 @@
   },
   {
    "module": "_osx_support",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 1570,
    "ntotal": 1770,
@@ -89,6 +98,7 @@
   },
   {
    "module": "_py_abc",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 550,
    "ntotal": 586,
@@ -96,6 +106,7 @@
   },
   {
    "module": "_py_warnings",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 2590,
    "ntotal": 3167,
@@ -103,13 +114,15 @@
   },
   {
    "module": "_pylong",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1201,
+   "ndiff": 1333,
    "ntotal": 1531,
-   "detail": "line 139: orig ('POP_JUMP_IF_FALSE', 'to L7') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 151: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L2')\nline 168: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L3')"
+   "detail": "line 139: orig ('POP_JUMP_IF_FALSE', 'to L7') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 151: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L2')\nline 166: orig ('LOAD_FAST_BORROW', 'need_hi') | got ('LOAD_FAST', 'lo')"
   },
   {
    "module": "_sitebuiltins",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 265,
    "ntotal": 372,
@@ -117,8 +130,9 @@
   },
   {
    "module": "_strptime",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3082,
+   "ndiff": 3083,
    "ntotal": 3196,
    "detail": "line 49: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 53: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 54: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_SMALL_INT', '')"
   },
@@ -128,6 +142,7 @@
   },
   {
    "module": "_threading_local",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 458,
    "ntotal": 511,
@@ -135,6 +150,7 @@
   },
   {
    "module": "_weakrefset",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 466,
    "ntotal": 767,
@@ -142,6 +158,7 @@
   },
   {
    "module": "abc",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 422,
    "ntotal": 469,
@@ -154,6 +171,7 @@
   },
   {
    "module": "ast",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 1964,
    "ntotal": 2649,
@@ -166,13 +184,15 @@
   },
   {
    "module": "bdb",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3848,
+   "ndiff": 3812,
    "ntotal": 4001,
    "detail": "line 31: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 35: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 36: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_SMALL_INT', '')"
   },
   {
    "module": "bisect",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 170,
    "ntotal": 269,
@@ -180,6 +200,7 @@
   },
   {
    "module": "bz2",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 767,
    "ntotal": 880,
@@ -187,6 +208,7 @@
   },
   {
    "module": "cProfile",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 592,
    "ntotal": 768,
@@ -194,6 +216,7 @@
   },
   {
    "module": "calendar",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 4177,
    "ntotal": 4326,
@@ -201,6 +224,7 @@
   },
   {
    "module": "cmd",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 1212,
    "ntotal": 1456,
@@ -208,6 +232,7 @@
   },
   {
    "module": "code",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 1060,
    "ntotal": 1108,
@@ -215,6 +240,7 @@
   },
   {
    "module": "codecs",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 2269,
    "ntotal": 2373,
@@ -222,6 +248,7 @@
   },
   {
    "module": "codeop",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 302,
    "ntotal": 411,
@@ -248,6 +275,7 @@
   },
   {
    "module": "copy",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 587,
    "ntotal": 874,
@@ -255,6 +283,7 @@
   },
   {
    "module": "copyreg",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 452,
    "ntotal": 691,
