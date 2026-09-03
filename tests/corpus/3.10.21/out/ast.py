@@ -1340,16 +1340,15 @@ class _Unparser(NodeVisitor):
                 self.traverse(d)
             if index == len(node.posonlyargs):
                 self.write(', /')
-        if not node.vararg:
-            if node.kwonlyargs and node.vararg and node.vararg.annotation:
-                if first:
-                    first = False
-                else:
-                    self.write(', ')
-                self.write('*')
-                self.write(node.vararg.arg)
-                self.write(': ')
-                self.traverse(node.vararg.annotation)
+        if (node.vararg or node.kwonlyargs) or first:
+            first = False
+        else:
+            self.write(', ')
+        self.write('*')
+        if node.vararg and node.vararg.annotation:
+            self.write(node.vararg.arg)
+            self.write(': ')
+            self.traverse(node.vararg.annotation)
         if node.kwonlyargs:
             for a, d in zip(node.kwonlyargs, node.kw_defaults):
                 self.write(', ')

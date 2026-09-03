@@ -43,7 +43,7 @@
    "module": "_ast_unparse",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 6936,
+   "ndiff": 6856,
    "ntotal": 7127,
    "detail": "line 11: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')\nline 12: orig ('LOAD_CONST', \"('NodeVisitor',)\") | got ('LOAD_SMALL_INT', '')\nline 13: orig ('IMPORT_NAME', 'ast') | got ('LOAD_CONST', \"('NodeVisitor',)\")"
   },
@@ -218,7 +218,7 @@
    "module": "calendar",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4177,
+   "ndiff": 4174,
    "ntotal": 4326,
    "detail": "line 13: orig ('LOAD_CONST', \"('IntEnum', 'global_enum')\") | got ('LOAD_CONST', \"('IntEnum',)\")\nline 17: orig ('IMPORT_FROM', 'global_enum') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'global_enum') | got ('LOAD_SMALL_INT', '')"
   },

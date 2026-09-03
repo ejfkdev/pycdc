@@ -378,23 +378,17 @@ if __name__ == '__main__':
                             break
                         K, V = match.group('key'), match.group('val')
                         i = match.end(0)
-                        if K[0] == '$':
+                        if K[0] == '$' and M or K.lower() in Morsel._reserved:
                             if M:
-                                M[K[1:]] = V
-                                continue
-                if K.lower() in Morsel._reserved:
-                    if M:
-                        if V is None:
-                            if K.lower() in Morsel._flags:
-                                M[K] = True
-                        else:
-                            M[K] = _unquote(V)
-                else:
-                    if V is not None:
-                        pass
-                    rval, cval = self.value_decode(V)
-                    self._BaseCookie__set(K, rval, cval)
-                    M = self[K]
+                                if V is None:
+                                    if K.lower() in Morsel._flags:
+                                        M[K] = True
+                                        continue
+                if V is not None:
+                    pass
+                rval, cval = self.value_decode(V)
+                self._BaseCookie__set(K, rval, cval)
+                M = self[K]
 
 
         class SimpleCookie(BaseCookie):

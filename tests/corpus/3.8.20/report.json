@@ -86,7 +86,7 @@
    "module": "_strptime",
    "ast_detail": "diff at token 76: orig  attr='__calc_weekday' | dec  attr='_LocaleTime__calc_weekday'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2041,
+   "ndiff": 2055,
    "ntotal": 2133,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -146,7 +146,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 40: orig  Assign(targets=[Name(id='_DISCONNECTED' | dec  Try(body=[Assign(targets=[Name(id='_DISCONNECTED'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1603,
+   "ndiff": 2110,
    "ntotal": 2206,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
@@ -162,7 +162,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 365: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2248,
+   "ndiff": 2246,
    "ntotal": 2369,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -182,7 +182,7 @@
    "module": "bz2",
    "ast_detail": "diff at token 145: orig  If(test=UnaryOp(op=Not() | dec  If(test=Compare(left=Constant(value=1",
    "verdict": "SIG-DIFF",
-   "ndiff": 888,
+   "ndiff": 885,
    "ntotal": 941,
    "detail": "line 42: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 46: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 47: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
@@ -206,7 +206,7 @@
    "module": "cgi",
    "ast_detail": "diff at token 86: orig  'logfile' | dec  'logfp'])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2792,
+   "ndiff": 2791,
    "ntotal": 2900,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
@@ -214,7 +214,7 @@
    "module": "cgitb",
    "ast_detail": "diff at token 58: orig  orelse=[Return(value=Constant(value='' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1290,
+   "ndiff": 1301,
    "ntotal": 1431,
    "detail": "line 111: orig ('LOAD_CONST', 'None') | got ('strong', 1)\nline 112: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'text')\nline 113: orig ('strong', 1) | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -306,7 +306,7 @@
    "module": "crypt",
    "ast_detail": "diff at token 2: orig  Try(body=[Import(names=[alias(name='_crypt' | dec  If(test=Compare(left=Attribute(value=Name(id='_sys'",
    "verdict": "SIG-DIFF",
-   "ndiff": 190,
+   "ndiff": 188,
    "ntotal": 412,
    "detail": "line 7: orig ('SETUP_FINALLY', 'to 26') | got ('LOAD_NAME', '_sys')\nline 8: orig ('LOAD_CONST', '0') | got ('LOAD_ATTR', 'platform')\nline 9: orig ('LOAD_CONST', 'None') | got ('LOAD_CONST', \"'win32'\")"
   }

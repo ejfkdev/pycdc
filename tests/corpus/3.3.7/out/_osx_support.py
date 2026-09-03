@@ -13,9 +13,8 @@ def _find_executable(executable, path=None):
         path = os.environ['PATH']
     paths = path.split(os.pathsep)
     base, ext = os.path.splitext(executable)
-    if not sys.platform == 'win32':
-        if os.name == 'os2' and ext != '.exe':
-            executable = executable + '.exe'
+    if (sys.platform == 'win32' or os.name == 'os2') and ext != '.exe':
+        executable = executable + '.exe'
     if not os.path.isfile(executable):
         for p in paths:
             f = os.path.join(p, executable)
@@ -253,10 +252,7 @@ def get_platform_osx(_config_vars, osname, release, machine):
                     machine = 'universal'
                 else:
                     raise ValueError("Don't know machine value for archs=%r" % (archs,))
-                if machine == 'i386':
-                    if sys.maxsize >= 4294967296:
-                        machine = 'x86_64'
-                elif machine in ('PowerPC', 'Power_Macintosh'):
+                if machine == 'i386' and sys.maxsize >= 4294967296 or machine in ('PowerPC', 'Power_Macintosh'):
                     if sys.maxsize >= 4294967296:
                         machine = 'ppc64'
                     else:

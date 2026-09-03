@@ -158,7 +158,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 291: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2440,
+   "ndiff": 2437,
    "ntotal": 2548,
    "detail": "line 17: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 21: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },

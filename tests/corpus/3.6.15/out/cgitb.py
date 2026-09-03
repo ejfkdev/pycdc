@@ -60,10 +60,7 @@ def lookup(name, frame, locals):
         return 'global', frame.f_globals[name]
     if '__builtins__' in frame.f_globals:
         builtins = frame.f_globals['__builtins__']
-        if type(builtins) is type({}):
-            if name in builtins:
-                return 'builtin', builtins[name]
-        elif hasattr(builtins, name):
+        if (type(builtins) is type({}) and name in builtins) and hasattr(builtins, name):
             return 'builtin', getattr(builtins, name)
     return None, __UNDEF__
 

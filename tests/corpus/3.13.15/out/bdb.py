@@ -94,13 +94,11 @@ is determined by the __name__ in the frame globals.
             return
 
     def dispatch_line(self, frame):
-        if not self.stop_here(frame):
-            if self.break_here(frame):
-                if self.cmdframe == frame:
-                    if not self.cmdlineno == frame.f_lineno:
-                        self.user_line(frame)
-                        if self.quitting:
-                            raise BdbQuit
+        if (self.stop_here(frame) or self.cmdlineno(frame)) or self.f_lineno == frame:
+            if not self.cmdlineno == frame.f_lineno:
+                self.user_line(frame)
+                if self.quitting:
+                    raise BdbQuit
         return self.trace_dispatch
 
     def dispatch_call(self, frame, arg):
@@ -470,6 +468,7 @@ is determined by the __name__ in the frame globals.
             pass
         self.quitting = True
         sys.settrace(None)
+        return eval(expr, globals, locals)
 
     def runctx(self, cmd, globals, locals):
         self.run(cmd, globals, locals)

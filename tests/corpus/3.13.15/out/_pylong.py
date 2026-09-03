@@ -79,11 +79,11 @@ def int_to_decimal(n):
         w2 = w >> 1
         hi = n >> w2
         lo = n & (1 << w2) - 1
-        return None + inner(hi, w - w2) * w2pow[w2]
+        return inner(lo, w2) + inner(hi, w - w2) * w2pow[w2]
 
     with decimal.localcontext(_unbounded_dec_context):
         nbits = n.bit_length()
-        w2pow = None(compute_powers, D(2), BITLIM)
+        w2pow = compute_powers(nbits, D(2), BITLIM)
         if n < 0:
             negate = True
             n = -n
@@ -105,7 +105,7 @@ def int_to_decimal_string(n):
             return str(n)
         w2 = w >> 1
         hi, lo = divmod(n, pow10[w2])
-        return None + inner(lo, w2).zfill(w2)
+        return inner(hi, w - w2) + inner(lo, w2).zfill(w2)
 
     w = int(w * 0.3010299956639812 + 1)
     pow10 = compute_powers(w, 5, DIGLIM)
@@ -127,7 +127,7 @@ def _str_to_int_inner(s):
         if b - a <= DIGLIM:
             return int(s[a:b])
         mid = a + b + 1 >> 1
-        return None + (inner(a, mid) * w5pow[b - mid] << b - mid)
+        return inner(mid, b) + (inner(a, mid) * w5pow[b - mid] << b - mid)
 
     w5pow = compute_powers(len(s), 5, DIGLIM)
     return inner(0, len(s))
@@ -198,7 +198,7 @@ def _digits2int(digits, n):
             return digits[L]
         mid = L + R >> 1
         shift = (mid - L) * n
-        return None + inner(L, mid)
+        return (inner(mid, R) << shift) + inner(L, mid)
 
     if digits:
         return inner(0, len(digits))

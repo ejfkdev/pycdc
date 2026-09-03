@@ -89,7 +89,11 @@ def verify_module(interp, pycdc, vdir, pyc, outdir, keep):
         result["detail"] = (p.stderr or "")[-300:]
         return result
     src = p.stdout
-    warned = "WARNING: Decompyle incomplete" in (p.stderr or "") or "/*" in src
+    # only real decompiler markers count (source strings may legitimately
+    # contain "/*", e.g. sysconfigdata C-comment values)
+    warned = ("WARNING: Decompyle incomplete" in (p.stderr or "")
+              or re.search(r"/\* (unsupported|unknown) ", src) is not None
+              or "/*bad-" in src)
     with open(out_py, "w") as f:
         f.write(src)
     # 2. recompile with the same interpreter

@@ -48,10 +48,7 @@ def literal_eval(node_or_string):
             return list(map(_convert, node.elts))
         if isinstance(node, Dict):
             return dict(((_convert(k), _convert(v)) for k in zip(node.keys, node.values)))
-        if isinstance(node, Name):
-            if node.id in _safe_names:
-                return _safe_names[node.id]
-        elif isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(node.right, Num) and isinstance(node.right.n, complex) and isinstance(node.left, Num) and isinstance(node.left.n, (int, long, float)):
+        if isinstance(node, Name) and node.id in _safe_names and isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(node.right, Num) and isinstance(node.right.n, complex) and isinstance(node.left, Num) and isinstance(node.left.n, (int, long, float)):
             left = node.left.n
             right = node.right.n
             if isinstance(node.op, Add):

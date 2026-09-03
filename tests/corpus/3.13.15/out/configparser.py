@@ -706,6 +706,7 @@ class RawConfigParser(MutableMapping):
         value_getter = lambda option: self._interpolation.before_get(self, section, option, d[option], d)
         if raw:
             value_getter = lambda option: d[option]
+        return [(option, value_getter(option)) for option in orig_keys]
 
     def popitem(self):
         for key in self.sections():
@@ -941,11 +942,8 @@ class RawConfigParser(MutableMapping):
             raise TypeError('section names must be strings')
         if not isinstance(option, str):
             raise TypeError('option keys must be strings')
-        if self._allow_no_value:
-            if value:
-                if not isinstance(value, str):
-                    raise TypeError('option values must be strings')
-                return
+        if self._allow_no_value and value or isinstance(value, str):
+            raise TypeError('option values must be strings')
 
     @property
     def converters(self):

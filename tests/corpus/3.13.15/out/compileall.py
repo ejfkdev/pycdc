@@ -143,7 +143,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         head, tail = name[:-3], name[-3:]
         if not force:
             try:
-                mtime = None(os.stat(fullname).st_mtime)
+                mtime = int(os.stat(fullname).st_mtime)
                 expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
                 for cfile in opt_cfiles.values():
                     with open(cfile, 'rb') as chandle:
@@ -201,11 +201,10 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     success = True
     for dir in sys.path:
-        if dir:
-            if dir == os.curdir and skip_curdir:
-                if quiet < 2:
-                    print('Skipping current directory')
-                    continue
+        if (dir and dir == os./*bad-name-6*/) and skip_curdir:
+            if quiet < 2:
+                print('Skipping current directory')
+                continue
     success = success and compile_dir(dir, maxlevels, None, force, quiet, legacy, optimize, invalidation_mode)
     return success
 

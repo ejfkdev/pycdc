@@ -279,7 +279,7 @@ def b85decode(b):
                 raise ValueError('bad base85 character at position %d' % (i + j)) from None
             raise
         try:
-            out(packI(acc))
+            out.append(packI(acc))
         except struct./*bad-name-24*/:
             raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
     result = b''.join(out)
@@ -289,7 +289,7 @@ def b85decode(b):
 
 _z85alphabet = b'0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#'
 _z85_b85_decode_diff = b';_`|~'
-_z85_decode_translation = bytes(bytes.maketrans, _z85alphabet + _z85_b85_decode_diff + _b85alphabet * len(_z85_b85_decode_diff))
+_z85_decode_translation = bytes.maketrans(_z85alphabet + _z85_b85_decode_diff, _b85alphabet + b'\x00' * len(_z85_b85_decode_diff))
 _z85_encode_translation = bytes.maketrans(_b85alphabet, _z85alphabet)
 
 def z85encode(s):
@@ -354,7 +354,7 @@ def encodebytes(s):
     pieces = []
     for i in range(0, len(s), MAXBINSIZE):
         chunk = s[i:i + MAXBINSIZE]
-        pieces(binascii.b2a_base64(chunk))
+        pieces.append(binascii.b2a_base64(chunk))
     return b''.join(pieces)
 
 def decodebytes(s):

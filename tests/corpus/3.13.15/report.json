@@ -41,9 +41,9 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "diff at token 201: orig  body=[Return(value=Call(func=Name(id='type' | dec  body=[Return(value=Call(func=Constant(value=None)",
+   "ast_detail": "diff at token 220: orig  body=Yield()))])) | dec  body=Yield(value=Constant(value=None))))]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2899,
+   "ndiff": 3213,
    "ntotal": 3732,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -59,9 +59,9 @@
    "module": "_compat_pickle",
    "ast_detail": "diff at token 338: orig  body=[Pass()])] | dec  body=[Pass()])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 176,
+   "ndiff": 8,
    "ntotal": 451,
-   "detail": "line 273: orig ('LOAD_NAME', 'len') | got ('LOAD_CONST', 'None')\nline 274: orig ('PUSH_NULL', '') | got ('LOAD_NAME', 'len')\nline 275: orig ('LOAD_NAME', 'REVERSE_IMPORT_MAPPING') | got ('PUSH_NULL', '')"
+   "detail": "line 283: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_NAME', 'AssertionError')\nline 306: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_NAME', 'AssertionError')\nline 418: orig ('UNPACK_SEQUENCE', '') | got ('STORE_FAST', '_')"
   },
   {
    "module": "_compression",
@@ -108,7 +108,7 @@
    "module": "_pylong",
    "ast_detail": "diff at token 34: orig  If(test=BoolOp(op=Or() | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 731,
+   "ndiff": 166,
    "ntotal": 1025,
    "detail": "line 109: orig ('POP_JUMP_IF_FALSE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L5')\nline 116: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 119: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L3')"
   },
@@ -124,7 +124,7 @@
    "module": "_strptime",
    "ast_detail": "diff at token 49: orig  While(test=Name(id='True' | dec  Assign(targets=[Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2702,
+   "ndiff": 2804,
    "ntotal": 2941,
    "detail": "line 49: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 53: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 54: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -165,7 +165,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 39: orig  value=IfExp(test=Name(id='skip' | dec  value=Constant(value=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2605,
+   "ndiff": 2611,
    "ntotal": 2733,
    "detail": "line 23: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 27: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 28: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -173,8 +173,8 @@
    "module": "bisect",
    "ast_detail": "diff at token 9: orig  body=[If(test=Compare(left=Name(id='key' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 214,
-   "ntotal": 263,
+   "ndiff": 117,
+   "ntotal": 259,
    "detail": "line 46: orig ('LOAD_NAME', 'bisect_right') | got ('NOP', '')\nline 47: orig ('STORE_NAME', 'bisect') | got ('LOAD_NAME', 'bisect_right')\nline 48: orig ('LOAD_NAME', 'insort_right') | got ('STORE_NAME', 'bisect')"
   },
   {
@@ -195,8 +195,11 @@
   },
   {
    "module": "calendar",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: invalid syntax"
+   "ast_detail": "diff at token 131: orig  ctx=Load())] | dec  ctx=Load())",
+   "verdict": "SIG-DIFF",
+   "ndiff": 3305,
+   "ntotal": 3430,
+   "detail": "line 13: orig ('LOAD_CONST', \"('IntEnum', 'global_enum')\") | got ('LOAD_CONST', \"('IntEnum',)\")\nline 17: orig ('IMPORT_FROM', 'global_enum') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'global_enum') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cmd",
@@ -216,19 +219,16 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 4: orig  level=0)] | dec  level=0)",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2061,
-   "ntotal": 2145,
-   "detail": "line 18: orig ('BUILD_LIST', '') | got ('NOP', '')\nline 19: orig ('LOAD_CONST', \"('register', 'lookup', 'open', 'EncodedFile', 'BOM', 'BOM_BE', 'BOM_LE', 'BOM32_BE', | got ('BUILD_LIST', '')\nline 20: orig ('LIST_EXTEND', '') | got ('LOAD_CONST', \"('register', 'lookup', 'open', 'EncodedFile', 'BOM', 'BOM_BE', 'BOM_LE', 'BOM32_BE',"
+   "verdict": "INCOMPLETE",
+   "detail": "SyntaxError: invalid syntax"
   },
   {
    "module": "codeop",
-   "ast_detail": "diff at token 4: orig  value=ListComp(elt=Call(func=Name(id='getattr' | dec  value=Constant(value=None))",
+   "ast_detail": "diff at token 50: orig  If(test=BoolOp(op=And() | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 353,
+   "ndiff": 268,
    "ntotal": 370,
-   "detail": "line 12: orig ('LOAD_NAME', '__future__') | got ('LOAD_CONST', 'None')\nline 13: orig ('LOAD_ATTR', 'all_feature_names') | got ('STORE_NAME', '_features')\nline 14: orig ('GET_ITER', '') | got ('BUILD_LIST', '')"
+   "detail": "line 99: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 101: orig ('POP_TOP', '') | got ('JUMP_BACKWARD', 'to L1')\nline 102: orig ('JUMP_FORWARD', 'to L5') | got ('END_FOR', '')"
   },
   {
    "module": "colorsys",
@@ -243,7 +243,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 93: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 4346,
+   "ndiff": 4360,
    "ntotal": 4503,
    "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_CONST', '0')"
   },
@@ -259,7 +259,7 @@
    "module": "copy",
    "ast_detail": "diff at token 60: orig  If(test=Compare(left=Name(id='copier' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 682,
+   "ndiff": 677,
    "ntotal": 916,
    "detail": "line 228: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, None)')\nline 229: orig ('LOAD_CONST', '(None, None, None)') | got ('LOAD_NAME', 'deepcopy')\nline 230: orig ('LOAD_NAME', 'deepcopy') | got ('LOAD_CONST', \"('deepcopy',)\")"
   },

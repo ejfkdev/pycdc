@@ -97,7 +97,7 @@ ATTRIBUTES:
         am_pm = []
         for hour in (1, 22):
             time_tuple = time.struct_time((1999, 3, 17, hour, 44, 55, 2, 76, 0))
-            am_pm(time.strftime('%p', time_tuple).lower().strip())
+            am_pm.append(time.strftime('%p', time_tuple).lower().strip())
         self.am_pm = am_pm
 
     def _LocaleTime__calc_alt_digits(self):
@@ -106,14 +106,14 @@ ATTRIBUTES:
         if s.isascii():
             self.LC_alt_digits = ()
             return
-        digits = None(''.join(sorted(re.findall('\\d', s))))
+        digits = ''.join(sorted(set(re.findall('\\d', s))))
         if len(digits) == 10 and ord(digits[-1]) == ord(digits[0]) + 9:
             if digits.isascii():
                 self.LC_alt_digits = ()
                 return
             self.LC_alt_digits = [a + b for a in digits for b in digits]
             time_tuple2 = time.struct_time((2000, 1, 1, 1, 1, 1, 5, 1, 0))
-            if None not in time.strftime('%x %X', time_tuple2):
+            if self.LC_alt_digits[1] not in time.strftime('%x %X', time_tuple2):
                 digits[self.LC_alt_digits:] = 10
             return
         if {'一', '七', '九', '十', '廿'}.issubset(s):
@@ -136,7 +136,7 @@ ATTRIBUTES:
                             continue
                 if len(self.LC_alt_digits) > n:
                     replacement_pairs.append((self.LC_alt_digits[n], d))
-                replacement_pairs((time.strftime(d, time_tuple), d))
+                replacement_pairs.append((time.strftime(d, time_tuple), d))
         replacement_pairs += [('1999', '%Y'), ('99', '%y'), ('22', '%H'), ('44', '%M'), ('55', '%S'), ('76', '%j'), ('17', '%d'), ('03', '%m'), ('3', '%m'), ('2', '%w'), ('10', '%I')]
         date_time = []
         for directive in ('%c', '%x', '%X', '%r'):
@@ -159,7 +159,7 @@ ATTRIBUTES:
                 current_format = re_sub('\\d(?<![0-9])', (lambda m: chr(1632 + int(m[0]))), current_format)
             for old, new in replacement_pairs:
                 current_format = current_format.replace(old, new)
-            if None in time.strftime(directive, time_tuple2):
+            if '00' in time.strftime(directive, time_tuple2):
                 U_W = '%W'
             else:
                 U_W = '%U'

@@ -211,18 +211,16 @@ class FieldStorage:
         if 'REQUEST_METHOD' in environ:
             method = environ['REQUEST_METHOD'].upper()
         self.qs_on_post = None
-        if not method == 'GET':
-            if method == 'HEAD':
-                if 'QUERY_STRING' in environ:
-                    qs = environ['QUERY_STRING']
-                elif sys.argv[1:]:
-                    qs = sys.argv[1]
-                else:
-                    qs = ''
-                qs = qs.encode(locale.getpreferredencoding(), 'surrogateescape')
-                fp = BytesIO(qs)
-                if not headers is not None:
-                    headers = {'content-type': 'application/x-www-form-urlencoded'}
+        if (method == 'GET' or method == 'HEAD') or 'QUERY_STRING' in environ:
+            qs = environ['QUERY_STRING']
+        elif sys.argv[1:]:
+            qs = sys.argv[1]
+        else:
+            qs = ''
+        qs = qs.encode(locale.getpreferredencoding(), 'surrogateescape')
+        fp = BytesIO(qs)
+        if not headers is not None:
+            headers = {'content-type': 'application/x-www-form-urlencoded'}
         if not headers is not None:
             headers = {}
             if method == 'POST':

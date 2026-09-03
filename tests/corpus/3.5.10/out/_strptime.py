@@ -261,35 +261,31 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
         if group_key == 'I':
             hour = int(found_dict['I'])
             ampm = found_dict.get('p', '').lower()
-            if ampm in ('', locale_time.am_pm[0]):
-                if hour == 12:
-                    hour = 0
+            if (ampm in ('', locale_time.am_pm[0]) and hour == 12 or ampm == locale_time.am_pm[1]) and hour != 12:
+                hour += 12
+                continue
+                if group_key == 'M':
+                    minute = int(found_dict['M'])
                     continue
-        if ampm == locale_time.am_pm[1] and hour != 12:
-            hour += 12
-            continue
-            if group_key == 'M':
-                minute = int(found_dict['M'])
-                continue
-            if group_key == 'S':
-                second = int(found_dict['S'])
-                continue
-            if group_key == 'f':
-                s = found_dict['f']
-                s += '0' * (6 - len(s))
-                fraction = int(s)
-                continue
-            if group_key == 'A':
-                weekday = locale_time.f_weekday.index(found_dict['A'].lower())
-                continue
-            if group_key == 'a':
-                weekday = locale_time.a_weekday.index(found_dict['a'].lower())
-                continue
-            if group_key == 'w':
-                weekday = int(found_dict['w'])
-                if weekday == 0:
-                    weekday = 6
+                if group_key == 'S':
+                    second = int(found_dict['S'])
                     continue
+                if group_key == 'f':
+                    s = found_dict['f']
+                    s += '0' * (6 - len(s))
+                    fraction = int(s)
+                    continue
+                if group_key == 'A':
+                    weekday = locale_time.f_weekday.index(found_dict['A'].lower())
+                    continue
+                if group_key == 'a':
+                    weekday = locale_time.a_weekday.index(found_dict['a'].lower())
+                    continue
+                if group_key == 'w':
+                    weekday = int(found_dict['w'])
+                    if weekday == 0:
+                        weekday = 6
+                        continue
         weekday -= 1
         continue
         if group_key == 'j':

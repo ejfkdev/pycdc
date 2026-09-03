@@ -174,7 +174,7 @@ def _deepcopy_list(x, memo, deepcopy=deepcopy):
 d[list] = _deepcopy_list
 
 def _deepcopy_tuple(x, memo, deepcopy=deepcopy):
-    y = a
+    y = [deepcopy(a, memo) for a in x]
     try:
         pass
     except KeyError:
@@ -187,7 +187,7 @@ def _deepcopy_dict(x, memo, deepcopy=deepcopy):
     y = {}
     memo[id(x)] = y
     for key, value in x.items():
-        deepcopy(value, memo)[deepcopy(key, memo)] = None
+        y[deepcopy(key, memo)] = deepcopy(value, memo)
     return y
 
 d[dict] = _deepcopy_dict
@@ -253,4 +253,3 @@ def replace(obj, /, **changes):
         raise TypeError(f'replace() does not support {cls.__name__} objects')
     return func(obj, **changes)
 
-# WARNING: Decompyle incomplete

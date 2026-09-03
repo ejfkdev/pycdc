@@ -130,7 +130,7 @@
    "module": "ast",
    "ast_detail": "diff at token 49: orig  Assert(test=Compare(left=Name(id='major' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 7552,
+   "ndiff": 7556,
    "ntotal": 7851,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
@@ -162,7 +162,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 291: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2346,
+   "ndiff": 2344,
    "ntotal": 2441,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -206,7 +206,7 @@
    "module": "cgi",
    "ast_detail": "diff at token 53: orig  'logfile' | dec  'logfp'])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2814,
+   "ndiff": 2812,
    "ntotal": 2915,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
@@ -246,7 +246,7 @@
    "module": "codecs",
    "ast_detail": "diff at token 2: orig  Try(body=[ImportFrom(module='_codecs' | dec  If(test=Compare(left=Attribute(value=Name(id='sys'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1885,
+   "ndiff": 1892,
    "ntotal": 2129,
    "detail": "line 11: orig ('SETUP_FINALLY', 'to 34') | got ('LOAD_NAME', 'sys')\nline 12: orig ('LOAD_CONST', '0') | got ('LOAD_ATTR', 'byteorder')\nline 13: orig ('LOAD_CONST', \"('*',)\") | got ('LOAD_CONST', \"'little'\")"
   },
@@ -274,7 +274,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 623: orig  orelse=[If(test=BoolOp(op=And() | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2926,
+   "ndiff": 2933,
    "ntotal": 4289,
    "detail": "line 670: orig ('POP_JUMP_IF_TRUE', 'to 32') | got ('POP_JUMP_IF_FALSE', 'to 24')\nline 672: orig ('POP_JUMP_IF_TRUE', 'to 32') | got ('POP_JUMP_IF_FALSE', 'to 32')\nline 1013: orig ('LOAD_FAST', 'rest') | got ('LOAD_CONST', \"'%'\")"
   },

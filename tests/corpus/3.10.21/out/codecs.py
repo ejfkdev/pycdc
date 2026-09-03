@@ -294,10 +294,8 @@ class StreamReader(Codec):
         line = self._empty_charbuffer
         data = self.read(readsize, firstline=True)
         if data:
-            if isinstance(data, str):
-                if not data.endswith('\r'):
-                    if isinstance(data, bytes) and data.endswith(b'\r'):
-                        data += self.read(size=1, chars=1)
+            if (isinstance(data, str) and data.endswith('\r') or splitlines(data, _empty_charbuffer)) and data.endswith(b'\r'):
+                data += self.read(size=1, chars=1)
         line += data
         lines = line.splitlines(keepends=True)
         if lines and line0withend != line0withoutend:
@@ -321,14 +319,10 @@ class StreamReader(Codec):
                 return line
             line = line0withoutend
             return line
-        if data:
-            if size is not None:
-                if line:
-                    if not keepends:
-                        line = line.splitlines(keepends=False)[0]
-                return line
-        if readsize < 8000:
-            readsize *= 2
+        if data and size is not None or line:
+            if not keepends:
+                line = line.splitlines(keepends=False)[0]
+        return line
 
     def readlines(self, sizehint=None, keepends=True):
         data = self.read()

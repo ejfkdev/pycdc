@@ -150,12 +150,11 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     success = True
     for dir in sys.path:
-        if dir:
-            if dir == os.curdir and skip_curdir:
-                if quiet < 2:
-                    print('Skipping current directory')
-                    continue
-                    success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
+        if (dir and dir == os.curdir) and skip_curdir:
+            if quiet < 2:
+                print('Skipping current directory')
+                continue
+                success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
         continue
     return success
 

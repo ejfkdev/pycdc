@@ -121,11 +121,181 @@ methods.
         return {}
 
 
-Argparse = dataclass(frozen=True, kw_only=True)()
-Syntax = dataclass(frozen=True)()
-Traceback = dataclass(frozen=True)()
-Unittest = dataclass(frozen=True)()
-Theme = dataclass(frozen=True)()
+@dataclass(frozen=True, kw_only=True)
+class Argparse(ThemeSection):
+    usage = ANSIColors.BOLD_BLUE
+    prog = ANSIColors.BOLD_MAGENTA
+    prog_extra = ANSIColors.MAGENTA
+    heading = ANSIColors.BOLD_BLUE
+    summary_long_option = ANSIColors.CYAN
+    summary_short_option = ANSIColors.GREEN
+    summary_label = ANSIColors.YELLOW
+    summary_action = ANSIColors.GREEN
+    long_option = ANSIColors.BOLD_CYAN
+    short_option = ANSIColors.BOLD_GREEN
+    label = ANSIColors.BOLD_YELLOW
+    action = ANSIColors.BOLD_GREEN
+    reset = ANSIColors.RESET
+    def __annotate_func__(format, /):
+        if format > 2:
+            raise None
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26 */
+        {}['usage'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38 */
+        {}['prog'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50 */
+        {}['prog_extra'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62 */
+        {}['heading'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74 */
+        {}['summary_long_option'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @86 */
+        {}['summary_short_option'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @98 */
+        {}['summary_label'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @110 */
+        {}['summary_action'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @122 */
+        {}['long_option'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @134 */
+        {}['short_option'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @146 */
+        {}['label'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @158 */
+        {}['action'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @170 */
+        {}['reset'] = __classdict__
+        return {}
+
+
+@dataclass(frozen=True)
+class Syntax(ThemeSection):
+    prompt = ANSIColors.BOLD_MAGENTA
+    keyword = ANSIColors.BOLD_BLUE
+    keyword_constant = ANSIColors.BOLD_BLUE
+    builtin = ANSIColors.CYAN
+    comment = ANSIColors.RED
+    string = ANSIColors.GREEN
+    number = ANSIColors.YELLOW
+    op = ANSIColors.RESET
+    definition = ANSIColors.BOLD
+    soft_keyword = ANSIColors.BOLD_BLUE
+    reset = ANSIColors.RESET
+    def __annotate_func__(format, /):
+        if format > 2:
+            raise None
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26 */
+        {}['prompt'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38 */
+        {}['keyword'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50 */
+        {}['keyword_constant'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62 */
+        {}['builtin'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74 */
+        {}['comment'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @86 */
+        {}['string'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @98 */
+        {}['number'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @110 */
+        {}['op'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @122 */
+        {}['definition'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @134 */
+        {}['soft_keyword'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @146 */
+        {}['reset'] = __classdict__
+        return {}
+
+
+@dataclass(frozen=True)
+class Traceback(ThemeSection):
+    type = ANSIColors.BOLD_MAGENTA
+    message = ANSIColors.MAGENTA
+    filename = ANSIColors.MAGENTA
+    line_no = ANSIColors.MAGENTA
+    frame = ANSIColors.MAGENTA
+    error_highlight = ANSIColors.BOLD_RED
+    error_range = ANSIColors.RED
+    reset = ANSIColors.RESET
+    def __annotate_func__(format, /):
+        if format > 2:
+            raise None
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26 */
+        {}['type'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38 */
+        {}['message'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50 */
+        {}['filename'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62 */
+        {}['line_no'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74 */
+        {}['frame'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @86 */
+        {}['error_highlight'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @98 */
+        {}['error_range'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @110 */
+        {}['reset'] = __classdict__
+        return {}
+
+
+@dataclass(frozen=True)
+class Unittest(ThemeSection):
+    passed = ANSIColors.GREEN
+    warn = ANSIColors.YELLOW
+    fail = ANSIColors.RED
+    fail_info = ANSIColors.BOLD_RED
+    reset = ANSIColors.RESET
+    def __annotate_func__(format, /):
+        if format > 2:
+            raise None
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26 */
+        {}['passed'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38 */
+        {}['warn'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50 */
+        {}['fail'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62 */
+        {}['fail_info'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74 */
+        {}['reset'] = __classdict__
+        return {}
+
+
+@dataclass(frozen=True)
+class Theme:
+    '''A suite of themes for all sections of Python.
+
+When adding a new one, remember to also modify `copy_with` and `no_colors`
+below.
+'''
+
+    argparse = field(default_factory=Argparse)
+    syntax = field(default_factory=Syntax)
+    traceback = field(default_factory=Traceback)
+    unittest = field(default_factory=Unittest)
+    def copy_with(self, *, argparse: __classdict__ | None=None, syntax: __classdict__ | None=None, traceback: __classdict__ | None=None, unittest: __classdict__ | None=None) -> __classdict__:
+        return type(self)(argparse=argparse or self.argparse, syntax=syntax or self.syntax, traceback=traceback or self.traceback, unittest=unittest or self.unittest)
+
+    @classmethod
+    def no_colors(cls) -> __classdict__:
+        return cls(argparse=Argparse.no_colors(), syntax=Syntax.no_colors(), traceback=Traceback.no_colors(), unittest=Unittest.no_colors())
+
+    def __annotate_func__(format, /):
+        if format > 2:
+            raise None
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26 */
+        {}['argparse'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @38 */
+        {}['syntax'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @50 */
+        {}['traceback'] = __classdict__
+        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 3 @62 */
+        {}['unittest'] = __classdict__
+        return {}
+
 
 def get_colors(colorize: bool=False, *, file: IO[str] | IO[bytes] | None=None) -> ANSIColors:
     if not colorize:

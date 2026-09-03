@@ -299,7 +299,7 @@ Returns a Dialect object.
             skipinitialspace = 0
         doublequote = False
         if delim:
-            dq_regexp = None(re.compile % {'delim': re.escape(delim), 'quote': quotechar, 'space': ' *+' if delim != ' ' else ''}, re.MULTILINE)
+            dq_regexp = re.compile('(?:(?<=%(delim)s)|^)%(space)s%(quote)s((?:%(quote)s%(quote)s|[^%(quote)s]++)*+)%(quote)s(?:%(delim)s|$)' % {'delim': re.escape(delim), 'quote': quotechar, 'space': ' *+' if delim != ' ' else ''}, re.MULTILINE)
             dquotechar = quotechar * 2
             doublequote = any((dquotechar in m[1] for m in dq_regexp.finditer(data)))
         return quotechar, doublequote, delim, skipinitialspace

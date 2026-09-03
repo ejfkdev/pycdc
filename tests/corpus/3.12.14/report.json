@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 4,
-  "SIG-DIFF": 31,
-  "INCOMPLETE": 5
+  "SIG-DIFF": 29,
+  "INCOMPLETE": 7
  },
  "results": [
   {
@@ -54,11 +54,8 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 43: orig  body=[If(test=Compare(left=Name(id='path' | dec  body=[If(test=UnaryOp(op=Not()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1314,
-   "ntotal": 1489,
-   "detail": "line 153: orig ('SWAP', '') | got ('POP_TOP', '')\nline 155: orig ('RETURN_VALUE', '') | got ('RETURN_CONST', 'None')\nline 166: orig ('NOP', '') | got ('LOAD_CONST', '0')"
+   "verdict": "INCOMPLETE",
+   "detail": "SyntaxError: invalid syntax"
   },
   {
    "module": "_py_abc",
@@ -134,7 +131,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 199: orig  Expr(value=Yield()) | dec  Expr(value=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2419,
+   "ndiff": 2405,
    "ntotal": 2530,
    "detail": "line 23: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 27: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 28: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -164,14 +161,17 @@
   },
   {
    "module": "calendar",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: invalid syntax"
+   "ast_detail": "diff at token 167: orig  ctx=Load())] | dec  ctx=Load())",
+   "verdict": "SIG-DIFF",
+   "ndiff": 3277,
+   "ntotal": 3395,
+   "detail": "line 13: orig ('LOAD_CONST', \"('IntEnum', 'global_enum')\") | got ('LOAD_CONST', \"('IntEnum',)\")\nline 17: orig ('IMPORT_FROM', 'global_enum') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'global_enum') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cgi",
    "ast_detail": "diff at token 44: orig  ctx=Load())] | dec  ctx=Load())",
    "verdict": "SIG-DIFF",
-   "ndiff": 2261,
+   "ndiff": 2262,
    "ntotal": 2886,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
@@ -206,11 +206,8 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 4: orig  level=0)] | dec  level=0)",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2083,
-   "ntotal": 2138,
-   "detail": "line 18: orig ('BUILD_LIST', '') | got ('NOP', '')\nline 19: orig ('LOAD_CONST', \"('register', 'lookup', 'open', 'EncodedFile', 'BOM', 'BOM_BE', 'BOM_LE', 'BOM32_BE', | got ('BUILD_LIST', '')\nline 20: orig ('LIST_EXTEND', '') | got ('LOAD_CONST', \"('register', 'lookup', 'open', 'EncodedFile', 'BOM', 'BOM_BE', 'BOM_LE', 'BOM32_BE',"
+   "verdict": "INCOMPLETE",
+   "detail": "SyntaxError: invalid syntax"
   },
   {
    "module": "codeop",
@@ -226,18 +223,15 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 134: orig  ctx=Load())))] | dec  ctx=Load())))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1441,
-   "ntotal": 1501,
-   "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
+   "verdict": "INCOMPLETE",
+   "detail": "SyntaxError: invalid syntax"
   },
   {
    "module": "configparser",
    "ast_detail": "diff at token 110: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 3328,
-   "ntotal": 4240,
+   "ndiff": 3318,
+   "ntotal": 4238,
    "detail": "line 835: orig ('KW_NAMES', \"('raw', 'fallback')\") | got ('CALL', '')\nline 836: orig ('CALL', '') | got ('STORE_FAST', 'rawval')\nline 837: orig ('STORE_FAST', 'rawval') | got ('LOAD_FAST', 'depth')"
   },
   {

@@ -1742,6 +1742,34 @@ impl<'a> Ctx<'a> {
         self.stack.pop()
     }
 
+    /// Like `pop_expr`, but reports whether a NULL marker was skipped on
+    /// the way to the expression (3.13 pushes NULL above the callable).
+    fn pop_expr_skipped(&mut self) -> (ExprRef, bool) {
+        let mut skipped = false;
+        loop {
+            match self.stack.pop() {
+                Some(Sv::E(e)) => return (e, skipped),
+                Some(Sv::Null) => {
+                    skipped = true;
+                    continue;
+                }
+                Some(other) => {
+                    if matches!(other, Sv::ImportModule { .. } | Sv::ImportFrom { .. }) {
+                        self.stack.push(other);
+                        self.clean = false;
+                        return (Rc::new(Expr::Const(Rc::new(PyObject::None))), skipped);
+                    }
+                    self.clean = false;
+                    return (Rc::new(Expr::Const(Rc::new(PyObject::None))), skipped);
+                }
+                None => {
+                    self.clean = false;
+                    return (Rc::new(Expr::Const(Rc::new(PyObject::None))), skipped);
+                }
+            }
+        }
+    }
+
     fn const_expr(&mut self, idx: usize) -> ExprRef {
         match self.code.consts.get(idx) {
             Some(o) => Rc::new(Expr::Const(o.clone())),
@@ -3766,7 +3794,347 @@ fn is_stack_plumbing(op: Op) -> bool {
 impl<'a> Ctx<'a> {
     /// Conditional jump. `jump_if_true` = the branch taken when the
     /// condition holds.
+    /// py2.7 boolean-op if-conditions. `(a or b) and c` compiles to
+    /// `J1: PJIT L; <a-false rhs> J0: PJIF E; L: <rhs c> J2: PJIF E; then; E:`
+    /// where J1's target region also ends in a cond jump to the same E.
+    /// Returns the merged (cond, then_end) when the pattern matches.
+    fn try_merge_py2_boolop(
+        &self,
+        cond: &ExprRef,
+        jump_if_true: bool,
+        target: usize,
+    ) -> Option<(ExprRef, usize, usize)> {
+        macro_rules! bail {
+            ($why:expr) => {
+                return None
+            };
+        }
+        let instrs = &self.instrs;
+        let is_value_op = |o: Op| {
+            matches!(
+                o,
+                Op::LOAD_FAST
+                    | Op::LOAD_NAME
+                    | Op::LOAD_GLOBAL
+                    | Op::LOAD_CONST
+                    | Op::LOAD_ATTR
+                    | Op::LOAD_DEREF
+                    | Op::LOAD_METHOD
+                    | Op::LOAD_BUILD_CLASS
+                    | Op::COMPARE_OP
+                    | Op::IS_OP
+                    | Op::CONTAINS_OP
+                    | Op::BINARY_OP
+                    | Op::BINARY_SUBSCR
+                    | Op::CALL
+                    | Op::CALL_FUNCTION
+                    | Op::CALL_METHOD
+                    | Op::CALL_FUNCTION_KW
+                    | Op::BUILD_TUPLE
+                    | Op::BUILD_LIST
+                    | Op::BUILD_MAP
+                    | Op::BUILD_SET
+                    | Op::BUILD_STRING
+                    | Op::UNARY_NOT
+                    | Op::UNARY_NEGATIVE
+                    | Op::UNARY_INVERT
+                    | Op::TO_BOOL
+                    | Op::FORMAT_VALUE
+                    | Op::GET_ITER
+                    | Op::LIST_EXTEND
+                    | Op::SET_ADD
+                    | Op::MAP_ADD
+                    | Op::COPY
+                    | Op::NOP
+            )
+        };
+        let is_cond_jump = |o: Op| {
+            matches!(
+                o,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                    | Op::POP_JUMP_BACKWARD_IF_FALSE
+                    | Op::POP_JUMP_BACKWARD_IF_TRUE
+            )
+        };
+        // scan the fall-through region [cur_next, target) for its terminating
+        // cond jump; everything before it must be pure value computation
+        let Some(&ci) = self.idx_of.get(&self.cur_offset) else {
+            bail!("no ci");
+        };
+        let Some(&ti) = self.idx_of.get(&target) else {
+            bail!("no ti");
+        };
+        if ti <= ci + 1 {
+            bail!("ti too close");
+        }
+        let mut j0 = None;
+        for k in ci + 1..ti {
+            let ins = &instrs[k];
+            if is_cond_jump(ins.op) && ins.target.unwrap_or(0) > target {
+                j0 = Some((k, ins.target.unwrap_or(0), ins.op));
+                break;
+            }
+            if !is_value_op(ins.op) {
+                bail!(format!("lhs op {:?}", ins.op));
+            }
+        }
+        let (j0k, e0, j0op) = match j0 { Some(x) => x, None => bail!("no j0") };
+        let _ = (j0k, j0op);
+        // scan the target (rhs) region [target, e0): value ops then a cond
+        // jump. Shape A: that jump also targets e0 (shared exit E):
+        //   (c1 OP c2) AND c3. Shape B: it targets some E != e0 (e0 is the
+        //   then-body): (c1 OP c2) OR c3.
+        let Some(&ei) = self.idx_of.get(&e0) else {
+            bail!("no ei");
+        };
+        if ei <= ti {
+            bail!("ei <= ti");
+        }
+        let mut j2 = None;
+        let mut j2k = 0usize;
+        let mut j2_target = 0usize;
+        for k in ti..ei {
+            let ins = &instrs[k];
+            if is_cond_jump(ins.op) {
+                if let Some(t) = ins.target {
+                    if t > self.cur_offset {
+                        j2 = Some(ins.op);
+                        j2k = k;
+                        j2_target = t;
+                        break;
+                    }
+                }
+                bail!("rhs jump backward");
+            }
+            if !is_value_op(ins.op) {
+                bail!(format!("rhs op {:?}", ins.op));
+            }
+        }
+        let j2op = match j2 { Some(x) => x, None => bail!("no j2") };
+        let then_start = instrs[j2k].end();
+        let e = j2_target;
+        // J1 semantics: c1_jit=true means c1 joins when TRUE (or)
+        let c1_true = jump_if_true;
+        let c2_true = matches!(
+            j0op,
+            Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE | Op::POP_JUMP_BACKWARD_IF_TRUE
+        );
+        let c3_true = matches!(
+            j2op,
+            Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE | Op::POP_JUMP_BACKWARD_IF_TRUE
+        );
+        // shape validity is enforced by the region scans and target
+        // relations; J0/J2 polarities decide the operators below
+        // c1 and c2 combine via c1's jump polarity (both reach the rhs
+        // region when "joining"). Outer: shared exit (shape A) -> And with
+        // c3; J0 jumping to the then-body (shape B) -> Or with c3.
+        let inner_kind = if c1_true { BoolOpKind::Or } else { BoolOpKind::And };
+        let outer_kind = if j2_target == e0 {
+            BoolOpKind::And
+        } else {
+            BoolOpKind::Or
+        };
+        let _ = (c2_true, c3_true);
+        // simulate both operand regions on a scratch stack
+        let lhs_e = match self.sim_value_region(ci + 1, j0k) { Some(x) => x, None => bail!("lhs sim") };
+        let rhs_e = match self.sim_value_region(ti, j2k) { Some(x) => x, None => bail!("rhs sim") };
+        let lhs = Rc::new(Expr::BoolOp {
+            op: inner_kind,
+            values: vec![cond.clone(), lhs_e],
+        }) as ExprRef;
+        let merged = Rc::new(Expr::BoolOp {
+            op: outer_kind,
+            values: vec![lhs, rhs_e],
+        }) as ExprRef;
+        Some((merged, then_start, e))
+    }
+
+    /// Evaluate a straight-line value-expression instruction region on a
+    /// scratch stack (py2 boolop condition merging). Returns None when any
+    /// instruction is not pure value computation.
+    fn sim_value_region(&self, from_idx: usize, to_idx: usize) -> Option<ExprRef> {
+        let mut st: Vec<ExprRef> = Vec::new();
+        let pop1 = |st: &mut Vec<ExprRef>| st.pop().unwrap_or_else(|| self.name_expr("???"));
+        for k in from_idx..to_idx {
+            let ins = &self.instrs[k];
+            let arg = ins.arg as usize;
+            match ins.op {
+                Op::LOAD_FAST | Op::LOAD_FAST_CHECK => {
+                    st.push(self.name_expr(self.local_name(arg)));
+                }
+                Op::LOAD_NAME | Op::LOAD_GLOBAL | Op::STORE_FAST => {
+                    if ins.op == Op::STORE_FAST {
+                        return None;
+                    }
+                    let n = if ins.op == Op::LOAD_GLOBAL && self.version.at_least(3, 10) {
+                        self.const_name(arg >> 1)
+                    } else {
+                        self.const_name(arg)
+                    };
+                    st.push(self.name_expr(n));
+                }
+                Op::LOAD_DEREF => {
+                    let n = self
+                        .code
+                        .deref_name(arg)
+                        .unwrap_or("???")
+                        .to_string();
+                    st.push(self.name_expr(n));
+                }
+                Op::LOAD_CONST => {
+                    st.push(Rc::new(Expr::Const(
+                        self.code.consts.get(arg).cloned().unwrap_or_else(|| {
+                            Rc::new(PyObject::None)
+                        }),
+                    )));
+                }
+                Op::LOAD_ATTR | Op::LOAD_METHOD => {
+                    let v = pop1(&mut st);
+                    let a = self.const_name(arg);
+                    st.push(Rc::new(Expr::Attribute { value: v, attr: a }));
+                }
+                Op::COMPARE_OP => {
+                    let r = pop1(&mut st);
+                    let l = pop1(&mut st);
+                    let op = cmp_from_index(compare_op_index(arg as u32, self.version));
+                    st.push(Rc::new(Expr::Compare {
+                        operands: vec![l, r],
+                        ops: vec![op],
+                    }));
+                }
+                Op::IS_OP => {
+                    let r = pop1(&mut st);
+                    let l = pop1(&mut st);
+                    let op = if arg == 1 { CmpOp::IsNot } else { CmpOp::Is };
+                    st.push(Rc::new(Expr::Compare {
+                        operands: vec![l, r],
+                        ops: vec![op],
+                    }));
+                }
+                Op::CONTAINS_OP => {
+                    let r = pop1(&mut st);
+                    let l = pop1(&mut st);
+                    let op = if arg == 1 { CmpOp::NotIn } else { CmpOp::In };
+                    st.push(Rc::new(Expr::Compare {
+                        operands: vec![l, r],
+                        ops: vec![op],
+                    }));
+                }
+                Op::UNARY_NOT => {
+                    let v = pop1(&mut st);
+                    st.push(Rc::new(Expr::Unary { op: UnaryOp::Not, operand: v }));
+                }
+                Op::UNARY_NEGATIVE => {
+                    let v = pop1(&mut st);
+                    st.push(Rc::new(Expr::Unary { op: UnaryOp::Neg, operand: v }));
+                }
+                Op::UNARY_INVERT => {
+                    let v = pop1(&mut st);
+                    st.push(Rc::new(Expr::Unary { op: UnaryOp::Invert, operand: v }));
+                }
+                Op::BINARY_SUBSCR => {
+                    let i = pop1(&mut st);
+                    let v = pop1(&mut st);
+                    st.push(Rc::new(Expr::Subscript { value: v, index: i }));
+                }
+                Op::BINARY_OP => {
+                    let r = pop1(&mut st);
+                    let l = pop1(&mut st);
+                    let name = binary_op_name(arg as u32, self.version)?;
+                    if name.ends_with('=') {
+                        return None;
+                    }
+                    let op = binop_from_text(name);
+                    st.push(Rc::new(Expr::Binary { op, left: l, right: r }));
+                }
+                Op::BINARY_ADD | Op::BINARY_SUBTRACT | Op::BINARY_MULTIPLY
+                | Op::BINARY_DIVIDE | Op::BINARY_TRUE_DIVIDE | Op::BINARY_FLOOR_DIVIDE
+                | Op::BINARY_MODULO | Op::BINARY_POWER | Op::BINARY_LSHIFT
+                | Op::BINARY_RSHIFT | Op::BINARY_OR | Op::BINARY_XOR | Op::BINARY_AND
+                | Op::BINARY_MATRIX_MULTIPLY => {
+                    let r = pop1(&mut st);
+                    let l = pop1(&mut st);
+                    let op = match ins.op {
+                        Op::BINARY_ADD => BinaryOp::Add,
+                        Op::BINARY_SUBTRACT => BinaryOp::Sub,
+                        Op::BINARY_MULTIPLY => BinaryOp::Mult,
+                        Op::BINARY_DIVIDE | Op::BINARY_TRUE_DIVIDE => BinaryOp::Div,
+                        Op::BINARY_FLOOR_DIVIDE => BinaryOp::FloorDiv,
+                        Op::BINARY_MODULO => BinaryOp::Mod,
+                        Op::BINARY_POWER => BinaryOp::Pow,
+                        Op::BINARY_LSHIFT => BinaryOp::LShift,
+                        Op::BINARY_RSHIFT => BinaryOp::RShift,
+                        Op::BINARY_OR => BinaryOp::BitOr,
+                        Op::BINARY_XOR => BinaryOp::BitXor,
+                        Op::BINARY_AND => BinaryOp::BitAnd,
+                        _ => BinaryOp::MatMult,
+                    };
+                    st.push(Rc::new(Expr::Binary { op, left: l, right: r }));
+                }
+                Op::BUILD_TUPLE | Op::BUILD_LIST | Op::BUILD_SET => {
+                    let n = arg.min(st.len());
+                    let items: Vec<ExprRef> = st.split_off(st.len() - n);
+                    let e = match ins.op {
+                        Op::BUILD_TUPLE => Expr::Tuple(items),
+                        Op::BUILD_LIST => Expr::List(items),
+                        _ => Expr::Set(items),
+                    };
+                    st.push(Rc::new(e));
+                }
+                Op::CALL_FUNCTION | Op::CALL | Op::CALL_METHOD => {
+                    let n = if ins.op == Op::CALL_FUNCTION && !self.version.at_least(3, 6) {
+                        arg & 0xFF
+                    } else {
+                        arg
+                    };
+                    let n = n.min(st.len());
+                    let args: Vec<ExprRef> = st.split_off(st.len() - n);
+                    let func = pop1(&mut st);
+                    st.push(Rc::new(Expr::Call {
+                        func,
+                        args,
+                        keywords: Vec::new(),
+                        star_args: None,
+                        star_kwargs: None,
+                    }));
+                }
+                Op::TO_BOOL | Op::NOP | Op::NOT_TAKEN | Op::COPY => {}
+                _ => return None,
+            }
+        }
+        if st.len() == 1 {
+            st.pop()
+        } else {
+            None
+        }
+    }
+
     fn handle_cond_jump(&mut self, cond: ExprRef, jump_if_true: bool, target: usize) {
+        // py2-style boolop if-conditions: `(a or b) and c` merges into one
+        // BoolOp cond + a single If block. Skipped when this jump is an
+        // uninitialized loop's condition (SETUP_LOOP era) or a rotated-while
+        // back-edge candidate.
+        let while_top = self.blocks.last().map_or(false, |b| {
+            matches!(b.kind, BlockType::While) && (!b.cond_set || b.cond_end > 0)
+        });
+        if !while_top {
+            if let Some((merged, then_start, e)) =
+                self.try_merge_py2_boolop(&cond, jump_if_true, target)
+            {
+                let mut blk = Block::new(BlockType::If, then_start, e);
+                blk.cond = Some(merged);
+                blk.cond_set = true;
+                blk.jump_if_true = false;
+                blk.stack_depth = self.stack.len();
+                self.blocks.push(blk);
+                // the operand regions were consumed by the scratch sim
+                self.skip_until = Some(then_start);
+                return;
+            }
+        }
         // inline comprehension filter: `... if cond`
         if let Some(comp) = &mut self.inline_comp {
             if self.cur_offset < comp.end {
@@ -5543,6 +5911,33 @@ impl<'a> Ctx<'a> {
                 return;
             }
         }
+        // decorated class (3.11+): the stored value is deco(build_class(...))
+        let mut class_decorators: Vec<ExprRef> = Vec::new();
+        let mut val = val;
+        loop {
+            let peeled = match &*val {
+                Expr::Call { func, args, keywords, star_args: None, star_kwargs: None }
+                    if args.len() == 1 && keywords.is_empty() =>
+                {
+                    match &*args[0] {
+                        Expr::Call { func: f2, .. }
+                            if matches!(&**f2, Expr::Name(n) if n == "__build_class__") =>
+                        {
+                            Some((func.clone(), args[0].clone()))
+                        }
+                        _ => None,
+                    }
+                }
+                _ => None,
+            };
+            match peeled {
+                Some((deco, inner)) => {
+                    class_decorators.push(deco);
+                    val = inner;
+                }
+                None => break,
+            }
+        }
         // class definition (py3): __build_class__ call result stored
         if let Expr::Call { func, args, keywords, .. } = &*val {
             if let Expr::Name(fn_name) = &**func {
@@ -5590,8 +5985,9 @@ impl<'a> Ctx<'a> {
                                         },
                                     }
                                 }
-                                let decorators =
-                                    std::mem::take(&mut self.pending_class_decorators);
+                                let mut decorators = class_decorators;
+                                decorators
+                                    .extend(std::mem::take(&mut self.pending_class_decorators));
                                 self.push_stmt(Stmt::ClassDef {
                                     name: class_name,
                                     bases: real_bases,
@@ -5899,8 +6295,15 @@ impl<'a> Ctx<'a> {
             let callable = self.pop_expr();
             (callable, marker)
         } else {
-            let callable = self.pop_expr();
-            let marker = self.pop_expr_raw();
+            // 3.11-3.13: NULL may sit above the callable (PUSH_NULL after
+            // the load, 3.13 style) — a skipped NULL IS the marker, so only
+            // pop a second slot when nothing was skipped
+            let (callable, skipped_null) = self.pop_expr_skipped();
+            let marker = if skipped_null {
+                None
+            } else {
+                self.pop_expr_raw()
+            };
             (callable, marker)
         };
 
@@ -5935,6 +6338,26 @@ impl<'a> Ctx<'a> {
                 return;
             }
         }
+        // 3.12 decorated CLASS: `LOAD deco; ...build_class...; CALL n;
+        // CALL 0` leaves the built class as the callable and the decorator
+        // in the marker slot; rebuild deco(build_class(...)) so the
+        // store-time class recognition can peel the decorator
+        if pos_args.is_empty() && keywords.is_empty() {
+            if let Expr::Call { func: f2, .. } = &*func {
+                if matches!(&**f2, Expr::Name(n) if n == "__build_class__") {
+                    if let Some(Sv::E(deco)) = &marker {
+                        self.push(Rc::new(Expr::Call {
+                            func: deco.clone(),
+                            args: vec![func],
+                            keywords: Vec::new(),
+                            star_args: None,
+                            star_kwargs: None,
+                        }));
+                        return;
+                    }
+                }
+            }
+        }
         // comprehension instantiation takes precedence over decorator shapes
         let comp_callable = is_comp_callable(&func);
         if !comp_callable {
@@ -5957,6 +6380,20 @@ impl<'a> Ctx<'a> {
                         fd.decorators.push(func.clone());
                         self.push(Rc::new(Expr::Function(Rc::new(fd))));
                         return;
+                    }
+                    // decorated class via CALL 0: the built class sits in
+                    // the marker slot — rebuild deco(build_class(...))
+                    if let Expr::Call { func: f2, .. } = &**m {
+                        if matches!(&**f2, Expr::Name(n) if n == "__build_class__") {
+                            self.push(Rc::new(Expr::Call {
+                                func,
+                                args: vec![m.clone()],
+                                keywords: Vec::new(),
+                                star_args: None,
+                                star_kwargs: None,
+                            }));
+                            return;
+                        }
                     }
                 }
             }

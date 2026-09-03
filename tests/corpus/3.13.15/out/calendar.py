@@ -39,12 +39,35 @@ def __getattr__(name):
         return 2
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
-Month = __build_class__(/* <function Month> */None, 'Month', IntEnum)()
-Day = __build_class__(/* <function Day> */None, 'Day', IntEnum)()
+@global_enum
+class Month(IntEnum):
+    JANUARY = 1
+    FEBRUARY = 2
+    MARCH = 3
+    APRIL = 4
+    MAY = 5
+    JUNE = 6
+    JULY = 7
+    AUGUST = 8
+    SEPTEMBER = 9
+    OCTOBER = 10
+    NOVEMBER = 11
+    DECEMBER = 12
+
+@global_enum
+class Day(IntEnum):
+    MONDAY = 0
+    TUESDAY = 1
+    WEDNESDAY = 2
+    THURSDAY = 3
+    FRIDAY = 4
+    SATURDAY = 5
+    SUNDAY = 6
+
 mdays = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
 class _localized_month:
-    _months = None
+    _months = [datetime.date(2001, i + 1, 1).strftime for i in range(12)]
     _months.insert(0, (lambda x: ''))
     def __init__(self, format):
         self.format = format
@@ -52,7 +75,7 @@ class _localized_month:
     def __getitem__(self, i):
         funcs = self._months[i]
         if isinstance(i, slice):
-            return
+            return [f(self.format) for f in funcs]
         return funcs(self.format)
 
     def __len__(self):
@@ -60,14 +83,14 @@ class _localized_month:
 
 
 class _localized_day:
-    _days = None
+    _days = [datetime.date(2001, 1, i + 1).strftime for i in range(7)]
     def __init__(self, format):
         self.format = format
 
     def __getitem__(self, i):
         funcs = self._days[i]
         if isinstance(i, slice):
-            return
+            return [f(self.format) for f in funcs]
         return funcs(self.format)
 
     def __len__(self):
@@ -91,7 +114,7 @@ def weekday(year, month, day):
     if datetime.MINYEAR <= year:
         if not year <= datetime.MAXYEAR:
             year = 2000 + year % 400
-    return None(datetime.date(year, month, day).weekday())
+    return Day(datetime.date(year, month, day).weekday())
 
 def _validate_month(month):
     if 1 <= month:

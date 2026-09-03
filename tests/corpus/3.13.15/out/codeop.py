@@ -34,7 +34,7 @@ Compile():
 
 import __future__
 import warnings
-_features = None
+_features = [getattr(__future__, fname) for fname in __future__.all_feature_names]
 __all__ = ['compile_command', 'Compile', 'CommandCompiler']
 PyCF_DONT_IMPLY_DEDENT = 512
 PyCF_ONLY_AST = 1024

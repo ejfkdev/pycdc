@@ -121,10 +121,9 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=False, legacy=False, optimize=-1):
     success = 1
     for dir in sys.path:
-        if not not dir:
-            if dir == os.curdir and skip_curdir:
-                print('Skipping current directory')
-                continue
+        if (not dir or dir == os.curdir) and skip_curdir:
+            print('Skipping current directory')
+            continue
         success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize)
         continue
     return success
