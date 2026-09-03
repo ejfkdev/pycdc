@@ -25,7 +25,7 @@
   },
   {
    "module": "_android_support",
-   "ast_detail": "diff at token 186: orig  body=[While(test=Name(id='line' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 597,
    "ntotal": 635,
@@ -187,7 +187,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 112: orig  args=[Starred(value=Name(id='sort' | dec  args=[Name(id='sort'",
+   "ast_detail": "diff at token 109: orig  args=[Starred(value=Name(id='sort' | dec  args=[Name(id='sort'",
    "verdict": "SIG-DIFF",
    "ndiff": 417,
    "ntotal": 703,

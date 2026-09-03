@@ -44,7 +44,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 234: orig  ctx=Store())) | dec  ctx=Store()))]",
+   "ast_detail": "diff at token 233: orig  ctx=Store())) | dec  ctx=Store()))]",
    "verdict": "SIG-DIFF",
    "ndiff": 203,
    "ntotal": 515,
@@ -52,7 +52,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 469: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
+   "ast_detail": "diff at token 467: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
    "ndiff": 968,
    "ntotal": 1391,
@@ -128,7 +128,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 136: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=Call(func=Name(id='isinstance'",
+   "ast_detail": "diff at token 135: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=Call(func=Name(id='isinstance'",
    "verdict": "SIG-DIFF",
    "ndiff": 6113,
    "ntotal": 7149,
@@ -152,7 +152,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 44: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 1478,
    "ntotal": 1868,
@@ -160,7 +160,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 285: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 284: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 2246,
    "ntotal": 2340,
@@ -168,7 +168,7 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "diff at token 123: orig  Assign(targets=[Tuple(elts=[Name(id='dir' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 1559,
    "ntotal": 2036,
@@ -188,7 +188,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 158: orig  keywords=[]))])] | dec  keywords=[]))])",
+   "ast_detail": "diff at token 155: orig  keywords=[]))])] | dec  keywords=[]))])",
    "verdict": "SIG-DIFF",
    "ndiff": 386,
    "ntotal": 686,
@@ -204,7 +204,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 52: orig  'logfile' | dec  'logfp'])",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 2768,
    "ntotal": 2887,
@@ -296,7 +296,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 158: orig  value=BinOp(left=Constant(value=1) | dec  value=Constant(value=512))",
+   "ast_detail": "diff at token 191: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
    "ndiff": 367,
    "ntotal": 563,

@@ -12,7 +12,7 @@
   },
   {
    "module": "_aix_support",
-   "ast_detail": "diff at token 23: orig  comparators=[BinOp(left=BinOp(left=Constant(value=2) | dec  comparators=[Constant(value=2147483647)])",
+   "ast_detail": "diff at token 208: orig  keywords=[])) | dec  keywords=[]))]",
    "verdict": "SIG-DIFF",
    "ndiff": 29,
    "ntotal": 205,
@@ -40,7 +40,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 175: orig  args=[] | dec  args=[Tuple(elts=[]",
+   "ast_detail": "diff at token 174: orig  args=[] | dec  args=[Tuple(elts=[]",
    "verdict": "SIG-DIFF",
    "ndiff": 323,
    "ntotal": 575,
@@ -120,7 +120,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 129: orig  If(test=NamedExpr(target=Name(id='lno' | dec  If(test=Call(func=Name(id='getattr'",
+   "ast_detail": "diff at token 128: orig  If(test=NamedExpr(target=Name(id='lno' | dec  If(test=Call(func=Name(id='getattr'",
    "verdict": "SIG-DIFF",
    "ndiff": 7562,
    "ntotal": 7851,
@@ -144,7 +144,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 1659,
    "ntotal": 1933,
@@ -152,7 +152,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 291: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 290: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 2335,
    "ntotal": 2441,
@@ -160,7 +160,7 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "diff at token 123: orig  Assign(targets=[Tuple(elts=[Name(id='dir' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 1793,
    "ntotal": 2054,
@@ -180,7 +180,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 301: orig  body=[Try(body=[Assign(targets=[Name(id='callers' | dec  body=[If(test=Compare(left=Name(id='func'",
+   "ast_detail": "diff at token 298: orig  body=[Try(body=[Assign(targets=[Name(id='callers' | dec  body=[If(test=Compare(left=Name(id='func'",
    "verdict": "SIG-DIFF",
    "ndiff": 333,
    "ntotal": 678,
@@ -196,7 +196,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 53: orig  'logfile' | dec  'logfp'])",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 2829,
    "ntotal": 2915,

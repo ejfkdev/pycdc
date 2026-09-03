@@ -203,6 +203,85 @@ class Normalizer(ast.NodeTransformer):
         node.body = self.visit(node.body)
         return node
 
+    # ---- constant folding: compilers fold arithmetic on number literals,
+    # so the decompiled constant and the source expression must compare
+    # equal after folding both sides ----
+    def _numval(self, node):
+        k = const_key(node)
+        if k is not None and k[0] in ('num', 'bool'):
+            v = node.n if isinstance(node, ast.Num) else (
+                node.value if hasattr(ast, 'Constant') and isinstance(node, ast.Constant) else None)
+            if isinstance(v, bool):
+                return int(v)
+            if isinstance(v, (int, float, complex)) or (hasattr(v, 'real') and not isinstance(v, bytes) and not isinstance(v, str)):
+                return v
+        return None
+
+    def visit_UnaryOp(self, node):
+        self.generic_visit(node)
+        v = self._numval(node.operand)
+        if v is None:
+            return node
+        try:
+            if isinstance(node.op, ast.USub):
+                r = -v
+            elif isinstance(node.op, ast.UAdd):
+                r = +v
+            elif isinstance(node.op, ast.Invert):
+                r = ~v
+            else:
+                return node
+        except Exception:
+            return node
+        return ast.Num(n=r)
+
+    def visit_BinOp(self, node):
+        self.generic_visit(node)
+        l = self._numval(node.left)
+        r = self._numval(node.right)
+        if l is None or r is None:
+            return node
+        op = node.op
+        try:
+            if isinstance(op, ast.Add):
+                v = l + r
+            elif isinstance(op, ast.Sub):
+                v = l - r
+            elif isinstance(op, ast.Mult):
+                v = l * r
+            elif isinstance(op, ast.Div):
+                if hasattr(ast, 'Div') and sys.version_info[0] == 2:
+                    v = l / r
+                else:
+                    v = l / r
+            elif isinstance(op, ast.FloorDiv):
+                v = l // r
+            elif isinstance(op, ast.Mod):
+                v = l % r
+            elif isinstance(op, ast.Pow):
+                if abs(r) > 64:
+                    return node
+                v = l ** r
+            elif isinstance(op, ast.LShift):
+                if r > 64:
+                    return node
+                v = l << r
+            elif isinstance(op, ast.RShift):
+                v = l >> r
+            elif isinstance(op, ast.BitOr):
+                v = l | r
+            elif isinstance(op, ast.BitXor):
+                v = l ^ r
+            elif isinstance(op, ast.BitAnd):
+                v = l & r
+            else:
+                return node
+        except Exception:
+            return node
+        if isinstance(v, (int, float, complex)) or (hasattr(v, 'numerator') and not isinstance(v, bool)):
+            return ast.Num(n=v)
+        return node
+
     def visit_Call(self, node):
         self.generic_visit(node)
         # set(genexpr) == set comprehension, list(genexpr) == list comp

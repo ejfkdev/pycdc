@@ -70,7 +70,7 @@
   },
   {
    "module": "_ios_support",
-   "ast_detail": "diff at token 2: orig  names=[alias(name='cdll') | dec  names=[alias(name='cdll')]",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 185,
    "ntotal": 199,

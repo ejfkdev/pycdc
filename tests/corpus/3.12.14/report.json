@@ -129,7 +129,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 199: orig  Expr(value=Yield()) | dec  Expr(value=Yield(value=Constant(value=None)))",
+   "ast_detail": "diff at token 198: orig  Expr(value=Yield()) | dec  Expr(value=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
    "ndiff": 2412,
    "ntotal": 2530,
@@ -153,7 +153,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 162: orig  keywords=[]))])] | dec  keywords=[]))",
+   "ast_detail": "diff at token 159: orig  keywords=[]))])] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 508,
    "ntotal": 699,
@@ -169,7 +169,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 44: orig  ctx=Load())] | dec  ctx=Load())",
+   "ast_detail": "",
    "verdict": "SIG-DIFF",
    "ndiff": 2763,
    "ntotal": 2886,
