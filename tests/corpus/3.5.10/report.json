@@ -107,9 +107,9 @@
    "module": "aifc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2413,
+   "ndiff": 1836,
    "ntotal": 3025,
-   "detail": "line 448: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 449: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 450: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
+   "detail": "line 1111: orig ('SETUP_LOOP', 'to 40') | got ('SETUP_LOOP', 'to 21')\nline 1115: orig ('FOR_ITER', 'to 39') | got ('FOR_ITER', 'to 20')\nline 1117: orig ('LOAD_FAST', 'id') | got ('LOAD_FAST', 'marker')"
   },
   {
    "module": "ast",
@@ -131,8 +131,8 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2172,
-   "ntotal": 2238,
+   "ndiff": 2169,
+   "ntotal": 2239,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -187,8 +187,8 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2878,
-   "ntotal": 3042,
+   "ndiff": 2896,
+   "ntotal": 3045,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
   {

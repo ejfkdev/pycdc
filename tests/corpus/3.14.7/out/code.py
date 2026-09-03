@@ -100,9 +100,8 @@ The output is written by self.write(), below.
 
         try:
             typ, value, tb = sys.exc_info()
-            if filename:
-                if issubclass(typ, SyntaxError):
-                    value.filename = filename
+            if filename and issubclass(typ, SyntaxError):
+                value.filename = filename
             source = kwargs.pop('source', '')
             self._showtraceback(typ, value, None, source)
         finally:
@@ -128,12 +127,10 @@ The output is written by self.write(), below.
         sys.last_traceback = tb
         value = value.with_traceback(tb)
         lines = source.splitlines()
-        if source:
-            if typ is SyntaxError:
-                if not value.text:
-                    if not value.lineno is None:
-                        if len(lines) >= value.lineno:
-                            value.text = lines[value.lineno - 1]
+        if source and typ is SyntaxError:
+            if not value.text and not value.lineno is None:
+                if len(lines) >= value.lineno:
+                    value.text = lines[value.lineno - 1]
         sys.last_exc = value
         sys.last_value = value
         if sys.excepthook is sys.__excepthook__:

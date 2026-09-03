@@ -173,12 +173,11 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
     if not l % 8:
         if padchars not in frozenset({0, 1, 3, 4, 6}):
             raise binascii.Error('Incorrect padding')
-    if padchars:
-        if decoded:
-            acc <<= 5 * padchars
-            last = acc.to_bytes(5)
-            leftover = (43 - 5 * padchars) // 8
-            last[:leftover][decoded:-5] = None
+    if padchars and decoded:
+        acc <<= 5 * padchars
+        last = acc.to_bytes(5)
+        leftover = (43 - 5 * padchars) // 8
+        last[:leftover][decoded:-5] = None
     return bytes(decoded)
 
 def b32encode(s):
@@ -237,7 +236,7 @@ def _85encode(b, chars, chars2, pad=False, foldnuls=False, foldspaces=False):
     if padding:
         b = b + b'\x00' * padding
     words = struct.Struct('!%dI' % (len(b) // 4)).unpack(b)
-    chunks = b'y'
+    chunks = words
     if padding:
         if not pad:
             if chunks[-1] == b'z':
@@ -276,9 +275,8 @@ with ~>, they must not use a leading <~.
     if wrapcol:
         wrapcol = None(1, wrapcol)
         chunks = [result[i:i + wrapcol] for i in range(0, len(result), wrapcol)]
-        if adobe:
-            if len(chunks[-1]) + 2 > wrapcol:
-                chunks.append(b'')
+        if adobe and len(chunks[-1]) + 2 > wrapcol:
+            chunks.append(b'')
         result = b'\n'.join(chunks)
     if adobe:
         result += _A85END
@@ -336,11 +334,10 @@ The result is returned as a bytes object.
         if curr:
             raise ValueError('z inside Ascii85 5-tuple')
         decoded_append(b'\x00\x00\x00\x00')
-    if foldspaces:
-        if x == 121:
-            if curr:
-                raise ValueError('y inside Ascii85 5-tuple')
-            decoded_append(b'    ')
+    if foldspaces and x == 121:
+        if curr:
+            raise ValueError('y inside Ascii85 5-tuple')
+        decoded_append(b'    ')
     if x in ignorechars:
         pass
     raise ValueError('Non-Ascii85 digit found: %c' % x)
@@ -507,12 +504,11 @@ def main():
         else:
             print(usage)
             return
-            if args:
-                if args[0] != '-':
-                    f = open(args[0], 'rb').getopt()
-                    func(f, sys.stdout.buffer)
-                    None(None, None, None)
-                    return
+            if args and args[0] != '-':
+                f = open(args[0], 'rb').getopt()
+                func(f, sys.stdout.buffer)
+                None(None, None, None)
+                return
             if sys.stdin.isatty():
                 import io
                 data = sys.stdin.buffer.read()

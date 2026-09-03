@@ -74,9 +74,8 @@ def _reduce_ex(self, proto):
         if getattr(self, '__slots__', None):
             raise TypeError(f'cannot pickle {cls.__name__!r} object: a class that defines __slots__ without defining __getstate__ cannot be pickled with protocol {proto}') from None
         dict = self.__dict__
-    if type(self).__getstate__ is object.__getstate__:
-        if getattr(self, '__slots__', None):
-            raise TypeError('a class that defines __slots__ without defining __getstate__ cannot be pickled')
+    if type(self).__getstate__ is object.__getstate__ and getattr(self, '__slots__', None):
+        raise TypeError('a class that defines __slots__ without defining __getstate__ cannot be pickled')
     dict = getstate()
     if dict:
         return _reconstructor, args, dict
@@ -146,9 +145,8 @@ def add_extension(module, name, code):
         if not code <= 2147483647:
             raise ValueError('code out of range')
     key = module, name
-    if _extension_registry.get(key) == code:
-        if _inverted_registry.get(code) == key:
-            return
+    if _extension_registry.get(key) == code and _inverted_registry.get(code) == key:
+        return
     if key in _extension_registry:
         raise ValueError(f'key {key!s} is already registered with code {_extension_registry[key]!s}')
     if code in _inverted_registry:

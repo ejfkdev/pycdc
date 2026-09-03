@@ -80,9 +80,8 @@ Returns the subclass, to allow usage as a class decorator.
             return True
         subtype = type(instance)
         if subtype is subclass:
-            if cls._abc_negative_cache_version == ABCMeta._abc_invalidation_counter:
-                if subclass in cls._abc_negative_cache:
-                    return False
+            if cls._abc_negative_cache_version == ABCMeta._abc_invalidation_counter and subclass in cls._abc_negative_cache:
+                return False
             return cls.__subclasscheck__(subclass)
         if any is None:
             for _ in (cls(c) for c in (subclass, subtype)):

@@ -143,9 +143,8 @@ def int_to_decimal_string(n):
     else:
         sign = ''
     s = inner(n, w)
-    if s[0] == '0':
-        if n:
-            s = s.lstrip('0')
+    if s[0] == '0' and n:
+        s = s.lstrip('0')
     return sign + s
 
 def _str_to_int_inner(s):

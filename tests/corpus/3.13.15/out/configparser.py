@@ -703,17 +703,15 @@ dictionary being read.
             try:
                 self.add_section(section)
             except (DuplicateSectionError, ValueError):
-                if self._strict:
-                    if section in elements_added:
-                        raise
+                if self._strict and section in elements_added:
+                    raise
             elements_added.add(section)
             for key, value in keys.items():
                 key = self.optionxform(str(key))
                 if not value is None:
                     value = str(value)
-                if self._strict:
-                    if (section, key) in elements_added:
-                        raise DuplicateOptionError(section, key, source)
+                if self._strict and (section, key) in elements_added:
+                    raise DuplicateOptionError(section, key, source)
                 elements_added.add((section, key))
                 self.set(section, key, value)
 
@@ -914,9 +912,8 @@ preserved when writing the configuration back.
         return self._proxies[key]
 
     def __setitem__(self, key, value):
-        if key in self:
-            if self[key] is value:
-                return
+        if key in self and self[key] is value:
+            return
         if key == self.default_section:
             self._defaults.clear()
         elif key in self._sections:

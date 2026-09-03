@@ -80,8 +80,8 @@
    "module": "_markupbase",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 861,
-   "ntotal": 1247,
+   "ndiff": 865,
+   "ntotal": 1243,
    "detail": "line 272: orig ('POP_JUMP_IF_FALSE', 'to L20') | got ('POP_JUMP_IF_FALSE', 'to L19')\nline 324: orig ('JUMP_FORWARD', 'to L18') | got ('JUMP_FORWARD', 'to L17')\nline 335: orig ('JUMP_FORWARD', 'to L18') | got ('JUMP_FORWARD', 'to L17')"
   },
   {
@@ -165,7 +165,7 @@
    "module": "bdb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2607,
+   "ndiff": 2608,
    "ntotal": 2733,
    "detail": "line 23: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 27: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 28: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -205,8 +205,8 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1169,
-   "ntotal": 1427,
+   "ndiff": 1163,
+   "ntotal": 1428,
    "detail": "line 240: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_IF_TRUE', 'to L10')\nline 241: orig ('POP_JUMP_IF_TRUE', 'to L12') | got ('LOAD_FAST', 'self')\nline 242: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'cmdqueue')"
   },
   {

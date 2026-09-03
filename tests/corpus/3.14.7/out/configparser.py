@@ -725,17 +725,15 @@ dictionary being read.
             try:
                 self.add_section(section)
             except (DuplicateSectionError, ValueError):
-                if self._strict:
-                    if section in elements_added:
-                        raise
+                if self._strict and section in elements_added:
+                    raise
             elements_added.add(section)
             for key, value in keys.items():
                 key = self.optionxform(str(key))
                 if not value is None:
                     value = str(value)
-                if self._strict:
-                    if (section, key) in elements_added:
-                        raise DuplicateOptionError(section, key, source)
+                if self._strict and (section, key) in elements_added:
+                    raise DuplicateOptionError(section, key, source)
                 elements_added.add((section, key))
                 self.set(section, key, value)
 
@@ -883,9 +881,8 @@ preserved when writing the configuration back.
             d = self._delimiters[0]
         if self._defaults:
             self._write_section(fp, self.default_section, self._defaults.items(), d)
-        if UNNAMED_SECTION in self._sections:
-            if self._sections[UNNAMED_SECTION]:
-                self._write_section(fp, UNNAMED_SECTION, self._sections[UNNAMED_SECTION].items(), d, True)
+        if UNNAMED_SECTION in self._sections and self._sections[UNNAMED_SECTION]:
+            self._write_section(fp, UNNAMED_SECTION, self._sections[UNNAMED_SECTION].items(), d, True)
         for section in self._sections:
             if section is UNNAMED_SECTION:
                 continue
@@ -939,9 +936,8 @@ preserved when writing the configuration back.
         return self._proxies[key]
 
     def __setitem__(self, key, value):
-        if key in self:
-            if self[key] is value:
-                return
+        if key in self and self[key] is value:
+            return
         if key == self.default_section:
             self._defaults.clear()
         elif key in self._sections:
@@ -993,11 +989,10 @@ section names. Please note that comments get stripped off when reading configura
         for st.lineno, line in enumerate(map(self._comments.wrap, fp), 1):
             if not line.clean:
                 if self._empty_lines_in_values:
-                    if not line.has_comments:
-                        if not st.cursect is None:
-                            if st.optname:
-                                if not st.cursect[st.optname] is None:
-                                    st.cursect[st.optname].append('')
+                    if not line.has_comments and not st.cursect is None:
+                        if st.optname:
+                            if not st.cursect[st.optname] is None:
+                                st.cursect[st.optname].append('')
                 else:
                     st.indent_level = sys.maxsize
                 continue
@@ -1023,9 +1018,8 @@ section names. Please note that comments get stripped off when reading configura
                 self._handle_header(st, UNNAMED_SECTION, fpname)
         st.indent_level = st.cur_indent_level
         mo = self.SECTCRE.match(line.clean)
-        if not mo:
-            if not st.cursect is not None:
-                raise MissingSectionHeaderError(fpname, st.lineno, line)
+        if not mo and not st.cursect is not None:
+            raise MissingSectionHeaderError(fpname, st.lineno, line)
         if mo:
             self._handle_header(st, mo.group('header'), fpname)
             return
@@ -1034,9 +1028,8 @@ section names. Please note that comments get stripped off when reading configura
     def _handle_header(self, st, sectname, fpname):
         st.sectname = sectname
         if st.sectname in self._sections:
-            if self._strict:
-                if st.sectname in st.elements_added:
-                    raise DuplicateSectionError(st.sectname, fpname, st.lineno)
+            if self._strict and st.sectname in st.elements_added:
+                raise DuplicateSectionError(st.sectname, fpname, st.lineno)
             st.cursect = self._sections[st.sectname]
             st.elements_added.add(st.sectname)
         elif st.sectname == self.default_section:
@@ -1058,9 +1051,8 @@ section names. Please note that comments get stripped off when reading configura
         if not st.optname:
             st.errors.append(ParsingError(fpname, st.lineno, line))
         st.optname = self.optionxform(st.optname.rstrip())
-        if self._strict:
-            if (st.sectname, st.optname) in st.elements_added:
-                raise DuplicateOptionError(st.sectname, st.optname, fpname, st.lineno)
+        if self._strict and (st.sectname, st.optname) in st.elements_added:
+            raise DuplicateOptionError(st.sectname, st.optname, fpname, st.lineno)
         st.elements_added.add((st.sectname, st.optname))
         if not optval is None:
             optval = optval.strip()

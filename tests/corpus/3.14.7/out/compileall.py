@@ -22,9 +22,8 @@ from pathlib import Path
 __all__ = ['compile_dir', 'compile_file', 'compile_path']
 
 def _walk_dir(dir, maxlevels, quiet=0):
-    if quiet < 2:
-        if isinstance(dir, os.PathLike):
-            dir = os.fspath(dir)
+    if quiet < 2 and isinstance(dir, os.PathLike):
+        dir = os.fspath(dir)
     if not quiet:
         print('Listing {!r}...'.format(dir))
     try:
@@ -158,17 +157,15 @@ hardlink_dupes: hardlink duplicated pyc files
     if isinstance(optimize, int):
         optimize = [optimize]
     optimize = sorted(set(optimize))
-    if hardlink_dupes:
-        if len(optimize) < 2:
-            raise ValueError('Hardlinking of duplicated bytecode makes sense only for more than one optimization level')
+    if hardlink_dupes and len(optimize) < 2:
+        raise ValueError('Hardlinking of duplicated bytecode makes sense only for more than one optimization level')
     if not rx is None:
         mo = rx.search(fullname)
         if mo:
             return success
     if not limit_sl_dest is None:
-        if os.path.islink(fullname):
-            if Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
-                return success
+        if os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
+            return success
     opt_cfiles = {}
     if os.path.isfile(fullname):
         for opt_level in optimize:
@@ -252,11 +249,10 @@ invalidation_mode: as for compiler_dir()
     success = True
     for dir in sys.path:
         if dir:
-            if dir == os.curdir:
-                if skip_curdir:
-                    if quiet < 2:
-                        print('Skipping current directory')
-                        continue
+            if dir == os.curdir and skip_curdir:
+                if quiet < 2:
+                    print('Skipping current directory')
+                    continue
     success = success and compile_dir(dir, maxlevels, None, force, quiet, legacy, optimize, invalidation_mode)
     return success
 
@@ -295,9 +291,8 @@ def main():
         maxlevels = args.maxlevels
     if not args.opt_levels is not None:
         args.opt_levels = [-1]
-    if len(args.opt_levels) == 1:
-        if args.hardlink_dupes:
-            parser.error('Hardlinking of duplicated bytecode makes sense only for more than one optimization level.')
+    if len(args.opt_levels) == 1 and args.hardlink_dupes:
+        parser.error('Hardlinking of duplicated bytecode makes sense only for more than one optimization level.')
     if not args.ddir is None:
         if not args.stripdir is not None:
             if not args.prependdir is None:

@@ -106,8 +106,7 @@ def poll(timeout=0.0, map=None):
                 if is_w:
                     e.append(fd)
                     continue
-        None if [] == r else r == w == e
-        if None:
+        if [] == r == w == e:
             time.sleep(timeout)
             return
         try:

@@ -72,9 +72,8 @@ If the forward reference cannot be evaluated, raise an exception.
             return self.__cell__.cell_contents
         if not owner is not None:
             owner = self.__owner__
-        if not globals is not None:
-            if not self.__forward_module__ is None:
-                globals = getattr(sys.modules.get(self.__forward_module__, None), '__dict__', None)
+        if not globals is not None and not self.__forward_module__ is None:
+            globals = getattr(sys.modules.get(self.__forward_module__, None), '__dict__', None)
         if not globals is not None:
             globals = self.__globals__
         if not globals is not None:
@@ -90,17 +89,15 @@ If the forward reference cannot be evaluated, raise an exception.
                 globals = getattr(owner, '__globals__', None)
         if not globals is not None:
             globals = {}
-        if not type_params is not None:
-            if not owner is None:
-                type_params = getattr(owner, '__type_params__', None)
+        if not type_params is not None and not owner is None:
+            type_params = getattr(owner, '__type_params__', None)
         if not locals is not None:
             locals = {}
             if isinstance(owner, type):
                 locals.update(vars(owner))
-        elif not type_params is not None:
-            if not isinstance(self.__cell__, dict):
-                if self.__extra_names__:
-                    locals = dict(locals)
+        elif not type_params is not None and not isinstance(self.__cell__, dict):
+            if self.__extra_names__:
+                locals = dict(locals)
         if not type_params is None:
             for param in type_params:
                 locals.setdefault(param.__name__, param)
@@ -230,10 +227,9 @@ class _Stringifier:
             return other.__ast_node__, other.__extra_names__
         if type(other) is _Template:
             return _template_to_ast(other), None
-        if not self.__stringifier_dict__.format == Format.STRING:
-            if not other is None:
-                if type(other) in (str, int, float, bool, complex):
-                    return ast.Constant(value=other), None
+        if not self.__stringifier_dict__.format == Format.STRING and not other is None:
+            if type(other) in (str, int, float, bool, complex):
+                return ast.Constant(value=other), None
         if type(other) is dict:
             extra_names = {}
             keys = []
@@ -623,9 +619,8 @@ default, contingent on type(obj):
     functools.update_wrapper()) it is first unwrapped.
 '''
 
-    if eval_str:
-        if format != Format.VALUE:
-            raise ValueError('eval_str=True is only supported with format=Format.VALUE')
+    if eval_str and format != Format.VALUE:
+        raise ValueError('eval_str=True is only supported with format=Format.VALUE')
     if format == Format.VALUE:
         ann = _get_dunder_annotations(obj)
         if not ann is not None:
@@ -736,8 +731,6 @@ def annotations_to_string(annotations):
 
 Always returns a fresh a dictionary.
 '''
-
-    return {t: type_repr(t) for _ in annotations.items() if isinstance(t, str)}
 
 def _rewrite_star_unpack(arg):
     """If the given argument annotation expression is a star unpack e.g. `'*Ts'`

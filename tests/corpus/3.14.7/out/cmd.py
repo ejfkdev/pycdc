@@ -96,22 +96,21 @@ sys.stdin and sys.stdout are used.
 
     def cmdloop(self, intro=None):
         self.preloop()
-        if self.use_rawinput:
-            if self.completekey:
-                try:
-                    import readline
-                    self.old_completer = readline.get_completer()
-                    readline.set_completer(self.complete)
-                    if readline.backend == 'editline':
-                        if self.completekey == 'tab':
-                            command_string = 'bind ^I rl_complete'
-                        else:
-                            command_string = f'bind {self.completekey} rl_complete'
+        if self.use_rawinput and self.completekey:
+            try:
+                import readline
+                self.old_completer = readline.get_completer()
+                readline.set_completer(self.complete)
+                if readline.backend == 'editline':
+                    if self.completekey == 'tab':
+                        command_string = 'bind ^I rl_complete'
                     else:
-                        command_string = f'{self.completekey}: complete'
-                    readline.parse_and_bind(command_string)
-                except ImportError:
-                    pass
+                        command_string = f'bind {self.completekey} rl_complete'
+                else:
+                    command_string = f'{self.completekey}: complete'
+                readline.parse_and_bind(command_string)
+            except ImportError:
+                pass
         if not intro is None:
             self.intro = intro
         if self.intro:

@@ -670,16 +670,15 @@ Returns the tuple (string literal to write, possible quote types).
             for value in node.values:
                 self._write_ftstring_inner(value, is_format_spec)
             return
-        if isinstance(node, Constant):
-            if isinstance(node.value, str):
-                value = node.value.replace('{', '{{').replace('}', '}}')
-                if is_format_spec:
-                    value = value.replace('\\', '\\\\')
-                    value = value.replace("'", "\\'")
-                    value = value.replace('"', '\\"')
-                    value = value.replace('\n', '\\n')
-                self.write(value)
-                return
+        if isinstance(node, Constant) and isinstance(node.value, str):
+            value = node.value.replace('{', '{{').replace('}', '}}')
+            if is_format_spec:
+                value = value.replace('\\', '\\\\')
+                value = value.replace("'", "\\'")
+                value = value.replace('"', '\\"')
+                value = value.replace('\n', '\\n')
+            self.write(value)
+            return
         if isinstance(node, FormattedValue):
             self.visit_FormattedValue(node)
             return
@@ -898,9 +897,8 @@ Returns the tuple (string literal to write, possible quote types).
     def visit_Attribute(self, node):
         self.set_precedence(_Precedence.ATOM, node.value)
         self.traverse(node.value)
-        if isinstance(node.value, Constant):
-            if isinstance(node.value.value, int):
-                self.write(' ')
+        if isinstance(node.value, Constant) and isinstance(node.value.value, int):
+            self.write(' ')
         self.write('.')
         self.write(node.attr)
 

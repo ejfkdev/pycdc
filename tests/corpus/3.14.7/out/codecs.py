@@ -418,31 +418,30 @@ on the stream, these should be read too.
             self.linebuffer = None
         if chars < 0:
             chars = size
-        if chars >= 0:
-            if len(self.charbuffer) >= chars:
+        if chars >= 0 and len(self.charbuffer) >= chars:
+            pass
+        else:
+            if size < 0:
+                newdata = self.stream.read()
+            else:
+                newdata = self.stream.read(size)
+            data = self.bytebuffer + newdata
+            if not data:
                 pass
             else:
-                if size < 0:
-                    newdata = self.stream.read()
-                else:
-                    newdata = self.stream.read(size)
-                data = self.bytebuffer + newdata
-                if not data:
+                try:
+                    newchars, decodedbytes = self.decode(data, self.errors)
+                except UnicodeDecodeError:
+                    exc = None
+                    if firstline:
+                        newchars, decodedbytes = self.decode(data[:exc.start], self.errors)
+                        lines = newchars.splitlines(keepends=True)
+                        if len(lines) <= 1:
+                            raise
+                self.bytebuffer = data[decodedbytes:]
+                self.charbuffer += newchars
+                if newdata:
                     pass
-                else:
-                    try:
-                        newchars, decodedbytes = self.decode(data, self.errors)
-                    except UnicodeDecodeError:
-                        exc = None
-                        if firstline:
-                            newchars, decodedbytes = self.decode(data[:exc.start], self.errors)
-                            lines = newchars.splitlines(keepends=True)
-                            if len(lines) <= 1:
-                                raise
-                    self.bytebuffer = data[decodedbytes:]
-                    self.charbuffer += newchars
-                    if newdata:
-                        pass
         if chars < 0:
             result = self.charbuffer
             self.charbuffer = self._empty_charbuffer
@@ -475,9 +474,8 @@ read() method.
         if data:
             if isinstance(data, str):
                 if not data.endswith('\r'):
-                    if isinstance(data, bytes):
-                        if data.endswith(b'\r'):
-                            data += self.read(size=1, chars=1)
+                    if isinstance(data, bytes) and data.endswith(b'\r'):
+                        data += self.read(size=1, chars=1)
         line += data
         lines = line.splitlines(keepends=True)
         if lines:

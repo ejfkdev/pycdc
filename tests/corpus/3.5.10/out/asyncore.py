@@ -114,7 +114,7 @@ def poll(timeout=0.0, map=None):
             if not is_r:
                 if is_w:
                     e.append(fd)
-        if [] == r and r == w == e:
+        if [] == r == w == e:
             time.sleep(timeout)
             return
         r, w, e = select.select(r, w, e, timeout)

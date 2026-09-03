@@ -619,7 +619,7 @@ class FieldStorage:
             self.bytes_read += part.bytes_read
             self.list.append(part)
             if not part.done:
-                if self.bytes_read >= self.length and self.length > 0:
+                if self.bytes_read >= self.length > 0:
                     break
             continue
             continue

@@ -64,7 +64,7 @@ class Queue:
 
     def full(self):
         self.mutex.acquire()
-        0 < self.maxsize and self.maxsize == self._qsize()
+        self.maxsize == (0 < self.maxsize and self._qsize)()
         n = None
         self.mutex.release()
         return n

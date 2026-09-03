@@ -618,12 +618,11 @@ Returns a single week in a string (no newline).
 Return a month's calendar string (multi-line).
 """
 
-        if self.highlight_day:
-            if self.highlight_day.year == theyear:
-                if self.highlight_day.month == themonth:
-                    highlight_day = self.highlight_day.day
-                else:
-                    highlight_day = None
+        if self.highlight_day and self.highlight_day.year == theyear:
+            if self.highlight_day.month == themonth:
+                highlight_day = self.highlight_day.day
+            else:
+                highlight_day = None
         w = max(2, w)
         l = max(1, l)
         s = self.formatmonthname(theyear, themonth, 7 * (w + 1) - 1)

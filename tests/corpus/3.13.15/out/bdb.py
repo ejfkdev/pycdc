@@ -201,12 +201,11 @@ Return self.trace_dispatch to continue tracing in this scope.
                     if self.quitting:
                         raise BdbQuit
             return self.trace_dispatch
-        if self.stopframe:
-            if frame is not self.stopframe and self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
-                if arg[0] in (StopIteration, GeneratorExit):
-                    self.user_exception(frame, arg)
-                    if self.quitting:
-                        raise BdbQuit
+        if self.stopframe and frame is not self.stopframe:
+            if self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] in (StopIteration, GeneratorExit):
+                self.user_exception(frame, arg)
+                if self.quitting:
+                    raise BdbQuit
         return self.trace_dispatch
 
     def dispatch_opcode(self, frame, arg):
@@ -392,10 +391,11 @@ If frame is not specified, debugging starts from caller's frame.
         if not self.breaks:
             sys.settrace(None)
             frame = sys._getframe().f_back
-            if frame:
-                while frame is not self.botframe:
-                    del frame.f_trace
-                    frame = frame.f_back
+            if frame and frame is not self.botframe:
+                del frame.f_trace
+                frame = frame.f_back
+                if frame and frame is not self.botframe:
+                    pass
             for frame, (trace_lines, trace_opcodes) in self.frame_trace_lines_opcodes.items():
                 frame.f_trace_lines = trace_lines
                 frame.f_trace_opcodes = trace_opcodes

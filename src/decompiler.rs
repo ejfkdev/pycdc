@@ -92,6 +92,8 @@ struct Block {
     jump_if_true: bool,
     /// Some(or_form) when the block merges a JUMP_IF_*_OR_POP short circuit
     short_circuit: Option<bool>,
+    /// 3.12+ chained-comparison link (COPY + PJIF + SWAP/POP else arm)
+    chain_link: bool,
 }
 
 impl Block {
@@ -120,6 +122,7 @@ impl Block {
             is_elif: false,
             jump_if_true: false,
             short_circuit: None,
+            chain_link: false,
         }
     }
 }
@@ -560,6 +563,17 @@ pub fn decompile_in_scope(
     // Fold any blocks still open at EOF into statements.
     while ctx.blocks.len() > 1 {
         let pos = ctx.instrs.last().map(|i| i.end()).unwrap_or(0);
+        // an open chained-comparison link at EOF: its else arm (the last
+        // real execution path) yields the link's own condition value
+        if let Some(top) = ctx.blocks.last() {
+            if top.chain_link && top.stmts.is_empty() {
+                if let Some(c) = top.cond.clone() {
+                    ctx.blocks.pop();
+                    ctx.push(c);
+                    continue;
+                }
+            }
+        }
         ctx.force_close_top(pos);
     }
     ctx.flush_stack();
@@ -3210,9 +3224,11 @@ impl<'a> Ctx<'a> {
                 }
                 // at function top level a RETURN ends the meaningful stream;
                 // trailing bytes are exception-table cleanup paths — unless
-                // a pre-3.11 handler chain still needs to run
+                // a pre-3.11 handler chain still needs to run, or an open
+                // 3.12 chained-comparison link still needs its else-arm fold
                 !matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
                     || self.legacy_try.is_some()
+                    || self.blocks.iter().any(|b| b.chain_link)
             }
             Op::YIELD_VALUE => {
                 if self.await_mode {
@@ -3339,7 +3355,23 @@ impl<'a> Ctx<'a> {
                     self.push_stmt(Stmt::Break);
                     self.close_inner_blocks_to_loop();
                 }
-                self.handle_jump_forward(target)
+                let r = self.handle_jump_forward(target);
+                // With no branch block open and the jumped-over region a
+                // PURE VALUE arm, the region is unreachable dead code
+                // (e.g. the vestigial else arm of a constant-folded
+                // ternary: `LOAD 3.5; JUMP_FORWARD; LOAD 0`) — skip it so
+                // it cannot pollute the value stack. Statement regions
+                // (loop-else bodies after a break, if/else arms) are never
+                // pure-value and keep the normal walk.
+                if !over_handlers
+                    && target > self.cur_offset
+                    && self.find_loop_exit(target).is_none()
+                    && matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
+                    && self.is_pure_value_region(self.cur_next, target)
+                {
+                    self.skip_until = Some(target);
+                }
+                r
             }
             Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::CONTINUE_LOOP => {
                 let target = inst.target.unwrap_or(0);
@@ -5486,17 +5518,34 @@ impl<'a> Ctx<'a> {
         } else {
             cond
         };
-        let mut blk = Block::new(BlockType::If, self.cur_next, target);
         // COPY/TO_BOOL + cond jump = value-preserving branch (3.12+ and/or
         // chains, chained comparisons); plain statements are guarded at
         // close time by requiring an empty body and a live stack value
-        if matches!(self.prev_op_at_exec, Some(Op::COPY) | Some(Op::TO_BOOL)) {
-            blk.value_merge = Some(if jump_if_true {
-                BoolOpKind::Or
-            } else {
-                BoolOpKind::And
+        let value_merge = matches!(self.prev_op_at_exec, Some(Op::COPY) | Some(Op::TO_BOOL))
+            .then(|| {
+                if jump_if_true {
+                    BoolOpKind::Or
+                } else {
+                    BoolOpKind::And
+                }
             });
-        }
+        // 3.12+ chained comparison: the then arm recomputes the next link
+        // and merges at its own end (a consuming instruction or a forward
+        // jump), NOT at the else arm (`SWAP 2; POP_TOP`) — closing there
+        // would let the consumer eat the un-merged link value. A nested
+        // link's arm holds another cond jump: keep the else-arm end so the
+        // inner block closes first and the outer merges with its result.
+        let chain_merge = match &value_merge {
+            Some(BoolOpKind::And) if self.is_chain_else_arm(target) => {
+                self.chain_then_merge(target)
+            }
+            _ => None,
+        };
+        let blk_end = chain_merge.unwrap_or(target);
+        let mut blk = Block::new(BlockType::If, self.cur_next, blk_end);
+        blk.value_merge = value_merge;
+        blk.chain_link = matches!(&value_merge, Some(BoolOpKind::And))
+            && self.is_chain_else_arm(target);
         blk.cond = Some(c);
         blk.cond_set = true;
         blk.jump_if_true = jump_if_true;
@@ -5614,6 +5663,103 @@ impl<'a> Ctx<'a> {
         true
     }
 
+    /// 3.12+ chained-comparison else arm: `SWAP 2; POP_TOP` at the jump
+    /// target (keeps the comparison result, drops the shared operand).
+    fn is_chain_else_arm(&self, target: usize) -> bool {
+        let Some(&i) = self.idx_of.get(&target) else {
+            return false;
+        };
+        matches!(self.instrs.get(i).map(|x| x.op), Some(Op::SWAP))
+            && matches!(self.instrs.get(i + 1).map(|x| x.op), Some(Op::POP_TOP))
+    }
+
+    /// <=3.11 chained-comparison else arm: `ROT_TWO; POP_TOP` at the
+    /// JUMP_IF_FALSE_OR_POP target.
+    fn is_chain_else_arm_rot(&self, target: usize) -> bool {
+        let Some(&i) = self.idx_of.get(&target) else {
+            return false;
+        };
+        matches!(self.instrs.get(i).map(|x| x.op), Some(Op::ROT_TWO))
+            && matches!(self.instrs.get(i + 1).map(|x| x.op), Some(Op::POP_TOP))
+    }
+
+    /// Merge offset of a chained-comparison then arm: scan pure value ops
+    /// from `from` — a closing jump gives its target, any consuming op is
+    /// the merge itself. `None` when the arm holds a nested link (a
+    /// conditional jump): the nested block closes first and the outer
+    /// link falls back to the shared else-arm offset.
+    fn chain_then_merge_from(&self, from: usize, target: usize) -> Option<usize> {
+        let ci = self.idx_of.get(&from).copied()?;
+        for ins in self.instrs.iter().skip(ci) {
+            if ins.offset >= target {
+                return None;
+            }
+            if matches!(ins.op, Op::NOT_TAKEN | Op::NOP | Op::CACHE) {
+                continue;
+            }
+            match ins.op {
+                Op::JUMP_FORWARD | Op::JUMP => return ins.target,
+                Op::POP_JUMP_IF_FALSE
+                | Op::POP_JUMP_IF_TRUE
+                | Op::POP_JUMP_FORWARD_IF_FALSE
+                | Op::POP_JUMP_FORWARD_IF_TRUE
+                | Op::POP_JUMP_BACKWARD_IF_FALSE
+                | Op::POP_JUMP_BACKWARD_IF_TRUE
+                | Op::JUMP_IF_FALSE_OR_POP
+                | Op::JUMP_IF_TRUE_OR_POP
+                | Op::JUMP_IF_FALSE
+                | Op::JUMP_IF_TRUE => return None,
+                // stack shuffles inside the arm (a nested link sets its
+                // operands up with SWAP/COPY) are not consumers
+                Op::SWAP
+                | Op::ROT_TWO
+                | Op::ROT_THREE
+                | Op::ROT_FOUR
+                | Op::ROT_N
+                | Op::DUP_TOP
+                | Op::DUP_TOP_TWO => continue,
+                // consumers of the link value end the arm right here —
+                // CALL is value-pure in general but eats the chain result
+                // as an argument, so it must not be scanned past
+                Op::CALL
+                | Op::CALL_FUNCTION
+                | Op::CALL_METHOD
+                | Op::CALL_FUNCTION_KW
+                | Op::CALL_FUNCTION_EX
+                | Op::POP_TOP
+                | Op::RETURN_VALUE
+                | Op::RETURN_CONST
+                | Op::YIELD_VALUE
+                | Op::STORE_NAME
+                | Op::STORE_FAST
+                | Op::STORE_DEREF
+                | Op::STORE_ATTR
+                | Op::STORE_SUBSCR
+                | Op::STORE_GLOBAL => return Some(ins.offset),
+                op if is_pure_value_op(op) => continue,
+                _ => return Some(ins.offset),
+            }
+        }
+        None
+    }
+
+    /// 3.12+ chain then-arm: starts with the POP_TOP that drops the
+    /// retained link value, then the next link's computation. 3.14 pads
+    /// the arm head with NOT_TAKEN.
+    fn chain_then_merge(&self, target: usize) -> Option<usize> {
+        let mut ci = self.idx_of.get(&self.cur_next).copied()?;
+        while matches!(
+            self.instrs.get(ci).map(|x| x.op),
+            Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+        ) {
+            ci += 1;
+        }
+        if self.instrs.get(ci)?.op != Op::POP_TOP {
+            return None;
+        }
+        self.chain_then_merge_from(self.instrs[ci].end(), target)
+    }
+
     /// True when the code at `target` immediately raises AssertionError.
     fn is_assert_target(&self, target: usize) -> bool {
         let Some(&i) = self.idx_of.get(&target) else {
@@ -5716,10 +5862,22 @@ impl<'a> Ctx<'a> {
         // pycdc-style: mark a pending merge by pushing an If block whose
         // "cond" is the left operand; closing merges into BoolOp.
         let left = self.pop_expr();
-        let mut blk = Block::new(BlockType::If, self.cur_next, target);
+        // <=3.11 chained comparison: the else arm at `target` is
+        // ROT_TWO/POP_TOP and the then arm's consumer (CALL/STORE/...) is
+        // the real merge — end the block there so the value merges before
+        // the consumer runs
+        let chain = !or_form && self.is_chain_else_arm_rot(target);
+        let blk_end = if chain {
+            self.chain_then_merge_from(self.cur_next, target)
+                .unwrap_or(target)
+        } else {
+            target
+        };
+        let mut blk = Block::new(BlockType::If, self.cur_next, blk_end);
         blk.cond = Some(left);
         blk.cond_set = true;
         blk.short_circuit = Some(or_form);
+        blk.chain_link = chain;
         blk.stack_depth = self.stack.len();
         self.blocks.push(blk);
     }
@@ -5751,13 +5909,34 @@ impl<'a> Ctx<'a> {
                     if target == top.end {
                         // dead-code skip: then-body complete, no else clause
                         // — close now so an enclosing block can transition
-                        // to its own else region at the next instruction
+                        // to its own else region at the next instruction.
+                        // A 3.12 chained-comparison merge (value_merge)
+                        // ends here: close folds the links, and the jump
+                        // skips the dead `SWAP 2; POP_TOP` else arm.
+                        let is_chain_merge = self
+                            .blocks
+                            .last()
+                            .map_or(false, |b| b.value_merge.is_some());
                         self.force_close_top(self.cur_next);
+                        if is_chain_merge {
+                            self.skip_until = Some(target);
+                        }
                         return true;
                     }
                     return true;
                 }
                 BlockType::If if top.short_circuit.is_some() => {
+                    if target >= top.end && top.chain_link {
+                        // 3.10/3.11 chained comparison: the then arm jumps
+                        // straight to the merge, over the else arm whose
+                        // ROT_TWO/POP_TOP cleanup would swap the merged
+                        // value with the stack below it — close (folding
+                        // the links) and skip the dead cleanup
+                        let end = top.end;
+                        self.force_close_top(end);
+                        self.skip_until = Some(target);
+                        return true;
+                    }
                     // value-merge region: remember where the false path ends
                     if let Some(t) = self.blocks.last_mut() {
                         t.else_end = Some(target);
@@ -6591,6 +6770,22 @@ impl<'a> Ctx<'a> {
     }
 }
 
+/// Value-level equality of constant operands — 3.14's LOAD_SMALL_INT
+/// rebuilds small ints per instruction, so pointer equality is not enough
+/// for the shared operand of a chained comparison.
+fn const_value_eq(a: &PyObject, b: &PyObject) -> bool {
+    match (a, b) {
+        (PyObject::Int(x), PyObject::Int(y)) => x == y,
+        (PyObject::Float(x, _), PyObject::Float(y, _)) => x == y,
+        (PyObject::Str(x), PyObject::Str(y)) => x == y,
+        (PyObject::Bytes(x), PyObject::Bytes(y)) => x == y,
+        (PyObject::None, PyObject::None)
+        | (PyObject::True, PyObject::True)
+        | (PyObject::False, PyObject::False) => true,
+        _ => false,
+    }
+}
+
 /// Merge `a op1 b` + `b op2 c` (sharing operand b) into a chained
 /// comparison `a op1 b op2 c`.
 fn merge_chain_compare(cond: &ExprRef, v: &ExprRef) -> Option<ExprRef> {
@@ -6603,12 +6798,20 @@ fn merge_chain_compare(cond: &ExprRef, v: &ExprRef) -> Option<ExprRef> {
     let Expr::Compare { operands: o2, ops: ops2 } = &**v else {
         return None;
     };
-    if o2.len() != 2 || ops2.len() != 1 {
+    // the else arm keeps `cond` itself: the chain ends here
+    if o2.len() == 2 && ops2.len() == 1 && expr_eq(cond, v) {
+        return Some(cond.clone());
+    }
+    // `v` may already be a merged chain (nested links close inner-first)
+    if o2.len() < 2 || ops2.len() + 1 != o2.len() {
         return None;
     }
     let shared = match (&*operands[1], &*o2[0]) {
         (Expr::Name(a), Expr::Name(b)) => a == b,
-        (Expr::Const(o1), Expr::Const(o2)) => Rc::ptr_eq(o1, o2),
+        (Expr::Const(c1), Expr::Const(c2)) => Rc::ptr_eq(c1, c2) || const_value_eq(c1, c2),
+        (Expr::Attribute { value: v1, attr: a1 }, Expr::Attribute { value: v2, attr: a2 }) => {
+            a1 == a2 && expr_eq(v1, v2)
+        }
         _ => false,
     };
     if !shared {
@@ -6616,8 +6819,10 @@ fn merge_chain_compare(cond: &ExprRef, v: &ExprRef) -> Option<ExprRef> {
     }
     let mut merged_ops = ops.clone();
     merged_ops.extend(ops2.iter().copied());
+    let mut merged_operands = vec![operands[0].clone()];
+    merged_operands.extend(o2.iter().cloned());
     Some(Rc::new(Expr::Compare {
-        operands: vec![operands[0].clone(), operands[1].clone(), o2[1].clone()],
+        operands: merged_operands,
         ops: merged_ops,
     }))
 }
@@ -6747,6 +6952,12 @@ fn is_pure_value_op(op: Op) -> bool {
         op,
         Op::LOAD_FAST
             | Op::LOAD_FAST_CHECK
+            | Op::LOAD_FAST_BORROW
+            | Op::LOAD_FAST_LOAD_FAST
+            | Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW
+            | Op::LOAD_SMALL_INT
+            | Op::LOAD_COMMON_CONSTANT
+            | Op::LOAD_SUPER_ATTR
             | Op::LOAD_NAME
             | Op::LOAD_GLOBAL
             | Op::LOAD_CONST

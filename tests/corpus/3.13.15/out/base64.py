@@ -233,7 +233,7 @@ def _85encode(b, chars, chars2, pad=False, foldnuls=False, foldspaces=False):
     if padding:
         b = b + b'\x00' * padding
     words = struct.Struct('!%dI' % (len(b) // 4)).unpack(b)
-    chunks = b'y'
+    chunks = words
     if padding:
         if not pad:
             if chunks[-1] == b'z':

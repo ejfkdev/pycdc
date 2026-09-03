@@ -19,9 +19,8 @@ os.environ['PATH'].  Returns the complete filename or None if not found.
         path = os.environ['PATH']
     paths = path.split(os.pathsep)
     base, ext = os.path.splitext(executable)
-    if sys.platform == 'win32':
-        if ext != '.exe':
-            executable = executable + '.exe'
+    if sys.platform == 'win32' and ext != '.exe':
+        executable = executable + '.exe'
     if not os.path.isfile(executable):
         for p in paths:
             f = os.path.join(p, executable)
@@ -108,9 +107,8 @@ def _save_modified_value(_config_vars, cv, newvalue):
     '''Save modified and original unmodified value of configuration var'''
 
     oldvalue = _config_vars.get(cv, '')
-    if oldvalue != newvalue:
-        if _INITPRE + cv not in _config_vars:
-            _config_vars[_INITPRE + cv] = oldvalue
+    if oldvalue != newvalue and _INITPRE + cv not in _config_vars:
+        _config_vars[_INITPRE + cv] = oldvalue
     _config_vars[cv] = newvalue
 
 _cache_default_sysroot = None
@@ -169,9 +167,8 @@ def _find_appropriate_compiler(_config_vars):
         cc = _find_build_tool('clang')
     elif os.path.basename(cc).startswith('gcc'):
         data = _read_output(f"'{cc.replace("'", '\'"\'"\'')!s}' --version")
-        if data:
-            if 'llvm-gcc' in data:
-                cc = _find_build_tool('clang')
+        if data and 'llvm-gcc' in data:
+            cc = _find_build_tool('clang')
     if not cc:
         raise SystemError('Cannot locate working compiler')
     if cc != oldcc:
@@ -349,9 +346,8 @@ def get_platform_osx(_config_vars, osname, release, machine):
     '''Filter values for get_platform()'''
 
     macver = _config_vars.get('MACOSX_DEPLOYMENT_TARGET', '')
-    if macver:
-        if '.' not in macver:
-            macver += '.0'
+    if macver and '.' not in macver:
+        macver += '.0'
     macrelease = _get_system_version() or macver
     macver = macver or macrelease
     if macver:
@@ -369,36 +365,35 @@ def get_platform_osx(_config_vars, osname, release, machine):
                         macrelease = (10, 3)
             finally:
                 macrelease = (10, 3)
-                if macrelease >= (10, 4):
-                    if '-arch' in cflags.strip():
+                if macrelease >= (10, 4) and '-arch' in cflags.strip():
+                    machine = 'fat'
+                    archs = re.findall('-arch\\s+(\\S+)', cflags)
+                    archs = tuple(sorted(set(archs)))
+                    if len(archs) == 1:
+                        machine = archs[0]
+                    elif archs == ('arm64', 'x86_64'):
+                        machine = 'universal2'
+                    elif archs == ('i386', 'ppc'):
                         machine = 'fat'
-                        archs = re.findall('-arch\\s+(\\S+)', cflags)
-                        archs = tuple(sorted(set(archs)))
-                        if len(archs) == 1:
-                            machine = archs[0]
-                        elif archs == ('arm64', 'x86_64'):
-                            machine = 'universal2'
-                        elif archs == ('i386', 'ppc'):
-                            machine = 'fat'
-                        elif archs == ('i386', 'x86_64'):
-                            machine = 'intel'
-                        elif archs == ('i386', 'ppc', 'x86_64'):
-                            machine = 'fat3'
-                        elif archs == ('ppc64', 'x86_64'):
-                            machine = 'fat64'
+                    elif archs == ('i386', 'x86_64'):
+                        machine = 'intel'
+                    elif archs == ('i386', 'ppc', 'x86_64'):
+                        machine = 'fat3'
+                    elif archs == ('ppc64', 'x86_64'):
+                        machine = 'fat64'
+                    else:
+                        if archs == ('i386', 'ppc', 'ppc64', 'x86_64'):
+                            machine = 'universal'
                         else:
-                            if archs == ('i386', 'ppc', 'ppc64', 'x86_64'):
-                                machine = 'universal'
+                            raise ValueError(f"Don't know machine value for archs={archs!r}")
+                        if machine == 'i386':
+                            if sys.maxsize >= 4294967296:
+                                machine = 'x86_64'
+                        elif machine in ('PowerPC', 'Power_Macintosh'):
+                            if sys.maxsize >= 4294967296:
+                                machine = 'ppc64'
                             else:
-                                raise ValueError(f"Don't know machine value for archs={archs!r}")
-                            if machine == 'i386':
-                                if sys.maxsize >= 4294967296:
-                                    machine = 'x86_64'
-                            elif machine in ('PowerPC', 'Power_Macintosh'):
-                                if sys.maxsize >= 4294967296:
-                                    machine = 'ppc64'
-                                else:
-                                    machine = 'ppc'
+                                machine = 'ppc'
                 return osname, release, machine
 
 # WARNING: Decompyle incomplete

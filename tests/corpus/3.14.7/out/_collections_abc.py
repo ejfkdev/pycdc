@@ -409,9 +409,8 @@ Example: ``Callable[[int, str], float]`` sets ``__args__`` to
         return None(cls, origin, args)
 
     def __repr__(self):
-        if len(self.__args__) == 2:
-            if _is_param_expr(self.__args__[0]):
-                return None()
+        if len(self.__args__) == 2 and _is_param_expr(self.__args__[0]):
+            return None()
         from annotationlib import type_repr
         return f'collections.abc.Callable[[{', '.join([type_repr(a) for a in self.__args__[:-1]])}], {type_repr(self.__args__[-1])}]'
 
@@ -809,12 +808,11 @@ class ValuesView(MappingView, Collection):
     def __contains__(self, value):
         for key in self._mapping:
             v = self._mapping[key]
-            if not v is value:
-                if not v == value:
-                    pass
-                else:
-                    return True
-                    return False
+            if not v is value and not v == value:
+                pass
+            else:
+                return True
+                return False
 
     def __iter__(self):
         for key in self._mapping:
@@ -937,12 +935,11 @@ __getitem__, and __len__.
 
     def __contains__(self, value):
         for v in self:
-            if not v is value:
-                if not v == value:
-                    pass
-                else:
-                    return True
-                    return False
+            if not v is value and not v == value:
+                pass
+            else:
+                return True
+                return False
 
     def __reversed__(self):
         for i in reversed(range(len(self))):
