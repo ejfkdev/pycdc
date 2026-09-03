@@ -164,7 +164,8 @@ class async_chat(asyncore.dispatcher):
                         except socket.error:
                             self.handle_error()
                             return
-                        self.producer_fifo[0] = first[num_sent:]
+                        else:
+                            self.producer_fifo[0] = first[num_sent:]
                         continue
             del self.producer_fifo[0]
             return

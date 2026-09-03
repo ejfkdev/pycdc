@@ -220,8 +220,8 @@ class dispatcher:
         if self.accepting:
             if self.addr:
                 status.append('listening')
-            elif self.connected:
-                status.append('connected')
+        if self.connected:
+            status.append('connected')
         if self.addr is not None:
             pass
         return '<%s at %#x>' % (' '.join(status), id(self))
@@ -456,13 +456,11 @@ def close_all(map=None, ignore_all=False):
                 x.close()
             except OSError:
                 x = None
-                if x.args[0] == EBADF:
-                    pass
-                elif not ignore_all:
-                    raise
             except _reraised_exceptions:
                 raise
                 continue
+                if not ignore_all:
+                    raise
     map.clear()
 
 if os.name == 'posix':

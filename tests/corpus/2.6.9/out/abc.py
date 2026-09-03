@@ -110,7 +110,7 @@ class ABCMeta(type):
         if cls._abc_negative_cache_version < ABCMeta._abc_invalidation_counter:
             cls._abc_negative_cache = set()
             cls._abc_negative_cache_version = ABCMeta._abc_invalidation_counter
-        elif subclass in cls._abc_negative_cache:
+        if subclass in cls._abc_negative_cache:
             return False
         ok = cls.__subclasshook__(subclass)
         if ok is not NotImplemented:

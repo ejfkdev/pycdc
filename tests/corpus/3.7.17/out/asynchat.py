@@ -165,7 +165,8 @@ class async_chat(asyncore.dispatcher):
                     except OSError:
                         self.handle_error()
                         return
-                    self.producer_fifo[0] = first[num_sent:]
+                    else:
+                        self.producer_fifo[0] = first[num_sent:]
                 else:
                     del self.producer_fifo[0]
             return

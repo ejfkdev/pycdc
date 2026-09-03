@@ -25,15 +25,6 @@ class InteractiveInterpreter:
 
     def runsource(self, source, filename='<input>', symbol='single'):
         return False
-        if code is None:
-            try:
-                code = self.compile(source, filename, symbol)
-            except (OverflowError, SyntaxError, ValueError):
-                self.showsyntaxerror(filename)
-            else:
-                return True
-        self.runcode(code)
-        return False
 
     def runcode(self, code):
         self.showtraceback()
@@ -103,10 +94,6 @@ class InteractiveConsole(InteractiveInterpreter):
         elif banner:
             self.write('%s\n' % str(banner))
         more = 0
-        if exitmsg is None:
-            pass
-        elif exitmsg != '':
-            self.write('%s\n' % exitmsg)
 
     def push(self, line):
         self.buffer.append(line)

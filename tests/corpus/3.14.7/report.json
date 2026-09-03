@@ -202,7 +202,7 @@
    "module": "bz2",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 767,
+   "ndiff": 770,
    "ntotal": 880,
    "detail": "line 31: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 35: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 36: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_SMALL_INT', '')"
   },
@@ -218,7 +218,7 @@
    "module": "calendar",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4168,
+   "ndiff": 4170,
    "ntotal": 4326,
    "detail": "line 13: orig ('LOAD_CONST', \"('IntEnum', 'global_enum')\") | got ('LOAD_CONST', \"('IntEnum',)\")\nline 17: orig ('IMPORT_FROM', 'global_enum') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'global_enum') | got ('LOAD_SMALL_INT', '')"
   },
@@ -277,9 +277,9 @@
    "module": "copy",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 588,
+   "ndiff": 582,
    "ntotal": 874,
-   "detail": "line 232: orig ('JUMP_FORWARD', 'to L8') | got ('JUMP_FORWARD', 'to L6')\nline 240: orig ('POP_JUMP_IF_NONE', 'to L6') | got ('POP_JUMP_IF_NONE', 'to L7')\nline 247: orig ('JUMP_FORWARD', 'to L8') | got ('JUMP_FORWARD', 'to L9')"
+   "detail": "line 284: orig ('CALL_INTRINSIC_1', 'INTRINSIC_LIST_TO_TUPLE') | got ('PUSH_NULL', '')\nline 285: orig ('PUSH_NULL', '') | got ('CALL_FUNCTION_EX', '')\nline 286: orig ('CALL_FUNCTION_EX', '') | got ('RETURN_VALUE', '')"
   },
   {
    "module": "copyreg",

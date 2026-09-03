@@ -5593,12 +5593,27 @@ impl<'a> Ctx<'a> {
     }
 
     /// The end of an else region is the earlier of its JUMP_FORWARD target
-    /// and the next jump-target boundary after `from` (the compiler may jump
-    /// out of the else body with a conditional jump instead).
+    /// and the first boundary that a jump INSIDE the region exits to (the
+    /// compiler may leave the else body with a conditional jump instead of
+    /// falling through). Targets of jumps internal to nested structures
+    /// (with/try/loop cleanup) must not truncate the region.
     fn next_boundary(&self, from: usize, limit: usize) -> usize {
         let mut best = limit;
+        // a target t is INTERNAL when some jump inside [from, t) lands in
+        // (from, t] — with/try/loop cleanup targets must not truncate the
+        // region; genuine early exits (jumps from before the region or
+        // unconditional back edges out of it) still do
         for &t in &self.targets {
-            if t > from && t < best {
+            if t <= from || t >= best {
+                continue;
+            }
+            let internal = self
+                .instrs
+                .iter()
+                .skip_while(|i| i.offset < from)
+                .take_while(|i| i.offset < t)
+                .any(|i| i.target.map_or(false, |it| it > from && it <= t));
+            if !internal {
                 best = t;
             }
         }

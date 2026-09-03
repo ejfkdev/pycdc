@@ -304,18 +304,7 @@ def decode(input, output):
     output.write(s)
 
 def _input_type_check(s):
-    if m.format not in ('c', 'b', 'B'):
-        try:
-            m = memoryview(s)
-        except TypeError as err:
-            msg = 'expected bytes-like object, not %s' % s.__class__.__name__
-            raise TypeError(msg) from err
-        else:
-            msg = 'expected single byte elements, not %r from %s' % (m.format, s.__class__.__name__)
-            raise TypeError(msg)
-    if m.ndim != 1:
-        msg = 'expected 1-D data, not %d-D data from %s' % (m.ndim, s.__class__.__name__)
-        raise TypeError(msg)
+    pass
 
 def encodebytes(s):
     _input_type_check(s)

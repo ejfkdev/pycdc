@@ -296,7 +296,7 @@ class FieldStorage:
             self.file.seek(0)
             value = self.file.read()
             self.file.seek(0)
-        if not self.list is None:
+        elif not self.list is None:
             value = self.list
         else:
             value = None

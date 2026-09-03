@@ -73,18 +73,19 @@ def parse(fp=None, environ=os.environ, keep_blank_values=0, strict_parsing=0):
             if qs:
                 qs = qs + '&'
             qs = qs + environ['QUERY_STRING']
-        elif sys.argv[1:]:
+        if sys.argv[1:]:
             if qs:
                 qs = qs + '&'
             qs = qs + sys.argv[1]
         environ['QUERY_STRING'] = qs
     elif 'QUERY_STRING' in environ:
         qs = environ['QUERY_STRING']
-    elif sys.argv[1:]:
-        qs = sys.argv[1]
     else:
-        qs = ''
-    environ['QUERY_STRING'] = qs
+        if sys.argv[1:]:
+            qs = sys.argv[1]
+        else:
+            qs = ''
+        environ['QUERY_STRING'] = qs
     return urlparse.parse_qs(qs, keep_blank_values, strict_parsing)
 
 def parse_qs(qs, keep_blank_values=0, strict_parsing=0):
@@ -144,7 +145,7 @@ def parse_multipart(fp, pdict):
                 line = lines[-1]
                 if line[-2:] == '\r\n':
                     line = line[:-2]
-                elif line[-1:] == '\n':
+                if line[-1:] == '\n':
                     line = line[:-1]
                 lines[-1] = line
                 data = ''.join(lines)

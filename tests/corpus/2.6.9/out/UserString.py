@@ -230,38 +230,40 @@ class MutableString(UserString, collections.MutableSequence):
         if isinstance(index, slice):
             if isinstance(sub, UserString):
                 sub = sub.data
-            elif not isinstance(sub, basestring):
+            if not isinstance(sub, basestring):
                 sub = str(sub)
             start, stop, step = index.indices(len(self.data))
             if step == -1:
                 start, stop = stop + 1, start + 1
                 sub = sub[::-1]
-            elif step != 1:
+            if step != 1:
                 raise TypeError('invalid step in slicing assignment')
             start = min(start, stop)
             self.data = self.data[:start] + sub + self.data[stop:]
-        elif index < 0:
-            index += len(self.data)
-        if not index < 0:
-            if index >= len(self.data):
-                raise IndexError
-        self.data = self.data[:index] + sub + self.data[index + 1:]
+        else:
+            if index < 0:
+                index += len(self.data)
+            if not index < 0:
+                if index >= len(self.data):
+                    raise IndexError
+            self.data = self.data[:index] + sub + self.data[index + 1:]
 
     def __delitem__(self, index):
         if isinstance(index, slice):
             start, stop, step = index.indices(len(self.data))
             if step == -1:
                 start, stop = stop + 1, start + 1
-            elif step != 1:
+            if step != 1:
                 raise TypeError('invalid step in slicing deletion')
             start = min(start, stop)
             self.data = self.data[:start] + self.data[stop:]
-        elif index < 0:
-            index += len(self.data)
-        if not index < 0:
-            if index >= len(self.data):
-                raise IndexError
-        self.data = self.data[:index] + self.data[index + 1:]
+        else:
+            if index < 0:
+                index += len(self.data)
+            if not index < 0:
+                if index >= len(self.data):
+                    raise IndexError
+            self.data = self.data[:index] + self.data[index + 1:]
 
     def __setslice__(self, start, end, sub):
         start = max(start, 0)

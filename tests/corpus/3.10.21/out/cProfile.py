@@ -57,22 +57,23 @@ class Profile(_lsprof.Profiler):
             if entry.calls:
                 func = label(entry.code)
                 for subentry in entry.calls:
-                    if func in callers:
-                        try:
-                            callers = callersdicts[id(subentry.code)]
-                        except KeyError:
+                    try:
+                        callers = callersdicts[id(subentry.code)]
+                    except KeyError:
+                        pass
+                    else:
+                        nc = subentry.callcount
+                        cc = nc - subentry.reccallcount
+                        tt = subentry.inlinetime
+                        ct = subentry.totaltime
+                        prev = callers[func]
+                        nc += prev[0]
+                        cc += prev[1]
+                        tt += prev[2]
+                        ct += prev[3]
+                        if func in callers:
                             pass
-                        else:
-                            nc = subentry.callcount
-                            cc = nc - subentry.reccallcount
-                            tt = subentry.inlinetime
-                            ct = subentry.totaltime
-                            prev = callers[func]
-                            nc += prev[0]
-                            cc += prev[1]
-                            tt += prev[2]
-                            ct += prev[3]
-                    callers[func] = nc, cc, tt, ct
+                        callers[func] = nc, cc, tt, ct
 
     def run(self, cmd):
         import __main__

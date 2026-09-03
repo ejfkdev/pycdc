@@ -168,23 +168,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     e = None
     del e, e
     e = None
-    if ok == 0:
-        success = False
-        try:
-            for index, opt_level in enumerate(optimize):
-                cfile = opt_cfiles[opt_level]
-                ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
-                if index > 0:
-                    if hardlink_dupes:
-                        previous_cfile = opt_cfiles[optimize[index - 1]]
-                        if filecmp.cmp(cfile, previous_cfile, shallow=False):
-                            os.unlink(cfile)
-                            os.link(previous_cfile, cfile)
-        except py_compile.PyCompileError as err:
-            success = False
-        except (SyntaxError, UnicodeError, OSError) as e:
-            success = False
-    return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     success = True

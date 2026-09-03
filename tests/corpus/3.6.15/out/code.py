@@ -25,16 +25,7 @@ class InteractiveInterpreter:
         self.compile = CommandCompiler()
 
     def runsource(self, source, filename='<input>', symbol='single'):
-        if code is None:
-            try:
-                code = self.compile(source, filename, symbol)
-            except (OverflowError, SyntaxError, ValueError):
-                self.showsyntaxerror(filename)
-                return False
-            else:
-                return True
-        self.runcode(code)
-        return False
+        pass
 
     def runcode(self, code):
         self.showtraceback()

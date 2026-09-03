@@ -81,8 +81,8 @@
   "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
   "counts": {
    "PASS": 6,
-   "SIG-DIFF": 33,
-   "AST-PASS": 1
+   "SIG-DIFF": 32,
+   "AST-PASS": 2
   }
  },
  "3.8.20": {

@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
   "PASS": 6,
-  "SIG-DIFF": 33,
-  "AST-PASS": 1
+  "SIG-DIFF": 32,
+  "AST-PASS": 2
  },
  "results": [
   {
@@ -23,7 +23,7 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3078,
+   "ndiff": 3074,
    "ntotal": 3134,
    "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -59,8 +59,8 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1118,
-   "ntotal": 1287,
+   "ndiff": 1109,
+   "ntotal": 1272,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 128') | got ('SETUP_LOOP', 'to 114')\nline 142: orig ('FOR_ITER', 'to 126') | got ('FOR_ITER', 'to 112')\nline 151: orig ('LOAD_GLOBAL', 'os') | got ('LOAD_FAST', 'f')"
   },
   {
@@ -181,11 +181,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 829: orig  keywords=[]))]) | dec  keywords=[]))])])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 176,
-   "ntotal": 633,
-   "detail": "line 455: orig ('LOAD_CONST', 'None') | got ('main', 0)\nline 456: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', '0')\nline 457: orig ('main', 0) | got ('LOAD_CONST', 'None')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "calendar",
@@ -223,7 +219,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1059,
+   "ndiff": 1057,
    "ntotal": 1315,
    "detail": "line 231: orig ('LOAD_ATTR', 'stdout') | got ('LOAD_METHOD', 'stdout')\nline 232: orig ('LOAD_METHOD', 'write') | got ('LOAD_GLOBAL', 'str')\nline 233: orig ('LOAD_GLOBAL', 'str') | got ('LOAD_FAST', 'self')"
   },
@@ -231,7 +227,7 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 558,
+   "ndiff": 634,
    "ntotal": 669,
    "detail": "line 12: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 16: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
@@ -255,7 +251,7 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 903,
+   "ndiff": 906,
    "ntotal": 1112,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 286') | got ('SETUP_LOOP', 'to 248')\nline 142: orig ('FOR_ITER', 'to 284') | got ('FOR_ITER', 'to 246')\nline 202: orig ('LOAD_GLOBAL', 'os') | got ('JUMP_ABSOLUTE', '')"
   },

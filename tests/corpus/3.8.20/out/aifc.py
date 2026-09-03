@@ -288,8 +288,6 @@ class Aifc_read:
         self._comm_chunk_read = 0
         self._ssnd_chunk = None
         self._ssnd_seek_needed = 1
-        if not self._comm_chunk_read or not self._ssnd_chunk:
-            raise Error('COMM chunk and/or SSND chunk missing')
 
     def __init__(self, f):
         if isinstance(f, str):

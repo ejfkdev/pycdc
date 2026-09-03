@@ -634,7 +634,7 @@ def main(args=None):
         _validate_month(options.month)
     if not options.year is not None:
         result = (today.year,)(*{**optdict})
-    if not options.month is not None:
+    elif not options.month is not None:
         result = (options.year,)(*{**optdict})
     else:
         result = (options.year, options.month)(*{**optdict})

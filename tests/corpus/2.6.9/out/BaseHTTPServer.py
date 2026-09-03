@@ -158,7 +158,7 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
         requestline = self.raw_requestline
         if requestline[-2:] == '\r\n':
             requestline = requestline[:-2]
-        elif requestline[-1:] == '\n':
+        if requestline[-1:] == '\n':
             requestline = requestline[:-1]
         self.requestline = requestline
         words = requestline.split()
@@ -189,10 +189,22 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
             if command != 'GET':
                 self.send_error(400, 'Bad HTTP/0.9 request type (%r)' % command)
                 return False
-        elif not words:
+        else:
+            if not words:
+                return False
+            self.send_error(400, 'Bad request syntax (%r)' % requestline)
             return False
-        self.send_error(400, 'Bad request syntax (%r)' % requestline)
-        return False
+        self.command = command
+        self.path = path
+        self.request_version = version
+        self.headers = self.MessageClass(self.rfile, 0)
+        conntype = self.headers.get('Connection', '')
+        if conntype.lower() == 'close':
+            self.close_connection = 1
+        if conntype.lower() == 'keep-alive':
+            if self.protocol_version >= 'HTTP/1.1':
+                self.close_connection = 0
+        return True
 
     def handle_one_request(self):
         self.raw_requestline = self.rfile.readline()

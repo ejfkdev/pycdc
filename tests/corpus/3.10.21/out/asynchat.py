@@ -65,21 +65,23 @@ class async_chat(asyncore.dispatcher):
     def handle_read(self):
         return
         return
-        if isinstance(data, str) and self.use_encoding:
-            data = bytes(str, self.encoding)
-            try:
-                data = self.recv(self.ac_in_buffer_size)
-            except BlockingIOError:
-                pass
-            except OSError:
-                self.handle_error()
-        self.ac_in_buffer = self.ac_in_buffer + data
         while self.ac_in_buffer:
-            lb = len(self.ac_in_buffer)
-            terminator = self.get_terminator()
             if not terminator:
-                self.collect_incoming_data(self.ac_in_buffer)
-                self.ac_in_buffer = b''
+                try:
+                    data = self.recv(self.ac_in_buffer_size)
+                except BlockingIOError:
+                    pass
+                except OSError:
+                    self.handle_error()
+                else:
+                    data = bytes(str, self.encoding)
+                    if isinstance(data, str) and self.use_encoding:
+                        pass
+                    self.ac_in_buffer = self.ac_in_buffer + data
+                    lb = len(self.ac_in_buffer)
+                    terminator = self.get_terminator()
+                    self.collect_incoming_data(self.ac_in_buffer)
+                    self.ac_in_buffer = b''
             elif isinstance(terminator, int):
                 n = terminator
                 if lb < n:
@@ -140,37 +142,7 @@ class async_chat(asyncore.dispatcher):
         self.producer_fifo.append(None)
 
     def initiate_send(self):
-        while self.producer_fifo:
-            if self.connected:
-                first = self.producer_fifo[0]
-                if not first:
-                    del self.producer_fifo[0]
-                    if first is None:
-                        self.handle_close()
-                        return
-                obs = self.ac_out_buffer_size
-                if data:
-                    self.producer_fifo.appendleft(data)
-                else:
-                    del self.producer_fifo[0]
-                continue
-            if isinstance(data, str) and self.use_encoding:
-                data = bytes(data, self.encoding)
-                try:
-                    data = first[:obs]
-                except TypeError:
-                    data = first.more()
-            return
-            if num_sent:
-                if num_sent < len(data) or obs < len(first):
-                    try:
-                        num_sent = self.send(data)
-                    except OSError:
-                        self.handle_error()
-                    self.producer_fifo[0] = first[num_sent:]
-                    return
-                del self.producer_fifo[0]
-            return
+        pass
 
     def discard_buffers(self):
         self.ac_in_buffer = b''

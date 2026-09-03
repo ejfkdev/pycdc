@@ -25,15 +25,6 @@ class InteractiveInterpreter:
 
     def runsource(self, source, filename='<input>', symbol='single'):
         return False
-        if code is None:
-            try:
-                code = self.compile(source, filename, symbol)
-            except (OverflowError, SyntaxError, ValueError):
-                self.showsyntaxerror(filename)
-            else:
-                return True
-        self.runcode(code)
-        return False
 
     def runcode(self, code):
         return
@@ -102,22 +93,6 @@ class InteractiveConsole(InteractiveInterpreter):
             self.write('%s\n' % str(banner))
         more = 0
         more = self.push(line)
-        if exitmsg is None:
-            try:
-                if more:
-                    prompt = sys.ps2
-                else:
-                    prompt = sys.ps1
-            except KeyboardInterrupt:
-                self.write('\nKeyboardInterrupt\n')
-                self.resetbuffer()
-                more = 0
-            else:
-                self.write('now exiting %s...\n' % self.__class__.__name__)
-                return
-        if exitmsg != '':
-            self.write('%s\n' % exitmsg)
-            return
 
     def push(self, line):
         self.buffer.append(line)

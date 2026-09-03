@@ -113,31 +113,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 pass
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
-    if ok == 0:
-        success = False
-        try:
-            ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
-        except py_compile.PyCompileError as err:
-            success = False
-            if quiet >= 2:
-                return success
-            if quiet:
-                print('*** Error compiling {!r}...'.format(fullname))
-            else:
-                print('*** ', end='')
-            msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
-            msg = msg.decode(sys.stdout.encoding)
-            print(msg)
-        except (SyntaxError, UnicodeError, OSError) as e:
-            success = False
-            if quiet >= 2:
-                return success
-            if quiet:
-                print('*** Error compiling {!r}...'.format(fullname))
-            else:
-                print('*** ', end='')
-            print(e.__class__.__name__ + ':', e)
-    return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1):
     success = True
@@ -173,18 +148,6 @@ def main():
         maxlevels = args.maxlevels
     if args.flist:
         pass
-    if args.workers is not None:
-        if args.workers:
-            try:
-                with sys.stdin if args.flist == '-' else open(args.flist) as f:
-                    for line in f:
-                        compile_dests.append(line.strip())
-            except OSError:
-                if args.quiet < 2:
-                    print('Error reading file list {}'.format(args.flist))
-                return False
-        args.workers = None
-    success = True
 
 if __name__ == '__main__':
     exit_status = int(not main())

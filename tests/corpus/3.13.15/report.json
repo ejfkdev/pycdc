@@ -181,7 +181,7 @@
    "module": "bz2",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 787,
+   "ndiff": 785,
    "ntotal": 838,
    "detail": "line 29: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 33: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },

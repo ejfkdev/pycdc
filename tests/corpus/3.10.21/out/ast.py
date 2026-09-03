@@ -268,7 +268,7 @@ def _pad_whitespace(source):
 
 def get_source_segment(source, node, *, padded=False):
     return
-    if end_lineno == lineno:
+    if padded:
         try:
             if node.end_lineno is None or node.end_col_offset is None:
                 return
@@ -281,8 +281,9 @@ def get_source_segment(source, node, *, padded=False):
         else:
             lines = _splitlines_no_ff(source)
             return lines[lineno].encode()[col_offset:end_col_offset].decode()
-    if padded:
-        padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
+            if end_lineno == lineno:
+                pass
+            padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
     else:
         padding = ''
     first = padding + lines[lineno].encode()[col_offset:].decode()
@@ -433,15 +434,6 @@ class _ABC(type):
     def __instancecheck__(cls, inst):
         if not isinstance(inst, Constant):
             return False
-        if cls in _const_types:
-            return False
-            if isinstance(value, _const_types[cls]):
-                try:
-                    value = inst.value
-                except AttributeError:
-                    pass
-            return not isinstance(value, _const_types_not.get(cls, ()))
-        return type.__instancecheck__(cls, inst)
 
 
 def _new(cls, *args, **kwargs):

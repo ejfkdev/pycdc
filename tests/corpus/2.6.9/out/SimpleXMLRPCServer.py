@@ -196,7 +196,7 @@ class SimpleXMLRPCDispatcher:
         method = None
         if method_name in self.funcs:
             method = self.funcs[method_name]
-        elif self.instance is not None:
+        if self.instance is not None:
             if hasattr(self.instance, '_methodHelp'):
                 return self.instance._methodHelp(method_name)
             if not hasattr(self.instance, '_dispatch'):
@@ -228,14 +228,6 @@ class SimpleXMLRPCDispatcher:
 
     def _dispatch(self, method, params):
         func = None
-        if func is not None:
-            try:
-                func = self.funcs[method]
-            except AttributeError:
-                pass
-            else:
-                return func(*params)
-        raise Exception('method "%s" is not supported' % method)
 
 
 class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):

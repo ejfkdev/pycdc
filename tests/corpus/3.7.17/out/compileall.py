@@ -115,31 +115,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 pass
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
-    if ok == 0:
-        success = False
-        try:
-            ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize, invalidation_mode=invalidation_mode)
-        except py_compile.PyCompileError as err:
-            success = False
-            if quiet >= 2:
-                return success
-            if quiet:
-                print('*** Error compiling {!r}...'.format(fullname))
-            else:
-                print('*** ', end='')
-            msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
-            msg = msg(sys.stdout.encoding)
-            print(msg)
-        except (SyntaxError, UnicodeError, OSError) as e:
-            success = False
-            if quiet >= 2:
-                return success
-            if quiet:
-                print('*** Error compiling {!r}...'.format(fullname))
-            else:
-                print('*** ', end='')
-            print(e.__class__.__name__ + ':', e)
-    return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     success = True
@@ -177,20 +152,21 @@ def main():
         maxlevels = args.maxlevels
     if args.flist:
         pass
-    if args.workers is not None:
-        if args.workers:
-            try:
-                with sys.stdin if args.flist == '-' else open(args.flist) as f:
-                    for line in f:
-                        compile_dests.append(line.strip())
-            except OSError:
-                if args.quiet < 2:
-                    print('Error reading file list {}'.format(args.flist))
-                return False
-        args.workers = None
     if args.invalidation_mode:
-        ivl_mode = args.invalidation_mode.replace('-', '_').upper()
-        invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
+        try:
+            with sys.stdin if args.flist == '-' else open(args.flist) as f:
+                for line in f:
+                    compile_dests.append(line.strip())
+        except OSError:
+            if args.quiet < 2:
+                print('Error reading file list {}'.format(args.flist))
+            return False
+        else:
+            args.workers = args.workers or None
+            if args.workers is not None:
+                pass
+            ivl_mode = args.invalidation_mode.replace('-', '_').upper()
+            invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:
         invalidation_mode = None
     success = True

@@ -88,7 +88,7 @@ class StringIO:
             self.buflist = []
         if mode == 1:
             pos += self.pos
-        elif mode == 2:
+        if mode == 2:
             pos += self.len
         self.pos = max(0, pos)
 
@@ -148,7 +148,7 @@ class StringIO:
             size = self.pos
         elif size < 0:
             raise IOError(EINVAL, 'Negative size not allowed')
-        elif size < self.pos:
+        if size < self.pos:
             self.pos = size
         self.buf = self.getvalue()[:size]
         self.len = size

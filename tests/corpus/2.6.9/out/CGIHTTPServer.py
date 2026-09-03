@@ -207,9 +207,9 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 if interp.lower().endswith('w.exe'):
                     interp = interp[:-5] + interp[-4:]
                 cmdline = [interp, '-u'] + cmdline
-        if '=' not in query:
-            cmdline.append(query)
-        self.log_message('command: %s', subprocess.list2cmdline(cmdline))
+            if '=' not in query:
+                cmdline.append(query)
+            self.log_message('command: %s', subprocess.list2cmdline(cmdline))
         try:
             nbytes = int(length)
         except (TypeError, ValueError):

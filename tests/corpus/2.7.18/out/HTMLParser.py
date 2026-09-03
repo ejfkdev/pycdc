@@ -208,7 +208,7 @@ class HTMLParser(markupbase.ParserBase):
             attrname, rest, attrvalue = m.group(1, 2, 3)
             if not rest:
                 attrvalue = None
-            if not attrvalue[:1] == "'" == attrvalue[-1:]:
+            elif not attrvalue[:1] == "'" == attrvalue[-1:]:
                 if attrvalue[:1] == '"' == attrvalue[-1:]:
                     attrvalue = attrvalue[1:-1]
             if attrvalue:

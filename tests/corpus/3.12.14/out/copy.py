@@ -73,14 +73,14 @@ def copy(x):
         rv = reductor(x)
     else:
         reductor = getattr(x, '__reduce_ex__', None)
-    if not reductor is None:
-        rv = reductor(4)
-    else:
-        reductor = getattr(x, '__reduce__', None)
-        if reductor:
-            rv = reductor()
+        if not reductor is None:
+            rv = reductor(4)
         else:
-            raise Error('un(shallow)copyable object of type %s' % cls)
+            reductor = getattr(x, '__reduce__', None)
+            if reductor:
+                rv = reductor()
+            else:
+                raise Error('un(shallow)copyable object of type %s' % cls)
     if isinstance(rv, str):
         return x
     return _reconstruct(*[x, None, *rv])
@@ -109,11 +109,10 @@ def deepcopy(x, memo=None, _nil=[]):
     copier = _deepcopy_dispatch.get(cls)
     if not copier is None:
         y = copier(x, memo)
+    elif issubclass(cls, type):
+        y = _deepcopy_atomic(x, memo)
     else:
-        if issubclass(cls, type):
-            y = _deepcopy_atomic(x, memo)
-        else:
-            copier = getattr(x, '__deepcopy__', None)
+        copier = getattr(x, '__deepcopy__', None)
         if not copier is None:
             y = copier(memo)
         else:
@@ -122,14 +121,14 @@ def deepcopy(x, memo=None, _nil=[]):
                 rv = reductor(x)
             else:
                 reductor = getattr(x, '__reduce_ex__', None)
-            if not reductor is None:
-                rv = reductor(4)
-            else:
-                reductor = getattr(x, '__reduce__', None)
-                if reductor:
-                    rv = reductor()
+                if not reductor is None:
+                    rv = reductor(4)
                 else:
-                    raise Error('un(deep)copyable object of type %s' % cls)
+                    reductor = getattr(x, '__reduce__', None)
+                    if reductor:
+                        rv = reductor()
+                    else:
+                        raise Error('un(deep)copyable object of type %s' % cls)
             if isinstance(rv, str):
                 y = x
             else:

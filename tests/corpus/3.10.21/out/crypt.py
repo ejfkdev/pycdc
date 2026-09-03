@@ -72,15 +72,6 @@ else:
         raise
         e = None
         del e
-        if result and len(result) == method.total_size:
-            try:
-                result = crypt('', salt)
-            except OSError as e:
-                pass
-            else:
-                methods.append(method)
-                return True
-        return False
 
     _add_method('SHA512', '6', 16, 106)
     _add_method('SHA256', '5', 16, 63)

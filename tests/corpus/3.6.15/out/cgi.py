@@ -296,9 +296,9 @@ class FieldStorage:
         self.headers = headers
         if fp is None:
             self.fp = sys.stdin.buffer
+        elif isinstance(fp, TextIOWrapper):
+            self.fp = fp.buffer
         else:
-            if isinstance(fp, TextIOWrapper):
-                self.fp = fp.buffer
             if not (hasattr(fp, 'read') and hasattr(fp, 'readline')):
                 raise TypeError('fp must be file pointer')
             self.fp = fp

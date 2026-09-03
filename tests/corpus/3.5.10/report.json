@@ -59,8 +59,8 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1000,
-   "ntotal": 1168,
+   "ndiff": 987,
+   "ntotal": 1157,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 182') | got ('SETUP_LOOP', 'to 161')\nline 142: orig ('FOR_ITER', 'to 181') | got ('FOR_ITER', 'to 160')\nline 151: orig ('LOAD_GLOBAL', 'os') | got ('LOAD_FAST', 'f')"
   },
   {
@@ -191,8 +191,8 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2921,
-   "ntotal": 3041,
+   "ndiff": 2878,
+   "ntotal": 3042,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
   {
@@ -215,7 +215,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1028,
+   "ndiff": 1024,
    "ntotal": 1310,
    "detail": "line 221: orig ('SETUP_FINALLY', 'to 430') | got ('SETUP_FINALLY', 'to 350')\nline 245: orig ('SETUP_LOOP', 'to 416') | got ('SETUP_LOOP', 'to 346')\nline 257: orig ('JUMP_FORWARD', 'to 364') | got ('JUMP_FORWARD', 'to 235')"
   },
@@ -247,7 +247,7 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 959,
+   "ndiff": 970,
    "ntotal": 1026,
    "detail": "line 31: orig ('JUMP_FORWARD', 'to 113') | got ('JUMP_FORWARD', 'to 126')\nline 37: orig ('POP_TOP', '') | got ('STORE_NAME', 'ProcessPoolExecutor')\nline 39: orig ('LOAD_CONST', 'None') | got ('SETUP_FINALLY', 'to 112')"
   },

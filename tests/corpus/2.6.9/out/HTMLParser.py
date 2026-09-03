@@ -172,12 +172,13 @@ class HTMLParser(markupbase.ParserBase):
             attrname, rest, attrvalue = m.group(1, 2, 3)
             if not rest:
                 attrvalue = None
-            attrvalue[:1] == "'" == attrvalue[-1:]
-            if not None:
-                attrvalue[:1] == '"' == attrvalue[-1:]
-                if None:
-                    attrvalue = attrvalue[1:-1]
-                    attrvalue = self.unescape(attrvalue)
+            else:
+                attrvalue[:1] == "'" == attrvalue[-1:]
+                if not None:
+                    attrvalue[:1] == '"' == attrvalue[-1:]
+                    if None:
+                        attrvalue = attrvalue[1:-1]
+                        attrvalue = self.unescape(attrvalue)
             attrs.append((attrname.lower(), attrvalue))
             k = m.end()
             continue
@@ -194,8 +195,8 @@ class HTMLParser(markupbase.ParserBase):
             self.handle_startendtag(tag, attrs)
         else:
             self.handle_starttag(tag, attrs)
-            if tag in self.CDATA_CONTENT_ELEMENTS:
-                self.set_cdata_mode()
+        if tag in self.CDATA_CONTENT_ELEMENTS:
+            self.set_cdata_mode()
         return endpos
 
     def check_for_whole_start_tag(self, i):

@@ -129,15 +129,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         else:
             print('*** ', end='')
         print(e.__class__.__name__ + ':', e)
-    if ok == 0:
-        success = False
-        try:
-            ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize, invalidation_mode=invalidation_mode)
-        except py_compile.PyCompileError as err:
-            success = False
-        except (SyntaxError, UnicodeError, OSError) as e:
-            success = False
-    return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     success = True

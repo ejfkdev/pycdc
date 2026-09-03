@@ -205,7 +205,7 @@ class BaseServer:
         timeout = self.socket.gettimeout()
         if timeout is None:
             timeout = self.timeout
-        elif self.timeout is not None:
+        if self.timeout is not None:
             timeout = min(timeout, self.timeout)
         fd_sets = select.select([self], [], [], timeout)
         if not fd_sets[0]:

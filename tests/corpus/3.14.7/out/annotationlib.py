@@ -92,7 +92,7 @@ Constructor arguments:
             locals = {}
             if isinstance(owner, type):
                 locals.update(vars(owner))
-        if not type_params is not None:
+        elif not type_params is not None:
             if not isinstance(self.__cell__, dict):
                 if self.__extra_names__:
                     locals = dict(locals)

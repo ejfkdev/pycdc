@@ -91,17 +91,7 @@ class Bdb:
         return self.trace_dispatch
 
     def dispatch_return(self, frame, arg):
-        if self.stop_here(frame) or frame == self.returnframe:
-            if self.stopframe:
-                if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
-                    return self.trace_dispatch
-            self.frame_returning = None
-            self.frame_returning = None
-            if self.quitting:
-                pass
-            if self.stopframe is frame and self.stoplineno != -1:
-                self._set_stopinfo(None, None)
-        return self.trace_dispatch
+        pass
 
     def dispatch_exception(self, frame, arg):
         if self.stop_here(frame):
@@ -292,14 +282,6 @@ class Bdb:
     def get_bpbynumber(self, arg):
         if not arg:
             raise ValueError('Breakpoint number expected')
-        if bp is None:
-            try:
-                pass
-            except IndexError:
-                raise ValueError('Breakpoint number %d out of range' % number) from None
-            else:
-                raise ValueError('Breakpoint %d already deleted' % number)
-        return bp
 
     def get_break(self, filename, lineno):
         filename = self.canonic(filename)

@@ -98,7 +98,7 @@ class Chunk:
             raise IOError('cannot seek')
         if whence == 1:
             pos = pos + self.size_read
-        elif whence == 2:
+        if whence == 2:
             pos = pos + self.chunksize
         if not pos < 0:
             if pos > self.chunksize:

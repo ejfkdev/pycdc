@@ -174,7 +174,7 @@
    "module": "bz2",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 825,
+   "ndiff": 831,
    "ntotal": 877,
    "detail": "line 29: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 33: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
@@ -198,7 +198,7 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3074,
+   "ndiff": 3060,
    "ntotal": 3160,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },

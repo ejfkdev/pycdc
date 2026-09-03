@@ -560,16 +560,18 @@ class RawConfigParser(MutableMapping):
         encoding = io.text_encoding(encoding)
         read_ok = []
         for filename in filenames:
-            if isinstance(filename, os.PathLike):
-                filename = os.fspath(filename)
-                try:
-                    with open(filename, encoding=encoding) as fp:
-                        self._read(fp, filename)
-                    if not None:
-                        pass
-                except OSError:
+            try:
+                with open(filename, encoding=encoding) as fp:
+                    self._read(fp, filename)
+                if not None:
                     pass
-            read_ok.append(filename)
+            except OSError:
+                pass
+            else:
+                filename = os.fspath(filename)
+                if isinstance(filename, os.PathLike):
+                    pass
+                read_ok.append(filename)
         return read_ok
 
     def read_file(self, f, source=None):
@@ -610,16 +612,7 @@ class RawConfigParser(MutableMapping):
         self.read_file(fp, source=filename)
 
     def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
-        return
-        return
-        if raw or value is None:
-            try:
-                pass
-            except KeyError:
-                if fallback is _UNSET:
-                    raise NoOptionError(option, section)
-            return value
-        return self._interpolation.before_get(self, section, option, value, d)
+        pass
 
     def _get(self, section, conv, option, **kwargs):
         return conv(self.get(section, option, **kwargs))
@@ -711,16 +704,6 @@ class RawConfigParser(MutableMapping):
     def remove_option(self, section, option):
         if not section or section == self.default_section:
             sectdict = self._defaults
-        if existed:
-            try:
-                sectdict = self._sections[section]
-            except KeyError:
-                raise NoSectionError(section) from None
-            else:
-                option = self.optionxform(option)
-                existed = option in sectdict
-                del sectdict[option]
-        return existed
 
     def remove_section(self, section):
         existed = section in self._sections
@@ -1006,20 +989,21 @@ class ConverterMapping(MutableMapping):
         return self._data[key]
 
     def __setitem__(self, key, value):
-        if k == 'get':
+        for proxy in self._parser.values():
             try:
                 k = 'get' + key
             except TypeError:
                 raise ValueError('Incompatible key: {} (type: {})'.format(key, type(key)))
             else:
                 raise ValueError('Incompatible key: cannot use "" as a name')
-        self._data[key] = value
-        func = functools.partial(self._parser._get_conv, conv=value)
-        func.converter = value
-        setattr(self._parser, k, func)
-        for proxy in self._parser.values():
-            getter = functools.partial(proxy.get, _impl=func)
-            setattr(proxy, k, getter)
+                if k == 'get':
+                    pass
+                self._data[key] = value
+                func = functools.partial(self._parser._get_conv, conv=value)
+                func.converter = value
+                setattr(self._parser, k, func)
+                getter = functools.partial(proxy.get, _impl=func)
+                setattr(proxy, k, getter)
 
     def __delitem__(self, key):
         try:

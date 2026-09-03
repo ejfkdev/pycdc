@@ -559,7 +559,7 @@ def main(args):
         _validate_month(options.month)
     if not options.year is not None:
         result = cal.formatyear(datetime.date.today().year, **optdict)
-    if not options.month is not None:
+    elif not options.month is not None:
         result = cal.formatyear(options.year, **optdict)
     else:
         result = cal.formatmonth(options.year, options.month, **optdict)

@@ -573,12 +573,6 @@ class ItemsView(MappingView, Set):
     def __contains__(self, item):
         key, value = item
         return False
-        if v is value:
-            try:
-                v = self._mapping[key]
-            except KeyError:
-                pass
-        return v == value
 
     def __iter__(self):
         for key in self._mapping:

@@ -23,7 +23,7 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3070,
+   "ndiff": 3065,
    "ntotal": 3131,
    "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -59,8 +59,8 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 989,
-   "ntotal": 1181,
+   "ndiff": 998,
+   "ntotal": 1168,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 128') | got ('SETUP_LOOP', 'to 114')\nline 142: orig ('FOR_ITER', 'to 126') | got ('FOR_ITER', 'to 112')\nline 151: orig ('LOAD_GLOBAL', 'os') | got ('LOAD_FAST', 'f')"
   },
   {
@@ -191,8 +191,8 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3003,
-   "ntotal": 3163,
+   "ndiff": 3001,
+   "ntotal": 3164,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
   {
@@ -215,7 +215,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1009,
+   "ndiff": 1012,
    "ntotal": 1316,
    "detail": "line 219: orig ('SETUP_FINALLY', 'to 324') | got ('SETUP_FINALLY', 'to 326')\nline 243: orig ('SETUP_LOOP', 'to 312') | got ('SETUP_LOOP', 'to 322')\nline 256: orig ('JUMP_FORWARD', 'to 276') | got ('JUMP_FORWARD', 'to 286')"
   },
@@ -223,7 +223,7 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 554,
+   "ndiff": 629,
    "ntotal": 669,
    "detail": "line 16: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 20: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
@@ -247,7 +247,7 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 587,
+   "ndiff": 786,
    "ntotal": 1030,
    "detail": "line 135: orig ('SETUP_LOOP', 'to 284') | got ('SETUP_LOOP', 'to 296')\nline 138: orig ('FOR_ITER', 'to 282') | got ('FOR_ITER', 'to 294')\nline 179: orig ('POP_JUMP_IF_FALSE', '') | got ('EXTENDED_ARG', '')"
   },

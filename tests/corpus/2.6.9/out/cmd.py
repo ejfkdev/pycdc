@@ -145,7 +145,7 @@ class Cmd:
             return None, None, line
         if line[0] == '?':
             line = 'help ' + line[1:]
-        elif line[0] == '!':
+        if line[0] == '!':
             if hasattr(self, 'do_shell'):
                 line = 'shell ' + line[1:]
             else:
@@ -199,12 +199,11 @@ class Cmd:
                 cmd, args, foo = self.parseline(line)
                 if cmd == '':
                     compfunc = self.completedefault
-                try:
-                    compfunc = getattr(self, 'complete_' + cmd)
-                except AttributeError:
-                    compfunc = self.completedefault
-            else:
-                compfunc = self.completenames
+            try:
+                compfunc = getattr(self, 'complete_' + cmd)
+            except AttributeError:
+                compfunc = self.completedefault
+            compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
 
     def get_names(self):
