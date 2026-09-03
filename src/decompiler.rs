@@ -578,11 +578,6 @@ impl<'a> Ctx<'a> {
             }
 
             // pre-3.11 handler-chain bookkeeping
-            if std::env::var("PYCDC_TRACE").is_ok() {
-                let blks: Vec<String> = self.blocks.iter().map(|b| format!("{:?}@{}-{}", b.kind, b.start, b.end)).collect();
-                eprintln!("T @{} {:?} tgt={:?} | lh={} lt={:?} | {}", inst.offset, inst.op, inst.target, self.legacy_handler.is_some(),
-                    self.legacy_try.as_ref().map(|l| (l.handlers.len(), l.else_start, l.chain_done)), blks.join(" "));
-            }
             self.legacy_chain_step(&inst);
             // chain fully parsed (END_FINALLY passed) but no jump emitted it
             // yet: flush before the continuation executes so statement order
@@ -1745,13 +1740,6 @@ impl<'a> Ctx<'a> {
     }
 
     fn push_stmt(&mut self, stmt: Stmt) {
-        if std::env::var("PYCDC_TRACE").is_ok() {
-            let dest = if self.legacy_handler.as_ref().map_or(false, |h| self.blocks.len() <= h.block_depth) { "HANDLER".into() }
-                else if self.legacy_try.as_ref().map_or(false, |l| l.else_start.map_or(false, |es| self.cur_offset >= es && self.cur_offset < l.else_stop)) { "ORELSE".into() }
-                else { self.blocks.last().map(|b| format!("{:?}@{}", b.kind, b.start)).unwrap_or("?".into()) };
-            let name = format!("{:?}", stmt);
-            eprintln!("S @{} push {} -> {}", self.cur_offset, &name[..name.len().min(44)], dest);
-        }
         // any other statement flushes a pending same-line store group first
         // to preserve source order
         if !self.flushing && !self.pending_stores.is_empty() {
