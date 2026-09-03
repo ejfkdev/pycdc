@@ -677,10 +677,9 @@ class RawConfigParser(MutableMapping):
         return optionstr.lower()
 
     def has_option(self, section, option):
-        if section:
-            if section == self.default_section:
-                option = self.optionxform(option)
-                return option in self._defaults
+        if not section or section == self.default_section:
+            option = self.optionxform(option)
+            return option in self._defaults
         if section not in self._sections:
             return False
         option = self.optionxform(option)
@@ -689,9 +688,8 @@ class RawConfigParser(MutableMapping):
     def set(self, section, option, value=None):
         if value:
             value = self._interpolation.before_set(self, section, option, value)
-        if section:
-            if section == self.default_section:
-                sectdict = self._defaults
+        if not section or section == self.default_section:
+            sectdict = self._defaults
         try:
             sectdict = self._sections[section]
         except KeyError:
@@ -712,18 +710,16 @@ class RawConfigParser(MutableMapping):
         fp.write('[{}]\n'.format(section_name))
         for key, value in section_items:
             value = self._interpolation.before_write(self, section_name, key, value)
-            if not value is not None:
-                if not self._allow_no_value:
-                    value = delimiter + str(value).replace('\n', '\n\t')
-                else:
-                    value = ''
+            if value is not None or not self._allow_no_value:
+                value = delimiter + str(value).replace('\n', '\n\t')
+            else:
+                value = ''
             fp.write('{}{}\n'.format(key, value))
         fp.write('\n')
 
     def remove_option(self, section, option):
-        if section:
-            if section == self.default_section:
-                sectdict = self._defaults
+        if not section or section == self.default_section:
+            sectdict = self._defaults
         try:
             sectdict = self._sections[section]
         except KeyError:
@@ -902,8 +898,9 @@ class RawConfigParser(MutableMapping):
             raise TypeError('section names must be strings')
         if not isinstance(option, str):
             raise TypeError('option keys must be strings')
-        if (self._allow_no_value and value) and isinstance(value, str):
-            raise TypeError('option values must be strings')
+        if not self._allow_no_value or value:
+            if not isinstance(value, str):
+                raise TypeError('option values must be strings')
 
     @property
     def converters(self):

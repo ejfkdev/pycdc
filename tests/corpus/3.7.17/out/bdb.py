@@ -107,16 +107,15 @@ class Bdb:
 
     def dispatch_exception(self, frame, arg):
         if self.stop_here(frame):
-            if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
-                if not arg[0] is StopIteration or not arg[2] is None:
-                    self.user_exception(frame, arg)
-                    if self.quitting:
-                        raise BdbQuit
-                    if self.stopframe and frame is not self.stopframe:
-                        if self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] in (StopIteration, GeneratorExit):
-                            self.user_exception(frame, arg)
-                            if self.quitting:
-                                raise BdbQuit
+            if not frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS or not arg[0] is StopIteration or not arg[2] is None:
+                self.user_exception(frame, arg)
+                if self.quitting:
+                    raise BdbQuit
+                if self.stopframe and frame is not self.stopframe:
+                    if self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] in (StopIteration, GeneratorExit):
+                        self.user_exception(frame, arg)
+                        if self.quitting:
+                            raise BdbQuit
         return self.trace_dispatch
 
     def is_skipped_module(self, module_name):

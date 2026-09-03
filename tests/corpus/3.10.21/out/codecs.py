@@ -319,10 +319,13 @@ class StreamReader(Codec):
                     return line
                 line = line0withoutend
                 return line
-        if data and size is not None or line:
-            if not keepends:
-                line = line.splitlines(keepends=False)[0]
-        return line
+        if not data or size is not None:
+            if line:
+                if not keepends:
+                    line = line.splitlines(keepends=False)[0]
+            return line
+        if readsize < 8000:
+            readsize *= 2
 
     def readlines(self, sizehint=None, keepends=True):
         data = self.read()

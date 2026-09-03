@@ -341,9 +341,8 @@ class _CallableGenericAlias(GenericAlias):
 
     @classmethod
     def __create_ga(cls, origin, args):
-        if isinstance(args, tuple):
-            if len(args) != 2:
-                raise TypeError('Callable must be used as Callable[[arg, ...], result].')
+        if not isinstance(args, tuple) or len(args) != 2:
+            raise TypeError('Callable must be used as Callable[[arg, ...], result].')
         t_args, t_result = args
         if isinstance(t_args, (list, tuple)):
             ga_args = tuple(t_args) + (t_result,)

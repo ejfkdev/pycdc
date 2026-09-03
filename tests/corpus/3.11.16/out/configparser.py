@@ -634,10 +634,9 @@ class RawConfigParser(MutableMapping):
         return optionstr.lower()
 
     def has_option(self, section, option):
-        if section:
-            if section == self.default_section:
-                option = self.optionxform(option)
-                return option in self._defaults
+        if not section or section == self.default_section:
+            option = self.optionxform(option)
+            return option in self._defaults
         if section not in self._sections:
             return False
         option = self.optionxform(option)
@@ -646,14 +645,13 @@ class RawConfigParser(MutableMapping):
     def set(self, section, option, value=None):
         if value:
             value = self._interpolation.before_set(self, section, option, value)
-        if section:
-            if section == self.default_section:
-                sectdict = self._defaults
-            else:
-                try:
-                    sectdict = self._sections[section]
-                except KeyError:
-                    raise NoSectionError(section) from None
+        if not section or section == self.default_section:
+            sectdict = self._defaults
+        else:
+            try:
+                sectdict = self._sections[section]
+            except KeyError:
+                raise NoSectionError(section) from None
 
     def write(self, fp, space_around_delimiters=True):
         if space_around_delimiters:
@@ -669,23 +667,21 @@ class RawConfigParser(MutableMapping):
         fp.write('[{}]\n'.format(section_name))
         for key, value in section_items:
             value = self._interpolation.before_write(self, section_name, key, value)
-            if not value is not None:
-                if not self._allow_no_value:
-                    value = delimiter + str(value).replace('\r\n', '\n').replace('\r', '\n').replace('\n', '\n\t')
-                else:
-                    value = ''
+            if value is not None or not self._allow_no_value:
+                value = delimiter + str(value).replace('\r\n', '\n').replace('\r', '\n').replace('\n', '\n\t')
+            else:
+                value = ''
             fp.write('{}{}\n'.format(key, value))
         fp.write('\n')
 
     def remove_option(self, section, option):
-        if section:
-            if section == self.default_section:
-                sectdict = self._defaults
-            else:
-                try:
-                    sectdict = self._sections[section]
-                except KeyError:
-                    raise NoSectionError(section) from None
+        if not section or section == self.default_section:
+            sectdict = self._defaults
+        else:
+            try:
+                sectdict = self._sections[section]
+            except KeyError:
+                raise NoSectionError(section) from None
 
     def remove_section(self, section):
         existed = section in self._sections
@@ -853,11 +849,10 @@ class RawConfigParser(MutableMapping):
             raise TypeError('section names must be strings')
         if not isinstance(option, str):
             raise TypeError('option keys must be strings')
-        if self._allow_no_value:
-            if value:
-                if not isinstance(value, str):
-                    raise TypeError('option values must be strings')
-                return
+        if not self._allow_no_value or value:
+            if not isinstance(value, str):
+                raise TypeError('option values must be strings')
+            return
 
     @property
     def converters(self):

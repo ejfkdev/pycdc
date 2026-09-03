@@ -57,9 +57,8 @@ def literal_eval(node_or_string):
         raise ValueError(msg + f': {node!r}')
 
     def _convert_num(node):
-        if isinstance(node, Constant):
-            if type(node.value) not in (int, float, complex):
-                _raise_malformed_node(node)
+        if not isinstance(node, Constant) or type(node.value) not in (int, float, complex):
+            _raise_malformed_node(node)
         return node.value
 
     def _convert_signed_num(node):
@@ -640,9 +639,8 @@ class _Unparser(NodeVisitor):
             self._precedences[node] = precedence
 
     def get_raw_docstring(self, node):
-        if isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
-            if len(node.body) < 1:
-                return
+        if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)) or len(node.body) < 1:
+            return
         node = node.body[0]
         if not isinstance(node, Expr):
             return
@@ -989,9 +987,8 @@ class _Unparser(NodeVisitor):
             if not escape_special_whitespace:
                 if c in '\n\t':
                     return c
-            if not c == '\\':
-                if not c.isprintable():
-                    return c.encode('unicode_escape').decode('ascii')
+            if c == '\\' or not c.isprintable():
+                return c.encode('unicode_escape').decode('ascii')
             return c
 
         escaped_string = ''(map(escape_char, string))

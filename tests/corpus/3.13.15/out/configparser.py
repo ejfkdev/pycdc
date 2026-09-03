@@ -767,11 +767,10 @@ class RawConfigParser(MutableMapping):
             fp.write('[{}]\n'.format(section_name))
         for key, value in section_items:
             value = self._interpolation.before_write(self, section_name, key, value)
-            if not value is not None:
-                if not self._allow_no_value:
-                    value = delimiter + str(value).replace('\r\n', '\n').replace('\r', '\n').replace('\n', '\n\t')
-                else:
-                    value = ''
+            if value is not None or not self._allow_no_value:
+                value = delimiter + str(value).replace('\r\n', '\n').replace('\r', '\n').replace('\n', '\n\t')
+            else:
+                value = ''
             fp.write('{}{}\n'.format(key, value))
         fp.write('\n')
 
@@ -949,8 +948,10 @@ class RawConfigParser(MutableMapping):
             raise TypeError('section names must be strings')
         if not isinstance(option, str):
             raise TypeError('option keys must be strings')
-        if self._allow_no_value and value or isinstance(value, str):
-            raise TypeError('option values must be strings')
+        if not self._allow_no_value or value:
+            if not isinstance(value, str):
+                raise TypeError('option values must be strings')
+            return
 
     @property
     def converters(self):

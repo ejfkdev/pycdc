@@ -4391,6 +4391,24 @@ impl<'a> Ctx<'a> {
         jump_if_true: bool,
         target: usize,
     ) -> Option<(ExprRef, usize, usize)> {
+        // General same-body boolop condition chains:
+        //   `if a or b or c: BODY else: ELSE` compiles to a sequence of
+        //   pure operand regions each terminated by a cond jump; jumps to
+        //   BODY-start mean "operand joins on jump", the final jump to the
+        //   if-exit means "operand joins on fall-through". Two-operand
+        //   same-exit chains (`a and b`) are handled by the split-cond
+        //   merge instead; require at least one body-targeting jump here.
+        let is_cond_jump = |o: Op| {
+            matches!(
+                o,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+            )
+        };
+        let jump_true =
+            |o: Op| matches!(o, Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE);
         let Some(&ci) = self.idx_of.get(&self.cur_offset) else {
             return None;
         };
@@ -4400,38 +4418,103 @@ impl<'a> Ctx<'a> {
         if ti <= ci + 1 || ti >= self.instrs.len() {
             return None;
         }
-        // operand region [ci+1, ti): pure values then a cond jump
-        let mut j0 = None;
-        for k in ci + 1..ti {
-            let ins = &self.instrs[k];
-            if matches!(
-                ins.op,
-                Op::POP_JUMP_IF_FALSE
-                    | Op::POP_JUMP_IF_TRUE
-                    | Op::POP_JUMP_FORWARD_IF_FALSE
-                    | Op::POP_JUMP_FORWARD_IF_TRUE
-            ) {
-                if k + 1 == ti {
-                    j0 = Some((k, ins.op, ins.target?));
+        // operand 1 joins via this jump
+        let mut parts: Vec<ExprRef> = vec![if jump_if_true {
+            cond.clone()
+        } else {
+            Rc::new(Expr::Unary { op: UnaryOp::Not, operand: cond.clone() })
+        }];
+        // J1 itself targets the body start — it is the first body jump
+        let mut body_jumps = 1usize;
+        let mut k = ci + 1;
+        let mut exit: Option<usize> = None;
+        let mut final_was_exit_jump = false;
+        loop {
+            // scan the next pure operand region up to its cond jump
+            let region_start = k;
+            let mut jidx = None;
+            while k < self.instrs.len() {
+                let ins = &self.instrs[k];
+                if is_cond_jump(ins.op) {
+                    jidx = Some(k);
                     break;
                 }
-                return None;
+                if !is_pure_value_op(ins.op) || ins.offset >= target {
+                    return None;
+                }
+                k += 1;
             }
-            if !is_pure_value_op(ins.op) {
-                return None;
+            let jk = jidx?;
+            let operand = self.sim_value_region(region_start, jk)?;
+            let jins = &self.instrs[jk];
+            let jt = jump_true(jins.op);
+            match jins.target {
+                Some(t) if t == target => {
+                    // jumps to the body: operand joins when the jump fires
+                    parts.push(if jt {
+                        operand
+                    } else {
+                        Rc::new(Expr::Unary { op: UnaryOp::Not, operand })
+                    });
+                    body_jumps += 1;
+                    k = jk + 1;
+                    if k >= ti {
+                        return None; // no final operand before the body
+                    }
+                }
+                Some(t) if t > target && self.idx_of.contains_key(&t) => {
+                    // final operand: its jump skips the body (if exit) and
+                    // must be the last instruction before the body starts
+                    if jk + 1 != ti {
+                        return None;
+                    }
+                    parts.push(if jt {
+                        Rc::new(Expr::Unary { op: UnaryOp::Not, operand })
+                    } else {
+                        operand
+                    });
+                    exit = Some(t);
+                    final_was_exit_jump = true;
+                    break;
+                }
+                _ => return None,
             }
         }
-        let (j0k, j0op, exit) = j0?;
-        let j0_true = matches!(
-            j0op,
-            Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
-        );
-        if j0_true == jump_if_true {
-            return None; // same polarity is the py2 boolop shape, not this
-        }
-        if exit <= target || !self.idx_of.contains_key(&exit) {
+        let exit = match exit {
+            Some(e) => e,
+            None => {
+                // every operand jumped to the body (`not a or not b`): the
+                // fall-through region between the chain and the body is the
+                // ELSE; find its terminating forward jump
+                if body_jumps < 2 {
+                    return None;
+                }
+                let mut e2 = None;
+                for m in k..ti {
+                    let ins = &self.instrs[m];
+                    if !is_pure_value_op(ins.op) {
+                        if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP)
+                            && ins.target.map_or(false, |t| t > target)
+                            && m + 1 == ti
+                        {
+                            e2 = ins.target;
+                        }
+                        break;
+                    }
+                }
+                e2?
+            }
+        };
+        if body_jumps == 0 || parts.len() < 2 {
             return None;
         }
+        // mixed chains combine as Or; all-body-jump chains are the De Morgan
+        // dual: And of the (negated) join forms
+        let op = if final_was_exit_jump {
+            BoolOpKind::Or
+        } else {
+            BoolOpKind::And
+        };
         // don't fire inside loops whose exit this might be (break shape)
         if self.find_loop_exit(exit).is_some() || self.find_loop_exit(target).is_some() {
             return None;
@@ -4446,47 +4529,7 @@ impl<'a> Ctx<'a> {
                 return None;
             }
         }
-        // 3+-operand chains (`a or b or c`): the operand region itself
-        // contains another cond jump — let the generic block flow handle it
-        for k in ci + 1..j0k {
-            let ins = &self.instrs[k];
-            if matches!(
-                ins.op,
-                Op::POP_JUMP_IF_FALSE
-                    | Op::POP_JUMP_IF_TRUE
-                    | Op::POP_JUMP_FORWARD_IF_FALSE
-                    | Op::POP_JUMP_FORWARD_IF_TRUE
-                    | Op::JUMP_IF_FALSE_OR_POP
-                    | Op::JUMP_IF_TRUE_OR_POP
-            ) {
-                return None;
-            }
-        }
-        let rhs = self.sim_value_region(ci + 1, j0k)?;
-        // each operand joins the body either through its jump (polarity) or
-        // the fall-through; normalize both to their body-reaching form
-        let c1 = if jump_if_true {
-            cond.clone()
-        } else {
-            Rc::new(Expr::Unary { op: UnaryOp::Not, operand: cond.clone() })
-        };
-        let c2 = if j0_true {
-            Rc::new(Expr::Unary { op: UnaryOp::Not, operand: rhs })
-        } else {
-            rhs
-        };
-        let kind = if jump_if_true != j0_true {
-            // opposite polarities with body at J1's target: `or` when J1
-            // jumps on false (body reached by jumping OR falling through
-            // the negated second operand)
-            BoolOpKind::Or
-        } else {
-            BoolOpKind::And
-        };
-        let merged = Rc::new(Expr::BoolOp {
-            op: kind,
-            values: vec![c1, c2],
-        }) as ExprRef;
+        let merged = Rc::new(Expr::BoolOp { op, values: parts }) as ExprRef;
         Some((merged, target, exit))
     }
 

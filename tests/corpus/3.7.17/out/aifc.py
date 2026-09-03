@@ -233,23 +233,22 @@ def _write_float(f, x):
         lomant = 0
     else:
         fmant, expon = math.frexp(x)
-        if not expon > 16384:
-            if fmant >= 1 or fmant != fmant:
-                expon = sign | 32767
-                himant = 0
-                lomant = 0
-            else:
-                expon = expon + 16382
-                if expon < 0:
-                    fmant = math.ldexp(fmant, expon)
-                    expon = 0
-                expon = expon | sign
-                fmant = math.ldexp(fmant, 32)
-                fsmant = math.floor(fmant)
-                himant = int(fsmant)
-                fmant = math.ldexp(fmant - fsmant, 32)
-                fsmant = math.floor(fmant)
-                lomant = int(fsmant)
+        if expon > 16384 or fmant >= 1 or fmant != fmant:
+            expon = sign | 32767
+            himant = 0
+            lomant = 0
+        else:
+            expon = expon + 16382
+            if expon < 0:
+                fmant = math.ldexp(fmant, expon)
+                expon = 0
+            expon = expon | sign
+            fmant = math.ldexp(fmant, 32)
+            fsmant = math.floor(fmant)
+            himant = int(fsmant)
+            fmant = math.ldexp(fmant - fsmant, 32)
+            fsmant = math.floor(fmant)
+            lomant = int(fsmant)
     _write_ushort(f, expon)
     _write_ulong(f, himant)
     _write_ulong(f, lomant)
@@ -582,9 +581,8 @@ class Aifc_write:
         self.setcomptype(comptype, compname)
 
     def getparams(self):
-        if self._nchannels:
-            if not self._sampwidth or not self._framerate:
-                raise Error('not all parameters set')
+        if not self._nchannels or not self._sampwidth or not self._framerate:
+            raise Error('not all parameters set')
         return _aifc_params(self._nchannels, self._sampwidth, self._framerate, self._nframes, self._comptype, self._compname)
 
     def setmark(self, id, pos, name):
@@ -637,9 +635,8 @@ class Aifc_write:
                 self._file.write(b'\x00')
                 self._datawritten = self._datawritten + 1
             self._writemarkers()
-            if not self._nframeswritten != self._nframes:
-                if self._datalength != self._datawritten or self._marklength:
-                    self._patchheader()
+            if self._nframeswritten != self._nframes or self._datalength != self._datawritten or self._marklength:
+                self._patchheader()
         finally:
             self._convert = None
             f = self._file

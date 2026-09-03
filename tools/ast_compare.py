@@ -284,6 +284,15 @@ class Normalizer(ast.NodeTransformer):
             return ast.Num(n=v)
         return node
 
+    def visit_Yield(self, node):
+        self.generic_visit(node)
+        # bare `yield` and `yield None` are the same operation
+        if node.value is None:
+            node.value = ast.Name(id='None', ctx=ast.Load())
+        elif isinstance(node.value, ast.Name) and node.value.id == 'None':
+            pass
+        return node
+
     def visit_Raise(self, node):
         self.generic_visit(node)
         # py2 `raise T, I` (type/inst fields) == decompiled `raise T(I)`

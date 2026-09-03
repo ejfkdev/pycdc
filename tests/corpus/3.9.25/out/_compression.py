@@ -63,9 +63,8 @@ class DecompressReader(io.RawIOBase):
     def read(self, size=-1):
         if size < 0:
             return self.readall()
-        if size:
-            if self._eof:
-                return b''
+        if not size or self._eof:
+            return b''
         data = None
         if self._decompressor.eof:
             rawblock = self._decompressor.unused_data or self._fp(BUFFER_SIZE)

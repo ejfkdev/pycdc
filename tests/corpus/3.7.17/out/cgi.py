@@ -563,9 +563,8 @@ class FieldStorage:
             self.__write(odelim + line)
 
     def skip_lines(self):
-        if self.outerboundary:
-            if self.done:
-                return
+        if not self.outerboundary or self.done:
+            return
         next_boundary = b'--' + self.outerboundary
         last_boundary = next_boundary + b'--'
         last_line_lfend = True

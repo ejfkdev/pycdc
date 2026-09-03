@@ -253,11 +253,10 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             raise TypeError(msg.format(index, type(arg)))
             with _cache_lock:
                 locale_time = _TimeRE_cache.locale_time
-                if not _getlang() != locale_time.lang:
-                    if time.tzname != locale_time.tzname or time.daylight != locale_time.daylight:
-                        _TimeRE_cache = TimeRE()
-                        _regex_cache.clear()
-                        locale_time = _TimeRE_cache.locale_time
+                if _getlang() != locale_time.lang or time.tzname != locale_time.tzname or time.daylight != locale_time.daylight:
+                    _TimeRE_cache = TimeRE()
+                    _regex_cache.clear()
+                    locale_time = _TimeRE_cache.locale_time
                 if len(_regex_cache) > _CACHE_MAX_SIZE:
                     _regex_cache.clear()
                 format_regex = _regex_cache.get(format)

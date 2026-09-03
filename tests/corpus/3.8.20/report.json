@@ -93,7 +93,7 @@
   },
   {
    "module": "_threading_local",
-   "ast_detail": "diff at token 346: orig  Expr(value=Yield(value=None))] | dec  Expr(value=Yield(value=Constant(value=None",
+   "ast_detail": "diff at token 346: orig  Expr(value=Yield(value=Name(id='None' | dec  Expr(value=Yield(value=Constant(value=None",
    "verdict": "SIG-DIFF",
    "ndiff": 350,
    "ntotal": 406,

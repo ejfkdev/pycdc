@@ -266,7 +266,7 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3924,
+   "ndiff": 3917,
    "ntotal": 4746,
    "detail": "line 764: orig ('KW_NAMES', '') | got ('PRECALL', '')\nline 765: orig ('PRECALL', '') | got ('CALL', '')\nline 766: orig ('CALL', '') | got ('POP_TOP', '')"
   },

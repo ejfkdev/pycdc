@@ -97,7 +97,7 @@
   },
   {
    "module": "_threading_local",
-   "ast_detail": "diff at token 271: orig  Expr(value=Yield())])] | dec  Expr(value=Yield(value=Constant(value=None)))])",
+   "ast_detail": "diff at token 271: orig  Expr(value=Yield(value=Name(id='None' | dec  Expr(value=Yield(value=Constant(value=None)))])",
    "verdict": "SIG-DIFF",
    "ndiff": 386,
    "ntotal": 451,
@@ -243,7 +243,7 @@
    "module": "codecs",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2076,
+   "ndiff": 2077,
    "ntotal": 2151,
    "detail": "line 11: orig ('SETUP_FINALLY', 'to 34') | got ('LOAD_CONST', 'None')\nline 12: orig ('LOAD_CONST', '0') | got ('STORE_NAME', 'why')\nline 13: orig ('LOAD_CONST', \"('*',)\") | got ('DELETE_NAME', 'why')"
   },

@@ -48,9 +48,8 @@ def literal_eval(node_or_string):
         raise ValueError(f'malformed node or string: {node!r}')
 
     def _convert_num(node):
-        if isinstance(node, Constant):
-            if type(node.value) not in (int, float, complex):
-                _raise_malformed_node(node)
+        if not isinstance(node, Constant) or type(node.value) not in (int, float, complex):
+            _raise_malformed_node(node)
         return node.value
 
     def _convert_signed_num(node):
