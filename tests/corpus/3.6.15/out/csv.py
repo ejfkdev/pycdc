@@ -157,8 +157,8 @@ class DictWriter:
 
 try:
     complex
-except NameError as complex:
-    pass
+except NameError:
+    complex = float
 
 class Sniffer:
     '''
@@ -333,8 +333,8 @@ class Sniffer:
                     hasHeader -= 1
             try:
                 colType(header[col])
-            except (ValueError, TypeError) as hasHeader:
-                pass
+            except (ValueError, TypeError):
+                hasHeader += 1
             else:
                 hasHeader -= 1
         return hasHeader > 0

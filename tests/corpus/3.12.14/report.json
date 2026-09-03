@@ -134,7 +134,7 @@
    "module": "bdb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2409,
+   "ndiff": 2416,
    "ntotal": 2530,
    "detail": "line 23: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 27: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 28: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -156,7 +156,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 162: orig  keywords=[]))])] | dec  keywords=[]))",
+   "ast_detail": "diff at token 159: orig  keywords=[]))])] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 508,
    "ntotal": 699,
@@ -195,8 +195,8 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1135,
-   "ntotal": 1382,
+   "ndiff": 1128,
+   "ntotal": 1383,
    "detail": "line 209: orig ('POP_JUMP_IF_TRUE', 'to 898') | got ('POP_JUMP_IF_TRUE', 'to 552')\nline 219: orig ('JUMP_FORWARD', 'to 788') | got ('JUMP_FORWARD', 'to 546')\nline 222: orig ('POP_JUMP_IF_FALSE', 'to 548') | got ('POP_JUMP_IF_FALSE', 'to 546')"
   },
   {
@@ -239,15 +239,15 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3289,
-   "ntotal": 4239,
+   "ndiff": 3257,
+   "ntotal": 4238,
    "detail": "line 835: orig ('KW_NAMES', \"('raw', 'fallback')\") | got ('CALL', '')\nline 836: orig ('CALL', '') | got ('STORE_FAST', 'rawval')\nline 837: orig ('STORE_FAST', 'rawval') | got ('LOAD_FAST', 'depth')"
   },
   {
    "module": "contextlib",
    "ast_detail": "diff at token 63: orig  body=[Return(value=Constant(value=None))] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2113,
+   "ndiff": 2121,
    "ntotal": 2190,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
@@ -279,7 +279,7 @@
    "module": "csv",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1613,
+   "ndiff": 1619,
    "ntotal": 1657,
    "detail": "line 13: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 17: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },

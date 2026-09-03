@@ -178,8 +178,8 @@ class Cmd:
                     compfunc = self.completedefault
                 try:
                     compfunc = getattr(self, 'complete_' + cmd)
-                except AttributeError as compfunc:
-                    pass
+                except AttributeError:
+                    compfunc = self.completedefault
             else:
                 compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
@@ -194,7 +194,7 @@ class Cmd:
         return dir(self.__class__)
 
     def complete_help(self, *args):
-        commands = set(self.completenames(args))
+        commands = set(self.completenames(*args))
         topics = set((5[None] for a in self.get_names() if a.startswith('help_' + args[0])))
         return list(commands | topics)
 
@@ -207,8 +207,8 @@ class Cmd:
             return
             try:
                 func = getattr(self, 'help_' + arg)
-            except AttributeError as doc:
-                pass
+            except AttributeError:
+                doc = getattr(self, 'do_' + arg).__doc__
             except AttributeError:
                 pass
             else:

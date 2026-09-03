@@ -510,7 +510,7 @@ context.
             log = None
         None(None, None, None)
         if not self._filter is None:
-            self._module.simplefilter(self._filter)
+            self._module.simplefilter(*self._filter)
         return log
 
     def __exit__(self, *exc_info):
@@ -593,7 +593,7 @@ See PEP 702 for details.
                 if cls is arg:
                     _wm.warn(msg, category, stacklevel + 1)
                 if original_new is not object.__new__:
-                    return [cls, *args]({**kwargs})
+                    return [cls, *args](*{**kwargs})
                 if cls.__init__ is object.__init__:
                     if not args:
                         if kwargs:
@@ -608,12 +608,12 @@ See PEP 702 for details.
                 @functools.wraps(original_init_subclass)
                 def __init_subclass__(*args, **kwargs):
                     _wm.warn(msg, category, stacklevel + 1)
-                    return args({**kwargs})
+                    return args(*{**kwargs})
 
             else:
                 def __init_subclass__(cls, *args, **kwargs):
                     _wm.warn(msg, category, stacklevel + 1)
-                    return args({**kwargs})
+                    return args(*{**kwargs})
 
             arg.__init_subclass__ = classmethod(__init_subclass__)
             arg.__deprecated__ = msg
@@ -626,7 +626,7 @@ See PEP 702 for details.
             @functools.wraps(arg)
             def wrapper(*args, **kwargs):
                 _wm.warn(msg, category, stacklevel + 1)
-                return args({**kwargs})
+                return args(*{**kwargs})
 
             if inspect.iscoroutinefunction(arg):
                 wrapper = inspect.markcoroutinefunction(wrapper)

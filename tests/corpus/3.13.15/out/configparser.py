@@ -287,7 +287,7 @@ class ParsingError(Error):
         self.errors = []
         self.args = (source,)
         if args:
-            self.append(args)
+            self.append(*args)
             return
 
     def append(self, lineno, line):

@@ -82,7 +82,7 @@ class _GeneratorContextManagerBase:
     '''Shared functionality for @contextmanager and @asynccontextmanager.'''
 
     def __init__(self, func, args, kwds):
-        self.gen = func(args, **kwds)
+        self.gen = func(*args, **kwds)
         self.func = func
         self.args = args
         self.kwds = kwds
@@ -318,7 +318,7 @@ class _BaseExitStack:
     @staticmethod
     def _create_cb_wrapper(callback, /, *args, **kwds):
         def _exit_wrapper(exc_type, exc, tb):
-            callback(args, **kwds)
+            callback(*args, **kwds)
 
         return _exit_wrapper
 
@@ -352,7 +352,7 @@ class _BaseExitStack:
         return result
 
     def callback(self, callback, /, *args, **kwds):
-        _exit_wrapper = self._create_cb_wrapper([callback, *args], **kwds)
+        _exit_wrapper = self._create_cb_wrapper(*[callback, *args], **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper)
         return callback
@@ -397,7 +397,7 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
             is_sync, cb = self._exit_callbacks.pop()
             assert is_sync
             # WARNING: unrecovered try/except structure
-            if cb(exc_details):
+            if cb(*exc_details):
                 suppressed_exc = True
                 pending_raise = False
                 exc_details = (None, None, None)
@@ -434,7 +434,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
     @staticmethod
     def _create_async_cb_wrapper(callback, /, *args, **kwds):
         async def _exit_wrapper(exc_type, exc, tb):
-            await callback(args, **kwds)
+            await callback(*args, **kwds)
 
         return _exit_wrapper
 
@@ -459,7 +459,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         return exit
 
     def push_async_callback(self, callback, /, *args, **kwds):
-        _exit_wrapper = self._create_async_cb_wrapper([callback, *args], **kwds)
+        _exit_wrapper = self._create_async_cb_wrapper(*[callback, *args], **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper, False)
         return callback
@@ -492,9 +492,9 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             is_sync, cb = self._exit_callbacks.pop()
             # WARNING: unrecovered try/except structure
             if is_sync:
-                cb_suppress = cb(exc_details)
+                cb_suppress = cb(*exc_details)
             # WARNING: unrecovered try/except structure
-            cb_suppress = await cb(exc_details)
+            cb_suppress = await cb(*exc_details)
             if cb_suppress:
                 suppressed_exc = True
                 pending_raise = False

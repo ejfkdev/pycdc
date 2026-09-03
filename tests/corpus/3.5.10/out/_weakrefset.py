@@ -183,4 +183,3 @@ class WeakSet:
         return len(self.intersection(other)) == 0
 
 
-# WARNING: Decompyle incomplete

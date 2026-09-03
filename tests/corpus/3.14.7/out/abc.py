@@ -86,7 +86,7 @@ even via super()).
 """
 
     def __new__(mcls, name, bases, namespace, /, **kwargs):
-        cls = (mcls, name, bases, namespace)({**kwargs})
+        cls = (mcls, name, bases, namespace)(*{**kwargs})
         _abc_init(cls)
         return cls
 

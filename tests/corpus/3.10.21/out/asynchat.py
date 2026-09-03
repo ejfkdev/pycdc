@@ -158,8 +158,8 @@ class async_chat(asyncore.dispatcher):
                 data = bytes(data, self.encoding)
                 try:
                     data = first[:obs]
-                except TypeError as data:
-                    pass
+                except TypeError:
+                    data = first.more()
             return
             if num_sent:
                 if num_sent < len(data) or obs < len(first):

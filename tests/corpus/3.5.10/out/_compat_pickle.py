@@ -23,4 +23,3 @@ REVERSE_NAME_MAPPING.update({('_functools', 'reduce'): ('__builtin__', 'reduce')
 PYTHON3_OSERROR_EXCEPTIONS = ('BrokenPipeError', 'ChildProcessError', 'ConnectionAbortedError', 'ConnectionError', 'ConnectionRefusedError', 'ConnectionResetError', 'FileExistsError', 'FileNotFoundError', 'InterruptedError', 'IsADirectoryError', 'NotADirectoryError', 'PermissionError', 'ProcessLookupError', 'TimeoutError')
 for excname in PYTHON3_OSERROR_EXCEPTIONS:
     REVERSE_NAME_MAPPING['builtins', excname] = ('exceptions', 'OSError')
-# WARNING: Decompyle incomplete

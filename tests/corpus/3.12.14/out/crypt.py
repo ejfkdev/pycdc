@@ -65,7 +65,7 @@ def crypt(word, salt=None):
 methods = []
 
 def _add_method(name, *args, rounds=None):
-    method = _Method([name, *args])
+    method = _Method(*[name, *args])
     globals()['METHOD_' + name] = method
     salt = mksalt(method, rounds)
     result = None

@@ -74,4 +74,3 @@ for _v in ('b', 'y', 'a', ''):
 _add_method('MD5', '1', 8, 34)
 _add_method('CRYPT', None, 2, 13)
 del _v, _add_method
-# WARNING: Decompyle incomplete

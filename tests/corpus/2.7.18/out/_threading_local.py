@@ -210,4 +210,3 @@ class local(_localbase):
 
 from threading import current_thread
 from threading import RLock
-# WARNING: Decompyle incomplete

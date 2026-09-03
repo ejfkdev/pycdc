@@ -41,8 +41,8 @@ from errno import errorcode
 _DISCONNECTED = frozenset((ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE, EBADF))
 try:
     socket_map
-except NameError as socket_map:
-    pass
+except NameError:
+    socket_map = {}
 
 def _strerror(err):
     try:
@@ -154,8 +154,8 @@ def poll2(timeout=0.0, map=None):
                 pollster.register(fd, flags)
         try:
             r = pollster.poll(timeout)
-        except InterruptedError as r:
-            pass
+        except InterruptedError:
+            r = []
         for fd, flags in r:
             obj = map.get(fd)
             if obj is None:

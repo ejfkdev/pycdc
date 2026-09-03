@@ -102,7 +102,6 @@ class InteractiveConsole(InteractiveInterpreter):
             self.write('%s\n' % str(banner))
         more = 0
         more = self.push(line)
-        more = 0
         if exitmsg is None:
             try:
                 if more:
@@ -112,6 +111,7 @@ class InteractiveConsole(InteractiveInterpreter):
             except KeyboardInterrupt:
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
+                more = 0
             else:
                 self.write('now exiting %s...\n' % self.__class__.__name__)
                 return

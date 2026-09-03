@@ -154,8 +154,8 @@ class async_chat(asyncore.dispatcher):
                 del self.producer_fifo[0]
             try:
                 data = first[:obs]
-            except TypeError as data:
-                pass
+            except TypeError:
+                data = first.more()
             if isinstance(data, str) and self.use_encoding:
                 data = bytes(data, self.encoding)
             return

@@ -449,7 +449,7 @@ def _new(cls, *args, **kwargs):
         if pos < len(args):
             raise TypeError(f'{cls.__name__} got multiple values for argument {key!r}')
     if cls in _const_types:
-        return Constant(args, **kwargs)
+        return Constant(*args, **kwargs)
     return Constant.__new__(cls, *args, **kwargs)
 
 class Num(Constant, metaclass=_ABC):

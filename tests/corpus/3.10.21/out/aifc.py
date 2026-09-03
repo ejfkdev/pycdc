@@ -457,7 +457,8 @@ class Aifc_read:
                 name = _read_string(chunk)
                 if pos or name:
                     self._markers.append((id, pos, name))
-        except EOFError as w:
+        except EOFError:
+            w = 'Warning: MARK chunk contains only %s marker%s instead of %s' % (len(self._markers), '' if len(self._markers) == 1 else 's', nmarkers)
             warnings.warn(w)
 
 

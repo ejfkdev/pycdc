@@ -1120,6 +1120,9 @@ impl<'a> Ctx<'a> {
         if self.legacy_handler.is_some() {
             let end = self.legacy_handler_end.unwrap_or(usize::MAX);
             if pos >= end {
+                if self.legacy_handler.is_some() {
+                    self.flush_pending_stores();
+                }
                 if let Some(h) = self.legacy_handler.take() {
                     if let Some(he) = &h.name {
                         if let Expr::Name(n) = &**he {
@@ -1175,7 +1178,11 @@ impl<'a> Ctx<'a> {
             // py2 `except E, n:` assigns implicitly (no store instruction),
             // so never capture there: the first store is real code.
             Op::STORE_FAST | Op::STORE_NAME | Op::STORE_DEREF => {
+                // the `as` store sits inside the handler prelude (right
+                // after the POP_TOPs); a store after real body instructions
+                // started (prelude cleared) is a body statement
                 let wants_name = self.version.at_least(3, 0)
+                    && self.in_handler_prelude
                     && self
                         .legacy_handler
                         .as_ref()
@@ -1190,6 +1197,9 @@ impl<'a> Ctx<'a> {
             // end of a handler body
             Op::POP_EXCEPT => {
                 self.in_handler_prelude = false;
+                if self.legacy_handler.is_some() {
+                    self.flush_pending_stores();
+                }
                 if let Some(h) = self.legacy_handler.take() {
                     if let Some(he) = &h.name {
                         if let Expr::Name(n) = &**he {
@@ -1210,6 +1220,9 @@ impl<'a> Ctx<'a> {
             // no open handler ends the whole chain
             Op::RERAISE => {
                 self.in_handler_prelude = false;
+                if self.legacy_handler.is_some() {
+                    self.flush_pending_stores();
+                }
                 if let Some(h) = self.legacy_handler.take() {
                     if let Some(he) = &h.name {
                         if let Expr::Name(n) = &**he {
@@ -2791,6 +2804,23 @@ impl<'a> Ctx<'a> {
             Op::DUP_TOP => {
                 if let Some(sv) = self.stack.last().cloned() {
                     self.stack.push(sv);
+                } else if self
+                    .idx_of
+                    .get(&inst.offset)
+                    .and_then(|&ci| self.instrs.get(ci + 2))
+                    .map_or(false, |x| {
+                        x.op == Op::COMPARE_OP
+                            && cmp_from_index(compare_op_index(
+                                x.arg as u32,
+                                self.version,
+                            )) == CmpOp::ExceptionMatch
+                    })
+                {
+                    // handler-entry DUP_TOP over the exception value, which
+                    // we do not model: supply a placeholder so the match
+                    // comparison pops two operands
+                    let ph = self.name_expr("/*exc*/");
+                    self.push(ph);
                 }
                 true
             }
@@ -3815,6 +3845,27 @@ impl<'a> Ctx<'a> {
                     true
                 }
                 _ => {
+                    if self.version.major == 2 {
+                        // py2 `raise type, inst[, tb]`: inst popped first;
+                        // render the py3-equivalent instantiation
+                        if arg >= 3 {
+                            let _tb = self.pop_expr();
+                        }
+                        let inst = self.pop_expr();
+                        let ty = self.pop_expr();
+                        let exc = Rc::new(Expr::Call {
+                            func: ty,
+                            args: vec![inst],
+                            keywords: Vec::new(),
+                            star_args: None,
+                            star_kwargs: None,
+                        });
+                        self.push_stmt(Stmt::Raise {
+                            exc: Some(exc),
+                            cause: None,
+                        });
+                        return true;
+                    }
                     let cause = self.pop_expr();
                     let exc = self.pop_expr();
                     self.push_stmt(Stmt::Raise {
@@ -5974,7 +6025,9 @@ fn flatten_ex_args(e: ExprRef) -> (Vec<ExprRef>, Option<ExprRef>) {
     let mut star = None;
     let items: Vec<ExprRef> = match &*e {
         Expr::Tuple(v) => v.clone(),
-        other => vec![Rc::new(other.clone())],
+        // a bare (non-tuple) operand is the whole unpacked iterable:
+        // `f(*args)` pushes args directly with no BUILD_TUPLE
+        other => return (Vec::new(), Some(Rc::new(other.clone()))),
     };
     for it in items {
         match &*it {

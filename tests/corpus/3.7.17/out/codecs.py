@@ -568,7 +568,6 @@ def make_encoding_map(decoding_map):
             m[v] = None
     return m
 
-namereplace_errors = None
 try:
     strict_errors = lookup_error('strict')
     ignore_errors = lookup_error('ignore')
@@ -581,10 +580,10 @@ except LookupError as strict_errors:
     replace_errors = None
     xmlcharrefreplace_errors = None
     backslashreplace_errors = None
+    namereplace_errors = None
 _false = 0
 if _false:
     import encodings
 if __name__ == '__main__':
     sys.stdout = EncodedFile(sys.stdout, 'latin-1', 'utf-8')
     sys.stdin = EncodedFile(sys.stdin, 'utf-8', 'latin-1')
-# WARNING: Decompyle incomplete

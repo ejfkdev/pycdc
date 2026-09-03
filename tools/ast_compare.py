@@ -191,8 +191,120 @@ class Normalizer(ast.NodeTransformer):
             node.test = ast.Name(id='True', ctx=ast.Load())
         return node
 
+    # ---- constant folding: compilers fold arithmetic on number literals,
+    # so the decompiled constant and the source expression compare equal
+    # only after folding both sides ----
+    def _numval(self, node):
+        if isinstance(node, ast.Num):
+            v = node.n
+            return int(v) if isinstance(v, bool) else v
+        if hasattr(ast, 'Constant') and isinstance(node, ast.Constant):
+            v = node.value
+            if isinstance(v, bool):
+                return int(v)
+            if isinstance(v, (int, float, complex)):
+                return v
+        return None
+
+    def visit_UnaryOp(self, node):
+        self.generic_visit(node)
+        v = self._numval(node.operand)
+        if v is None:
+            return node
+        try:
+            if isinstance(node.op, ast.USub):
+                r = -v
+            elif isinstance(node.op, ast.UAdd):
+                r = +v
+            elif isinstance(node.op, ast.Invert):
+                r = ~v
+            else:
+                return node
+        except Exception:
+            return node
+        return ast.Num(n=r)
+
+    def _strval(self, node):
+        if hasattr(ast, 'Str') and isinstance(node, ast.Str):
+            return node.s
+        if hasattr(ast, 'Constant') and isinstance(node, ast.Constant) \
+                and isinstance(node.value, str):
+            return node.value
+        return None
+
+    def visit_BinOp(self, node):
+        self.generic_visit(node)
+        # compilers fold `'x' * n` into a literal string
+        if isinstance(node.op, ast.Mult):
+            ls, rn = self._strval(node.left), self._numval(node.right)
+            if ls is not None and isinstance(rn, int) and 0 <= rn <= 1000 \
+                    and len(ls) * rn <= 4096:
+                return ast.Str(s=ls * rn)
+        l = self._numval(node.left)
+        r = self._numval(node.right)
+        if l is None or r is None:
+            return node
+        op = node.op
+        try:
+            if isinstance(op, ast.Add):
+                v = l + r
+            elif isinstance(op, ast.Sub):
+                v = l - r
+            elif isinstance(op, ast.Mult):
+                v = l * r
+            elif isinstance(op, ast.Div):
+                v = l / r
+            elif isinstance(op, ast.FloorDiv):
+                v = l // r
+            elif isinstance(op, ast.Mod):
+                v = l % r
+            elif isinstance(op, ast.Pow):
+                if abs(r) > 64:
+                    return node
+                v = l ** r
+            elif isinstance(op, ast.LShift):
+                if r > 64:
+                    return node
+                v = l << r
+            elif isinstance(op, ast.RShift):
+                v = l >> r
+            elif isinstance(op, ast.BitOr):
+                v = l | r
+            elif isinstance(op, ast.BitXor):
+                v = l ^ r
+            elif isinstance(op, ast.BitAnd):
+                v = l & r
+            else:
+                return node
+        except Exception:
+            return node
+        if isinstance(v, bool):
+            v = int(v)
+        if isinstance(v, (int, float, complex)):
+            return ast.Num(n=v)
+        return node
+
+    def visit_Raise(self, node):
+        self.generic_visit(node)
+        # py2 `raise T, I` (type/inst fields) == decompiled `raise T(I)`
+        if hasattr(node, 'type') and getattr(node, 'inst', None) is not None                 and getattr(node, 'tback', None) is None:
+            node.type = ast.Call(func=node.type, args=[node.inst],
+                                 keywords=[], starargs=None, kwargs=None)
+            node.inst = None
+        return node
+
     def visit_Call(self, node):
         self.generic_visit(node)
+        # f(*(1, 2), *a) == f(1, 2, *a): expand starred constant tuples
+        star_cls = getattr(ast, 'Starred', None)
+        if star_cls is not None:
+            new_args = []
+            for a in node.args:
+                if isinstance(a, star_cls) and isinstance(a.value, (ast.Tuple, ast.List)):
+                    new_args.extend(a.value.elts)
+                else:
+                    new_args.append(a)
+            node.args = new_args
         # set(genexpr) == set comprehension, list(genexpr) == list comp
         # (decompiler renders pre-3.x style comprehension code this way)
         if (isinstance(node.func, ast.Name)

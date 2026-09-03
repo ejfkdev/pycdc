@@ -868,7 +868,7 @@ class _DeprecateByteStringMeta(ABCMeta):
         if name != 'ByteString':
             import warnings
             warnings._deprecated('collections.abc.ByteString', (3, 17))
-        return (cls, name, bases, namespace)({**kwargs})
+        return (cls, name, bases, namespace)(*{**kwargs})
 
     def __instancecheck__(cls, instance):
         import warnings

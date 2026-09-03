@@ -206,7 +206,7 @@ class RawConfigParser:
 
     def add_section(self, section):
         if section.lower() == 'default':
-            raise ValueError # WARNING: raise cause dropped (py2)
+            raise ValueError('Invalid section name: %s' % section)
         if section in self._sections:
             raise DuplicateSectionError(section)
         self._sections[section] = self._dict()
@@ -241,7 +241,6 @@ class RawConfigParser:
     def readfp(self, fp, filename=None):
         if filename is None:
             pass
-        filename = '<???>'
         self._read(fp, filename)
 
     def get(self, section, option):
@@ -284,7 +283,7 @@ class RawConfigParser:
     def getboolean(self, section, option):
         v = self.get(section, option)
         if v.lower() not in self._boolean_states:
-            raise ValueError # WARNING: raise cause dropped (py2)
+            raise ValueError('Not a boolean: %s' % v)
         return self._boolean_states[v.lower()]
 
     def optionxform(self, optionstr):

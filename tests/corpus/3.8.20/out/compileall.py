@@ -24,12 +24,12 @@ def _walk_dir(dir, ddir=None, maxlevels=10, quiet=0):
         dir = os.fspath(dir)
     if not quiet:
         print('Listing {!r}...'.format(dir))
-    names = []
     try:
         names = os.listdir(dir)
     except OSError:
         if quiet < 2:
             print("Can't list {!r}".format(dir))
+        names = []
     names.sort()
     for name in names:
         if name == '__pycache__':

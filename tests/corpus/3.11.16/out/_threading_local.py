@@ -176,7 +176,7 @@ def _patch(self):
     except KeyError:
         dct = impl.create_dict()
         args, kw = impl.localargs
-        self.__init__(args, **kw)
+        self.__init__(*args, **kw)
 
 class local:
     __slots__ = ('_local__impl', '__dict__')

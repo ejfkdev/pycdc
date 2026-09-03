@@ -41,8 +41,8 @@ from errno import errorcode
 _DISCONNECTED = frozenset({ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE, EBADF})
 try:
     socket_map
-except NameError as socket_map:
-    pass
+except NameError:
+    socket_map = {}
 
 def _strerror(err):
     try:
@@ -398,7 +398,7 @@ class dispatcher:
     def handle_accept(self):
         pair = self.accept()
         if pair is not None:
-            self.handle_accepted(pair)
+            self.handle_accepted(*pair)
 
     def handle_accepted(self, sock, addr):
         sock.close()

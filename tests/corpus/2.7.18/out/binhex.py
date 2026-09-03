@@ -163,7 +163,7 @@ class BinHex:
     def _writeinfo(self, name, finfo):
         nl = len(name)
         if nl > 63:
-            raise Error # WARNING: raise cause dropped (py2)
+            raise Error('Filename too long')
         d = chr(nl) + name + '\x00'
         d2 = finfo.Type + finfo.Creator
         d3 = struct.pack('>h', finfo.Flags)
@@ -186,13 +186,13 @@ class BinHex:
 
     def write(self, data):
         if self.state != _DID_HEADER:
-            raise Error # WARNING: raise cause dropped (py2)
+            raise Error('Writing data at the wrong time')
         self.dlen = self.dlen - len(data)
         self._write(data)
 
     def close_data(self):
         if self.dlen != 0:
-            raise Error # WARNING: raise cause dropped (py2)
+            raise Error('Incorrect data size, diff=%r' % (self.rlen,))
         self._writecrc()
         self.state = _DID_DATA
 
@@ -200,7 +200,7 @@ class BinHex:
         if self.state < _DID_DATA:
             self.close_data()
         if self.state != _DID_DATA:
-            raise Error # WARNING: raise cause dropped (py2)
+            raise Error('Writing resource data at the wrong time')
         self.rlen = self.rlen - len(data)
         self._write(data)
 
@@ -211,9 +211,9 @@ class BinHex:
             if self.state < _DID_DATA:
                 self.close_data()
             if self.state != _DID_DATA:
-                raise Error # WARNING: raise cause dropped (py2)
+                raise Error('Close at the wrong time')
             if self.rlen != 0:
-                raise Error # WARNING: raise cause dropped (py2)
+                raise Error('Incorrect resource-datasize, diff=%r' % (self.rlen,))
             self._writecrc()
         finally:
             self.state = None
@@ -265,13 +265,13 @@ class _Hqxdecoderengine:
                     pass
                 newdata = self.ifp.read(1)
                 if not newdata:
-                    raise Error # WARNING: raise cause dropped (py2)
+                    raise Error('Premature EOF on binhex file')
                 data = data + newdata
             decdata = decdata + decdatacur
             wtd = totalwtd - len(decdata)
             if not decdata:
                 if not self.eof:
-                    raise Error # WARNING: raise cause dropped (py2)
+                    raise Error('Premature EOF on binhex file')
         return decdata
 
     def close(self):
@@ -325,7 +325,7 @@ class HexBin:
         while True:
             ch = ifp.read(1)
             if not ch:
-                raise Error # WARNING: raise cause dropped (py2)
+                raise Error('No binhex data found')
             if ch == '\r':
                 continue
             if ch == ':':
@@ -346,7 +346,7 @@ class HexBin:
         filecrc = struct.unpack('>h', self.ifp.read(2))[0] & 65535
         self.crc = self.crc & 65535
         if filecrc != self.crc:
-            raise Error # WARNING: raise cause dropped (py2)
+            raise Error('CRC error, computed %x, read %x' % (self.crc, filecrc))
         self.crc = 0
 
     def _readheader(self):
@@ -368,7 +368,7 @@ class HexBin:
 
     def read(self, *n):
         if self.state != _DID_HEADER:
-            raise Error # WARNING: raise cause dropped (py2)
+            raise Error('Read data at wrong time')
         if n:
             n = n[0]
             n = min(n, self.dlen)
@@ -382,7 +382,7 @@ class HexBin:
 
     def close_data(self):
         if self.state != _DID_HEADER:
-            raise Error # WARNING: raise cause dropped (py2)
+            raise Error('close_data at wrong time')
         if self.dlen:
             dummy = self._read(self.dlen)
         self._checkcrc()
@@ -392,7 +392,7 @@ class HexBin:
         if self.state == _DID_HEADER:
             self.close_data()
         if self.state != _DID_DATA:
-            raise Error # WARNING: raise cause dropped (py2)
+            raise Error('Read resource data at wrong time')
         if n:
             n = n[0]
             n = min(n, self.rlen)

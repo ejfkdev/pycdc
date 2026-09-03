@@ -448,7 +448,7 @@ class LegacyInterpolation(Interpolation):
 
     _KEYCRE = re.compile('%\\(([^)]*)\\)s|.')
     def __init__(self, *args, **kwargs):
-        super().__init__(args, **kwargs)
+        super().__init__(*args, **kwargs)
         warnings.warn('LegacyInterpolation has been deprecated since Python 3.2 and will be removed from the configparser module in Python 3.13. Use BasicInterpolation or ExtendedInterpolation instead.', DeprecationWarning, 2)
 
     def before_get(self, parser, section, option, value, vars):
@@ -890,7 +890,7 @@ class SafeConfigParser(ConfigParser):
     '''ConfigParser alias for backwards compatibility purposes.'''
 
     def __init__(self, *args, **kwargs):
-        super().__init__(args, **kwargs)
+        super().__init__(*args, **kwargs)
         warnings.warn('The SafeConfigParser class has been renamed to ConfigParser in Python 3.2. This alias will be removed in Python 3.12. Use ConfigParser directly instead.', DeprecationWarning, 2)
 
 

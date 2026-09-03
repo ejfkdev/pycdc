@@ -231,7 +231,7 @@ def _reconstruct(x, memo, func, args, state=None, listiter=None, dictiter=None, 
     deep = memo is not None
     if deep and args:
         args = (deepcopy(arg, memo) for arg in args)
-    y = func(args)
+    y = func(*args)
     if deep:
         memo[id(x)] = y
     if state is not None:

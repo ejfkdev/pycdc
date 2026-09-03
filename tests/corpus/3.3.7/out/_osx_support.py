@@ -27,8 +27,8 @@ def _read_output(commandstring):
     try:
         import tempfile
         fp = tempfile.NamedTemporaryFile()
-    except ImportError as fp:
-        pass
+    except ImportError:
+        fp = open('/tmp/_osx_support.%s' % (os.getpid(),), 'w+b')
     with contextlib.closing(fp) as fp:
         cmd = "%s 2>/dev/null >'%s'" % (commandstring, fp.name)
         if not os.system(cmd):

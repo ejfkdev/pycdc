@@ -42,8 +42,8 @@ warnings.warn('The asyncore module is deprecated and will be removed in Python 3
 _DISCONNECTED = frozenset({ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE, EBADF})
 try:
     socket_map
-except NameError as socket_map:
-    pass
+except NameError:
+    socket_map = {}
 
 def _strerror(err):
     return os.strerror(err)
@@ -416,7 +416,7 @@ class dispatcher:
     def handle_accept(self):
         pair = self.accept()
         if pair is not None:
-            self.handle_accepted(pair)
+            self.handle_accepted(*pair)
             return
 
     def handle_accepted(self, sock, addr):

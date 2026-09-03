@@ -96,7 +96,7 @@ class Profile(_lsprof.Profiler):
         else:
             raise TypeError('runcall expected at least 1 positional argument, got %d' % (len(args) - 1))
         self.enable()
-        return func(args, **kw)
+        return func(*args, **kw)
         self.disable()
 
     runcall.__text_signature__ = '($self, func, /, *args, **kw)'

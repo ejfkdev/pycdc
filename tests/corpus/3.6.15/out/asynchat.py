@@ -104,7 +104,8 @@ class async_chat(asyncore.dispatcher):
             obs = self.ac_out_buffer_size
             try:
                 data = first[:obs]
-            except TypeError as data:
+            except TypeError:
+                data = first.more()
                 if data:
                     self.producer_fifo.appendleft(data)
                 else:

@@ -98,4 +98,3 @@ def interrupt_main():
     else:
         _interrupt = True
 
-# WARNING: Decompyle incomplete

@@ -65,7 +65,7 @@ def parse(fp=None, environ=os.environ, keep_blank_values=0, strict_parsing=0):
             clength = int(environ['CONTENT_LENGTH'])
             if maxlen:
                 if clength > maxlen:
-                    raise ValueError # WARNING: raise cause dropped (py2)
+                    raise ValueError('Maximum content length exceeded')
             qs = fp.read(clength)
         else:
             qs = ''
@@ -100,7 +100,7 @@ def parse_multipart(fp, pdict):
     if 'boundary' in pdict:
         boundary = pdict['boundary']
     if not valid_boundary(boundary):
-        raise ValueError # WARNING: raise cause dropped (py2)
+        raise ValueError('Invalid boundary in multipart form: %r' % (boundary,))
     nextpart = '--' + boundary
     lastpart = '--' + boundary + '--'
     partdict = {}
@@ -116,7 +116,7 @@ def parse_multipart(fp, pdict):
         if bytes > 0:
             if maxlen:
                 if bytes > maxlen:
-                    raise ValueError # WARNING: raise cause dropped (py2)
+                    raise ValueError('Maximum content length exceeded')
             data = fp.read(bytes)
             continue
         data = ''
@@ -322,7 +322,7 @@ class FieldStorage:
                 pass
             if maxlen:
                 if clen > maxlen:
-                    raise ValueError # WARNING: raise cause dropped (py2)
+                    raise ValueError('Maximum content length exceeded')
         self.length = clen
         self.list = None
         self.file = None
@@ -342,7 +342,7 @@ class FieldStorage:
 
     def __getattr__(self, name):
         if name != 'value':
-            raise AttributeError # WARNING: raise cause dropped (py2)
+            raise AttributeError(name)
         if self.file:
             self.file.seek(0)
             value = self.file.read()
@@ -355,14 +355,14 @@ class FieldStorage:
 
     def __getitem__(self, key):
         if self.list is None:
-            raise TypeError # WARNING: raise cause dropped (py2)
+            raise TypeError('not indexable')
         found = []
         for item in self.list:
             if item.name == key:
                 found.append(item)
                 continue
         if not found:
-            raise KeyError # WARNING: raise cause dropped (py2)
+            raise KeyError(key)
         if len(found) == 1:
             return found[0]
         return found
@@ -396,17 +396,17 @@ class FieldStorage:
 
     def keys(self):
         if self.list is None:
-            raise TypeError # WARNING: raise cause dropped (py2)
+            raise TypeError('not indexable')
         return list(set((item.name for item in self.list)))
 
     def has_key(self, key):
         if self.list is None:
-            raise TypeError # WARNING: raise cause dropped (py2)
+            raise TypeError('not indexable')
         return any((item.name == key for item in self.list))
 
     def __contains__(self, key):
         if self.list is None:
-            raise TypeError # WARNING: raise cause dropped (py2)
+            raise TypeError('not indexable')
         return any((item.name == key for item in self.list))
 
     def __len__(self):
@@ -429,7 +429,7 @@ class FieldStorage:
     def read_multi(self, environ, keep_blank_values, strict_parsing):
         ib = self.innerboundary
         if not valid_boundary(ib):
-            raise ValueError # WARNING: raise cause dropped (py2)
+            raise ValueError('Invalid boundary in multipart form: %r' % (ib,))
         self.list = []
         if self.qs_on_post:
             for key, value in urlparse.parse_qsl(self.qs_on_post, self.keep_blank_values, self.strict_parsing):
@@ -590,7 +590,7 @@ class SvFormContentDict(FormContentDict):
 
     def __getitem__(self, key):
         if len(self.dict[key]) > 1:
-            raise IndexError # WARNING: raise cause dropped (py2)
+            raise IndexError('expecting a single value')
         return self.dict[key][0]
 
     def getlist(self, key):

@@ -51,7 +51,7 @@ class ContextDecorator(object):
         @wraps(func)
         def inner(*args, **kwds):
             with self._recreate_cm():
-                return func(args, **kwds)
+                return func(*args, **kwds)
 
         return inner
 
@@ -60,7 +60,7 @@ class _GeneratorContextManagerBase:
     '''Shared functionality for @contextmanager and @asynccontextmanager.'''
 
     def __init__(self, func, args, kwds):
-        self.gen = func(args, **kwds)
+        self.gen = func(*args, **kwds)
         self.func = func
         self.args = args
         self.kwds = kwds
@@ -228,7 +228,7 @@ class _BaseExitStack:
     def _create_cb_wrapper(*args, **kwds):
         callback, *args = args
         def _exit_wrapper(exc_type, exc, tb):
-            callback(args, **kwds)
+            callback(*args, **kwds)
 
         return _exit_wrapper
 
@@ -357,7 +357,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
     def _create_async_cb_wrapper(*args, **kwds):
         callback, *args = args
         async def _exit_wrapper(exc_type, exc, tb):
-            await callback(args, **kwds)
+            await callback(*args, **kwds)
 
         return _exit_wrapper
 

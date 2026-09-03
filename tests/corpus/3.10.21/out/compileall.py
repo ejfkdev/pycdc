@@ -26,12 +26,12 @@ def _walk_dir(dir, maxlevels, quiet=0):
         dir = os.fspath(dir)
     if not quiet:
         print('Listing {!r}...'.format(dir))
-    names = []
     try:
         names = os.listdir(dir)
     except OSError:
         if quiet < 2:
             print("Can't list {!r}".format(dir))
+        names = []
     names.sort()
     for name in names:
         if name == '__pycache__':
@@ -100,7 +100,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         for spart, opart in zip(stripdir_parts, fullname_parts):
             if spart == opart:
                 ddir_parts.remove(spart)
-        dfile = os.path.join(ddir_parts)
+        dfile = os.path.join(*ddir_parts)
     if prependdir is not None:
         if dfile is None:
             dfile = os.path.join(prependdir, fullname)

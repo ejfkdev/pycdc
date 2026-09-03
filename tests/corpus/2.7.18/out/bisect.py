@@ -60,4 +60,3 @@ try:
     from _bisect import *
 except ImportError:
     pass
-# WARNING: Decompyle incomplete

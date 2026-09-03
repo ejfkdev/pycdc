@@ -192,8 +192,8 @@ class Cmd:
                     compfunc = self.completedefault
                 try:
                     compfunc = getattr(self, 'complete_' + cmd)
-                except AttributeError as compfunc:
-                    pass
+                except AttributeError:
+                    compfunc = self.completedefault
             else:
                 compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)

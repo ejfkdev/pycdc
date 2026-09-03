@@ -116,7 +116,6 @@ class InteractiveConsole(InteractiveInterpreter):
             self.write('%s\n' % str(banner))
         more = 0
         while True:
-            more = 0
             try:
                 if more:
                     prompt = sys.ps2
@@ -131,6 +130,7 @@ class InteractiveConsole(InteractiveInterpreter):
             except KeyboardInterrupt:
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
+                more = 0
             continue
             continue
 

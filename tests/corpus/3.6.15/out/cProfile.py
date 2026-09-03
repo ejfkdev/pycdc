@@ -88,7 +88,7 @@ class Profile(_lsprof.Profiler):
     def runcall(self, func, *args, **kw):
         self.enable()
         try:
-            return func(args, **kw)
+            return func(*args, **kw)
         finally:
             self.disable()
 
@@ -126,4 +126,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-# WARNING: Decompyle incomplete

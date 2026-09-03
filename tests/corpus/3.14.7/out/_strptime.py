@@ -560,7 +560,7 @@ def _strptime_time(data_string, format='%a %b %d %H:%M:%S %Y'):
 def _strptime_datetime_date(cls, data_string, format='%a %b %d %Y'):
     _strptime(data_string, format)
     tt, _, args = _strptime(data_string, format)
-    return cls(args)
+    return cls(*args)
 
 def _parse_tz(tzname, gmtoff, gmtoff_fraction):
     tzdelta = datetime_timedelta(seconds=gmtoff, microseconds=gmtoff_fraction)
@@ -573,17 +573,17 @@ def _strptime_datetime_time(cls, data_string, format='%H:%M:%S'):
     tzname, gmtoff = tt[-2:]
     args = tt[3:6] + (fraction,)
     if not gmtoff is not None:
-        return cls(args)
+        return cls(*args)
     tz = _parse_tz(tzname, gmtoff, gmtoff_fraction)
-    return cls([*args, tz])
+    return cls(*[*args, tz])
 
 def _strptime_datetime_datetime(cls, data_string, format='%a %b %d %H:%M:%S %Y'):
     tt, fraction, gmtoff_fraction = _strptime(data_string, format)
     tzname, gmtoff = tt[-2:]
     args = tt[:6] + (fraction,)
     if not gmtoff is not None:
-        return cls(args)
+        return cls(*args)
     tz = _parse_tz(tzname, gmtoff, gmtoff_fraction)
-    return cls([*args, tz])
+    return cls(*[*args, tz])
 
 # WARNING: Decompyle incomplete

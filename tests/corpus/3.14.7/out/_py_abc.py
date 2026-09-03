@@ -19,7 +19,7 @@ even via super()).
 
     _abc_invalidation_counter = 0
     def __new__(mcls, name, bases, namespace, /, **kwargs):
-        cls = (mcls, name, bases, namespace)({**kwargs})
+        cls = (mcls, name, bases, namespace)(*{**kwargs})
         for abstracts, base in bases:
             for value in getattr(base, '__abstractmethods__', set()):
                 abstracts.add(name)

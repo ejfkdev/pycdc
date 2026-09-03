@@ -22,11 +22,11 @@ __all__ = ['compile_dir', 'compile_file', 'compile_path']
 def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=False, legacy=False, optimize=-1):
     if not quiet:
         print('Listing {!r}...'.format(dir))
-    names = []
     try:
         names = os.listdir(dir)
     except os.error:
         print("Can't list {!r}".format(dir))
+        names = []
     names.sort()
     success = 1
     for name in names:

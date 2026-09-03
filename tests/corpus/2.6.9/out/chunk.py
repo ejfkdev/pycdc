@@ -88,14 +88,14 @@ class Chunk:
 
     def isatty(self):
         if self.closed:
-            raise ValueError # WARNING: raise cause dropped (py2)
+            raise ValueError('I/O operation on closed file')
         return False
 
     def seek(self, pos, whence=0):
         if self.closed:
-            raise ValueError # WARNING: raise cause dropped (py2)
+            raise ValueError('I/O operation on closed file')
         if not self.seekable:
-            raise IOError # WARNING: raise cause dropped (py2)
+            raise IOError('cannot seek')
         if whence == 1:
             pos = pos + self.size_read
         elif whence == 2:
@@ -108,12 +108,12 @@ class Chunk:
 
     def tell(self):
         if self.closed:
-            raise ValueError # WARNING: raise cause dropped (py2)
+            raise ValueError('I/O operation on closed file')
         return self.size_read
 
     def read(self, size=-1):
         if self.closed:
-            raise ValueError # WARNING: raise cause dropped (py2)
+            raise ValueError('I/O operation on closed file')
         if self.size_read >= self.chunksize:
             return ''
         if size < 0:
@@ -131,7 +131,7 @@ class Chunk:
 
     def skip(self):
         if self.closed:
-            raise ValueError # WARNING: raise cause dropped (py2)
+            raise ValueError('I/O operation on closed file')
         if self.seekable:
             pass
         while self.size_read < self.chunksize:

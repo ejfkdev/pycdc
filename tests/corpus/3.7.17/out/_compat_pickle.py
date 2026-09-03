@@ -26,4 +26,3 @@ for excname in PYTHON3_OSERROR_EXCEPTIONS:
 PYTHON3_IMPORTERROR_EXCEPTIONS = ('ModuleNotFoundError',)
 for excname in PYTHON3_IMPORTERROR_EXCEPTIONS:
     REVERSE_NAME_MAPPING['builtins', excname] = ('exceptions', 'ImportError')
-# WARNING: Decompyle incomplete

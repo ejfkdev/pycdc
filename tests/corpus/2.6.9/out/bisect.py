@@ -69,4 +69,3 @@ try:
     from _bisect import bisect
 except ImportError:
     pass
-# WARNING: Decompyle incomplete

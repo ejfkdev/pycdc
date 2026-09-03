@@ -109,14 +109,13 @@ class Cmd:
                     line = self.cmdqueue.pop(0)
                 elif self.use_rawinput:
                     continue
-                line = 'EOF'
                 line = self.precmd(line)
                 stop = self.onecmd(line)
                 stop = self.postcmd(stop, line)
                 try:
                     line = raw_input(self.prompt)
                 except EOFError:
-                    pass
+                    line = 'EOF'
                 continue
             self.postloop()
         finally:
@@ -200,11 +199,10 @@ class Cmd:
                 cmd, args, foo = self.parseline(line)
                 if cmd == '':
                     compfunc = self.completedefault
-                compfunc = self.completedefault
                 try:
                     compfunc = getattr(self, 'complete_' + cmd)
                 except AttributeError:
-                    pass
+                    compfunc = self.completedefault
             else:
                 compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
@@ -281,7 +279,7 @@ class Cmd:
         del _[1]
         nonstrings = _[1]
         if nonstrings:
-            raise TypeError # WARNING: raise cause dropped (py2)
+            raise TypeError('list[i] not a string for i in %s' % ', '.join(map(str, nonstrings)))
         size = len(list)
         if size == 1:
             self.stdout.write('%s\n' % str(list[0]))

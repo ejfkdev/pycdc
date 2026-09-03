@@ -11,8 +11,8 @@ _have_code = types.MethodType, types.FunctionType, types.CodeType, type
 def _try_compile(source, name):
     try:
         c = compile(source, name, 'eval')
-    except SyntaxError as c:
-        pass
+    except SyntaxError:
+        c = compile(source, name, 'exec')
     return c
 
 def dis(x=None):

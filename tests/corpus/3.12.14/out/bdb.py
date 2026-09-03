@@ -446,7 +446,7 @@ class Bdb:
         sys.settrace(self.trace_dispatch)
         res = None
         try:
-            res = func(args, **kwds)
+            res = func(*args, **kwds)
         except BdbQuit:
             pass
         self.quitting = True

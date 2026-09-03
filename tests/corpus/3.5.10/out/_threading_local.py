@@ -175,7 +175,8 @@ def _patch(self):
     impl = object.__getattribute__(self, '_local__impl')
     try:
         dct = impl.get_dict()
-    except KeyError as dct:
+    except KeyError:
+        dct = impl.create_dict()
         args, kw = impl.localargs
         self.__init__(*args, **kw)
     with impl.locallock:
@@ -214,4 +215,3 @@ class local:
 
 from threading import current_thread
 from threading import RLock
-# WARNING: Decompyle incomplete

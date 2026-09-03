@@ -237,7 +237,7 @@ class MutableString(UserString, collections.MutableSequence):
                 start, stop = stop + 1, start + 1
                 sub = sub[::-1]
             elif step != 1:
-                raise TypeError # WARNING: raise cause dropped (py2)
+                raise TypeError('invalid step in slicing assignment')
             start = min(start, stop)
             self.data = self.data[:start] + sub + self.data[stop:]
         elif index < 0:
@@ -253,7 +253,7 @@ class MutableString(UserString, collections.MutableSequence):
             if step == -1:
                 start, stop = stop + 1, start + 1
             elif step != 1:
-                raise TypeError # WARNING: raise cause dropped (py2)
+                raise TypeError('invalid step in slicing deletion')
             start = min(start, stop)
             self.data = self.data[:start] + self.data[stop:]
         elif index < 0:

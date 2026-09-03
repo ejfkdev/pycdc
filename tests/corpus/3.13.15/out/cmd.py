@@ -234,7 +234,7 @@ in order to inherit Cmd's methods and encapsulate action methods.
         return dir(self.__class__)
 
     def complete_help(self, *args):
-        commands = None(self.completenames(args))
+        commands = None(self.completenames(*args))
         topics = set((None for a in self.get_names() if a.startswith('help_' + args[0])))
         return list(commands | topics)
 

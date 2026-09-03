@@ -50,9 +50,9 @@
    "module": "_compression",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 309,
+   "ndiff": 308,
    "ntotal": 614,
-   "detail": "line 204: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 295: orig ('JUMP_FORWARD', 'to 278') | got ('LOAD_CONST', 'None')\nline 296: orig ('PUSH_EXC_INFO', '') | got ('RETURN_VALUE', '')"
+   "detail": "line 295: orig ('JUMP_FORWARD', 'to 278') | got ('LOAD_CONST', 'None')\nline 296: orig ('PUSH_EXC_INFO', '') | got ('RETURN_VALUE', '')\nline 297: orig ('WITH_EXCEPT_START', '') | got ('PUSH_EXC_INFO', '')"
   },
   {
    "module": "_markupbase",
@@ -102,7 +102,7 @@
    "module": "_threading_local",
    "ast_detail": "diff at token 116: orig  If(test=Compare(left=Name(id='thread' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 443,
+   "ndiff": 444,
    "ntotal": 494,
    "detail": "line 42: orig ('LOAD_CONST', \"('current_thread', 'RLock')\") | got ('LOAD_CONST', \"('current_thread',)\")\nline 46: orig ('IMPORT_FROM', 'RLock') | got ('POP_TOP', '')\nline 47: orig ('STORE_NAME', 'RLock') | got ('LOAD_CONST', '0')"
   },
@@ -180,7 +180,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 158: orig  keywords=[]))])] | dec  keywords=[]))",
+   "ast_detail": "diff at token 155: orig  keywords=[]))])] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 550,
    "ntotal": 742,
@@ -206,8 +206,8 @@
    "module": "cgitb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1607,
-   "ntotal": 1705,
+   "ndiff": 1611,
+   "ntotal": 1703,
    "detail": "line 59: orig ('KW_NAMES', '') | got ('PRECALL', '')\nline 60: orig ('PRECALL', '') | got ('CALL', '')\nline 61: orig ('CALL', '') | got ('POP_TOP', '')"
   },
   {
@@ -258,7 +258,7 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1499,
+   "ndiff": 1503,
    "ntotal": 1565,
    "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
@@ -266,7 +266,7 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3915,
+   "ndiff": 3924,
    "ntotal": 4746,
    "detail": "line 764: orig ('KW_NAMES', '') | got ('PRECALL', '')\nline 765: orig ('PRECALL', '') | got ('CALL', '')\nline 766: orig ('CALL', '') | got ('POP_TOP', '')"
   },
@@ -274,7 +274,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 62: orig  body=[Return(value=Constant(value=None))] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2197,
+   "ndiff": 2203,
    "ntotal": 2283,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },

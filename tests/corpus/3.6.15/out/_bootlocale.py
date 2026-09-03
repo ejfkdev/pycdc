@@ -12,8 +12,11 @@ if sys.platform.startswith('win'):
 
 try:
     _locale.CODESET
-except AttributeError as getpreferredencoding:
-    pass
+except AttributeError:
+    def getpreferredencoding(do_setlocale=True):
+        import locale
+        return locale.getpreferredencoding(do_setlocale)
+
 else:
     def getpreferredencoding(do_setlocale=True):
         assert not do_setlocale
@@ -22,4 +25,3 @@ else:
             result = 'UTF-8'
         return result
 
-# WARNING: Decompyle incomplete

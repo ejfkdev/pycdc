@@ -19,4 +19,3 @@ from re import IGNORECASE
 from re import escape as re_escape
 from datetime import date as datetime_date
 from dummy_thread import allocate_lock as _thread_allocate_lock
-# WARNING: Decompyle incomplete

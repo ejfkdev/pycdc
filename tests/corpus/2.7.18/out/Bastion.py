@@ -55,13 +55,13 @@ class BastionClass:
 
 
 def Bastion(object, filter=lambda name: name[:1] != '_', name=None, bastionclass=BastionClass):
-    raise RuntimeError # WARNING: raise cause dropped (py2)
+    raise RuntimeError('This code is not secure in Python 2.2 and later')
     def get1(name, object=object, filter=filter):
         if filter(name):
             attribute = getattr(object, name)
             if type(attribute) == MethodType:
                 return attribute
-        raise AttributeError # WARNING: raise cause dropped (py2)
+        raise AttributeError(name)
 
     def get2(name, get1=get1):
         return get1(name)

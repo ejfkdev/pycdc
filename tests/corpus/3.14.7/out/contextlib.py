@@ -58,7 +58,7 @@ class ContextDecorator(object):
         @wraps(func)
         def inner(*args, **kwds):
             self._recreate_cm()./*bad-name-1*/()
-            args({**kwds})(None, None, None)
+            args(*{**kwds})(None, None, None)
 
         return inner
 
@@ -73,7 +73,7 @@ class AsyncContextDecorator(object):
         @wraps(func)
         async def inner(*args, **kwds):
             await self._recreate_cm()./*bad-name-3*/()
-            await (await args({**kwds}))(None, None, None)
+            await (await args(*{**kwds}))(None, None, None)
 
         return inner
 
@@ -82,7 +82,7 @@ class _GeneratorContextManagerBase:
     '''Shared functionality for @contextmanager and @asynccontextmanager.'''
 
     def __init__(self, func, args, kwds):
-        self.gen = args({**kwds})
+        self.gen = args(*{**kwds})
         self.func = func
         self.args = args
         self.kwds = kwds
@@ -318,7 +318,7 @@ class _BaseExitStack:
     @staticmethod
     def _create_cb_wrapper(callback, /, *args, **kwds):
         def _exit_wrapper(exc_type, exc, tb):
-            args({**kwds})
+            args(*{**kwds})
 
         return _exit_wrapper
 
@@ -352,7 +352,7 @@ class _BaseExitStack:
         return result
 
     def callback(self, callback, /, *args, **kwds):
-        _exit_wrapper = [callback, *args]({**kwds})
+        _exit_wrapper = [callback, *args](*{**kwds})
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper)
         return callback
@@ -404,7 +404,7 @@ For example:
                 exc_details = (None, None, None)
             else:
                 exc_details = type(exc), exc, exc.__traceback__
-            if cb(exc_details):
+            if cb(*exc_details):
                 try:
                     suppressed_exc = True
                     pending_raise = False
@@ -447,7 +447,7 @@ For example:
     @staticmethod
     def _create_async_cb_wrapper(callback, /, *args, **kwds):
         async def _exit_wrapper(exc_type, exc, tb):
-            await args({**kwds})
+            await args(*{**kwds})
 
         return _exit_wrapper
 
@@ -472,7 +472,7 @@ For example:
         return exit
 
     def push_async_callback(self, callback, /, *args, **kwds):
-        _exit_wrapper = [callback, *args]({**kwds})
+        _exit_wrapper = [callback, *args](*{**kwds})
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper, False)
         return callback
@@ -513,14 +513,14 @@ For example:
                     exc_details = type(exc), exc, exc.__traceback__
                 if is_sync:
                     try:
-                        cb_suppress = cb(exc_details)
+                        cb_suppress = cb(*exc_details)
                     except BaseException:
                         new_exc = None
                         _fix_exception_context(new_exc, exc)
                         pending_raise = True
                         exc = new_exc
             finally:
-                cb_suppress = await cb(exc_details)
+                cb_suppress = await cb(*exc_details)
                 if cb_suppress:
                     try:
                         suppressed_exc = True

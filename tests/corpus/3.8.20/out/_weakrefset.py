@@ -183,4 +183,3 @@ class WeakSet:
         return repr(self.data)
 
 
-# WARNING: Decompyle incomplete

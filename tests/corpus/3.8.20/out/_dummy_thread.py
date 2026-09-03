@@ -26,7 +26,7 @@ def start_new_thread(function, args, kwargs={}):
     import traceback
     traceback.print_exc()
     try:
-        function(args, **kwargs)
+        function(*args, **kwargs)
     except SystemExit:
         pass
     _main = True
@@ -131,4 +131,3 @@ def interrupt_main():
     else:
         _interrupt = True
 
-# WARNING: Decompyle incomplete

@@ -573,7 +573,7 @@ def getwriter(encoding):
     return lookup(encoding).streamwriter
 
 def iterencode(iterator, encoding, errors='strict', **kwargs):
-    encoder = (errors,)({**kwargs})
+    encoder = (errors,)(*{**kwargs})
     for input in iterator:
         output = encoder.encode(input)
         yield output
@@ -583,7 +583,7 @@ def iterencode(iterator, encoding, errors='strict', **kwargs):
         return
 
 def iterdecode(iterator, encoding, errors='strict', **kwargs):
-    decoder = (errors,)({**kwargs})
+    decoder = (errors,)(*{**kwargs})
     for input in iterator:
         output = decoder.decode(input)
         yield output

@@ -464,7 +464,7 @@ month and weekday names in the specified locale.
 
 class _CLIDemoCalendar(TextCalendar):
     def __init__(self, highlight_day=None, *args, **kwargs):
-        args({**kwargs})
+        args(*{**kwargs})
         self.highlight_day = highlight_day
 
     def formatweek(self, theweek, width, *, highlight_day=None):
@@ -537,7 +537,7 @@ class _CLIDemoCalendar(TextCalendar):
 
 class _CLIDemoLocaleCalendar(LocaleTextCalendar, _CLIDemoCalendar):
     def __init__(self, highlight_day=None, *args, **kwargs):
-        args({**kwargs})
+        args(*{**kwargs})
         self.highlight_day = highlight_day
 
 
@@ -617,9 +617,9 @@ def main(args=None):
         optdict = dict(encoding=encoding, css=options.css)
         write = sys.stdout.buffer.write
         if not options.year is not None:
-            write((today.year,)({**optdict}))
+            write((today.year,)(*{**optdict}))
             return
-        write((options.year,)({**optdict}))
+        write((options.year,)(*{**optdict}))
         return
     if options.locale:
         cal = _CLIDemoLocaleCalendar(highlight_day=today, locale=locale)
@@ -633,11 +633,11 @@ def main(args=None):
     else:
         _validate_month(options.month)
     if not options.year is not None:
-        result = (today.year,)({**optdict})
+        result = (today.year,)(*{**optdict})
     if not options.month is not None:
-        result = (options.year,)({**optdict})
+        result = (options.year,)(*{**optdict})
     else:
-        result = (options.year, options.month)({**optdict})
+        result = (options.year, options.month)(*{**optdict})
     write = sys.stdout.write
     if options.encoding:
         result = result.encode(options.encoding)

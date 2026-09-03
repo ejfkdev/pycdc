@@ -24,7 +24,7 @@ def _run_exitfuncs():
             continue
         continue
     if exc_info is not None:
-        raise exc_info[1] # WARNING: raise cause dropped (py2)
+        raise exc_info[0](exc_info[1])
 
 def register(func, *targs, **kargs):
     _exithandlers.append((func, targs, kargs))

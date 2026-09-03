@@ -13,10 +13,19 @@ if sys.platform.startswith('win'):
         return _locale._getdefaultlocale()[1]
 
 if hasattr(sys, 'getandroidapilevel'):
-    pass
+    def getpreferredencoding(do_setlocale=True):
+        return 'UTF-8'
+
+else:
+    def getpreferredencoding(do_setlocale=True):
+        if sys.flags.utf8_mode:
+            return 'UTF-8'
+        import locale
+        return locale.getpreferredencoding(do_setlocale)
+
 try:
     _locale.CODESET
-except AttributeError as getpreferredencoding:
+except AttributeError:
     pass
 else:
     def getpreferredencoding(do_setlocale=True):
@@ -30,4 +39,3 @@ else:
                 result = 'UTF-8'
         return result
 
-# WARNING: Decompyle incomplete

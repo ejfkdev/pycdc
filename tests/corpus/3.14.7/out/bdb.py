@@ -74,7 +74,7 @@ class _MonitoringTracer:
             if self._tracing_thread != threading.current_thread():
                 return
             frame = sys._getframe().f_back
-            ret = func([frame, *args])
+            ret = func(*[frame, *args])
             if self._enabled:
                 if frame.f_trace:
                     self.update_local_events()
@@ -718,7 +718,7 @@ is determined by the __name__ in the frame globals.
         self.start_trace()
         res = None
         try:
-            res = args({**kwds})
+            res = args(*{**kwds})
         except BdbQuit:
             pass
         self.quitting = True

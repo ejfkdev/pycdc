@@ -28,8 +28,8 @@ def _read_output(commandstring, capture_stderr=False):
     try:
         import tempfile
         fp = tempfile.NamedTemporaryFile()
-    except ImportError as fp:
-        pass
+    except ImportError:
+        fp = open('/tmp/_osx_support.%s' % (os.getpid(),), 'w+b')
     with contextlib.closing(fp) as fp:
         if capture_stderr:
             cmd = "%s >'%s' 2>&1" % (commandstring, fp.name)
@@ -60,11 +60,10 @@ def _get_system_version_tuple():
         osx_version = _get_system_version()
         if osx_version:
             pass
-        _SYSTEM_VERSION_TUPLE = ()
     try:
         _SYSTEM_VERSION_TUPLE = tuple((int(i) for i in osx_version.split('.')))
     except ValueError:
-        pass
+        _SYSTEM_VERSION_TUPLE = ()
     return _SYSTEM_VERSION_TUPLE
 
 def _remove_original_values(_config_vars):

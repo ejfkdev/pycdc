@@ -2,15 +2,15 @@
  "2.6.9": {
   "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
   "counts": {
-   "SIG-DIFF": 39,
-   "AST-PASS": 1
+   "SIG-DIFF": 38,
+   "AST-PASS": 2
   }
  },
  "2.7.18": {
   "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
   "counts": {
-   "SIG-DIFF": 37,
-   "AST-PASS": 2,
+   "SIG-DIFF": 35,
+   "AST-PASS": 4,
    "PASS": 1
   }
  },
@@ -73,8 +73,8 @@
   "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
   "counts": {
    "PASS": 6,
-   "SIG-DIFF": 33,
-   "AST-PASS": 1
+   "SIG-DIFF": 32,
+   "AST-PASS": 2
   }
  },
  "3.7.17": {

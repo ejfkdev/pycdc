@@ -99,7 +99,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             if quiet < 2:
                 print('The stripdir path {!r} is not a valid prefix for source path {!r}; ignoring'.format(stripdir, fullname))
         else:
-            dfile = os.path.join(fullname_parts[len(stripdir_parts):])
+            dfile = os.path.join(*fullname_parts[len(stripdir_parts):])
     if not prependdir is None:
         if not dfile is not None:
             dfile = os.path.join(prependdir, fullname)

@@ -926,7 +926,7 @@ class SafeConfigParser(ConfigParser):
     '''ConfigParser alias for backwards compatibility purposes.'''
 
     def __init__(self, *args, **kwargs):
-        super().__init__(args, **kwargs)
+        super().__init__(*args, **kwargs)
         warnings.warn('The SafeConfigParser class has been renamed to ConfigParser in Python 3.2. This alias will be removed in Python 3.12. Use ConfigParser directly instead.', DeprecationWarning, stacklevel=2)
 
 

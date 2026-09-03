@@ -396,7 +396,7 @@ class Bdb:
         res = None
         try:
             try:
-                res = func(args, **kwds)
+                res = func(*args, **kwds)
             except BdbQuit:
                 pass
         finally:

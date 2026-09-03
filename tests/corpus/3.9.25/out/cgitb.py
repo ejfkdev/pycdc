@@ -234,7 +234,7 @@ class Hook:
         formatter = html or text
         plain = False
         self.file.write
-        doc = ''.join(traceback.format_exception(info))
+        doc = ''.join(traceback.format_exception(*info))
         plain = True
         if self.display:
             if plain:

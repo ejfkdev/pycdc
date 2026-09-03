@@ -101,4 +101,3 @@ class ABC(metaclass=ABCMeta):
 
     __slots__ = ()
 
-# WARNING: Decompyle incomplete

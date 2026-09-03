@@ -163,7 +163,7 @@ class DictMixin:
 
     def pop(self, key, *args):
         if len(args) > 1:
-            raise TypeError # WARNING: raise cause dropped (py2)
+            raise TypeError('pop expected at most 2 arguments, got ' + repr(1 + len(args)))
         try:
             value = self[key]
         except KeyError:
@@ -177,7 +177,7 @@ class DictMixin:
         try:
             k, v = self.iteritems().next()
         except StopIteration:
-            raise KeyError # WARNING: raise cause dropped (py2)
+            raise KeyError('container is empty')
         del self[k]
         return k, v
 

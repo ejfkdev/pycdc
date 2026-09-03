@@ -126,4 +126,3 @@ class CommandCompiler:
         return _maybe_compile(self.compiler, source, filename, symbol)
 
 
-# WARNING: Decompyle incomplete

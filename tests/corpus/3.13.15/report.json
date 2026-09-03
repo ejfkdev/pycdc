@@ -116,7 +116,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 22: orig  body=[Return(value=BinOp(left=Constant(value='Use %s() or %s to exit') | dec  body=[Return(value=JoinedStr(values=[Constant(value='Use ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 184,
+   "ndiff": 189,
    "ntotal": 338,
    "detail": "line 86: orig ('POP_TOP', '') | got ('LOAD_GLOBAL', 'SystemExit + NULL')\nline 87: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'code')\nline 88: orig ('JUMP_BACKWARD_NO_INTERRUPT', 'to L1') | got ('CALL', '')"
   },
@@ -165,7 +165,7 @@
    "module": "bdb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2600,
+   "ndiff": 2615,
    "ntotal": 2733,
    "detail": "line 23: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 27: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 28: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -187,11 +187,11 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 112: orig  args=[Starred(value=Name(id='sort' | dec  args=[Name(id='sort'",
+   "ast_detail": "diff at token 138: orig  ctx=Load())]))])]) | dec  ctx=Load())]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 417,
+   "ndiff": 510,
    "ntotal": 703,
-   "detail": "line 90: orig ('LOAD_FAST', 'locals') | got ('LOAD_FAST_LOAD_FAST', 'locals, filename')\nline 91: orig ('LOAD_FAST_LOAD_FAST', 'filename, sort') | got ('LOAD_FAST', 'sort')\nline 153: orig ('LOAD_ATTR', 'sort_stats') | got ('LOAD_ATTR', 'sort_stats + NULL|self')"
+   "detail": "line 90: orig ('LOAD_FAST', 'locals') | got ('LOAD_FAST_LOAD_FAST', 'locals, filename')\nline 91: orig ('LOAD_FAST_LOAD_FAST', 'filename, sort') | got ('LOAD_FAST', 'sort')\nline 184: orig ('LOAD_CONST', 'None') | got ('NOP', '')"
   },
   {
    "module": "calendar",
@@ -205,8 +205,8 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1168,
-   "ntotal": 1427,
+   "ndiff": 1165,
+   "ntotal": 1428,
    "detail": "line 240: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_IF_TRUE', 'to L10')\nline 241: orig ('POP_JUMP_IF_TRUE', 'to L12') | got ('LOAD_FAST', 'self')\nline 242: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'cmdqueue')"
   },
   {
@@ -246,7 +246,7 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4349,
+   "ndiff": 4040,
    "ntotal": 4503,
    "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_CONST', '0')"
   },
@@ -254,7 +254,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 54: orig  body=[Return(value=Constant(value=None))] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2129,
+   "ndiff": 2142,
    "ntotal": 2204,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
@@ -278,7 +278,7 @@
    "module": "csv",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1612,
+   "ndiff": 1600,
    "ntotal": 1645,
    "detail": "line 13: orig ('LOAD_CONST', \"('Error', 'writer', 'reader', 'register_dialect', 'unregister_dialect', 'get_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 17: orig ('IMPORT_FROM', 'writer') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'writer') | got ('LOAD_CONST', '0')"
   },
