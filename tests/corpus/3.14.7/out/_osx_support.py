@@ -61,7 +61,7 @@ def _get_system_version():
         try:
             f = open('/System/Library/CoreServices/SystemVersion.plist', 'utf-8')
         except OSError:
-            pass
+            return _SYSTEM_VERSION
         # WARNING: unrecovered try/except structure
         m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
         f.close()
@@ -92,6 +92,7 @@ two version numbers.
                         _SYSTEM_VERSION_TUPLE = None((int(i) for i in osx_version.split('.')))
                     except ValueError:
                         _SYSTEM_VERSION_TUPLE = ()
+                        return _SYSTEM_VERSION_TUPLE
             finally:
                 return _SYSTEM_VERSION_TUPLE
                 return _SYSTEM_VERSION_TUPLE
@@ -308,6 +309,9 @@ barf if multiple '-isysroot' arguments are present.
                         sys.stderr.write('Please check your Xcode installation\n')
                         sys.stderr.flush()
                 return compiler_so
+                x, i = None, None
+                x, i = None, None
+                x, i = None, None
 
 def customize_config_vars(_config_vars):
     '''Customize Python build configuration variables.

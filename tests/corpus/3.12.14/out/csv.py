@@ -52,8 +52,6 @@ class Dialect:
             _Dialect(self)
         except TypeError as e:
             raise Error(str(e))
-            e = None
-            del e
 
 
 class excel(Dialect):
@@ -230,8 +228,11 @@ class Sniffer:
             if key:
                 quotes[key] = quotes.get(key, 0) + 1
             try:
-                n = groupindex['delim'] - 1
-                key = m[n]
+                try:
+                    n = groupindex['delim'] - 1
+                    key = m[n]
+                except KeyError:
+                    pass
             except KeyError:
                 pass
             if key:
@@ -361,9 +362,12 @@ class Sniffer:
             for col in list(columnTypes.keys()):
                 thisType = complex
                 try:
-                    thisType(row[col])
-                except (ValueError, OverflowError):
-                    thisType = len(row[col])
+                    try:
+                        thisType(row[col])
+                    except (ValueError, OverflowError):
+                        thisType = len(row[col])
+                except (ValueError, TypeError):
+                    hasHeader += 1
                 if not columnTypes[col] is not None:
                     columnTypes[col] = thisType
                     continue

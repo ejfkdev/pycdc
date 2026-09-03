@@ -62,6 +62,7 @@ line.
             code = self.compile(source, filename, symbol)
         except (OverflowError, SyntaxError, ValueError):
             self.showsyntaxerror(filename, source)
+            return False
         if not code is not None:
             return True
         self.runcode(code)
@@ -149,6 +150,7 @@ The output is written by self.write(), below.
             print(file=sys.stderr)
             print('Original exception was:', sys.stderr)
             sys.__excepthook__(typ, value, tb)
+            return
 
     def _excepthook(self, typ, value, tb):
         lines = traceback.format_exception(typ, value, tb)
@@ -195,13 +197,37 @@ a default message is printed.
 """
 
         try:
-            sys.ps1
-        except AttributeError:
-            sys.ps1 = '>>> '
+            try:
+                sys.ps1
+            except EOFError:
+                self.write('\n')
+        except KeyboardInterrupt:
+            self.write('\nKeyboardInterrupt\n')
+            self.resetbuffer()
+            more = 0
+        finally:
+            if not _exit is None:
+                builtins.exit = _exit
+            if not _quit is None:
+                builtins.quit = _quit
+            if not exitmsg is not None:
+                self.write('now exiting %s...\n' % self.__class__.__name__)
         try:
-            sys.ps2
-        except AttributeError:
-            sys.ps2 = '... '
+            try:
+                sys.ps2
+            except EOFError:
+                self.write('\n')
+        except KeyboardInterrupt:
+            self.write('\nKeyboardInterrupt\n')
+            self.resetbuffer()
+            more = 0
+        finally:
+            if not _exit is None:
+                builtins.exit = _exit
+            if not _quit is None:
+                builtins.quit = _quit
+            if not exitmsg is not None:
+                self.write('now exiting %s...\n' % self.__class__.__name__)
         cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
         if not banner is not None:
             self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
@@ -217,24 +243,63 @@ a default message is printed.
             if hasattr(builtins, 'quit'):
                 _quit = builtins.quit
                 builtins.quit = Quitter('quit')
-        while True:
+        try:
+            # WARNING: continue outside loop (unrecovered structure)
+            pass
+        finally:
             try:
-                if more:
-                    prompt = sys.ps2
-                else:
-                    prompt = sys.ps1
-            except KeyboardInterrupt:
-                self.write('\nKeyboardInterrupt\n')
-                self.resetbuffer()
-                more = 0
-            except SystemExit as e:
-                if self.local_exit:
-                    self.write('\n')
-            try:
-                line = self.raw_input(prompt)
-            except EOFError:
-                self.write('\n')
-            more = self.push(line)
+                while True:
+                    try:
+                        if more:
+                            prompt = sys.ps2
+                        else:
+                            prompt = sys.ps1
+                    except KeyboardInterrupt:
+                        self.write('\nKeyboardInterrupt\n')
+                        self.resetbuffer()
+                        more = 0
+                    try:
+                        try:
+                            line = self.raw_input(prompt)
+                        except EOFError:
+                            self.write('\n')
+                    except KeyboardInterrupt:
+                        self.write('\nKeyboardInterrupt\n')
+                        self.resetbuffer()
+                        more = 0
+                    finally:
+                        if not _exit is None:
+                            builtins.exit = _exit
+                        if not _quit is None:
+                            builtins.quit = _quit
+                        if not exitmsg is not None:
+                            self.write('now exiting %s...\n' % self.__class__.__name__)
+                    more = self.push(line)
+            finally:
+                if not _exit is None:
+                    builtins.exit = _exit
+                if not _quit is None:
+                    builtins.quit = _quit
+                if not exitmsg is not None:
+                    self.write('now exiting %s...\n' % self.__class__.__name__)
+                try:
+                    pass
+                finally:
+                    if not _exit is None:
+                        builtins.exit = _exit
+                    if not _quit is None:
+                        builtins.quit = _quit
+                    if not exitmsg is not None:
+                        self.write('now exiting %s...\n' % self.__class__.__name__)
+                    if exitmsg != '':
+                        self.write('%s\n' % exitmsg)
+            return
+            if exitmsg != '':
+                self.write('%s\n' % exitmsg)
+                return
+            return
+            if exitmsg != '':
+                self.write('%s\n' % exitmsg)
 
     def push(self, line, filename=None, _symbol='single'):
         self.buffer.append(line)

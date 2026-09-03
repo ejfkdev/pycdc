@@ -54,6 +54,7 @@ class DecompressReader(io.RawIOBase):
             with view.cast('B') as byte_view:
                 data = self.read(len(byte_view))
                 byte_view[:len(data)] = data
+        return len(data)
 
     def read(self, size=-1):
         if size < 0:
@@ -71,6 +72,21 @@ class DecompressReader(io.RawIOBase):
                 data = self._decompressor.decompress(rawblock, size)
             except self._trailing_error:
                 pass
+            if self._decompressor.needs_input:
+                rawblock = self._fp.read(BUFFER_SIZE)
+                if not rawblock:
+                    raise EOFError('Compressed file ended before the end-of-stream marker was reached')
+            else:
+                rawblock = b''
+            data = self._decompressor.decompress(rawblock, size)
+            if data:
+                break
+        if not data:
+            self._eof = True
+            self._size = self._pos
+            return b''
+        self._pos += len(data)
+        return data
 
     def readall(self):
         chunks = []

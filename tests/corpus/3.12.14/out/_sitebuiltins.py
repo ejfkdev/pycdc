@@ -65,7 +65,7 @@ class _Printer(object):
                 for i in range(lineno, lineno + self.MAXLINES):
                     print(self.__lines[i])
             except IndexError:
-                pass
+                return
             lineno += self.MAXLINES
             key = None
             while not key is not None:

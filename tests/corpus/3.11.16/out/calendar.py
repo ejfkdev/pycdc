@@ -524,6 +524,7 @@ def _get_default_locale():
     if locale == 'C':
         with different_locale(''):
             locale = _locale.setlocale(_locale.LC_TIME, None)
+    return locale
 
 class LocaleTextCalendar(TextCalendar):
     '''

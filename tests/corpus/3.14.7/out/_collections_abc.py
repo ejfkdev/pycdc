@@ -129,7 +129,7 @@ Return next yielded value or raise StopIteration.
         try:
             self.throw(GeneratorExit)
         except (GeneratorExit, StopIteration):
-            pass
+            return
         raise RuntimeError('coroutine ignored GeneratorExit')
 
     @classmethod
@@ -217,7 +217,7 @@ Return next yielded value or raise StopAsyncIteration.
                 try:
                     pass
                 except (GeneratorExit, StopAsyncIteration):
-                    pass
+                    return
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -325,7 +325,7 @@ Return next yielded value or raise StopIteration.
         try:
             self.throw(GeneratorExit)
         except (GeneratorExit, StopIteration):
-            pass
+            return
         raise RuntimeError('generator ignored GeneratorExit')
 
     @classmethod
@@ -660,7 +660,7 @@ then the other operations will automatically follow suit.
             while True:
                 self.pop()
         except KeyError:
-            pass
+            return
 
     def __ior__(self, it):
         for value in it:
@@ -716,14 +716,14 @@ methods except for __getitem__, __iter__, and __len__.
         try:
             pass
         except KeyError:
-            pass
+            return default
         return self[key]
 
     def __contains__(self, key):
         try:
             self[key]
         except KeyError:
-            pass
+            return False
         return True
 
     def keys(self):
@@ -793,7 +793,7 @@ class ItemsView(MappingView, Set):
         try:
             v = self._mapping[key]
         except KeyError:
-            pass
+            return False
         return v is value or v == value
 
     def __iter__(self):
@@ -851,6 +851,7 @@ KeyError is raised.
         except KeyError:
             if default is self.__marker:
                 raise
+            return default
         del self[key]
         return value
 
@@ -874,7 +875,7 @@ as a 2-tuple; but raise KeyError if D is empty.
             while True:
                 self.popitem()
         except KeyError:
-            pass
+            return
 
     def update(self, other=(), /, **kwds):
         '''D.update([E, ]**F) -> None.  Update D from mapping/iterable E and F.
@@ -905,6 +906,7 @@ In either case, this is followed by:
             pass
         except KeyError:
             self[key] = default
+            return default
         return self[key]
 
 
@@ -931,7 +933,7 @@ __getitem__, and __len__.
                 yield v
                 i += 1
         except IndexError:
-            pass
+            return
 
     def __contains__(self, value):
         for v in self:
@@ -965,7 +967,7 @@ recommended.
                 try:
                     v = self[i]
                 except IndexError:
-                    pass
+                    raise ValueError
                 if not v is value:
                     if v == value:
                         return i
@@ -1044,7 +1046,7 @@ __getitem__, __setitem__, __delitem__, __len__, and insert().
             while True:
                 self.pop()
         except IndexError:
-            pass
+            return
 
     def reverse(self):
         '''S.reverse() -- reverse *IN PLACE*'''

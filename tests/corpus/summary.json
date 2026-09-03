@@ -25,16 +25,16 @@
  "3.11.16": {
   "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
   "counts": {
-   "PASS": 5,
-   "SIG-DIFF": 35
+   "PASS": 8,
+   "SIG-DIFF": 32
   }
  },
  "3.12.14": {
   "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
   "counts": {
    "PASS": 4,
-   "SIG-DIFF": 32,
-   "INCOMPLETE": 4
+   "SIG-DIFF": 31,
+   "INCOMPLETE": 5
   }
  },
  "3.13.15": {

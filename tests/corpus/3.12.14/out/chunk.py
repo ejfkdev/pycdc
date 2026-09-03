@@ -65,9 +65,13 @@ class Chunk:
         if len(self.chunkname) < 4:
             raise EOFError
         try:
-            self.chunksize = struct.unpack_from(strflag + 'L', file.read(4))[0]
-        except struct./*bad-name-20*/:
-            raise EOFError from None
+            try:
+                self.chunksize = struct.unpack_from(strflag + 'L', file.read(4))[0]
+            except struct./*bad-name-20*/:
+                raise EOFError from None
+        except (AttributeError, OSError):
+            self.seekable = False
+            return
         if inclheader:
             self.chunksize = self.chunksize - 8
         self.size_read = 0
@@ -75,6 +79,7 @@ class Chunk:
             self.offset = self.file.tell()
         except (AttributeError, OSError):
             self.seekable = False
+            return
         self.seekable = True
 
     def getname(self):
@@ -177,3 +182,4 @@ class Chunk:
                 return
 
 
+# WARNING: Decompyle incomplete

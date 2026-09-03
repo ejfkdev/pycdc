@@ -155,9 +155,14 @@ def main():
                     exc = None
                     sys.stdout = None
                     sys.exit(exc.errno)
+                    exc = None
+                    del exc
+                    return parser
                 return parser
                 parser.print_usage()
                 return parser
+    exc = None
+    del exc
 
 if __name__ == '__main__':
     main()

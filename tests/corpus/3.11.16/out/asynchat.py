@@ -72,7 +72,44 @@ class async_chat(asyncore.dispatcher):
         try:
             data = self.recv(self.ac_in_buffer_size)
         except BlockingIOError:
-            pass
+            return
+        if isinstance(data, str) and self.use_encoding:
+            data = bytes(str, self.encoding)
+        self.ac_in_buffer = self.ac_in_buffer + data
+        while self.ac_in_buffer:
+            lb = len(self.ac_in_buffer)
+            terminator = self.get_terminator()
+            if not terminator:
+                self.collect_incoming_data(self.ac_in_buffer)
+                self.ac_in_buffer = b''
+            elif isinstance(terminator, int):
+                n = terminator
+                if lb < n:
+                    self.collect_incoming_data(self.ac_in_buffer)
+                    self.ac_in_buffer = b''
+                    self.terminator = self.terminator - lb
+                else:
+                    self.collect_incoming_data(self.ac_in_buffer[:n])
+                    self.ac_in_buffer = self.ac_in_buffer[n:]
+                    self.terminator = 0
+                    self.found_terminator()
+            else:
+                terminator_len = len(terminator)
+                index = self.ac_in_buffer.find(terminator)
+                if index != -1:
+                    if index > 0:
+                        self.collect_incoming_data(self.ac_in_buffer[:index])
+                    self.ac_in_buffer = self.ac_in_buffer[index + terminator_len:]
+                    self.found_terminator()
+                else:
+                    index = find_prefix_at_end(self.ac_in_buffer, terminator)
+                    if index:
+                        if index != lb:
+                            self.collect_incoming_data(self.ac_in_buffer[:-index])
+                            self.ac_in_buffer = self.ac_in_buffer[-index:]
+                        return
+                    self.collect_incoming_data(self.ac_in_buffer)
+                    self.ac_in_buffer = b''
 
     def handle_write(self):
         self.initiate_send()
@@ -126,6 +163,21 @@ class async_chat(asyncore.dispatcher):
                         self.producer_fifo.appendleft(data)
                     else:
                         del self.producer_fifo[0]
+                if isinstance(data, str) and self.use_encoding:
+                    data = bytes(data, self.encoding)
+                try:
+                    num_sent = self.send(data)
+                except OSError:
+                    self.handle_error()
+                    return
+                if num_sent:
+                    if not num_sent < len(data):
+                        if obs < len(first):
+                            self.producer_fifo[0] = first[num_sent:]
+                        else:
+                            del self.producer_fifo[0]
+                return
+                return
 
     def discard_buffers(self):
         self.ac_in_buffer = b''

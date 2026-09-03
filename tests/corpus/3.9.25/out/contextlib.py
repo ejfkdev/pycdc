@@ -123,7 +123,7 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
         try:
             self.gen.throw(typ, value, traceback)
         except StopIteration as exc:
-            return
+            return exc is not value
         except RuntimeError as exc:
             pass
         exc = None
@@ -166,7 +166,7 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         try:
             await self.gen.athrow(typ, value, traceback)
         except StopAsyncIteration as exc:
-            return
+            return exc is not value
         except RuntimeError as exc:
             pass
         exc = None

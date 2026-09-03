@@ -36,7 +36,7 @@ class _Precedence:
         try:
             pass
         except ValueError:
-            pass
+            return self
         return self.__class__(self + 1)
 
 
@@ -64,7 +64,7 @@ is disregarded.'''
         try:
             f(next(seq))
         except StopIteration:
-            pass
+            return
         for x in seq:
             inter()
             f(x)

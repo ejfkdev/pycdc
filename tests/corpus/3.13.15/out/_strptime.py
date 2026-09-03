@@ -410,7 +410,6 @@ format string.'''
                         format_regex = _TimeRE_cache.compile(format)
                     except KeyError as err:
                         bad_directive = err.args[0]
-                        del err
                         bad_directive = bad_directive.replace('\\s', '')
                         if not bad_directive:
                             raise ValueError("stray %% in format '%s'" % format) from None
@@ -440,7 +439,7 @@ format string.'''
                             try:
                                 pass
                             except ValueError:
-                                pass
+                                return int(s)
                             return locale_time.LC_alt_digits.index(s)
 
                     else:

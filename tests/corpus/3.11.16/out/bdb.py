@@ -160,6 +160,11 @@ class Bdb:
                     raise BdbQuit
                 if self.stopframe is frame and self.stoplineno != -1:
                     self._set_stopinfo(None, None)
+            if self.quitting:
+                raise BdbQuit
+            if self.stopframe is frame and self.stoplineno != -1:
+                self._set_stopinfo(None, None)
+        return self.trace_dispatch
 
     def dispatch_exception(self, frame, arg):
         '''Invoke user function and return trace function for exception event.
@@ -412,7 +417,9 @@ class Bdb:
         try:
             bp = self.get_bpbynumber(arg)
         except ValueError as err:
-            pass
+            return str(err)
+        bp.deleteMe()
+        self._prune_breaks(bp.file, bp.line)
 
     def clear_all_file_breaks(self, filename):
         '''Delete all breakpoints in filename.
@@ -455,6 +462,13 @@ class Bdb:
             number = int(arg)
         except ValueError:
             raise ValueError('Non-numeric breakpoint number %s' % arg) from None
+        try:
+            bp = Breakpoint.bpbynumber[number]
+        except IndexError:
+            raise ValueError('Breakpoint number %d out of range' % number) from None
+        if not bp is not None:
+            raise ValueError('Breakpoint %d already deleted' % number)
+        return bp
 
     def get_break(self, filename, lineno):
         '''Return True if there is a breakpoint for filename:lineno.'''
@@ -560,6 +574,8 @@ class Bdb:
         if isinstance(cmd, str):
             cmd = compile(cmd, '<string>', 'exec')
         sys.settrace(self.trace_dispatch)
+        self.quitting = True
+        sys.settrace(None)
 
     def runeval(self, expr, globals=None, locals=None):
         '''Debug an expression executed via the eval() function.
@@ -589,6 +605,9 @@ class Bdb:
         self.reset()
         sys.settrace(self.trace_dispatch)
         res = None
+        self.quitting = True
+        sys.settrace(None)
+        return res
 
 
 def set_trace():
@@ -767,7 +786,9 @@ def effective(file, line, frame):
                     b, True
                     return
         finally:
+            b, False
             return
+    return (None, None)
 
 class Tdb(Bdb):
     def user_call(self, frame, args):

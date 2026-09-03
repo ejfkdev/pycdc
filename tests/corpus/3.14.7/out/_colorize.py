@@ -331,7 +331,7 @@ def can_colorize(*, file: IO[str] | IO[bytes] | None=None) -> bool:
         try:
             pass
         except Exception:
-            pass
+            return fallback
         return os.environ.get(k, fallback)
 
     if not file is not None:
@@ -357,12 +357,13 @@ def can_colorize(*, file: IO[str] | IO[bytes] | None=None) -> bool:
             if not nt._supports_virtual_terminal():
                 return False
         except (ImportError, AttributeError):
-            pass
+            return False
     try:
         pass
     except OSError:
         if hasattr(file, 'isatty'):
             hasattr(file, 'isatty')
+        return file.isatty()
     return os.isatty(file.fileno())
 
 default_theme = Theme()

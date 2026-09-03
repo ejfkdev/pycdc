@@ -25,6 +25,9 @@ class Popen:
                 os._exit(1)
                 _, status = os.waitpid(pid, 0)
                 self.returncode = os.waitstatus_to_exitcode(status)
+        _, status = os.waitpid(pid, 0)
+        self.returncode = os.waitstatus_to_exitcode(status)
+        return self.returncode
 
 
 def _check_cmd(cmd):
@@ -64,11 +67,19 @@ def check_output(cmd, **kwargs):
     exitcode = os.waitstatus_to_exitcode(status)
     if exitcode:
         raise ValueError(f'Command {cmd!r} returned non-zero exit status {exitcode!r}')
-    with open(tmp_filename, 'rb') as fp:
-        stdout = fp.read()
+    try:
+        with open(tmp_filename, 'rb') as fp:
+            stdout = fp.read()
+            try:
+                pass
+            except FileNotFoundError:
+                stdout = b''
+    finally:
+        # WARNING: unrecovered try/except structure
         try:
+            os.unlink(tmp_filename)
+        except OSError:
             pass
-        except FileNotFoundError:
-            stdout = b''
+        return stdout
 
 # WARNING: Decompyle incomplete

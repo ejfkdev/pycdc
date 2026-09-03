@@ -93,6 +93,7 @@ def int_to_decimal(n):
         if negate:
             result = -result
         return result
+    return result
 
 def int_to_decimal_string(n):
     """Asymptotically fast conversion of an 'int' to a decimal string."""

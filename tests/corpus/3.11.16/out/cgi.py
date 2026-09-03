@@ -44,7 +44,7 @@ def initlog(*allargs):
 
     '''
 
-    global logfp
+    global logfp, log
     warnings.warn('cgi.log() is deprecated as of 3.10. Use logging instead', DeprecationWarning, stacklevel=2)
     if logfile:
         if not logfp:
@@ -52,6 +52,11 @@ def initlog(*allargs):
                 logfp = open(logfile, 'a', encoding='locale')
             except OSError:
                 pass
+    if not logfp:
+        log = nolog
+    else:
+        log = dolog
+    log(*allargs)
 
 def dolog(fmt, *args):
     logfp.write(fmt % args + '\n')
@@ -158,6 +163,8 @@ def parse_multipart(fp, pdict, encoding='utf-8', errors='replace', separator='&'
         headers['Content-Length'] = pdict['CONTENT-LENGTH']
     except KeyError:
         pass
+    fs = FieldStorage(fp, headers=headers, encoding=encoding, errors=errors, environ={'REQUEST_METHOD': 'POST'}, separator=separator)
+    return {k: fs.getlist(k) for k in fs}
 
 def _parseparam(s):
     while s[:1] == ';':
@@ -385,12 +392,28 @@ class FieldStorage:
                 clen = int(self.headers['content-length'])
             except ValueError:
                 pass
+            if maxlen and clen > maxlen:
+                raise ValueError('Maximum content length exceeded')
+        self.length = clen
+        if not self.limit is not None:
+            if clen >= 0:
+                self.limit = clen
+        self.list = None
+        self.file = None
+        self.done = 0
+        if ctype == 'application/x-www-form-urlencoded':
+            self.read_urlencoded()
+            return
+        if ctype[:10] == 'multipart/':
+            self.read_multi(environ, keep_blank_values, strict_parsing)
+            return
+        self.read_single()
 
     def __del__(self):
         try:
             self.file.close()
         except AttributeError:
-            pass
+            return
 
     def __enter__(self):
         return self
@@ -762,11 +785,26 @@ def test(environ=os.environ):
         print_exception()
         print('<H1>Second try with a small maxlen...</H1>')
         maxlen = 50
+        try:
+            form = FieldStorage()
+            print_directory()
+            print_arguments()
+            print_form(form)
+            print_environ(environ)
+        finally:
+            print_exception()
+            return
+    print('<H1>Second try with a small maxlen...</H1>')
+    maxlen = 50
+    try:
         form = FieldStorage()
         print_directory()
         print_arguments()
         print_form(form)
         print_environ(environ)
+    finally:
+        print_exception()
+        return
 
 def print_exception(type=None, value=None, tb=None, limit=None):
     if not type is not None:
@@ -814,7 +852,10 @@ def print_directory():
         pwd = os.getcwd()
     except OSError as msg:
         print('OSError:', html.escape(str(msg)))
+        msg = None
+        del msg
     print(html.escape(pwd))
+    print()
 
 def print_arguments():
     print()

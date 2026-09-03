@@ -61,6 +61,11 @@ class InteractiveInterpreter:
             code = self.compile(source, filename, symbol)
         except (OverflowError, SyntaxError, ValueError):
             self.showsyntaxerror(filename)
+            return False
+        if not code is not None:
+            return True
+        self.runcode(code)
+        return False
 
     def runcode(self, code):
         '''Execute a code object.
@@ -104,6 +109,11 @@ class InteractiveInterpreter:
                 pass
             value = SyntaxError(msg, (filename, lineno, offset, line))
             sys.last_value = value
+        if sys.excepthook is sys.__excepthook__:
+            lines = traceback.format_exception_only(type, value)
+            self.write(''.join(lines))
+            return
+        sys.excepthook(type, value, tb)
 
     def showtraceback(self):
         '''Display the exception that just occurred.
@@ -168,6 +178,37 @@ class InteractiveConsole(InteractiveInterpreter):
             sys.ps1
         except AttributeError:
             sys.ps1 = '>>> '
+        try:
+            sys.ps2
+        except AttributeError:
+            sys.ps2 = '... '
+        cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
+        if not banner is not None:
+            self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
+        elif banner:
+            self.write('%s\n' % str(banner))
+        more = 0
+        while True:
+            try:
+                if more:
+                    prompt = sys.ps2
+                else:
+                    prompt = sys.ps1
+            except KeyboardInterrupt:
+                self.write('\nKeyboardInterrupt\n')
+                self.resetbuffer()
+                more = 0
+            try:
+                line = self.raw_input(prompt)
+            except EOFError:
+                self.write('\n')
+            more = self.push(line)
+        if not exitmsg is not None:
+            self.write('now exiting %s...\n' % self.__class__.__name__)
+            return
+        if exitmsg != '':
+            self.write('%s\n' % exitmsg)
+            return
 
     def push(self, line):
         self.buffer.append(line)
@@ -216,6 +257,7 @@ def interact(banner=None, readfunc=None, local=None, exitmsg=None):
             import readline
         except ImportError:
             pass
+    console.interact(banner, exitmsg)
 
 if __name__ == '__main__':
     import argparse

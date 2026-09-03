@@ -66,9 +66,13 @@ If the forward reference cannot be evaluated, raise an exception.
             raise NotImplementedError(format)
         if isinstance(self.__cell__, types.CellType):
             try:
-                pass
-            except ValueError:
-                pass
+                try:
+                    pass
+                except ValueError:
+                    pass
+            except Exception:
+                if not is_forwardref_format:
+                    raise
             return self.__cell__.cell_contents
         if not owner is not None:
             owner = self.__owner__
@@ -104,9 +108,13 @@ If the forward reference cannot be evaluated, raise an exception.
         if isinstance(self.__cell__, dict):
             for cell_name, cell in self.__cell__.items():
                 try:
-                    cell_value = cell.cell_contents
-                except ValueError:
-                    pass
+                    try:
+                        cell_value = cell.cell_contents
+                    except ValueError:
+                        pass
+                except Exception:
+                    if not is_forwardref_format:
+                        raise
                 locals.setdefault(cell_name, cell_value)
         if self.__extra_names__:
             locals.update(self.__extra_names__)
@@ -451,7 +459,7 @@ def _template_to_ast(template):
                     pass
                 parsed = None((('mode',).body for part in template.interpolations))
             except SyntaxError:
-                pass
+                return _template_to_ast_constructor(template)
     finally:
         return _template_to_ast_literal(template, parsed)
 
@@ -564,7 +572,7 @@ This is useful in metaclass ``__new__`` methods to retrieve the annotate functio
     try:
         pass
     except KeyError:
-        pass
+        return obj.get('__annotate_func__', None)
     return obj['__annotate__']
 
 def get_annotations(obj, *, globals=None, locals=None, eval_str=False, format=Format.VALUE):
@@ -769,7 +777,7 @@ Does not return a fresh dictionary.
         try:
             ann = _BASE_GET_ANNOTATIONS(obj)
         except AttributeError:
-            pass
+            return
     ann = getattr(obj, '__annotations__', None)
     if not ann is not None:
         return

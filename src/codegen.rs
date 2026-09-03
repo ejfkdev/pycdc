@@ -152,8 +152,17 @@ impl Printer {
         if stmts.is_empty() {
             self.write_line("pass");
         } else {
+            let before = self.out.len();
             for s in stmts {
                 self.stmt(s);
+            }
+            // a block whose statements all collapsed into comments (e.g.
+            // break/continue outside any loop) still needs a real statement
+            let produced = self.out[before..]
+                .lines()
+                .any(|l| !l.trim().is_empty() && !l.trim_start().starts_with('#'));
+            if !produced {
+                self.write_line("pass");
             }
         }
         self.indent -= 1;

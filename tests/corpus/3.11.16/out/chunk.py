@@ -68,6 +68,15 @@ class Chunk:
             self.chunksize = struct.unpack_from(strflag + 'L', file.read(4))[0]
         except struct.error:
             raise EOFError from None
+        if inclheader:
+            self.chunksize = self.chunksize - 8
+        self.size_read = 0
+        try:
+            self.offset = self.file.tell()
+        except (AttributeError, OSError):
+            self.seekable = False
+            return
+        self.seekable = True
 
     def getname(self):
         '''Return the name (ID) of the current chunk.'''
@@ -157,5 +166,10 @@ class Chunk:
             except OSError:
                 pass
             return
+        while self.size_read < self.chunksize:
+            n = min(8192, self.chunksize - self.size_read)
+            dummy = self.read(n)
+            if not dummy:
+                raise EOFError
 
 

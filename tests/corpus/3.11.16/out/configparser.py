@@ -385,6 +385,12 @@ class BasicInterpolation(Interpolation):
                     v = map[var]
                 except KeyError:
                     raise InterpolationMissingOptionError(option, section, rawval, var) from None
+                if '%' in v:
+                    self._interpolate_some(parser, option, accum, v, section, map, depth + 1)
+                else:
+                    accum.append(v)
+            else:
+                raise InterpolationSyntaxError(option, section, f'\'%\' must be followed by \'%\' or \'(\', found: {rest!r}')
 
 
 class ExtendedInterpolation(Interpolation):
@@ -440,6 +446,12 @@ class ExtendedInterpolation(Interpolation):
                         raise InterpolationSyntaxError(option, section, f'More than one \':\' found: {rest!r}')
                 except (KeyError, NoSectionError, NoOptionError):
                     raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
+                if '$' in v:
+                    self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
+                else:
+                    accum.append(v)
+            else:
+                raise InterpolationSyntaxError(option, section, f'\'$\' must be followed by \'$\' or \'{{\', found: {rest!r}')
 
 
 class LegacyInterpolation(Interpolation):
@@ -463,8 +475,11 @@ class LegacyInterpolation(Interpolation):
                     value = value % vars
                 except KeyError as e:
                     raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
-                    e = None
-                    del e
+            else:
+                break
+        if value and '%(' in value:
+            raise InterpolationDepthError(option, section, rawval)
+        return value
 
     def before_set(self, parser, section, option, value):
         return value
@@ -561,6 +576,8 @@ class RawConfigParser(MutableMapping):
             opts = self._sections[section].copy()
         except KeyError:
             raise NoSectionError(section) from None
+        opts.update(self._defaults)
+        return list(opts.keys())
 
     def read(self, filenames, encoding=None):
         """Read and parse a filename or an iterable of filenames.
@@ -580,12 +597,19 @@ class RawConfigParser(MutableMapping):
         encoding = io.text_encoding(encoding)
         read_ok = []
         for filename in filenames:
-            with open(filename, encoding=encoding) as fp:
-                self._read(fp, filename)
-                try:
-                    pass
-                except OSError:
-                    pass
+            try:
+                with open(filename, encoding=encoding) as fp:
+                    self._read(fp, filename)
+                    try:
+                        pass
+                    except OSError:
+                        pass
+            finally:
+                if isinstance(filename, os.PathLike):
+                    filename = os.fspath(filename)
+                read_ok.append(filename)
+                continue
+        return read_ok
 
     def read_file(self, f, source=None):
         '''Like read() but the argument must be a file-like object.
@@ -601,6 +625,7 @@ class RawConfigParser(MutableMapping):
                 source = f.name
             except AttributeError:
                 source = '<???>'
+        self._read(f, source)
 
     def read_string(self, string, source='<string>'):
         '''Read configuration from a given string.'''
@@ -630,6 +655,15 @@ class RawConfigParser(MutableMapping):
             except (DuplicateSectionError, ValueError):
                 if self._strict and section in elements_added:
                     raise
+            elements_added.add(section)
+            for key, value in keys.items():
+                key = self.optionxform(str(key))
+                if not value is None:
+                    value = str(value)
+                if self._strict and (section, key) in elements_added:
+                    raise DuplicateOptionError(section, key, source)
+                elements_added.add((section, key))
+                self.set(section, key, value)
 
     def readfp(self, fp, filename=None):
         warnings.warn("This method will be removed in Python 3.12. Use 'parser.read_file()' instead.", DeprecationWarning, stacklevel=2)
@@ -656,6 +690,18 @@ class RawConfigParser(MutableMapping):
         except NoSectionError:
             if fallback is _UNSET:
                 raise
+            return fallback
+        option = self.optionxform(option)
+        try:
+            value = d[option]
+        except KeyError:
+            if fallback is _UNSET:
+                raise NoOptionError(option, section)
+            return fallback
+        if not raw:
+            if not value is not None:
+                return value
+        return self._interpolation.before_get(self, section, option, value, d)
 
     def _get(self, section, conv, option, **kwargs):
         return conv(self.get(section, option, **kwargs))
@@ -666,6 +712,7 @@ class RawConfigParser(MutableMapping):
         except (NoSectionError, NoOptionError):
             if fallback is _UNSET:
                 raise
+            return fallback
         return self._get(section, conv, option, **kwargs)
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
@@ -697,6 +744,14 @@ class RawConfigParser(MutableMapping):
         except KeyError:
             if section != self.default_section:
                 raise NoSectionError(section)
+        orig_keys = list(d.keys())
+        if vars:
+            for key, value in vars.items():
+                d[self.optionxform(key)] = value
+        value_getter = lambda option: self._interpolation.before_get(self, section, option, d[option], d)
+        if raw:
+            value_getter = lambda option: d[option]
+        return [(option, value_getter(option)) for option in orig_keys]
 
     def popitem(self):
         '''Remove a section from the parser and return it as
@@ -741,6 +796,7 @@ class RawConfigParser(MutableMapping):
                 sectdict = self._sections[section]
             except KeyError:
                 raise NoSectionError(section) from None
+        sectdict[self.optionxform(option)] = value
 
     def write(self, fp, space_around_delimiters=True):
         '''Write an .ini-format representation of the configuration state.
@@ -782,6 +838,11 @@ class RawConfigParser(MutableMapping):
                 sectdict = self._sections[section]
             except KeyError:
                 raise NoSectionError(section) from None
+        option = self.optionxform(option)
+        existed = option in sectdict
+        if existed:
+            del sectdict[option]
+        return existed
 
     def remove_section(self, section):
         '''Remove a file section.'''
@@ -930,6 +991,8 @@ class RawConfigParser(MutableMapping):
             self._join_multiline_values()
             if e:
                 raise e
+        if e:
+            raise e
 
     def _join_multiline_values(self):
         defaults = self.default_section, self._defaults
@@ -965,6 +1028,13 @@ class RawConfigParser(MutableMapping):
         except KeyError:
             if section != self.default_section:
                 raise NoSectionError(section) from None
+        vardict = {}
+        if vars:
+            for key, value in vars.items():
+                if not value is None:
+                    value = str(value)
+                vardict[self.optionxform(key)] = value
+        return _ChainMap(vardict, sectiondict, self._defaults)
 
     def _convert_to_boolean(self, value):
         '''Return a boolean value translating from other types if necessary.
@@ -1130,12 +1200,27 @@ class ConverterMapping(MutableMapping):
             k = 'get' + key
         except TypeError:
             raise ValueError('Incompatible key: {} (type: {})'.format(key, type(key)))
+        if k == 'get':
+            raise ValueError('Incompatible key: cannot use "" as a name')
+        self._data[key] = value
+        func = functools.partial(self._parser._get_conv, conv=value)
+        func.converter = value
+        setattr(self._parser, k, func)
+        for proxy in self._parser.values():
+            getter = functools.partial(proxy.get, _impl=func)
+            setattr(proxy, k, getter)
 
     def __delitem__(self, key):
         try:
             k = 'get' + (key or None)
         except TypeError:
             raise KeyError(key)
+        del self._data[key]
+        for inst in itertools.chain((self._parser,), self._parser.values()):
+            try:
+                delattr(inst, k)
+            except AttributeError:
+                pass
 
     def __iter__(self):
         return iter(self._data)

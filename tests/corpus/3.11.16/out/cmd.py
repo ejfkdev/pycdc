@@ -105,6 +105,55 @@ class Cmd:
                 readline.parse_and_bind(self.completekey + ': complete')
             except ImportError:
                 pass
+        try:
+            if not intro is None:
+                self.intro = intro
+            if self.intro:
+                self.stdout.write(str(self.intro) + '\n')
+            stop = None
+            while not stop:
+                if self.cmdqueue:
+                    line = self.cmdqueue.pop(0)
+                elif self.use_rawinput:
+                    try:
+                        line = input(self.prompt)
+                    except EOFError:
+                        line = 'EOF'
+                    try:
+                        try:
+                            self.stdout.write(self.prompt)
+                            self.stdout.flush()
+                            line = self.stdin.readline()
+                            if not len(line):
+                                line = 'EOF'
+                            else:
+                                line = line.rstrip('\r\n')
+                            line = self.precmd(line)
+                            stop = self.onecmd(line)
+                            stop = self.postcmd(stop, line)
+                            self.postloop()
+                        except:
+                            if self.completekey:
+                                try:
+                                    import readline
+                                    readline.set_completer(self.old_completer)
+                                except ImportError:
+                                    pass
+                                if ImportError:
+                                    None
+                    except ImportError:
+                        pass
+        finally:
+            if self.use_rawinput:
+                if self.completekey:
+                    try:
+                        import readline
+                        readline.set_completer(self.old_completer)
+                    except ImportError:
+                        return
+                    return
+                    return
+            return
 
     def precmd(self, line):
         '''Hook method executed just before the command line is
@@ -177,7 +226,8 @@ class Cmd:
         try:
             func = getattr(self, 'do_' + cmd)
         except AttributeError:
-            pass
+            return self.default(line)
+        return func(arg)
 
     def emptyline(self):
         '''Called when an empty line is entered in response to the prompt.
@@ -230,6 +280,13 @@ class Cmd:
                         compfunc = getattr(self, 'complete_' + cmd)
                     except AttributeError:
                         compfunc = self.completedefault
+            compfunc = self.completenames
+            self.completion_matches = compfunc(text, line, begidx, endidx)
+        try:
+            pass
+        except IndexError:
+            return
+        return self.completion_matches[state]
 
     def get_names(self):
         return dir(self.__class__)
@@ -246,9 +303,42 @@ class Cmd:
             try:
                 func = getattr(self, 'help_' + arg)
             except AttributeError:
-                doc = getattr(self, 'do_' + arg).__doc__
-                if doc:
-                    self.stdout.write('%s\n' % str(doc))
+                try:
+                    doc = getattr(self, 'do_' + arg).__doc__
+                    if doc:
+                        self.stdout.write('%s\n' % str(doc))
+                        return
+                except AttributeError:
+                    pass
+            func()
+            return
+        names = self.get_names()
+        cmds_doc = []
+        cmds_undoc = []
+        topics = set()
+        for name in names:
+            if name[:5] == 'help_':
+                topics.add(name[5:])
+        names.sort()
+        prevname = ''
+        for name in names:
+            if name[:3] == 'do_':
+                if name == prevname:
+                    continue
+            prevname = name
+            cmd = name[3:]
+            if cmd in topics:
+                cmds_doc.append(cmd)
+                topics.remove(cmd)
+                continue
+            if getattr(self, name).__doc__:
+                cmds_doc.append(cmd)
+                continue
+            cmds_undoc.append(cmd)
+        self.stdout.write('%s\n' % str(self.doc_leader))
+        self.print_topics(self.doc_header, cmds_doc, 15, 80)
+        self.print_topics(self.misc_header, sorted(topics), 15, 80)
+        self.print_topics(self.undoc_header, cmds_undoc, 15, 80)
 
     def print_topics(self, header, cmds, cmdlen, maxcol):
         if cmds:
@@ -316,3 +406,4 @@ class Cmd:
             self.stdout.write('%s\n' % str('  '.join(texts)))
 
 
+# WARNING: Decompyle incomplete

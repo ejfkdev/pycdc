@@ -61,6 +61,7 @@ class InteractiveInterpreter:
             code = self.compile(source, filename, symbol)
         except (OverflowError, SyntaxError, ValueError):
             self.showsyntaxerror(filename)
+            return False
         if not code is not None:
             return True
         self.runcode(code)
@@ -111,6 +112,10 @@ class InteractiveInterpreter:
             finally:
                 typ = value = tb = None
             return
+            try:
+                pass
+            finally:
+                typ = value = tb = None
 
     def showtraceback(self):
         '''Display the exception that just occurred.
@@ -149,6 +154,7 @@ class InteractiveInterpreter:
             print(file=sys.stderr)
             print('Original exception was:', file=sys.stderr)
             sys.__excepthook__(typ, value, tb)
+            return
 
     def write(self, data):
         sys.stderr.write(data)
@@ -190,13 +196,23 @@ class InteractiveConsole(InteractiveInterpreter):
         """
 
         try:
-            sys.ps1
-        except AttributeError:
-            sys.ps1 = '>>> '
+            try:
+                sys.ps1
+            except EOFError:
+                self.write('\n')
+        except KeyboardInterrupt:
+            self.write('\nKeyboardInterrupt\n')
+            self.resetbuffer()
+            more = 0
         try:
-            sys.ps2
-        except AttributeError:
-            sys.ps2 = '... '
+            try:
+                sys.ps2
+            except EOFError:
+                self.write('\n')
+        except KeyboardInterrupt:
+            self.write('\nKeyboardInterrupt\n')
+            self.resetbuffer()
+            more = 0
         cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
         if not banner is not None:
             self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
@@ -214,10 +230,21 @@ class InteractiveConsole(InteractiveInterpreter):
                 self.resetbuffer()
                 more = 0
             try:
-                line = self.raw_input(prompt)
-            except EOFError:
-                self.write('\n')
+                try:
+                    line = self.raw_input(prompt)
+                except EOFError:
+                    self.write('\n')
+            except KeyboardInterrupt:
+                self.write('\nKeyboardInterrupt\n')
+                self.resetbuffer()
+                more = 0
             more = self.push(line)
+        if not exitmsg is not None:
+            self.write('now exiting %s...\n' % self.__class__.__name__)
+            return
+        if exitmsg != '':
+            self.write('%s\n' % exitmsg)
+            return
 
     def push(self, line):
         self.buffer.append(line)
@@ -278,3 +305,4 @@ if __name__ == '__main__':
     else:
         banner = None
     interact(banner)
+# WARNING: Decompyle incomplete

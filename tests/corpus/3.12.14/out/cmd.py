@@ -99,12 +99,15 @@ class Cmd:
         self.preloop()
         if self.use_rawinput and self.completekey:
             try:
-                import readline
-                self.old_completer = readline.get_completer()
-                readline.set_completer(self.complete)
-                readline.parse_and_bind(self.completekey + ': complete')
-            except ImportError:
-                pass
+                try:
+                    import readline
+                    self.old_completer = readline.get_completer()
+                    readline.set_completer(self.complete)
+                    readline.parse_and_bind(self.completekey + ': complete')
+                except ImportError:
+                    pass
+            except EOFError:
+                line = 'EOF'
         try:
             if not intro is None:
                 self.intro = intro
@@ -132,21 +135,43 @@ class Cmd:
             stop = self.postcmd(stop, line)
             if not stop:
                 try:
-                    self.postloop()
-                except:
-                    if self.completekey:
-                        import readline
-                        readline.set_completer(self.old_completer)
+                    try:
+                        self.postloop()
+                    except:
+                        if self.completekey:
+                            try:
+                                import readline
+                                readline.set_completer(self.old_completer)
+                            except ImportError:
+                                pass
+                            if ImportError:
+                                None
+                except ImportError:
+                    pass
             if self.use_rawinput:
                 if self.completekey:
                     try:
                         import readline
                         readline.set_completer(self.old_completer)
                     except ImportError:
-                        pass
+                        return
                     return
                 return
             return
+            try:
+                try:
+                    pass
+                except:
+                    if self.completekey:
+                        try:
+                            import readline
+                            readline.set_completer(self.old_completer)
+                        except ImportError:
+                            pass
+                        if ImportError:
+                            None
+            except ImportError:
+                pass
 
     def precmd(self, line):
         '''Hook method executed just before the command line is
@@ -218,7 +243,7 @@ class Cmd:
         try:
             func = getattr(self, 'do_' + cmd)
         except AttributeError:
-            pass
+            return self.default(line)
         return func(arg)
 
     def emptyline(self):
@@ -269,15 +294,18 @@ class Cmd:
                     compfunc = self.completedefault
                 else:
                     try:
-                        compfunc = getattr(self, 'complete_' + cmd)
-                    except AttributeError:
-                        compfunc = self.completedefault
+                        try:
+                            compfunc = getattr(self, 'complete_' + cmd)
+                        except AttributeError:
+                            compfunc = self.completedefault
+                    except IndexError:
+                        return
         compfunc = self.completenames
         self.completion_matches = compfunc(text, line, begidx, endidx)
         try:
             pass
         except IndexError:
-            pass
+            return
         return self.completion_matches[state]
 
     def get_names(self):
@@ -295,9 +323,13 @@ class Cmd:
             try:
                 func = getattr(self, 'help_' + arg)
             except AttributeError:
-                doc = getattr(self, 'do_' + arg).__doc__
-                if doc:
-                    self.stdout.write('%s\n' % str(doc))
+                try:
+                    doc = getattr(self, 'do_' + arg).__doc__
+                    if doc:
+                        self.stdout.write('%s\n' % str(doc))
+                        return
+                except AttributeError:
+                    pass
             func()
             return
         names = self.get_names()

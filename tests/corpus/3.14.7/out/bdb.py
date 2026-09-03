@@ -675,6 +675,9 @@ If arg is invalid, return an error message.
             bp = self.get_bpbynumber(arg)
         except ValueError:
             err = None
+            err = None
+            del err
+            return str(err)
         bp.deleteMe()
         self._prune_breaks(bp.file, bp.line)
 
@@ -716,9 +719,12 @@ raise a ValueError.
         if not arg:
             raise ValueError('Breakpoint number expected')
         try:
-            number = int(arg)
-        except ValueError:
-            raise ValueError('Non-numeric breakpoint number %s' % arg) from None
+            try:
+                number = int(arg)
+            except ValueError:
+                raise ValueError('Non-numeric breakpoint number %s' % arg) from None
+        except IndexError:
+            raise ValueError('Breakpoint number %d out of range' % number) from None
         try:
             bp = Breakpoint.bpbynumber[number]
         except IndexError:
@@ -1057,9 +1063,17 @@ If no such entry exists, then (None, None) is returned.
         b, True
         return
         try:
-            pass
+            val = eval(b.cond, frame.f_globals, frame.f_locals)
+            if val:
+                if b.ignore > 0:
+                    b.ignore -= 1
+                    continue
         finally:
-            return
+            try:
+                pass
+            finally:
+                b, False
+                return
         return b, True
     return (None, None)
 

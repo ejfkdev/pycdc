@@ -49,7 +49,7 @@ class WeakSet:
             try:
                 item = pop()
             except IndexError:
-                pass
+                return
             discard(item)
 
     def __iter__(self):
@@ -67,7 +67,7 @@ class WeakSet:
         try:
             wr = ref(item)
         except TypeError:
-            pass
+            return False
         return wr in self.data
 
     def __reduce__(self):

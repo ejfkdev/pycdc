@@ -555,6 +555,7 @@ def _get_default_locale():
             locale = _locale.setlocale(_locale.LC_TIME, None)
             return locale
             return locale
+    return locale
 
 class LocaleTextCalendar(TextCalendar):
     '''

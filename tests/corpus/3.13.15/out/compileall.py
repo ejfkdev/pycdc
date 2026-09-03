@@ -109,6 +109,7 @@ hardlink_dupes: hardlink duplicated pyc files
                     if compile_file(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir, prependdir, limit_sl_dest, hardlink_dupes):
                         pass
                 return success
+    return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     '''Byte-compile one file.
@@ -194,13 +195,47 @@ hardlink_dupes: hardlink duplicated pyc files
                     if not expect != actual:
                         pass
                     try:
-                        pass
-                    except OSError:
-                        pass
+                        try:
+                            pass
+                        except OSError:
+                            pass
+                    except py_compile./*bad-name-80*/ as err:
+                        success = False
+                        if quiet >= 2:
+                            return success
+                        if quiet:
+                            print('*** Error compiling {!r}...'.format(fullname))
+                        else:
+                            print('*** ', '')
+                        if not sys.stdout.encoding:
+                            sys.stdout.encoding
+                        encoding = sys.getdefaultencoding()
+                        msg = err.msg.encode(encoding, 'backslashreplace').decode(encoding)
+                        print(msg)
+                        err = None
+                        del err
+                        return success
                     try:
-                        pass
-                    except OSError:
-                        pass
+                        try:
+                            pass
+                        except OSError:
+                            pass
+                    except py_compile./*bad-name-80*/ as err:
+                        success = False
+                        if quiet >= 2:
+                            return success
+                        if quiet:
+                            print('*** Error compiling {!r}...'.format(fullname))
+                        else:
+                            print('*** ', '')
+                        if not sys.stdout.encoding:
+                            sys.stdout.encoding
+                        encoding = sys.getdefaultencoding()
+                        msg = err.msg.encode(encoding, 'backslashreplace').decode(encoding)
+                        print(msg)
+                        err = None
+                        del err
+                        return success
                     return success
                     if not quiet:
                         print('Compiling {!r}...'.format(fullname))
@@ -216,7 +251,19 @@ hardlink_dupes: hardlink duplicated pyc files
                                 except py_compile./*bad-name-80*/ as err:
                                     success = False
                                     if quiet >= 2:
-                                        pass
+                                        return success
+                                    if quiet:
+                                        print('*** Error compiling {!r}...'.format(fullname))
+                                    else:
+                                        print('*** ', '')
+                                    if not sys.stdout.encoding:
+                                        sys.stdout.encoding
+                                    encoding = sys.getdefaultencoding()
+                                    msg = err.msg.encode(encoding, 'backslashreplace').decode(encoding)
+                                    print(msg)
+                                    err = None
+                                    del err
+                                    return success
                                 if not hardlink_dupes:
                                     pass
                                 else:
@@ -225,7 +272,19 @@ hardlink_dupes: hardlink duplicated pyc files
                                     except py_compile./*bad-name-80*/ as err:
                                         success = False
                                         if quiet >= 2:
-                                            pass
+                                            return success
+                                        if quiet:
+                                            print('*** Error compiling {!r}...'.format(fullname))
+                                        else:
+                                            print('*** ', '')
+                                        if not sys.stdout.encoding:
+                                            sys.stdout.encoding
+                                        encoding = sys.getdefaultencoding()
+                                        msg = err.msg.encode(encoding, 'backslashreplace').decode(encoding)
+                                        print(msg)
+                                        err = None
+                                        del err
+                                        return success
                                     if not filecmp.cmp(cfile, previous_cfile, False):
                                         pass
                     finally:
@@ -233,6 +292,35 @@ hardlink_dupes: hardlink duplicated pyc files
                             success = False
                         return success
                         return success
+                        if quiet:
+                            print('*** Error compiling {!r}...'.format(fullname))
+                        else:
+                            print('*** ', '')
+                        encoding = sys.stdout.encoding or sys.getdefaultencoding()
+                        msg = err.msg.encode(encoding, 'backslashreplace').decode(encoding)
+                        print(msg)
+                        err = None
+                        del err
+                        return success
+                        err = None
+                        del err
+                        if SyntaxError, UnicodeError, OSError:
+                            e = None
+                            success = False
+                            if quiet >= 2:
+                                e = None
+                                del e
+                                return success
+                            if quiet:
+                                print('*** Error compiling {!r}...'.format(fullname))
+                            else:
+                                print('*** ', '')
+                            print(e.__class__.__name__ + ':', e)
+                            e = None
+                            del e
+                            return success
+                            e = None
+                            del e
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     '''Byte-compile all module on sys.path.
@@ -321,10 +409,18 @@ def main():
                                 continue
                         return success
                         try:
-                            pass
+                            success = False
+                            continue
                         except KeyboardInterrupt:
                             if args.quiet < 2:
                                 print('\n[interrupted]')
+                            return False
+                            try:
+                                pass
+                            except KeyboardInterrupt:
+                                if args.quiet < 2:
+                                    print('\n[interrupted]')
+                                return False
                 finally:
                     return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
 

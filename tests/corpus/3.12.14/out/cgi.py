@@ -420,7 +420,7 @@ class FieldStorage:
         try:
             self.file.close()
         except AttributeError:
-            pass
+            return
 
     def __enter__(self):
         return self
@@ -851,6 +851,8 @@ def print_directory():
         pwd = os.getcwd()
     except OSError as msg:
         print('OSError:', html.escape(str(msg)))
+        print()
+        return
     print(html.escape(pwd))
     print()
 

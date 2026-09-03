@@ -41,7 +41,7 @@ class _GlobalContext(_Context):
         try:
             pass
         except AttributeError:
-            pass
+            return []
         return _wm.filters
 
 
@@ -54,7 +54,7 @@ def _get_context():
     try:
         pass
     except LookupError:
-        pass
+        return _global_context
     return _wm._warnings_context.get()
 
 def _set_context(context):
@@ -105,34 +105,43 @@ def _showwarnmsg_impl(msg):
     try:
         file.write(text)
     except OSError:
-        pass
+        return
 
 def _formatwarnmsg_impl(msg):
     category = msg.category.__name__
     s = f'{msg.filename}:{msg.lineno}: {category}: {msg.message}\n'
     if not msg.line is not None:
         try:
-            import linecache
-            line = linecache.getline(msg.filename, msg.lineno)
+            try:
+                import linecache
+                line = linecache.getline(msg.filename, msg.lineno)
+            except Exception:
+                suggest_tracemalloc = False
+                tb = None
         except Exception:
             line = None
-            linecache = None
     line = msg.line
     if line:
         line = line.strip()
         s += '  %s\n' % line
     if not msg.source is None:
         try:
-            import tracemalloc
+            try:
+                import tracemalloc
+            except Exception:
+                suggest_tracemalloc = False
+                tb = None
         except Exception:
-            suggest_tracemalloc = False
-            tb = None
+            line = None
         try:
-            suggest_tracemalloc = not tracemalloc.is_tracing()
-            tb = tracemalloc.get_object_traceback(msg.source)
+            try:
+                suggest_tracemalloc = not tracemalloc.is_tracing()
+                tb = tracemalloc.get_object_traceback(msg.source)
+            except Exception:
+                suggest_tracemalloc = False
+                tb = None
         except Exception:
-            suggest_tracemalloc = False
-            tb = None
+            line = None
         if not tb is None:
             s += 'Object allocated at (most recent call last):\n'
             for frame in tb:
@@ -273,6 +282,9 @@ def _processoptions(args):
         except _wm.sys:
             msg = None
             print('Invalid -W option ignored:', msg, sys.stderr)
+            msg = None
+            del msg, msg
+            msg = None
 
 def _setoption(arg):
     parts = arg.split(':')
@@ -320,9 +332,12 @@ def _getcategory(category):
     else:
         module, _, klass = category.rpartition('.')
         try:
-            m = __import__(module, None, None, [klass])
-        except ImportError:
-            raise _wm._OptionError(f'invalid module name: {module!r}') from None
+            try:
+                m = __import__(module, None, None, [klass])
+            except ImportError:
+                raise _wm._OptionError(f'invalid module name: {module!r}') from None
+        except AttributeError:
+            raise _wm._OptionError(f'unknown warning category: {category!r}') from None
     try:
         cat = getattr(m, klass)
     except AttributeError:

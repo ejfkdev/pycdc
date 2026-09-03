@@ -111,8 +111,25 @@ sys.stdin and sys.stdout are used.
                 else:
                     command_string = f'{self.completekey}: complete'
                 readline.parse_and_bind(command_string)
-            except ImportError:
-                pass
+            except EOFError:
+                line = 'EOF'
+                try:
+                    try:
+                        pass
+                    except:
+                        if self.completekey:
+                            try:
+                                try:
+                                    import readline
+                                    readline.set_completer(self.old_completer)
+                                except ImportError:
+                                    pass
+                            except ImportError:
+                                pass
+                            if ImportError:
+                                None
+                except ImportError:
+                    pass
         try:
             if not intro is None:
                 self.intro = intro
@@ -127,6 +144,20 @@ sys.stdin and sys.stdout are used.
                         line = input(self.prompt)
                     except EOFError:
                         line = 'EOF'
+                        try:
+                            try:
+                                pass
+                            except:
+                                if self.completekey:
+                                    try:
+                                        import readline
+                                        readline.set_completer(self.old_completer)
+                                    except ImportError:
+                                        pass
+                                    if ImportError:
+                                        None
+                        except ImportError:
+                            pass
         finally:
             self.stdout.write(self.prompt)
             self.stdout.flush()
@@ -140,21 +171,43 @@ sys.stdin and sys.stdout are used.
             stop = self.postcmd(stop, line)
             if not stop:
                 try:
-                    self.postloop()
-                except:
-                    if self.completekey:
-                        import readline
-                        readline.set_completer(self.old_completer)
+                    try:
+                        self.postloop()
+                    except:
+                        if self.completekey:
+                            try:
+                                import readline
+                                readline.set_completer(self.old_completer)
+                            except ImportError:
+                                pass
+                            if ImportError:
+                                None
+                except ImportError:
+                    pass
             if self.use_rawinput:
                 if self.completekey:
                     try:
                         import readline
                         readline.set_completer(self.old_completer)
                     except ImportError:
-                        pass
+                        return
                     return
                 return
             return
+            try:
+                try:
+                    pass
+                except:
+                    if self.completekey:
+                        try:
+                            import readline
+                            readline.set_completer(self.old_completer)
+                        except ImportError:
+                            pass
+                        if ImportError:
+                            None
+            except ImportError:
+                pass
 
     def precmd(self, line):
         '''Hook method executed just before the command line is
@@ -276,15 +329,18 @@ Otherwise try to call complete_<command> to get list of completions.
                     compfunc = self.completedefault
                 else:
                     try:
-                        compfunc = getattr(self, 'complete_' + cmd)
-                    except AttributeError:
-                        compfunc = self.completedefault
+                        try:
+                            compfunc = getattr(self, 'complete_' + cmd)
+                        except AttributeError:
+                            compfunc = self.completedefault
+                    except IndexError:
+                        return
         compfunc = self.completenames
         self.completion_matches = compfunc(text, line, begidx, endidx)
         try:
             pass
         except IndexError:
-            pass
+            return
         return self.completion_matches[state]
 
     def get_names(self):
@@ -302,10 +358,14 @@ Otherwise try to call complete_<command> to get list of completions.
             try:
                 func = getattr(self, 'help_' + arg)
             except AttributeError:
-                doc = getattr(self, 'do_' + arg).__doc__
-                doc = inspect.cleandoc(doc)
-                if doc:
-                    self.stdout.write('%s\n' % str(doc))
+                try:
+                    doc = getattr(self, 'do_' + arg).__doc__
+                    doc = inspect.cleandoc(doc)
+                    if doc:
+                        self.stdout.write('%s\n' % str(doc))
+                        return
+                except AttributeError:
+                    pass
             func()
             return
         names = self.get_names()

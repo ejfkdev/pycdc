@@ -97,6 +97,7 @@ class AsyncContextDecorator(object):
                     pass
                 await None(None, None)
                 return
+                return
 
         return inner
 
@@ -134,9 +135,19 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             try:
                 next(self.gen)
             except StopIteration:
-                pass
+                return False
             # WARNING: unrecovered try/except structure
             raise RuntimeError("generator didn't stop")
+        if not value is not None:
+            value = typ()
+        try:
+            self.gen.throw(typ, value, traceback)
+        except StopIteration as exc:
+            return exc is not value
+        try:
+            raise RuntimeError("generator didn't stop after throw()")
+        finally:
+            self.gen.close()
 
 
 class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncContextManager, AsyncContextDecorator):
@@ -158,9 +169,21 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                     pass
                 await anext(self.gen)
             except StopAsyncIteration:
-                pass
+                return False
             # WARNING: unrecovered try/except structure
             raise RuntimeError("generator didn't stop")
+        if not value is not None:
+            value = typ()
+        try:
+            while True:
+                pass
+            await self.gen.athrow(typ, value, traceback)
+        except StopAsyncIteration as exc:
+            return exc is not value
+        try:
+            raise RuntimeError("generator didn't stop after athrow()")
+        finally:
+            await self.gen.aclose()
 
 
 def contextmanager(func):
@@ -385,6 +408,7 @@ class _BaseExitStack:
         except AttributeError:
             self._push_exit_callback(exit)
         self._push_cm_exit(exit, exit_method)
+        return exit
 
     def enter_context(self, cm):
         '''Enters the supplied context manager.
@@ -399,6 +423,9 @@ class _BaseExitStack:
             _exit = cls.__exit__
         except AttributeError:
             raise TypeError(f'\'{cls.__module__}.{cls.__qualname__}\' object does not support the context manager protocol') from None
+        result = _enter(cm)
+        self._push_cm_exit(cm, _exit)
+        return result
 
     def callback(self, callback, /, *args, **kwds):
         '''Registers an arbitrary callback and arguments.
@@ -466,12 +493,26 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
                 if not self._exit_callbacks:
                     pass
                 if pending_raise:
-                    fixed_ctx = exc_details[1].__context__
-                    raise exc_details[1]
+                    try:
+                        fixed_ctx = exc_details[1].__context__
+                        raise exc_details[1]
+                    except BaseException:
+                        exc_details[1].__context__ = fixed_ctx
+                        raise
                     if BaseException:
                         None
                         exc_details[1].__context__ = fixed_ctx
                         raise
+        if not self._exit_callbacks:
+            pass
+        if pending_raise:
+            try:
+                fixed_ctx = exc_details[1].__context__
+                raise exc_details[1]
+            except BaseException:
+                exc_details[1].__context__ = fixed_ctx
+                raise
+        return received_exc and suppressed_exc
 
     def close(self):
         self.__exit__(None, None, None)
@@ -516,6 +557,11 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             _exit = cls.__aexit__
         except AttributeError:
             raise TypeError(f'\'{cls.__module__}.{cls.__qualname__}\' object does not support the asynchronous context manager protocol') from None
+        while True:
+            pass
+        result = await _enter(cm)
+        self._push_async_cm_exit(cm, _exit)
+        return result
 
     def push_async_exit(self, exit):
         '''Registers a coroutine function with the standard __aexit__ method
@@ -532,6 +578,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         except AttributeError:
             self._push_exit_callback(exit, False)
         self._push_async_cm_exit(exit, exit_method)
+        return exit
 
     def push_async_callback(self, callback, /, *args, **kwds):
         '''Registers an arbitrary coroutine function and arguments.
@@ -597,12 +644,26 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
                 if not self._exit_callbacks:
                     pass
                 if pending_raise:
-                    fixed_ctx = exc_details[1].__context__
-                    raise exc_details[1]
+                    try:
+                        fixed_ctx = exc_details[1].__context__
+                        raise exc_details[1]
+                    except BaseException:
+                        exc_details[1].__context__ = fixed_ctx
+                        raise
                     if BaseException:
                         None
                         exc_details[1].__context__ = fixed_ctx
                         raise
+        if not self._exit_callbacks:
+            pass
+        if pending_raise:
+            try:
+                fixed_ctx = exc_details[1].__context__
+                raise exc_details[1]
+            except BaseException:
+                exc_details[1].__context__ = fixed_ctx
+                raise
+        return received_exc and suppressed_exc
 
 
 class nullcontext(AbstractContextManager, AbstractAsyncContextManager):

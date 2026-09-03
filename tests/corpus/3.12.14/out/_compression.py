@@ -56,6 +56,7 @@ class DecompressReader(io.RawIOBase):
                 data[byte_view:] = len(data)
                 while True:
                     return len(data)
+        return len(data)
 
     def read(self, size=-1):
         if size < 0:

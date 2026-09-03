@@ -446,7 +446,7 @@ format string.'''
                         try:
                             pass
                         except ValueError:
-                            pass
+                            return int(s)
                         return locale_time.LC_alt_digits.index(s)
 
                 else:

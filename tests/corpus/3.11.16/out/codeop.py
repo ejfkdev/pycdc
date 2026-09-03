@@ -53,7 +53,19 @@ def _maybe_compile(compiler, source, filename, symbol):
         try:
             compiler(source, filename, symbol)
         except SyntaxError:
-            compiler(source + '\n', filename, symbol)
+            try:
+                compiler(source + '\n', filename, symbol)
+            except SyntaxError as e:
+                if 'incomplete input' in str(e):
+                    return
+                e = None
+                del e, e
+                e = None
+        e = None
+        del e, e
+        e = None
+        None(None, None)
+    return compiler(source, filename, symbol, incomplete_input=False)
 
 def _is_syntax_error(err1, err2):
     rep1 = repr(err1)

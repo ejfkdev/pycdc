@@ -140,9 +140,12 @@ will be omitted from the output for better readability.
             keywords = annotate_fields
             for name in node._fields:
                 try:
-                    value = getattr(node, name)
+                    try:
+                        value = getattr(node, name)
+                    except AttributeError:
+                        keywords = True
                 except AttributeError:
-                    keywords = True
+                    pass
                 if not value is not None and not getattr(cls, name, ...) is not None:
                     keywords = True
                     continue
@@ -359,7 +362,7 @@ be padded with spaces to match its original position.
                     col_offset = node.col_offset
                     end_col_offset = node.end_col_offset
                 except AttributeError:
-                    pass
+                    return
     finally:
         lines = _splitlines_no_ff(source, end_lineno + 1)
         if end_lineno == lineno:

@@ -29,7 +29,7 @@ class WeakSet:
         try:
             wr = ref(item)
         except TypeError:
-            pass
+            return False
         return wr in self.data
 
     def __reduce__(self):

@@ -9,9 +9,12 @@ bytes_types = bytes, bytearray
 def _bytes_from_decode_data(s):
     if isinstance(s, str):
         try:
-            pass
-        except UnicodeEncodeError:
-            raise ValueError('string argument should contain only ASCII characters')
+            try:
+                pass
+            except UnicodeEncodeError:
+                raise ValueError('string argument should contain only ASCII characters')
+        except TypeError:
+            raise TypeError('argument should be a bytes-like object or ASCII string, not %r' % s.__class__.__name__) from None
         return s.encode('ascii')
     if isinstance(s, bytes_types):
         return s
@@ -386,15 +389,18 @@ The result is returned as a bytes object.
         chunk = b[i:i + 5]
         acc = 0
         try:
-            for c in chunk:
-                acc = acc * 85 + _b85dec[c]
-        except TypeError:
-            for j, c in enumerate(chunk):
-                if not _b85dec[c] is None:
-                    pass
-                else:
-                    raise ValueError('bad base85 character at position %d' % (i + j)) from None
-                    raise
+            try:
+                for c in chunk:
+                    acc = acc * 85 + _b85dec[c]
+            except TypeError:
+                for j, c in enumerate(chunk):
+                    if not _b85dec[c] is None:
+                        pass
+                    else:
+                        raise ValueError('bad base85 character at position %d' % (i + j)) from None
+                        raise
+        except struct./*bad-name-24*/:
+            raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
         try:
             out.append(packI(acc))
         except struct./*bad-name-24*/:
@@ -426,8 +432,6 @@ The result is returned as a bytes object.
         pass
     except ValueError as e:
         raise ValueError(e.args[0].replace('base85', 'z85')) from None
-        e = None
-        del e
     return b85decode(s)
 
 MAXLINESIZE = 76
@@ -470,8 +474,6 @@ def _input_type_check(s):
     except TypeError as err:
         msg = 'expected bytes-like object, not %s' % s.__class__.__name__
         raise TypeError(msg) from err
-        err = None
-        del err
     if m.format not in ('c', 'b', 'B'):
         msg = f'expected single byte elements, not {m.format!r} from {s.__class__.__name__!s}'
         raise TypeError(msg)
@@ -523,6 +525,7 @@ def main():
                         buffer = sys.stdin.buffer
                     func(buffer, sys.stdout.buffer)
                     return
+            return
 
 if __name__ == '__main__':
     main()

@@ -99,11 +99,13 @@ closed, any other operation on it will raise a ValueError.
                 self._fp.write(self._compressor.flush())
                 self._compressor = None
         finally:
-            if self._closefp:
-                self._fp.close()
-            self._fp = None
-            self._closefp = False
-            self._buffer = None
+            try:
+                if self._closefp:
+                    self._fp.close()
+            finally:
+                self._fp = None
+                self._closefp = False
+                self._buffer = None
 
     @property
     def closed(self):
@@ -284,6 +286,7 @@ For incremental decompression, use a BZ2Decompressor object instead.
         except OSError:
             if results:
                 pass
+            raise
         results.append(res)
         if not decomp.eof:
             raise ValueError('Compressed data ended before the end-of-stream marker was reached')

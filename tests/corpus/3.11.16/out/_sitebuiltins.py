@@ -36,12 +36,19 @@ class _Printer(object):
             return
         data = None
         for filename in self.__filenames:
-            with open(filename, encoding='utf-8') as fp:
-                data = fp.read()
-                try:
-                    pass
-                except OSError:
-                    pass
+            try:
+                with open(filename, encoding='utf-8') as fp:
+                    data = fp.read()
+                    try:
+                        pass
+                    except OSError:
+                        pass
+            finally:
+                break
+        if not data:
+            data = self.__data
+        self.__lines = data.split('\n')
+        self.__linecnt = len(self.__lines)
 
     def __repr__(self):
         self.__setup()
@@ -58,7 +65,7 @@ class _Printer(object):
                 for i in range(lineno, lineno + self.MAXLINES):
                     print(self.__lines[i])
             except IndexError:
-                pass
+                return
             lineno += self.MAXLINES
             key = None
             while not key is not None:

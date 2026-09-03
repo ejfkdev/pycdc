@@ -182,6 +182,10 @@ def _patch(self):
         dct = impl.create_dict()
         args, kw = impl.localargs
         self.__init__(*args, **kw)
+    with impl.locallock:
+        object.__setattr__(self, '__dict__', dct)
+        yield None
+        return
 
 class local:
     __slots__ = ('_local__impl', '__dict__')

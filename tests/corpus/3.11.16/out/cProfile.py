@@ -62,6 +62,17 @@ class Profile(_lsprof.Profiler):
                         callers = callersdicts[id(subentry.code)]
                     except KeyError:
                         pass
+                    nc = subentry.callcount
+                    cc = nc - subentry.reccallcount
+                    tt = subentry.inlinetime
+                    ct = subentry.totaltime
+                    if func in callers:
+                        prev = callers[func]
+                        nc += prev[0]
+                        cc += prev[1]
+                        tt += prev[2]
+                        ct += prev[3]
+                    callers[func] = nc, cc, tt, ct
 
     def run(self, cmd):
         import __main__
@@ -75,6 +86,7 @@ class Profile(_lsprof.Profiler):
         finally:
             self.disable()
             self.disable()
+        return self
 
     def runcall(self, func, /, *args, **kw):
         self.enable()
@@ -125,6 +137,17 @@ def main():
             sys.path.insert(0, os.path.dirname(progname))
             with io.open_code(progname) as fp:
                 code = compile(fp.read(), progname, 'exec')
+            globs = {'__file__': progname, '__name__': '__main__', '__package__': None, '__cached__': None}
+        try:
+            runctx(code, globs, None, options.outfile, options.sort)
+        except BrokenPipeError as exc:
+            sys.stdout = None
+            sys.exit(exc.errno)
+            exc = None
+            del exc
+    else:
+        parser.print_usage()
+    return parser
 
 if __name__ == '__main__':
     main()

@@ -13,6 +13,13 @@ def _bytes_from_decode_data(s):
         except UnicodeEncodeError:
             raise ValueError('string argument should contain only ASCII characters')
         return s.encode('ascii')
+    if isinstance(s, bytes_types):
+        return s
+    try:
+        pass
+    except TypeError:
+        raise TypeError('argument should be a bytes-like object or ASCII string, not %r' % s.__class__.__name__) from None
+    return memoryview(s).tobytes()
 
 def b64encode(s, altchars=None):
     """Encode the bytes-like object s using Base64 and return a bytes object.
@@ -161,6 +168,15 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
                 acc = (acc << 5) + b32rev[c]
         except KeyError:
             raise binascii.Error('Non-base32 digit found') from None
+        decoded += acc.to_bytes(5)
+    if l % 8 or padchars not in frozenset({0, 1, 3, 4, 6}):
+        raise binascii.Error('Incorrect padding')
+    if padchars and decoded:
+        acc <<= 5 * padchars
+        last = acc.to_bytes(5)
+        leftover = (43 - 5 * padchars) // 8
+        decoded[-5:] = last[:leftover]
+    return bytes(decoded)
 
 def b32encode(s):
     return _b32encode(_b32alphabet, s)
@@ -306,6 +322,23 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
                 decoded_append(packI(acc))
             except struct.error:
                 raise ValueError('Ascii85 overflow') from None
+            curr_clear()
+    if x == 122:
+        if curr:
+            raise ValueError('z inside Ascii85 5-tuple')
+        decoded_append(b'\x00\x00\x00\x00')
+    if foldspaces and x == 121:
+        if curr:
+            raise ValueError('y inside Ascii85 5-tuple')
+        decoded_append(b'    ')
+    if x in ignorechars:
+        pass
+    raise ValueError('Non-Ascii85 digit found: %c' % x)
+    result = b''.join(decoded)
+    padding = 4 - len(curr)
+    if padding:
+        result = result[:-padding]
+    return result
 
 _b85alphabet = b'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~'
 _b85chars = None
@@ -352,6 +385,14 @@ def b85decode(b):
                 if not _b85dec[c] is not None:
                     raise ValueError('bad base85 character at position %d' % (i + j)) from None
             raise
+        try:
+            out.append(packI(acc))
+        except struct.error:
+            raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
+    result = b''.join(out)
+    if padding:
+        result = result[:-padding]
+    return result
 
 MAXLINESIZE = 76
 MAXBINSIZE = MAXLINESIZE // 4 * 3
@@ -387,8 +428,12 @@ def _input_type_check(s):
     except TypeError as err:
         msg = 'expected bytes-like object, not %s' % s.__class__.__name__
         raise TypeError(msg) from err
-        err = None
-        del err
+    if m.format not in ('c', 'b', 'B'):
+        msg = f'expected single byte elements, not {m.format!r} from {s.__class__.__name__!s}'
+        raise TypeError(msg)
+    if m.ndim != 1:
+        msg = 'expected 1-D data, not %d-D data from %s' % (m.ndim, s.__class__.__name__)
+        raise TypeError(msg)
 
 def encodebytes(s):
     _input_type_check(s)
@@ -415,6 +460,28 @@ def main():
         print(msg)
         print(usage)
         sys.exit(2)
+        msg = None
+        del msg
+    func = encode
+    for o, a in opts:
+        if o == '-e':
+            func = encode
+        if o == '-d':
+            func = decode
+        if o == '-u':
+            func = decode
+        if o == '-t':
+            test()
+            return
+        if o == '-h':
+            print(usage)
+            return
+    if args and args[0] != '-':
+        with open(args[0], 'rb') as f:
+            func(f, sys.stdout.buffer)
+            return
+        return
+    func(sys.stdin.buffer, sys.stdout.buffer)
 
 def test():
     s0 = b'Aladdin:open sesame'
@@ -427,3 +494,4 @@ def test():
 
 if __name__ == '__main__':
     main()
+# WARNING: Decompyle incomplete

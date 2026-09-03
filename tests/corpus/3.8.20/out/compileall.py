@@ -148,7 +148,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
             if quiet >= 2:
-                return
+                return success
             if quiet:
                 print('*** Error compiling {!r}...'.format(fullname))
             else:
@@ -157,7 +157,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             msg = msg(sys.stdout.encoding)
             print(msg)
         if quiet >= 2:
-            return
+            return success
         if quiet:
             print('*** Error compiling {!r}...'.format(fullname))
         else:

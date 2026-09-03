@@ -40,6 +40,13 @@ def _read_output(commandstring, capture_stderr=False):
         fp = tempfile.NamedTemporaryFile()
     except ImportError:
         fp = open(f'/tmp/_osx_support.{os.getpid()!s}', 'w+b')
+    with contextlib.closing(fp) as fp:
+        if capture_stderr:
+            cmd = f'{commandstring!s} >\'{fp.name!s}\' 2>&1'
+        else:
+            cmd = f'{commandstring!s} 2>/dev/null >\'{fp.name!s}\''
+        None(None, None)
+        return
 
 def _find_build_tool(toolname):
     '''Find a build tool on current path or using xcrun'''
@@ -61,6 +68,9 @@ def _get_system_version():
         # WARNING: unrecovered try/except structure
         m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
         f.close()
+        if not m is None:
+            _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
+    return _SYSTEM_VERSION
 
 _SYSTEM_VERSION_TUPLE = None
 
@@ -80,6 +90,7 @@ def _get_system_version_tuple():
                 _SYSTEM_VERSION_TUPLE = tuple((int(i) for i in osx_version.split('.')))
             except ValueError:
                 _SYSTEM_VERSION_TUPLE = ()
+    return _SYSTEM_VERSION_TUPLE
 
 def _remove_original_values(_config_vars):
     '''Remove original unmodified values for testing'''
@@ -236,6 +247,40 @@ def compiler_fixup(compiler_so, cc_args):
                 del compiler_so[index:index + 2]
             except ValueError:
                 pass
+    elif not _supports_arm64_builds():
+        for idx in reversed(range(len(compiler_so))):
+            if compiler_so[idx] == '-arch' and compiler_so[idx + 1] == 'arm64':
+                del compiler_so[idx:idx + 2]
+    if 'ARCHFLAGS' in os.environ:
+        if not stripArch:
+            compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
+    if stripSysroot:
+        while True:
+            indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
+            if not indices:
+                break
+            index = indices[0]
+            if compiler_so[index] == '-isysroot':
+                del compiler_so[index:index + 2]
+            else:
+                del compiler_so[index:index + 1]
+    sysroot = None
+    argvar = cc_args
+    indices = [i for i, x in enumerate(cc_args) if x.startswith('-isysroot')]
+    if not indices:
+        argvar = compiler_so
+        indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
+    for idx in indices:
+        if argvar[idx] == '-isysroot':
+            sysroot = argvar[idx + 1]
+            break
+        sysroot = argvar[idx][len('-isysroot'):]
+    if sysroot:
+        if not os.path.isdir(sysroot):
+            sys.stderr.write(f'Compiling with an SDK that doesn\'t seem to exist: {sysroot}\n')
+            sys.stderr.write('Please check your Xcode installation\n')
+            sys.stderr.flush()
+    return compiler_so
 
 def customize_config_vars(_config_vars):
     '''Customize Python build configuration variables.
@@ -291,5 +336,38 @@ def get_platform_osx(_config_vars, osname, release, machine):
                 macrelease = tuple((int(i) for i in macrelease.split('.')[0:2]))
             except ValueError:
                 macrelease = (10, 3)
+        else:
+            macrelease = (10, 3)
+        if macrelease >= (10, 4):
+            if '-arch' in cflags.strip():
+                machine = 'fat'
+                archs = re.findall('-arch\\s+(\\S+)', cflags)
+                archs = tuple(sorted(set(archs)))
+                if len(archs) == 1:
+                    machine = archs[0]
+                elif archs == ('arm64', 'x86_64'):
+                    machine = 'universal2'
+                elif archs == ('i386', 'ppc'):
+                    machine = 'fat'
+                elif archs == ('i386', 'x86_64'):
+                    machine = 'intel'
+                elif archs == ('i386', 'ppc', 'x86_64'):
+                    machine = 'fat3'
+                elif archs == ('ppc64', 'x86_64'):
+                    machine = 'fat64'
+                else:
+                    if archs == ('i386', 'ppc', 'ppc64', 'x86_64'):
+                        machine = 'universal'
+                    else:
+                        raise ValueError(f'Don\'t know machine value for archs={archs!r}')
+                    if machine == 'i386':
+                        if sys.maxsize >= 4294967296:
+                            machine = 'x86_64'
+                    elif machine in ('PowerPC', 'Power_Macintosh'):
+                        if sys.maxsize >= 4294967296:
+                            machine = 'ppc64'
+                        else:
+                            machine = 'ppc'
+    return osname, release, machine
 
 # WARNING: Decompyle incomplete

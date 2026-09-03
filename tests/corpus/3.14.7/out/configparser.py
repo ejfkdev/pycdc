@@ -758,12 +758,14 @@ The section DEFAULT is special.
         except NoSectionError:
             if fallback is _UNSET:
                 raise
+            return fallback
         option = self.optionxform(option)
         try:
             value = d[option]
         except KeyError:
             if fallback is _UNSET:
                 raise NoOptionError(option, section)
+            return fallback
         if not raw:
             if not value is not None:
                 return value
@@ -778,6 +780,7 @@ The section DEFAULT is special.
         except (NoSectionError, NoOptionError):
             if fallback is _UNSET:
                 raise
+            return fallback
         return self._get(section, conv, option, **kwargs)
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
@@ -1280,9 +1283,12 @@ section proxies to find and use the implementation on the parser class.
         try:
             if not key:
                 try:
-                    k = 'get' + None
-                except TypeError:
-                    raise KeyError(key)
+                    try:
+                        k = 'get' + None
+                    except TypeError:
+                        raise KeyError(key)
+                except AttributeError:
+                    pass
         finally:
             del self._data[key]
             for inst in itertools.chain((self._parser,), self._parser.values()):

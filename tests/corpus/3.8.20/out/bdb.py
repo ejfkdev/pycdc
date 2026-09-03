@@ -380,7 +380,7 @@ class Bdb:
         try:
             bp = self.get_bpbynumber(arg)
         except ValueError as err:
-            return
+            return str(err)
         bp.deleteMe()
         self._prune_breaks(bp.file, bp.line)
 

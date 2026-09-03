@@ -155,7 +155,7 @@
    "module": "bdb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2261,
+   "ndiff": 2263,
    "ntotal": 2369,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -275,7 +275,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 86: orig  body=[Return(value=Constant(value=None | dec  body=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1499,
+   "ndiff": 1519,
    "ntotal": 1827,
    "detail": "line 296: orig ('LOAD_DEREF', 'func') | got ('LOAD_FAST', 'func')\nline 298: orig ('LOAD_CLOSURE', 'func') | got ('LOAD_CLOSURE', 'self')\nline 299: orig ('LOAD_CLOSURE', 'self') | got ('BUILD_TUPLE', '')"
   },

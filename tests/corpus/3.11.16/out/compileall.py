@@ -33,6 +33,21 @@ def _walk_dir(dir, maxlevels, quiet=0):
         if quiet < 2:
             print("Can't list {!r}".format(dir))
         names = []
+    names.sort()
+    for name in names:
+        if name == '__pycache__':
+            continue
+        fullname = os.path.join(dir, name)
+        if not os.path.isdir(fullname):
+            yield fullname
+            continue
+        if maxlevels > 0 and name != os.curdir:
+            if name != os.pardir:
+                if os.path.isdir(fullname):
+                    if not os.path.islink(fullname):
+                        while True:
+                            pass
+                        yield None
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     '''Byte-compile all modules in the given directory tree.
@@ -78,6 +93,20 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
         except NotImplementedError:
             workers = 1
         from concurrent.futures import ProcessPoolExecutor
+    if not maxlevels is not None:
+        maxlevels = sys.getrecursionlimit()
+    files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels)
+    success = True
+    if workers != 1:
+        if not ProcessPoolExecutor is None:
+            workers = workers or None
+            with ProcessPoolExecutor(max_workers=workers) as executor:
+                results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes), files)
+                success = min(results, default=True)
+    for file in files:
+        if not compile_file(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes):
+            success = False
+    return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     '''Byte-compile one file.
@@ -157,15 +186,51 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         head, tail = name[:-3], name[-3:]
         if tail == '.py':
             if not force:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
-                for cfile in opt_cfiles.values():
-                    with open(cfile, 'rb') as chandle:
-                        actual = chandle.read(12)
+                try:
+                    mtime = int(os.stat(fullname).st_mtime)
+                    expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+                    for cfile in opt_cfiles.values():
+                        with open(cfile, 'rb') as chandle:
+                            actual = chandle.read(12)
+                            try:
+                                pass
+                            except OSError:
+                                pass
                         try:
-                            pass
+                            if expect != actual:
+                                pass
                         except OSError:
                             pass
+                finally:
+                    return success
+                    if not quiet:
+                        print('Compiling {!r}...'.format(fullname))
+                    try:
+                        for index, opt_level in enumerate(optimize):
+                            cfile = opt_cfiles[opt_level]
+                            ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
+                            if index > 0 and hardlink_dupes:
+                                previous_cfile = opt_cfiles[optimize[index - 1]]
+                                if filecmp.cmp(cfile, previous_cfile, shallow=False):
+                                    os.unlink(cfile)
+                                    os.link(previous_cfile, cfile)
+                    except py_compile.PyCompileError as err:
+                        success = False
+                        if quiet >= 2:
+                            return success
+                        if quiet:
+                            print('*** Error compiling {!r}...'.format(fullname))
+                        else:
+                            print('*** ', end='')
+                        encoding = sys.stdout.encoding or sys.getdefaultencoding()
+                        msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+                        print(msg)
+                        err = None
+                        del err, err
+                        err = None
+                    if ok == 0:
+                        success = False
+                    return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     '''Byte-compile all module on sys.path.
@@ -232,14 +297,41 @@ def main():
             if not args.prependdir is None:
                 parser.error('-d cannot be used in combination with -s or -p')
     if args.flist:
-        with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
-            for line in f:
-                compile_dests.append(line.strip())
+        try:
+            with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
+                for line in f:
+                    compile_dests.append(line.strip())
+                try:
+                    pass
+                except OSError:
+                    if args.quiet < 2:
+                        print('Error reading file list {}'.format(args.flist))
+                    return False
+        finally:
+            if args.invalidation_mode:
+                ivl_mode = args.invalidation_mode.replace('-', '_').upper()
+                invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
+            else:
+                invalidation_mode = None
+            success = True
             try:
-                pass
-            except OSError:
-                if args.quiet < 2:
-                    print('Error reading file list {}'.format(args.flist))
+                if compile_dests:
+                    for dest in compile_dests:
+                        if os.path.isfile(dest):
+                            if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
+                                success = False
+                            continue
+                        if not compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
+                            success = False
+                    return success
+                    try:
+                        pass
+                    except KeyboardInterrupt:
+                        if args.quiet < 2:
+                            print('\n[interrupted]')
+                        return False
+            finally:
+                return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
 
 if __name__ == '__main__':
     exit_status = int(not main())

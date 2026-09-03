@@ -136,7 +136,7 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             try:
                 next(self.gen)
             except StopIteration:
-                pass
+                return False
             # WARNING: unrecovered try/except structure
             raise RuntimeError("generator didn't stop")
         if not value is not None:
@@ -144,11 +144,13 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
         try:
             self.gen.throw(value)
         except StopIteration as exc:
-            pass
+            return exc is not value
         try:
             raise RuntimeError("generator didn't stop after throw()")
         finally:
             self.gen.close()
+            if StopIteration:
+                None
 
 
 class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncContextManager, AsyncContextDecorator):
@@ -178,15 +180,19 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                             try:
                                 await self.gen.athrow(value)
                             except StopAsyncIteration as exc:
-                                pass
+                                return exc is not value
                     finally:
                         try:
                             raise RuntimeError("generator didn't stop after athrow()")
                         except StopAsyncIteration:
-                            pass
+                            return False
                         finally:
                             if StopAsyncIteration:
                                 None
+                        try:
+                            pass
+                        except StopAsyncIteration as exc:
+                            return exc is not value
 
 
 def contextmanager(func):
@@ -420,6 +426,7 @@ to the method instead of the object itself).
             exit_method = _cb_type.__exit__
         except AttributeError:
             self._push_exit_callback(exit)
+            return exit
         self._push_cm_exit(exit, exit_method)
         return exit
 
@@ -496,18 +503,24 @@ For example:
             is_sync, cb = self._exit_callbacks.pop()
             assert is_sync
             try:
-                if not exc is not None:
-                    exc_details = (None, None, None)
-                else:
-                    exc_details = type(exc), exc, exc.__traceback__
-                if cb(*exc_details):
-                    suppressed_exc = True
-                    pending_raise = False
-                    exc = None
-            except BaseException as new_exc:
-                _fix_exception_context(new_exc, exc)
-                pending_raise = True
-                exc = new_exc
+                try:
+                    if not exc is not None:
+                        exc_details = (None, None, None)
+                    else:
+                        exc_details = type(exc), exc, exc.__traceback__
+                    if cb(*exc_details):
+                        suppressed_exc = True
+                        pending_raise = False
+                        exc = None
+                except BaseException as new_exc:
+                    _fix_exception_context(new_exc, exc)
+                    pending_raise = True
+                    exc = new_exc
+                    new_exc = None
+                    del new_exc
+            except BaseException:
+                exc.__context__ = fixed_ctx
+                raise
         if pending_raise:
             try:
                 fixed_ctx = exc.__context__
@@ -581,6 +594,7 @@ to the method instead of the object itself).
             exit_method = _cb_type.__aexit__
         except AttributeError:
             self._push_exit_callback(exit, False)
+            return exit
         self._push_async_cm_exit(exit, exit_method)
         return exit
 
@@ -642,15 +656,21 @@ method.'''
                 else:
                     while True:
                         try:
-                            cb_suppress = await cb(*exc_details)
-                            if cb_suppress:
-                                suppressed_exc = True
-                                pending_raise = False
-                                exc = None
-                        except BaseException as new_exc:
-                            _fix_exception_context(new_exc, exc)
-                            pending_raise = True
-                            exc = new_exc
+                            try:
+                                cb_suppress = await cb(*exc_details)
+                                if cb_suppress:
+                                    suppressed_exc = True
+                                    pending_raise = False
+                                    exc = None
+                            except BaseException as new_exc:
+                                _fix_exception_context(new_exc, exc)
+                                pending_raise = True
+                                exc = new_exc
+                                new_exc = None
+                                del new_exc
+                        except BaseException:
+                            exc.__context__ = fixed_ctx
+                            raise
             finally:
                 if not self._exit_callbacks:
                     break

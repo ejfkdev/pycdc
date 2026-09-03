@@ -305,6 +305,8 @@ with warnings.catch_warnings():
                     elif chunkname == b'MARK':
                         self._readmark(chunk)
                     chunk.skip()
+                if not self._comm_chunk_read or not self._ssnd_chunk:
+                    raise Error('COMM chunk and/or SSND chunk missing')
 
             def __init__(self, f):
                 if isinstance(f, str):
@@ -875,4 +877,5 @@ with warnings.catch_warnings():
                                 break
                             g.writeframes(data)
                         print('Done.')
+                        continue
 # WARNING: Decompyle incomplete

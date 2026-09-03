@@ -199,7 +199,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             if quiet >= 2:
                 err = None
                 del err
-                return
+                return success
             if quiet:
                 print('*** Error compiling {!r}...'.format(fullname))
             else:
@@ -214,7 +214,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         if quiet >= 2:
             e = None
             del e
-            return
+            return success
         if quiet:
             print('*** Error compiling {!r}...'.format(fullname))
         else:

@@ -112,7 +112,7 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
         try:
             self.gen.throw(type, value, traceback)
         except StopIteration as exc:
-            return
+            return exc is not value
         if sys.exc_info()[1] is value:
             return False
         raise
@@ -142,7 +142,7 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             await self.gen.athrow(typ, value, traceback)
             raise RuntimeError("generator didn't stop after athrow()")
         except StopAsyncIteration as exc:
-            return
+            return exc is not value
         try:
             if exc is value:
                 return False

@@ -260,12 +260,19 @@ struct Ctx<'a> {
     try_ctxs: HashMap<usize, TryCtx>,
     /// first offset of out-of-line handler code (main pass stops here)
     handler_zone: Option<usize>,
+    chain_heads: std::collections::HashSet<usize>,
     /// with-body regions from the exception table (3.11+): start -> end
     with_regions: HashMap<usize, usize>,
     /// try context whose body block is currently open
     active_try: Option<TryCtx>,
     /// try context awaiting else/finally emission
     pending_try_ctx: Option<TryCtx>,
+    /// finally body of the enclosing try in a nested-chain wrap, consumed
+    /// by the next emit_try_tail
+    pending_nested_finally: Option<Vec<Stmt>>,
+    /// inner try's clauses in a nested-chain wrap, consumed by the next
+    /// emit_try_tail (which nests the region body inside an inner Try)
+    nested_inner_handlers: Option<Vec<ExceptHandler>>,
     /// pre-3.11 try awaiting its out-of-line handler chain
     legacy_try: Option<LegacyTry>,
     /// pre-3.11 except clause being collected
@@ -435,9 +442,21 @@ pub fn decompile_in_scope(
             }
         }
     }
+    // handler zone: everything from the first handler target that covers
+    // MAIN-FLOW code to the end is out-of-line handler code. Chains that
+    // protect only handler-zone code (nested tries inside an except body)
+    // must NOT define the zone — the main walk has to reach the outer
+    // chain's dispatch, and nested chains are folded by the handler-body
+    // sub-walks instead.
     // handler zone: everything from the first classified handler target to
     // the end of the code is out-of-line handler/cleanup code
     let handler_zone = all_handler_targets.iter().min().copied();
+    // chain heads: out-of-line dispatch regions are parsed on demand (by
+    // emit_try_tail / nested wraps) — the main walk skips them wherever
+    // they sit, since protected bodies may FOLLOW their chain (a whole-
+    // function try whose handler was laid out before the body)
+    let chain_heads: std::collections::HashSet<usize> =
+        all_handler_targets.iter().copied().collect();
     let mut ctx = Ctx {
         code,
         table,
@@ -461,9 +480,12 @@ pub fn decompile_in_scope(
         exc_entries: exc_entries.clone(),
         try_ctxs: HashMap::new(),
         handler_zone,
+        chain_heads,
         with_regions: with_regions.clone(),
         active_try: None,
         pending_try_ctx: None,
+        pending_nested_finally: None,
+        nested_inner_handlers: None,
         legacy_try: None,
         legacy_handler: None,
         legacy_handler_end: None,
@@ -515,10 +537,14 @@ pub fn decompile_in_scope(
     // chained try-region grouping (3.11+): entries in the main flow, ordered
     // by start; an entry starting where the current region ends extends it
     if version.at_least(3, 11) {
+        // entries inside the handler zone belong to NESTED tries living in
+        // out-of-line handler bodies — the region sub-walks consult the
+        // same ctx map, so include them (the main walk never reaches the
+        // zone; pure-cleanup handlers were already dropped by the retain)
+        let _ = handler_zone;
         let mut main_entries: Vec<_> = exc_entries
             .iter()
             .filter(|e| handler_kind.contains_key(&e.target))
-            .filter(|e| handler_zone.map_or(true, |z| e.start < z && e.end <= z))
             .collect();
         main_entries.sort_by_key(|e| e.start);
         let mut regions: Vec<TryCtx> = Vec::new();
@@ -601,11 +627,22 @@ impl<'a> Ctx<'a> {
     fn run(&mut self) {
         self.prescan_while_true();
         let mut pc = 0usize;
+        let mut past_chains = false;
         while pc < self.instrs.len() {
             let inst = self.instrs[pc];
             let pos = inst.offset;
-            if let Some(zone) = self.handler_zone {
-                if pos >= zone {
+            if self.chain_heads.contains(&pos) && inst.op == Op::PUSH_EXC_INFO {
+                // out-of-line handler chain head: fold any Try block
+                // ending here FIRST (its tail parses the chain), then
+                // skip the whole chain region — the walk resumes after
+                // it (protected body continuation, another chain, or
+                // sunk post-try main flow)
+                self.close_blocks_at(pos);
+                let after = self.chain_extent(pos);
+                self.skip_until = Some(after);
+                past_chains = true;
+            } else if let Some(zone) = self.handler_zone {
+                if pos >= zone && !past_chains {
                     break;
                 }
             }
@@ -859,7 +896,24 @@ impl<'a> Ctx<'a> {
                 finalbody = body;
             }
         }
-        let body = self.pending_try_body.pop().unwrap_or_default();
+        let mut body = self.pending_try_body.pop().unwrap_or_default();
+        // nested-chain wrap: this region's body IS the inner try's body —
+        // nest it, and adopt the enclosing finally parsed alongside
+        if let Some(ih) = self.nested_inner_handlers.take() {
+            let inner = Stmt::Try {
+                body: std::mem::take(&mut body),
+                handlers: ih,
+                orelse: Vec::new(),
+                finalbody: Vec::new(),
+            };
+            body = vec![inner];
+            if let Some(fin) = self.pending_nested_finally.take() {
+                if finalbody.is_empty() {
+                    finalbody = fin;
+                }
+            }
+        }
+        self.pending_nested_finally = None;
         if handlers.is_empty() && finalbody.is_empty() && orelse.is_empty() && body.is_empty()
         {
             return;
@@ -906,6 +960,8 @@ impl<'a> Ctx<'a> {
             if let Some(l) = inst.line {
                 self.cur_line = Some(l);
             }
+            // nested tries inside a handler body open from the same table
+            self.open_exception_blocks(pos);
             self.close_blocks_at(pos);
             if !self.exec(&inst) {
                 break;
@@ -919,6 +975,12 @@ impl<'a> Ctx<'a> {
         while self.blocks.len() > 1 {
             let p = self.blocks.last().map(|b| b.start).unwrap_or(to);
             self.force_close_top(p);
+        }
+        // a nested try whose protected region ends at/after the sub-walk
+        // limit defers its tail forever — emit it now while the parsed
+        // handler bodies still belong to it
+        while let Some(tc) = self.pending_try_ctx.take() {
+            self.emit_try_tail(tc, to);
         }
         let mut root = self.blocks.pop().unwrap();
         let stmts = std::mem::take(&mut root.stmts);
@@ -936,7 +998,37 @@ impl<'a> Ctx<'a> {
     /// clause bodies, ending in RERAISE.
     fn parse_except_dispatch(&mut self, from: usize) -> Vec<ExceptHandler> {
         let mut handlers = Vec::new();
-        let end = self.handler_region_end(from);
+        let mut clause_offsets: Vec<usize> = Vec::new();
+        let end = self.dispatch_region_end(from);
+        let region_end = self.handler_region_end(from);
+        // nesting: this chain's own cleanup region ends exactly where the
+        // next chain begins — that chain handles re-raises FROM this one,
+        // i.e. it is the ENCLOSING try's dispatch. Adjacency must be exact
+        // (a chain followed by its try's sunk post-flow, then a finally
+        // handler chain, is NOT nested inside that finally).
+        let nested = region_end > from
+            && self
+                .idx_of
+                .get(&region_end)
+                .and_then(|&ri| self.instrs.get(ri.wrapping_sub(1)))
+                .map(|p| p.op == Op::RERAISE)
+                .unwrap_or(false)
+            && self.chain_extent(from) == region_end
+            && self
+                .idx_of
+                .get(&region_end)
+                .and_then(|&i| {
+                    let is_dispatch = self.instrs.get(i).map(|x| x.op == Op::PUSH_EXC_INFO)
+                        == Some(true)
+                        // a finally/cleanup chain (no CHECK_EXC_MATCH) is
+                        // not an enclosing except dispatch
+                        && self.instrs[i..]
+                            .iter()
+                            .take(40)
+                            .any(|x| x.op == Op::CHECK_EXC_MATCH);
+                    Some(is_dispatch)
+                })
+                .unwrap_or(false);
         let mut pc = match self.idx_of.get(&from) {
             Some(&i) => i,
             None => return handlers,
@@ -949,7 +1041,10 @@ impl<'a> Ctx<'a> {
         let mut pattern: Option<ExprRef> = None;
         while pc < self.instrs.len() {
             let inst = self.instrs[pc];
-            if inst.offset >= end && !handlers.is_empty() {
+            if inst.offset >= end
+                && !handlers.is_empty()
+                && !(nested && inst.offset < self.chain_extent(from))
+            {
                 break;
             }
             match inst.op {
@@ -962,6 +1057,7 @@ impl<'a> Ctx<'a> {
                 }
                 Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE => {
                     let next = inst.target.unwrap_or(end);
+                    clause_offsets.push(inst.offset);
                     pc += 1;
                     // optional `as name` store
                     let mut name = None;
@@ -982,18 +1078,63 @@ impl<'a> Ctx<'a> {
                             pc += 1;
                         }
                     }
-                    let body = self.decompile_handler_body(&mut pc, next, end);
+                    // arm the `as` cleanup swallow for the body sub-walk:
+                    // 3.11+ embeds `e = None; del e` between the body and
+                    // its RETURN (and again on the exception path)
+                    let saved_pac = self.pending_as_cleanup.take();
+                    if let Some(n) = &name {
+                        self.pending_as_cleanup = Some(n.clone());
+                    }
+                    let body = self.decompile_handler_body(&mut pc, next, region_end);
+                    self.pending_as_cleanup = saved_pac;
                     handlers.push(ExceptHandler {
                         type_: pattern.take(),
                         name: name.map(|n| Rc::new(Expr::Name(n)) as ExprRef),
                         body,
                     });
+                    // everything up to the next clause (body + exception-
+                    // path cleanup + its RERAISE) is consumed
+                    if let Some(&ni) = self.idx_of.get(&next) {
+                        pc = ni;
+                    }
                     continue;
                 }
                 Op::RERAISE => {
                     pc += 1;
-                    // the dispatch chain ends at its fall-through RERAISE
-                    if !handlers.is_empty() || pattern.is_none() {
+                    // a clause's exception-path cleanup also ends in
+                    // RERAISE — the chain only terminates when no new
+                    // CHECK_EXC_MATCH clause follows
+                    let mut m = pc;
+                    let mut more = false;
+                    while m < self.instrs.len() {
+                        let nx = &self.instrs[m];
+                        if nx.offset >= end {
+                            break;
+                        }
+                        match nx.op {
+                            Op::CHECK_EXC_MATCH => {
+                                more = true;
+                                break;
+                            }
+                            Op::LOAD_CONST | Op::LOAD_GLOBAL | Op::LOAD_NAME
+                            | Op::STORE_FAST | Op::STORE_NAME
+                            | Op::DELETE_FAST | Op::DELETE_NAME
+                            | Op::STORE_DEREF | Op::DELETE_DEREF
+                            | Op::COPY | Op::SWAP | Op::POP_TOP
+                            | Op::POP_EXCEPT | Op::PUSH_EXC_INFO
+                            | Op::NOP | Op::NOT_TAKEN
+                            | Op::BUILD_TUPLE => {
+                                m += 1;
+                            }
+                            _ => break,
+                        }
+                    }
+                    if !more && (!handlers.is_empty() || pattern.is_none()) {
+                        if nested && inst.end() == region_end {
+                            // this cleanup RERAISE separates the two
+                            // chains — keep scanning into the outer one
+                            continue;
+                        }
                         break;
                     }
                     continue;
@@ -1002,11 +1143,66 @@ impl<'a> Ctx<'a> {
                     pc += 1;
                     continue;
                 }
-                Op::RETURN_VALUE | Op::RETURN_CONST | Op::END_FINALLY => break,
+                Op::RETURN_VALUE | Op::RETURN_CONST | Op::END_FINALLY => {
+                    // a stray terminator between clauses (a body ending
+                    // without a closing jump): hop to the next clause
+                    if inst.offset >= end
+                        && !handlers.is_empty()
+                        && !(nested && inst.offset < self.chain_extent(from))
+                    {
+                        break;
+                    }
+                    pc += 1;
+                }
                 _ => {
                     pc += 1;
                 }
             }
+        }
+        if nested && !handlers.is_empty() {
+            // clauses parsed past the chain boundary belong to the
+            // enclosing try — split them off and wrap this try inside a
+            // bare `except:` handler (the enclosing try catches re-raises
+            // from this one, and any exception when no clause matched).
+            // The enclosing chain's own clauses/finally come from a
+            // recursive parse of its dispatch head.
+            let outer_idx = clause_offsets
+                .iter()
+                .position(|o| *o >= region_end)
+                .unwrap_or(handlers.len());
+            let _ = handlers.split_off(outer_idx);
+            // the clauses below the boundary are the INNER try's handlers;
+            // emit_try_tail builds `Try { body: [inner try], .. }` from them
+            self.nested_inner_handlers = Some(handlers);
+            let outer = self.parse_except_dispatch(region_end);
+            // enclosing finally: entries past the outer chain whose target
+            // is a non-except (finally) handler
+            let mut finalbody = Vec::new();
+            let mut fin_target = None;
+            for e in &self.exc_entries {
+                if e.start > region_end && e.target > region_end {
+                    if self
+                        .idx_of
+                        .get(&e.target)
+                        .and_then(|&i| self.instrs.get(i))
+                        .map(|x| x.op == Op::PUSH_EXC_INFO)
+                        .unwrap_or(false)
+                        && !self.instrs[self.idx_of[&e.target]..]
+                            .iter()
+                            .take(40)
+                            .any(|x| x.op == Op::CHECK_EXC_MATCH)
+                    {
+                        fin_target = Some(e.target);
+                        break;
+                    }
+                }
+            }
+            if let Some(fh) = fin_target {
+                finalbody =
+                    self.decompile_region(fh, self.chain_extent(fh).max(fh + 2));
+            }
+            self.pending_nested_finally = Some(finalbody);
+            return outer;
         }
         handlers
     }
@@ -1099,47 +1295,137 @@ impl<'a> Ctx<'a> {
         next_clause: usize,
         region_end: usize,
     ) -> Vec<Stmt> {
-        let limit = next_clause.min(region_end);
+        // the clause body runs to the next clause start (the mismatch
+        // jump target is exactly that boundary in every 3.11+ layout)
+        let limit = next_clause;
+        let _ = region_end;
         let body_start = match self.instrs.get(*pc) {
             Some(i) => i.offset,
             None => return Vec::new(),
         };
-        let mut body_end = limit;
+        // locate POP_EXCEPT within this clause
         let mut k = *pc;
+        let mut pop_idx = None;
         while k < self.instrs.len() {
             let ins = &self.instrs[k];
             if ins.offset >= limit {
                 break;
             }
             if ins.op == Op::POP_EXCEPT {
-                body_end = ins.offset;
-                k += 1;
-                // skip cleanup: [LOAD_CONST None; STORE; DELETE], closing jump
-                while k < self.instrs.len() {
-                    let c = &self.instrs[k];
-                    match c.op {
-                        Op::LOAD_CONST | Op::STORE_FAST | Op::STORE_NAME
-                        | Op::DELETE_FAST | Op::DELETE_NAME | Op::STORE_DEREF
-                        | Op::DELETE_DEREF => {
-                            k += 1;
-                        }
-                        Op::JUMP_FORWARD
-                        | Op::JUMP_BACKWARD
-                        | Op::JUMP_ABSOLUTE
-                        | Op::JUMP
-                        | Op::JUMP_NO_INTERRUPT
-                        | Op::RERAISE => {
-                            k += 1;
-                            break;
-                        }
-                        _ => break,
-                    }
-                }
+                pop_idx = Some(k);
+                break;
+            }
+            if ins.op == Op::PUSH_EXC_INFO {
+                // a nested handler chain starts inside this clause: the
+                // clause's own POP_EXCEPT, if any, follows the nested
+                // region — the body sub-walk folds the nested chain
                 break;
             }
             k += 1;
         }
-        *pc = k;
+        let Some(pi) = pop_idx else {
+            // a clause whose body never exits the except state (it ends
+            // in `raise`): the body runs to the clause limit
+            *pc = k;
+            return if limit > body_start {
+                self.decompile_region(body_start, limit)
+            } else {
+                Vec::new()
+            };
+        };
+        // 3.9+/3.11+ shape: `[POP_TOP;] POP_EXCEPT; [as-cleanup]; body` —
+        // the body FOLLOWS the POP_EXCEPT. The legacy shape keeps the body
+        // BEFORE it (`body; POP_EXCEPT; cleanup; jump`).
+        let prelude_only = self.instrs[*pc..=pi]
+            .iter()
+            .all(|i| matches!(i.op, Op::POP_TOP | Op::POP_EXCEPT | Op::NOP | Op::NOT_TAKEN));
+        if prelude_only {
+            let mut m = pi + 1;
+            // skip the eager `as` cleanup: LOAD_CONST None; STORE n; DELETE n
+            if matches!(self.instrs.get(m).map(|i| i.op), Some(Op::LOAD_CONST))
+                && matches!(
+                    self.instrs.get(m + 1).map(|i| i.op),
+                    Some(Op::STORE_FAST) | Some(Op::STORE_NAME) | Some(Op::STORE_DEREF)
+                )
+                && matches!(
+                    self.instrs.get(m + 2).map(|i| i.op),
+                    Some(Op::DELETE_FAST) | Some(Op::DELETE_NAME) | Some(Op::DELETE_DEREF)
+                )
+            {
+                m += 3;
+            }
+            let body_from = self.instrs.get(m).map(|i| i.offset).unwrap_or(limit);
+            *pc = m;
+            return if limit > body_from {
+                self.decompile_region(body_from, limit)
+            } else {
+                Vec::new()
+            };
+        }
+        // legacy shape: body before the POP_EXCEPT. A computed return
+        // (`except E as e: return <expr with e>`) evaluates the value
+        // BEFORE the POP_EXCEPT and returns AFTER the as-cleanup — extend
+        // the body region over the cleanup to include that RETURN.
+        let mut body_end = self.instrs[pi].offset;
+        let mut k2 = pi + 1;
+        // skip cleanup: [LOAD_CONST None; STORE; DELETE], closing jump
+        while k2 < self.instrs.len() {
+            let c = &self.instrs[k2];
+            match c.op {
+                Op::LOAD_CONST | Op::STORE_FAST | Op::STORE_NAME
+                | Op::DELETE_FAST | Op::DELETE_NAME | Op::STORE_DEREF
+                | Op::DELETE_DEREF => {
+                    k2 += 1;
+                }
+                Op::RETURN_VALUE | Op::RETURN_CONST => {
+                    body_end = c.end();
+                    k2 += 1;
+                    break;
+                }
+                Op::JUMP_FORWARD
+                | Op::JUMP_BACKWARD
+                | Op::JUMP_ABSOLUTE
+                | Op::JUMP
+                | Op::JUMP_NO_INTERRUPT
+                | Op::RERAISE => {
+                    k2 += 1;
+                    break;
+                }
+                _ => break,
+            }
+        }
+        // when the clause body ran up to the POP_EXCEPT and what follows
+        // (before the mismatch RERAISE) is straight-line flow with no new
+        // clause, the compiler sank the post-try continuation into the
+        // handler region (`try: raise X / except X: ... / return v` — the
+        // body always raises, so the flow is only reachable through the
+        // handler). Include it so the function's tail is not lost.
+        if k2 < self.instrs.len() && self.instrs[k2].offset < limit {
+            let mut m2 = k2;
+            let mut saw_term = false;
+            while m2 < self.instrs.len() {
+                let nx = &self.instrs[m2];
+                match nx.op {
+                    // the mismatch RERAISE sits exactly AT the clause
+                    // limit — it is the terminator we look for
+                    Op::RERAISE if nx.offset <= limit => {
+                        saw_term = true;
+                        break;
+                    }
+                    Op::CHECK_EXC_MATCH | Op::PUSH_EXC_INFO => break,
+                    _ => {}
+                }
+                if nx.offset >= limit {
+                    break;
+                }
+                m2 += 1;
+            }
+            if saw_term {
+                body_end = self.instrs[m2].offset;
+                k2 = m2;
+            }
+        }
+        *pc = k2;
         if body_end > body_start {
             self.decompile_region(body_start, body_end)
         } else {
@@ -1158,6 +1444,182 @@ impl<'a> Ctx<'a> {
                 if self.instrs.get(hi).map(|i| i.op) == Some(Op::PUSH_EXC_INFO) {
                     end = e.target;
                 }
+            }
+        }
+        end
+    }
+
+    /// Extent of the out-of-line handler chain starting at `from`: runs
+    /// through clause bodies and trailing cleanups, ending after the last
+    /// RERAISE not followed by more cleanup.
+    fn chain_extent(&self, from: usize) -> usize {
+        let Some(&i) = self.idx_of.get(&from) else {
+            return from;
+        };
+        // a depth-0 entry inside the span whose target is another chain
+        // head protects a REAL body laid out after this chain (a whole-
+        // function try whose handler precedes its body) — stop before it
+        let mut body_stops: Vec<usize> = Vec::new();
+        for e in &self.exc_entries {
+            if e.depth == 0 && e.start > from && self.chain_heads.contains(&e.target) {
+                // chain-internal fragments (clause-closing jumps and
+                // cleanup tails redirected onward) consist only of
+                // cleanup/jump ops — real bodies contain user code
+                let frag = self
+                    .idx_of
+                    .get(&e.start)
+                    .map(|&si| {
+                        self.instrs[si..]
+                            .iter()
+                            .take_while(|x| x.offset < e.end)
+                            .all(|x| {
+                                matches!(
+                                    x.op,
+                                    Op::COPY
+                                        | Op::SWAP
+                                        | Op::POP_TOP
+                                        | Op::POP_EXCEPT
+                                        | Op::RERAISE
+                                        | Op::LOAD_CONST
+                                        | Op::STORE_FAST
+                                        | Op::STORE_NAME
+                                        | Op::STORE_DEREF
+                                        | Op::DELETE_FAST
+                                        | Op::DELETE_NAME
+                                        | Op::DELETE_DEREF
+                                        | Op::NOP
+                                        | Op::NOT_TAKEN
+                                        | Op::JUMP_FORWARD
+                                        | Op::JUMP
+                                        | Op::JUMP_NO_INTERRUPT
+                                )
+                            })
+                    })
+                    .unwrap_or(false);
+                if !frag {
+                    body_stops.push(e.start);
+                }
+            }
+        }
+        // table closure: entries targeting this chain, plus entries whose
+        // range lies inside the covered span (clause bodies and cleanup
+        // redirects), transitively — the chain's code is scattered with
+        // inline clause bodies that the canonical op scan cannot cross
+        let mut table_end = from;
+        loop {
+            let mut grew = false;
+            for e in &self.exc_entries {
+                let seed = e.start == from
+                    || (e.target == from && e.start < from);
+                let inside = e.start >= from
+                    && e.start < table_end
+                    && !body_stops.contains(&e.start);
+                if (seed || inside) && !body_stops.contains(&e.start) {
+                    // targets of in-chain redirects stay inside the span;
+                    // a target that is ANOTHER chain head (e.g. a finally
+                    // handler of the enclosing try) bounds it instead
+                    let cands: [usize; 2] =
+                        [e.end, if self.chain_heads.contains(&e.target) { from } else { e.target }];
+                    for cand in cands {
+                        if cand > table_end && cand > from {
+                            table_end = cand;
+                            grew = true;
+                        }
+                    }
+                }
+            }
+            if !grew {
+                break;
+            }
+        }
+        let mut end = from;
+        let mut k = i;
+        while k < self.instrs.len() {
+            let ins = &self.instrs[k];
+            if body_stops.contains(&ins.offset) {
+                break;
+            }
+            end = ins.end();
+            if matches!(ins.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                break;
+            }
+            if ins.op == Op::RERAISE {
+                // the chain continues through cleanup tails AND through
+                // the pattern loads of a following clause — it only ends
+                // when no CHECK_EXC_MATCH is reachable through the
+                // cleanup/pattern vocabulary
+                let mut m = k + 1;
+                let mut cont = false;
+                let mut stop_at = None;
+                let mut last_cleanup_end = None;
+                let mut steps = 0;
+                while let Some(nx) = self.instrs.get(m) {
+                    if body_stops.contains(&nx.offset) {
+                        stop_at = Some(nx.offset);
+                        break;
+                    }
+                    match nx.op {
+                        Op::CHECK_EXC_MATCH => {
+                            cont = true;
+                            break;
+                        }
+                        // the adjacent chain head ends this chain's extent
+                        // exactly at the head (nesting adjacency)
+                        Op::PUSH_EXC_INFO => {
+                            stop_at = Some(nx.offset);
+                            break;
+                        }
+                        Op::COPY
+                        | Op::SWAP
+                        | Op::POP_EXCEPT
+                        | Op::POP_TOP
+                        | Op::RERAISE
+                        | Op::NOP
+                        | Op::NOT_TAKEN => {
+                            last_cleanup_end = Some(nx.end());
+                            m += 1;
+                            steps += 1;
+                        }
+                        // pattern loads only continue the chain when they
+                        // lead to a CHECK_EXC_MATCH (tracked via cont)
+                        Op::LOAD_CONST
+                        | Op::LOAD_GLOBAL
+                        | Op::LOAD_NAME
+                        | Op::BUILD_TUPLE
+                        | Op::EXTENDED_ARG => {
+                            m += 1;
+                            steps += 1;
+                        }
+                        _ => break,
+                    }
+                    if steps > 16 {
+                        break;
+                    }
+                }
+                if let Some(sa) = stop_at {
+                    end = sa;
+                    break;
+                }
+                if !cont {
+                    if let Some(lce) = last_cleanup_end {
+                        end = lce;
+                    }
+                    break;
+                }
+            }
+            k += 1;
+        }
+        end.max(table_end)
+    }
+
+    /// Dispatch-loop end: the region end, additionally capped at the start
+    /// of a NESTED try's protected code inside this region — the nested
+    /// chain (folded by the body sub-walk) must not be re-parsed here.
+    fn dispatch_region_end(&self, from: usize) -> usize {
+        let mut end = self.handler_region_end(from);
+        for e in &self.exc_entries {
+            if e.start > from && e.start < end && e.target > from {
+                end = e.start;
             }
         }
         end
@@ -3943,9 +4405,12 @@ impl<'a> Ctx<'a> {
                         self.force_close_top(pos);
                     }
                 }
-                // 3.9 terminating handlers: POP_EXCEPT clears the (unmodeled)
-                // exception state right before RETURN — the stack top is the
-                // return value, not exception state
+                // POP_EXCEPT drops the (unmodeled) exception state. When
+                // live body values sit on the simulated stack the cleanup
+                // slots are already balanced out — popping would eat the
+                // body value (3.9+ terminating handlers and 3.11+ computed
+                // returns: `expr; SWAP; POP_EXCEPT; as-cleanup; RETURN`)
+                let live_values = self.stack.iter().any(|s| matches!(s, Sv::E(_)));
                 let next_returns = self
                     .idx_of
                     .get(&inst.offset)
@@ -3953,7 +4418,7 @@ impl<'a> Ctx<'a> {
                     .map_or(false, |nx| {
                         matches!(nx.op, Op::RETURN_VALUE | Op::RETURN_CONST)
                     });
-                if !next_returns {
+                if !next_returns && !live_values {
                     self.pop();
                 }
                 true
@@ -7347,11 +7812,18 @@ impl<'a> Ctx<'a> {
         }
         // post-handler `as`-name cleanup: hold `name = None` until the
         // matching `del name` confirms it; anything else flushes it as a
-        // real assignment
+        // real assignment. Inside a handler-body region walk no `del`
+        // statement output is wanted — swallow the hold outright (the
+        // region ends before the exception-path duplicate anyway).
         if let Expr::Name(n) = &*target {
             if self.pending_as_cleanup.as_deref() == Some(n.as_str())
                 && matches!(&*val, Expr::Const(o) if matches!(&**o, PyObject::None))
             {
+                if matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
+                    && self.blocks.len() == 1
+                {
+                    return;
+                }
                 self.held_cleanup_store = Some((target, val));
                 return;
             }
@@ -9111,6 +9583,35 @@ fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
             body.remove(idx);
         } else {
             idx += 1;
+        }
+    }
+    // 3.11+ emits the finally body twice (inline sunk flow + handler);
+    // the walk renders the sunk copy right after the Try — drop statements
+    // immediately following a Try that mirror its finalbody exactly
+    {
+        let mut i = 0;
+        while i < body.len() {
+            let fin_dbg: Option<Vec<String>> = match &body[i] {
+                Stmt::Try { finalbody, .. } if !finalbody.is_empty() => Some(
+                    finalbody.iter().map(|s| format!("{s:?}")).collect(),
+                ),
+                _ => None,
+            };
+            if let Some(fin_dbg) = fin_dbg {
+                let mut j = i + 1;
+                let mut k = 0;
+                while j < body.len()
+                    && k < fin_dbg.len()
+                    && format!("{:?}", body[j]) == fin_dbg[k]
+                {
+                    j += 1;
+                    k += 1;
+                }
+                if k == fin_dbg.len() && j > i + 1 {
+                    body.drain(i + 1..j);
+                }
+            }
+            i += 1;
         }
     }
     // trailing `return None`

@@ -380,7 +380,7 @@ class _CallableGenericAlias(GenericAlias):
         except TypeError as exc:
             import warnings
             warnings.warn(f'{str(exc)} (This will raise a TypeError in Python 3.10.)', DeprecationWarning)
-            return
+            return GenericAlias(origin, args)
 
     @classmethod
     def __create_ga(cls, origin, args):

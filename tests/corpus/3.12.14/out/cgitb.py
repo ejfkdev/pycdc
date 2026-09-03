@@ -272,7 +272,10 @@ class Hook:
                             self.file.write('<p>%s</p>\n' % msg)
                         else:
                             self.file.write(msg + '\n')
-                        self.file.flush()
+                        try:
+                            self.file.flush()
+                        finally:
+                            return
                     return
 
 

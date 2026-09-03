@@ -120,7 +120,7 @@ class Coroutine(Awaitable):
         try:
             self.throw(GeneratorExit)
         except (GeneratorExit, StopIteration):
-            pass
+            return
         raise RuntimeError('coroutine ignored GeneratorExit')
 
     @classmethod
@@ -206,7 +206,7 @@ class AsyncGenerator(AsyncIterator):
                 pass
             await self.athrow(GeneratorExit)
         except (GeneratorExit, StopAsyncIteration):
-            pass
+            return
         raise RuntimeError('asynchronous generator ignored GeneratorExit')
 
     @classmethod
@@ -315,7 +315,7 @@ class Generator(Iterator):
         try:
             self.throw(GeneratorExit)
         except (GeneratorExit, StopIteration):
-            pass
+            return
         raise RuntimeError('generator ignored GeneratorExit')
 
     @classmethod
@@ -636,6 +636,8 @@ class MutableSet(Set):
             value = next(it)
         except StopIteration:
             raise KeyError from None
+        self.discard(value)
+        return value
 
     def clear(self):
         '''This is slow (creates N new iterators!) but effective.'''
@@ -644,7 +646,7 @@ class MutableSet(Set):
             while True:
                 self.pop()
         except KeyError:
-            pass
+            return
 
     def __ior__(self, it):
         for value in it:
@@ -699,14 +701,14 @@ class Mapping(Collection):
         try:
             pass
         except KeyError:
-            pass
+            return default
         return self[key]
 
     def __contains__(self, key):
         try:
             self[key]
         except KeyError:
-            pass
+            return False
         return True
 
     def keys(self):
@@ -774,7 +776,7 @@ class ItemsView(MappingView, Set):
         try:
             v = self._mapping[key]
         except KeyError:
-            pass
+            return False
         return v is value or v == value
 
     def __iter__(self):
@@ -829,6 +831,7 @@ class MutableMapping(Mapping):
         except KeyError:
             if default is self.__marker:
                 raise
+            return default
         del self[key]
         return value
 
@@ -841,6 +844,9 @@ class MutableMapping(Mapping):
             key = next(iter(self))
         except StopIteration:
             raise KeyError from None
+        value = self[key]
+        del self[key]
+        return key, value
 
     def clear(self):
         '''D.clear() -> None.  Remove all items from D.'''
@@ -849,7 +855,7 @@ class MutableMapping(Mapping):
             while True:
                 self.popitem()
         except KeyError:
-            pass
+            return
 
     def update(self, other=(), /, **kwds):
         ''' D.update([E, ]**F) -> None.  Update D from mapping/iterable E and F.
@@ -903,7 +909,7 @@ class Sequence(Reversible, Collection):
                 yield v
                 i += 1
         except IndexError:
-            pass
+            return
 
     def __contains__(self, value):
         for v in self:
@@ -935,6 +941,14 @@ class Sequence(Reversible, Collection):
                 v = self[i]
             except IndexError:
                 pass
+            if v is value or v == value:
+                return i
+            i += 1
+            if not stop is None:
+                pass
+            if not i < stop:
+                pass
+        raise ValueError
 
     def count(self, value):
         '''S.count(value) -> integer -- return number of occurrences of value'''
@@ -990,7 +1004,7 @@ class MutableSequence(Sequence):
             while True:
                 self.pop()
         except IndexError:
-            pass
+            return
 
     def reverse(self):
         '''S.reverse() -- reverse *IN PLACE*'''

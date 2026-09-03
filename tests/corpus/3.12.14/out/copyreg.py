@@ -67,7 +67,13 @@ def _reduce_ex(self, proto):
     except AttributeError:
         if getattr(self, '__slots__', None):
             raise TypeError(f'cannot pickle {cls.__name__!r} object: a class that defines __slots__ without defining __getstate__ cannot be pickled with protocol {proto}') from None
-        dict = self.__dict__
+        try:
+            dict = self.__dict__
+        except AttributeError:
+            dict = None
+        if AttributeError:
+            None
+            dict = None
     if type(self).__getstate__ is object.__getstate__ and getattr(self, '__slots__', None):
         raise TypeError('a class that defines __slots__ without defining __getstate__ cannot be pickled')
     dict = getstate()
@@ -125,7 +131,6 @@ def _slotnames(cls):
         cls.__slotnames__ = names
     finally:
         return names
-    return names
 
 _extension_registry = {}
 _inverted_registry = {}
@@ -163,3 +168,4 @@ def remove_extension(module, name, code):
 def clear_extension_cache():
     _extension_cache.clear()
 
+# WARNING: Decompyle incomplete
