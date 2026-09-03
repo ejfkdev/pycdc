@@ -55,7 +55,8 @@ def _url_collapse_path(path):
                 tail_part = ''
             elif tail_part == '.':
                 tail_part = ''
-            tail_part = ''
+    else:
+        tail_part = ''
     if query:
         tail_part = '?'.join((tail_part, query))
     splitpath = '/' + '/'.join(head_parts), tail_part

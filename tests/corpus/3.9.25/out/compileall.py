@@ -30,9 +30,8 @@ def _walk_dir(dir, maxlevels, quiet=0):
     try:
         names = os.listdir(dir)
     except OSError:
-        print("Can't list {!r}".format(dir))
         if quiet < 2:
-            pass
+            print("Can't list {!r}".format(dir))
     names.sort()
     for name in names:
         if name == '__pycache__':
@@ -61,10 +60,11 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
     if workers < 0:
         raise ValueError('workers must be greater or equal to 0')
     if workers != 1:
-        try:
-            from concurrent.futures import ProcessPoolExecutor
-        except ImportError as workers:
-            pass
+        pass
+    try:
+        from concurrent.futures import ProcessPoolExecutor
+    except ImportError as workers:
+        pass
     if maxlevels is None:
         maxlevels = sys.getrecursionlimit()
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels)
@@ -117,7 +117,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     if limit_sl_dest is not None and os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
         return success
     opt_cfiles = {}
-    if os.path.isfile(fullname) and tail == '.py' and ok == 0:
+    if os.path.isfile(fullname) and tail == '.py':
         for opt_level in optimize:
             if legacy:
                 opt_cfiles[opt_level] = fullname + 'c'
@@ -131,20 +131,20 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         head, tail = name[:-3], name[-3:]
         if not force:
             return success
-            try:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
-                for cfile in opt_cfiles.values():
-                    with open(cfile, 'rb') as chandle:
-                        actual = chandle.read(12)
-                    if not None:
-                        pass
-                    if expect != actual:
-                        pass
-                    else:
-                        continue
-            except OSError:
-                pass
+        try:
+            mtime = int(os.stat(fullname).st_mtime)
+            expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+            for cfile in opt_cfiles.values():
+                with open(cfile, 'rb') as chandle:
+                    actual = chandle.read(12)
+                if not None:
+                    pass
+                if expect != actual:
+                    pass
+                else:
+                    continue
+        except OSError:
+            pass
         if not quiet:
             print('Compiling {!r}...'.format(fullname))
         if quiet >= 2:
@@ -159,20 +159,22 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
         print(msg)
         err = None
-        del err, err
-        err = None
-        if quiet >= 2:
-            e = None
-            del e
-            return
-        if quiet:
-            print('*** Error compiling {!r}...'.format(fullname))
-        else:
-            print('*** ', end='')
-        print(e.__class__.__name__ + ':', e)
+        del err
+    err = None
+    del err
+    if quiet >= 2:
         e = None
-        del e, e
-        e = None
+        del e
+        return
+    if quiet:
+        print('*** Error compiling {!r}...'.format(fullname))
+    else:
+        print('*** ', end='')
+    print(e.__class__.__name__ + ':', e)
+    e = None
+    del e, e
+    e = None
+    if ok == 0:
         success = False
         try:
             for index, opt_level in enumerate(optimize):
@@ -240,6 +242,11 @@ def main():
         if not args.stripdir is not None:
             if args.prependdir is not None:
                 parser.error('-d cannot be used in combination with -s or -p')
+    if args.flist:
+        pass
+    if args.quiet < 2:
+        print('Error reading file list {}'.format(args.flist))
+    return False
     if args.invalidation_mode:
         try:
             with sys.stdin if args.flist == '-' else open(args.flist) as f:
@@ -248,19 +255,15 @@ def main():
             if not None:
                 pass
         except OSError:
-            print('Error reading file list {}'.format(args.flist))
+            pass
         else:
-            if args.flist:
-                if args.quiet < 2:
-                    pass
-                return False
             ivl_mode = args.invalidation_mode.replace('-', '_').upper()
             invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:
         invalidation_mode = None
     return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
     if args.quiet < 2:
-        pass
+        print('\n[interrupted]')
     return False
 
 if __name__ == '__main__':

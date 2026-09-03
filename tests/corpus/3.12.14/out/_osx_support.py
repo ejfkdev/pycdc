@@ -304,12 +304,13 @@ def get_platform_osx(_config_vars, osname, release, machine):
             else:
                 raise ValueError(f"Don't know machine value for archs={archs!r}")
             if machine == 'i386':
-                if sys.maxsize >= 4294967296 and machine in ('PowerPC', 'Power_Macintosh'):
+                if sys.maxsize >= 4294967296:
                     machine = 'x86_64'
-                    if sys.maxsize >= 4294967296:
-                        machine = 'ppc64'
-                    else:
-                        machine = 'ppc'
+            elif machine in ('PowerPC', 'Power_Macintosh'):
+                if sys.maxsize >= 4294967296:
+                    machine = 'ppc64'
+                else:
+                    machine = 'ppc'
     return osname, release, machine
 
 # WARNING: Decompyle incomplete

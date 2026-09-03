@@ -52,7 +52,7 @@
    "module": "_markupbase",
    "verdict": "SIG-DIFF",
    "ndiff": 1021,
-   "ntotal": 1451,
+   "ntotal": 1452,
    "detail": "line 214: orig ('LOAD_ASSERTION_ERROR', '') | got ('PUSH_NULL', '')\nline 304: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1000') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 982')\nline 361: orig ('JUMP_FORWARD', 'to 970') | got ('JUMP_FORWARD', 'to 952')"
   },
   {
@@ -130,7 +130,7 @@
   {
    "module": "base64",
    "verdict": "SIG-DIFF",
-   "ndiff": 1843,
+   "ndiff": 1834,
    "ntotal": 2117,
    "detail": "line 72: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 74: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 230: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 146') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 148')"
   },
@@ -172,15 +172,15 @@
   {
    "module": "cgi",
    "verdict": "SIG-DIFF",
-   "ndiff": 3068,
+   "ndiff": 3055,
    "ntotal": 3160,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cgitb",
    "verdict": "SIG-DIFF",
-   "ndiff": 1607,
-   "ntotal": 1702,
+   "ndiff": 1610,
+   "ntotal": 1705,
    "detail": "line 59: orig ('KW_NAMES', '') | got ('PRECALL', '')\nline 60: orig ('PRECALL', '') | got ('CALL', '')\nline 61: orig ('CALL', '') | got ('POP_TOP', '')"
   },
   {

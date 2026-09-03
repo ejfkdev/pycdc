@@ -236,10 +236,7 @@ class FileInput:
         backupfilename = self._backupfilename
         self._backupfilename = 0
         if backupfilename and not self._backup:
-            try:
-                os.unlink(backupfilename)
-            except OSError:
-                pass
+            pass
         self._isstdin = False
         self._buffer = []
         self._bufindex = 0

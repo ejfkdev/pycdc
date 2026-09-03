@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
   "PASS": 4,
-  "SIG-DIFF": 34,
-  "SYNTAX-ERR": 2
+  "SIG-DIFF": 35,
+  "SYNTAX-ERR": 1
  },
  "results": [
   {
@@ -49,15 +49,15 @@
   {
    "module": "_markupbase",
    "verdict": "SIG-DIFF",
-   "ndiff": 907,
+   "ndiff": 798,
    "ntotal": 1372,
    "detail": "line 356: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 532')\nline 369: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 532')\nline 379: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 532')"
   },
   {
    "module": "_osx_support",
    "verdict": "SIG-DIFF",
-   "ndiff": 978,
-   "ntotal": 1166,
+   "ndiff": 979,
+   "ntotal": 1167,
    "detail": "line 165: orig ('LOAD_CONST', 'None') | got ('_read_output', 1)\nline 166: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', '0')\nline 167: orig ('_read_output', 1) | got ('LOAD_CONST', 'None')"
   },
   {
@@ -102,7 +102,7 @@
   {
    "module": "aifc",
    "verdict": "SIG-DIFF",
-   "ndiff": 2170,
+   "ndiff": 2116,
    "ntotal": 3025,
    "detail": "line 448: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 449: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 450: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },
@@ -116,15 +116,15 @@
   {
    "module": "asynchat",
    "verdict": "SIG-DIFF",
-   "ndiff": 660,
-   "ntotal": 920,
+   "ndiff": 672,
+   "ntotal": 921,
    "detail": "line 227: orig ('SETUP_EXCEPT', 'to 25') | got ('LOAD_CONST', 'None')\nline 228: orig ('LOAD_FAST', 'self') | got ('STORE_FAST', 'why')\nline 229: orig ('LOAD_ATTR', 'recv') | got ('DELETE_FAST', 'why')"
   },
   {
    "module": "asyncore",
    "verdict": "SIG-DIFF",
-   "ndiff": 2117,
-   "ntotal": 2220,
+   "ndiff": 2153,
+   "ntotal": 2223,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -137,7 +137,7 @@
   {
    "module": "bdb",
    "verdict": "SIG-DIFF",
-   "ndiff": 1705,
+   "ndiff": 1704,
    "ntotal": 2332,
    "detail": "line 451: orig ('LOAD_ATTR', 'user_line') | got ('LOAD_ATTR', 'quitting')\nline 452: orig ('LOAD_FAST', 'frame') | got ('POP_JUMP_IF_FALSE', '')\nline 453: orig ('CALL_FUNCTION', '1 positional, 0 keyword pair') | got ('LOAD_FAST', 'self')"
   },
@@ -155,8 +155,8 @@
   {
    "module": "bz2",
    "verdict": "SIG-DIFF",
-   "ndiff": 785,
-   "ntotal": 902,
+   "ndiff": 786,
+   "ntotal": 904,
    "detail": "line 57: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 61: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 62: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
   {
@@ -176,7 +176,7 @@
   {
    "module": "cgi",
    "verdict": "SIG-DIFF",
-   "ndiff": 2899,
+   "ndiff": 2939,
    "ntotal": 3039,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
@@ -208,8 +208,10 @@
   },
   {
    "module": "codecs",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: 'break' outside loop"
+   "verdict": "SIG-DIFF",
+   "ndiff": 2064,
+   "ntotal": 2160,
+   "detail": "line 11: orig ('SETUP_EXCEPT', 'to 47') | got ('LOAD_CONST', 'None')\nline 12: orig ('LOAD_CONST', '0') | got ('STORE_NAME', 'why')\nline 13: orig ('LOAD_CONST', \"('*',)\") | got ('DELETE_NAME', 'why')"
   },
   {
    "module": "codeop",
@@ -225,14 +227,14 @@
   {
    "module": "compileall",
    "verdict": "SIG-DIFF",
-   "ndiff": 978,
-   "ntotal": 1035,
+   "ndiff": 961,
+   "ntotal": 1041,
    "detail": "line 31: orig ('JUMP_FORWARD', 'to 113') | got ('JUMP_FORWARD', 'to 126')\nline 37: orig ('POP_TOP', '') | got ('STORE_NAME', 'ProcessPoolExecutor')\nline 39: orig ('LOAD_CONST', 'None') | got ('SETUP_FINALLY', 'to 112')"
   },
   {
    "module": "configparser",
    "verdict": "SIG-DIFF",
-   "ndiff": 4193,
+   "ndiff": 4199,
    "ntotal": 4295,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },
@@ -267,8 +269,8 @@
   {
    "module": "csv",
    "verdict": "SIG-DIFF",
-   "ndiff": 1639,
-   "ntotal": 1675,
+   "ndiff": 1635,
+   "ntotal": 1676,
    "detail": "line 8: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 12: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 13: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   }
  ]

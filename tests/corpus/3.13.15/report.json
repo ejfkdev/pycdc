@@ -181,9 +181,9 @@
   {
    "module": "cmd",
    "verdict": "SIG-DIFF",
-   "ndiff": 1177,
-   "ntotal": 1443,
-   "detail": "line 163: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 167: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 196: orig ('JUMP_FORWARD', 'to L3') | got ('JUMP_FORWARD', 'to L2')"
+   "ndiff": 1172,
+   "ntotal": 1444,
+   "detail": "line 240: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_IF_TRUE', 'to L10')\nline 241: orig ('POP_JUMP_IF_TRUE', 'to L12') | got ('LOAD_FAST', 'self')\nline 242: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'cmdqueue')"
   },
   {
    "module": "code",
@@ -218,7 +218,7 @@
   {
    "module": "configparser",
    "verdict": "SIG-DIFF",
-   "ndiff": 4301,
+   "ndiff": 4338,
    "ntotal": 4503,
    "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_CONST', '0')"
   },

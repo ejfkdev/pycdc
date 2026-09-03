@@ -534,26 +534,26 @@ def get_annotations(obj, *, globals=None, locals=None, eval_str=False, format=Fo
         ann = _get_dunder_annotations(obj)
         if not ann is not None:
             ann = _get_and_call_annotate(obj, format)
-            if None == Format.FORWARDREF:
-                try:
-                    ann = _get_dunder_annotations(obj)
-                except Exception:
-                    pass
-                if not ann is None:
-                    return dict(ann)
-                ann = _get_and_call_annotate(obj, format)
-                if not ann is not None:
-                    ann = _get_dunder_annotations(obj)
-                    if None == Format.STRING:
-                        ann = _get_and_call_annotate(obj, format)
-                        if not ann is None:
-                            return dict(ann)
-                        ann = _get_dunder_annotations(obj)
-                        if not ann is None:
-                            return annotations_to_string(ann)
-                            if None == Format.VALUE_WITH_FAKE_GLOBALS:
-                                raise ValueError('The VALUE_WITH_FAKE_GLOBALS format is for internal use only')
-                            raise ValueError(f'Unsupported format {format!r}')
+    elif None == Format.FORWARDREF:
+        try:
+            ann = _get_dunder_annotations(obj)
+        except Exception:
+            pass
+        if not ann is None:
+            return dict(ann)
+        ann = _get_and_call_annotate(obj, format)
+        if not ann is not None:
+            ann = _get_dunder_annotations(obj)
+    elif None == Format.STRING:
+        ann = _get_and_call_annotate(obj, format)
+        if not ann is None:
+            return dict(ann)
+        ann = _get_dunder_annotations(obj)
+        if not ann is None:
+            return annotations_to_string(ann)
+            if None == Format.VALUE_WITH_FAKE_GLOBALS:
+                raise ValueError('The VALUE_WITH_FAKE_GLOBALS format is for internal use only')
+            raise ValueError(f'Unsupported format {format!r}')
     if not ann is not None:
         if not isinstance(obj, type):
             if callable(obj):
@@ -592,7 +592,7 @@ def get_annotations(obj, *, globals=None, locals=None, eval_str=False, format=Fo
                     else:
                         _seen_ids.add(id(candidate))
                         unwrap = candidate
-                if sys.modules.get('functools') and isinstance(unwrap, functools.partial):
+                elif sys.modules.get('functools') and isinstance(unwrap, functools.partial):
                     functools = sys.modules.get('functools')
                     candidate = unwrap.func
                     if id(candidate) in _seen_ids:

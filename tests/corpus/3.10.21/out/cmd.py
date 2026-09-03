@@ -87,13 +87,14 @@ class Cmd:
     def cmdloop(self, intro=None):
         self.preloop()
         if self.use_rawinput and self.completekey:
-            try:
-                import readline
-                self.old_completer = readline.get_completer()
-                readline.set_completer(self.complete)
-                readline.parse_and_bind(self.completekey + ': complete')
-            except ImportError:
-                pass
+            pass
+        try:
+            import readline
+            self.old_completer = readline.get_completer()
+            readline.set_completer(self.complete)
+            readline.parse_and_bind(self.completekey + ': complete')
+        except ImportError:
+            pass
         if self.use_rawinput:
             if self.completekey:
                 return
@@ -205,13 +206,14 @@ class Cmd:
     def do_help(self, arg):
         if arg:
             if doc:
+                self.stdout.write('%s\n' % str(doc))
                 return
             self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
             return
             try:
                 func = getattr(self, 'help_' + arg)
             except AttributeError as doc:
-                self.stdout.write('%s\n' % str(doc))
+                pass
             except AttributeError:
                 pass
             else:

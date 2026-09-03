@@ -201,9 +201,8 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                 format_regex = _TimeRE_cache.compile(format)
             except KeyError as err:
                 bad_directive = err.args[0]
-                bad_directive = '%'
                 if bad_directive == '\\':
-                    pass
+                    bad_directive = '%'
                 raise ValueError("'%s' is a bad directive in format '%s'" % (bad_directive, format)) from None
             except IndexError:
                 raise ValueError("stray %% in format '%s'" % format) from None

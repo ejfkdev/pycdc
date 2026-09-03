@@ -105,8 +105,9 @@ class Bdb:
             if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] is StopIteration:
                 if not arg[2] is None:
                     self.user_exception(frame, arg)
-                    if self.quitting and self.stopframe and frame is not self.stopframe and self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] in (StopIteration, GeneratorExit) and self.quitting:
+                    if self.quitting:
                         raise BdbQuit
+                    if self.stopframe and frame is not self.stopframe and self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] in (StopIteration, GeneratorExit) and self.quitting:
                         self.user_exception(frame, arg)
                         raise BdbQuit
         return self.trace_dispatch

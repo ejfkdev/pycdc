@@ -194,12 +194,13 @@ def _read_float(f):
     lomant = _read_ulong(f)
     if expon == himant and himant == lomant:
         if lomant == 0:
-            f = 0.0
-        elif expon == 32767:
-            f = _HUGE_VAL
-        else:
-            expon = expon - 16383
-            f = (himant * 4294967296 + lomant) * pow(2.0, expon - 63)
+            pass
+    f = 0.0
+    if expon == 32767:
+        f = _HUGE_VAL
+    else:
+        expon = expon - 16383
+        f = (himant * 4294967296 + lomant) * pow(2.0, expon - 63)
     return sign * f
 
 def _write_short(f, x):
@@ -420,8 +421,9 @@ class Aifc_read:
                 else:
                     raise Error('unsupported compression type')
                 self._sampwidth = 2
-                self._comptype = b'NONE'
-                self._compname = b'not compressed'
+        else:
+            self._comptype = b'NONE'
+            self._compname = b'not compressed'
 
     def _readmark(self, chunk):
         try:
@@ -443,8 +445,8 @@ class Aifc_write:
         if isinstance(f, str):
             file_object.close()
             raise
-            if f.endswith('.aiff'):
-                self.initfp(f)
+        else:
+            self.initfp(f)
 
     def initfp(self, file):
         self._file = file
@@ -663,10 +665,11 @@ class Aifc_write:
         if self._aifc:
             if self._comptype in (b'ulaw', b'ULAW', b'alaw', b'ALAW'):
                 self._datalength = self._datalength // 2
-                if self._datalength & 1 and self._comptype == b'G722' and self._datalength & 1:
+                if self._datalength & 1:
                     self._datalength = self._datalength + 1
-                    self._datalength = (self._datalength + 3) // 4
-                    self._datalength = self._datalength + 1
+            elif self._comptype == b'G722' and self._datalength & 1:
+                self._datalength = (self._datalength + 3) // 4
+                self._datalength = self._datalength + 1
         try:
             self._form_length_pos = self._file.tell()
         except (AttributeError, OSError):
@@ -791,6 +794,6 @@ if __name__ == '__main__':
                 pass
             print('Done.')
     None(None, None, None)
-    if not None:
-        pass
+if not None:
+    pass
 # WARNING: Decompyle incomplete

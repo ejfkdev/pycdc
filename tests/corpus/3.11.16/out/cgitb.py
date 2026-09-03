@@ -83,7 +83,7 @@ def scanvars(reader, frame, locals):
             else:
                 where, value = lookup(token, frame, locals)
                 vars.append((token, where, value))
-        if token == '.':
+        elif token == '.':
             prefix += lasttoken + '.'
             parent = value
         else:
@@ -249,7 +249,8 @@ class Hook:
                     self.file.write('<pre>' + doc + '</pre>\n')
                 else:
                     self.file.write(doc + '\n')
-            self.file.write('<p>A problem occurred in a Python script.\n')
+            else:
+                self.file.write('<p>A problem occurred in a Python script.\n')
             if not self.logdir is None:
                 suffix = ['.txt', '.html'][self.format == 'html']
                 fd, path = tempfile.mkstemp(suffix=suffix, dir=self.logdir)

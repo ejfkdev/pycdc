@@ -142,9 +142,8 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
                 return False
             raise
         except BaseException as exc:
-            raise
             if exc is not value:
-                pass
+                raise
 
 
 class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncContextManager, AsyncContextDecorator):
@@ -195,9 +194,8 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 return False
             raise
         except BaseException as exc:
-            raise
             if exc is not value:
-                pass
+                raise
 
 
 def contextmanager(func):

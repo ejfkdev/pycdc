@@ -62,7 +62,7 @@ def open(file, flag='r', mode=438):
                 mod = _defaultmod
             else:
                 raise error # WARNING: raise cause dropped (py2)
-    if result == '':
+    elif result == '':
         raise error # WARNING: raise cause dropped (py2)
     else:
         mod = __import__(result)

@@ -219,7 +219,8 @@ class ParserBase:
                     j = j + 1
                 if not rawdata[j:]:
                     return -1
-                    name, j = self._scan_name(j, declstartpos)
+            else:
+                name, j = self._scan_name(j, declstartpos)
             c = rawdata[j:j + 1]
             if not c:
                 return -1

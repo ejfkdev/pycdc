@@ -400,21 +400,21 @@ is considered a user error and raises `InterpolationSyntaxError`.'''
             if c == '%':
                 accum.append('%')
                 rest = rest[2:]
+            elif c == '(':
+                m = self._KEYCRE.match(rest)
+                if not m is not None:
+                    raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
+                var = parser.optionxform(m.group(1))
+                rest = rest[m.end():]
+                try:
+                    v = map[var]
+                except KeyError:
+                    raise InterpolationMissingOptionError(option, section, rawval, var) from None
+                if '%' in v:
+                    self._interpolate_some(parser, option, accum, v, section, map, depth + 1)
+                else:
+                    accum.append(v)
             else:
-                if c == '(':
-                    m = self._KEYCRE.match(rest)
-                    if not m is not None:
-                        raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
-                    var = parser.optionxform(m.group(1))
-                    rest = rest[m.end():]
-                    try:
-                        v = map[var]
-                    except KeyError:
-                        raise InterpolationMissingOptionError(option, section, rawval, var) from None
-                    if '%' in v:
-                        self._interpolate_some(parser, option, accum, v, section, map, depth + 1)
-                    else:
-                        accum.append(v)
                 raise InterpolationSyntaxError(option, section, f"'%' must be followed by '%' or '(', found: {rest!r}")
             if rest:
                 continue

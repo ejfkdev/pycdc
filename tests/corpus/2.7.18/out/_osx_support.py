@@ -47,18 +47,18 @@ _SYSTEM_VERSION = None
 
 def _get_system_version():
     global _SYSTEM_VERSION
-    if _SYSTEM_VERSION is None and m is not None:
-        _SYSTEM_VERSION = ''
+    try:
+        pass
+    finally:
         try:
-            pass
-        finally:
-            try:
-                f = open('/System/Library/CoreServices/SystemVersion.plist')
-            except IOError:
-                pass
-            else:
-                m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
-            f.close()
+            f = open('/System/Library/CoreServices/SystemVersion.plist')
+        except IOError:
+            if _SYSTEM_VERSION is None:
+                _SYSTEM_VERSION = ''
+        else:
+            m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
+        f.close()
+    if m is not None:
         _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
     return _SYSTEM_VERSION
 
@@ -79,12 +79,9 @@ def _save_modified_value(_config_vars, cv, newvalue):
 def _supports_universal_builds():
     osx_version = _get_system_version()
     if osx_version:
-        try:
-            osx_version = tuple((int(i) for i in osx_version.split('.')))
-        except ValueError, osx_version:
-            pass
+        pass
     if osx_version:
-        return bool(osx_version >= (10, 4))
+        pass
     return False
 
 def _find_appropriate_compiler(_config_vars):
@@ -268,11 +265,11 @@ def get_platform_osx(_config_vars, osname, release, machine):
                 if machine == 'i386':
                     if sys.maxint >= 4294967296L:
                         machine = 'x86_64'
-                        if machine in ('PowerPC', 'Power_Macintosh'):
-                            if sys.maxint >= 4294967296L:
-                                machine = 'ppc64'
-                            else:
-                                machine = 'ppc'
+                elif machine in ('PowerPC', 'Power_Macintosh'):
+                    if sys.maxint >= 4294967296L:
+                        machine = 'ppc64'
+                    else:
+                        machine = 'ppc'
     return osname, release, machine
 
 # WARNING: Decompyle incomplete

@@ -56,15 +56,16 @@ def literal_eval(node_or_string):
             return node.value
         if isinstance(node, UnaryOp) and isinstance(node.op, (UAdd, USub)):
             operand = _convert(node.operand)
-            if isinstance(operand, _NUM_TYPES) and isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(left, _NUM_TYPES) and isinstance(right, _NUM_TYPES):
+            if isinstance(operand, _NUM_TYPES):
                 if isinstance(node.op, UAdd):
                     return +operand
                 return -operand
-                left = _convert(node.left)
-                right = _convert(node.right)
-                if isinstance(node.op, Add):
-                    return left + right
-                return left - right
+        elif isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(left, _NUM_TYPES) and isinstance(right, _NUM_TYPES):
+            left = _convert(node.left)
+            right = _convert(node.right)
+            if isinstance(node.op, Add):
+                return left + right
+            return left - right
         raise ValueError('malformed node or string: ' + repr(node))
 
     return _convert(node_or_string)

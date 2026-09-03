@@ -61,9 +61,10 @@ def lookup(name, frame, locals):
     if '__builtins__' in frame.f_globals:
         builtins = frame.f_globals['__builtins__']
         if type(builtins) is type({}):
-            if name in builtins and hasattr(builtins, name):
+            if name in builtins:
                 return 'builtin', builtins[name]
-                return 'builtin', getattr(builtins, name)
+        elif hasattr(builtins, name):
+            return 'builtin', getattr(builtins, name)
     return None, __UNDEF__
 
 def scanvars(reader, frame, locals):
@@ -235,7 +236,8 @@ class Hook:
                 pass
             else:
                 self.file.write(doc + '\n')
-        self.file.write('<p>A problem occurred in a Python script.\n')
+        else:
+            self.file.write('<p>A problem occurred in a Python script.\n')
         if self.logdir is not None:
             suffix = ['.txt', '.html'][self.format == 'html']
             msg = 'Tried to save traceback to %s, but failed.' % path

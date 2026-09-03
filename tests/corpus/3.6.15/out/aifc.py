@@ -431,8 +431,9 @@ class Aifc_read:
                 else:
                     raise Error('unsupported compression type')
                 self._sampwidth = 2
-                self._comptype = b'NONE'
-                self._compname = b'not compressed'
+        else:
+            self._comptype = b'NONE'
+            self._compname = b'not compressed'
 
     def _readmark(self, chunk):
         nmarkers = _read_short(chunk)
@@ -457,8 +458,8 @@ class Aifc_write:
             file_object = builtins.open(f, 'wb')
             file_object.close()
             raise
-            if f.endswith('.aiff'):
-                self.initfp(f)
+        else:
+            self.initfp(f)
 
     def initfp(self, file):
         self._file = file
@@ -688,10 +689,11 @@ class Aifc_write:
         if self._aifc:
             if self._comptype in (b'ulaw', b'ULAW', b'alaw', b'ALAW'):
                 self._datalength = self._datalength // 2
-                if self._datalength & 1 and self._comptype == b'G722' and self._datalength & 1:
+                if self._datalength & 1:
                     self._datalength = self._datalength + 1
-                    self._datalength = (self._datalength + 3) // 4
-                    self._datalength = self._datalength + 1
+            elif self._comptype == b'G722' and self._datalength & 1:
+                self._datalength = (self._datalength + 3) // 4
+                self._datalength = self._datalength + 1
         try:
             self._form_length_pos = self._file.tell()
         except (AttributeError, OSError):

@@ -86,10 +86,10 @@ if os.name == 'posix':
                 if flags & (select.POLLHUP | select.POLLERR | select.POLLNVAL):
                     obj.handle_close()
             except socket.error, e:
-                obj.handle_error()
-                obj.handle_close()
                 if e.args[0] not in _DISCONNECTED:
-                    pass
+                    obj.handle_error()
+                else:
+                    obj.handle_close()
             except _reraised_exceptions:
                 raise
 
@@ -120,10 +120,10 @@ if os.name == 'posix':
                     try:
                         r, w, e = select.select(r, w, e, timeout)
                     except select.error, err:
-                        raise
-                        return
                         if err.args[0] != EINTR:
-                            pass
+                            raise
+                        else:
+                            return
                     obj = map.get(fd)
                     if obj is None:
                         continue
@@ -166,9 +166,8 @@ if os.name == 'posix':
                     try:
                         r = pollster.poll(timeout)
                     except select.error, err:
-                        raise
                         if err.args[0] != EINTR:
-                            pass
+                            raise
                         r = []
                     obj = map.get(fd)
                     if obj is None:
@@ -224,13 +223,11 @@ if os.name == 'posix':
                 try:
                     x.close()
                 except OSError, x:
-                    continue
                     if x.args[0] == EBADF:
-                        pass
-                    raise
-                    continue
+                        continue
                     if not ignore_all:
-                        pass
+                        raise
+                        continue
                 except _reraised_exceptions:
                     raise
                 continue

@@ -268,7 +268,8 @@ by the SGML/HTML and XHTML parsers.'''
                 return -1
             if c.isspace():
                 j = j + 1
-        j = i
+        else:
+            j = i
         name, j = self._scan_name(j, declstartpos)
         if j < 0:
             return j
@@ -281,11 +282,12 @@ by the SGML/HTML and XHTML parsers.'''
                 j = m.end()
             else:
                 return -1
-        if c == '>':
-            return j + 1
-        name, j = self._scan_name(j, declstartpos)
-        if j < 0:
-            return j
+        else:
+            if c == '>':
+                return j + 1
+            name, j = self._scan_name(j, declstartpos)
+            if j < 0:
+                return j
 
     def _scan_name(self, i, declstartpos):
         rawdata = self.rawdata

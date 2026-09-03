@@ -25,10 +25,11 @@ def initlog(*allargs):
     global logfp, log
     if logfile:
         if not logfp:
-            try:
-                logfp = open(logfile, 'a')
-            except OSError:
-                pass
+            pass
+    try:
+        logfp = open(logfile, 'a')
+    except OSError:
+        pass
     if not logfp:
         log = nolog
     else:
@@ -129,8 +130,9 @@ def parse_header(line):
             if len(value) >= 2:
                 if value[0] == value[-1]:
                     if value[-1] == '"':
-                        value = value[1:-1]
-                        value = value.replace('\\\\', '\\').replace('\\"', '"')
+                        pass
+                value = value[1:-1]
+                value = value.replace('\\\\', '\\').replace('\\"', '"')
             pdict[name] = value
     return key, pdict
 
@@ -503,40 +505,40 @@ class FieldStorage:
             if 0 <= self.limit:
                 if self.limit <= _read:
                     pass
-                else:
-                    line = self.fp.readline(65536)
-                    self.bytes_read += len(line)
-                    _read += len(line)
-                    if not line:
-                        self.done = -1
+        else:
+            line = self.fp.readline(65536)
+            self.bytes_read += len(line)
+            _read += len(line)
+            if not line:
+                self.done = -1
+            else:
+                if delim == b'\r':
+                    line = delim + line
+                    delim = b''
+                if line.startswith(b'--') and last_line_lfend:
+                    strippedline = line.rstrip()
+                    if strippedline == next_boundary:
+                        pass
+                    elif strippedline == last_boundary:
+                        self.done = 1
                     else:
-                        if delim == b'\r':
-                            line = delim + line
+                        odelim = delim
+                        if line.endswith(b'\r\n'):
+                            delim = b'\r\n'
+                            line = line[:-2]
+                            last_line_lfend = True
+                        elif line.endswith(b'\n'):
+                            delim = b'\n'
+                            line = line[:-1]
+                            last_line_lfend = True
+                        elif line.endswith(b'\r'):
+                            delim = b'\r'
+                            line = line[:-1]
+                            last_line_lfend = False
+                        else:
                             delim = b''
-                        if line.startswith(b'--') and last_line_lfend:
-                            strippedline = line.rstrip()
-                            if strippedline == next_boundary:
-                                pass
-                            elif strippedline == last_boundary:
-                                self.done = 1
-                            else:
-                                odelim = delim
-                                if line.endswith(b'\r\n'):
-                                    delim = b'\r\n'
-                                    line = line[:-2]
-                                    last_line_lfend = True
-                                elif line.endswith(b'\n'):
-                                    delim = b'\n'
-                                    line = line[:-1]
-                                    last_line_lfend = True
-                                elif line.endswith(b'\r'):
-                                    delim = b'\r'
-                                    line = line[:-1]
-                                    last_line_lfend = False
-                                else:
-                                    delim = b''
-                                    last_line_lfend = False
-                                self._FieldStorage__write(odelim + line)
+                            last_line_lfend = False
+                        self._FieldStorage__write(odelim + line)
 
     def skip_lines(self):
         if self.outerboundary:

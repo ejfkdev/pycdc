@@ -235,8 +235,9 @@ class Sniffer:
             skipinitialspace = delims[delim] == spaces
             if delim == '\n':
                 delim = ''
-                delim = ''
-                skipinitialspace = 0
+        else:
+            delim = ''
+            skipinitialspace = 0
         doublequote = False
         if delim:
             dq_regexp = re.compile('(?:(?<=%(delim)s)|^)%(space)s%(quote)s((?:%(quote)s%(quote)s|[^%(quote)s]++)*+)%(quote)s(?:%(delim)s|$)' % {'delim': re.escape(delim), 'quote': quotechar, 'space': ' *+' if delim != ' ' else ''}, re.MULTILINE)

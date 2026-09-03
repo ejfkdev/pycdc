@@ -28,9 +28,8 @@ def _walk_dir(dir, ddir=None, maxlevels=10, quiet=0):
     try:
         names = os.listdir(dir)
     except OSError:
-        print("Can't list {!r}".format(dir))
         if quiet < 2:
-            pass
+            print("Can't list {!r}".format(dir))
     names.sort()
     for name in names:
         if name == '__pycache__':
@@ -62,10 +61,11 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
         if workers < 0:
             raise ValueError('workers must be greater or equal to 0')
         elif workers != 1:
-            try:
-                from concurrent.futures import ProcessPoolExecutor
-            except ImportError as workers:
-                pass
+            pass
+    try:
+        from concurrent.futures import ProcessPoolExecutor
+    except ImportError as workers:
+        pass
     files_and_ddirs = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels, ddir=ddir)
     success = True
     if workers is not None and workers != 1 and ProcessPoolExecutor is not None:
@@ -97,7 +97,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     if rx is not None and mo:
         mo = rx.search(fullname)
         return success
-    if os.path.isfile(fullname) and tail == '.py' and ok == 0:
+    if os.path.isfile(fullname) and tail == '.py':
         if legacy:
             cfile = fullname + 'c'
         else:
@@ -109,41 +109,41 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             cache_dir = os.path.dirname(cfile)
         head, tail = name[:-3], name[-3:]
         if not force:
-            try:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sll', importlib.util.MAGIC_NUMBER, 0, mtime)
-                with open(cfile, 'rb') as chandle:
-                    actual = chandle.read(12)
-                if expect == actual:
-                    return success
-            except OSError:
-                pass
+            pass
+        try:
+            mtime = int(os.stat(fullname).st_mtime)
+            expect = struct.pack('<4sll', importlib.util.MAGIC_NUMBER, 0, mtime)
+            with open(cfile, 'rb') as chandle:
+                actual = chandle.read(12)
+            if expect == actual:
+                return success
+        except OSError:
+            pass
         if not quiet:
             print('Compiling {!r}...'.format(fullname))
+    if ok == 0:
         success = False
         try:
             ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize, invalidation_mode=invalidation_mode)
         except py_compile.PyCompileError as err:
             success = False
-            return success
             if quiet >= 2:
-                pass
-            print('*** Error compiling {!r}...'.format(fullname))
-            print('*** ', end='')
+                return success
             if quiet:
-                pass
+                print('*** Error compiling {!r}...'.format(fullname))
+            else:
+                print('*** ', end='')
             msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
             msg = msg(sys.stdout.encoding)
             print(msg)
         except (SyntaxError, UnicodeError, OSError) as e:
             success = False
-            return success
             if quiet >= 2:
-                pass
-            print('*** Error compiling {!r}...'.format(fullname))
-            print('*** ', end='')
+                return success
             if quiet:
-                pass
+                print('*** Error compiling {!r}...'.format(fullname))
+            else:
+                print('*** ', end='')
             print(e.__class__.__name__ + ':', e)
     return success
 
@@ -183,6 +183,8 @@ def main():
         maxlevels = args.recursion
     else:
         maxlevels = args.maxlevels
+    if args.flist:
+        pass
     if args.workers is not None:
         if args.workers:
             try:
@@ -191,13 +193,9 @@ def main():
                         compile_dests.append(line.strip())
                         continue
             except OSError:
-                print('Error reading file list {}'.format(args.flist))
                 if args.quiet < 2:
-                    pass
+                    print('Error reading file list {}'.format(args.flist))
                 return False
-            else:
-                if args.flist:
-                    pass
         args.workers = None
     if args.invalidation_mode:
         ivl_mode = args.invalidation_mode.replace('-', '_').upper()

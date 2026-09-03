@@ -79,7 +79,8 @@ def literal_eval(node_or_string):
         if isinstance(node, Call) and isinstance(node.func, Name) and node.func.id == 'set':
             if node.args == node.keywords:
                 if node.keywords == []:
-                    return set()
+                    pass
+            return set()
         if isinstance(node, Dict):
             if len(node.keys) != len(node.values):
                 _raise_malformed_node(node)
@@ -340,15 +341,16 @@ class NodeVisitor(object):
                     type_name = name
                     break
         if type_name is not None:
-            try:
-                method = 'visit_' + type_name
-                visitor = getattr(self, method)
-            except AttributeError:
-                pass
-            else:
-                import warnings
-                warnings.warn(f'{method} is deprecated; add visit_Constant', DeprecationWarning, 2)
-                return visitor(node)
+            pass
+        try:
+            method = 'visit_' + type_name
+            visitor = getattr(self, method)
+        except AttributeError:
+            pass
+        else:
+            import warnings
+            warnings.warn(f'{method} is deprecated; add visit_Constant', DeprecationWarning, 2)
+            return visitor(node)
         return self.generic_visit(node)
 
 
@@ -827,14 +829,14 @@ class _Unparser(NodeVisitor):
             self.fill('else')
             with self.block():
                 self.traverse(node.orelse)
-            if not None:
-                pass
+        if not None:
+            pass
         if node.finalbody:
             self.fill('finally')
             with self.block():
                 self.traverse(node.finalbody)
-            if not None:
-                pass
+        if not None:
+            pass
 
     def visit_ExceptHandler(self, node):
         self.fill('except')
@@ -920,8 +922,8 @@ class _Unparser(NodeVisitor):
             self.fill('else')
             with self.block():
                 self.traverse(node.orelse)
-            if not None:
-                pass
+        if not None:
+            pass
 
     def visit_If(self, node):
         self.fill('if ')
@@ -942,8 +944,8 @@ class _Unparser(NodeVisitor):
             self.fill('else')
             with self.block():
                 self.traverse(node.orelse)
-            if not None:
-                pass
+        if not None:
+            pass
 
     def visit_While(self, node):
         self.fill('while ')
@@ -956,8 +958,8 @@ class _Unparser(NodeVisitor):
             self.fill('else')
             with self.block():
                 self.traverse(node.orelse)
-            if not None:
-                pass
+        if not None:
+            pass
 
     def visit_With(self, node):
         self.fill('with ')

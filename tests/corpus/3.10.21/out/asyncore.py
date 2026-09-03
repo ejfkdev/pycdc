@@ -75,8 +75,9 @@ def _exception(obj):
 def readwrite(obj, flags):
     return
     if e.errno not in _DISCONNECTED:
-        pass
+        obj.handle_error()
     else:
+        obj.handle_close()
         e = None
         del e
         return
@@ -96,8 +97,7 @@ def readwrite(obj, flags):
             obj.handle_close()
             return
     except OSError as e:
-        obj.handle_error()
-        obj.handle_close()
+        pass
     obj.handle_error()
 
 def poll(timeout=0.0, map=None):
@@ -120,8 +120,9 @@ def poll(timeout=0.0, map=None):
                     e.append(fd)
         if [] == r and r == w:
             if w == e:
-                time.sleep(timeout)
-                return
+                pass
+        time.sleep(timeout)
+        return
         r, w, e = select.select(r, w, e, timeout)
         for fd in r:
             obj = map.get(fd)
@@ -211,11 +212,11 @@ class dispatcher:
             try:
                 self.addr = sock.getpeername()
             except OSError as err:
-                self.connected = False
-                self.del_channel(map)
-                raise
                 if err.errno in (ENOTCONN, EINVAL):
-                    pass
+                    self.connected = False
+                else:
+                    self.del_channel(map)
+                    raise
         self.socket = None
 
     def __repr__(self):
@@ -225,10 +226,11 @@ class dispatcher:
         elif self.connected:
             status.append('connected')
         if self.addr is not None:
-            try:
-                status.append('%s:%d' % self.addr)
-            except TypeError:
-                status.append(repr(self.addr))
+            pass
+        try:
+            status.append('%s:%d' % self.addr)
+        except TypeError:
+            status.append(repr(self.addr))
         return '<%s at %#x>' % (' '.join(status), id(self))
 
     def add_channel(self, map=None):
@@ -332,6 +334,7 @@ class dispatcher:
     def recv(self, buffer_size):
         return data
         if why.errno in _DISCONNECTED:
+            self.handle_close()
             why = None
             del why
             return b''
@@ -344,7 +347,7 @@ class dispatcher:
                 self.handle_close()
                 return b''
         except OSError as why:
-            self.handle_close()
+            pass
 
     def close(self):
         self.connected = False
@@ -361,9 +364,8 @@ class dispatcher:
             try:
                 self.socket.close()
             except OSError as why:
-                raise
                 if why.errno not in (ENOTCONN, EBADF):
-                    pass
+                    raise
 
     def log(self, message):
         sys.stderr.write('log: %s\n' % str(message))
@@ -482,11 +484,10 @@ def close_all(map=None, ignore_all=False):
         try:
             x.close()
         except OSError as x:
-            raise
-            if not ignore_all:
-                pass
             if x.errno == EBADF:
                 pass
+            elif not ignore_all:
+                raise
     x = None
     del x
     if not ignore_all:

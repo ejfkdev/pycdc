@@ -48,14 +48,14 @@
   {
    "module": "_compression",
    "verdict": "SIG-DIFF",
-   "ndiff": 278,
+   "ndiff": 203,
    "ntotal": 515,
    "detail": "line 220: orig ('SETUP_WITH', 'to 96') | got ('SETUP_WITH', 'to 108')\nline 226: orig ('SETUP_WITH', 'to 66') | got ('SETUP_WITH', 'to 64')\nline 229: orig ('LOAD_METHOD', 'read') | got ('LOAD_GLOBAL', 'len')"
   },
   {
    "module": "_markupbase",
    "verdict": "SIG-DIFF",
-   "ndiff": 971,
+   "ndiff": 969,
    "ntotal": 1391,
    "detail": "line 218: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')\nline 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')"
   },
@@ -83,7 +83,7 @@
   {
    "module": "_strptime",
    "verdict": "SIG-DIFF",
-   "ndiff": 2051,
+   "ndiff": 2046,
    "ntotal": 2142,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -115,7 +115,7 @@
   {
    "module": "aifc",
    "verdict": "SIG-DIFF",
-   "ndiff": 2755,
+   "ndiff": 2728,
    "ntotal": 3098,
    "detail": "line 171: orig ('SETUP_WITH', 'to 588') | got ('SETUP_WITH', 'to 582')\nline 242: orig ('SETUP_WITH', 'to 548') | got ('SETUP_WITH', 'to 542')\nline 259: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 528')"
   },
@@ -129,28 +129,28 @@
   {
    "module": "asynchat",
    "verdict": "SIG-DIFF",
-   "ndiff": 554,
+   "ndiff": 555,
    "ntotal": 797,
    "detail": "line 219: orig ('SETUP_FINALLY', 'to 18') | got ('LOAD_CONST', 'None')\nline 220: orig ('LOAD_FAST', 'self') | got ('RETURN_VALUE', '')\nline 221: orig ('LOAD_METHOD', 'recv') | got ('SETUP_FINALLY', 'to 22')"
   },
   {
    "module": "asyncore",
    "verdict": "SIG-DIFF",
-   "ndiff": 2118,
+   "ndiff": 2134,
    "ntotal": 2212,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "base64",
    "verdict": "SIG-DIFF",
-   "ndiff": 1548,
+   "ndiff": 1467,
    "ntotal": 1868,
    "detail": "line 190: orig ('SETUP_FINALLY', 'to 24') | got ('LOAD_FAST', 's')\nline 191: orig ('LOAD_FAST', 's') | got ('LOAD_METHOD', 'encode')\nline 192: orig ('LOAD_METHOD', 'encode') | got ('LOAD_CONST', \"'ascii'\")"
   },
   {
    "module": "bdb",
    "verdict": "SIG-DIFF",
-   "ndiff": 2249,
+   "ndiff": 2247,
    "ntotal": 2340,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -168,7 +168,7 @@
   {
    "module": "bz2",
    "verdict": "SIG-DIFF",
-   "ndiff": 982,
+   "ndiff": 985,
    "ntotal": 1051,
    "detail": "line 34: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 38: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
@@ -189,28 +189,28 @@
   {
    "module": "cgi",
    "verdict": "SIG-DIFF",
-   "ndiff": 2758,
+   "ndiff": 2776,
    "ntotal": 2887,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cgitb",
    "verdict": "SIG-DIFF",
-   "ndiff": 1326,
+   "ndiff": 1319,
    "ntotal": 1456,
    "detail": "line 111: orig ('LOAD_CONST', 'None') | got ('strong', 1)\nline 112: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'text')\nline 113: orig ('strong', 1) | got ('POP_JUMP_IF_FALSE', '')"
   },
   {
    "module": "chunk",
    "verdict": "SIG-DIFF",
-   "ndiff": 250,
+   "ndiff": 252,
    "ntotal": 438,
-   "detail": "line 172: orig ('LOAD_FAST', 'self') | got ('LOAD_CONST', 'None')\nline 173: orig ('LOAD_ATTR', 'closed') | got ('RETURN_VALUE', '')\nline 174: orig ('POP_JUMP_IF_TRUE', '') | got ('isatty', 1)"
+   "detail": "line 175: orig ('SETUP_FINALLY', 'to 26') | got ('LOAD_CONST', 'True')\nline 177: orig ('LOAD_METHOD', 'skip') | got ('STORE_ATTR', 'closed')\nline 178: orig ('CALL_METHOD', '') | got ('LOAD_CONST', 'True')"
   },
   {
    "module": "cmd",
    "verdict": "SIG-DIFF",
-   "ndiff": 1089,
+   "ndiff": 1088,
    "ntotal": 1329,
    "detail": "line 218: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'self')\nline 219: orig ('SETUP_FINALLY', 'to 380') | got ('LOAD_ATTR', 'use_rawinput')\nline 220: orig ('LOAD_FAST', 'intro') | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -224,7 +224,7 @@
   {
    "module": "codecs",
    "verdict": "SIG-DIFF",
-   "ndiff": 2071,
+   "ndiff": 2067,
    "ntotal": 2146,
    "detail": "line 11: orig ('SETUP_FINALLY', 'to 34') | got ('LOAD_CONST', 'None')\nline 12: orig ('LOAD_CONST', '0') | got ('STORE_NAME', 'why')\nline 13: orig ('LOAD_CONST', \"('*',)\") | got ('DELETE_NAME', 'why')"
   },
@@ -242,14 +242,14 @@
   {
    "module": "compileall",
    "verdict": "SIG-DIFF",
-   "ndiff": 1309,
+   "ndiff": 1310,
    "ntotal": 1513,
    "detail": "line 121: orig ('SETUP_FINALLY', 'to 64') | got ('BUILD_LIST', '')\nline 122: orig ('LOAD_GLOBAL', 'os') | got ('STORE_FAST', 'names')\nline 123: orig ('LOAD_METHOD', 'listdir') | got ('SETUP_FINALLY', 'to 68')"
   },
   {
    "module": "configparser",
    "verdict": "SIG-DIFF",
-   "ndiff": 2851,
+   "ndiff": 2850,
    "ntotal": 4333,
    "detail": "line 671: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 673: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1017: orig ('LOAD_FAST', 'rest') | got ('SETUP_FINALLY', 'to 250')"
   },

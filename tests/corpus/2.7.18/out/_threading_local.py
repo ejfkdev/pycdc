@@ -145,7 +145,8 @@ def _patch(self):
         if cls.__init__ is not object.__init__:
             args, kw = object.__getattribute__(self, '_local__args')
             cls.__init__(self, *args, **kw)
-            object.__setattr__(self, '__dict__', d)
+    else:
+        object.__setattr__(self, '__dict__', d)
 
 class local(_localbase):
     pass

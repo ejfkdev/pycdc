@@ -48,9 +48,8 @@ def _strerror(err):
     try:
         return os.strerror(err)
     except (ValueError, OverflowError, NameError):
-        return errorcode[err]
         if err in errorcode:
-            pass
+            return errorcode[err]
         return 'Unknown error %s' % err
 
 class ExitNow(Exception):
@@ -92,10 +91,10 @@ def readwrite(obj, flags):
         if flags & (select.POLLHUP | select.POLLERR | select.POLLNVAL):
             obj.handle_close()
     except OSError as e:
-        obj.handle_error()
-        obj.handle_close()
         if e.args[0] not in _DISCONNECTED:
-            pass
+            obj.handle_error()
+        else:
+            obj.handle_close()
     obj.handle_error()
 
 def poll(timeout=0.0, map=None):
@@ -207,11 +206,11 @@ class dispatcher:
             try:
                 self.addr = sock.getpeername()
             except OSError as err:
-                self.connected = False
-                self.del_channel(map)
-                raise
                 if err.args[0] in (ENOTCONN, EINVAL):
-                    pass
+                    self.connected = False
+                else:
+                    self.del_channel(map)
+                    raise
         else:
             self.socket = None
 
@@ -222,10 +221,11 @@ class dispatcher:
         elif self.connected:
             status.append('connected')
         if self.addr is not None:
-            try:
-                status.append('%s:%d' % self.addr)
-            except TypeError:
-                status.append(repr(self.addr))
+            pass
+        try:
+            status.append('%s:%d' % self.addr)
+        except TypeError:
+            status.append(repr(self.addr))
         return '<%s at %#x>' % (' '.join(status), id(self))
 
     __str__ = __repr__
@@ -297,9 +297,8 @@ class dispatcher:
         except TypeError:
             return
         except OSError as why:
-            return
             if why.args[0] in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
-                pass
+                return
             raise
         else:
             return conn, addr
@@ -311,13 +310,11 @@ class dispatcher:
             result = self.socket.send(data)
             return result
         except OSError as why:
-            return 0
             if why.args[0] == EWOULDBLOCK:
-                pass
-            self.handle_close()
-            return 0
+                return 0
             if why.args[0] in _DISCONNECTED:
-                pass
+                self.handle_close()
+                return 0
             raise
 
     def recv(self, buffer_size):
@@ -330,10 +327,9 @@ class dispatcher:
                 return b''
             return data
         except OSError as why:
-            self.handle_close()
-            return b''
             if why.args[0] in _DISCONNECTED:
-                pass
+                self.handle_close()
+                return b''
             raise
 
     def close(self):
@@ -342,14 +338,14 @@ class dispatcher:
         self.connecting = False
         self.del_channel()
         if self.socket is not None:
-            why = None
-            del why
-            try:
-                self.socket.close()
-            except OSError as why:
+            pass
+        why = None
+        del why
+        try:
+            self.socket.close()
+        except OSError as why:
+            if why.args[0] not in (ENOTCONN, EBADF):
                 raise
-                if why.args[0] not in (ENOTCONN, EBADF):
-                    pass
 
     def log(self, message):
         sys.stderr.write('log: %s\n' % str(message))
@@ -466,11 +462,10 @@ def close_all(map=None, ignore_all=False):
         try:
             x.close()
         except OSError as x:
-            raise
-            if not ignore_all:
-                pass
             if x.args[0] == EBADF:
                 pass
+            elif not ignore_all:
+                raise
         continue
         continue
         if not ignore_all:

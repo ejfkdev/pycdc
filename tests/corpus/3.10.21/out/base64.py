@@ -220,31 +220,29 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
     for x in b + b'uuuu':
         if 33 <= x:
             if x <= 117:
-                curr_append(x)
-                if len(curr) == 5:
-                    acc = 0
-                    for x in curr:
-                        acc = 85 * acc + (x - 33)
-                    try:
-                        decoded_append(packI(acc))
-                    except struct.error:
-                        raise ValueError('Ascii85 overflow') from None
-                    else:
-                        curr_clear()
-                continue
-        if x == 122:
-            if curr:
-                raise ValueError('z inside Ascii85 5-tuple')
-            decoded_append(b'\x00\x00\x00\x00')
-            continue
-        if foldspaces and x == 121:
-            if curr:
-                raise ValueError('y inside Ascii85 5-tuple')
-            decoded_append(b'    ')
-            continue
-        if x in ignorechars:
-            continue
-        raise ValueError('Non-Ascii85 digit found: %c' % x)
+                pass
+        curr_append(x)
+        if len(curr) == 5:
+            acc = 0
+            for x in curr:
+                acc = 85 * acc + (x - 33)
+            try:
+                decoded_append(packI(acc))
+            except struct.error:
+                raise ValueError('Ascii85 overflow') from None
+            else:
+                curr_clear()
+    if x == 122:
+        if curr:
+            raise ValueError('z inside Ascii85 5-tuple')
+        decoded_append(b'\x00\x00\x00\x00')
+    if foldspaces and x == 121:
+        if curr:
+            raise ValueError('y inside Ascii85 5-tuple')
+        decoded_append(b'    ')
+    if x in ignorechars:
+        pass
+    raise ValueError('Non-Ascii85 digit found: %c' % x)
     result = b''.join(decoded)
     padding = 4 - len(curr)
     if padding:

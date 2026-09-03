@@ -152,10 +152,10 @@ class async_chat(asyncore.dispatcher):
             try:
                 data = first[:obs]
             except TypeError as data:
-                self.producer_fifo.appendleft(data)
-                del self.producer_fifo[0]
                 if data:
-                    pass
+                    self.producer_fifo.appendleft(data)
+                else:
+                    del self.producer_fifo[0]
             if isinstance(data, str) and self.use_encoding:
                 data = bytes(data, self.encoding)
             if num_sent:

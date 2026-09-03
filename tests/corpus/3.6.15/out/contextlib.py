@@ -78,12 +78,10 @@ class _GeneratorContextManager(ContextDecorator, AbstractContextManager):
         except StopIteration as exc:
             return exc is not value
         except RuntimeError as exc:
-            return False
             if exc is value:
-                pass
-            return False
+                return False
             if type is StopIteration and exc.__cause__ is value:
-                pass
+                return False
             raise
         if sys.exc_info()[1] is value:
             return False
@@ -262,12 +260,13 @@ class ExitStack(AbstractContextManager):
             pending_raise = True
             exc_details = new_exc_details
         if pending_raise:
-            try:
-                fixed_ctx = exc_details[1].__context__
-                raise exc_details[1]
-            except BaseException:
-                exc_details[1].__context__ = fixed_ctx
-                raise
+            pass
+        try:
+            fixed_ctx = exc_details[1].__context__
+            raise exc_details[1]
+        except BaseException:
+            exc_details[1].__context__ = fixed_ctx
+            raise
         return received_exc and suppressed_exc
 
 

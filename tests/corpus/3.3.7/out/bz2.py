@@ -300,12 +300,14 @@ class BZ2File(io.BufferedIOBase):
 
 def open(filename, mode='rb', compresslevel=9, encoding=None, errors=None, newline=None):
     if 't' in mode:
-        if 'b' in mode and newline is not None:
+        if 'b' in mode:
             raise ValueError('Invalid mode: %r' % (mode,))
-            if encoding is not None:
-                raise ValueError("Argument 'encoding' not supported in binary mode")
-            if errors is not None:
-                raise ValueError("Argument 'errors' not supported in binary mode")
+    else:
+        if encoding is not None:
+            raise ValueError("Argument 'encoding' not supported in binary mode")
+        if errors is not None:
+            raise ValueError("Argument 'errors' not supported in binary mode")
+        if newline is not None:
             raise ValueError("Argument 'newline' not supported in binary mode")
     bz_mode = mode.replace('t', '')
     binary_file = BZ2File(filename, bz_mode, compresslevel=compresslevel)
@@ -323,12 +325,13 @@ def decompress(data):
         while data:
             decomp = BZ2Decompressor()
             if results:
-                pass
+                break
+            else:
+                raise
             try:
                 res = decomp.decompress(data)
             except OSError:
-                break
-                raise
+                pass
             results.append(res)
             if not decomp.eof:
                 raise ValueError('Compressed data ended before the end-of-stream marker was reached')

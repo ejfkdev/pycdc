@@ -27,10 +27,11 @@ def initlog(*allargs):
     warnings.warn('cgi.log() is deprecated as of 3.10. Use logging instead', DeprecationWarning, stacklevel=2)
     if logfile:
         if not logfp:
-            try:
-                logfp = open(logfile, 'a', encoding='locale')
-            except OSError:
-                pass
+            pass
+    try:
+        logfp = open(logfile, 'a', encoding='locale')
+    except OSError:
+        pass
     if not logfp:
         log = nolog
     else:
@@ -133,8 +134,9 @@ def parse_header(line):
             if len(value) >= 2:
                 if value[0] == value[-1]:
                     if value[-1] == '"':
-                        value = value[1:-1]
-                        value = value.replace('\\\\', '\\').replace('\\"', '"')
+                        pass
+                value = value[1:-1]
+                value = value.replace('\\\\', '\\').replace('\\"', '"')
             pdict[name] = value
     return key, pdict
 

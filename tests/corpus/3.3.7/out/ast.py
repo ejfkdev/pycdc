@@ -52,17 +52,17 @@ def literal_eval(node_or_string):
         if isinstance(node, Name):
             if node.id in _safe_names:
                 return _safe_names[node.id]
-                if isinstance(node, UnaryOp) and isinstance(node.op, (UAdd, USub)) and isinstance(node.operand, (Num, UnaryOp, BinOp)):
-                    operand = _convert(node.operand)
-                    if isinstance(node.op, UAdd):
-                        return +operand
-                    return -operand
-                elif isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(node.right, (Num, UnaryOp, BinOp)) and isinstance(node.left, (Num, UnaryOp, BinOp)):
-                    left = _convert(node.left)
-                    right = _convert(node.right)
-                    if isinstance(node.op, Add):
-                        return left + right
-                    return left - right
+        elif isinstance(node, UnaryOp) and isinstance(node.op, (UAdd, USub)) and isinstance(node.operand, (Num, UnaryOp, BinOp)):
+            operand = _convert(node.operand)
+            if isinstance(node.op, UAdd):
+                return +operand
+            return -operand
+        elif isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(node.right, (Num, UnaryOp, BinOp)) and isinstance(node.left, (Num, UnaryOp, BinOp)):
+            left = _convert(node.left)
+            right = _convert(node.right)
+            if isinstance(node.op, Add):
+                return left + right
+            return left - right
         raise ValueError('malformed node or string: ' + repr(node))
 
     return _convert(node_or_string)

@@ -591,9 +591,8 @@ class MutableMapping(Mapping):
         try:
             value = self[key]
         except KeyError:
-            raise
             if default is self._MutableMapping__marker:
-                pass
+                raise
             return default
         else:
             del self[key]

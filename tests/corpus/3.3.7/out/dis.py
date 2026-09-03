@@ -272,7 +272,8 @@ def _test():
         if not not fn:
             if fn == '-':
                 fn = None
-                fn = None
+    else:
+        fn = None
     if fn is None:
         f = sys.stdin
     else:

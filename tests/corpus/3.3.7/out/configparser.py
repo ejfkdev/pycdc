@@ -553,10 +553,7 @@ class RawConfigParser(MutableMapping):
 
     def read_file(self, f, source=None):
         if source is None:
-            try:
-                source = f.name
-            except AttributeError as source:
-                pass
+            pass
         self._read(f, source)
 
     def read_string(self, string, source='<string>'):
@@ -567,12 +564,11 @@ class RawConfigParser(MutableMapping):
         elements_added = set()
         for section, keys in dictionary.items():
             section = str(section)
-            if self._strict and section in elements_added:
-                pass
             try:
                 self.add_section(section)
             except (DuplicateSectionError, ValueError):
-                raise
+                if self._strict and section in elements_added:
+                    raise
             elements_added.add(section)
             for key, value in keys.items():
                 key = self.optionxform(str(key))
@@ -591,20 +587,22 @@ class RawConfigParser(MutableMapping):
 
     def get(self=None, section=None, option=None, *, raw, vars, fallback):
         if fallback is _UNSET:
-            pass
+            raise
+        else:
+            return fallback
         try:
             d = self._unify_values(section, vars)
         except NoSectionError:
-            raise
-            return fallback
+            pass
         option = self.optionxform(option)
         if fallback is _UNSET:
-            pass
+            raise NoOptionError(option, section)
+        else:
+            return fallback
         try:
             value = d[option]
         except KeyError:
-            raise NoOptionError(option, section)
-            return fallback
+            pass
         if not raw:
             if value is None:
                 return value
@@ -615,41 +613,43 @@ class RawConfigParser(MutableMapping):
 
     def getint(self=None, section=None, option=None, *, raw, vars, fallback):
         if fallback is _UNSET:
-            pass
+            raise
+        else:
+            return fallback
         try:
             return self._get(section, int, option, raw=raw, vars=vars)
         except (NoSectionError, NoOptionError):
-            raise
-            return fallback
+            pass
 
     def getfloat(self=None, section=None, option=None, *, raw, vars, fallback):
         if fallback is _UNSET:
-            pass
+            raise
+        else:
+            return fallback
         try:
             return self._get(section, float, option, raw=raw, vars=vars)
         except (NoSectionError, NoOptionError):
-            raise
-            return fallback
+            pass
 
     def getboolean(self=None, section=None, option=None, *, raw, vars, fallback):
         if fallback is _UNSET:
-            pass
+            raise
+        else:
+            return fallback
         try:
             return self._get(section, self._convert_to_boolean, option, raw=raw, vars=vars)
         except (NoSectionError, NoOptionError):
-            raise
-            return fallback
+            pass
 
     def items(self, section=False, raw=None, vars=(__class__,)):
         if section is _UNSET:
             return super().items()
         d = self._defaults.copy()
-        if section != self.default_section:
-            pass
         try:
             d.update(self._sections[section])
         except KeyError:
-            raise NoSectionError(section)
+            if section != self.default_section:
+                raise NoSectionError(section)
         if vars:
             for key, value in vars.items():
                 d[self.optionxform(key)] = value
@@ -877,12 +877,11 @@ class RawConfigParser(MutableMapping):
 
     def _unify_values(self, section, vars):
         sectiondict = {}
-        if section != self.default_section:
-            pass
         try:
             sectiondict = self._sections[section]
         except KeyError:
-            raise NoSectionError(section)
+            if section != self.default_section:
+                raise NoSectionError(section)
         vardict = {}
         if vars:
             for key, value in vars.items():

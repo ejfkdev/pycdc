@@ -8,10 +8,11 @@ bytes_types = bytes, bytearray
 
 def _bytes_from_decode_data(s):
     if isinstance(s, str):
-        try:
-            return s.encode('ascii')
-        except UnicodeEncodeError:
-            raise ValueError('string argument should contain only ASCII characters')
+        pass
+    try:
+        return s.encode('ascii')
+    except UnicodeEncodeError:
+        raise ValueError('string argument should contain only ASCII characters')
     if isinstance(s, bytes_types):
         return s
     try:
@@ -262,12 +263,11 @@ def b85decode(b):
                 acc = acc * 85 + _b85dec[c]
                 continue
         except TypeError as j:
-            if _b85dec[c] is None:
-                pass
-            raise ValueError('bad base85 character at position %d' % (i + j)) from None
-            continue
             for _ in enumerate(chunk):
-                pass
+                if _b85dec[c] is None:
+                    pass
+                raise ValueError('bad base85 character at position %d' % (i + j)) from None
+                continue
             raise
         try:
             out.append(packI(acc))

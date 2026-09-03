@@ -25,10 +25,11 @@ logfp = None
 def initlog(*allargs):
     global logfp, log
     if logfile and not logfp:
-        try:
-            logfp = open(logfile, 'a')
-        except OSError:
-            pass
+        pass
+    try:
+        logfp = open(logfile, 'a')
+    except OSError:
+        pass
     if not logfp:
         log = nolog
     else:
@@ -120,10 +121,11 @@ def parse_multipart(fp, pdict):
                 headers = http.client.parse_headers(fp)
                 clength = headers.get('content-length')
                 if clength:
-                    try:
-                        bytes = int(clength)
-                    except ValueError:
-                        pass
+                    pass
+                try:
+                    bytes = int(clength)
+                except ValueError:
+                    pass
                 if bytes > 0:
                     if maxlen and bytes > maxlen:
                         raise ValueError('Maximum content length exceeded')
@@ -287,8 +289,8 @@ class FieldStorage:
                 self.qs_on_post = environ['QUERY_STRING']
             if 'CONTENT_LENGTH' in environ:
                 headers['content-length'] = environ['CONTENT_LENGTH']
-                if not isinstance(headers, (Mapping, Message)):
-                    raise TypeError('headers must be mapping or an instance of email.message.Message')
+        elif not isinstance(headers, (Mapping, Message)):
+            raise TypeError('headers must be mapping or an instance of email.message.Message')
         self.headers = headers
         if fp is None:
             self.fp = sys.stdin.buffer
@@ -482,8 +484,8 @@ class FieldStorage:
             while True:
                 data = self.fp.readline()
                 hdr_text += data
-            break
-            continue
+                if not data.strip():
+                    break
             if not hdr_text:
                 break
             self.bytes_read += len(hdr_text)

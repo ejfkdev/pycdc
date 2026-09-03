@@ -177,12 +177,7 @@ class ExitStack(object):
             pending_raise = True
             exc_details = new_exc_details
         if pending_raise:
-            try:
-                fixed_ctx = exc_details[1].__context__
-                raise exc_details[1]
-            except BaseException:
-                exc_details[1].__context__ = fixed_ctx
-                raise
+            pass
         return received_exc and suppressed_exc
 
 

@@ -80,18 +80,18 @@ class async_chat(asyncore.dispatcher):
             if not terminator:
                 self.collect_incoming_data(self.ac_in_buffer)
                 self.ac_in_buffer = b''
+            elif isinstance(terminator, int):
+                n = terminator
+                if lb < n:
+                    self.collect_incoming_data(self.ac_in_buffer)
+                    self.ac_in_buffer = b''
+                    self.terminator = self.terminator - lb
+                else:
+                    self.collect_incoming_data(self.ac_in_buffer[:n])
+                    self.ac_in_buffer = self.ac_in_buffer[n:]
+                    self.terminator = 0
+                    self.found_terminator()
             else:
-                if isinstance(terminator, int):
-                    n = terminator
-                    if lb < n:
-                        self.collect_incoming_data(self.ac_in_buffer)
-                        self.ac_in_buffer = b''
-                        self.terminator = self.terminator - lb
-                    else:
-                        self.collect_incoming_data(self.ac_in_buffer[:n])
-                        self.ac_in_buffer = self.ac_in_buffer[n:]
-                        self.terminator = 0
-                        self.found_terminator()
                 terminator_len = len(terminator)
                 index = self.ac_in_buffer.find(terminator)
                 if index != -1:
@@ -149,7 +149,9 @@ class async_chat(asyncore.dispatcher):
                         self.handle_close()
                         return
                 if data:
-                    pass
+                    self.producer_fifo.appendleft(data)
+                else:
+                    del self.producer_fifo[0]
                 continue
             if isinstance(data, str) and self.use_encoding:
                 data = bytes(data, self.encoding)
@@ -157,8 +159,7 @@ class async_chat(asyncore.dispatcher):
                     obs = self.ac_out_buffer_size
                     data = first[:obs]
                 except TypeError as data:
-                    self.producer_fifo.appendleft(data)
-                    del self.producer_fifo[0]
+                    pass
             return
             if num_sent:
                 if not num_sent < len(data):

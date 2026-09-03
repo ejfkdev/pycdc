@@ -253,14 +253,13 @@ class StreamReader(Codec):
         try:
             newchars, decodedbytes = self.decode(data, self.errors)
         except UnicodeDecodeError as exc:
-            newchars, decodedbytes = self.decode(data[:exc.start], self.errors)
-            lines = newchars.splitlines(keepends=True)
-            raise
-            raise
-            if len(lines) <= 1:
-                pass
             if firstline:
-                pass
+                newchars, decodedbytes = self.decode(data[:exc.start], self.errors)
+                lines = newchars.splitlines(keepends=True)
+                if len(lines) <= 1:
+                    raise
+            else:
+                raise
         self.bytebuffer = data[decodedbytes:]
         self.charbuffer += newchars
         if not newdata:
@@ -305,22 +304,23 @@ class StreamReader(Codec):
                     self.charbuffer = lines[0] + self.charbuffer
                 if not keepends:
                     line = line.splitlines(keepends=False)[0]
-                    line0withend = lines[0]
-                    line0withoutend = lines[0].splitlines(keepends=False)[0]
-                    if line0withend != line0withoutend:
-                        self.charbuffer = self._empty_charbuffer.join(lines[1:]) + self.charbuffer
-                        if keepends:
-                            line = line0withend
-                        else:
-                            line = line0withoutend
-                    elif data:
-                        if size is not None:
-                            if line:
-                                if not keepends:
-                                    line = line.splitlines(keepends=False)[0]
-                                    if readsize < 8000:
-                                        pass
-                                    readsize *= 2
+            else:
+                line0withend = lines[0]
+                line0withoutend = lines[0].splitlines(keepends=False)[0]
+                if line0withend != line0withoutend:
+                    self.charbuffer = self._empty_charbuffer.join(lines[1:]) + self.charbuffer
+                    if keepends:
+                        line = line0withend
+                    else:
+                        line = line0withoutend
+                elif data:
+                    if size is not None:
+                        if line:
+                            if not keepends:
+                                line = line.splitlines(keepends=False)[0]
+                            if readsize < 8000:
+                                pass
+                            readsize *= 2
         return line
 
     def readlines(self, sizehint=None, keepends=True):

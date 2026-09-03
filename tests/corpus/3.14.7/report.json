@@ -39,7 +39,7 @@
   {
    "module": "_ast_unparse",
    "verdict": "SIG-DIFF",
-   "ndiff": 6909,
+   "ndiff": 6936,
    "ntotal": 7127,
    "detail": "line 11: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')\nline 12: orig ('LOAD_CONST', \"('NodeVisitor',)\") | got ('LOAD_SMALL_INT', '')\nline 13: orig ('IMPORT_NAME', 'ast') | got ('LOAD_CONST', \"('NodeVisitor',)\")"
   },
@@ -202,9 +202,9 @@
   {
    "module": "cmd",
    "verdict": "SIG-DIFF",
-   "ndiff": 1170,
-   "ntotal": 1455,
-   "detail": "line 159: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 164: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 196: orig ('JUMP_FORWARD', 'to L3') | got ('JUMP_FORWARD', 'to L2')"
+   "ndiff": 1212,
+   "ntotal": 1456,
+   "detail": "line 216: orig ('NOP', '') | got ('LOAD_FAST_BORROW', 'intro')\nline 217: orig ('LOAD_FAST_BORROW', 'intro') | got ('POP_JUMP_IF_NONE', 'to L5')\nline 218: orig ('POP_JUMP_IF_NONE', 'to L5') | got ('NOT_TAKEN', '')"
   },
   {
    "module": "code",

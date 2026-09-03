@@ -44,9 +44,11 @@ _SYSTEM_VERSION = None
 
 def _get_system_version():
     global _SYSTEM_VERSION
-    if _SYSTEM_VERSION is None and m is not None:
-        f.close()
-        f.close()
+    if _SYSTEM_VERSION is None:
+        pass
+    f.close()
+    f.close()
+    if m is not None:
         _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
     return _SYSTEM_VERSION
 
@@ -56,11 +58,11 @@ def _get_system_version_tuple():
     global _SYSTEM_VERSION_TUPLE
     if _SYSTEM_VERSION_TUPLE is None and osx_version:
         osx_version = _get_system_version()
-        _SYSTEM_VERSION_TUPLE = ()
-        try:
-            _SYSTEM_VERSION_TUPLE = tuple((int(i) for i in osx_version.split('.')))
-        except ValueError:
-            pass
+    _SYSTEM_VERSION_TUPLE = ()
+    try:
+        _SYSTEM_VERSION_TUPLE = tuple((int(i) for i in osx_version.split('.')))
+    except ValueError:
+        pass
     return _SYSTEM_VERSION_TUPLE
 
 def _remove_original_values(_config_vars):
@@ -277,12 +279,13 @@ def get_platform_osx(_config_vars, osname, release, machine):
             else:
                 raise ValueError("Don't know machine value for archs=%r" % (archs,))
         elif machine == 'i386':
-            if sys.maxsize >= 4294967296 and machine in ('PowerPC', 'Power_Macintosh'):
+            if sys.maxsize >= 4294967296:
                 machine = 'x86_64'
-                if sys.maxsize >= 4294967296:
-                    machine = 'ppc64'
-                else:
-                    machine = 'ppc'
+        elif machine in ('PowerPC', 'Power_Macintosh'):
+            if sys.maxsize >= 4294967296:
+                machine = 'ppc64'
+            else:
+                machine = 'ppc'
     return osname, release, machine
 
 # WARNING: Decompyle incomplete

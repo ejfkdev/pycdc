@@ -344,15 +344,16 @@ class NodeVisitor(object):
                     type_name = name
                     break
         if type_name is not None:
-            try:
-                method = 'visit_' + type_name
-                visitor = getattr(self, method)
-            except AttributeError:
-                pass
-            else:
-                import warnings
-                warnings.warn(f'{method} is deprecated; add visit_Constant', DeprecationWarning, 2)
-                return visitor(node)
+            pass
+        try:
+            method = 'visit_' + type_name
+            visitor = getattr(self, method)
+        except AttributeError:
+            pass
+        else:
+            import warnings
+            warnings.warn(f'{method} is deprecated; add visit_Constant', DeprecationWarning, 2)
+            return visitor(node)
         return self.generic_visit(node)
 
 
@@ -836,8 +837,8 @@ class _Unparser(NodeVisitor):
             self.fill('else')
             with self.block():
                 self.traverse(node.orelse)
-            if not None:
-                pass
+        if not None:
+            pass
         if node.finalbody:
             self.fill('finally')
             with self.block():

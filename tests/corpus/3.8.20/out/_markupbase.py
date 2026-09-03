@@ -218,7 +218,8 @@ class ParserBase:
                 j = j + 1
             if not rawdata[j:]:
                 return -1
-                name, j = self._scan_name(j, declstartpos)
+        else:
+            name, j = self._scan_name(j, declstartpos)
         c = rawdata[j:j + 1]
         if not c:
             return -1
@@ -273,7 +274,8 @@ class ParserBase:
                 return -1
             if c.isspace():
                 j = j + 1
-        j = i
+        else:
+            j = i
         name, j = self._scan_name(j, declstartpos)
         if j < 0:
             return j
@@ -286,12 +288,13 @@ class ParserBase:
                 j = m.end()
             else:
                 return -1
-        if c == '>':
-            return j + 1
-        name, j = self._scan_name(j, declstartpos)
-        if j < 0:
-            pass
-        return j
+        else:
+            if c == '>':
+                return j + 1
+            name, j = self._scan_name(j, declstartpos)
+            if j < 0:
+                pass
+            return j
 
     def _scan_name(self, i, declstartpos):
         rawdata = self.rawdata

@@ -9,10 +9,10 @@ bytes_types = bytes, bytearray
 def _bytes_from_decode_data(s):
     if isinstance(s, str):
         return s.encode('ascii')
-        try:
-            pass
-        except UnicodeEncodeError:
-            raise ValueError('string argument should contain only ASCII characters')
+    try:
+        pass
+    except UnicodeEncodeError:
+        raise ValueError('string argument should contain only ASCII characters')
     if isinstance(s, bytes_types):
         return s
     return memoryview(s).tobytes()
@@ -194,29 +194,27 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
     for x in b + b'uuuu':
         if 33 <= x:
             if x <= 117:
-                curr_append(x)
-                if len(curr) == 5:
-                    acc = 0
-                    for x in curr:
-                        acc = 85 * acc + (x - 33)
-                    try:
-                        decoded_append(packI(acc))
-                    except struct.error:
-                        raise ValueError('Ascii85 overflow') from None
-                    curr_clear()
-                continue
-        if x == 122:
-            if curr:
-                raise ValueError('z inside Ascii85 5-tuple')
-            decoded_append(b'\x00\x00\x00\x00')
-            continue
-        if foldspaces and x == 121:
-            if curr:
-                raise ValueError('y inside Ascii85 5-tuple')
-            decoded_append(b'    ')
-            continue
-        if x in ignorechars:
-            continue
+                pass
+        curr_append(x)
+        if len(curr) == 5:
+            acc = 0
+            for x in curr:
+                acc = 85 * acc + (x - 33)
+            try:
+                decoded_append(packI(acc))
+            except struct.error:
+                raise ValueError('Ascii85 overflow') from None
+            curr_clear()
+    if x == 122:
+        if curr:
+            raise ValueError('z inside Ascii85 5-tuple')
+        decoded_append(b'\x00\x00\x00\x00')
+    if foldspaces and x == 121:
+        if curr:
+            raise ValueError('y inside Ascii85 5-tuple')
+        decoded_append(b'    ')
+    if x in ignorechars:
+        pass
     raise ValueError('Non-Ascii85 digit found: %c' % x)
     result = b''.join(decoded)
     padding = 4 - len(curr)
@@ -254,11 +252,9 @@ def b85decode(b):
             for c in chunk:
                 acc = acc * 85 + _b85dec[c]
         except TypeError as j:
-            raise ValueError('bad base85 character at position %d' % (i + j)) from None
-            if _b85dec[c] is None:
-                pass
             for _ in enumerate(chunk):
-                pass
+                if _b85dec[c] is None:
+                    raise ValueError('bad base85 character at position %d' % (i + j)) from None
             raise
         try:
             out.append(packI(acc))

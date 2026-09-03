@@ -45,7 +45,7 @@
   {
    "module": "_markupbase",
    "verdict": "SIG-DIFF",
-   "ndiff": 900,
+   "ndiff": 902,
    "ntotal": 1303,
    "detail": "line 201: orig ('LOAD_ASSERTION_ERROR', '') | got ('PUSH_NULL', '')\nline 281: orig ('POP_JUMP_IF_FALSE', 'to 818') | got ('POP_JUMP_IF_FALSE', 'to 806')\nline 335: orig ('JUMP_FORWARD', 'to 792') | got ('JUMP_FORWARD', 'to 780')"
   },
@@ -155,14 +155,14 @@
   {
    "module": "cgi",
    "verdict": "SIG-DIFF",
-   "ndiff": 2813,
+   "ndiff": 2261,
    "ntotal": 2886,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cgitb",
    "verdict": "SIG-DIFF",
-   "ndiff": 1358,
+   "ndiff": 1323,
    "ntotal": 1484,
    "detail": "line 59: orig ('KW_NAMES', \"('remove',)\") | got ('CALL', '')\nline 60: orig ('CALL', '') | got ('POP_TOP', '')\nline 61: orig ('POP_TOP', '') | got ('LOAD_CONST', '<code reset>')"
   },
@@ -211,8 +211,8 @@
   {
    "module": "configparser",
    "verdict": "SIG-DIFF",
-   "ndiff": 3287,
-   "ntotal": 4238,
+   "ndiff": 3328,
+   "ntotal": 4240,
    "detail": "line 835: orig ('KW_NAMES', \"('raw', 'fallback')\") | got ('CALL', '')\nline 836: orig ('CALL', '') | got ('STORE_FAST', 'rawval')\nline 837: orig ('STORE_FAST', 'rawval') | got ('LOAD_FAST', 'depth')"
   },
   {
@@ -244,8 +244,8 @@
   {
    "module": "csv",
    "verdict": "SIG-DIFF",
-   "ndiff": 1636,
-   "ntotal": 1677,
+   "ndiff": 1627,
+   "ntotal": 1678,
    "detail": "line 13: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 17: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {

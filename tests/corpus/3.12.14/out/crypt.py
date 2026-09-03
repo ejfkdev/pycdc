@@ -46,13 +46,14 @@ def mksalt(method=None, *, rounds=None):
                     raise ValueError('rounds out of the range 2**4 to 2**31')
         s += f'{log_rounds:02d}$'
     elif method.ident in ('5', '6'):
-        if not rounds is None or rounds is None:
+        if not rounds is None:
             if 1000 <= rounds:
                 if not rounds <= 999999999:
                     raise ValueError('rounds out of the range 1000 to 999_999_999')
                     raise ValueError('rounds out of the range 1000 to 999_999_999')
             s += f'rounds={rounds}$'
-            raise ValueError(f"{method} doesn't support the rounds argument")
+    if not rounds is None:
+        raise ValueError(f"{method} doesn't support the rounds argument")
     s += ''.join((_sr.choice(_saltchars) for char in range(method.salt_chars)))
     return s
 

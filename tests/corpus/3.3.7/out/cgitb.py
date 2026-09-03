@@ -240,7 +240,8 @@ class Hook:
                 pass
             else:
                 self.file.write(doc + '\n')
-        self.file.write('<p>A problem occurred in a Python script.\n')
+        else:
+            self.file.write('<p>A problem occurred in a Python script.\n')
         if self.logdir is not None:
             suffix = ['.txt', '.html'][self.format == 'html']
             fd, path = tempfile.mkstemp(suffix=suffix, dir=self.logdir)

@@ -80,7 +80,7 @@ def scanvars(reader, frame, locals):
             else:
                 where, value = lookup(token, frame, locals)
                 vars.append((token, where, value))
-        if token == '.':
+        elif token == '.':
             prefix += lasttoken + '.'
             parent = value
         else:
@@ -237,7 +237,8 @@ class Hook:
                 pass
             else:
                 self.file.write(doc + '\n')
-        self.file.write('<p>A problem occurred in a Python script.\n')
+        else:
+            self.file.write('<p>A problem occurred in a Python script.\n')
         if self.logdir is not None:
             suffix = ['.txt', '.html'][self.format == 'html']
             msg = 'Tried to save traceback to %s, but failed.' % path

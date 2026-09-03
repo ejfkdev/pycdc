@@ -95,7 +95,8 @@ in order to inherit Cmd's methods and encapsulate action methods.
                         command_string = 'bind ^I rl_complete'
                     else:
                         command_string = f'bind {self.completekey} rl_complete'
-                command_string = f'{self.completekey}: complete'
+                else:
+                    command_string = f'{self.completekey}: complete'
                 readline.parse_and_bind(command_string)
             except ImportError:
                 pass

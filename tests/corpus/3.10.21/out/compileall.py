@@ -30,9 +30,8 @@ def _walk_dir(dir, maxlevels, quiet=0):
     try:
         names = os.listdir(dir)
     except OSError:
-        print("Can't list {!r}".format(dir))
         if quiet < 2:
-            pass
+            print("Can't list {!r}".format(dir))
     names.sort()
     for name in names:
         if name == '__pycache__':
@@ -59,12 +58,12 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
         raise ValueError('workers must be greater or equal to 0')
     if workers != 1:
         from concurrent.futures.process import _check_system_limits
-        try:
-            _check_system_limits()
-        except NotImplementedError as workers:
-            pass
-        else:
-            from concurrent.futures import ProcessPoolExecutor
+    try:
+        _check_system_limits()
+    except NotImplementedError as workers:
+        pass
+    else:
+        from concurrent.futures import ProcessPoolExecutor
     if maxlevels is None:
         maxlevels = sys.getrecursionlimit()
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels)
@@ -134,21 +133,21 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         head, tail = name[:-3], name[-3:]
         if not force:
             return success
-            try:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
-                for cfile in opt_cfiles.values():
-                    with open(cfile, 'rb') as chandle:
-                        actual = chandle.read(12)
-                    stripdir.split(None, None, None)
-                    if not None:
-                        pass
-                    if expect != actual:
-                        pass
-                    else:
-                        continue
-            except OSError:
-                pass
+        try:
+            mtime = int(os.stat(fullname).st_mtime)
+            expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+            for cfile in opt_cfiles.values():
+                with open(cfile, 'rb') as chandle:
+                    actual = chandle.read(12)
+                stripdir.split(None, None, None)
+                if not None:
+                    pass
+                if expect != actual:
+                    pass
+                else:
+                    continue
+        except OSError:
+            pass
         if not quiet:
             print('Compiling {!r}...'.format(fullname))
         if quiet >= 2:
@@ -246,6 +245,11 @@ def main():
         if not args.stripdir is not None:
             if args.prependdir is not None:
                 parser.error('-d cannot be used in combination with -s or -p')
+    if args.flist:
+        pass
+    if args.quiet < 2:
+        print('Error reading file list {}'.format(args.flist))
+    return False
     if args.invalidation_mode:
         try:
             with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
@@ -254,19 +258,15 @@ def main():
             if not None:
                 pass
         except OSError:
-            print('Error reading file list {}'.format(args.flist))
+            pass
         else:
-            if args.flist:
-                if args.quiet < 2:
-                    pass
-                return False
             ivl_mode = args.invalidation_mode.replace('-', '_').upper()
             invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:
         invalidation_mode = None
     return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
     if args.quiet < 2:
-        pass
+        print('\n[interrupted]')
     return False
     try:
         success = True
@@ -280,7 +280,7 @@ def main():
                     success = False
             return success
     except KeyboardInterrupt:
-        print('\n[interrupted]')
+        pass
 
 if __name__ == '__main__':
     exit_status = int(not main())

@@ -582,10 +582,11 @@ class RawConfigParser(MutableMapping):
 
     def read_file(self, f, source=None):
         if source is None:
-            try:
-                source = f.name
-            except AttributeError as source:
-                pass
+            pass
+        try:
+            source = f.name
+        except AttributeError as source:
+            pass
         self._read(f, source)
 
     def read_string(self, string, source='<string>'):
@@ -597,11 +598,11 @@ class RawConfigParser(MutableMapping):
         for section, keys in dictionary.items():
             section = str(section)
             if self._strict and section in elements_added:
-                pass
+                raise
             try:
                 self.add_section(section)
             except (DuplicateSectionError, ValueError):
-                raise
+                pass
             elements_added.add(section)
             for key, value in keys.items():
                 key = self.optionxform(str(key))
@@ -620,20 +621,22 @@ class RawConfigParser(MutableMapping):
 
     def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
         if fallback is _UNSET:
-            pass
+            raise
+        else:
+            return fallback
         try:
             d = self._unify_values(section, vars)
         except NoSectionError:
-            raise
-            return fallback
+            pass
         option = self.optionxform(option)
         if fallback is _UNSET:
-            pass
+            raise NoOptionError(option, section)
+        else:
+            return fallback
         try:
             value = d[option]
         except KeyError:
-            raise NoOptionError(option, section)
-            return fallback
+            pass
         if not raw:
             if value is None:
                 return value
@@ -646,9 +649,8 @@ class RawConfigParser(MutableMapping):
         try:
             return self._get(section, conv, option, **(*{'raw': raw, 'vars': vars}, *kwargs))
         except (NoSectionError, NoOptionError):
-            raise
             if fallback is _UNSET:
-                pass
+                raise
             return fallback
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
@@ -665,11 +667,11 @@ class RawConfigParser(MutableMapping):
             return super().items()
         d = self._defaults.copy()
         if section != self.default_section:
-            pass
+            raise NoSectionError(section)
         try:
             d.update(self._sections[section])
         except KeyError:
-            raise NoSectionError(section)
+            pass
         if vars:
             for key, value in vars.items():
                 d[self.optionxform(key)] = value
@@ -894,11 +896,11 @@ class RawConfigParser(MutableMapping):
     def _unify_values(self, section, vars):
         sectiondict = {}
         if section != self.default_section:
-            pass
+            raise NoSectionError(section)
         try:
             sectiondict = self._sections[section]
         except KeyError:
-            raise NoSectionError(section)
+            pass
         vardict = {}
         if vars:
             for key, value in vars.items():

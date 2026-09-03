@@ -77,7 +77,8 @@ class DecompressReader(io.RawIOBase):
                 rawblock = self._fp(BUFFER_SIZE)
                 if not rawblock:
                     raise EOFError('Compressed file ended before the end-of-stream marker was reached')
-                    rawblock = b''
+            else:
+                rawblock = b''
             data = self._decompressor.decompress(rawblock, size)
             if data:
                 pass

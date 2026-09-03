@@ -80,15 +80,16 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=
             cache_dir = os.path.dirname(cfile)
         head, tail = name[:-3], name[-3:]
         if not force:
-            try:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sl', imp.get_magic(), mtime)
-                with open(cfile, 'rb') as chandle:
-                    actual = chandle.read(8)
-                if expect == actual:
-                    return success
-            except IOError:
-                pass
+            pass
+        try:
+            mtime = int(os.stat(fullname).st_mtime)
+            expect = struct.pack('<4sl', imp.get_magic(), mtime)
+            with open(cfile, 'rb') as chandle:
+                actual = chandle.read(8)
+            if expect == actual:
+                return success
+        except IOError:
+            pass
         if not quiet:
             print('Compiling {!r}...'.format(fullname))
         err = None
@@ -98,19 +99,19 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=
             try:
                 ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
             except py_compile.PyCompileError as err:
-                print('*** Error compiling {!r}...'.format(fullname))
-                print('*** ', end='')
                 if quiet:
-                    pass
+                    print('*** Error compiling {!r}...'.format(fullname))
+                else:
+                    print('*** ', end='')
                 msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
                 msg = msg.decode(sys.stdout.encoding)
                 print(msg)
                 success = 0
             except (SyntaxError, UnicodeError, IOError) as e:
-                print('*** Error compiling {!r}...'.format(fullname))
-                print('*** ', end='')
                 if quiet:
-                    pass
+                    print('*** Error compiling {!r}...'.format(fullname))
+                else:
+                    print('*** ', end='')
                 print(e.__class__.__name__ + ':', e)
                 success = 0
             else:
@@ -149,14 +150,7 @@ def main():
         import re
         args.rx = re.compile(args.rx)
     if args.flist:
-        try:
-            with sys.stdin if args.flist == '-' else open(args.flist) as f:
-                for line in f:
-                    compile_dests.append(line.strip())
-                    continue
-        except EnvironmentError:
-            print('Error reading file list {}'.format(args.flist))
-            return False
+        pass
     success = True
     try:
         if compile_dests:
@@ -165,6 +159,14 @@ def main():
                     if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy):
                         success = False
                         continue
+                try:
+                    with sys.stdin if args.flist == '-' else open(args.flist) as f:
+                        for line in f:
+                            compile_dests.append(line.strip())
+                            continue
+                except EnvironmentError:
+                    print('Error reading file list {}'.format(args.flist))
+                    return False
                 continue
                 if not compile_dir(dest, args.maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy):
                     pass

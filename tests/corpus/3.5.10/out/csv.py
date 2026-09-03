@@ -99,10 +99,11 @@ class DictReader:
     @property
     def fieldnames(self):
         if self._fieldnames is None:
-            try:
-                self._fieldnames = next(self.reader)
-            except StopIteration:
-                pass
+            pass
+        try:
+            self._fieldnames = next(self.reader)
+        except StopIteration:
+            pass
         self.line_num = self.reader.line_num
         return self._fieldnames
 
@@ -229,8 +230,9 @@ class Sniffer:
             skipinitialspace = delims[delim] == spaces
             if delim == '\n':
                 delim = ''
-                delim = ''
-                skipinitialspace = 0
+        else:
+            delim = ''
+            skipinitialspace = 0
         dq_regexp = re.compile('((%(delim)s)|^)\\W*%(quote)s[^%(delim)s\\n]*%(quote)s[^%(delim)s\\n]*%(quote)s\\W*((%(delim)s)|$)' % {'delim': re.escape(delim), 'quote': quotechar}, re.MULTILINE)
         if dq_regexp.search(data):
             doublequote = True

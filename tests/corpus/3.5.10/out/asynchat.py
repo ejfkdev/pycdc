@@ -146,10 +146,10 @@ class async_chat(asyncore.dispatcher):
             try:
                 data = first[:obs]
             except TypeError as data:
-                self.producer_fifo.appendleft(data)
-                del self.producer_fifo[0]
                 if data:
-                    pass
+                    self.producer_fifo.appendleft(data)
+                else:
+                    del self.producer_fifo[0]
                 continue
                 if self.connected:
                     first = self.producer_fifo[0]

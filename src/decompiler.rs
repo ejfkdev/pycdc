@@ -179,6 +179,9 @@ struct LegacyHandler {
     type_: Option<ExprRef>,
     name: Option<ExprRef>,
     body: Vec<Stmt>,
+    /// block-stack depth when the handler opened; statements only collect
+    /// into `body` when no handler-internal block (If/While/...) is open
+    block_depth: usize,
 }
 
 /// Reconstructed try-statement region (3.11+ exception-table driven).
@@ -571,6 +574,11 @@ impl<'a> Ctx<'a> {
             }
 
             // pre-3.11 handler-chain bookkeeping
+            if std::env::var("PYCDC_TRACE").is_ok() {
+                let blks: Vec<String> = self.blocks.iter().map(|b| format!("{:?}@{}-{}", b.kind, b.start, b.end)).collect();
+                eprintln!("T @{} {:?} tgt={:?} | lh={} lt={:?} | {}", inst.offset, inst.op, inst.target, self.legacy_handler.is_some(),
+                    self.legacy_try.as_ref().map(|l| (l.handlers.len(), l.else_start, l.chain_done)), blks.join(" "));
+            }
             self.legacy_chain_step(&inst);
             // chain fully parsed (END_FINALLY passed) but no jump emitted it
             // yet: flush before the continuation executes so statement order
@@ -1217,9 +1225,13 @@ impl<'a> Ctx<'a> {
                         .else_start
                         .map_or(true, |es| pos >= es && pos >= lt.else_stop);
                     if let Some(target) = inst.target {
-                        // handler normal-exit jump landing exactly where the
-                        // body's forward jump lands == no else region
-                        if !lt.handlers.is_empty() && lt.else_start == Some(target) {
+                        // handler normal-exit FORWARD jump landing exactly
+                        // where the body's forward jump lands == no else
+                        // region (a backward jump there is a loop back edge)
+                        if !lt.handlers.is_empty()
+                            && lt.else_start == Some(target)
+                            && target > pos
+                        {
                             if let Some(l) = self.legacy_try.as_mut() {
                                 l.else_start = None;
                             }
@@ -1726,6 +1738,13 @@ impl<'a> Ctx<'a> {
     }
 
     fn push_stmt(&mut self, stmt: Stmt) {
+        if std::env::var("PYCDC_TRACE").is_ok() {
+            let dest = if self.legacy_handler.as_ref().map_or(false, |h| self.blocks.len() <= h.block_depth) { "HANDLER".into() }
+                else if self.legacy_try.as_ref().map_or(false, |l| l.else_start.map_or(false, |es| self.cur_offset >= es && self.cur_offset < l.else_stop)) { "ORELSE".into() }
+                else { self.blocks.last().map(|b| format!("{:?}@{}", b.kind, b.start)).unwrap_or("?".into()) };
+            let name = format!("{:?}", stmt);
+            eprintln!("S @{} push {} -> {}", self.cur_offset, &name[..name.len().min(44)], dest);
+        }
         // any other statement flushes a pending same-line store group first
         // to preserve source order
         if !self.flushing && !self.pending_stores.is_empty() {
@@ -1734,11 +1753,13 @@ impl<'a> Ctx<'a> {
             self.flushing = false;
         }
         self.last_flush_offset = self.cur_offset;
-        if self.legacy_handler.is_some() {
-            if let Some(h) = self.legacy_handler.as_mut() {
+        if let Some(h) = self.legacy_handler.as_mut() {
+            if self.blocks.len() <= h.block_depth {
                 h.body.push(stmt);
+                return;
             }
-            return;
+            // a block (If/While/...) opened inside the handler collects the
+            // statement; it lands in the handler body when the block closes
         }
         // statements executed inside a collected try-else region belong to
         // the Try's orelse, not to the enclosing block
@@ -3825,16 +3846,17 @@ impl<'a> Ctx<'a> {
                     if !matches_loop {
                         continue;
                     }
-                    if jump_if_true {
+                    if jump_if_true && self.blocks[i].cond_set {
                         // 3.10+ rotated while back edge: closes the loop
                         while self.blocks.len() > i {
                             self.force_close_top(target);
                         }
                         return;
                     }
-                    // backward PJIF to the loop top (`if c: break` shape):
-                    // the then-body runs until THIS loop's back edge (not a
-                    // nested loop's)
+                    // backward cond jump to the loop top (`if c: break` /
+                    // `if not c: break` shape): the then-body runs until
+                    // THIS loop's unconditional back edge (not a nested
+                    // loop's)
                     let loop_start = self.blocks[i].start;
                     if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
                         for inst in self.instrs.iter().skip(ci + 1) {
@@ -3849,7 +3871,14 @@ impl<'a> Ctx<'a> {
                             {
                                 let mut blk =
                                     Block::new(BlockType::If, self.cur_next, inst.start);
-                                let c = cond.clone();
+                                let c = if jump_if_true {
+                                    Rc::new(Expr::Unary {
+                                        op: UnaryOp::Not,
+                                        operand: cond.clone(),
+                                    })
+                                } else {
+                                    cond.clone()
+                                };
                                 blk.cond = Some(c);
                                 blk.cond_set = true;
                                 self.blocks.push(blk);
@@ -4030,6 +4059,7 @@ impl<'a> Ctx<'a> {
                 type_: pattern,
                 name: None,
                 body: Vec::new(),
+                block_depth: self.blocks.len(),
             });
             self.legacy_handler_end = Some(target);
             self.in_handler_prelude = true;
@@ -4060,6 +4090,18 @@ impl<'a> Ctx<'a> {
 
     fn handle_jump_forward(&mut self, target: usize) -> bool {
         self.close_blocks_at(self.cur_offset);
+        // a forward jump flying over an OPEN (non-top) If block's end
+        // boundary implies an else region [end, target) for that block
+        for b in self.blocks.iter_mut().rev().skip(1) {
+            if matches!(b.kind, BlockType::If)
+                && b.short_circuit.is_none()
+                && b.else_end.is_none()
+                && b.end < target
+                && b.end > self.cur_offset
+            {
+                b.else_end = Some(target);
+            }
+        }
         if let Some(top) = self.blocks.last() {
             match top.kind {
                 BlockType::If if top.else_end.is_none() && top.short_circuit.is_none() => {
@@ -4068,8 +4110,15 @@ impl<'a> Ctx<'a> {
                         if let Some(t) = self.blocks.last_mut() {
                             t.else_end = Some(target);
                         }
+                        return true;
                     }
-                    // target == block end: dead-code skip, no else clause
+                    if target == top.end {
+                        // dead-code skip: then-body complete, no else clause
+                        // — close now so an enclosing block can transition
+                        // to its own else region at the next instruction
+                        self.force_close_top(self.cur_next);
+                        return true;
+                    }
                     return true;
                 }
                 BlockType::If if top.short_circuit.is_some() => {

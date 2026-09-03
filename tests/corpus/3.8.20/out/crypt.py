@@ -2,12 +2,13 @@
 
 import sys as _sys
 if _sys.platform == 'win32':
-    pass
+    raise ImportError('The crypt module is not supported on Windows')
+else:
+    raise ImportError('The required _crypt module was not built as part of CPython')
 try:
     import _crypt
 except ModuleNotFoundError:
-    raise ImportError('The crypt module is not supported on Windows')
-    raise ImportError('The required _crypt module was not built as part of CPython')
+    pass
 import string as _string
 from random import SystemRandom as _SystemRandom
 from collections import namedtuple as _namedtuple
@@ -44,12 +45,13 @@ def mksalt(method=None, *, rounds=None):
                     raise ValueError('rounds out of the range 2**4 to 2**31')
         s += f'{log_rounds:02d}$'
     elif method.ident in ('5', '6'):
-        if rounds is not None and rounds is not None:
+        if rounds is not None:
             if 1000 <= rounds:
                 if not rounds <= 999999999:
                     raise ValueError('rounds out of the range 1000 to 999_999_999')
             s += f'rounds={rounds}$'
-            raise ValueError(f"{method} doesn't support the rounds argument")
+    elif rounds is not None:
+        raise ValueError(f"{method} doesn't support the rounds argument")
     s += ''.join((_sr.choice(_saltchars) for char in range(method.salt_chars)))
     return s
 

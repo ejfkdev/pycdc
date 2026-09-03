@@ -216,9 +216,10 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
     for x in b + b'uuuu':
         if 33 <= x:
             if x <= 117:
-                curr_append(x)
-                if not len(curr) == 5:
-                    continue
+                pass
+        curr_append(x)
+        if not len(curr) == 5:
+            continue
         acc = 0
         for x in curr:
             acc = 85 * acc + (x - 33)

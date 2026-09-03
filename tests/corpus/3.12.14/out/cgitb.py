@@ -80,13 +80,14 @@ def scanvars(reader, frame, locals):
                 if parent is not __UNDEF__:
                     value = getattr(parent, token, __UNDEF__)
                     vars.append((prefix + token, prefix, value))
-                    where, value = lookup(token, frame, locals)
-                    vars.append((token, where, value))
-                    if token == '.':
-                        prefix += lasttoken + '.'
-                        parent = value
-                    else:
-                        parent, prefix = None, ''
+            else:
+                where, value = lookup(token, frame, locals)
+                vars.append((token, where, value))
+        elif token == '.':
+            prefix += lasttoken + '.'
+            parent = value
+        else:
+            parent, prefix = None, ''
         lasttoken = token
     return vars
 
@@ -240,7 +241,8 @@ class Hook:
                 self.file.write('<pre>' + doc + '</pre>\n')
             else:
                 self.file.write(doc + '\n')
-        self.file.write('<p>A problem occurred in a Python script.\n')
+        else:
+            self.file.write('<p>A problem occurred in a Python script.\n')
         if not self.logdir is None:
             suffix = ['.txt', '.html'][self.format == 'html']
             fd, path = tempfile.mkstemp(suffix=suffix, dir=self.logdir)

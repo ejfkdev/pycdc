@@ -393,7 +393,7 @@ class _CallableGenericAlias(GenericAlias):
                         raise TypeError(f'Expected a list of types, an ellipsis, ParamSpec, or Concatenate. Got {arg}')
                 else:
                     arg = subst[arg]
-            if hasattr(arg, '__parameters__') and isinstance(arg.__parameters__, tuple) and subparams:
+            elif hasattr(arg, '__parameters__') and isinstance(arg.__parameters__, tuple) and subparams:
                 subparams = arg.__parameters__
                 subargs = tuple((subst[x] for x in subparams))
                 arg = arg[subargs]

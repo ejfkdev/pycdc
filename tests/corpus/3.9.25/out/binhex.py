@@ -104,8 +104,8 @@ class _Hqxcoderengine:
         if self.data:
             with _ignore_deprecation_warning():
                 self.hqxdata = self.hqxdata + binascii.b2a_hqx(self.data)
-            if not None:
-                pass
+        if not None:
+            pass
         self._flush(1)
         self.ofp.close()
         del self.ofp

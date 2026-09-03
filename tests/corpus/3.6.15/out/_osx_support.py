@@ -45,18 +45,19 @@ _SYSTEM_VERSION = None
 
 def _get_system_version():
     global _SYSTEM_VERSION
-    if _SYSTEM_VERSION is None and m is not None:
+    if _SYSTEM_VERSION is None:
         _SYSTEM_VERSION = ''
+    try:
+        pass
+    finally:
         try:
+            f = open('/System/Library/CoreServices/SystemVersion.plist')
+        except OSError:
             pass
-        finally:
-            try:
-                f = open('/System/Library/CoreServices/SystemVersion.plist')
-            except OSError:
-                pass
-            else:
-                m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
-            f.close()
+        else:
+            m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
+        f.close()
+    if m is not None:
         _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
     return _SYSTEM_VERSION
 
@@ -76,10 +77,11 @@ def _save_modified_value(_config_vars, cv, newvalue):
 def _supports_universal_builds():
     osx_version = _get_system_version()
     if osx_version:
-        try:
-            osx_version = tuple((int(i) for i in osx_version.split('.')))
-        except ValueError as osx_version:
-            pass
+        pass
+    try:
+        osx_version = tuple((int(i) for i in osx_version.split('.')))
+    except ValueError as osx_version:
+        pass
     if osx_version:
         return bool(osx_version >= (10, 4))
     return False
@@ -253,12 +255,13 @@ def get_platform_osx(_config_vars, osname, release, machine):
             else:
                 raise ValueError("Don't know machine value for archs=%r" % (archs,))
         elif machine == 'i386':
-            if sys.maxsize >= 4294967296 and machine in ('PowerPC', 'Power_Macintosh'):
+            if sys.maxsize >= 4294967296:
                 machine = 'x86_64'
-                if sys.maxsize >= 4294967296:
-                    machine = 'ppc64'
-                else:
-                    machine = 'ppc'
+        elif machine in ('PowerPC', 'Power_Macintosh'):
+            if sys.maxsize >= 4294967296:
+                machine = 'ppc64'
+            else:
+                machine = 'ppc'
     return osname, release, machine
 
 # WARNING: Decompyle incomplete

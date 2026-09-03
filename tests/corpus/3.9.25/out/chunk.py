@@ -82,7 +82,9 @@ class Chunk:
         return self.chunksize
 
     def close(self):
-        pass
+        if not self.closed:
+            self.closed = True
+        self.closed = True
 
     def isatty(self):
         if self.closed:
@@ -130,14 +132,14 @@ class Chunk:
             raise ValueError('I/O operation on closed file')
         if self.seekable:
             return
-            try:
-                n = self.chunksize - self.size_read
-                if self.align and self.chunksize & 1:
-                    n = n + 1
-                self.file.seek(n, 1)
-                self.size_read = self.size_read + n
-            except OSError:
-                pass
+        try:
+            n = self.chunksize - self.size_read
+            if self.align and self.chunksize & 1:
+                n = n + 1
+            self.file.seek(n, 1)
+            self.size_read = self.size_read + n
+        except OSError:
+            pass
         while self.size_read < self.chunksize:
             n = min(8192, self.chunksize - self.size_read)
             dummy = self.read(n)

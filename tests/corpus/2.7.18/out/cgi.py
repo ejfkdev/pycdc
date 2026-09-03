@@ -31,12 +31,14 @@ if __name__ == '__main__':
         def initlog(*allargs):
             global logfp, log
             if logfile and not logfp:
+                pass
+            if not logfp:
                 try:
                     logfp = open(logfile, 'a')
                 except IOError:
                     pass
-            if not logfp:
-                log = nolog
+                else:
+                    log = nolog
             else:
                 log = dolog
             log(*allargs)

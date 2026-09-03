@@ -28,9 +28,8 @@ def _walk_dir(dir, ddir=None, maxlevels=10, quiet=0):
     try:
         names = os.listdir(dir)
     except OSError:
-        print("Can't list {!r}".format(dir))
         if quiet < 2:
-            pass
+            print("Can't list {!r}".format(dir))
     names.sort()
     for name in names:
         if name == '__pycache__':
@@ -55,10 +54,11 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
     if workers < 0:
         raise ValueError('workers must be greater or equal to 0')
     if workers != 1:
-        try:
-            from concurrent.futures import ProcessPoolExecutor
-        except ImportError as workers:
-            pass
+        pass
+    try:
+        from concurrent.futures import ProcessPoolExecutor
+    except ImportError as workers:
+        pass
     files_and_ddirs = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels, ddir=ddir)
     success = True
     if workers != 1 and ProcessPoolExecutor is not None:
@@ -87,7 +87,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     if rx is not None and mo:
         mo = rx.search(fullname)
         return success
-    if os.path.isfile(fullname) and tail == '.py' and ok == 0:
+    if os.path.isfile(fullname) and tail == '.py':
         if legacy:
             cfile = fullname + 'c'
         else:
@@ -99,15 +99,16 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             cache_dir = os.path.dirname(cfile)
         head, tail = name[:-3], name[-3:]
         if not force:
-            try:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sll', importlib.util.MAGIC_NUMBER, 0, mtime)
-                with open(cfile, 'rb') as chandle:
-                    actual = chandle.read(12)
-                if expect == actual:
-                    return success
-            except OSError:
-                pass
+            pass
+        try:
+            mtime = int(os.stat(fullname).st_mtime)
+            expect = struct.pack('<4sll', importlib.util.MAGIC_NUMBER, 0, mtime)
+            with open(cfile, 'rb') as chandle:
+                actual = chandle.read(12)
+            if expect == actual:
+                return success
+        except OSError:
+            pass
         if not quiet:
             print('Compiling {!r}...'.format(fullname))
         if quiet >= 2:
@@ -121,15 +122,16 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         print(msg)
         err = None
         del err
-        if quiet >= 2:
-            return
-        if quiet:
-            print('*** Error compiling {!r}...'.format(fullname))
-        else:
-            print('*** ', end='')
-        print(e.__class__.__name__ + ':', e)
-        e = None
-        del e
+    if quiet >= 2:
+        return
+    if quiet:
+        print('*** Error compiling {!r}...'.format(fullname))
+    else:
+        print('*** ', end='')
+    print(e.__class__.__name__ + ':', e)
+    e = None
+    del e
+    if ok == 0:
         success = False
         try:
             ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize, invalidation_mode=invalidation_mode)
@@ -174,25 +176,26 @@ def main():
         maxlevels = args.recursion
     else:
         maxlevels = args.maxlevels
+    if args.flist:
+        pass
+    if args.quiet < 2:
+        print('Error reading file list {}'.format(args.flist))
+    return False
     if args.invalidation_mode:
         try:
             with sys.stdin if args.flist == '-' else open(args.flist) as f:
                 for line in f:
                     compile_dests.append(line.strip())
         except OSError:
-            print('Error reading file list {}'.format(args.flist))
+            pass
         else:
-            if args.flist:
-                if args.quiet < 2:
-                    pass
-                return False
             ivl_mode = args.invalidation_mode.replace('-', '_').upper()
             invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:
         invalidation_mode = None
     return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
     if args.quiet < 2:
-        pass
+        print('\n[interrupted]')
     return False
 
 if __name__ == '__main__':

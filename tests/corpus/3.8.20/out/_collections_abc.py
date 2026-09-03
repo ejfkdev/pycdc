@@ -691,14 +691,15 @@ class Sequence(Reversible, Collection):
         i = start
         if not stop is None:
             if i < stop:
-                try:
-                    v = self[i]
-                    if not v is value:
-                        if v == value:
-                            return i
-                except IndexError:
-                    pass
-                i += 1
+                pass
+        try:
+            v = self[i]
+            if not v is value:
+                if v == value:
+                    return i
+        except IndexError:
+            pass
+        i += 1
         raise ValueError
 
     def count(self, value):

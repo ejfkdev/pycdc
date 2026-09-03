@@ -359,21 +359,21 @@ class BasicInterpolation(Interpolation):
             if c == '%':
                 accum.append('%')
                 rest = rest[2:]
+            elif c == '(':
+                m = self._KEYCRE.match(rest)
+                if not m is not None:
+                    raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
+                var = parser.optionxform(m.group(1))
+                rest = rest[m.end():]
+                try:
+                    v = map[var]
+                except KeyError:
+                    raise InterpolationMissingOptionError(option, section, rawval, var) from None
+                if '%' in v:
+                    self._interpolate_some(parser, option, accum, v, section, map, depth + 1)
+                else:
+                    accum.append(v)
             else:
-                if c == '(':
-                    m = self._KEYCRE.match(rest)
-                    if not m is not None:
-                        raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
-                    var = parser.optionxform(m.group(1))
-                    rest = rest[m.end():]
-                    try:
-                        v = map[var]
-                    except KeyError:
-                        raise InterpolationMissingOptionError(option, section, rawval, var) from None
-                    if '%' in v:
-                        self._interpolate_some(parser, option, accum, v, section, map, depth + 1)
-                    else:
-                        accum.append(v)
                 raise InterpolationSyntaxError(option, section, f"'%' must be followed by '%' or '(', found: {rest!r}")
             if rest:
                 continue
@@ -413,31 +413,31 @@ class ExtendedInterpolation(Interpolation):
             if c == '$':
                 accum.append('$')
                 rest = rest[2:]
-            else:
-                if c == '{':
-                    m = self._KEYCRE.match(rest)
-                    if not m is not None:
-                        raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
-                    path = m.group(1).split(':')
-                    rest = rest[m.end():]
-                    sect = section
-                    opt = option
-                    try:
-                        if len(path) == 1:
-                            opt = parser.optionxform(path[0])
-                            v = map[opt]
-                        elif len(path) == 2:
-                            sect = path[0]
-                            opt = parser.optionxform(path[1])
-                            v = parser.get(sect, opt, True)
-                        else:
-                            raise InterpolationSyntaxError(option, section, f"More than one ':' found: {rest!r}")
-                    except (KeyError, NoSectionError, NoOptionError):
-                        raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
-                    if '$' in v:
-                        self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, True)), depth + 1)
+            elif c == '{':
+                m = self._KEYCRE.match(rest)
+                if not m is not None:
+                    raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
+                path = m.group(1).split(':')
+                rest = rest[m.end():]
+                sect = section
+                opt = option
+                try:
+                    if len(path) == 1:
+                        opt = parser.optionxform(path[0])
+                        v = map[opt]
+                    elif len(path) == 2:
+                        sect = path[0]
+                        opt = parser.optionxform(path[1])
+                        v = parser.get(sect, opt, True)
                     else:
-                        accum.append(v)
+                        raise InterpolationSyntaxError(option, section, f"More than one ':' found: {rest!r}")
+                except (KeyError, NoSectionError, NoOptionError):
+                    raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
+                if '$' in v:
+                    self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, True)), depth + 1)
+                else:
+                    accum.append(v)
+            else:
                 raise InterpolationSyntaxError(option, section, f"'$' must be followed by '$' or '{{', found: {rest!r}")
             if rest:
                 continue
@@ -806,7 +806,7 @@ class RawConfigParser(MutableMapping):
                                     if optname:
                                         if not cursect[optname] is None:
                                             cursect[optname].append('')
-                                            indent_level = sys.maxsize
+                                        indent_level = sys.maxsize
                             continue
                         first_nonspace = self.NONSPACECRE.search(line)
                         cur_indent_level = first_nonspace.start() if first_nonspace else 0

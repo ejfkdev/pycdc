@@ -26,10 +26,11 @@ def initlog(*allargs):
     global logfp, log
     if logfile:
         if not logfp:
-            try:
-                logfp = open(logfile, 'a')
-            except OSError:
-                pass
+            pass
+    try:
+        logfp = open(logfile, 'a')
+    except OSError:
+        pass
     if not logfp:
         log = nolog
     else:
@@ -141,8 +142,9 @@ def parse_header(line):
         if len(value) >= 2:
             if value[0] == value[-1]:
                 if value[-1] == '"':
-                    value = value[1:-1]
-                    value = value.replace('\\\\', '\\').replace('\\"', '"')
+                    pass
+            value = value[1:-1]
+            value = value.replace('\\\\', '\\').replace('\\"', '"')
         pdict[name] = value
         continue
     return key, pdict
@@ -433,8 +435,8 @@ class FieldStorage:
             while True:
                 data = self.fp.readline()
                 hdr_text += data
-            break
-            continue
+                if not data.strip():
+                    break
             if not hdr_text:
                 break
             self.bytes_read += len(hdr_text)
@@ -455,7 +457,9 @@ class FieldStorage:
                 if not self.bytes_read >= self.length:
                     break
                 if self.length > 0:
-                    break
+                    pass
+            else:
+                break
         self.skip_lines()
 
     def read_single(self):
@@ -525,7 +529,8 @@ class FieldStorage:
             if self.limit is not None:
                 if 0 <= self.limit:
                     if self.limit <= _read:
-                        break
+                        pass
+                break
             line = self.fp.readline(65536)
             self.bytes_read += len(line)
             _read += len(line)

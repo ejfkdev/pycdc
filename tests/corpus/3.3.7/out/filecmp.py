@@ -46,7 +46,7 @@ def _do_cmp(f1, f2):
                 b2 = fp2.read(bufsize)
                 if b1 != b2:
                     return False
-            return True
+                return True
 
 class dircmp:
     """A class that manages the comparison of 2 directories.

@@ -163,11 +163,11 @@ class ParserBase:
                         return j
                     if rawdata[j] == ';':
                         j = j + 1
-                        if c == ']':
-                            j = j + 1
-                            if j < n and rawdata[j].isspace() and j < n and rawdata[j].isspace():
-                                j = j + 1
-                                continue
+                elif c == ']':
+                    j = j + 1
+                    if j < n and rawdata[j].isspace() and j < n and rawdata[j].isspace():
+                        j = j + 1
+                        continue
             if j < n:
                 if rawdata[j] == '>':
                     return j
@@ -267,7 +267,8 @@ class ParserBase:
                 return -1
             if c.isspace():
                 j = j + 1
-        j = i
+        else:
+            j = i
         name, j = self._scan_name(j, declstartpos)
         if j < 0:
             return j
@@ -280,11 +281,12 @@ class ParserBase:
                 j = m.end()
             else:
                 return -1
-        if c == '>':
-            return j + 1
-        name, j = self._scan_name(j, declstartpos)
-        if j < 0:
-            return j
+        else:
+            if c == '>':
+                return j + 1
+            name, j = self._scan_name(j, declstartpos)
+            if j < 0:
+                return j
 
     def _scan_name(self, i, declstartpos):
         rawdata = self.rawdata

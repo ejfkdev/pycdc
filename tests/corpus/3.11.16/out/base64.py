@@ -196,15 +196,16 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
     for x in b + b'uuuu':
         if 33 <= x:
             if x <= 117:
-                curr_append(x)
-                if len(curr) == 5:
-                    acc = 0
-                    for x in curr:
-                        acc = 85 * acc + (x - 33)
-                    try:
-                        decoded_append(packI(acc))
-                    except struct.error:
-                        raise ValueError('Ascii85 overflow') from None
+                pass
+        curr_append(x)
+        if len(curr) == 5:
+            acc = 0
+            for x in curr:
+                acc = 85 * acc + (x - 33)
+            try:
+                decoded_append(packI(acc))
+            except struct.error:
+                raise ValueError('Ascii85 overflow') from None
 
 _b85alphabet = b'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~'
 _b85chars = None
