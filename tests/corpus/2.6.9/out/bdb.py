@@ -115,8 +115,9 @@ class Bdb:
         bp, flag = effective(filename, lineno, frame)
         if bp:
             self.currentbp = bp.number
-            if flag and bp.temporary:
-                self.do_clear(str(bp.number))
+            if flag:
+                if bp.temporary:
+                    self.do_clear(str(bp.number))
             return True
         return False
 
@@ -248,8 +249,9 @@ class Bdb:
 
     def get_breaks(self, filename, lineno):
         filename = self.canonic(filename)
-        if filename in self.breaks and lineno in self.breaks[filename]:
-            pass
+        if filename in self.breaks:
+            if lineno in self.breaks[filename]:
+                pass
         return Breakpoint.bplist[filename, lineno] if Breakpoint.bplist[filename, lineno] else []
 
     def get_file_breaks(self, filename):
@@ -263,8 +265,9 @@ class Bdb:
 
     def get_stack(self, f, t):
         stack = []
-        if t and t.tb_frame is f:
-            t = t.tb_next
+        if t:
+            if t.tb_frame is f:
+                t = t.tb_next
         while f is not None:
             stack.append((f, f.f_lineno))
             if f is self.botframe:

@@ -67,10 +67,12 @@ class LWPCookieJar(FileCookieJar):
         now = time.time()
         r = []
         for cookie in self:
-            if not ignore_discard and cookie.discard:
-                continue
-            if not ignore_expires and cookie.is_expired(now):
-                continue
+            if not ignore_discard:
+                if cookie.discard:
+                    continue
+            if not ignore_expires:
+                if cookie.is_expired(now):
+                    continue
             r.append('Set-Cookie3: %s' % lwp_cookie_str(cookie))
         return '\n'.join(r + [''])
 

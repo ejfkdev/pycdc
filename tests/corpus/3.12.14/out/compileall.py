@@ -119,7 +119,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             if os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
                 return success
         opt_cfiles = {}
-        if os.path.isfile(fullname) and tail == '.py':
+        if os.path.isfile(fullname):
             for opt_level in optimize:
                 if legacy:
                     opt_cfiles[opt_level] = fullname + 'c'
@@ -132,37 +132,38 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 cfile = importlib.util.cache_from_source(fullname)
                 opt_cfiles[opt_level] = cfile
             head, tail = name[:-3], name[-3:]
-            if not force:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
-                for cfile in opt_cfiles.values():
-                    with open(cfile, 'rb') as chandle:
-                        actual = chandle.read(12)
-                        if not expect != actual:
-                            pass
-                        else:
-                            try:
+            if tail == '.py':
+                if not force:
+                    mtime = int(os.stat(fullname).st_mtime)
+                    expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+                    for cfile in opt_cfiles.values():
+                        with open(cfile, 'rb') as chandle:
+                            actual = chandle.read(12)
+                            if not expect != actual:
                                 pass
-                            except OSError:
-                                pass
-                            return success
-                            if not quiet:
-                                print('Compiling {!r}...'.format(fullname))
-                            try:
-                                for index, opt_level in enumerate(optimize):
-                                    cfile = opt_cfiles[opt_level]
-                                    ok = py_compile.compile(fullname, cfile, dfile, True, opt_level, invalidation_mode)
-                                    if not hardlink_dupes:
-                                        pass
-                                    else:
-                                        previous_cfile = opt_cfiles[optimize[index - 1]]
-                                        if not filecmp.cmp(cfile, previous_cfile, False):
+                            else:
+                                try:
+                                    pass
+                                except OSError:
+                                    pass
+                                return success
+                                if not quiet:
+                                    print('Compiling {!r}...'.format(fullname))
+                                try:
+                                    for index, opt_level in enumerate(optimize):
+                                        cfile = opt_cfiles[opt_level]
+                                        ok = py_compile.compile(fullname, cfile, dfile, True, opt_level, invalidation_mode)
+                                        if not hardlink_dupes:
                                             pass
-                            finally:
-                                if ok == 0:
-                                    success = False
-                                return success
-                                return success
+                                        else:
+                                            previous_cfile = opt_cfiles[optimize[index - 1]]
+                                            if not filecmp.cmp(cfile, previous_cfile, False):
+                                                pass
+                                finally:
+                                    if ok == 0:
+                                        success = False
+                                    return success
+                                    return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     success = True

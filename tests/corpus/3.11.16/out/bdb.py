@@ -71,17 +71,19 @@ class Bdb:
 
     def dispatch_line(self, frame):
         if not self.stop_here(frame):
-            if self.break_here(frame) and self.quitting:
+            if self.break_here(frame):
                 self.user_line(frame)
-                raise BdbQuit
+                if self.quitting:
+                    raise BdbQuit
         return self.trace_dispatch
 
     def dispatch_call(self, frame, arg):
         if not self.botframe is not None:
             self.botframe = frame.f_back
             return self.trace_dispatch
-        if not self.stop_here(frame) or self.break_anywhere(frame):
-            return
+        if not self.stop_here(frame):
+            if not self.break_anywhere(frame):
+                return
         if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
             return self.trace_dispatch
         self.user_call(frame, arg)
@@ -110,9 +112,11 @@ class Bdb:
                     self.user_exception(frame, arg)
                     if self.quitting:
                         raise BdbQuit
-        elif self.stopframe and frame is not self.stopframe and self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] in (StopIteration, GeneratorExit) and self.quitting:
-            self.user_exception(frame, arg)
-            raise BdbQuit
+        elif self.stopframe and frame is not self.stopframe:
+            if self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] in (StopIteration, GeneratorExit):
+                self.user_exception(frame, arg)
+                if self.quitting:
+                    raise BdbQuit
         return self.trace_dispatch
 
     def is_skipped_module(self, module_name):
@@ -124,8 +128,9 @@ class Bdb:
         return False
 
     def stop_here(self, frame):
-        if self.skip and self.is_skipped_module(frame.f_globals.get('__name__')):
-            return False
+        if self.skip:
+            if self.is_skipped_module(frame.f_globals.get('__name__')):
+                return False
         if frame is self.stopframe:
             if self.stoplineno == -1:
                 return False
@@ -139,9 +144,10 @@ class Bdb:
         if filename not in self.breaks:
             return False
         lineno = frame.f_lineno
-        if lineno not in self.breaks[filename] and lineno not in self.breaks[filename]:
+        if lineno not in self.breaks[filename]:
             lineno = frame.f_code.co_firstlineno
-            return False
+            if lineno not in self.breaks[filename]:
+                return False
         bp, flag = effective(filename, lineno, frame)
         if bp:
             self.currentbp = bp.number
@@ -180,10 +186,11 @@ class Bdb:
         self._set_stopinfo(frame, frame, lineno)
 
     def set_step(self):
-        if self.frame_returning and caller_frame:
+        if self.frame_returning:
             caller_frame = self.frame_returning.f_back
-            if not caller_frame.f_trace:
-                caller_frame.f_trace = self.trace_dispatch
+            if caller_frame:
+                if not caller_frame.f_trace:
+                    caller_frame.f_trace = self.trace_dispatch
         self._set_stopinfo(None, None)
 
     def set_next(self, frame):

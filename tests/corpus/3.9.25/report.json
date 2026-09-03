@@ -84,9 +84,9 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 104: orig  If(test=BoolOp(op=Or() | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 104: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2044,
+   "ndiff": 2045,
    "ntotal": 2142,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -122,15 +122,15 @@
    "module": "aifc",
    "ast_detail": "diff at token 23: orig  body=[Try(body=[Return(value=Subscript(value=Call(func=Attribute(value=Name(id='struct' | dec  body=[Return(value=Subscript(value=Call(func=Attribute(value=Name(id='struct'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2708,
+   "ndiff": 2707,
    "ntotal": 3098,
    "detail": "line 171: orig ('SETUP_WITH', 'to 588') | got ('SETUP_WITH', 'to 582')\nline 242: orig ('SETUP_WITH', 'to 548') | got ('SETUP_WITH', 'to 542')\nline 259: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 528')"
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 135: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=Call(func=Name(id='isinstance'",
+   "ast_detail": "diff at token 135: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 6113,
+   "ndiff": 6112,
    "ntotal": 7149,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
@@ -160,7 +160,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 284: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 284: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2246,
    "ntotal": 2340,
@@ -180,7 +180,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 73: orig  If(test=UnaryOp(op=Not() | dec  If(test=Compare(left=Constant(value=1)",
+   "ast_detail": "diff at token 73: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 984,
    "ntotal": 1051,
@@ -196,7 +196,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 447: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=Compare(left=Attribute(value=Name(id='datetime'",
+   "ast_detail": "diff at token 447: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2625,
    "ntotal": 3063,
@@ -206,7 +206,7 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2768,
+   "ndiff": 2769,
    "ntotal": 2887,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
@@ -214,7 +214,7 @@
    "module": "cgitb",
    "ast_detail": "diff at token 125: orig  If(test=Compare(left=Call(func=Name(id='type' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1319,
+   "ndiff": 1315,
    "ntotal": 1456,
    "detail": "line 111: orig ('LOAD_CONST', 'None') | got ('strong', 1)\nline 112: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'text')\nline 113: orig ('strong', 1) | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -266,7 +266,7 @@
    "module": "compileall",
    "ast_detail": "diff at token 63: orig  Try(body=[Assign(targets=[Name(id='names' | dec  Assign(targets=[Name(id='names'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1263,
+   "ndiff": 1261,
    "ntotal": 1513,
    "detail": "line 121: orig ('SETUP_FINALLY', 'to 64') | got ('BUILD_LIST', '')\nline 122: orig ('LOAD_GLOBAL', 'os') | got ('STORE_FAST', 'names')\nline 123: orig ('LOAD_METHOD', 'listdir') | got ('SETUP_FINALLY', 'to 68')"
   },

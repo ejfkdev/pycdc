@@ -127,12 +127,13 @@ using the familiar sys.ps1 and sys.ps2, and input buffering.
         more = 0
         _exit = None
         _quit = None
-        if self.local_exit and hasattr(builtins, 'quit'):
+        if self.local_exit:
             if hasattr(builtins, 'exit'):
                 _exit = builtins.exit
                 builtins.exit = Quitter('exit')
-            _quit = builtins.quit
-            builtins.quit = Quitter('quit')
+            if hasattr(builtins, 'quit'):
+                _quit = builtins.quit
+                builtins.quit = Quitter('quit')
         try:
             pass
         finally:

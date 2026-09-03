@@ -67,31 +67,35 @@ Constructor arguments:
             return self.__cell__.cell_contents
         if not owner is not None:
             owner = self.__owner__
-        if not globals is not None or self.__forward_module__ is None:
-            globals = getattr(sys.modules.get(self.__forward_module__, None), '__dict__', None)
+        if not globals is not None:
+            if not self.__forward_module__ is None:
+                globals = getattr(sys.modules.get(self.__forward_module__, None), '__dict__', None)
         if not globals is not None:
             globals = self.__globals__
         if not globals is not None:
             if isinstance(owner, type):
                 module_name = getattr(owner, '__module__', None)
-                if module_name and module:
+                if module_name:
                     module = sys.modules.get(module_name, None)
-                    globals = getattr(module, '__dict__', None)
+                    if module:
+                        globals = getattr(module, '__dict__', None)
             elif isinstance(owner, types.ModuleType):
                 globals = getattr(owner, '__dict__', None)
             elif callable(owner):
                 globals = getattr(owner, '__globals__', None)
         if not globals is not None:
             globals = {}
-        if not type_params is not None or owner is None:
-            type_params = getattr(owner, '__type_params__', None)
+        if not type_params is not None:
+            if not owner is None:
+                type_params = getattr(owner, '__type_params__', None)
         if not locals is not None:
             locals = {}
             if isinstance(owner, type):
                 locals.update(vars(owner))
-        if not type_params is not None or isinstance(self.__cell__, dict):
-            if self.__extra_names__:
-                locals = dict(locals)
+        if not type_params is not None:
+            if not isinstance(self.__cell__, dict):
+                if self.__extra_names__:
+                    locals = dict(locals)
         if not type_params is None:
             for param in type_params:
                 locals.setdefault(param.__name__, param)
@@ -221,9 +225,10 @@ class _Stringifier:
             return other.__ast_node__, other.__extra_names__
         if type(other) is _Template:
             return _template_to_ast(other), None
-        if not self.__stringifier_dict__.format == Format.STRING or other is None:
-            if type(other) in (str, int, float, bool, complex):
-                return ast.Constant(value=other), None
+        if not self.__stringifier_dict__.format == Format.STRING:
+            if not other is None:
+                if type(other) in (str, int, float, bool, complex):
+                    return ast.Constant(value=other), None
         if type(other) is dict:
             extra_names = {}
             keys = []
@@ -525,8 +530,9 @@ def get_annotate_from_class_namespace(obj):
     return obj['__annotate__']
 
 def get_annotations(obj, *, globals=None, locals=None, eval_str=False, format=Format.VALUE):
-    if eval_str and format != Format.VALUE:
-        raise ValueError('eval_str=True is only supported with format=Format.VALUE')
+    if eval_str:
+        if format != Format.VALUE:
+            raise ValueError('eval_str=True is only supported with format=Format.VALUE')
     if format == Format.VALUE:
         ann = _get_dunder_annotations(obj)
         if not ann is not None:
@@ -561,13 +567,14 @@ def get_annotations(obj, *, globals=None, locals=None, eval_str=False, format=Fo
     if not eval_str:
         return dict(ann)
     if not globals is None:
-        if not locals is not None or locals is not None:
+        if not locals is not None:
             if isinstance(obj, type):
                 obj_globals = None
                 module_name = getattr(obj, '__module__', None)
-                if module_name and module:
+                if module_name:
                     module = sys.modules.get(module_name, None)
-                    obj_globals = getattr(module, '__dict__', None)
+                    if module:
+                        obj_globals = getattr(module, '__dict__', None)
                 obj_locals = dict(vars(obj))
                 unwrap = obj
             elif isinstance(obj, types.ModuleType):
@@ -589,19 +596,21 @@ def get_annotations(obj, *, globals=None, locals=None, eval_str=False, format=Fo
                     else:
                         _seen_ids.add(id(candidate))
                         unwrap = candidate
-                elif sys.modules.get('functools') and isinstance(unwrap, functools.partial):
+                elif sys.modules.get('functools'):
                     functools = sys.modules.get('functools')
-                    candidate = unwrap.func
-                    if id(candidate) in _seen_ids:
-                        pass
-                    else:
-                        _seen_ids.add(id(candidate))
-                        unwrap = candidate
+                    if isinstance(unwrap, functools.partial):
+                        candidate = unwrap.func
+                        if id(candidate) in _seen_ids:
+                            pass
+                        else:
+                            _seen_ids.add(id(candidate))
+                            unwrap = candidate
                 if hasattr(unwrap, '__globals__'):
                     obj_globals = unwrap.__globals__
             if not globals is not None:
                 globals = obj_globals
-            locals = obj_locals
+            if not locals is not None:
+                locals = obj_locals
     if getattr(obj, '__type_params__', ()):
         type_params = getattr(obj, '__type_params__', ())
         if not locals is not None:

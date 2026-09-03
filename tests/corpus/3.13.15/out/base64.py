@@ -309,11 +309,11 @@ MAXBINSIZE = MAXLINESIZE // 4 * 3
 def encode(input, output):
     while input.read(MAXBINSIZE):
         s = input.read(MAXBINSIZE)
-        if len(s) < MAXBINSIZE and input.read(MAXBINSIZE - len(s)) and len(s) < MAXBINSIZE and input.read(MAXBINSIZE - len(s)):
-            ns = input.read(MAXBINSIZE - len(s))
-            s += ns
-            ns = input.read(MAXBINSIZE - len(s))
-            continue
+        if len(s) < MAXBINSIZE:
+            while input.read(MAXBINSIZE - len(s)):
+                ns = input.read(MAXBINSIZE - len(s))
+                s += ns
+                ns = input.read(MAXBINSIZE - len(s))
         line = binascii.b2a_base64(s)
         output.write(line)
         if input.read(MAXBINSIZE):

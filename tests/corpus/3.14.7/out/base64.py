@@ -117,11 +117,12 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
     if not l % 8:
         if padchars not in frozenset({0, 1, 3, 4, 6}):
             raise binascii.Error('Incorrect padding')
-    if padchars and decoded:
-        acc <<= 5 * padchars
-        last = acc.to_bytes(5)
-        leftover = (43 - 5 * padchars) // 8
-        last[:leftover][decoded:-5] = None
+    if padchars:
+        if decoded:
+            acc <<= 5 * padchars
+            last = acc.to_bytes(5)
+            leftover = (43 - 5 * padchars) // 8
+            last[:leftover][decoded:-5] = None
     return bytes(decoded)
 
 def b32encode(s):
@@ -186,8 +187,9 @@ def a85encode(b, *, foldspaces=False, wrapcol=0, pad=False, adobe=False):
     if wrapcol:
         wrapcol = None(1, wrapcol)
         chunks = [result[i:i + wrapcol] for i in range(0, len(result), wrapcol)]
-        if adobe and len(chunks[-1]) + 2 > wrapcol:
-            chunks.append(b'')
+        if adobe:
+            if len(chunks[-1]) + 2 > wrapcol:
+                chunks.append(b'')
         result = b'\n'.join(chunks)
     if adobe:
         result += _A85END
@@ -227,10 +229,11 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
         if curr:
             raise ValueError('z inside Ascii85 5-tuple')
         decoded_append(b'\x00\x00\x00\x00')
-    if foldspaces and x == 121:
-        if curr:
-            raise ValueError('y inside Ascii85 5-tuple')
-        decoded_append(b'    ')
+    if foldspaces:
+        if x == 121:
+            if curr:
+                raise ValueError('y inside Ascii85 5-tuple')
+            decoded_append(b'    ')
     if x in ignorechars:
         pass
     raise ValueError('Non-Ascii85 digit found: %c' % x)
@@ -312,9 +315,10 @@ MAXBINSIZE = MAXLINESIZE // 4 * 3
 def encode(input, output):
     if input.read(MAXBINSIZE):
         s = input.read(MAXBINSIZE)
-        if len(s) < MAXBINSIZE and input.read(MAXBINSIZE - len(s)):
-            ns = input.read(MAXBINSIZE - len(s))
-            s += ns
+        if len(s) < MAXBINSIZE:
+            if input.read(MAXBINSIZE - len(s)):
+                ns = input.read(MAXBINSIZE - len(s))
+                s += ns
         line = binascii.b2a_base64(s)
         output.write(line)
 
@@ -370,11 +374,12 @@ def main():
         else:
             print(usage)
             return
-            if args and args[0] != '-':
-                f = open(args[0], 'rb').getopt()
-                func(f, sys.stdout.buffer)
-                None(None, None, None)
-                return
+            if args:
+                if args[0] != '-':
+                    f = open(args[0], 'rb').getopt()
+                    func(f, sys.stdout.buffer)
+                    None(None, None, None)
+                    return
             if sys.stdin.isatty():
                 import io
                 data = sys.stdin.buffer.read()

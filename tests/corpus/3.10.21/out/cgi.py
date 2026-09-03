@@ -112,10 +112,9 @@ def _parseparam(s):
     while s[:1] == ';':
         s = s[1:]
         end = s.find(';')
-        if end > 0 and (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2 and end > 0:
-            end = s.find(';', end + 1)
-            if not (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
-                pass
+        if end > 0:
+            while (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
+                end = s.find(';', end + 1)
         if end < 0:
             end = len(s)
         f = s[:end]
@@ -276,12 +275,13 @@ class FieldStorage:
         else:
             self.innerboundary = b''
         clen = -1
-        if 'content-length' in self.headers and maxlen and clen > maxlen:
+        if 'content-length' in self.headers:
             try:
                 clen = int(self.headers['content-length'])
             except ValueError:
                 pass
-            raise ValueError('Maximum content length exceeded')
+            if maxlen and clen > maxlen:
+                raise ValueError('Maximum content length exceeded')
         self.length = clen
         if self.limit is None and clen >= 0:
             self.limit = clen
@@ -410,11 +410,12 @@ class FieldStorage:
         if not isinstance(first_line, bytes):
             raise ValueError('%s should return bytes, got %s' % (self.fp, type(first_line).__name__))
         self.bytes_read += len(first_line)
-        if first_line.strip() != b'--' + self.innerboundary and first_line and first_line.strip() != b'--' + self.innerboundary:
+        if first_line.strip() != b'--' + self.innerboundary and first_line:
             first_line = self.fp.readline()
             self.bytes_read += len(first_line)
-            if not first_line:
-                pass
+            if first_line.strip() != b'--' + self.innerboundary:
+                if not first_line:
+                    pass
         max_num_fields = self.max_num_fields
         if max_num_fields is not None:
             max_num_fields -= len(self.list)
@@ -432,11 +433,12 @@ class FieldStorage:
                 del headers['content-length']
             limit = None if self.limit is None else self.limit - self.bytes_read
             part = klass(self.fp, headers, ib, environ, keep_blank_values, strict_parsing, limit, self.encoding, self.errors, max_num_fields, self.separator)
-            if max_num_fields is not None and max_num_fields < 0:
+            if max_num_fields is not None:
                 max_num_fields -= 1
                 if part.list:
                     max_num_fields -= len(part.list)
-                raise ValueError('Max number of fields exceeded')
+                if max_num_fields < 0:
+                    raise ValueError('Max number of fields exceeded')
             self.bytes_read += part.bytes_read
             self.list.append(part)
             if not part.done:
@@ -483,11 +485,12 @@ class FieldStorage:
         self.read_lines_to_eof()
 
     def __write(self, line):
-        if self.__file is not None and self.__file.tell() + len(line) > 1000:
-            self.file = self.make_file()
-            data = self.__file.getvalue()
-            self.file.write(data)
-            self.__file = None
+        if self.__file is not None:
+            if self.__file.tell() + len(line) > 1000:
+                self.file = self.make_file()
+                data = self.__file.getvalue()
+                self.file.write(data)
+                self.__file = None
         if self._binary_file:
             self.file.write(line)
             return
@@ -520,12 +523,13 @@ class FieldStorage:
         if delim == b'\r':
             line = delim + line
             delim = b''
-        if line.startswith(b'--') and last_line_lfend and strippedline == last_boundary:
+        if line.startswith(b'--') and last_line_lfend:
             strippedline = line.rstrip()
             if strippedline == next_boundary:
                 return
-            self.done = 1
-            return
+            if strippedline == last_boundary:
+                self.done = 1
+                return
         odelim = delim
         if line.endswith(b'\r\n'):
             delim = b'\r\n'
@@ -556,12 +560,13 @@ class FieldStorage:
         if not line:
             self.done = -1
             return
-        if line.endswith(b'--') and last_line_lfend and strippedline == last_boundary:
+        if line.endswith(b'--') and last_line_lfend:
             strippedline = line.strip()
             if strippedline == next_boundary:
                 return
-            self.done = 1
-            return
+            if strippedline == last_boundary:
+                self.done = 1
+                return
         last_line_lfend = line.endswith(b'\n')
 
     def make_file(self):

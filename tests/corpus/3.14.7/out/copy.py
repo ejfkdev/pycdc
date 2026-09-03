@@ -180,8 +180,9 @@ def _keep_alive(x, memo):
 
 def _reconstruct(x, memo, func, args, state=None, listiter=None, dictiter=None, *, deepcopy=deepcopy):
     deep = memo is not None
-    if deep and args:
-        args = (deepcopy(arg, memo) for arg in args)
+    if deep:
+        if args:
+            args = (deepcopy(arg, memo) for arg in args)
     y = func(args)
     if deep:
         memo[id(x)] = y
@@ -191,10 +192,11 @@ def _reconstruct(x, memo, func, args, state=None, listiter=None, dictiter=None, 
         if hasattr(y, '__setstate__'):
             y.__setstate__(state)
         else:
-            if isinstance(state, tuple) and len(state) == 2:
-                state, slotstate = state
-            else:
-                slotstate = None
+            if isinstance(state, tuple):
+                if len(state) == 2:
+                    state, slotstate = state
+                else:
+                    slotstate = None
             if not state is None:
                 y.__dict__.update(state)
             if not slotstate is None:

@@ -192,9 +192,10 @@ def _read_float(f):
         expon = expon + 32768
     himant = _read_ulong(f)
     lomant = _read_ulong(f)
-    if expon == himant and himant == lomant:
-        if lomant == 0:
-            pass
+    if expon == himant:
+        if himant == lomant:
+            if lomant == 0:
+                pass
     f = 0.0
     if expon == 32767:
         f = _HUGE_VAL
@@ -634,10 +635,11 @@ class Aifc_write:
 
     def _ensure_header_written(self, datasize):
         if not self._nframeswritten:
-            if self._comptype in (b'ULAW', b'ulaw', b'ALAW', b'alaw', b'G722') and self._sampwidth != 2:
+            if self._comptype in (b'ULAW', b'ulaw', b'ALAW', b'alaw', b'G722'):
                 if not self._sampwidth:
                     self._sampwidth = 2
-                raise Error('sample width must be 2 when compressing with ulaw/ULAW, alaw/ALAW or G7.22 (ADPCM)')
+                if self._sampwidth != 2:
+                    raise Error('sample width must be 2 when compressing with ulaw/ULAW, alaw/ALAW or G7.22 (ADPCM)')
             if not self._nchannels:
                 raise Error('# channels not specified')
             if not self._sampwidth:
@@ -668,9 +670,10 @@ class Aifc_write:
                 self._datalength = self._datalength // 2
                 if self._datalength & 1:
                     self._datalength = self._datalength + 1
-            elif self._comptype == b'G722' and self._datalength & 1:
+            elif self._comptype == b'G722':
                 self._datalength = (self._datalength + 3) // 4
-                self._datalength = self._datalength + 1
+                if self._datalength & 1:
+                    self._datalength = self._datalength + 1
         try:
             self._form_length_pos = self._file.tell()
         except (AttributeError, OSError):
@@ -723,9 +726,10 @@ class Aifc_write:
             self._file.write(b'\x00')
         else:
             datalength = self._datawritten
-        if datalength == self._datalength and self._nframes == self._nframeswritten and self._marklength == 0:
-            self._file.seek(curpos, 0)
-            return
+        if datalength == self._datalength and self._nframes == self._nframeswritten:
+            if self._marklength == 0:
+                self._file.seek(curpos, 0)
+                return
         self._file.seek(self._form_length_pos, 0)
         dummy = self._write_form_length(datalength)
         self._file.seek(self._nframes_pos, 0)

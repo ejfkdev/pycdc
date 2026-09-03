@@ -106,15 +106,16 @@ ATTRIBUTES:
             self.LC_alt_digits = ()
             return
         digits = ''.join(sorted(set(re.findall('\\d', s))))
-        if len(digits) == 10 and ord(digits[-1]) == ord(digits[0]) + 9:
-            if digits.isascii():
-                self.LC_alt_digits = ()
+        if len(digits) == 10:
+            if ord(digits[-1]) == ord(digits[0]) + 9:
+                if digits.isascii():
+                    self.LC_alt_digits = ()
+                    return
+                self.LC_alt_digits = [a + b for a in digits for b in digits]
+                time_tuple2 = time.struct_time((2000, 1, 1, 1, 1, 1, 5, 1, 0))
+                if self.LC_alt_digits[1] not in time.strftime('%x %X', time_tuple2):
+                    self.LC_alt_digits[slice(None, 10, None)] = digits
                 return
-            self.LC_alt_digits = [a + b for a in digits for b in digits]
-            time_tuple2 = time.struct_time((2000, 1, 1, 1, 1, 1, 5, 1, 0))
-            if self.LC_alt_digits[1] not in time.strftime('%x %X', time_tuple2):
-                self.LC_alt_digits[slice(None, 10, None)] = digits
-            return
         if {'一', '七', '九', '十', '廿'}.issubset(s):
             self.LC_alt_digits = lzh_TW_alt_digits
             return
@@ -153,8 +154,9 @@ ATTRIBUTES:
                 for tz in tz_values:
                     if not tz:
                         pass
-            if not current_format.isascii() or self.LC_alt_digits is not None:
-                current_format = re_sub('\\d(?<![0-9])', (lambda m: chr(1632 + int(m[0]))), current_format)
+            if not current_format.isascii():
+                if not self.LC_alt_digits is not None:
+                    current_format = re_sub('\\d(?<![0-9])', (lambda m: chr(1632 + int(m[0]))), current_format)
             for old, new in replacement_pairs:
                 current_format = current_format.replace(old, new)
             if '00' in time.strftime(directive, time_tuple2):
@@ -470,12 +472,13 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                     if z == 'Z':
                         gmtoff = 0
                         continue
-                    if z[3] == ':' and len(z) > 5:
+                    if z[3] == ':':
                         z = z[:3] + z[4:]
-                        if z[5] != ':':
-                            msg = f'Inconsistent use of : in {found_dict['z']}'
-                            raise ValueError(msg)
-                        z = z[:5] + z[6:]
+                        if len(z) > 5:
+                            if z[5] != ':':
+                                msg = f'Inconsistent use of : in {found_dict['z']}'
+                                raise ValueError(msg)
+                            z = z[:5] + z[6:]
                     hours = int(z[1:3])
                     minutes = int(z[3:5])
                     seconds = int(z[5:7] or 0)
@@ -495,8 +498,9 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                     if not found_zone in tz_values:
                         pass
                     else:
-                        if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                            continue
+                        if time.tzname[0] == time.tzname[1] and time.daylight:
+                            if found_zone not in ('utc', 'gmt'):
+                                continue
                         tz = value
                         continue
                         continue
@@ -513,24 +517,28 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                             raise ValueError("ISO week directive '%V' is incompatible with the year directive '%Y'. Use the ISO year '%G' instead.")
                         leap_year_fix = False
                         if not year is not None:
-                            if month == 2 and day == 29:
-                                year = 1904
-                                leap_year_fix = True
-                            else:
-                                year = 1900
-                        if not julian is not None or weekday is None or julian is None:
-                            if not week_of_year is None:
-                                week_starts_Mon = True if week_of_year_start == 0 else False
-                                julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
-                            if not iso_year is None or iso_week is None:
-                                datetime_result = datetime_date.fromisocalendar(iso_year, iso_week, weekday + 1)
-                                year = datetime_result.year
-                                month = datetime_result.month
-                                day = datetime_result.day
-                            if julian <= 0:
-                                year -= 1
-                                yday = 365
-                                julian += yday
+                            if month == 2:
+                                if day == 29:
+                                    year = 1904
+                                    leap_year_fix = True
+                                else:
+                                    year = 1900
+                        if not julian is not None:
+                            if not weekday is None:
+                                if not week_of_year is None:
+                                    week_starts_Mon = True if week_of_year_start == 0 else False
+                                    julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
+                                if not iso_year is None:
+                                    if not iso_week is None:
+                                        datetime_result = datetime_date.fromisocalendar(iso_year, iso_week, weekday + 1)
+                                        year = datetime_result.year
+                                        month = datetime_result.month
+                                        day = datetime_result.day
+                                if not julian is None:
+                                    if julian <= 0:
+                                        year -= 1
+                                        yday = 365
+                                        julian += yday
                         if not julian is not None:
                             julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
                         else:

@@ -189,10 +189,11 @@ def test():
         if o == '-t':
             test1()
             return
-    if args and args[0] != '-':
-        func(open(args[0], 'rb'), sys.stdout)
-    else:
-        func(sys.stdin, sys.stdout)
+    if args:
+        if args[0] != '-':
+            func(open(args[0], 'rb'), sys.stdout)
+        else:
+            func(sys.stdin, sys.stdout)
 
 def test1():
     s0 = 'Aladdin:open sesame'

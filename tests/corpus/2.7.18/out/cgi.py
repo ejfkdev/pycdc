@@ -129,10 +129,11 @@ if __name__ == '__main__':
                     if not line:
                         terminator = lastpart
                         break
-                    if line[:2] == '--' and terminator in (nextpart, lastpart):
+                    if line[:2] == '--':
                         terminator = line.strip()
-                        break
-                        continue
+                        if terminator in (nextpart, lastpart):
+                            break
+                            continue
                     lines.append(line)
                 if data is None:
                     continue
@@ -185,9 +186,10 @@ if __name__ == '__main__':
                 if i >= 0:
                     name = p[:i].strip().lower()
                     value = p[i + 1:].strip()
-                    if len(value) >= 2 and value[0] == value[-1] and value[-1] == '"':
-                        value = value[1:-1]
-                        value = value.replace('\\\\', '\\').replace('\\"', '"')
+                    if len(value) >= 2:
+                        if value[0] == value[-1] and value[-1] == '"':
+                            value = value[1:-1]
+                            value = value.replace('\\\\', '\\').replace('\\"', '"')
                     pdict[name] = value
             return key, pdict
 
@@ -269,7 +271,7 @@ if __name__ == '__main__':
                 fp = StringIO(qs)
                 if headers is None:
                     headers = {'content-type': 'application/x-www-form-urlencoded'}
-                if headers is None and 'CONTENT_LENGTH' in environ:
+                if headers is None:
                     headers = {}
                     if method == 'POST':
                         headers['content-type'] = 'application/x-www-form-urlencoded'
@@ -277,7 +279,8 @@ if __name__ == '__main__':
                         headers['content-type'] = environ['CONTENT_TYPE']
                     if 'QUERY_STRING' in environ:
                         self.qs_on_post = environ['QUERY_STRING']
-                    headers['content-length'] = environ['CONTENT_LENGTH']
+                    if 'CONTENT_LENGTH' in environ:
+                        headers['content-length'] = environ['CONTENT_LENGTH']
                 self.fp = fp or sys.stdin
                 self.headers = headers
                 self.outerboundary = outerboundary
@@ -305,13 +308,14 @@ if __name__ == '__main__':
                 if 'boundary' in pdict:
                     self.innerboundary = pdict['boundary']
                 clen = -1
-                if 'content-length' in self.headers and maxlen and clen > maxlen:
-                    try:
-                        clen = int(self.headers['content-length'])
-                    except ValueError:
-                        pass
-                    else:
-                        raise ValueError # WARNING: raise cause dropped (py2)
+                if 'content-length' in self.headers:
+                    if maxlen and clen > maxlen:
+                        try:
+                            clen = int(self.headers['content-length'])
+                        except ValueError:
+                            pass
+                        else:
+                            raise ValueError # WARNING: raise cause dropped (py2)
                 self.length = clen
                 self.list = None
                 self.file = None
@@ -429,12 +433,13 @@ if __name__ == '__main__':
                 while not part.done:
                     headers = rfc822.Message(self.fp)
                     part = klass(self.fp, headers, ib, environ, keep_blank_values, strict_parsing, max_num_fields)
-                    if max_num_fields is not None and max_num_fields < 0:
+                    if max_num_fields is not None:
                         max_num_fields -= 1
                         if part.list:
                             max_num_fields -= len(part.list)
-                        raise ValueError('Max number of fields exceeded')
-                        continue
+                        if max_num_fields < 0:
+                            raise ValueError('Max number of fields exceeded')
+                            continue
                     self.list.append(part)
                 self.skip_lines()
 
@@ -468,10 +473,11 @@ if __name__ == '__main__':
                     self.read_lines_to_eof()
 
             def __write(self, line):
-                if self.__file is not None and self.__file.tell() + len(line) > 1000:
-                    self.file = self.make_file('')
-                    self.file.write(self.__file.getvalue())
-                    self.__file = None
+                if self.__file is not None:
+                    if self.__file.tell() + len(line) > 1000:
+                        self.file = self.make_file('')
+                        self.file.write(self.__file.getvalue())
+                        self.__file = None
                 self.file.write(line)
 
             def read_lines_to_eof(self):
@@ -495,13 +501,14 @@ if __name__ == '__main__':
                     if delim == '\r':
                         line = delim + line
                         delim = ''
-                    if line[:2] == '--' and last_line_lfend and strippedline == last:
+                    if line[:2] == '--' and last_line_lfend:
                         strippedline = line.strip()
                         if strippedline == next:
                             break
-                        self.done = 1
-                        break
-                        continue
+                        if strippedline == last:
+                            self.done = 1
+                            break
+                            continue
                     odelim = delim
                     if line[-2:] == '\r\n':
                         delim = '\r\n'
@@ -532,13 +539,14 @@ if __name__ == '__main__':
                     if not line:
                         self.done = -1
                         break
-                    if line[:2] == '--' and last_line_lfend and strippedline == last:
+                    if line[:2] == '--' and last_line_lfend:
                         strippedline = line.strip()
                         if strippedline == next:
                             break
-                        self.done = 1
-                        break
-                        continue
+                        if strippedline == last:
+                            self.done = 1
+                            break
+                            continue
                     last_line_lfend = line.endswith('\n')
 
             def make_file(self, binary=None):

@@ -356,13 +356,16 @@ class RawConfigParser:
             if not line.strip() == '':
                 if line[0] in '#;':
                     continue
-            if line.split(None, 1)[0].lower() == 'rem' and line[0] in 'rR':
-                continue
-            if line[0].isspace() and cursect is not None and optname:
-                value = line.strip()
-                if value:
-                    cursect[optname] = '%s\n%s' % (cursect[optname], value)
+            if line.split(None, 1)[0].lower() == 'rem':
+                if line[0] in 'rR':
                     continue
+            if line[0].isspace():
+                if cursect is not None:
+                    if optname:
+                        value = line.strip()
+                        if value:
+                            cursect[optname] = '%s\n%s' % (cursect[optname], value)
+                            continue
             continue
             mo = self.SECTCRE.match(line)
             if mo:
@@ -383,11 +386,13 @@ class RawConfigParser:
             mo = self.OPTCRE.match(line)
             if mo:
                 optname, vi, optval = mo.group('option', 'vi', 'value')
-                if vi in ('=', ':') and ';' in optval:
-                    pos = optval.find(';')
-                    if pos != -1 and optval[pos - 1].isspace():
-                        optval = optval[:pos]
-                        continue
+                if vi in ('=', ':'):
+                    if ';' in optval:
+                        pos = optval.find(';')
+                        if pos != -1:
+                            if optval[pos - 1].isspace():
+                                optval = optval[:pos]
+                                continue
             optval = optval.strip()
             if optval == '""':
                 optval = ''

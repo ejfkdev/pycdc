@@ -80,7 +80,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 113: orig  If(test=BoolOp(op=Or() | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 113: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 1810,
    "ntotal": 2170,
@@ -156,9 +156,9 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 312: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 312: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1776,
+   "ndiff": 1763,
    "ntotal": 2350,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -176,7 +176,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 104: orig  If(test=UnaryOp(op=Not() | dec  If(test=Compare(left=Num(n=1)",
+   "ast_detail": "diff at token 104: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 806,
    "ntotal": 863,
@@ -192,7 +192,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 499: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=Compare(left=Attribute(value=Name(id='datetime'",
+   "ast_detail": "diff at token 499: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2604,
    "ntotal": 3072,
@@ -202,7 +202,7 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2871,
+   "ndiff": 2876,
    "ntotal": 3011,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
@@ -216,7 +216,7 @@
   },
   {
    "module": "chunk",
-   "ast_detail": "diff at token 289: orig  If(test=BoolOp(op=Or() | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 289: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 7,
    "ntotal": 439,
@@ -242,7 +242,7 @@
    "module": "codecs",
    "ast_detail": "diff at token 363: orig  body=[] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1835,
+   "ndiff": 1837,
    "ntotal": 2187,
    "detail": "line 256: orig ('SETUP_EXCEPT', 'to 564') | got ('LOAD_CONST', 'None')\nline 257: orig ('LOAD_NAME', 'lookup_error') | got ('STORE_NAME', 'namereplace_errors')\nline 258: orig ('LOAD_CONST', \"'strict'\") | got ('SETUP_EXCEPT', 'to 568')"
   },
@@ -296,7 +296,7 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 77: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='rounds'",
+   "ast_detail": "diff at token 166: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 160,
    "ntotal": 381,

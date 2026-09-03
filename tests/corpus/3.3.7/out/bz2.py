@@ -237,12 +237,13 @@ class BZ2File(io.BufferedIOBase):
             size = size.__index__()
         with self._lock:
             self._check_can_read()
-            if size < 0 and end > 0:
+            if size < 0:
                 end = self._buffer.find(b'\n', self._buffer_offset) + 1
-                line = self._buffer[self._buffer_offset:end]
-                self._buffer_offset = end
-                self._pos += len(line)
-                return line
+                if end > 0:
+                    line = self._buffer[self._buffer_offset:end]
+                    self._buffer_offset = end
+                    self._pos += len(line)
+                    return line
             return io.BufferedIOBase.readline(self, size)
 
     def readlines(self, size=-1):

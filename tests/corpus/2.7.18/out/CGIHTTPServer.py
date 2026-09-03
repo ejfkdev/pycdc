@@ -97,12 +97,13 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.send_error(403, 'CGI script is not a plain file (%r)' % scriptname)
             return
         ispy = self.is_python(scriptname)
-        if not ispy or self.is_executable(scriptfile):
+        if not ispy:
             if not (self.have_fork or self.have_popen2 or self.have_popen3):
                 self.send_error(403, 'CGI script is not a Python script (%r)' % scriptname)
                 return
-            self.send_error(403, 'CGI script is not executable (%r)' % scriptname)
-            return
+            if not self.is_executable(scriptfile):
+                self.send_error(403, 'CGI script is not executable (%r)' % scriptname)
+                return
         env = copy.deepcopy(os.environ)
         env['SERVER_SOFTWARE'] = self.version_string()
         env['SERVER_NAME'] = self.server.server_name
@@ -121,20 +122,21 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             env['REMOTE_HOST'] = host
         env['REMOTE_ADDR'] = self.client_address[0]
         authorization = self.headers.getheader('authorization')
-        if authorization and len(authorization) == 2:
+        if authorization:
             authorization = authorization.split()
-            import base64
-            import binascii
-            env['AUTH_TYPE'] = authorization[0]
-            if authorization[0].lower() == 'basic':
-                if len(authorization) == 2:
-                    try:
-                        authorization = base64.decodestring(authorization[1])
-                    except binascii.Error:
-                        pass
-                    else:
-                        authorization = authorization.split(':')
-                        env['REMOTE_USER'] = authorization[0]
+            if len(authorization) == 2:
+                import base64
+                import binascii
+                env['AUTH_TYPE'] = authorization[0]
+                if authorization[0].lower() == 'basic':
+                    if len(authorization) == 2:
+                        try:
+                            authorization = base64.decodestring(authorization[1])
+                        except binascii.Error:
+                            pass
+                        else:
+                            authorization = authorization.split(':')
+                            env['REMOTE_USER'] = authorization[0]
         if self.headers.typeheader is None:
             env['CONTENT_TYPE'] = self.headers.type
         else:

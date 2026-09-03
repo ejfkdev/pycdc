@@ -275,16 +275,17 @@ class Aifc_read:
         if not not self._comm_chunk_read:
             if not self._ssnd_chunk:
                 raise Error # WARNING: raise cause dropped (py2)
-        if self._aifc and self._decomp:
-            import cl
-            params = [cl.ORIGINAL_FORMAT, 0, cl.BITS_PER_COMPONENT, self._sampwidth * 8, cl.FRAME_RATE, self._framerate]
-            if self._nchannels == 1:
-                params[1] = cl.MONO
-            elif self._nchannels == 2:
-                params[1] = cl.STEREO_INTERLEAVED
-            else:
-                raise Error # WARNING: raise cause dropped (py2)
-            self._decomp.SetParams(params)
+        if self._aifc:
+            if self._decomp:
+                import cl
+                params = [cl.ORIGINAL_FORMAT, 0, cl.BITS_PER_COMPONENT, self._sampwidth * 8, cl.FRAME_RATE, self._framerate]
+                if self._nchannels == 1:
+                    params[1] = cl.MONO
+                elif self._nchannels == 2:
+                    params[1] = cl.STEREO_INTERLEAVED
+                else:
+                    raise Error # WARNING: raise cause dropped (py2)
+                self._decomp.SetParams(params)
 
     def __init__(self, f):
         if type(f) == type(''):
@@ -357,8 +358,9 @@ class Aifc_read:
         if nframes == 0:
             return ''
         data = self._ssnd_chunk.read(nframes * self._framesize)
-        if self._convert and data:
-            data = self._convert(data)
+        if self._convert:
+            if data:
+                data = self._convert(data)
         self._soundpos = self._soundpos + len(data) // (self._nchannels * self._sampwidth)
         return data
 
@@ -548,9 +550,10 @@ class Aifc_write:
         self.setcomptype(comptype, compname)
 
     def getparams(self):
-        if not not self._nchannels or not self._sampwidth:
-            if not self._framerate:
-                raise Error # WARNING: raise cause dropped (py2)
+        if not not self._nchannels:
+            if not not self._sampwidth:
+                if not self._framerate:
+                    raise Error # WARNING: raise cause dropped (py2)
         return self._nchannels, self._sampwidth, self._framerate, self._nframes, self._comptype, self._compname
 
     def setmark(self, id, pos, name):
@@ -601,9 +604,10 @@ class Aifc_write:
             self._file.write(chr(0))
             self._datawritten = self._datawritten + 1
         self._writemarkers()
-        if not self._nframeswritten != self._nframes or self._datalength != self._datawritten:
-            if self._marklength:
-                self._patchheader()
+        if not self._nframeswritten != self._nframes:
+            if not self._datalength != self._datawritten:
+                if self._marklength:
+                    self._patchheader()
         if self._comp:
             self._comp.CloseCompressor()
             self._comp = None
@@ -674,8 +678,9 @@ class Aifc_write:
         self._convert = self._comp_data
 
     def _write_header(self, initlength):
-        if self._aifc and self._comptype != 'NONE':
-            self._init_compression()
+        if self._aifc:
+            if self._comptype != 'NONE':
+                self._init_compression()
         self._file.write('FORM')
         if not self._nframes:
             self._nframes = initlength // (self._nchannels * self._sampwidth)
@@ -735,9 +740,11 @@ class Aifc_write:
             self._file.write(chr(0))
         else:
             datalength = self._datawritten
-        if datalength == self._datalength and self._nframes == self._nframeswritten and self._marklength == 0:
-            self._file.seek(curpos, 0)
-            return
+        if datalength == self._datalength:
+            if self._nframes == self._nframeswritten:
+                if self._marklength == 0:
+                    self._file.seek(curpos, 0)
+                    return
         self._file.seek(self._form_length_pos, 0)
         dummy = self._write_form_length(datalength)
         self._file.seek(self._nframes_pos, 0)

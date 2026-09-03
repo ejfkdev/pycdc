@@ -74,12 +74,13 @@ def literal_eval(node_or_string):
             if len(node.keys) != len(node.values):
                 _raise_malformed_node(node)
             return dict(zip(map(_convert, node.keys), map(_convert, node.values)))
-        if isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(left, (int, float)) and isinstance(right, complex):
+        if isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)):
             left = _convert_signed_num(node.left)
             right = _convert_num(node.right)
-            if isinstance(node.op, Add):
-                return left + right
-            return left - right
+            if isinstance(left, (int, float)) and isinstance(right, complex):
+                if isinstance(node.op, Add):
+                    return left + right
+                return left - right
         return _convert_signed_num(node)
 
     return _convert(node_or_string)
@@ -206,9 +207,10 @@ def _splitlines_no_ff(source):
         c = source[idx]
         next_line += c
         idx += 1
-        if c == '\r' and idx < len(source) and source[idx] == '\n':
-            next_line += '\n'
-            idx += 1
+        if c == '\r' and idx < len(source):
+            if source[idx] == '\n':
+                next_line += '\n'
+                idx += 1
         if c in '\r\n':
             pass
         lines.append(next_line)

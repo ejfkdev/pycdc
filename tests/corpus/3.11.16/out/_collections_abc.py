@@ -337,8 +337,9 @@ class _CallableGenericAlias(GenericAlias):
         return super().__new__(cls, origin, args)
 
     def __repr__(self):
-        if len(self.__args__) == 2 and _is_param_expr(self.__args__[0]):
-            return super().__repr__()
+        if len(self.__args__) == 2:
+            if _is_param_expr(self.__args__[0]):
+                return super().__repr__()
         return f'collections.abc.Callable[[{", ".join([_type_repr(a) for a in self.__args__[:-1]])}], {_type_repr(self.__args__[-1])}]'
 
     def __reduce__(self):
@@ -351,9 +352,10 @@ class _CallableGenericAlias(GenericAlias):
     def __getitem__(self, item):
         if not isinstance(item, tuple):
             item = (item,)
-        if len(self.__parameters__) == 1 and _is_param_expr(self.__parameters__[0]) and item:
-            if not _is_param_expr(item[0]):
-                item = (item,)
+        if len(self.__parameters__) == 1:
+            if _is_param_expr(self.__parameters__[0]) and item:
+                if not _is_param_expr(item[0]):
+                    item = (item,)
         new_args = super().__getitem__(item).__args__
         if not isinstance(new_args[0], (tuple, list)):
             t_result = new_args[-1]

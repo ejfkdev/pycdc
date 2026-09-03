@@ -64,12 +64,13 @@ def dump(node, annotate_fields=True, include_attributes=False):
             del _[1]
             fields = _[1]
             rv = '%s(%s' % (node.__class__.__name__, ', '.join(('%s=%s' % field for field in fields) if annotate_fields else (b for a, b in fields)))
-            if include_attributes and node._attributes:
-                if fields:
-                    pass
-                rv += ', ' if ', ' else ' '
-                rv += ', '.join(('%s=%s' % (a, _format(getattr(node, a))) for a in node._attributes))
-            []
+            if include_attributes:
+                if node._attributes:
+                    if fields:
+                        pass
+                    rv += ', ' if ', ' else ' '
+                    rv += ', '.join(('%s=%s' % (a, _format(getattr(node, a))) for a in node._attributes))
+                []
             return rv + ')'
         if isinstance(node, list):
             return '[%s]' % ', '.join((_format(x) for x in node))
@@ -81,9 +82,11 @@ def dump(node, annotate_fields=True, include_attributes=False):
 
 def copy_location(new_node, old_node):
     for attr in ('lineno', 'col_offset'):
-        if attr in old_node._attributes and attr in new_node._attributes and hasattr(old_node, attr):
-            setattr(new_node, attr, getattr(old_node, attr))
-            continue
+        if attr in old_node._attributes:
+            if attr in new_node._attributes:
+                if hasattr(old_node, attr):
+                    setattr(new_node, attr, getattr(old_node, attr))
+                    continue
     return new_node
 
 def fix_missing_locations(node):
@@ -136,11 +139,13 @@ def iter_child_nodes(node):
 def get_docstring(node, clean=True):
     if not isinstance(node, (FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
-    if node.body and isinstance(node.body[0], Expr) and isinstance(node.body[0].value, Str):
-        if clean:
-            import inspect
-            return inspect.cleandoc(node.body[0].value.s)
-        return node.body[0].value.s
+    if node.body:
+        if isinstance(node.body[0], Expr):
+            if isinstance(node.body[0].value, Str):
+                if clean:
+                    import inspect
+                    return inspect.cleandoc(node.body[0].value.s)
+                return node.body[0].value.s
 
 def walk(node):
     from collections import deque

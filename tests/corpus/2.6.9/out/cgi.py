@@ -32,15 +32,14 @@ if __name__ == '__main__':
         logfp = None
         def initlog(*allargs):
             global logfp, log
-            if logfile and not logfp:
-                pass
+            try:
+                logfp = open(logfile, 'a')
+            except IOError:
+                if logfile:
+                    if not logfp:
+                        pass
             if not logfp:
-                try:
-                    logfp = open(logfile, 'a')
-                except IOError:
-                    pass
-                else:
-                    log = nolog
+                log = nolog
             else:
                 log = dolog
             log(*allargs)
@@ -64,8 +63,9 @@ if __name__ == '__main__':
                     return parse_multipart(fp, pdict)
                 if ctype == 'application/x-www-form-urlencoded':
                     clength = int(environ['CONTENT_LENGTH'])
-                    if maxlen and clength > maxlen:
-                        raise ValueError # WARNING: raise cause dropped (py2)
+                    if maxlen:
+                        if clength > maxlen:
+                            raise ValueError # WARNING: raise cause dropped (py2)
                     qs = fp.read(clength)
                 else:
                     qs = ''
@@ -114,13 +114,14 @@ if __name__ == '__main__':
                     if clength:
                         continue
                 if bytes > 0:
-                    if maxlen and bytes > maxlen:
-                        try:
-                            bytes = int(clength)
-                        except ValueError:
-                            pass
-                        else:
-                            raise ValueError # WARNING: raise cause dropped (py2)
+                    if maxlen:
+                        if bytes > maxlen:
+                            try:
+                                bytes = int(clength)
+                            except ValueError:
+                                pass
+                            else:
+                                raise ValueError # WARNING: raise cause dropped (py2)
                     data = fp.read(bytes)
                     continue
                 data = ''
@@ -190,10 +191,11 @@ if __name__ == '__main__':
                 if i >= 0:
                     name = p[:i].strip().lower()
                     value = p[i + 1:].strip()
-                    if len(value) >= 2 and None:
+                    if len(value) >= 2:
                         None if value[0] == value[-1] else value[-1] == '"'
-                        value = value[1:-1]
-                        value = value.replace('\\\\', '\\').replace('\\"', '"')
+                        if None:
+                            value = value[1:-1]
+                            value = value.replace('\\\\', '\\').replace('\\"', '"')
                     pdict[name] = value
                     continue
             return key, pdict
@@ -315,13 +317,14 @@ if __name__ == '__main__':
                     self.innerboundary = pdict['boundary']
                 clen = -1
                 if 'content-length' in self.headers:
-                    if maxlen and clen > maxlen:
-                        try:
-                            clen = int(self.headers['content-length'])
-                        except ValueError:
-                            pass
-                        else:
-                            raise ValueError # WARNING: raise cause dropped (py2)
+                    if maxlen:
+                        if clen > maxlen:
+                            try:
+                                clen = int(self.headers['content-length'])
+                            except ValueError:
+                                pass
+                            else:
+                                raise ValueError # WARNING: raise cause dropped (py2)
                 self.length = clen
                 self.list = None
                 self.file = None
@@ -501,14 +504,15 @@ if __name__ == '__main__':
                     if not line:
                         self.done = -1
                         break
-                    if line[:2] == '--' and last_line_lfend:
-                        strippedline = line.strip()
-                        if strippedline == next:
-                            break
-                        if strippedline == last:
-                            self.done = 1
-                            break
-                            continue
+                    if line[:2] == '--':
+                        if last_line_lfend:
+                            strippedline = line.strip()
+                            if strippedline == next:
+                                break
+                            if strippedline == last:
+                                self.done = 1
+                                break
+                                continue
                     odelim = delim
                     if line[-2:] == '\r\n':
                         delim = '\r\n'
@@ -536,14 +540,15 @@ if __name__ == '__main__':
                     if not line:
                         self.done = -1
                         break
-                    if line[:2] == '--' and last_line_lfend:
-                        strippedline = line.strip()
-                        if strippedline == next:
-                            break
-                        if strippedline == last:
-                            self.done = 1
-                            break
-                            continue
+                    if line[:2] == '--':
+                        if last_line_lfend:
+                            strippedline = line.strip()
+                            if strippedline == next:
+                                break
+                            if strippedline == last:
+                                self.done = 1
+                                break
+                                continue
                     last_line_lfend = line.endswith('\n')
                     continue
 

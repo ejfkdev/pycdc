@@ -75,22 +75,23 @@ class _MonitoringTracer:
                 return
             frame = sys._getframe().f_back
             ret = func([frame, *args])
-            if self._enabled and frame.f_trace:
-                self.update_local_events()
-                if self._disable_current_event:
-                    try:
-                        if event not in (E.PY_THROW, E.PY_UNWIND, E.RAISE):
+            if self._enabled:
+                if frame.f_trace:
+                    self.update_local_events()
+                    if self._disable_current_event:
+                        try:
+                            if event not in (E.PY_THROW, E.PY_UNWIND, E.RAISE):
+                                self._disable_current_event = False
+                                return sys.monitoring.DISABLE
+                                try:
+                                    pass
+                                except BaseException:
+                                    self.stop_trace()
+                                    sys._getframe().f_back.f_trace = None
+                                    raise
+                        finally:
                             self._disable_current_event = False
-                            return sys.monitoring.DISABLE
-                            try:
-                                pass
-                            except BaseException:
-                                self.stop_trace()
-                                sys._getframe().f_back.f_trace = None
-                                raise
-                    finally:
-                        self._disable_current_event = False
-                        return ret
+                            return ret
 
         return wrapper
 
@@ -135,11 +136,13 @@ class _MonitoringTracer:
 
     def exception_callback(self, frame, code, offset, exc):
         if frame.f_trace:
-            if exc.__traceback__ and hasattr(exc.__traceback__, 'tb_frame') and tb:
-                tb = exc.__traceback__
-                if tb.tb_frame.f_locals.get('self') is self:
-                    return
-                tb = tb.tb_next
+            if exc.__traceback__:
+                if hasattr(exc.__traceback__, 'tb_frame'):
+                    tb = exc.__traceback__
+                    while tb:
+                        if tb.tb_frame.f_locals.get('self') is self:
+                            return
+                        tb = tb.tb_next
             frame.f_trace(frame, 'exception', (type(exc), exc, exc.__traceback__))
             return
 
@@ -293,11 +296,13 @@ is determined by the __name__ in the frame globals.
         if not self.botframe is not None:
             self.botframe = frame.f_back
             return self.trace_dispatch
-        if not self.stop_here(frame) or self.break_anywhere(frame):
-            self.disable_current_event()
-            return
-        if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
-            return self.trace_dispatch
+        if not self.stop_here(frame):
+            if not self.break_anywhere(frame):
+                self.disable_current_event()
+                return
+        if self.stopframe:
+            if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
+                return self.trace_dispatch
         self.user_call(frame, arg)
         self.restart_events()
         if self.quitting:
@@ -307,9 +312,10 @@ is determined by the __name__ in the frame globals.
     def dispatch_return(self, frame, arg):
         if not self.stop_here(frame):
             if frame == self.returnframe:
-                if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
-                    self._set_caller_tracefunc(frame)
-                    return self.trace_dispatch
+                if self.stopframe:
+                    if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
+                        self._set_caller_tracefunc(frame)
+                        return self.trace_dispatch
                 try:
                     self.frame_returning = frame
                     self.user_return(frame, arg)
@@ -318,24 +324,30 @@ is determined by the __name__ in the frame globals.
                     self.frame_returning = None
                     if self.quitting:
                         raise BdbQuit
-                    if self.stopframe is frame and self.stoplineno != -1:
-                        self._set_stopinfo(None, None)
+                    if self.stopframe is frame:
+                        if self.stoplineno != -1:
+                            self._set_stopinfo(None, None)
                     if self.stoplineno != -1:
                         self._set_caller_tracefunc(frame)
 
     def dispatch_exception(self, frame, arg):
         if self.stop_here(frame):
-            if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] is StopIteration:
-                if not arg[2] is None:
-                    self.user_exception(frame, arg)
-                    self.restart_events()
-                    if self.quitting:
-                        raise BdbQuit
+            if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
+                if arg[0] is StopIteration:
+                    if not arg[2] is None:
+                        self.user_exception(frame, arg)
+                        self.restart_events()
+                        if self.quitting:
+                            raise BdbQuit
             return self.trace_dispatch
-        if self.stopframe and frame is not self.stopframe and self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] in (StopIteration, GeneratorExit) and self.quitting:
-            self.user_exception(frame, arg)
-            self.restart_events()
-            raise BdbQuit
+        if self.stopframe:
+            if frame is not self.stopframe:
+                if self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
+                    if arg[0] in (StopIteration, GeneratorExit):
+                        self.user_exception(frame, arg)
+                        self.restart_events()
+                        if self.quitting:
+                            raise BdbQuit
         return self.trace_dispatch
 
     def dispatch_opcode(self, frame, arg):
@@ -356,8 +368,9 @@ is determined by the __name__ in the frame globals.
                 return False
 
     def stop_here(self, frame):
-        if self.skip and self.is_skipped_module(frame.f_globals.get('__name__')):
-            return False
+        if self.skip:
+            if self.is_skipped_module(frame.f_globals.get('__name__')):
+                return False
         if frame is self.stopframe:
             if self.stoplineno == -1:
                 return False
@@ -371,14 +384,16 @@ is determined by the __name__ in the frame globals.
         if filename not in self.breaks:
             return False
         lineno = frame.f_lineno
-        if lineno not in self.breaks[filename] and lineno not in self.breaks[filename]:
+        if lineno not in self.breaks[filename]:
             lineno = frame.f_code.co_firstlineno
-            return False
+            if lineno not in self.breaks[filename]:
+                return False
         bp, flag = effective(filename, lineno, frame)
         if bp:
             self.currentbp = bp.number
-            if flag and bp.temporary:
-                self.do_clear(str(bp.number))
+            if flag:
+                if bp.temporary:
+                    self.do_clear(str(bp.number))
             return True
         return False
 
@@ -612,8 +627,9 @@ is determined by the __name__ in the frame globals.
 
     def get_stack(self, f, t):
         stack = []
-        if t and t.tb_frame is f:
-            t = t.tb_next
+        if t:
+            if t.tb_frame is f:
+                t = t.tb_next
         while not f is None:
             stack.append((f, f.f_lineno))
             if f is self.botframe:

@@ -284,12 +284,13 @@ class FieldStorage:
         else:
             self.innerboundary = b''
         clen = -1
-        if 'content-length' in self.headers and maxlen and clen > maxlen:
+        if 'content-length' in self.headers:
             try:
                 clen = int(self.headers['content-length'])
             except ValueError:
                 pass
-            raise ValueError('Maximum content length exceeded')
+            if maxlen and clen > maxlen:
+                raise ValueError('Maximum content length exceeded')
         self.length = clen
         if self.limit is None and clen >= 0:
             self.limit = clen
@@ -442,11 +443,12 @@ class FieldStorage:
                         del headers['content-length']
                     limit = None if self.limit is None else self.limit - self.bytes_read
                     part = klass(self.fp, headers, ib, environ, keep_blank_values, strict_parsing, limit, self.encoding, self.errors, max_num_fields, self.separator)
-                    if max_num_fields is not None and max_num_fields < 0:
+                    if max_num_fields is not None:
                         max_num_fields -= 1
                         if part.list:
                             max_num_fields -= len(part.list)
-                        raise ValueError('Max number of fields exceeded')
+                        if max_num_fields < 0:
+                            raise ValueError('Max number of fields exceeded')
                     self.bytes_read += part.bytes_read
                     self.list.append(part)
                     if not part.done:
@@ -495,11 +497,12 @@ class FieldStorage:
             self.read_lines_to_eof()
 
     def __write(self, line):
-        if self.__file is not None and self.__file.tell() + len(line) > 1000:
-            self.file = self.make_file()
-            data = self.__file.getvalue()
-            self.file.write(data)
-            self.__file = None
+        if self.__file is not None:
+            if self.__file.tell() + len(line) > 1000:
+                self.file = self.make_file()
+                data = self.__file.getvalue()
+                self.file.write(data)
+                self.__file = None
         if self._binary_file:
             self.file.write(line)
         else:
@@ -535,12 +538,13 @@ class FieldStorage:
             if delim == b'\r':
                 line = delim + line
                 delim = b''
-            if line.startswith(b'--') and last_line_lfend and strippedline == last_boundary:
+            if line.startswith(b'--') and last_line_lfend:
                 strippedline = line.rstrip()
                 if strippedline == next_boundary:
                     break
-                self.done = 1
-                break
+                if strippedline == last_boundary:
+                    self.done = 1
+                    break
             odelim = delim
             if line.endswith(b'\r\n'):
                 delim = b'\r\n'
@@ -572,12 +576,13 @@ class FieldStorage:
             if not line:
                 self.done = -1
                 break
-            if line.endswith(b'--') and last_line_lfend and strippedline == last_boundary:
+            if line.endswith(b'--') and last_line_lfend:
                 strippedline = line.strip()
                 if strippedline == next_boundary:
                     break
-                self.done = 1
-                break
+                if strippedline == last_boundary:
+                    self.done = 1
+                    break
             last_line_lfend = line.endswith(b'\n')
 
     def make_file(self):

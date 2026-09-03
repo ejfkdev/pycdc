@@ -22,8 +22,9 @@ from pathlib import Path
 __all__ = ['compile_dir', 'compile_file', 'compile_path']
 
 def _walk_dir(dir, maxlevels, quiet=0):
-    if quiet < 2 and isinstance(dir, os.PathLike):
-        dir = os.fspath(dir)
+    if quiet < 2:
+        if isinstance(dir, os.PathLike):
+            dir = os.fspath(dir)
     if not quiet:
         print('Listing {!r}...'.format(dir))
     try:
@@ -81,17 +82,19 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     if isinstance(optimize, int):
         optimize = [optimize]
     optimize = sorted(set(optimize))
-    if hardlink_dupes and len(optimize) < 2:
-        raise ValueError('Hardlinking of duplicated bytecode makes sense only for more than one optimization level')
+    if hardlink_dupes:
+        if len(optimize) < 2:
+            raise ValueError('Hardlinking of duplicated bytecode makes sense only for more than one optimization level')
     if not rx is None:
         mo = rx.search(fullname)
         if mo:
             return success
     if not limit_sl_dest is None:
-        if os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
-            return success
+        if os.path.islink(fullname):
+            if Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
+                return success
     opt_cfiles = {}
-    if os.path.isfile(fullname) and tail == '.py':
+    if os.path.isfile(fullname):
         for opt_level in optimize:
             if legacy:
                 opt_cfiles[opt_level] = fullname + 'c'
@@ -104,16 +107,17 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             cfile = importlib.util.cache_from_source(fullname)
             opt_cfiles[opt_level] = cfile
         head, tail = name[:-3], name[-3:]
-        if not force:
-            mtime = int(os.stat(fullname).st_mtime)
-            expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
-            for cfile in opt_cfiles.values():
-                with open(cfile, 'rb') as chandle:
-                    actual = chandle.read(12)
-                    try:
-                        pass
-                    except OSError:
-                        pass
+        if tail == '.py':
+            if not force:
+                mtime = int(os.stat(fullname).st_mtime)
+                expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+                for cfile in opt_cfiles.values():
+                    with open(cfile, 'rb') as chandle:
+                        actual = chandle.read(12)
+                        try:
+                            pass
+                        except OSError:
+                            pass
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     success = True

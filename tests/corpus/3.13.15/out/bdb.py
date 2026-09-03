@@ -139,16 +139,20 @@ is determined by the __name__ in the frame globals.
                     if self.quitting:
                         raise BdbQuit
             return self.trace_dispatch
-        if self.stopframe and frame is not self.stopframe and self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] in (StopIteration, GeneratorExit) and self.quitting:
-            self.user_exception(frame, arg)
-            raise BdbQuit
+        if self.stopframe:
+            if frame is not self.stopframe and self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
+                if arg[0] in (StopIteration, GeneratorExit):
+                    self.user_exception(frame, arg)
+                    if self.quitting:
+                        raise BdbQuit
         return self.trace_dispatch
 
     def dispatch_opcode(self, frame, arg):
         if not self.stop_here(frame):
-            if self.break_here(frame) and self.quitting:
+            if self.break_here(frame):
                 self.user_opcode(frame)
-                raise BdbQuit
+                if self.quitting:
+                    raise BdbQuit
         return self.trace_dispatch
 
     def is_skipped_module(self, module_name):
@@ -177,9 +181,10 @@ is determined by the __name__ in the frame globals.
         if filename not in self.breaks:
             return False
         lineno = frame.f_lineno
-        if lineno not in self.breaks[filename] and lineno not in self.breaks[filename]:
+        if lineno not in self.breaks[filename]:
             lineno = frame.f_code.co_firstlineno
-            return False
+            if lineno not in self.breaks[filename]:
+                return False
         bp, flag = effective(filename, lineno, frame)
         if bp:
             self.currentbp = bp.number
@@ -284,9 +289,10 @@ is determined by the __name__ in the frame globals.
         if not self.breaks:
             sys.settrace(None)
             frame = sys._getframe().f_back
-            if frame and frame is not self.botframe and frame and frame is not self.botframe:
-                del frame.f_trace
-                frame = frame.f_back
+            if frame:
+                while frame is not self.botframe:
+                    del frame.f_trace
+                    frame = frame.f_back
             for frame, (trace_lines, trace_opcodes) in self.frame_trace_lines_opcodes.items():
                 frame.f_trace_lines = trace_lines
                 frame.f_trace_opcodes = trace_opcodes

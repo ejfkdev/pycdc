@@ -466,12 +466,13 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                         if z == 'Z':
                             gmtoff = 0
                             continue
-                        if z[3] == ':' and len(z) > 5:
+                        if z[3] == ':':
                             z = z[:3] + z[4:]
-                            if z[5] != ':':
-                                msg = f'Inconsistent use of : in {found_dict['z']}'
-                                raise ValueError(msg)
-                            z = z[:5] + z[6:]
+                            if len(z) > 5:
+                                if z[5] != ':':
+                                    msg = f'Inconsistent use of : in {found_dict['z']}'
+                                    raise ValueError(msg)
+                                z = z[:5] + z[6:]
                         hours = int(z[1:3])
                         minutes = int(z[3:5])
                         seconds = int(z[5:7] or 0)
@@ -491,8 +492,9 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                         if not found_zone in tz_values:
                             pass
                         else:
-                            if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                                continue
+                            if time.tzname[0] == time.tzname[1] and time.daylight:
+                                if found_zone not in ('utc', 'gmt'):
+                                    continue
                             tz = value
                             continue
                             continue
@@ -514,7 +516,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                                     leap_year_fix = True
                                 else:
                                     year = 1900
-                            if not julian is not None or weekday is None or julian is None:
+                            if not julian is not None or weekday is None:
                                 if not week_of_year is None:
                                     week_starts_Mon = True if week_of_year_start == 0 else False
                                     julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
@@ -523,10 +525,11 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                                     year = datetime_result.year
                                     month = datetime_result.month
                                     day = datetime_result.day
-                                if julian <= 0:
-                                    year -= 1
-                                    yday = 365
-                                    julian += yday
+                                if not julian is None:
+                                    if julian <= 0:
+                                        year -= 1
+                                        yday = 365
+                                        julian += yday
                             if not julian is not None:
                                 julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
                             else:

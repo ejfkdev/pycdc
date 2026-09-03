@@ -131,9 +131,10 @@ class Calendar(object):
         while True:
             yield date
             date += oneday
-            if date.month != month and date.weekday() == self.firstweekday:
-                break
-                continue
+            if date.month != month:
+                if date.weekday() == self.firstweekday:
+                    break
+                    continue
             continue
 
     def itermonthdays2(self, year, month):
@@ -521,9 +522,10 @@ def main(args):
     parser.add_option('-e', '--encoding', dest='encoding', default=None, help='Encoding to use for output')
     parser.add_option('-t', '--type', dest='type', default='text', choices=('text', 'html'), help='output type (text or html)')
     options, args = parser.parse_args(args)
-    if options.locale and not options.encoding:
-        parser.error('if --locale is specified --encoding is required')
-        sys.exit(1)
+    if options.locale:
+        if not options.encoding:
+            parser.error('if --locale is specified --encoding is required')
+            sys.exit(1)
     locale = options.locale, options.encoding
     if options.type == 'html':
         if options.locale:

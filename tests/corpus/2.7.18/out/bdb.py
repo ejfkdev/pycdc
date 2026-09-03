@@ -61,9 +61,10 @@ class Bdb:
 
     def dispatch_line(self, frame):
         if not self.stop_here(frame):
-            if self.break_here(frame) and self.quitting:
+            if self.break_here(frame):
                 self.user_line(frame)
-                raise BdbQuit
+                if self.quitting:
+                    raise BdbQuit
         return self.trace_dispatch
 
     def dispatch_call(self, frame, arg):
@@ -79,19 +80,21 @@ class Bdb:
 
     def dispatch_return(self, frame, arg):
         if not self.stop_here(frame):
-            if frame == self.returnframe and self.quitting:
+            if frame == self.returnframe:
                 try:
                     self.frame_returning = frame
                     self.user_return(frame, arg)
                 finally:
                     self.frame_returning = None
-                raise BdbQuit
+                if self.quitting:
+                    raise BdbQuit
         return self.trace_dispatch
 
     def dispatch_exception(self, frame, arg):
-        if self.stop_here(frame) and self.quitting:
+        if self.stop_here(frame):
             self.user_exception(frame, arg)
-            raise BdbQuit
+            if self.quitting:
+                raise BdbQuit
         return self.trace_dispatch
 
     def is_skipped_module(self, module_name):
@@ -119,9 +122,10 @@ class Bdb:
         if filename not in self.breaks:
             return False
         lineno = frame.f_lineno
-        if lineno not in self.breaks[filename] and lineno not in self.breaks[filename]:
+        if lineno not in self.breaks[filename]:
             lineno = frame.f_code.co_firstlineno
-            return False
+            if lineno not in self.breaks[filename]:
+                return False
         bp, flag = effective(filename, lineno, frame)
         if bp:
             self.currentbp = bp.number
@@ -158,9 +162,10 @@ class Bdb:
         self._set_stopinfo(frame, frame, frame.f_lineno + 1)
 
     def set_step(self):
-        if self.frame_returning and caller_frame and not caller_frame.f_trace:
+        if self.frame_returning:
             caller_frame = self.frame_returning.f_back
-            caller_frame.f_trace = self.trace_dispatch
+            if caller_frame and not caller_frame.f_trace:
+                caller_frame.f_trace = self.trace_dispatch
         self._set_stopinfo(None, None)
 
     def set_next(self, frame):

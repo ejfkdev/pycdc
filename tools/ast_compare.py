@@ -297,9 +297,87 @@ class Normalizer(ast.NodeTransformer):
         return node
 
 
+def canonical_bool(node):
+    """Canonical form of a boolean expression: flatten and/or chains,
+    apply De Morgan so Not never wraps a BoolOp, then order commutative
+    operands by their dump text."""
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+        inner = canonical_bool(node.operand)
+        if isinstance(inner, ast.BoolOp):
+            neg = [canonical_bool(ast.UnaryOp(op=ast.Not(), operand=v))
+                   for v in inner.values]
+            op = ast.And() if isinstance(inner.op, ast.Or) else ast.Or()
+            return sorted_node(ast.BoolOp(op=op, values=neg))
+        return sorted_node(ast.UnaryOp(op=ast.Not(), operand=inner))
+    if isinstance(node, ast.BoolOp):
+        kind = type(node.op)
+        vals = []
+        for v in node.values:
+            cv = canonical_bool(v)
+            if isinstance(cv, ast.BoolOp) and type(cv.op) is kind:
+                vals.extend(cv.values)  # flatten same-op chains
+            else:
+                vals.append(cv)
+        return sorted_node(ast.BoolOp(op=node.op, values=vals))
+    return node
+
+
+def sorted_node(node):
+    """Sort values of commutative BoolOps by dump text for order-insensitive
+    comparison."""
+    if isinstance(node, ast.BoolOp):
+        node.values.sort(key=lambda v: ast.dump(v))
+    return node
+
+
+def merge_nested_ifs(stmts):
+    """`if a: if b: X` (no elses) compiles identically to `if a and b: X`;
+    canonicalize to the merged form on both sides."""
+    out = []
+    for s in stmts:
+        if isinstance(s, ast.If) and not s.orelse and len(s.body) == 1:
+            inner = s.body[0]
+            if isinstance(inner, ast.If) and not inner.orelse:
+                merged_test = ast.BoolOp(op=ast.And(),
+                                         values=[s.test, inner.test])
+                s = ast.If(test=merged_test, body=inner.body, orelse=[])
+        out.append(s)
+    return out
+
+
+class BoolCanonicalizer(ast.NodeTransformer):
+    def visit_If(self, node):
+        self.generic_visit(node)
+        node.test = canonical_bool(node.test)
+        return node
+
+    def visit_While(self, node):
+        self.generic_visit(node)
+        node.test = canonical_bool(node.test)
+        return node
+
+    def visit_IfExp(self, node):
+        self.generic_visit(node)
+        node.test = canonical_bool(node.test)
+        return node
+
+    def visit_Assert(self, node):
+        self.generic_visit(node)
+        node.test = canonical_bool(node.test)
+        return node
+
+
 def dump(src):
     tree = ast.parse(src)
     tree = Normalizer().visit(tree)
+    tree = BoolCanonicalizer().visit(tree)
+    # re-run body normalization so merged/canonical forms settle
+    tree = Normalizer().visit(tree)
+    for node in ast.walk(tree):
+        for field in ('body', 'orelse', 'finalbody'):
+            val = getattr(node, field, None)
+            if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
+                setattr(node, field, merge_nested_ifs(val))
     return ast.dump(tree)
 
 

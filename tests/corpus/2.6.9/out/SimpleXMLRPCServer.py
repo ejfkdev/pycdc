@@ -123,8 +123,9 @@ if __name__ == '__main__':
         def list_public_methods(obj):
             _[1] = []
             for member in dir(obj):
-                if not member.startswith('_') and hasattr(getattr(obj, member), '__call__'):
-                    continue
+                if not member.startswith('_'):
+                    if hasattr(getattr(obj, member), '__call__'):
+                        continue
             del _[1]
             return _[1]
 
@@ -272,9 +273,10 @@ if __name__ == '__main__':
                 except Exception:
                     e = None
                     self.send_response(500)
-                    if hasattr(self.server, '_send_traceback_header') and self.server._send_traceback_header:
-                        self.send_header('X-exception', str(e))
-                        self.send_header('X-traceback', traceback.format_exc())
+                    if hasattr(self.server, '_send_traceback_header'):
+                        if self.server._send_traceback_header:
+                            self.send_header('X-exception', str(e))
+                            self.send_header('X-traceback', traceback.format_exc())
                     self.end_headers()
                 else:
                     self.send_response(200)
@@ -316,10 +318,11 @@ if __name__ == '__main__':
                 self.logRequests = logRequests
                 SimpleXMLRPCDispatcher.__init__(self, allow_none, encoding)
                 SocketServer.TCPServer.__init__(self, addr, requestHandler, bind_and_activate)
-                if fcntl is not None and hasattr(fcntl, 'FD_CLOEXEC'):
-                    flags = fcntl.fcntl(self.fileno(), fcntl.F_GETFD)
-                    flags |= fcntl.FD_CLOEXEC
-                    fcntl.fcntl(self.fileno(), fcntl.F_SETFD, flags)
+                if fcntl is not None:
+                    if hasattr(fcntl, 'FD_CLOEXEC'):
+                        flags = fcntl.fcntl(self.fileno(), fcntl.F_GETFD)
+                        flags |= fcntl.FD_CLOEXEC
+                        fcntl.fcntl(self.fileno(), fcntl.F_SETFD, flags)
 
 
         class CGIXMLRPCRequestHandler(SimpleXMLRPCDispatcher):
@@ -346,8 +349,9 @@ if __name__ == '__main__':
                 sys.stdout.write(response)
 
             def handle_request(self, request_text=None):
-                if request_text is None and os.environ.get('REQUEST_METHOD', None) == 'GET':
-                    self.handle_get()
+                if request_text is None:
+                    if os.environ.get('REQUEST_METHOD', None) == 'GET':
+                        self.handle_get()
                 if request_text is None:
                     try:
                         length = int(os.environ.get('CONTENT_LENGTH', None))

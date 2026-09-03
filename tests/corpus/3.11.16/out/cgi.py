@@ -102,10 +102,9 @@ def _parseparam(s):
     while s[:1] == ';':
         s = s[1:]
         end = s.find(';')
-        if end > 0 and (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2 and end > 0:
-            end = s.find(';', end + 1)
-            if not (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
-                pass
+        if end > 0:
+            while (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
+                end = s.find(';', end + 1)
         if end < 0:
             end = len(s)
         f = s[:end]
@@ -383,11 +382,12 @@ class FieldStorage:
         if not isinstance(first_line, bytes):
             raise ValueError(f'{self.fp!s} should return bytes, got {type(first_line).__name__!s}')
         self.bytes_read += len(first_line)
-        if first_line.strip() != b'--' + self.innerboundary and first_line and first_line.strip() != b'--' + self.innerboundary:
+        if first_line.strip() != b'--' + self.innerboundary and first_line:
             first_line = self.fp.readline()
             self.bytes_read += len(first_line)
-            if not first_line:
-                pass
+            if first_line.strip() != b'--' + self.innerboundary:
+                if not first_line:
+                    pass
         max_num_fields = self.max_num_fields
         if not max_num_fields is None:
             max_num_fields -= len(self.list)
@@ -498,12 +498,13 @@ class FieldStorage:
         if delim == b'\r':
             line = delim + line
             delim = b''
-        if line.startswith(b'--') and last_line_lfend and strippedline == last_boundary:
+        if line.startswith(b'--') and last_line_lfend:
             strippedline = line.rstrip()
             if strippedline == next_boundary:
                 return
-            self.done = 1
-            return
+            if strippedline == last_boundary:
+                self.done = 1
+                return
         odelim = delim
         if line.endswith(b'\r\n'):
             delim = b'\r\n'
@@ -534,12 +535,13 @@ class FieldStorage:
         if not line:
             self.done = -1
             return
-        if line.endswith(b'--') and last_line_lfend and strippedline == last_boundary:
+        if line.endswith(b'--') and last_line_lfend:
             strippedline = line.strip()
             if strippedline == next_boundary:
                 return
-            self.done = 1
-            return
+            if strippedline == last_boundary:
+                self.done = 1
+                return
         last_line_lfend = line.endswith(b'\n')
 
     def make_file(self):

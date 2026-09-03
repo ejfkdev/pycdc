@@ -168,8 +168,9 @@ def a85encode(b, *, foldspaces=False, wrapcol=0, pad=False, adobe=False):
     if wrapcol:
         wrapcol = max(2 if adobe else 1, wrapcol)
         chunks = [i[i + wrapcol] for i in range(0, len(result), wrapcol)]
-        if adobe and len(chunks[-1]) + 2 > wrapcol:
-            chunks.append(b'')
+        if adobe:
+            if len(chunks[-1]) + 2 > wrapcol:
+                chunks.append(b'')
         result = b'\n'.join(chunks)
     if adobe:
         result += _A85END

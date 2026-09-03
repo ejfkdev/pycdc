@@ -133,9 +133,10 @@ class HTMLParser(markupbase.ParserBase):
                     i = self.updatepos(i, k)
                     continue
             continue
-        if end and i < n:
-            self.handle_data(rawdata[i:n])
-            i = self.updatepos(i, n)
+        if end:
+            if i < n:
+                self.handle_data(rawdata[i:n])
+                i = self.updatepos(i, n)
         self.rawdata = rawdata[i:]
 
     def parse_pi(self, i):

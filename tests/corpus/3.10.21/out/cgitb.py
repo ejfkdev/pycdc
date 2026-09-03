@@ -58,13 +58,14 @@ def lookup(name, frame, locals):
         return 'local', locals[name]
     if name in frame.f_globals:
         return 'global', frame.f_globals[name]
-    if '__builtins__' in frame.f_globals and hasattr(builtins, name):
+    if '__builtins__' in frame.f_globals:
         builtins = frame.f_globals['__builtins__']
         if type(builtins) is type({}):
             if name in builtins:
                 return 'builtin', builtins[name]
             return None, __UNDEF__
-        return 'builtin', getattr(builtins, name)
+        if hasattr(builtins, name):
+            return 'builtin', getattr(builtins, name)
     return None, __UNDEF__
 
 def scanvars(reader, frame, locals):
@@ -106,9 +107,10 @@ def html(einfo, context=5):
             file = link = '?'
         args, varargs, varkw, locals = inspect.getargvalues(frame)
         call = ''
-        if func != '?' and func != '<module>':
+        if func != '?':
             call = 'in ' + strong(pydoc.html.escape(func))
-            call += inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.html.repr(value)))
+            if func != '<module>':
+                call += inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.html.repr(value)))
         highlight = {}
         def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1
@@ -172,9 +174,10 @@ def text(einfo, context=5):
         file = os.path.abspath(file) or '?'
         args, varargs, varkw, locals = inspect.getargvalues(frame)
         call = ''
-        if func != '?' and func != '<module>':
+        if func != '?':
             call = 'in ' + func
-            call += inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.text.repr(value)))
+            if func != '<module>':
+                call += inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.text.repr(value)))
         highlight = {}
         def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1

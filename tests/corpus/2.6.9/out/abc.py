@@ -98,8 +98,9 @@ class ABCMeta(type):
             subtype = subclass
         if not subtype is subclass:
             if subclass is None:
-                if cls._abc_negative_cache_version == ABCMeta._abc_invalidation_counter and subtype in cls._abc_negative_cache:
-                    return False
+                if cls._abc_negative_cache_version == ABCMeta._abc_invalidation_counter:
+                    if subtype in cls._abc_negative_cache:
+                        return False
                 return cls.__subclasscheck__(subtype)
         return cls.__subclasscheck__(subclass) or cls.__subclasscheck__(subtype)
 

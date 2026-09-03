@@ -131,7 +131,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 198: orig  Expr(value=Yield()) | dec  Expr(value=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2412,
+   "ndiff": 2415,
    "ntotal": 2530,
    "detail": "line 23: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 27: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 28: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -145,7 +145,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 62: orig  If(test=UnaryOp(op=Not() | dec  If(test=Compare(left=Constant(value=1)",
+   "ast_detail": "diff at token 62: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 747,
    "ntotal": 802,
@@ -171,7 +171,7 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2763,
+   "ndiff": 2758,
    "ntotal": 2886,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
@@ -179,7 +179,7 @@
    "module": "cgitb",
    "ast_detail": "diff at token 20: orig  ctx=Load())] | dec  ctx=Load())",
    "verdict": "SIG-DIFF",
-   "ndiff": 1323,
+   "ndiff": 1322,
    "ntotal": 1484,
    "detail": "line 59: orig ('KW_NAMES', \"('remove',)\") | got ('CALL', '')\nline 60: orig ('CALL', '') | got ('POP_TOP', '')\nline 61: orig ('POP_TOP', '') | got ('LOAD_CONST', '<code reset>')"
   },
@@ -192,8 +192,8 @@
    "module": "cmd",
    "ast_detail": "diff at token 71: orig  body=[If(test=Compare(left=Name(id='stdin' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1134,
-   "ntotal": 1381,
+   "ndiff": 1135,
+   "ntotal": 1382,
    "detail": "line 209: orig ('POP_JUMP_IF_TRUE', 'to 898') | got ('POP_JUMP_IF_TRUE', 'to 552')\nline 219: orig ('JUMP_FORWARD', 'to 788') | got ('JUMP_FORWARD', 'to 546')\nline 222: orig ('POP_JUMP_IF_FALSE', 'to 548') | got ('POP_JUMP_IF_FALSE', 'to 546')"
   },
   {
@@ -230,7 +230,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 110: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 3293,
+   "ndiff": 3295,
    "ntotal": 4240,
    "detail": "line 835: orig ('KW_NAMES', \"('raw', 'fallback')\") | got ('CALL', '')\nline 836: orig ('CALL', '') | got ('STORE_FAST', 'rawval')\nline 837: orig ('STORE_FAST', 'rawval') | got ('LOAD_FAST', 'depth')"
   },
@@ -270,7 +270,7 @@
    "module": "csv",
    "ast_detail": "diff at token 129: orig  keywords=[]))])] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1615,
+   "ndiff": 1613,
    "ntotal": 1657,
    "detail": "line 13: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 17: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },

@@ -43,7 +43,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 220: orig  body=Yield()))])) | dec  body=Yield(value=Constant(value=None))))]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 3209,
+   "ndiff": 3217,
    "ntotal": 3732,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -80,7 +80,7 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 140: orig  right=Constant(value=1))))] | dec  right=Constant(value=1))))",
    "verdict": "SIG-DIFF",
-   "ndiff": 865,
+   "ndiff": 847,
    "ntotal": 1243,
    "detail": "line 272: orig ('POP_JUMP_IF_FALSE', 'to L20') | got ('POP_JUMP_IF_FALSE', 'to L19')\nline 324: orig ('JUMP_FORWARD', 'to L18') | got ('JUMP_FORWARD', 'to L17')\nline 335: orig ('JUMP_FORWARD', 'to L18') | got ('JUMP_FORWARD', 'to L17')"
   },
@@ -92,7 +92,7 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 40: orig  body=[If(test=Compare(left=Name(id='path' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1357,
+   "ndiff": 1361,
    "ntotal": 1534,
    "detail": "line 155: orig ('SWAP', '') | got ('POP_TOP', '')\nline 157: orig ('RETURN_VALUE', '') | got ('RETURN_CONST', 'None')\nline 161: orig ('LOAD_FAST', 'executable') | got ('RETURN_CONST', 'None')"
   },
@@ -106,7 +106,7 @@
   },
   {
    "module": "_pylong",
-   "ast_detail": "diff at token 34: orig  If(test=BoolOp(op=Or() | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 34: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 164,
    "ntotal": 1025,
@@ -165,7 +165,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 39: orig  value=IfExp(test=Name(id='skip' | dec  value=Constant(value=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2616,
+   "ndiff": 2600,
    "ntotal": 2733,
    "detail": "line 23: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 27: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 28: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -179,7 +179,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 56: orig  If(test=UnaryOp(op=Not() | dec  If(test=Compare(left=Constant(value=1)",
+   "ast_detail": "diff at token 56: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 787,
    "ntotal": 838,
@@ -205,15 +205,15 @@
    "module": "cmd",
    "ast_detail": "diff at token 67: orig  body=[If(test=Compare(left=Name(id='stdin' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1162,
-   "ntotal": 1429,
+   "ndiff": 1168,
+   "ntotal": 1427,
    "detail": "line 240: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_IF_TRUE', 'to L10')\nline 241: orig ('POP_JUMP_IF_TRUE', 'to L12') | got ('LOAD_FAST', 'self')\nline 242: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'cmdqueue')"
   },
   {
    "module": "code",
    "ast_detail": "diff at token 19: orig  body=[If(test=Compare(left=Name(id='locals' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 768,
+   "ndiff": 754,
    "ntotal": 994,
    "detail": "line 17: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 21: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },

@@ -201,16 +201,17 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if '=' not in query:
             cmdline.append(query)
         self.log_message('command: %s', subprocess.list2cmdline(cmdline))
-        if self.command.lower() == 'post' and nbytes > 0:
-            try:
-                nbytes = int(length)
-            except (TypeError, ValueError):
-                nbytes = 0
+        if self.command.lower() == 'post':
+            if nbytes > 0:
+                try:
+                    nbytes = int(length)
+                except (TypeError, ValueError):
+                    nbytes = 0
+                else:
+                    p = subprocess.Popen(cmdline, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    data = self.rfile.read(nbytes)
             else:
-                p = subprocess.Popen(cmdline, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                data = self.rfile.read(nbytes)
-        else:
-            data = None
+                data = None
         while select.select([self.rfile._sock], [], [], 0)[0]:
             if not self.rfile._sock.recv(1):
                 break

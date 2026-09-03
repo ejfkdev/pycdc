@@ -45,27 +45,29 @@ _SYSTEM_VERSION = None
 
 def _get_system_version():
     global _SYSTEM_VERSION
-    if _SYSTEM_VERSION is None and m is not None:
+    if _SYSTEM_VERSION is None:
         _SYSTEM_VERSION = ''
         return _SYSTEM_VERSION
         f.close()
         f.close()
-        _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
+        if m is not None:
+            _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
     return _SYSTEM_VERSION
 
 _SYSTEM_VERSION_TUPLE = None
 
 def _get_system_version_tuple():
     global _SYSTEM_VERSION_TUPLE
-    if _SYSTEM_VERSION_TUPLE is None and osx_version:
+    if _SYSTEM_VERSION_TUPLE is None:
         osx_version = _get_system_version()
-        return _SYSTEM_VERSION_TUPLE
-        _SYSTEM_VERSION_TUPLE = ()
-        return _SYSTEM_VERSION_TUPLE
-        try:
-            _SYSTEM_VERSION_TUPLE = tuple((int(i) for i in osx_version.split('.')))
-        except ValueError:
-            pass
+        if osx_version:
+            return _SYSTEM_VERSION_TUPLE
+            _SYSTEM_VERSION_TUPLE = ()
+            return _SYSTEM_VERSION_TUPLE
+            try:
+                _SYSTEM_VERSION_TUPLE = tuple((int(i) for i in osx_version.split('.')))
+            except ValueError:
+                pass
     return _SYSTEM_VERSION_TUPLE
 
 def _remove_original_values(_config_vars):
@@ -75,8 +77,9 @@ def _remove_original_values(_config_vars):
 
 def _save_modified_value(_config_vars, cv, newvalue):
     oldvalue = _config_vars.get(cv, '')
-    if oldvalue != newvalue and _INITPRE + cv not in _config_vars:
-        _config_vars[_INITPRE + cv] = oldvalue
+    if oldvalue != newvalue:
+        if _INITPRE + cv not in _config_vars:
+            _config_vars[_INITPRE + cv] = oldvalue
     _config_vars[cv] = newvalue
 
 _cache_default_sysroot = None
@@ -123,9 +126,10 @@ def _find_appropriate_compiler(_config_vars):
     cc = oldcc = _config_vars['CC'].split()[0]
     if not _find_executable(cc):
         cc = _find_build_tool('clang')
-    elif os.path.basename(cc).startswith('gcc') and data and 'llvm-gcc' in data:
+    elif os.path.basename(cc).startswith('gcc'):
         data = _read_output("'%s' --version" % (cc.replace("'", '\'"\'"\''),))
-        cc = _find_build_tool('clang')
+        if data and 'llvm-gcc' in data:
+            cc = _find_build_tool('clang')
     if not cc:
         raise SystemError('Cannot locate working compiler')
     if cc != oldcc:
@@ -148,13 +152,14 @@ def _remove_universal_flags(_config_vars):
 def _remove_unsupported_archs(_config_vars):
     if 'CC' in os.environ:
         return _config_vars
-    if re.search('-arch\\s+ppc', _config_vars['CFLAGS']) is not None and status:
+    if re.search('-arch\\s+ppc', _config_vars['CFLAGS']) is not None:
         status = os.system("echo 'int main{};' | '%s' -c -arch ppc -x c -o /dev/null /dev/null 2>/dev/null" % (_config_vars['CC'].replace("'", '\'"\'"\''),))
-        for cv in _UNIVERSAL_CONFIG_VARS:
-            if cv in _config_vars and cv not in os.environ:
-                flags = _config_vars[cv]
-                flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
-                _save_modified_value(_config_vars, cv, flags)
+        if status:
+            for cv in _UNIVERSAL_CONFIG_VARS:
+                if cv in _config_vars and cv not in os.environ:
+                    flags = _config_vars[cv]
+                    flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
+                    _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def _override_all_archs(_config_vars):
@@ -198,8 +203,9 @@ def compiler_fixup(compiler_so, cc_args):
                 pass
         elif not _supports_arm64_builds():
             for idx in reversed(range(len(compiler_so))):
-                if compiler_so[idx] == '-arch' and compiler_so[idx + 1] == 'arm64':
-                    del compiler_so[idx:idx + 2]
+                if compiler_so[idx] == '-arch':
+                    if compiler_so[idx + 1] == 'arm64':
+                        del compiler_so[idx:idx + 2]
     if 'ARCHFLAGS' in os.environ:
         if not stripArch:
             compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()

@@ -84,10 +84,11 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         dfile = os.path.join(ddir, name)
     else:
         dfile = None
-    if rx is not None and mo:
+    if rx is not None:
         mo = rx.search(fullname)
-        return success
-    if os.path.isfile(fullname) and tail == '.py':
+        if mo:
+            return success
+    if os.path.isfile(fullname):
         if legacy:
             cfile = fullname + 'c'
         else:
@@ -98,39 +99,40 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 cfile = importlib.util.cache_from_source(fullname)
             cache_dir = os.path.dirname(cfile)
         head, tail = name[:-3], name[-3:]
-        if not force:
-            pass
-        try:
-            mtime = int(os.stat(fullname).st_mtime)
-            expect = struct.pack('<4sll', importlib.util.MAGIC_NUMBER, 0, mtime)
-            with open(cfile, 'rb') as chandle:
-                actual = chandle.read(12)
-            if expect == actual:
-                return success
-        except OSError:
-            pass
-        if not quiet:
-            print('Compiling {!r}...'.format(fullname))
+        if tail == '.py':
+            if not force:
+                pass
+            try:
+                mtime = int(os.stat(fullname).st_mtime)
+                expect = struct.pack('<4sll', importlib.util.MAGIC_NUMBER, 0, mtime)
+                with open(cfile, 'rb') as chandle:
+                    actual = chandle.read(12)
+                if expect == actual:
+                    return success
+            except OSError:
+                pass
+            if not quiet:
+                print('Compiling {!r}...'.format(fullname))
+            if quiet >= 2:
+                return
+            if quiet:
+                print('*** Error compiling {!r}...'.format(fullname))
+            else:
+                print('*** ', end='')
+            msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
+            msg = msg(sys.stdout.encoding)
+            print(msg)
+            err = None
+            del err
         if quiet >= 2:
             return
         if quiet:
             print('*** Error compiling {!r}...'.format(fullname))
         else:
             print('*** ', end='')
-        msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
-        msg = msg(sys.stdout.encoding)
-        print(msg)
-        err = None
-        del err
-    if quiet >= 2:
-        return
-    if quiet:
-        print('*** Error compiling {!r}...'.format(fullname))
-    else:
-        print('*** ', end='')
-    print(e.__class__.__name__ + ':', e)
-    e = None
-    del e
+        print(e.__class__.__name__ + ':', e)
+        e = None
+        del e
     if ok == 0:
         success = False
         try:

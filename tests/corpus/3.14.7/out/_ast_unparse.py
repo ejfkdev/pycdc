@@ -557,11 +557,12 @@ is disregarded.'''
             string = repr(string)
             quote = next((q for q in quote_types if string + 0 in q), string[0])
             return string[1:-1], [quote]
-        if escaped_string and possible_quotes[0][0] == escaped_string[-1]:
+        if escaped_string:
             possible_quotes.sort(key=(lambda q: q[0] == escaped_string[-1]))
-            if not len(possible_quotes[0]) == 3:
-                raise None
-            escaped_string = escaped_string[:-1] + '\\' + escaped_string[-1]
+            if possible_quotes[0][0] == escaped_string[-1]:
+                if not len(possible_quotes[0]) == 3:
+                    raise None
+                escaped_string = escaped_string[:-1] + '\\' + escaped_string[-1]
         return escaped_string, possible_quotes
 
     def _write_str_avoiding_backslashes(self, string, *, quote_types=_ALL_QUOTES):
@@ -626,15 +627,16 @@ is disregarded.'''
             for value in node.values:
                 self._write_ftstring_inner(value, is_format_spec)
             return
-        if isinstance(node, Constant) and isinstance(node.value, str):
-            value = node.value.replace('{', '{{').replace('}', '}}')
-            if is_format_spec:
-                value = value.replace('\\', '\\\\')
-                value = value.replace("'", "\\'")
-                value = value.replace('"', '\\"')
-                value = value.replace('\n', '\\n')
-            self.write(value)
-            return
+        if isinstance(node, Constant):
+            if isinstance(node.value, str):
+                value = node.value.replace('{', '{{').replace('}', '}}')
+                if is_format_spec:
+                    value = value.replace('\\', '\\\\')
+                    value = value.replace("'", "\\'")
+                    value = value.replace('"', '\\"')
+                    value = value.replace('\n', '\\n')
+                self.write(value)
+                return
         if isinstance(node, FormattedValue):
             self.visit_FormattedValue(node)
             return
@@ -853,8 +855,9 @@ is disregarded.'''
     def visit_Attribute(self, node):
         self.set_precedence(_Precedence.ATOM, node.value)
         self.traverse(node.value)
-        if isinstance(node.value, Constant) and isinstance(node.value.value, int):
-            self.write(' ')
+        if isinstance(node.value, Constant):
+            if isinstance(node.value.value, int):
+                self.write(' ')
         self.write('.')
         self.write(node.attr)
 
@@ -941,15 +944,17 @@ is disregarded.'''
             if not index == len(node.posonlyargs):
                 pass
         if not node.vararg:
-            if node.kwonlyargs and node.vararg and node.vararg.annotation:
+            if node.kwonlyargs:
                 if first:
                     first = False
                 else:
                     self.write(', ')
                 self.write('*')
-                self.write(node.vararg.arg)
-                self.write(': ')
-                self.traverse(node.vararg.annotation)
+                if node.vararg:
+                    self.write(node.vararg.arg)
+                    if node.vararg.annotation:
+                        self.write(': ')
+                        self.traverse(node.vararg.annotation)
         if node.kwonlyargs:
             for a, d in zip(node.kwonlyargs, node.kw_defaults):
                 self.write(', ')

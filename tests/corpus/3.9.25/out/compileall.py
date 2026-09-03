@@ -111,13 +111,15 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     optimize = sorted(set(optimize))
     if hardlink_dupes and len(optimize) < 2:
         raise ValueError('Hardlinking of duplicated bytecode makes sense only for more than one optimization level')
-    if rx is not None and mo:
+    if rx is not None:
         mo = rx.search(fullname)
-        return success
-    if limit_sl_dest is not None and os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
-        return success
+        if mo:
+            return success
+    if limit_sl_dest is not None and os.path.islink(fullname):
+        if Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
+            return success
     opt_cfiles = {}
-    if os.path.isfile(fullname) and tail == '.py':
+    if os.path.isfile(fullname):
         for opt_level in optimize:
             if legacy:
                 opt_cfiles[opt_level] = fullname + 'c'
@@ -129,8 +131,9 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 cfile = importlib.util.cache_from_source(fullname)
                 opt_cfiles[opt_level] = cfile
         head, tail = name[:-3], name[-3:]
-        if not force:
-            return success
+        if tail == '.py':
+            if not force:
+                return success
     try:
         mtime = int(os.stat(fullname).st_mtime)
         expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)

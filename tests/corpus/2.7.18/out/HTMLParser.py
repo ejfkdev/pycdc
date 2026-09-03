@@ -144,9 +144,10 @@ class HTMLParser(markupbase.ParserBase):
                         k = k - 1
                     i = self.updatepos(i, k)
                     continue
-        if end and i < n and not self.cdata_elem:
-            self.handle_data(rawdata[i:n])
-            i = self.updatepos(i, n)
+        if end and i < n:
+            if not self.cdata_elem:
+                self.handle_data(rawdata[i:n])
+                i = self.updatepos(i, n)
         self.rawdata = rawdata[i:]
 
     def parse_html_declaration(self, i):

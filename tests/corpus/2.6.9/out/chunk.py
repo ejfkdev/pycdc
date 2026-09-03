@@ -123,9 +123,11 @@ class Chunk:
             size = self.chunksize - self.size_read
         data = self.file.read(size)
         self.size_read = self.size_read + len(data)
-        if self.size_read == self.chunksize and self.align and self.chunksize & 1:
-            dummy = self.file.read(1)
-            self.size_read = self.size_read + len(dummy)
+        if self.size_read == self.chunksize:
+            if self.align:
+                if self.chunksize & 1:
+                    dummy = self.file.read(1)
+                    self.size_read = self.size_read + len(dummy)
         return data
 
     def skip(self):
@@ -140,8 +142,9 @@ class Chunk:
                 raise EOFError
                 try:
                     n = self.chunksize - self.size_read
-                    if self.align and self.chunksize & 1:
-                        n = n + 1
+                    if self.align:
+                        if self.chunksize & 1:
+                            n = n + 1
                     self.file.seek(n, 1)
                     self.size_read = self.size_read + n
                     return

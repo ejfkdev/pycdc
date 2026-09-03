@@ -206,9 +206,10 @@ if __name__ == '__main__':
                 0 <= i < n
                 Omatch = _OctalPatt.search(str, i)
                 Qmatch = _QuotePatt.search(str, i)
-                if not Omatch and not Qmatch:
-                    res.append(str[i:])
-                    break
+                if not Omatch:
+                    if not Qmatch:
+                        res.append(str[i:])
+                        break
                 j = k = -1
                 if Omatch:
                     j = Omatch.start(0)
@@ -286,12 +287,14 @@ if __name__ == '__main__':
                         continue
                     if K not in attrs:
                         continue
-                    if K == 'expires' and type(V) == type(1):
-                        RA('%s=%s' % (self._reserved[K], _getdate(V)))
-                        continue
-                    if K == 'max-age' and type(V) == type(1):
-                        RA('%s=%d' % (self._reserved[K], V))
-                        continue
+                    if K == 'expires':
+                        if type(V) == type(1):
+                            RA('%s=%s' % (self._reserved[K], _getdate(V)))
+                            continue
+                    if K == 'max-age':
+                        if type(V) == type(1):
+                            RA('%s=%d' % (self._reserved[K], V))
+                            continue
                     if K == 'secure':
                         RA(str(self._reserved[K]))
                         continue

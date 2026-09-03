@@ -373,9 +373,10 @@ class _CallableGenericAlias(GenericAlias):
             raise TypeError(f'{self} is not a generic class')
         if not isinstance(item, tuple):
             item = (item,)
-        if param_len == 1 and _is_param_expr(self.__parameters__[0]) and item:
-            if not _is_param_expr(item[0]):
-                item = (list(item),)
+        if param_len == 1 and _is_param_expr(self.__parameters__[0]):
+            if item:
+                if not _is_param_expr(item[0]):
+                    item = (list(item),)
         item_len = len(item)
         if item_len != param_len:
             raise TypeError(f'Too {"many" if item_len > param_len else "few"} arguments for {self}; actual {item_len}, expected {param_len}')
@@ -393,10 +394,11 @@ class _CallableGenericAlias(GenericAlias):
                         raise TypeError(f'Expected a list of types, an ellipsis, ParamSpec, or Concatenate. Got {arg}')
                 else:
                     arg = subst[arg]
-            elif hasattr(arg, '__parameters__') and isinstance(arg.__parameters__, tuple) and subparams:
+            elif hasattr(arg, '__parameters__') and isinstance(arg.__parameters__, tuple):
                 subparams = arg.__parameters__
-                subargs = tuple((subst[x] for x in subparams))
-                arg = arg[subargs]
+                if subparams:
+                    subargs = tuple((subst[x] for x in subparams))
+                    arg = arg[subargs]
             if isinstance(arg, tuple):
                 new_args.extend(arg)
                 continue

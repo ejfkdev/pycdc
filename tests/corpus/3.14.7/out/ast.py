@@ -58,11 +58,12 @@ def literal_eval(node_or_string):
         return node.value
 
     def _convert_signed_num(node):
-        if isinstance(node, UnaryOp) and isinstance(node.op, (UAdd, USub)):
-            operand = _convert_num(node.operand)
-            if isinstance(node.op, UAdd):
-                return operand
-            return -operand
+        if isinstance(node, UnaryOp):
+            if isinstance(node.op, (UAdd, USub)):
+                operand = _convert_num(node.operand)
+                if isinstance(node.op, UAdd):
+                    return operand
+                return -operand
         return _convert_num(node)
 
     def _convert(node):
@@ -74,20 +75,25 @@ def literal_eval(node_or_string):
             return list(map(_convert, node.elts))
         if isinstance(node, Set):
             return set(map(_convert, node.elts))
-        if isinstance(node, Call) and isinstance(node.func, Name) and node.func.id == 'set':
-            if node.args == node.keywords:
-                if node.keywords == []:
-                    return set()
+        if isinstance(node, Call):
+            if isinstance(node.func, Name):
+                if node.func.id == 'set':
+                    if node.args == node.keywords:
+                        if node.keywords == []:
+                            return set()
         if isinstance(node, Dict):
             if len(node.keys) != len(node.values):
                 _raise_malformed_node(node)
             return dict(zip(map(_convert, node.keys), map(_convert, node.values)))
-        if isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(left, (int, float)) and isinstance(right, complex):
-            left = _convert_signed_num(node.left)
-            right = _convert_num(node.right)
-            if isinstance(node.op, Add):
-                return left + right
-            return left - right
+        if isinstance(node, BinOp):
+            if isinstance(node.op, (Add, Sub)):
+                left = _convert_signed_num(node.left)
+                right = _convert_num(node.right)
+                if isinstance(left, (int, float)):
+                    if isinstance(right, complex):
+                        if isinstance(node.op, Add):
+                            return left + right
+                        return left - right
         return _convert_signed_num(node)
 
     return _convert(node_or_string)
@@ -112,15 +118,17 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None, s
                     value = getattr(node, name)
                 except AttributeError:
                     keywords = True
-                if not value is not None or getattr(cls, name, ...) is not None:
-                    keywords = True
-                    continue
-                if not show_empty:
-                    if value == [] and getattr(field_type, '__origin__', ...) is list:
-                        field_type = cls._field_types.get(name, object)
-                        if not keywords:
-                            args_buffer.append(repr(value))
+                if not value is not None:
+                    if not getattr(cls, name, ...) is not None:
+                        keywords = True
                         continue
+                if not show_empty:
+                    if value == []:
+                        field_type = cls._field_types.get(name, object)
+                        if getattr(field_type, '__origin__', ...) is list:
+                            if not keywords:
+                                args_buffer.append(repr(value))
+                            continue
                 if not keywords:
                     args.extend(args_buffer)
                     args_buffer = []
@@ -130,19 +138,22 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None, s
                     args.append(f'{name!s}={value!s}')
                     continue
                 args.append(value)
-            if include_attributes and node._attributes:
-                for name in node._attributes:
-                    try:
-                        value = getattr(node, name)
-                    except AttributeError:
-                        pass
-                    if not value is not None or getattr(cls, name, ...) is not None:
-                        continue
-                    value, simple = _format(value, level)
-                    allsimple = allsimple and simple
-                    args.append(f'{name!s}={value!s}')
-            if allsimple and len(args) <= 3:
-                return f'{node.__class__.__name__!s}({', '.join(args)!s})', not args
+            if include_attributes:
+                if node._attributes:
+                    for name in node._attributes:
+                        try:
+                            value = getattr(node, name)
+                        except AttributeError:
+                            pass
+                        if not value is not None:
+                            if not getattr(cls, name, ...) is not None:
+                                continue
+                        value, simple = _format(value, level)
+                        allsimple = allsimple and simple
+                        args.append(f'{name!s}={value!s}')
+            if allsimple:
+                if len(args) <= 3:
+                    return f'{node.__class__.__name__!s}({', '.join(args)!s})', not args
             return f'{node.__class__.__name__!s}({prefix!s}{sep.join(args)!s})', False
         if isinstance(node, list):
             if not node:
@@ -229,10 +240,11 @@ def get_docstring(node, clean=True):
         if not isinstance(node.body[0], Expr):
             return
     node = node.body[0].value
-    if isinstance(node, Constant) and isinstance(node.value, str):
-        text = node.value
-    else:
-        return
+    if isinstance(node, Constant):
+        if isinstance(node.value, str):
+            text = node.value
+        else:
+            return
     if clean:
         import inspect
         text = inspect.cleandoc(text)
@@ -319,8 +331,9 @@ def compare(a, b, /, *, compare_attributes=False):
         for field in a._fields:
             a_field = getattr(a, field, sentinel)
             b_field = getattr(b, field, sentinel)
-            if a_field is sentinel and b_field is sentinel:
-                continue
+            if a_field is sentinel:
+                if b_field is sentinel:
+                    continue
             if not a_field is sentinel:
                 if b_field is sentinel:
                     return False
@@ -336,8 +349,9 @@ def compare(a, b, /, *, compare_attributes=False):
         for attr in a._attributes:
             a_attr = getattr(a, attr, sentinel)
             b_attr = getattr(b, attr, sentinel)
-            if a_attr is sentinel and b_attr is sentinel:
-                continue
+            if a_attr is sentinel:
+                if b_attr is sentinel:
+                    continue
             if not a_attr != b_attr:
                 pass
             else:

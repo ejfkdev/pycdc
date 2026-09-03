@@ -55,9 +55,11 @@ _SYSTEM_VERSION_TUPLE = None
 
 def _get_system_version_tuple():
     global _SYSTEM_VERSION_TUPLE
-    if _SYSTEM_VERSION_TUPLE is None and osx_version:
+    if _SYSTEM_VERSION_TUPLE is None:
         osx_version = _get_system_version()
-    _SYSTEM_VERSION_TUPLE = ()
+        if osx_version:
+            pass
+        _SYSTEM_VERSION_TUPLE = ()
     try:
         _SYSTEM_VERSION_TUPLE = tuple((int(i) for i in osx_version.split('.')))
     except ValueError:
@@ -71,8 +73,9 @@ def _remove_original_values(_config_vars):
 
 def _save_modified_value(_config_vars, cv, newvalue):
     oldvalue = _config_vars.get(cv, '')
-    if oldvalue != newvalue and _INITPRE + cv not in _config_vars:
-        _config_vars[_INITPRE + cv] = oldvalue
+    if oldvalue != newvalue:
+        if _INITPRE + cv not in _config_vars:
+            _config_vars[_INITPRE + cv] = oldvalue
     _config_vars[cv] = newvalue
 
 _cache_default_sysroot = None
@@ -119,9 +122,10 @@ def _find_appropriate_compiler(_config_vars):
     cc = oldcc = _config_vars['CC'].split()[0]
     if not _find_executable(cc):
         cc = _find_build_tool('clang')
-    elif os.path.basename(cc).startswith('gcc') and data and 'llvm-gcc' in data:
+    elif os.path.basename(cc).startswith('gcc'):
         data = _read_output("'%s' --version" % (cc.replace("'", '\'"\'"\''),))
-        cc = _find_build_tool('clang')
+        if data and 'llvm-gcc' in data:
+            cc = _find_build_tool('clang')
     if not cc:
         raise SystemError('Cannot locate working compiler')
     if cc != oldcc:
@@ -146,14 +150,15 @@ def _remove_universal_flags(_config_vars):
 def _remove_unsupported_archs(_config_vars):
     if 'CC' in os.environ:
         return _config_vars
-    if re.search('-arch\\s+ppc', _config_vars['CFLAGS']) is not None and status:
+    if re.search('-arch\\s+ppc', _config_vars['CFLAGS']) is not None:
         status = os.system("echo 'int main{};' | '%s' -c -arch ppc -x c -o /dev/null /dev/null 2>/dev/null" % (_config_vars['CC'].replace("'", '\'"\'"\''),))
-        for cv in _UNIVERSAL_CONFIG_VARS:
-            if cv in _config_vars:
-                if cv not in os.environ:
-                    flags = _config_vars[cv]
-                    flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
-                    _save_modified_value(_config_vars, cv, flags)
+        if status:
+            for cv in _UNIVERSAL_CONFIG_VARS:
+                if cv in _config_vars:
+                    if cv not in os.environ:
+                        flags = _config_vars[cv]
+                        flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
+                        _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def _override_all_archs(_config_vars):

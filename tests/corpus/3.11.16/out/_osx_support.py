@@ -113,9 +113,10 @@ def _find_appropriate_compiler(_config_vars):
     cc = oldcc = _config_vars['CC'].split()[0]
     if not _find_executable(cc):
         cc = _find_build_tool('clang')
-    elif os.path.basename(cc).startswith('gcc') and data and 'llvm-gcc' in data:
+    elif os.path.basename(cc).startswith('gcc'):
         data = _read_output(("'" + str(cc.replace("'", '\'"\'"\'')) + "' --version"))
-        cc = _find_build_tool('clang')
+        if data and 'llvm-gcc' in data:
+            cc = _find_build_tool('clang')
     if not cc:
         raise SystemError('Cannot locate working compiler')
     if cc != oldcc:
@@ -162,13 +163,14 @@ def _override_all_archs(_config_vars):
 def _check_for_unavailable_sdk(_config_vars):
     cflags = _config_vars.get('CFLAGS', '')
     m = re.search('-isysroot\\s*(\\S+)', cflags)
-    if not m is None or os.path.exists(sdk):
+    if not m is None:
         sdk = m.group(1)
-        for cv in _UNIVERSAL_CONFIG_VARS:
-            if cv in _config_vars and cv not in os.environ:
-                flags = _config_vars[cv]
-                flags = re.sub('-isysroot\\s*\\S+(?:\\s|$)', ' ', flags)
-                _save_modified_value(_config_vars, cv, flags)
+        if not os.path.exists(sdk):
+            for cv in _UNIVERSAL_CONFIG_VARS:
+                if cv in _config_vars and cv not in os.environ:
+                    flags = _config_vars[cv]
+                    flags = re.sub('-isysroot\\s*\\S+(?:\\s|$)', ' ', flags)
+                    _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def compiler_fixup(compiler_so, cc_args):

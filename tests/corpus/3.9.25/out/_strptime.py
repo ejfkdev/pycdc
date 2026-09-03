@@ -306,12 +306,13 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                     if z == 'Z':
                         gmtoff = 0
                     else:
-                        if z[3] == ':' and len(z) > 5:
+                        if z[3] == ':':
                             z = z[:3] + z[4:]
-                            if z[5] != ':':
-                                msg = f'Inconsistent use of : in {found_dict["z"]}'
-                                raise ValueError(msg)
-                            z = z[:5] + z[6:]
+                            if len(z) > 5:
+                                if z[5] != ':':
+                                    msg = f'Inconsistent use of : in {found_dict["z"]}'
+                                    raise ValueError(msg)
+                                z = z[:5] + z[6:]
                         hours = int(z[1:3])
                         minutes = int(z[3:5])
                         seconds = int(z[5:7] or 0)
@@ -328,11 +329,12 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                     found_zone = found_dict['Z'].lower()
                     for value, tz_values in enumerate(locale_time.timezone):
                         if found_zone in tz_values:
-                            if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                                continue
-                            else:
-                                tz = value
-                                continue
+                            if time.tzname[0] == time.tzname[1] and time.daylight:
+                                if found_zone not in ('utc', 'gmt'):
+                                    continue
+                                else:
+                                    tz = value
+                                    continue
         continue
     if year is None and iso_year is not None:
         if not iso_week is None:
@@ -346,20 +348,22 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
         else:
             raise ValueError("ISO week directive '%V' is incompatible with the year directive '%Y'. Use the ISO year '%G' instead.")
     leap_year_fix = False
-    if year is None and month == 2 and day == 29:
-        year = 1904
-        leap_year_fix = True
-    elif year is None:
-        year = 1900
-    if julian is None and weekday is not None and julian is not None and julian <= 0:
+    if year is None and month == 2:
+        if day == 29:
+            year = 1904
+            leap_year_fix = True
+        elif year is None:
+            year = 1900
+    if julian is None and weekday is not None:
         if week_of_year is not None:
             week_starts_Mon = True if week_of_year_start == 0 else False
             julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
         elif iso_year is not None and iso_week is not None:
             year, julian = _calc_julian_from_V(iso_year, iso_week, weekday + 1)
-        year -= 1
-        yday = 366 if calendar.isleap(year) else 365
-        julian += yday
+        if julian is not None and julian <= 0:
+            year -= 1
+            yday = 366 if calendar.isleap(year) else 365
+            julian += yday
     if julian is None:
         julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
     else:

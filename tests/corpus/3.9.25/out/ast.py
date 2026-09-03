@@ -75,21 +75,23 @@ def literal_eval(node_or_string):
             return list(map(_convert, node.elts))
         if isinstance(node, Set):
             return set(map(_convert, node.elts))
-        if isinstance(node, Call) and isinstance(node.func, Name) and node.func.id == 'set':
-            if node.args == node.keywords:
-                if node.keywords == []:
-                    pass
-            return set()
+        if isinstance(node, Call) and isinstance(node.func, Name):
+            if node.func.id == 'set':
+                if node.args == node.keywords:
+                    if node.keywords == []:
+                        pass
+                return set()
         if isinstance(node, Dict):
             if len(node.keys) != len(node.values):
                 _raise_malformed_node(node)
             return dict(zip(map(_convert, node.keys), map(_convert, node.values)))
-        if isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(left, (int, float)) and isinstance(right, complex):
+        if isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)):
             left = _convert_signed_num(node.left)
             right = _convert_num(node.right)
-            if isinstance(node.op, Add):
-                return left + right
-            return left - right
+            if isinstance(left, (int, float)) and isinstance(right, complex):
+                if isinstance(node.op, Add):
+                    return left + right
+                return left - right
         return _convert_signed_num(node)
 
     return _convert(node_or_string)
@@ -241,9 +243,10 @@ def _splitlines_no_ff(source):
         c = source[idx]
         next_line += c
         idx += 1
-        if c == '\r' and idx < len(source) and source[idx] == '\n':
-            next_line += '\n'
-            idx += 1
+        if c == '\r' and idx < len(source):
+            if source[idx] == '\n':
+                next_line += '\n'
+                idx += 1
         if c in '\r\n':
             pass
         lines.append(next_line)
@@ -994,10 +997,11 @@ class _Unparser(NodeVisitor):
             string = repr(string)
             quote = next((q for q in quote_types if string[0] in q), string[0])
             return string[1:-1], [quote]
-        if escaped_string and possible_quotes[0][0] == escaped_string[-1]:
+        if escaped_string:
             possible_quotes.sort(key=(lambda q: q[0] == escaped_string[-1]))
-            assert len(possible_quotes[0]) == 3
-            escaped_string = escaped_string[:-1] + '\\' + escaped_string[-1]
+            if possible_quotes[0][0] == escaped_string[-1]:
+                assert len(possible_quotes[0]) == 3
+                escaped_string = escaped_string[:-1] + '\\' + escaped_string[-1]
         return escaped_string, possible_quotes
 
     def _write_str_avoiding_backslashes(self, string, *, quote_types=_ALL_QUOTES):
@@ -1348,10 +1352,11 @@ class _Unparser(NodeVisitor):
         else:
             self.write(', ')
         self.write('*')
-        if node.vararg and node.vararg.annotation:
+        if node.vararg:
             self.write(node.vararg.arg)
-            self.write(': ')
-            self.traverse(node.vararg.annotation)
+            if node.vararg.annotation:
+                self.write(': ')
+                self.traverse(node.vararg.annotation)
         if node.kwonlyargs:
             for a, d in zip(node.kwonlyargs, node.kw_defaults):
                 self.write(', ')
@@ -1359,14 +1364,15 @@ class _Unparser(NodeVisitor):
                 if d:
                     self.write('=')
                     self.traverse(d)
-        if node.kwarg and node.kwarg.annotation:
+        if node.kwarg:
             if first:
                 first = False
             else:
                 self.write(', ')
             self.write('**' + node.kwarg.arg)
-            self.write(': ')
-            self.traverse(node.kwarg.annotation)
+            if node.kwarg.annotation:
+                self.write(': ')
+                self.traverse(node.kwarg.annotation)
 
     def visit_keyword(self, node):
         if node.arg is None:

@@ -274,9 +274,10 @@ if __name__ == '__main__':
                         continue
                     decdata = decdata + decdatacur
                     wtd = totalwtd - len(decdata)
-                    if not decdata and not self.eof:
-                        raise Error # WARNING: raise cause dropped (py2)
-                        continue
+                    if not decdata:
+                        if not self.eof:
+                            raise Error # WARNING: raise cause dropped (py2)
+                            continue
                     continue
                 return decdata
 

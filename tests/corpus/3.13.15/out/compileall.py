@@ -118,7 +118,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         if os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
             return success
     opt_cfiles = {}
-    if os.path.isfile(fullname) and tail == '.py':
+    if os.path.isfile(fullname):
         for opt_level in optimize:
             if legacy:
                 opt_cfiles[opt_level] = fullname + 'c'
@@ -131,53 +131,54 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             cfile = importlib.util.cache_from_source(fullname)
             opt_cfiles[opt_level] = cfile
         head, tail = name[:-3], name[-3:]
-        if not force:
-            try:
-                os.unlink(cfile)
-                os.link(previous_cfile, cfile)
-                # WARNING: continue outside loop (unrecovered structure)
-            finally:
-                if not expect != actual:
+        if tail == '.py':
+            if not force:
+                try:
+                    os.unlink(cfile)
+                    os.link(previous_cfile, cfile)
+                    # WARNING: continue outside loop (unrecovered structure)
+                finally:
+                    if not expect != actual:
+                        try:
+                            pass
+                        except OSError:
+                            pass
                     try:
                         pass
                     except OSError:
                         pass
-                try:
-                    pass
-                except OSError:
-                    pass
-                return success
-                if not quiet:
-                    print('Compiling {!r}...'.format(fullname))
-                try:
-                    for index, opt_level in enumerate(optimize):
-                        cfile = opt_cfiles[opt_level]
-                        ok = py_compile.compile(fullname, cfile, dfile, True, opt_level, invalidation_mode)
-                        if not index > 0:
-                            pass
-                        else:
-                            try:
-                                pass
-                            except py_compile./*bad-name-80*/ as err:
-                                success = False
-                                if quiet >= 2:
-                                    pass
-                            if not hardlink_dupes:
+                    return success
+                    if not quiet:
+                        print('Compiling {!r}...'.format(fullname))
+                    try:
+                        for index, opt_level in enumerate(optimize):
+                            cfile = opt_cfiles[opt_level]
+                            ok = py_compile.compile(fullname, cfile, dfile, True, opt_level, invalidation_mode)
+                            if not index > 0:
                                 pass
                             else:
                                 try:
-                                    previous_cfile = opt_cfiles[optimize[index - 1]]
+                                    pass
                                 except py_compile./*bad-name-80*/ as err:
                                     success = False
                                     if quiet >= 2:
                                         pass
-                                if not filecmp.cmp(cfile, previous_cfile, False):
+                                if not hardlink_dupes:
                                     pass
-                finally:
-                    if ok == 0:
-                        success = False
-                    return success
-                    return success
+                                else:
+                                    try:
+                                        previous_cfile = opt_cfiles[optimize[index - 1]]
+                                    except py_compile./*bad-name-80*/ as err:
+                                        success = False
+                                        if quiet >= 2:
+                                            pass
+                                    if not filecmp.cmp(cfile, previous_cfile, False):
+                                        pass
+                    finally:
+                        if ok == 0:
+                            success = False
+                        return success
+                        return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     success = True

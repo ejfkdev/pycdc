@@ -161,8 +161,10 @@ class Cmd:
             else:
                 return None, None, line
         i, n = 0, len(line)
-        if i < n and line[i] in self.identchars and i < n and line[i] in self.identchars:
+        if i < n and line[i] in self.identchars:
             i = i + 1
+            if i < n and line[i] in self.identchars:
+                pass
         cmd, arg = line[:i], line[i:].strip()
         return cmd, arg, line
 

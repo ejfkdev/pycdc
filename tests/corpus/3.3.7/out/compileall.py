@@ -60,10 +60,11 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=
         dfile = os.path.join(ddir, name)
     else:
         dfile = None
-    if rx is not None and mo:
+    if rx is not None:
         mo = rx.search(fullname)
-        return success
-    if os.path.isfile(fullname) and tail == '.py':
+        if mo:
+            return success
+    if os.path.isfile(fullname):
         if legacy:
             cfile = fullname + ('c' if __debug__ else 'o')
         else:
@@ -73,43 +74,44 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=
                 cfile = imp.cache_from_source(fullname)
             cache_dir = os.path.dirname(cfile)
         head, tail = name[:-3], name[-3:]
-        if not force:
-            pass
-        try:
-            mtime = int(os.stat(fullname).st_mtime)
-            expect = struct.pack('<4sl', imp.get_magic(), mtime)
-            with open(cfile, 'rb') as chandle:
-                actual = chandle.read(8)
-            if expect == actual:
-                return success
-        except IOError:
-            pass
-        if not quiet:
-            print('Compiling {!r}...'.format(fullname))
-        err = None
-        del err, e
-        e = None
-        if ok == 0:
+        if tail == '.py':
+            if not force:
+                pass
             try:
-                ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
-            except py_compile.PyCompileError as err:
-                if quiet:
-                    print('*** Error compiling {!r}...'.format(fullname))
+                mtime = int(os.stat(fullname).st_mtime)
+                expect = struct.pack('<4sl', imp.get_magic(), mtime)
+                with open(cfile, 'rb') as chandle:
+                    actual = chandle.read(8)
+                if expect == actual:
+                    return success
+            except IOError:
+                pass
+            if not quiet:
+                print('Compiling {!r}...'.format(fullname))
+            err = None
+            del err, e
+            e = None
+            if ok == 0:
+                try:
+                    ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
+                except py_compile.PyCompileError as err:
+                    if quiet:
+                        print('*** Error compiling {!r}...'.format(fullname))
+                    else:
+                        print('*** ', end='')
+                    msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
+                    msg = msg.decode(sys.stdout.encoding)
+                    print(msg)
+                    success = 0
+                except (SyntaxError, UnicodeError, IOError) as e:
+                    if quiet:
+                        print('*** Error compiling {!r}...'.format(fullname))
+                    else:
+                        print('*** ', end='')
+                    print(e.__class__.__name__ + ':', e)
+                    success = 0
                 else:
-                    print('*** ', end='')
-                msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
-                msg = msg.decode(sys.stdout.encoding)
-                print(msg)
-                success = 0
-            except (SyntaxError, UnicodeError, IOError) as e:
-                if quiet:
-                    print('*** Error compiling {!r}...'.format(fullname))
-                else:
-                    print('*** ', end='')
-                print(e.__class__.__name__ + ':', e)
-                success = 0
-            else:
-                success = 0
+                    success = 0
     return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=False, legacy=False, optimize=-1):

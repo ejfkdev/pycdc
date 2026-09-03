@@ -60,10 +60,12 @@ class MozillaCookieJar(FileCookieJar):
             f.write(self.header)
             now = time.time()
             for cookie in self:
-                if not ignore_discard and cookie.discard:
-                    continue
-                if not ignore_expires and cookie.is_expired(now):
-                    continue
+                if not ignore_discard:
+                    if cookie.discard:
+                        continue
+                if not ignore_expires:
+                    if cookie.is_expired(now):
+                        continue
                 if cookie.secure:
                     secure = 'TRUE'
                 else:

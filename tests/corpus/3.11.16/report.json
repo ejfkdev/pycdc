@@ -50,7 +50,7 @@
    "module": "_compression",
    "ast_detail": "diff at token 174: orig  args=[] | dec  args=[Tuple(elts=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 308,
+   "ndiff": 309,
    "ntotal": 614,
    "detail": "line 204: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 295: orig ('JUMP_FORWARD', 'to 278') | got ('LOAD_CONST', 'None')\nline 296: orig ('PUSH_EXC_INFO', '') | got ('RETURN_VALUE', '')"
   },
@@ -58,7 +58,7 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 219: orig  comparators=[Constant(value='<!')]) | dec  comparators=[Constant(value='<!')]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1051,
+   "ndiff": 1081,
    "ntotal": 1447,
    "detail": "line 213: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 74') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 58')\nline 215: orig ('LOAD_CONST', \"'unexpected call to parse_declaration'\") | got ('RAISE_VARARGS', '')\nline 216: orig ('PRECALL', '') | got ('LOAD_FAST', 'rawdata')"
   },
@@ -88,7 +88,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 104: orig  If(test=BoolOp(op=Or() | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 104: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2164,
    "ntotal": 2248,
@@ -156,9 +156,9 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 290: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 290: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2437,
+   "ndiff": 2439,
    "ntotal": 2548,
    "detail": "line 17: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 21: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -172,7 +172,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 62: orig  If(test=UnaryOp(op=Not() | dec  If(test=Compare(left=Constant(value=1)",
+   "ast_detail": "diff at token 62: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 825,
    "ntotal": 877,
@@ -188,7 +188,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 454: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=Compare(left=Attribute(value=Name(id='datetime'",
+   "ast_detail": "diff at token 454: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2787,
    "ntotal": 3519,
@@ -198,7 +198,7 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3058,
+   "ndiff": 3074,
    "ntotal": 3160,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
@@ -206,7 +206,7 @@
    "module": "cgitb",
    "ast_detail": "diff at token 20: orig  ctx=Load())] | dec  ctx=Load())",
    "verdict": "SIG-DIFF",
-   "ndiff": 1610,
+   "ndiff": 1607,
    "ntotal": 1705,
    "detail": "line 59: orig ('KW_NAMES', '') | got ('PRECALL', '')\nline 60: orig ('PRECALL', '') | got ('CALL', '')\nline 61: orig ('CALL', '') | got ('POP_TOP', '')"
   },
@@ -256,9 +256,9 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 93: orig  finalbody=[]) | dec  finalbody=[])]",
+   "ast_detail": "diff at token 27: orig  values=[Call(func=Name(id='isinstance' | dec  values=[Compare(left=Name(id='quiet'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1502,
+   "ndiff": 1499,
    "ntotal": 1565,
    "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
@@ -266,7 +266,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 108: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 3919,
+   "ndiff": 3917,
    "ntotal": 4746,
    "detail": "line 724: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 78') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 48')\nline 726: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 78') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 78')\nline 764: orig ('KW_NAMES', '') | got ('PRECALL', '')"
   },

@@ -48,12 +48,14 @@ def literal_eval(node_or_string):
             return list(map(_convert, node.elts))
         if isinstance(node, Dict):
             return dict(((_convert(k), _convert(v)) for k, v in zip(node.keys, node.values)))
-        if isinstance(node, Name) and node.id in _safe_names and isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(node.right, Num) and isinstance(node.right.n, complex) and isinstance(node.left, Num) and isinstance(node.left.n, (int, long, float)):
-            left = node.left.n
-            right = node.right.n
-            if isinstance(node.op, Add):
-                return left + right
-            return left - right
+        if isinstance(node, Name) and node.id in _safe_names and isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)):
+            if isinstance(node.right, Num) and isinstance(node.right.n, complex):
+                if isinstance(node.left, Num) and isinstance(node.left.n, (int, long, float)):
+                    left = node.left.n
+                    right = node.right.n
+                    if isinstance(node.op, Add):
+                        return left + right
+                    return left - right
         raise ValueError('malformed string')
 
     return _convert(node_or_string)
@@ -129,11 +131,12 @@ def iter_child_nodes(node):
 def get_docstring(node, clean=True):
     if not isinstance(node, (FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
-    if node.body and isinstance(node.body[0], Expr) and isinstance(node.body[0].value, Str):
-        if clean:
-            import inspect
-            return inspect.cleandoc(node.body[0].value.s)
-        return node.body[0].value.s
+    if node.body and isinstance(node.body[0], Expr):
+        if isinstance(node.body[0].value, Str):
+            if clean:
+                import inspect
+                return inspect.cleandoc(node.body[0].value.s)
+            return node.body[0].value.s
 
 def walk(node):
     from collections import deque

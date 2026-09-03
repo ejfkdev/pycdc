@@ -103,9 +103,10 @@ def html(einfo, context=5):
             file = link = '?'
         args, varargs, varkw, locals = inspect.getargvalues(frame)
         call = ''
-        if func != '?' and func != '<module>':
+        if func != '?':
             call = 'in ' + strong(pydoc.html.escape(func))
-            call += inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.html.repr(value)))
+            if func != '<module>':
+                call += inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.html.repr(value)))
         highlight = {}
         def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1
@@ -169,9 +170,10 @@ def text(einfo, context=5):
         file = os.path.abspath(file) or '?'
         args, varargs, varkw, locals = inspect.getargvalues(frame)
         call = ''
-        if func != '?' and func != '<module>':
+        if func != '?':
             call = 'in ' + func
-            call += inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.text.repr(value)))
+            if func != '<module>':
+                call += inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.text.repr(value)))
         highlight = {}
         def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1

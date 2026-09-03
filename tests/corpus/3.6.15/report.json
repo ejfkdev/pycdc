@@ -73,9 +73,9 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 122: orig  If(test=BoolOp(op=Or() | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 122: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1935,
+   "ndiff": 1942,
    "ntotal": 2090,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -111,7 +111,7 @@
    "module": "aifc",
    "ast_detail": "diff at token 260: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2140,
+   "ndiff": 2141,
    "ntotal": 3059,
    "detail": "line 467: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 468: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 469: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },
@@ -119,9 +119,9 @@
    "module": "ast",
    "ast_detail": "diff at token 284: orig  orelse=[Return(value=UnaryOp(op=USub() | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 320,
+   "ndiff": 299,
    "ntotal": 1021,
-   "detail": "line 261: orig ('LOAD_DEREF', '_convert') | got ('LOAD_GLOBAL', 'isinstance')\nline 262: orig ('LOAD_FAST', 'node') | got ('LOAD_FAST', 'left')\nline 263: orig ('LOAD_ATTR', 'left') | got ('LOAD_GLOBAL', '_NUM_TYPES')"
+   "detail": "line 399: orig ('LOAD_FAST', 'rv') | got ('LOAD_FAST', 'fields')\nline 400: orig ('LOAD_FAST', 'fields') | got ('POP_JUMP_IF_FALSE', '')\nline 401: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_FAST', 'rv')"
   },
   {
    "module": "asynchat",
@@ -135,8 +135,8 @@
    "module": "asyncore",
    "ast_detail": "diff at token 61: orig  name=None | dec  name='socket_map'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2122,
-   "ntotal": 2220,
+   "ndiff": 2121,
+   "ntotal": 2219,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -149,9 +149,9 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 312: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 312: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2134,
+   "ndiff": 2123,
    "ntotal": 2328,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -185,7 +185,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 745: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Attribute(value=Name(id='date'",
+   "ast_detail": "diff at token 909: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
    "verdict": "SIG-DIFF",
    "ndiff": 2361,
    "ntotal": 2868,
@@ -195,7 +195,7 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3021,
+   "ndiff": 3019,
    "ntotal": 3160,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
@@ -209,7 +209,7 @@
   },
   {
    "module": "chunk",
-   "ast_detail": "diff at token 289: orig  If(test=BoolOp(op=Or() | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 289: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 7,
    "ntotal": 438,
@@ -235,13 +235,13 @@
    "module": "codecs",
    "ast_detail": "diff at token 4: orig  Try(body=[ImportFrom(module='_codecs' | dec  Assign(targets=[Name(id='why'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2060,
-   "ntotal": 2163,
+   "ndiff": 2093,
+   "ntotal": 2164,
    "detail": "line 11: orig ('SETUP_EXCEPT', 'to 34') | got ('LOAD_CONST', 'None')\nline 12: orig ('LOAD_CONST', '0') | got ('STORE_NAME', 'why')\nline 13: orig ('LOAD_CONST', \"('*',)\") | got ('DELETE_NAME', 'why')"
   },
   {
    "module": "codeop",
-   "ast_detail": "diff at token 58: orig  If(test=BoolOp(op=And() | dec  If(test=Name(id='line'",
+   "ast_detail": "diff at token 59: orig  values=[Compare(left=Subscript(value=Name(id='line' | dec  values=[Name(id='line'",
    "verdict": "SIG-DIFF",
    "ndiff": 224,
    "ntotal": 329,
@@ -255,7 +255,7 @@
    "module": "compileall",
    "ast_detail": "diff at token 73: orig  Try(body=[Assign(targets=[Name(id='names' | dec  Assign(targets=[Name(id='names'",
    "verdict": "SIG-DIFF",
-   "ndiff": 867,
+   "ndiff": 812,
    "ntotal": 1030,
    "detail": "line 100: orig ('SETUP_EXCEPT', 'to 64') | got ('BUILD_LIST', '')\nline 101: orig ('LOAD_GLOBAL', 'os') | got ('STORE_FAST', 'names')\nline 102: orig ('LOAD_ATTR', 'listdir') | got ('SETUP_EXCEPT', 'to 68')"
   },
@@ -285,7 +285,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 201: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
+   "ast_detail": "diff at token 266: orig  Try(body=[Assign(targets=[Name(id='getstate' | dec  Assign(targets=[Name(id='dict'",
    "verdict": "SIG-DIFF",
    "ndiff": 352,
    "ntotal": 542,
@@ -293,7 +293,7 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 130: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 130: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2,
    "ntotal": 209,

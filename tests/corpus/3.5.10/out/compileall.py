@@ -57,14 +57,15 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
         raise ValueError('workers must be greater or equal to 0')
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels, ddir=ddir)
     success = 1
-    if workers is not None and workers != 1 and ProcessPoolExecutor is not None:
-        workers = workers or None
-        with ProcessPoolExecutor(max_workers=workers) as executor:
-            results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize), files)
-            success = min(results, default=1)
-    else:
-        for file in files:
-            pass
+    if workers is not None and workers != 1:
+        if ProcessPoolExecutor is not None:
+            workers = workers or None
+            with ProcessPoolExecutor(max_workers=workers) as executor:
+                results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize), files)
+                success = min(results, default=1)
+        else:
+            for file in files:
+                pass
     success = 0
     return success
 
@@ -75,10 +76,11 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         dfile = os.path.join(ddir, name)
     else:
         dfile = None
-    if rx is not None and mo:
+    if rx is not None:
         mo = rx.search(fullname)
-        return success
-    if os.path.isfile(fullname) and tail == '.py':
+        if mo:
+            return success
+    if os.path.isfile(fullname):
         if legacy:
             cfile = fullname + 'c'
         else:
@@ -89,23 +91,24 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 cfile = importlib.util.cache_from_source(fullname)
             cache_dir = os.path.dirname(cfile)
         head, tail = name[:-3], name[-3:]
-        if not force:
-            pass
-        try:
-            mtime = int(os.stat(fullname).st_mtime)
-            expect = struct.pack('<4sl', importlib.util.MAGIC_NUMBER, mtime)
-            with open(cfile, 'rb') as chandle:
-                actual = chandle.read(8)
-            if expect == actual:
-                return success
-        except OSError:
-            pass
-        if not quiet:
-            print('Compiling {!r}...'.format(fullname))
-        err = None
-        del err
-    e = None
-    del e
+        if tail == '.py':
+            if not force:
+                pass
+            try:
+                mtime = int(os.stat(fullname).st_mtime)
+                expect = struct.pack('<4sl', importlib.util.MAGIC_NUMBER, mtime)
+                with open(cfile, 'rb') as chandle:
+                    actual = chandle.read(8)
+                if expect == actual:
+                    return success
+            except OSError:
+                pass
+            if not quiet:
+                print('Compiling {!r}...'.format(fullname))
+            err = None
+            del err
+        e = None
+        del e
     if ok == 0:
         success = 0
         try:

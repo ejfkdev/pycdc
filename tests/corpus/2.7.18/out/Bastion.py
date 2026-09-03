@@ -57,9 +57,10 @@ class BastionClass:
 def Bastion(object, filter=lambda name: name[:1] != '_', name=None, bastionclass=BastionClass):
     raise RuntimeError # WARNING: raise cause dropped (py2)
     def get1(name, object=object, filter=filter):
-        if filter(name) and type(attribute) == MethodType:
+        if filter(name):
             attribute = getattr(object, name)
-            return attribute
+            if type(attribute) == MethodType:
+                return attribute
         raise AttributeError # WARNING: raise cause dropped (py2)
 
     def get2(name, get1=get1):

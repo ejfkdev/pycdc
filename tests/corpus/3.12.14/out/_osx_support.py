@@ -39,7 +39,7 @@ def _read_output(commandstring, capture_stderr=False):
         return
 
 def _find_build_tool(toolname):
-    return not _find_executable(toolname) or _read_output(f'/usr/bin/xcrun -find {toolname!s}') or ''
+    return _find_executable(toolname) or _read_output(f'/usr/bin/xcrun -find {toolname!s}') or ''
 
 _SYSTEM_VERSION = None
 
@@ -130,9 +130,10 @@ def _find_appropriate_compiler(_config_vars):
     cc = oldcc = _config_vars['CC'].split()[0]
     if not _find_executable(cc):
         cc = _find_build_tool('clang')
-    elif os.path.basename(cc).startswith('gcc') and data and 'llvm-gcc' in data:
+    elif os.path.basename(cc).startswith('gcc'):
         data = _read_output(f"'{cc.replace("'", '\'"\'"\'')!s}' --version")
-        cc = _find_build_tool('clang')
+        if data and 'llvm-gcc' in data:
+            cc = _find_build_tool('clang')
     if not cc:
         raise SystemError('Cannot locate working compiler')
     if cc != oldcc:
@@ -187,16 +188,17 @@ def _override_all_archs(_config_vars):
 def _check_for_unavailable_sdk(_config_vars):
     cflags = _config_vars.get('CFLAGS', '')
     m = re.search('-isysroot\\s*(\\S+)', cflags)
-    if not m is None or os.path.exists(sdk):
+    if not m is None:
         sdk = m.group(1)
-        for cv in _UNIVERSAL_CONFIG_VARS:
-            if not cv not in os.environ:
-                pass
-            else:
-                flags = _config_vars[cv]
-                flags = re.sub('-isysroot\\s*\\S+(?:\\s|$)', ' ', flags)
-                _save_modified_value(_config_vars, cv, flags)
-                return _config_vars
+        if not os.path.exists(sdk):
+            for cv in _UNIVERSAL_CONFIG_VARS:
+                if not cv not in os.environ:
+                    pass
+                else:
+                    flags = _config_vars[cv]
+                    flags = re.sub('-isysroot\\s*\\S+(?:\\s|$)', ' ', flags)
+                    _save_modified_value(_config_vars, cv, flags)
+                    return _config_vars
 
 def compiler_fixup(compiler_so, cc_args):
     stripArch = stripSysroot = False

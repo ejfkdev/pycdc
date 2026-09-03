@@ -90,9 +90,10 @@ def _showwarnmsg_impl(msg):
         context._record_warning(msg)
         return
     file = msg.file
-    if not file is not None or file is not None:
+    if not file is not None:
         file = sys.stderr
-        return
+        if not file is not None:
+            return
     text = _wm._formatwarnmsg(msg)
     try:
         file.write(text)
@@ -387,8 +388,11 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
         return
     for item in _wm._get_filters():
         action, msg, cat, mod, ln = item
-        if not ln == 0 or lineno == ln:
-            pass
+        if not msg is None:
+            if not mod is None:
+                if not ln == 0:
+                    if not lineno == ln:
+                        pass
     action = _wm.defaultaction
     if action == 'ignore':
         None(None, None, None)
@@ -637,9 +641,10 @@ _DEPRECATED_MSG = '{name!r} is deprecated and slated for removal in Python {remo
 def _deprecated(name, message=_DEPRECATED_MSG, *, remove, _version=sys.version_info):
     remove_formatted = f'{remove[0]}.{remove[1]}'
     if not _version[:2] > remove:
-        if _version[:2] == remove and _version[3] != 'alpha':
-            msg = f'{name!r} was slated for removal after Python {remove_formatted} alpha'
-            raise RuntimeError(msg)
+        if _version[:2] == remove:
+            if _version[3] != 'alpha':
+                msg = f'{name!r} was slated for removal after Python {remove_formatted} alpha'
+                raise RuntimeError(msg)
     msg = message.format(name=name, remove=remove_formatted)
     _wm.warn(msg, DeprecationWarning, 3)
 

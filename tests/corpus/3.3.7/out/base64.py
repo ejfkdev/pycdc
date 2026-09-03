@@ -95,9 +95,10 @@ def b32decode(s, casefold=False, map01=None):
         s = s.upper()
     padchars = 0
     mo = re.search(b'(?P<pad>[=]*)$', s)
-    if mo and padchars > 0:
+    if mo:
         padchars = len(mo.group('pad'))
-        s = s[:-padchars]
+        if padchars > 0:
+            s = s[:-padchars]
     parts = []
     acc = 0
     shift = 35

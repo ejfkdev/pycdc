@@ -80,7 +80,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 120: orig  If(test=BoolOp(op=Or() | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 120: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2055,
    "ntotal": 2133,
@@ -118,17 +118,17 @@
    "module": "aifc",
    "ast_detail": "diff at token 37: orig  body=[Try(body=[Return(value=Subscript(value=Call(func=Attribute(value=Name(id='struct' | dec  body=[Return(value=Subscript(value=Call(func=Attribute(value=Name(id='struct'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2735,
+   "ndiff": 2734,
    "ntotal": 3091,
    "detail": "line 177: orig ('SETUP_WITH', 'to 568') | got ('SETUP_WITH', 'to 562')\nline 248: orig ('SETUP_WITH', 'to 550') | got ('SETUP_WITH', 'to 544')\nline 265: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 540')"
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 172: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=Call(func=Name(id='isinstance'",
+   "ast_detail": "diff at token 172: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1167,
+   "ndiff": 1143,
    "ntotal": 1734,
-   "detail": "line 477: orig ('LOAD_DEREF', '_convert_signed_num') | got ('LOAD_GLOBAL', 'isinstance')\nline 478: orig ('LOAD_FAST', 'node') | got ('LOAD_FAST', 'left')\nline 479: orig ('LOAD_ATTR', 'left') | got ('LOAD_GLOBAL', 'int')"
+   "detail": "line 559: orig ('FOR_ITER', 'to 112') | got ('FOR_ITER', 'to 122')\nline 561: orig ('SETUP_FINALLY', 'to 44') | got ('LOAD_FAST', 'keywords')\nline 562: orig ('LOAD_GLOBAL', 'getattr') | got ('POP_JUMP_IF_FALSE', '')"
   },
   {
    "module": "asynchat",
@@ -156,9 +156,9 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 363: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 363: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2251,
+   "ndiff": 2250,
    "ntotal": 2369,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -176,7 +176,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 145: orig  If(test=UnaryOp(op=Not() | dec  If(test=Compare(left=Constant(value=1",
+   "ast_detail": "diff at token 145: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 885,
    "ntotal": 941,
@@ -192,7 +192,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 638: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=Compare(left=Attribute(value=Name(id='datetime'",
+   "ast_detail": "diff at token 638: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2599,
    "ntotal": 3067,
@@ -202,7 +202,7 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2786,
+   "ndiff": 2787,
    "ntotal": 2900,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
@@ -210,7 +210,7 @@
    "module": "cgitb",
    "ast_detail": "diff at token 181: orig  If(test=Compare(left=Call(func=Name(id='type' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1287,
+   "ndiff": 1283,
    "ntotal": 1431,
    "detail": "line 111: orig ('LOAD_CONST', 'None') | got ('strong', 1)\nline 112: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'text')\nline 113: orig ('strong', 1) | got ('POP_JUMP_IF_FALSE', '')"
   },

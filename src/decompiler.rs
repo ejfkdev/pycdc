@@ -608,6 +608,11 @@ impl<'a> Ctx<'a> {
             }
 
             // pre-3.11 handler-chain bookkeeping
+            if std::env::var("PYCDC_N").is_ok() {
+                eprintln!("T @{} {:?} tgt={:?} | {}", inst.offset, inst.op, inst.target,
+                    self.blocks.iter().map(|b| format!("{:?}@{}-{}{}", b.kind, b.start, b.end,
+                        if b.short_circuit.is_some() {"S"} else if b.value_merge.is_some() {"V"} else {""})).collect::<Vec<_>>().join(","));
+            }
             self.legacy_chain_step(&inst);
             // chain fully parsed (END_FINALLY passed) but no jump emitted it
             // yet: flush before the continuation executes so statement order
@@ -1901,6 +1906,11 @@ impl<'a> Ctx<'a> {
     }
 
     fn push_stmt(&mut self, stmt: Stmt) {
+        if std::env::var("PYCDC_N").is_ok() {
+            let name = format!("{:?}", stmt);
+            let dest = self.blocks.last().map(|b| format!("{:?}@{}", b.kind, b.start)).unwrap_or("?".into());
+            eprintln!("S @{} push {} -> {}", self.cur_offset, &name[..name.len().min(60)], dest);
+        }
         // any other statement flushes a pending same-line store group first
         // to preserve source order
         if !self.flushing && !self.pending_stores.is_empty() {
@@ -4479,14 +4489,21 @@ impl<'a> Ctx<'a> {
             }
         }
 
-        // 3) BoolOp merge inside an open If whose end == target
-        if let Some(top) = self.blocks.last_mut() {
-            if matches!(top.kind, BlockType::If)
+        // 3) BoolOp merge inside an open If whose end == target — only for
+        // split conditions (`if a and b:` = two cond jumps over a pure
+        // value region); a second independent if inside the body whose
+        // exit happens to coincide must stay nested
+        let split_cond = self.blocks.last().map_or(false, |top| {
+            matches!(top.kind, BlockType::If)
                 && top.end == target
                 && top.cond_set
                 && top.short_circuit.is_none()
                 && top.jump_if_true == jump_if_true
-            {
+                && top.stmts.is_empty()
+                && self.is_pure_value_region(top.start, self.cur_offset)
+        });
+        if split_cond {
+            if let Some(top) = self.blocks.last_mut() {
                 let prev = top.cond.take().unwrap();
                 let kind = if jump_if_true {
                     BoolOpKind::Or
@@ -4881,6 +4898,22 @@ impl<'a> Ctx<'a> {
             _ => None,
         };
         Some(msg)
+    }
+
+    /// True when every instruction in [from, to) is pure value computation.
+    fn is_pure_value_region(&self, from: usize, to: usize) -> bool {
+        let Some(&fi) = self.idx_of.get(&from) else {
+            return false;
+        };
+        for ins in self.instrs.iter().skip(fi) {
+            if ins.offset >= to {
+                return true;
+            }
+            if !is_pure_value_op(ins.op) {
+                return false;
+            }
+        }
+        true
     }
 
     /// True when the code at `target` immediately raises AssertionError.
@@ -5821,6 +5854,51 @@ fn expr_eq(a: &ExprRef, b: &ExprRef) -> bool {
         }
         _ => Rc::ptr_eq(a, b),
     }
+}
+
+/// Pure value-computation opcodes (no statements, no control flow):
+/// a region of only these between two cond jumps means the second jump
+/// is part of the same condition, not a nested statement.
+fn is_pure_value_op(op: Op) -> bool {
+    matches!(
+        op,
+        Op::LOAD_FAST
+            | Op::LOAD_FAST_CHECK
+            | Op::LOAD_NAME
+            | Op::LOAD_GLOBAL
+            | Op::LOAD_CONST
+            | Op::LOAD_ATTR
+            | Op::LOAD_DEREF
+            | Op::LOAD_METHOD
+            | Op::LOAD_BUILD_CLASS
+            | Op::LOAD_CLOSURE
+            | Op::LOAD_CLASSDEREF
+            | Op::COMPARE_OP
+            | Op::IS_OP
+            | Op::CONTAINS_OP
+            | Op::BINARY_OP
+            | Op::BINARY_SUBSCR
+            | Op::CALL
+            | Op::CALL_FUNCTION
+            | Op::CALL_METHOD
+            | Op::CALL_FUNCTION_KW
+            | Op::BUILD_TUPLE
+            | Op::BUILD_LIST
+            | Op::BUILD_MAP
+            | Op::BUILD_SET
+            | Op::BUILD_STRING
+            | Op::UNARY_NOT
+            | Op::UNARY_NEGATIVE
+            | Op::UNARY_POSITIVE
+            | Op::UNARY_INVERT
+            | Op::TO_BOOL
+            | Op::FORMAT_VALUE
+            | Op::COPY
+            | Op::NOP
+            | Op::NOT_TAKEN
+            | Op::CACHE
+            | Op::EXTENDED_ARG
+    )
 }
 
 fn simplify_not(e: ExprRef) -> ExprRef {

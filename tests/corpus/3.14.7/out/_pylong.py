@@ -139,8 +139,9 @@ def int_to_decimal_string(n):
     else:
         sign = ''
     s = inner(n, w)
-    if s[0] == '0' and n:
-        s = s.lstrip('0')
+    if s[0] == '0':
+        if n:
+            s = s.lstrip('0')
     return sign + s
 
 def _str_to_int_inner(s):
@@ -180,13 +181,14 @@ def _dec_str_to_int_inner(s, *, GUARD=8):
         if not lo >= 0:
             raise None
         count = 0
-        if lo >= p256 and lo >= p256:
+        if lo >= p256:
             count = 1
             lo -= p256
             hi += 1
-            count = 999
-            hi2, lo = divmod(lo, p256)
-            hi += hi2
+            if lo >= p256:
+                count = 999
+                hi2, lo = divmod(lo, p256)
+                hi += hi2
         _spread[count] += 1
         inner(hi, w1)
         del hi

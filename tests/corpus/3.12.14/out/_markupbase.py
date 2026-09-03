@@ -163,9 +163,10 @@ class ParserBase:
                         j = j + 1
                 elif c == ']':
                     j = j + 1
-                    if j < n and rawdata[j].isspace() and j < n and rawdata[j].isspace():
+                    if j < n and rawdata[j].isspace():
                         j = j + 1
-                        continue
+                        if j < n and rawdata[j].isspace():
+                            continue
             if j < n:
                 if rawdata[j] == '>':
                     return j

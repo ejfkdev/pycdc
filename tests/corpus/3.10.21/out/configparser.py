@@ -775,7 +775,7 @@ class RawConfigParser(MutableMapping):
         for lineno, line in enumerate(fp, start=1):
             comment_start = sys.maxsize
             inline_prefixes = {p: -1 for p in self._inline_comment_prefixes}
-            if comment_start == sys.maxsize and inline_prefixes and comment_start == sys.maxsize:
+            if comment_start == sys.maxsize and inline_prefixes:
                 next_prefixes = {}
                 for prefix, index in inline_prefixes.items():
                     index = line.find(prefix, index + 1)
@@ -783,11 +783,13 @@ class RawConfigParser(MutableMapping):
                         continue
                     next_prefixes[prefix] = index
                     if not index == 0:
-                        if index > 0 and line[index - 1].isspace():
-                            comment_start = min(comment_start, index)
+                        if index > 0:
+                            if line[index - 1].isspace():
+                                comment_start = min(comment_start, index)
                 inline_prefixes = next_prefixes
-                if not inline_prefixes:
-                    pass
+                if comment_start == sys.maxsize:
+                    if not inline_prefixes:
+                        pass
             for prefix in self._comment_prefixes:
                 if line.strip().startswith(prefix):
                     comment_start = 0
@@ -797,16 +799,18 @@ class RawConfigParser(MutableMapping):
             value = line[:comment_start].strip()
             if not value:
                 if self._empty_lines_in_values:
-                    if comment_start is None and cursect is not None and optname and cursect[optname] is not None:
-                        cursect[optname].append('')
+                    if comment_start is None and cursect is not None:
+                        if optname and cursect[optname] is not None:
+                            cursect[optname].append('')
                 else:
                     indent_level = sys.maxsize
                 continue
             first_nonspace = self.NONSPACECRE.search(line)
             cur_indent_level = first_nonspace.start() if first_nonspace else 0
-            if cursect is not None and optname and cur_indent_level > indent_level:
-                cursect[optname].append(value)
-                continue
+            if cursect is not None and optname:
+                if cur_indent_level > indent_level:
+                    cursect[optname].append(value)
+                    continue
             indent_level = cur_indent_level
             mo = self.SECTCRE.match(value)
             if mo:

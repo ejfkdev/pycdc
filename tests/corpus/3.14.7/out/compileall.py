@@ -22,8 +22,9 @@ from pathlib import Path
 __all__ = ['compile_dir', 'compile_file', 'compile_path']
 
 def _walk_dir(dir, maxlevels, quiet=0):
-    if quiet < 2 and isinstance(dir, os.PathLike):
-        dir = os.fspath(dir)
+    if quiet < 2:
+        if isinstance(dir, os.PathLike):
+            dir = os.fspath(dir)
     if not quiet:
         print('Listing {!r}...'.format(dir))
     try:
@@ -109,17 +110,19 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     if isinstance(optimize, int):
         optimize = [optimize]
     optimize = sorted(set(optimize))
-    if hardlink_dupes and len(optimize) < 2:
-        raise ValueError('Hardlinking of duplicated bytecode makes sense only for more than one optimization level')
+    if hardlink_dupes:
+        if len(optimize) < 2:
+            raise ValueError('Hardlinking of duplicated bytecode makes sense only for more than one optimization level')
     if not rx is None:
         mo = rx.search(fullname)
         if mo:
             return success
     if not limit_sl_dest is None:
-        if os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
-            return success
+        if os.path.islink(fullname):
+            if Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
+                return success
     opt_cfiles = {}
-    if os.path.isfile(fullname) and tail == '.py':
+    if os.path.isfile(fullname):
         for opt_level in optimize:
             if legacy:
                 opt_cfiles[opt_level] = fullname + 'c'
@@ -132,64 +135,66 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             cfile = importlib.util.cache_from_source(fullname)
             opt_cfiles[opt_level] = cfile
         head, tail = name[:-3], name[-3:]
-        if not force:
-            try:
-                os.unlink(cfile)
-                os.link(previous_cfile, cfile)
-                # WARNING: continue outside loop (unrecovered structure)
-            finally:
-                if not expect != actual:
+        if tail == '.py':
+            if not force:
+                try:
+                    os.unlink(cfile)
+                    os.link(previous_cfile, cfile)
+                    # WARNING: continue outside loop (unrecovered structure)
+                finally:
+                    if not expect != actual:
+                        try:
+                            pass
+                        except OSError:
+                            pass
                     try:
                         pass
                     except OSError:
                         pass
-                try:
-                    pass
-                except OSError:
-                    pass
-                return success
-                if not quiet:
-                    print('Compiling {!r}...'.format(fullname))
-                try:
-                    for index, opt_level in enumerate(optimize):
-                        cfile = opt_cfiles[opt_level]
-                        ok = py_compile.compile(fullname, cfile, dfile, True, opt_level, invalidation_mode)
-                        if not index > 0:
-                            pass
-                        else:
-                            try:
-                                pass
-                            except py_compile./*bad-name-80*/:
-                                err = None
-                                success = False
-                                if quiet >= 2:
-                                    pass
-                            if not hardlink_dupes:
+                    return success
+                    if not quiet:
+                        print('Compiling {!r}...'.format(fullname))
+                    try:
+                        for index, opt_level in enumerate(optimize):
+                            cfile = opt_cfiles[opt_level]
+                            ok = py_compile.compile(fullname, cfile, dfile, True, opt_level, invalidation_mode)
+                            if not index > 0:
                                 pass
                             else:
                                 try:
-                                    previous_cfile = opt_cfiles[optimize[index - 1]]
+                                    pass
                                 except py_compile./*bad-name-80*/:
                                     err = None
                                     success = False
                                     if quiet >= 2:
                                         pass
-                                if not filecmp.cmp(cfile, previous_cfile, False):
+                                if not hardlink_dupes:
                                     pass
-                finally:
-                    if ok == 0:
-                        success = False
-                    return success
-                    return success
+                                else:
+                                    try:
+                                        previous_cfile = opt_cfiles[optimize[index - 1]]
+                                    except py_compile./*bad-name-80*/:
+                                        err = None
+                                        success = False
+                                        if quiet >= 2:
+                                            pass
+                                    if not filecmp.cmp(cfile, previous_cfile, False):
+                                        pass
+                    finally:
+                        if ok == 0:
+                            success = False
+                        return success
+                        return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     success = True
     for dir in sys.path:
         if dir:
-            if dir == os.curdir and skip_curdir:
-                if quiet < 2:
-                    print('Skipping current directory')
-                    continue
+            if dir == os.curdir:
+                if skip_curdir:
+                    if quiet < 2:
+                        print('Skipping current directory')
+                        continue
     success = success and compile_dir(dir, maxlevels, None, force, quiet, legacy, optimize, invalidation_mode)
     return success
 
@@ -226,8 +231,9 @@ def main():
         maxlevels = args.maxlevels
     if not args.opt_levels is not None:
         args.opt_levels = [-1]
-    if len(args.opt_levels) == 1 and args.hardlink_dupes:
-        parser.error('Hardlinking of duplicated bytecode makes sense only for more than one optimization level.')
+    if len(args.opt_levels) == 1:
+        if args.hardlink_dupes:
+            parser.error('Hardlinking of duplicated bytecode makes sense only for more than one optimization level.')
     if not args.ddir is None:
         if not args.stripdir is not None:
             if not args.prependdir is None:

@@ -79,20 +79,22 @@ def literal_eval(node_or_string):
             return list(map(_convert, node.elts))
         if isinstance(node, Set):
             return set(map(_convert, node.elts))
-        if isinstance(node, Call) and isinstance(node.func, Name) and node.func.id == 'set':
-            if node.args == node.keywords:
-                if node.keywords == []:
-                    return set()
+        if isinstance(node, Call) and isinstance(node.func, Name):
+            if node.func.id == 'set':
+                if node.args == node.keywords:
+                    if node.keywords == []:
+                        return set()
         if isinstance(node, Dict):
             if len(node.keys) != len(node.values):
                 _raise_malformed_node(node)
             return dict(zip(map(_convert, node.keys), map(_convert, node.values)))
-        if isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(left, (int, float)) and isinstance(right, complex):
+        if isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)):
             left = _convert_signed_num(node.left)
             right = _convert_num(node.right)
-            if isinstance(node.op, Add):
-                return left + right
-            return left - right
+            if isinstance(left, (int, float)) and isinstance(right, complex):
+                if isinstance(node.op, Add):
+                    return left + right
+                return left - right
         return _convert_signed_num(node)
 
     return _convert(node_or_string)
@@ -197,9 +199,10 @@ def increment_lineno(node, n=1):
             continue
         if 'lineno' in child._attributes:
             child.lineno = getattr(child, 'lineno', 0) + n
-        if 'end_lineno' in child._attributes and getattr(child, 'end_lineno', 0) is not None:
+        if 'end_lineno' in child._attributes:
             end_lineno = getattr(child, 'end_lineno', 0)
-            child.end_lineno = end_lineno + n
+            if getattr(child, 'end_lineno', 0) is not None:
+                child.end_lineno = end_lineno + n
     return node
 
 def iter_fields(node):
@@ -245,9 +248,10 @@ def _splitlines_no_ff(source):
         c = source[idx]
         next_line += c
         idx += 1
-        if c == '\r' and idx < len(source) and source[idx] == '\n':
-            next_line += '\n'
-            idx += 1
+        if c == '\r' and idx < len(source):
+            if source[idx] == '\n':
+                next_line += '\n'
+                idx += 1
         if c in '\r\n':
             lines.append(next_line)
             next_line = ''
@@ -936,16 +940,15 @@ class _Unparser(NodeVisitor):
             self.traverse(node.body)
         if not None:
             pass
-        if node.orelse and len(node.orelse) == 1 and isinstance(node.orelse[0], If) and node.orelse and len(node.orelse) == 1:
-            node = node.orelse[0]
-            self.fill('elif ')
-            self.traverse(node.test)
-            with self.block():
-                self.traverse(node.body)
-            if not None:
-                pass
-            if not isinstance(node.orelse[0], If):
-                pass
+        if node.orelse and len(node.orelse) == 1:
+            while isinstance(node.orelse[0], If):
+                node = node.orelse[0]
+                self.fill('elif ')
+                self.traverse(node.test)
+                with self.block():
+                    self.traverse(node.body)
+                if not None:
+                    pass
         if node.orelse:
             self.fill('else')
             with self.block():
@@ -1002,10 +1005,11 @@ class _Unparser(NodeVisitor):
             string = repr(string)
             quote = next((q for q in quote_types if string[0] in q), string[0])
             return string[1:-1], [quote]
-        if escaped_string and possible_quotes[0][0] == escaped_string[-1]:
+        if escaped_string:
             possible_quotes.sort(key=(lambda q: q[0] == escaped_string[-1]))
-            assert len(possible_quotes[0]) == 3
-            escaped_string = escaped_string[:-1] + '\\' + escaped_string[-1]
+            if possible_quotes[0][0] == escaped_string[-1]:
+                assert len(possible_quotes[0]) == 3
+                escaped_string = escaped_string[:-1] + '\\' + escaped_string[-1]
         return escaped_string, possible_quotes
 
     def _write_str_avoiding_backslashes(self, string, *, quote_types=_ALL_QUOTES):
@@ -1342,10 +1346,11 @@ class _Unparser(NodeVisitor):
         else:
             self.write(', ')
         self.write('*')
-        if node.vararg and node.vararg.annotation:
+        if node.vararg:
             self.write(node.vararg.arg)
-            self.write(': ')
-            self.traverse(node.vararg.annotation)
+            if node.vararg.annotation:
+                self.write(': ')
+                self.traverse(node.vararg.annotation)
         if node.kwonlyargs:
             for a, d in zip(node.kwonlyargs, node.kw_defaults):
                 self.write(', ')

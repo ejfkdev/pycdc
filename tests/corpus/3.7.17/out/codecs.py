@@ -291,7 +291,7 @@ class StreamReader(Codec):
                     data += self.read(size=1, chars=1)
             line += data
             lines = line.splitlines(keepends=True)
-            if lines and line0withend != line0withoutend:
+            if lines:
                 if len(lines) > 1:
                     line = lines[0]
                     del lines[0]
@@ -306,12 +306,13 @@ class StreamReader(Codec):
                     break
                 line0withend = lines[0]
                 line0withoutend = lines[0].splitlines(keepends=False)[0]
-                self.charbuffer = self._empty_charbuffer.join(lines[1:]) + self.charbuffer
-                if keepends:
-                    line = line0withend
-                else:
-                    line = line0withoutend
-                break
+                if line0withend != line0withoutend:
+                    self.charbuffer = self._empty_charbuffer.join(lines[1:]) + self.charbuffer
+                    if keepends:
+                        line = line0withend
+                    else:
+                        line = line0withoutend
+                    break
             if data:
                 if size is not None:
                     if line:

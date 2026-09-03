@@ -65,12 +65,13 @@ def literal_eval(node_or_string):
             return dict(zip(map(_convert, node.keys), map(_convert, node.values)))
         if isinstance(node, NameConstant):
             return node.value
-        if isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(left, (int, float)) and isinstance(right, complex):
+        if isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)):
             left = _convert_signed_num(node.left)
             right = _convert_num(node.right)
-            if isinstance(node.op, Add):
-                return left + right
-            return left - right
+            if isinstance(left, (int, float)) and isinstance(right, complex):
+                if isinstance(node.op, Add):
+                    return left + right
+                return left - right
         return _convert_signed_num(node)
 
     return _convert(node_or_string)
