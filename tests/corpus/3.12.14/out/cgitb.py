@@ -79,9 +79,9 @@ def scanvars(reader, frame, locals):
             if lasttoken == '.':
                 if parent is not __UNDEF__:
                     value = getattr(parent, token, __UNDEF__)
-                    vars.append(prefix + token, prefix, value)
+                    vars.append((prefix + token, prefix, value))
                     where, value = lookup(token, frame, locals)
-                    vars.append(token, where, value)
+                    vars.append((token, where, value))
                     if token == '.':
                         prefix += lasttoken + '.'
                         parent = value
@@ -110,7 +110,7 @@ def html(einfo, context=5):
         call = ''
         if func != '?' and func != '<module>':
             call = 'in ' + strong(pydoc.html.escape(func))
-            call += inspect.formatargvalues(args, varargs, varkw, locals, lambda value: '=' + pydoc.html.repr(value))
+            call += inspect.formatargvalues(args, varargs, varkw, locals, (lambda value: '=' + pydoc.html.repr(value)))
         highlight = {}
         def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1
@@ -174,7 +174,7 @@ def text(einfo, context=5):
         call = ''
         if func != '?' and func != '<module>':
             call = 'in ' + func
-            call += inspect.formatargvalues(args, varargs, varkw, locals, lambda value: '=' + pydoc.text.repr(value))
+            call += inspect.formatargvalues(args, varargs, varkw, locals, (lambda value: '=' + pydoc.text.repr(value)))
         highlight = {}
         def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1
@@ -225,7 +225,7 @@ class Hook:
         self.format = format
 
     def __call__(self, etype, evalue, etb):
-        self.handle(etype, evalue, etb)
+        self.handle((etype, evalue, etb))
 
     def handle(self, info=None):
         info = info or sys.exc_info()

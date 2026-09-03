@@ -74,6 +74,8 @@ pub struct Printer {
     /// nested f-string depth: alternate quote characters (pre-3.12 cannot
     /// reuse the outer quote inside an f-string)
     fstring_depth: usize,
+    /// quote characters of the enclosing f-strings (innermost last)
+    fstring_quotes: Vec<char>,
 }
 
 pub fn generate(body: &[Stmt], version: PythonVersion, clean: bool) -> String {
@@ -84,6 +86,7 @@ pub fn generate(body: &[Stmt], version: PythonVersion, clean: bool) -> String {
         at_line_start: true,
         in_lambda: false,
         fstring_depth: 0,
+        fstring_quotes: Vec::new(),
     };
     p.module(body);
     if !clean {
@@ -515,7 +518,7 @@ impl Printer {
                         }
                         first = false;
                         self.write("*");
-                        self.expr(sa, 0);
+                        self.expr(sa, prec::ATOM);
                     }
                     for (k, v) in keywords {
                         if !first {
@@ -532,7 +535,7 @@ impl Printer {
                             self.write(", ");
                         }
                         self.write("**");
-                        self.expr(sk, 0);
+                        self.expr(sk, prec::ATOM);
                     }
                     self.write(")");
                 }
@@ -773,7 +776,7 @@ impl Printer {
                         self.write(", ");
                     }
                     first = false;
-                    self.expr(a, 0);
+                    self.expr(a, prec::TERNARY);
                 }
                 if let Some(sa) = star_args {
                     if !is_empty_tuple(sa) {
@@ -782,7 +785,7 @@ impl Printer {
                         }
                         first = false;
                         self.write("*");
-                        self.expr(sa, 0);
+                        self.expr(sa, prec::ATOM);
                     }
                 }
                 for (k, v) in keywords {
@@ -793,7 +796,7 @@ impl Printer {
                     if let Some(kn) = k {
                         self.write(&format!("{kn}="));
                     }
-                    self.expr(v, 0);
+                    self.expr(v, prec::TERNARY);
                 }
                 if let Some(sk) = star_kwargs {
                     if !is_empty_tuple(sk) {
@@ -801,7 +804,7 @@ impl Printer {
                             self.write(", ");
                         }
                         self.write("**");
-                        self.expr(sk, 0);
+                        self.expr(sk, prec::ATOM);
                     }
                 }
                 self.write(")");
@@ -831,7 +834,7 @@ impl Printer {
                     if i > 0 {
                         self.write(", ");
                     }
-                    self.expr(it, 0);
+                    self.expr(it, prec::TERNARY);
                 }
                 self.write("]");
             }
@@ -841,7 +844,7 @@ impl Printer {
                     if i > 0 {
                         self.write(", ");
                     }
-                    self.expr(it, 0);
+                    self.expr(it, prec::TERNARY);
                 }
                 self.write("}");
             }
@@ -856,9 +859,9 @@ impl Printer {
                         self.expr(inner, 0);
                         continue;
                     }
-                    self.expr(k, 0);
+                    self.expr(k, prec::TERNARY);
                     self.write(": ");
-                    self.expr(v, 0);
+                    self.expr(v, prec::TERNARY);
                 }
                 self.write("}");
             }
@@ -965,16 +968,28 @@ impl Printer {
 
     fn fstring(&mut self, fs: &FString) {
         // pick a quote that appears in NO literal of the whole f-string tree
-        // (pre-3.12 forbids reusing the outer quote anywhere inside)
+        // (pre-3.12 forbids reusing the outer quote anywhere inside) and
+        // differs from every enclosing f-string's quote
         let mut text = String::new();
         collect_fstring_literals(fs, &mut text);
-        let quote = if !text.contains('\'') {
-            '\''
-        } else if !text.contains('"') {
-            '"'
+        let quote = if self.version.at_least(3, 12) {
+            if !text.contains('\'') {
+                '\''
+            } else if !text.contains('"') {
+                '"'
+            } else {
+                '\''
+            }
         } else {
-            '\''
+            let ok_single = !text.contains('\'') && !self.fstring_quotes.contains(&'\'');
+            let ok_double = !text.contains('"') && !self.fstring_quotes.contains(&'"');
+            match (ok_single, ok_double) {
+                (true, _) => '\'',
+                (_, true) => '"',
+                _ => '\'',
+            }
         };
+        self.fstring_quotes.push(quote);
         self.write(&format!("f{quote}"));
         for part in &fs.parts {
             match part {
@@ -1035,6 +1050,7 @@ impl Printer {
             }
         }
         self.write(&quote.to_string());
+        self.fstring_quotes.pop();
     }
 
     fn const_expr(&mut self, o: &ObjectRef) {
@@ -1168,7 +1184,18 @@ impl Printer {
     }
 
     fn write_str_literal(&mut self, s: &str, docstring: bool) {
-        let quote = choose_quote(s);
+        let mut quote = choose_quote(s);
+        if !docstring && self.fstring_depth > 0 && !self.version.at_least(3, 12) {
+            // pre-3.12 f-strings forbid backslashes and reusing an enclosing
+            // quote: switch to an alternate quote when possible
+            let bad = |q: &str| q.contains(|c| self.fstring_quotes.contains(&c));
+            if bad(quote) {
+                let alt = if quote == "'" { "\"" } else { "'" };
+                if !bad(alt) && !s.contains(alt.chars().next().unwrap()) {
+                    quote = alt;
+                }
+            }
+        }
         if docstring {
             let q3 = quote.to_string().repeat(3);
             self.write(&q3);

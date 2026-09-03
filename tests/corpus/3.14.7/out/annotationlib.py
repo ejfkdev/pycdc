@@ -173,8 +173,8 @@ Constructor arguments:
 
     def __hash__(self):
         if self.__extra_names__:
-            return None(None, hash, self.__forward_arg__, self.__forward_module__ if isinstance(self.__cell__, dict) else id(self.__globals__)(tuple(name)), (id,), self.__owner__, tuple(sorted(self.__extra_names__.items())))
-        return None(None, None, None, None, None, None, None)
+            return None((None, hash, self.__forward_arg__, self.__forward_module__ if isinstance(self.__cell__, dict) else id(self.__globals__)(tuple(name)), (id,), self.__owner__, tuple(sorted(self.__extra_names__.items()))))
+        return None((None, None, None, None, None, None, None))
 
     def __or__(self, other):
         return types.UnionType[self, other]
@@ -199,7 +199,7 @@ _Template = type(())
 class _Stringifier:
     __slots__ = _SLOTS
     def __init__(self, node, globals=None, owner=None, is_class=False, cell=None, *, stringifier_dict, extra_names=None):
-        if not isinstance(node, ast.AST, str):
+        if not isinstance(node, (ast.AST, str)):
             raise None
         self.__arg__ = None
         self.__forward_is_argument__ = False
@@ -613,7 +613,7 @@ def get_annotations(obj, *, globals=None, locals=None, eval_str=False, format=Fo
     return return_value
 
 def type_repr(value):
-    if isinstance(value, type, types.FunctionType, types.BuiltinFunctionType):
+    if isinstance(value, (type, types.FunctionType, types.BuiltinFunctionType)):
         if value.__module__ == 'builtins':
             return value.__qualname__
         return f'{value.__module__}.{value.__qualname__}'

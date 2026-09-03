@@ -39,7 +39,7 @@ from errno import EPIPE
 from errno import EAGAIN
 from errno import errorcode
 try:
-    _DISCONNECTED = frozenset(ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE, EBADF)
+    _DISCONNECTED = frozenset((ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE, EBADF))
     socket_map
 except NameError as socket_map:
     pass
@@ -364,7 +364,7 @@ class dispatcher:
             raise AttributeError("%s instance has no attribute '%s'" % (self.__class__.__name__, attr))
         else:
             msg = None % {None: None, None: '%(me)s.%(attr)s is deprecated; use %(me)s.socket.%(attr)s instead', 'me': self.__class__.__name__, 'attr': attr}
-            msg('stacklevel', 2, DeprecationWarning)
+            warnings.warn(msg, DeprecationWarning, stacklevel=2)
             return retattr
 
     def log(self, message):
@@ -467,7 +467,7 @@ def compact_traceback():
     if not tb:
         raise AssertionError('traceback does not exist')
     while tb:
-        tbinfo.append(tb.tb_frame.f_code.co_filename, tb.tb_frame.f_code.co_name, str(tb.tb_lineno))
+        tbinfo.append((tb.tb_frame.f_code.co_filename, tb.tb_frame.f_code.co_name, str(tb.tb_lineno)))
         tb = tb.tb_next
     del tb
     file, function, line = tbinfo[-1]

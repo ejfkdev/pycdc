@@ -64,8 +64,32 @@ def _check_methods(C, *methods):
         return
     return True
 
-Hashable = None(/* <function Hashable> */None, 'Hashable', ABCMeta, metaclass=__build_class__)
-Awaitable = None(/* <function Awaitable> */None, 'Awaitable', ABCMeta, metaclass=__build_class__)
+class Hashable(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __hash__(self):
+        return 0
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Hashable:
+            return _check_methods(C, '__hash__')
+        return NotImplemented
+
+
+class Awaitable(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __await__(self):
+        yield None
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Awaitable:
+            return _check_methods(C, '__await__')
+        return NotImplemented
+
+    __class_getitem__ = classmethod(GenericAlias)
 
 class Coroutine(Awaitable):
     __slots__ = ()
@@ -99,7 +123,20 @@ class Coroutine(Awaitable):
 
 
 Coroutine.register(coroutine)
-AsyncIterable = None(/* <function AsyncIterable> */None, 'AsyncIterable', ABCMeta, metaclass=__build_class__)
+
+class AsyncIterable(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __aiter__(self):
+        return AsyncIterator()
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is AsyncIterable:
+            return _check_methods(C, '__aiter__')
+        return NotImplemented
+
+    __class_getitem__ = classmethod(GenericAlias)
 
 class AsyncIterator(AsyncIterable):
     __slots__ = ()
@@ -152,7 +189,20 @@ class AsyncGenerator(AsyncIterator):
 
 
 AsyncGenerator.register(async_generator)
-Iterable = None(/* <function Iterable> */None, 'Iterable', ABCMeta, metaclass=__build_class__)
+
+class Iterable(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __iter__(self):
+        pass
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Iterable:
+            return _check_methods(C, '__iter__')
+        return NotImplemented
+
+    __class_getitem__ = classmethod(GenericAlias)
 
 class Iterator(Iterable):
     __slots__ = ()
@@ -232,8 +282,33 @@ class Generator(Iterator):
 
 
 Generator.register(generator)
-Sized = None(/* <function Sized> */None, 'Sized', ABCMeta, metaclass=__build_class__)
-Container = None(/* <function Container> */None, 'Container', ABCMeta, metaclass=__build_class__)
+
+class Sized(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __len__(self):
+        return 0
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Sized:
+            return _check_methods(C, '__len__')
+        return NotImplemented
+
+
+class Container(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __contains__(self, x):
+        return False
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Container:
+            return _check_methods(C, '__contains__')
+        return NotImplemented
+
+    __class_getitem__ = classmethod(GenericAlias)
 
 class Collection(Sized, Iterable, Container):
     __slots__ = ()
@@ -283,7 +358,7 @@ class _CallableGenericAlias(GenericAlias):
     def __repr__(self):
         if len(self.__args__) == 2 and _is_param_expr(self.__args__[0]):
             return super().__repr__()
-        return f'collections.abc.Callable[[{', '.join([_type_repr(a) for a in self.__args__[:-1]])}], {_type_repr(self.__args__[-1])}]'
+        return f'collections.abc.Callable[[{", ".join([_type_repr(a) for a in self.__args__[:-1]])}], {_type_repr(self.__args__[-1])}]'
 
     def __reduce__(self):
         args = self.__args__
@@ -303,7 +378,7 @@ class _CallableGenericAlias(GenericAlias):
                 item = (list(item),)
         item_len = len(item)
         if item_len != param_len:
-            raise TypeError(f'Too {'many' if item_len > param_len else 'few'} arguments for {self}; actual {item_len}, expected {param_len}')
+            raise TypeError(f'Too {"many" if item_len > param_len else "few"} arguments for {self}; actual {item_len}, expected {param_len}')
         subst = dict(zip(self.__parameters__, item))
         new_args = []
         for arg in self.__args__:
@@ -359,7 +434,19 @@ def _type_repr(obj):
         return obj.__name__
     return repr(obj)
 
-Callable = None(/* <function Callable> */None, 'Callable', ABCMeta, metaclass=__build_class__)
+class Callable(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __call__(self, *args, **kwds):
+        return False
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Callable:
+            return _check_methods(C, '__call__')
+        return NotImplemented
+
+    __class_getitem__ = classmethod(_CallableGenericAlias)
 
 class Set(Collection):
     '''A set is a finite, iterable container.

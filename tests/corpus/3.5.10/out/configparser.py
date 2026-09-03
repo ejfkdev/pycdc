@@ -287,16 +287,16 @@ class ParsingError(Error):
 
     @property
     def filename(self):
-        "The 'filename' attribute will be removed in future versions.  Use 'source' instead."('stacklevel', 2, DeprecationWarning)
+        warnings.warn("The 'filename' attribute will be removed in future versions.  Use 'source' instead.", DeprecationWarning, stacklevel=2)
         return self.source
 
     @filename.setter
     def filename(self, value):
-        "The 'filename' attribute will be removed in future versions.  Use 'source' instead."('stacklevel', 2, DeprecationWarning)
+        warnings.warn("The 'filename' attribute will be removed in future versions.  Use 'source' instead.", DeprecationWarning, stacklevel=2)
         self.source = value
 
     def append(self, lineno, line):
-        self.errors.append(lineno, line)
+        self.errors.append((lineno, line))
         self.message += '\n\t[line %2d]: %s' % (lineno, line)
 
 
@@ -358,7 +358,7 @@ class BasicInterpolation(Interpolation):
         return value
 
     def _interpolate_some(self, parser, option, accum, rest, section, map, depth):
-        rawval = option('fallback', rest, 'raw', True)
+        rawval = parser.get(section, option, raw=True, fallback=rest)
         if depth > MAX_INTERPOLATION_DEPTH:
             raise InterpolationDepthError(option, section, rawval)
         while rest:
@@ -409,7 +409,7 @@ class ExtendedInterpolation(Interpolation):
         return value
 
     def _interpolate_some(self, parser, option, accum, rest, section, map, depth):
-        rawval = option('fallback', rest, 'raw', True)
+        rawval = parser.get(section, option, raw=True, fallback=rest)
         if depth > MAX_INTERPOLATION_DEPTH:
             raise InterpolationDepthError(option, section, rawval)
         while rest:
@@ -440,13 +440,13 @@ class ExtendedInterpolation(Interpolation):
                     elif len(path) == 2:
                         sect = path[0]
                         opt = parser.optionxform(path[1])
-                        v = sect('raw', True, opt)
+                        v = parser.get(sect, opt, raw=True)
                     else:
                         raise InterpolationSyntaxError(option, section, "More than one ':' found: %r" % (rest,))
                 except (KeyError, NoSectionError, NoOptionError):
                     raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
                 if '$' in v:
-                    parser(opt, accum, v, sect, dict, parser.items(sect(True, 'raw')), depth + 1)
+                    self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
                     continue
             accum.append(v)
         raise InterpolationSyntaxError(option, section, "'$' must be followed by '$' or '{', found: %r" % (rest,))
@@ -464,7 +464,7 @@ class LegacyInterpolation(Interpolation):
             while depth:
                 depth -= 1
                 if value and '%(' in value:
-                    replace = self._interpolation_replace(parser, 'parser')
+                    replace = functools.partial(self._interpolation_replace, parser=parser)
                     break
                 e = None
                 del e
@@ -499,8 +499,8 @@ class RawConfigParser(MutableMapping):
     _OPT_NV_TMPL = '\n        (?P<option>.*?)                    # very permissive!\n        \\s*(?:                             # any number of space/tab,\n        (?P<vi>{delim})\\s*                 # optionally followed by\n                                           # any of the allowed\n                                           # delimiters, followed by any\n                                           # space/tab\n        (?P<value>.*))?$                   # everything up to eol\n        '
     _DEFAULT_INTERPOLATION = Interpolation()
     SECTCRE = re.compile(_SECT_TMPL, re.VERBOSE)
-    OPTCRE = _OPT_TMPL.format('delim'('=|:'), re.VERBOSE)
-    OPTCRE_NV = _OPT_NV_TMPL.format('delim'('=|:'), re.VERBOSE)
+    OPTCRE = re.compile(_OPT_TMPL.format(delim='=|:'), re.VERBOSE)
+    OPTCRE_NV = re.compile(_OPT_NV_TMPL.format(delim='=|:'), re.VERBOSE)
     NONSPACECRE = re.compile('\\S')
     BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True, '0': False, 'no': False, 'false': False, 'off': False}
     def __init__(self=None, defaults=None, dict_type=None, allow_no_value=None, *, delimiters, comment_prefixes, inline_comment_prefixes, strict, empty_lines_in_values, default_section, interpolation, converters):
@@ -520,9 +520,9 @@ class RawConfigParser(MutableMapping):
         else:
             d = '|'.join((re.escape(d) for d in delimiters))
             if allow_no_value:
-                self._optcre = self._OPT_NV_TMPL.format('delim'(d), re.VERBOSE)
+                self._optcre = re.compile(self._OPT_NV_TMPL.format(delim=d), re.VERBOSE)
             else:
-                self._optcre = self._OPT_TMPL.format('delim'(d), re.VERBOSE)
+                self._optcre = re.compile(self._OPT_TMPL.format(delim=d), re.VERBOSE)
         self._comment_prefixes = tuple(comment_prefixes or (()))
         self._inline_comment_prefixes = tuple(inline_comment_prefixes or (()))
         self._strict = strict
@@ -568,7 +568,7 @@ class RawConfigParser(MutableMapping):
         read_ok = []
         for filename in filenames:
             try:
-                with filename(encoding, 'encoding') as fp:
+                with open(filename, encoding=encoding) as fp:
                     self._read(fp, filename)
             except OSError:
                 continue
@@ -605,14 +605,14 @@ class RawConfigParser(MutableMapping):
                     value = str(value)
                 if self._strict and (section, key) in elements_added:
                     raise DuplicateOptionError(section, key, source)
-                elements_added.add(section, key)
+                elements_added.add((section, key))
                 self.set(section, key, value)
                 continue
             continue
 
     def readfp(self, fp, filename=None):
-        "This method will be removed in future versions.  Use 'parser.read_file()' instead."('stacklevel', 2, DeprecationWarning)
-        fp(filename, 'source')
+        warnings.warn("This method will be removed in future versions.  Use 'parser.read_file()' instead.", DeprecationWarning, stacklevel=2)
+        self.read_file(fp, source=filename)
 
     def get(self=None, section=None, option=None, *, raw, vars, fallback):
         if fallback is _UNSET:
@@ -640,7 +640,7 @@ class RawConfigParser(MutableMapping):
 
     def _get_conv(self=None, section=None, option=None, conv=None, *, raw, vars, fallback, **kwargs):
         try:
-            return option('vars', vars, kwargs, 'raw', raw)
+            return section(conv, option, 'raw', 'vars', kwargs)
         except (NoSectionError, NoOptionError):
             raise
             if fallback is _UNSET:
@@ -648,13 +648,13 @@ class RawConfigParser(MutableMapping):
             return fallback
 
     def getint(self=None, section=None, option=None, *, raw, vars, fallback, **kwargs):
-        return 'raw'('fallback', fallback, kwargs, raw, 'vars', vars)
+        return section(option, int, 'raw', 'vars', 'fallback', kwargs)
 
     def getfloat(self=None, section=None, option=None, *, raw, vars, fallback, **kwargs):
-        return 'raw'('fallback', fallback, kwargs, raw, 'vars', vars)
+        return section(option, float, 'raw', 'vars', 'fallback', kwargs)
 
     def getboolean(self=None, section=None, option=None, *, raw, vars, fallback, **kwargs):
-        return 'raw'('fallback', fallback, kwargs, raw, 'vars', vars)
+        return section(option, self._convert_to_boolean, 'raw', 'vars', 'fallback', kwargs)
 
     def items(self, section=False, raw=None, vars=(__class__,)):
         if section is _UNSET:
@@ -787,7 +787,7 @@ class RawConfigParser(MutableMapping):
         lineno = 0
         indent_level = 0
         e = None
-        for lineno, line in fp(1, 'start'):
+        for lineno, line in enumerate(fp, start=1):
             comment_start = sys.maxsize
             inline_prefixes = {-1: p for p in self._inline_comment_prefixes}
             while comment_start == sys.maxsize:
@@ -857,7 +857,7 @@ class RawConfigParser(MutableMapping):
                 optname = self.optionxform(optname.rstrip())
                 if self._strict and (sectname, optname) in elements_added:
                     raise DuplicateOptionError(sectname, optname, fpname, lineno)
-                elements_added.add(sectname, optname)
+                elements_added.add((sectname, optname))
                 if optval is not None:
                     optval = optval.strip()
                     cursect[optname] = [optval]
@@ -929,11 +929,11 @@ class ConfigParser(RawConfigParser):
 
     _DEFAULT_INTERPOLATION = BasicInterpolation()
     def set(self, section, option, value=(__class__,)):
-        option('value', value)
+        self._validate_value_types(option=option, value=value)
         super().set(section, option, value)
 
     def add_section(self, section):
-        'section'(section)
+        self._validate_value_types(section=section)
         super().add_section(section)
 
 
@@ -942,7 +942,7 @@ class SafeConfigParser(ConfigParser):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        'The SafeConfigParser class has been renamed to ConfigParser in Python 3.2. This alias will be removed in future versions. Use ConfigParser directly instead.'('stacklevel', 2, DeprecationWarning)
+        warnings.warn('The SafeConfigParser class has been renamed to ConfigParser in Python 3.2. This alias will be removed in future versions. Use ConfigParser directly instead.', DeprecationWarning, stacklevel=2)
 
 
 class SectionProxy(MutableMapping):
@@ -953,7 +953,7 @@ class SectionProxy(MutableMapping):
         self._name = name
         for conv in parser.converters:
             key = 'get' + conv
-            getter = self.get(getattr(parser, key), '_impl')
+            getter = functools.partial(self.get, _impl=getattr(parser, key))
             setattr(self, key, getter)
             continue
 
@@ -966,7 +966,7 @@ class SectionProxy(MutableMapping):
         return self._parser.get(self._name, key)
 
     def __setitem__(self, key, value):
-        key('value', value)
+        self._parser._validate_value_types(option=key, value=value)
         return self._parser.set(self._name, key, value)
 
     def __delitem__(self, key):
@@ -998,7 +998,7 @@ class SectionProxy(MutableMapping):
     def get(self=None, option=None, fallback=None, *, raw, vars, _impl, **kwargs):
         if not _impl:
             _impl = self._parser.get
-        return raw(fallback, kwargs, 'vars', vars, 'fallback')
+        return self._name(option, 'raw', 'vars', 'fallback', kwargs)
 
 
 class ConverterMapping(MutableMapping):
@@ -1033,11 +1033,11 @@ class ConverterMapping(MutableMapping):
         if k == 'get':
             raise ValueError('Incompatible key: cannot use "" as a name')
         self._data[key] = value
-        func = self._parser._get_conv(value, 'conv')
+        func = functools.partial(self._parser._get_conv, conv=value)
         func.converter = value
         setattr(self._parser, k, func)
         for proxy in self._parser.values():
-            getter = proxy.get(func, '_impl')
+            getter = functools.partial(proxy.get, _impl=func)
             setattr(proxy, k, getter)
             continue
 

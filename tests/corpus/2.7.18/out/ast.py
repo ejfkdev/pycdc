@@ -34,7 +34,7 @@ def parse(source, filename='<unknown>', mode='exec'):
 def literal_eval(node_or_string):
     _safe_names = {'None': None, 'True': True, 'False': False}
     if isinstance(node_or_string, basestring):
-        node_or_string = node_or_string('eval', 'mode')
+        node_or_string = parse(node_or_string, mode='eval')
     if isinstance(node_or_string, Expression):
         node_or_string = node_or_string.body
     def _convert(node):
@@ -49,7 +49,7 @@ def literal_eval(node_or_string):
         if isinstance(node, Dict):
             return dict(((_convert(k), _convert(v)) for k in zip(node.keys, node.values)))
         if isinstance(node, Name):
-            if node.id in _safe_names and isinstance(node, BinOp) and isinstance(node.op, Add, Sub) and isinstance(node.right, Num) and isinstance(node.right.n, complex) and isinstance(node.left, Num) and isinstance(node.left.n, int, long, float):
+            if node.id in _safe_names and isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(node.right, Num) and isinstance(node.right.n, complex) and isinstance(node.left, Num) and isinstance(node.left.n, (int, long, float)):
                 return _safe_names[node.id]
                 left = node.left.n
                 right = node.right.n
@@ -146,7 +146,7 @@ def iter_child_nodes(node):
         continue
 
 def get_docstring(node, clean=True):
-    if not isinstance(node, FunctionDef, ClassDef, Module):
+    if not isinstance(node, (FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
     if node.body and isinstance(node.body[0], Expr) and isinstance(node.body[0].value, Str):
         if clean:

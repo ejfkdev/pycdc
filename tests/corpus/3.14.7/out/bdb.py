@@ -141,7 +141,7 @@ class _MonitoringTracer:
                 if tb.tb_frame.f_locals.get('self') is self:
                     return
                 tb = tb.tb_next
-            frame.f_trace(frame, 'exception', type(exc), exc, exc.__traceback__)
+            frame.f_trace(frame, 'exception', (type(exc), exc, exc.__traceback__))
             return
 
     def opcode_callback(self, frame, code, offset):
@@ -615,14 +615,14 @@ is determined by the __name__ in the frame globals.
         if t and t.tb_frame is f:
             t = t.tb_next
         while not f is None:
-            stack.append(f, f.f_lineno)
+            stack.append((f, f.f_lineno))
             if f is self.botframe:
                 break
             f = f.f_back
         stack.reverse()
         i = max(0, len(stack) - 1)
         while not t is None:
-            stack.append(t.tb_frame, t.tb_lineno)
+            stack.append((t.tb_frame, t.tb_lineno))
             t = t.tb_next
         if not f is not None:
             i = max(0, len(stack) - 1)

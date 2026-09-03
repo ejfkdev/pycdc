@@ -130,13 +130,13 @@ class ABCMeta(type):
         return subclass
 
     def _dump_registry(cls, file=None):
-        ('Class: %s.%s' % (cls.__module__, cls.__name__))(file, 'file')
-        ('Inv.counter: %s' % ABCMeta._abc_invalidation_counter)(file, 'file')
+        print('Class: %s.%s' % (cls.__module__, cls.__name__), file=file)
+        print('Inv.counter: %s' % ABCMeta._abc_invalidation_counter, file=file)
         for name in sorted(cls.__dict__.keys()):
             if name.startswith('_abc_'):
                 pass
             value = getattr(cls, name)
-            ('%s: %r' % (name, value))(file, 'file')
+            print('%s: %r' % (name, value), file=file)
             continue
             continue
 
@@ -168,7 +168,7 @@ class ABCMeta(type):
             else:
                 cls._abc_negative_cache.add(subclass)
             return ok
-        if cls in getattr(subclass, '__mro__', ()):
+        if cls in getattr(subclass, '__mro__', (())):
             cls._abc_cache.add(subclass)
             return True
         for rcls in cls._abc_registry:

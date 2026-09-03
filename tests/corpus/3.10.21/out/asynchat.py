@@ -22,7 +22,7 @@ you - by calling your self.found_terminator() method.
 import asyncore
 from collections import deque
 from warnings import warn
-None('The asynchat module is deprecated and will be removed in Python 3.12. The recommended replacement is asyncio', DeprecationWarning, 2, stacklevel=warn)
+warn('The asynchat module is deprecated and will be removed in Python 3.12. The recommended replacement is asyncio', DeprecationWarning, stacklevel=2)
 
 class async_chat(asyncore.dispatcher):
     '''This is an abstract class.  You must derive from this class, and add
@@ -116,7 +116,7 @@ class async_chat(asyncore.dispatcher):
         self.close()
 
     def push(self, data):
-        if not isinstance(data, bytes, bytearray, memoryview):
+        if not isinstance(data, (bytes, bytearray, memoryview)):
             raise TypeError('data argument must be byte-ish (%r)', type(data))
         sabs = self.ac_out_buffer_size
         if len(data) > sabs:
@@ -202,4 +202,3 @@ def find_prefix_at_end(haystack, needle):
                 break
     return l
 
-# WARNING: Decompyle incomplete

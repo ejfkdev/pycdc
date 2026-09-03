@@ -116,7 +116,7 @@ class async_chat(asyncore.dispatcher):
         self.close()
 
     def push(self, data):
-        if not isinstance(data, bytes, bytearray, memoryview):
+        if not isinstance(data, (bytes, bytearray, memoryview)):
             raise TypeError('data argument must be byte-ish (%r)', type(data))
         sabs = self.ac_out_buffer_size
         if len(data) > sabs:

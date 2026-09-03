@@ -49,7 +49,7 @@ def _maybe_compile(compiler, source, filename, symbol):
     if symbol != 'eval':
         source = 'pass'
     with warnings.catch_warnings():
-        warnings.simplefilter('ignore', SyntaxWarning, DeprecationWarning)
+        warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
     return
     if 'incomplete input' in str(e):
         e = None

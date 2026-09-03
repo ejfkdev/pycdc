@@ -453,7 +453,7 @@ class Aifc_read:
                 if not pos:
                     if name:
                         pass
-                self._markers.append(id, pos, name)
+                self._markers.append((id, pos, name))
                 continue
         except EOFError as w:
             warnings.warn(w)
@@ -595,7 +595,7 @@ class Aifc_write:
             self._markers[i] = id, pos, name
             return
             continue
-        self._markers.append(id, pos, name)
+        self._markers.append((id, pos, name))
 
     def getmark(self, id):
         for marker in self._markers:
@@ -614,7 +614,7 @@ class Aifc_write:
         return self._nframeswritten
 
     def writeframesraw(self, data):
-        if not isinstance(data, bytes, bytearray):
+        if not isinstance(data, (bytes, bytearray)):
             data = memoryview(data).cast('B')
         self._ensure_header_written(len(data))
         nframes = len(data) // (self._sampwidth * self._nchannels)
@@ -802,8 +802,8 @@ def open(f, mode=None):
     raise Error("mode must be 'r', 'rb', 'w', or 'wb'")
 
 def openfp(f, mode=None):
-    None('aifc.openfp is deprecated since Python 3.7. Use aifc.open instead.', DeprecationWarning, 2, stacklevel=warnings.warn)
-    return None(f, mode, mode=open)
+    warnings.warn('aifc.openfp is deprecated since Python 3.7. Use aifc.open instead.', DeprecationWarning, stacklevel=2)
+    return open(f, mode=mode)
 
 if __name__ == '__main__':
     import sys

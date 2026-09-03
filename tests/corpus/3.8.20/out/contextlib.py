@@ -250,7 +250,7 @@ class _BaseExitStack:
             callback = kwds.pop('callback')
             self, *args = args
             import warnings
-            None("Passing 'callback' as keyword argument is deprecated", DeprecationWarning, 2, stacklevel=warnings.warn)
+            warnings.warn("Passing 'callback' as keyword argument is deprecated", DeprecationWarning, stacklevel=2)
         else:
             raise TypeError('callback expected at least 1 positional argument, got %d' % (len(args) - 1))
         _exit_wrapper = self._create_cb_wrapper(callback, *args, **kwds)
@@ -264,7 +264,7 @@ class _BaseExitStack:
         self._push_exit_callback(_exit_wrapper, True)
 
     def _push_exit_callback(self, callback, is_sync=True):
-        self._exit_callbacks.append(is_sync, callback)
+        self._exit_callbacks.append((is_sync, callback))
 
 
 class ExitStack(_BaseExitStack, AbstractContextManager):
@@ -368,7 +368,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             callback = kwds.pop('callback')
             self, *args = args
             import warnings
-            None("Passing 'callback' as keyword argument is deprecated", DeprecationWarning, 2, stacklevel=warnings.warn)
+            warnings.warn("Passing 'callback' as keyword argument is deprecated", DeprecationWarning, stacklevel=2)
         else:
             raise TypeError('push_async_callback expected at least 1 positional argument, got %d' % (len(args) - 1))
         _exit_wrapper = self._create_async_cb_wrapper(callback, *args, **kwds)

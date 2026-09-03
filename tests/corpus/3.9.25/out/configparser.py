@@ -288,16 +288,16 @@ class ParsingError(Error):
 
     @property
     def filename(self):
-        None("The 'filename' attribute will be removed in future versions.  Use 'source' instead.", DeprecationWarning, 2, stacklevel=warnings.warn)
+        warnings.warn("The 'filename' attribute will be removed in future versions.  Use 'source' instead.", DeprecationWarning, stacklevel=2)
         return self.source
 
     @filename.setter
     def filename(self, value):
-        None("The 'filename' attribute will be removed in future versions.  Use 'source' instead.", DeprecationWarning, 2, stacklevel=warnings.warn)
+        warnings.warn("The 'filename' attribute will be removed in future versions.  Use 'source' instead.", DeprecationWarning, stacklevel=2)
         self.source = value
 
     def append(self, lineno, line):
-        self.errors.append(lineno, line)
+        self.errors.append((lineno, line))
         self.message += '\n\t[line %2d]: %s' % (lineno, line)
 
 
@@ -359,7 +359,7 @@ class BasicInterpolation(Interpolation):
         return value
 
     def _interpolate_some(self, parser, option, accum, rest, section, map, depth):
-        rawval = None(section, option, True, rest, fallback=None, raw=parser.get)
+        rawval = parser.get(section, option, raw=True, fallback=rest)
         if depth > MAX_INTERPOLATION_DEPTH:
             raise InterpolationDepthError(option, section, rawval)
         while rest:
@@ -411,7 +411,7 @@ class ExtendedInterpolation(Interpolation):
         return value
 
     def _interpolate_some(self, parser, option, accum, rest, section, map, depth):
-        rawval = None(section, option, True, rest, fallback=None, raw=parser.get)
+        rawval = parser.get(section, option, raw=True, fallback=rest)
         if depth > MAX_INTERPOLATION_DEPTH:
             raise InterpolationDepthError(option, section, rawval)
         while rest:
@@ -442,13 +442,13 @@ class ExtendedInterpolation(Interpolation):
                     elif len(path) == 2:
                         sect = path[0]
                         opt = parser.optionxform(path[1])
-                        v = None(sect, opt, True, raw=parser.get)
+                        v = parser.get(sect, opt, raw=True)
                     else:
                         raise InterpolationSyntaxError(option, section, "More than one ':' found: %r" % (rest,))
                 except (KeyError, NoSectionError, NoOptionError):
                     raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
                 if '$' in v:
-                    None(self, parser, opt, accum, v, sect(dict(sect, True, raw=parser.items)), depth + 1)
+                    self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
                 else:
                     accum.append(v)
                 continue
@@ -465,7 +465,7 @@ class LegacyInterpolation(Interpolation):
         depth = MAX_INTERPOLATION_DEPTH
         while depth:
             depth -= 1
-            replace = None(self._interpolation_replace, parser, parser=functools.partial)
+            replace = functools.partial(self._interpolation_replace, parser=parser)
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -489,8 +489,8 @@ class RawConfigParser(MutableMapping):
     _OPT_NV_TMPL = '\n        (?P<option>.*?)                    # very permissive!\n        \\s*(?:                             # any number of space/tab,\n        (?P<vi>{delim})\\s*                 # optionally followed by\n                                           # any of the allowed\n                                           # delimiters, followed by any\n                                           # space/tab\n        (?P<value>.*))?$                   # everything up to eol\n        '
     _DEFAULT_INTERPOLATION = Interpolation()
     SECTCRE = re.compile(_SECT_TMPL, re.VERBOSE)
-    OPTCRE = None(re('=|:', delim=_OPT_TMPL.format), re.VERBOSE)
-    OPTCRE_NV = None(re('=|:', delim=_OPT_NV_TMPL.format), re.VERBOSE)
+    OPTCRE = re.compile(_OPT_TMPL.format(delim='=|:'), re.VERBOSE)
+    OPTCRE_NV = re.compile(_OPT_NV_TMPL.format(delim='=|:'), re.VERBOSE)
     NONSPACECRE = re.compile('\\S')
     BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True, '0': False, 'no': False, 'false': False, 'off': False}
     def __init__(self, defaults=None, dict_type=_default_dict, allow_no_value=False, *, delimiters=('=', ':'), comment_prefixes=('#', ';'), inline_comment_prefixes=None, strict=True, empty_lines_in_values=True, default_section=DEFAULTSECT, interpolation=_UNSET, converters=_UNSET):
@@ -506,9 +506,9 @@ class RawConfigParser(MutableMapping):
         else:
             d = '|'.join((re.escape(d) for d in delimiters))
             if allow_no_value:
-                self._optcre = None(re(d, delim=self._OPT_NV_TMPL.format), re.VERBOSE)
+                self._optcre = re.compile(self._OPT_NV_TMPL.format(delim=d), re.VERBOSE)
             else:
-                self._optcre = None(re(d, delim=self._OPT_TMPL.format), re.VERBOSE)
+                self._optcre = re.compile(self._OPT_TMPL.format(delim=d), re.VERBOSE)
         self._comment_prefixes = tuple(comment_prefixes or ())
         self._inline_comment_prefixes = tuple(inline_comment_prefixes or ())
         self._strict = strict
@@ -551,12 +551,12 @@ class RawConfigParser(MutableMapping):
         return list(opts.keys())
 
     def read(self, filenames, encoding=None):
-        if isinstance(filenames, str, bytes, os.PathLike):
+        if isinstance(filenames, (str, bytes, os.PathLike)):
             filenames = [filenames]
         read_ok = []
         for filename in filenames:
             try:
-                with None(filename, encoding, encoding=open) as fp:
+                with open(filename, encoding=encoding) as fp:
                     self._read(fp, filename)
                 if not None:
                     pass
@@ -596,12 +596,12 @@ class RawConfigParser(MutableMapping):
                     value = str(value)
                 if self._strict and (section, key) in elements_added:
                     raise DuplicateOptionError(section, key, source)
-                elements_added.add(section, key)
+                elements_added.add((section, key))
                 self.set(section, key, value)
 
     def readfp(self, fp, filename=None):
-        None("This method will be removed in future versions.  Use 'parser.read_file()' instead.", DeprecationWarning, 2, stacklevel=warnings.warn)
-        None(fp, filename, source=self.read_file)
+        warnings.warn("This method will be removed in future versions.  Use 'parser.read_file()' instead.", DeprecationWarning, stacklevel=2)
+        self.read_file(fp, source=filename)
 
     def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
         if fallback is _UNSET:
@@ -781,7 +781,7 @@ class RawConfigParser(MutableMapping):
         lineno = 0
         indent_level = 0
         e = None
-        for lineno, line in None(fp, 1, start=enumerate):
+        for lineno, line in enumerate(fp, start=1):
             comment_start = sys.maxsize
             inline_prefixes = {p: -1 for p in self._inline_comment_prefixes}
             while comment_start == sys.maxsize:
@@ -844,7 +844,7 @@ class RawConfigParser(MutableMapping):
                 optname = self.optionxform(optname.rstrip())
                 if self._strict and (sectname, optname) in elements_added:
                     raise DuplicateOptionError(sectname, optname, fpname, lineno)
-                elements_added.add(sectname, optname)
+                elements_added.add((sectname, optname))
                 if optval is not None:
                     optval = optval.strip()
                     cursect[optname] = [optval]
@@ -917,11 +917,11 @@ class ConfigParser(RawConfigParser):
 
     _DEFAULT_INTERPOLATION = BasicInterpolation()
     def set(self, section, option, value=None):
-        None(option, value, value=None, option=self._validate_value_types)
+        self._validate_value_types(option=option, value=value)
         super().set(section, option, value)
 
     def add_section(self, section):
-        None(section, section=self._validate_value_types)
+        self._validate_value_types(section=section)
         super().add_section(section)
 
     def _read_defaults(self, defaults):
@@ -934,7 +934,7 @@ class SafeConfigParser(ConfigParser):
 
     def __init__(self, *args, **kwargs):
         super().__init__(args, **kwargs)
-        None('The SafeConfigParser class has been renamed to ConfigParser in Python 3.2. This alias will be removed in future versions. Use ConfigParser directly instead.', DeprecationWarning, 2, stacklevel=warnings.warn)
+        warnings.warn('The SafeConfigParser class has been renamed to ConfigParser in Python 3.2. This alias will be removed in future versions. Use ConfigParser directly instead.', DeprecationWarning, stacklevel=2)
 
 
 class SectionProxy(MutableMapping):
@@ -945,7 +945,7 @@ class SectionProxy(MutableMapping):
         self._name = name
         for conv in parser.converters:
             key = 'get' + conv
-            getter = None(self.get, getattr(parser, key), _impl=functools.partial)
+            getter = functools.partial(self.get, _impl=getattr(parser, key))
             setattr(self, key, getter)
 
     def __repr__(self):
@@ -957,7 +957,7 @@ class SectionProxy(MutableMapping):
         return self._parser.get(self._name, key)
 
     def __setitem__(self, key, value):
-        None(key, value, value=None, option=self._parser._validate_value_types)
+        self._parser._validate_value_types(option=key, value=value)
         return self._parser.set(self._name, key, value)
 
     def __delitem__(self, key):
@@ -1023,11 +1023,11 @@ class ConverterMapping(MutableMapping):
         if k == 'get':
             raise ValueError('Incompatible key: cannot use "" as a name')
         self._data[key] = value
-        func = None(self._parser._get_conv, value, conv=functools.partial)
+        func = functools.partial(self._parser._get_conv, conv=value)
         func.converter = value
         setattr(self._parser, k, func)
         for proxy in self._parser.values():
-            getter = None(proxy.get, func, _impl=functools.partial)
+            getter = functools.partial(proxy.get, _impl=func)
             setattr(proxy, k, getter)
 
     def __delitem__(self, key):

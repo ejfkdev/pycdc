@@ -118,7 +118,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
     /* unsupported opcode: JUMP_IF_FALSE 28 @1696 */
     weekday == -1
     weekday = datetime_date(year, month, day).weekday()
-    return time.struct_time(year, month, day, hour, minute, second, weekday, julian, tz), fraction
+    return time.struct_time((year, month, day, hour, minute, second, weekday, julian, tz)), fraction
 
 def _strptime_time(data_string, format='%a %b %d %H:%M:%S %Y'):
     return _strptime(data_string, format)[0]

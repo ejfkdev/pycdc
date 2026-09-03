@@ -46,7 +46,7 @@ class InteractiveInterpreter:
             try:
                 typ, value, tb = sys.exc_info()
                 if filename and typ is SyntaxError:
-                    value = SyntaxError(msg, filename, lineno, offset, line)
+                    value = SyntaxError(msg, (filename, lineno, offset, line))
             except ValueError:
                 pass
             else:

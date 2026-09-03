@@ -53,7 +53,7 @@ def _walk_dir(dir, ddir=None, maxlevels=10, quiet=0):
             pass
         if not os.path.islink(fullname):
             pass
-        yield from None(fullname, dfile, maxlevels - 1, quiet, quiet=None, maxlevels=None, ddir=_walk_dir)
+        yield from _walk_dir(fullname, ddir=dfile, maxlevels=maxlevels - 1, quiet=quiet)
         continue
 
 def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None):
@@ -66,13 +66,13 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
                 from concurrent.futures import ProcessPoolExecutor
             except ImportError as workers:
                 pass
-    files_and_ddirs = None(dir, quiet, maxlevels, ddir, ddir=None, maxlevels=None, quiet=_walk_dir)
+    files_and_ddirs = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels, ddir=ddir)
     success = True
     if workers is not None and workers != 1 and ProcessPoolExecutor is not None:
         workers = workers or None
-        with None(workers, max_workers=ProcessPoolExecutor) as executor:
-            results = None(None(_compile_file_tuple, force, rx, quiet, legacy, optimize, invalidation_mode, invalidation_mode=None, optimize=None, legacy=None, quiet=executor.map, rx=executor, force=partial), files_and_ddirs)
-            success = None(results, True, default=min)
+        with ProcessPoolExecutor(max_workers=workers) as executor:
+            results = executor.map(partial(_compile_file_tuple, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode), files_and_ddirs)
+            success = min(results, default=True)
     else:
         for file, dfile in files_and_ddirs:
             if not compile_file(file, dfile, force, rx, quiet, legacy, optimize, invalidation_mode):
@@ -103,7 +103,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         else:
             if optimize >= 0:
                 opt = optimize if optimize >= 1 else ''
-                cfile = None(fullname, opt, optimization=importlib.util.cache_from_source)
+                cfile = importlib.util.cache_from_source(fullname, optimization=opt)
             else:
                 cfile = importlib.util.cache_from_source(fullname)
             cache_dir = os.path.dirname(cfile)
@@ -121,17 +121,17 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         if not quiet:
             print('Compiling {!r}...'.format(fullname))
         try:
-            ok = None(fullname, cfile, dfile, True, optimize, invalidation_mode, invalidation_mode=None, optimize=py_compile.compile)
+            ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize, invalidation_mode=invalidation_mode)
         except py_compile.PyCompileError as err:
             success = False
             return success
             if quiet >= 2:
                 pass
             print('*** Error compiling {!r}...'.format(fullname))
-            None('*** ', '', end=print)
+            print('*** ', end='')
             if quiet:
                 pass
-            msg = None(sys.stdout.encoding, 'backslashreplace', errors=err.msg.encode)
+            msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
             msg = msg(sys.stdout.encoding)
             print(msg)
         else:
@@ -147,25 +147,25 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
                 if quiet < 2:
                     print('Skipping current directory')
                     continue
-                    success = success and None(dir, maxlevels, None, force, quiet, legacy, optimize, invalidation_mode, invalidation_mode=None, optimize=None, legacy=None, quiet=compile_dir)
+                    success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
         continue
     return success
 
 def main():
     import argparse
-    parser = None('Utilities to support installing Python libraries.', description=argparse.ArgumentParser)
-    None('-l', 'store_const', 0, 10, 'maxlevels', "don't recurse into subdirectories", help=None, dest=None, default=None, const=None, action=parser.add_argument)
-    None('-r', int, 'recursion', 'control the maximum recursion level. if `-l` and `-r` options are specified, then `-r` takes precedence.', help=None, dest=None, type=parser.add_argument)
-    None('-f', 'store_true', 'force', 'force rebuild even if timestamps are up to date', help=None, dest=None, action=parser.add_argument)
-    None('-q', 'count', 'quiet', 0, 'output only error messages; -qq will suppress the error messages as well.', help=None, default=None, dest=None, action=parser.add_argument)
-    None('-b', 'store_true', 'legacy', 'use legacy (pre-PEP3147) compiled file locations', help=None, dest=None, action=parser.add_argument)
-    None('-d', 'DESTDIR', 'ddir', None, 'directory to prepend to file paths for use in compile-time tracebacks and in runtime tracebacks in cases where the source file is unavailable', help=None, default=None, dest=None, metavar=parser.add_argument)
-    None('-x', 'REGEXP', 'rx', None, 'skip files matching the regular expression; the regexp is searched for in the full path of each file considered for compilation', help=None, default=None, dest=None, metavar=parser.add_argument)
-    None('-i', 'FILE', 'flist', 'add all the files and directories listed in FILE to the list considered for compilation; if "-", names are read from stdin', help=None, dest=None, metavar=parser.add_argument)
-    None('compile_dest', 'FILE|DIR', '*', 'zero or more file and directory names to compile; if no arguments given, defaults to the equivalent of -l sys.path', help=None, nargs=None, metavar=parser.add_argument)
-    None('-j', '--workers', 1, int, 'Run compileall concurrently', help=None, type=None, default=parser.add_argument)
+    parser = argparse.ArgumentParser(description='Utilities to support installing Python libraries.')
+    parser.add_argument('-l', action='store_const', const=0, default=10, dest='maxlevels', help="don't recurse into subdirectories")
+    parser.add_argument('-r', type=int, dest='recursion', help='control the maximum recursion level. if `-l` and `-r` options are specified, then `-r` takes precedence.')
+    parser.add_argument('-f', action='store_true', dest='force', help='force rebuild even if timestamps are up to date')
+    parser.add_argument('-q', action='count', dest='quiet', default=0, help='output only error messages; -qq will suppress the error messages as well.')
+    parser.add_argument('-b', action='store_true', dest='legacy', help='use legacy (pre-PEP3147) compiled file locations')
+    parser.add_argument('-d', metavar='DESTDIR', dest='ddir', default=None, help='directory to prepend to file paths for use in compile-time tracebacks and in runtime tracebacks in cases where the source file is unavailable')
+    parser.add_argument('-x', metavar='REGEXP', dest='rx', default=None, help='skip files matching the regular expression; the regexp is searched for in the full path of each file considered for compilation')
+    parser.add_argument('-i', metavar='FILE', dest='flist', help='add all the files and directories listed in FILE to the list considered for compilation; if "-", names are read from stdin')
+    parser.add_argument('compile_dest', metavar='FILE|DIR', nargs='*', help='zero or more file and directory names to compile; if no arguments given, defaults to the equivalent of -l sys.path')
+    parser.add_argument('-j', '--workers', default=1, type=int, help='Run compileall concurrently')
     invalidation_modes = [mode.name.lower().replace('_', '-') for mode in py_compile.PycInvalidationMode]
-    None('--invalidation-mode', sorted(invalidation_modes), 'set .pyc invalidation mode; defaults to "checked-hash" if the SOURCE_DATE_EPOCH environment variable is set, and "timestamp" otherwise.', help=None, choices=parser.add_argument)
+    parser.add_argument('--invalidation-mode', choices=sorted(invalidation_modes), help='set .pyc invalidation mode; defaults to "checked-hash" if the SOURCE_DATE_EPOCH environment variable is set, and "timestamp" otherwise.')
     args = parser.parse_args()
     compile_dests = args.compile_dest
     if args.rx:

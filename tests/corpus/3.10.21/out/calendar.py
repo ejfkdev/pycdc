@@ -34,7 +34,7 @@ mdays = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
 class _localized_month:
     _months = [datetime.date(2001, i + 1, 1).strftime for i in range(12)]
-    _months.insert(0, lambda x: '')
+    _months.insert(0, (lambda x: ''))
     def __init__(self, format):
         self.format = format
 
@@ -191,7 +191,7 @@ class TextCalendar(Calendar):
     '''
 
     def prweek(self, theweek, width):
-        None(self.formatweek(theweek, width), '', end=print)
+        print(self.formatweek(theweek, width), end='')
 
     def formatday(self, day, weekday, width):
         if day == 0:
@@ -220,7 +220,7 @@ class TextCalendar(Calendar):
         return s.center(width)
 
     def prmonth(self, theyear, themonth, w=0, l=0):
-        None(self.formatmonth(theyear, themonth, w, l), '', end=print)
+        print(self.formatmonth(theyear, themonth, w, l), end='')
 
     def formatmonth(self, theyear, themonth, w=0, l=0):
         w = max(2, w)
@@ -267,7 +267,7 @@ class TextCalendar(Calendar):
         return ''.join(v)
 
     def pryear(self, theyear, w=0, l=0, c=6, m=3):
-        None(self.formatyear(theyear, w, l, c, m), '', end=print)
+        print(self.formatyear(theyear, w, l, c, m), end='')
 
 
 class HTMLCalendar(Calendar):
@@ -310,7 +310,7 @@ class HTMLCalendar(Calendar):
         a = v.append
         a('<table border="0" cellpadding="0" cellspacing="0" class="%s">' % self.cssclass_month)
         a('\n')
-        None(a(theyear, themonth, withyear, withyear=self.formatmonthname))
+        a(self.formatmonthname(theyear, themonth, withyear=withyear))
         a('\n')
         a(self.formatweekheader())
         a('\n')
@@ -333,7 +333,7 @@ class HTMLCalendar(Calendar):
             a('<tr>')
             for m in months:
                 a('<td>')
-                None(a(theyear, m, False, withyear=self.formatmonth))
+                a(self.formatmonth(theyear, m, withyear=False))
                 a('</td>')
             a('</tr>')
         a('</table>')
@@ -466,16 +466,16 @@ def main(args):
     parser = argparse.ArgumentParser()
     textgroup = parser.add_argument_group('text only arguments')
     htmlgroup = parser.add_argument_group('html only arguments')
-    None('-w', '--width', int, 2, 'width of date column (default 2)', help=None, default=None, type=textgroup.add_argument)
-    None('-l', '--lines', int, 1, 'number of lines for each week (default 1)', help=None, default=None, type=textgroup.add_argument)
-    None('-s', '--spacing', int, 6, 'spacing between months (default 6)', help=None, default=None, type=textgroup.add_argument)
-    None('-m', '--months', int, 3, 'months per row (default 3)', help=None, default=None, type=textgroup.add_argument)
-    None('-c', '--css', 'calendar.css', 'CSS to use for page', help=None, default=htmlgroup.add_argument)
-    None('-L', '--locale', None, 'locale to be used from month and weekday names', help=None, default=parser.add_argument)
-    None('-e', '--encoding', None, 'encoding to use for output', help=None, default=parser.add_argument)
-    None('-t', '--type', 'text', ('text', 'html'), 'output type (text or html)', help=None, choices=None, default=parser.add_argument)
-    None('year', '?', int, 'year number (1-9999)', help=None, type=None, nargs=parser.add_argument)
-    None('month', '?', int, 'month number (1-12, text only)', help=None, type=None, nargs=parser.add_argument)
+    textgroup.add_argument('-w', '--width', type=int, default=2, help='width of date column (default 2)')
+    textgroup.add_argument('-l', '--lines', type=int, default=1, help='number of lines for each week (default 1)')
+    textgroup.add_argument('-s', '--spacing', type=int, default=6, help='spacing between months (default 6)')
+    textgroup.add_argument('-m', '--months', type=int, default=3, help='months per row (default 3)')
+    htmlgroup.add_argument('-c', '--css', default='calendar.css', help='CSS to use for page')
+    parser.add_argument('-L', '--locale', default=None, help='locale to be used from month and weekday names')
+    parser.add_argument('-e', '--encoding', default=None, help='encoding to use for output')
+    parser.add_argument('-t', '--type', default='text', choices=('text', 'html'), help='output type (text or html)')
+    parser.add_argument('year', nargs='?', type=int, help='year number (1-9999)')
+    parser.add_argument('month', nargs='?', type=int, help='month number (1-12, text only)')
     options = parser.parse_args(args[1:])
     if options.locale:
         if not options.encoding:
@@ -484,13 +484,13 @@ def main(args):
     locale = options.locale, options.encoding
     if options.type == 'html':
         if options.locale:
-            cal = None(locale, locale=LocaleHTMLCalendar)
+            cal = LocaleHTMLCalendar(locale=locale)
         else:
             cal = HTMLCalendar()
         encoding = options.encoding
         if encoding is None:
             encoding = sys.getdefaultencoding()
-        optdict = None(encoding, options.css, css=None, encoding=dict)
+        optdict = dict(encoding=encoding, css=options.css)
         write = sys.stdout.buffer.write
         if options.year is None:
             write(cal.formatyearpage(datetime.date.today().year, **optdict))
@@ -502,10 +502,10 @@ def main(args):
         sys.exit(1)
         return
     if options.locale:
-        cal = None(locale, locale=LocaleTextCalendar)
+        cal = LocaleTextCalendar(locale=locale)
     else:
         cal = TextCalendar()
-    optdict = None(options.width, options.lines, l=None, w=dict)
+    optdict = dict(w=options.width, l=options.lines)
     if options.month is None:
         optdict['c'] = options.spacing
         optdict['m'] = options.months

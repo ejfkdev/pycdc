@@ -144,7 +144,7 @@ class ParserBase:
                 if j + 4 > n:
                     return -1
                 if rawdata[j:j + 4] == '<!--':
-                    j = j(0, 'report')
+                    j = self.parse_comment(j, report=0)
                     return j
                     continue
             name, j = self._scan_name(j + 2, declstartpos)

@@ -282,7 +282,7 @@ class ParsingError(Error):
         self.args = (source,)
 
     def append(self, lineno, line):
-        self.errors.append(lineno, line)
+        self.errors.append((lineno, line))
         self.message += '\n\t[line %2d]: %s' % (lineno, line)
 
 
@@ -557,7 +557,7 @@ class RawConfigParser(MutableMapping):
         return list(opts.keys())
 
     def read(self, filenames, encoding=None):
-        if isinstance(filenames, str, bytes, os.PathLike):
+        if isinstance(filenames, (str, bytes, os.PathLike)):
             filenames = [filenames]
         encoding = io.text_encoding(encoding)
         read_ok = []
@@ -602,7 +602,7 @@ class RawConfigParser(MutableMapping):
                     value = str(value)
                 if self._strict and (section, key) in elements_added:
                     raise DuplicateOptionError(section, key, source)
-                elements_added.add(section, key)
+                elements_added.add((section, key))
                 self.set(section, key, value)
 
     def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
@@ -843,7 +843,7 @@ class RawConfigParser(MutableMapping):
                             optname = self.optionxform(optname.rstrip())
                             if self._strict and (sectname, optname) in elements_added:
                                 raise DuplicateOptionError(sectname, optname, fpname, lineno)
-                            elements_added.add(sectname, optname)
+                            elements_added.add((sectname, optname))
                             if not optval is None:
                                 optval = optval.strip()
                                 cursect[optname] = [optval]

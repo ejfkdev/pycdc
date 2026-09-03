@@ -51,7 +51,7 @@ class BZ2File(_compression.BaseStream):
             self._compressor = BZ2Compressor(compresslevel)
         else:
             raise ValueError(f'Invalid mode: {mode!r}')
-        if isinstance(filename, str, bytes, os.PathLike):
+        if isinstance(filename, (str, bytes, os.PathLike)):
             self._fp = _builtin_open(filename, mode)
             self._closefp = True
             self._mode = mode_code
@@ -139,7 +139,7 @@ class BZ2File(_compression.BaseStream):
 
     def write(self, data):
         self._check_can_write()
-        if isinstance(data, bytes, bytearray):
+        if isinstance(data, (bytes, bytearray)):
             length = len(data)
         else:
             data = memoryview(data)

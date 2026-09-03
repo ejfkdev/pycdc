@@ -45,7 +45,7 @@ class InteractiveInterpreter:
                 msg, (dummy_filename, lineno, offset, line) = value.args
             except ValueError:
                 pass
-            value = SyntaxError(msg, filename, lineno, offset, line)
+            value = SyntaxError(msg, (filename, lineno, offset, line))
             sys.last_value = value
 
     def showtraceback(self):

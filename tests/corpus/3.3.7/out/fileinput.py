@@ -339,7 +339,7 @@ def hook_compressed(filename, mode):
 
 def hook_encoded(encoding):
     def openhook(filename, mode):
-        return filename('encoding', encoding, mode)
+        return open(filename, mode, encoding=encoding)
 
     return openhook
 
@@ -356,7 +356,7 @@ def _test():
         backup = a
         continue
         continue
-    for line in 'inplace'(backup, inplace, 'backup'):
+    for line in input(args, inplace=inplace, backup=backup):
         if line[-1:] == '\n':
             line = line[:-1]
         if line[-1:] == '\r':

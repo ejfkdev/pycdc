@@ -49,7 +49,7 @@ def _get_system_version():
         return _SYSTEM_VERSION
         try:
             _SYSTEM_VERSION = ''
-            f = None('/System/Library/CoreServices/SystemVersion.plist', 'utf-8', encoding=open)
+            f = open('/System/Library/CoreServices/SystemVersion.plist', encoding='utf-8')
         except OSError:
             pass
         f.close()
@@ -144,7 +144,7 @@ def _remove_universal_flags(_config_vars):
     for cv in _UNIVERSAL_CONFIG_VARS:
         if cv in _config_vars and cv not in os.environ:
             flags = _config_vars[cv]
-            flags = None('-arch\\s+\\w+\\s', ' ', flags, re.ASCII, flags=re.sub)
+            flags = re.sub('-arch\\s+\\w+\\s', ' ', flags, flags=re.ASCII)
             flags = re.sub('-isysroot\\s*\\S+', ' ', flags)
             _save_modified_value(_config_vars, cv, flags)
     return _config_vars

@@ -99,13 +99,13 @@ else:
             return _abc_subclasscheck(cls, subclass)
 
         def _dump_registry(cls, file=None):
-            None(f'Class: {cls.__module__}.{cls.__qualname__}', file, file=print)
-            None(f'Inv. counter: {get_cache_token()}', file, file=print)
+            print(f'Class: {cls.__module__}.{cls.__qualname__}', file=file)
+            print(f'Inv. counter: {get_cache_token()}', file=file)
             _abc_registry, _abc_cache, _abc_negative_cache, _abc_negative_cache_version = _get_dump(cls)
-            None(f'_abc_registry: {_abc_registry!r}', file, file=print)
-            None(f'_abc_cache: {_abc_cache!r}', file, file=print)
-            None(f'_abc_negative_cache: {_abc_negative_cache!r}', file, file=print)
-            None(f'_abc_negative_cache_version: {_abc_negative_cache_version!r}', file, file=print)
+            print(f'_abc_registry: {_abc_registry!r}', file=file)
+            print(f'_abc_cache: {_abc_cache!r}', file=file)
+            print(f'_abc_negative_cache: {_abc_negative_cache!r}', file=file)
+            print(f'_abc_negative_cache_version: {_abc_negative_cache_version!r}', file=file)
 
         def _abc_registry_clear(cls):
             _reset_registry(cls)
@@ -114,5 +114,10 @@ else:
             _reset_caches(cls)
 
 
-ABC = None(/* <function ABC> */None, 'ABC', ABCMeta, metaclass=__build_class__)
-# WARNING: Decompyle incomplete
+class ABC(metaclass=ABCMeta):
+    '''Helper class that provides a standard way to create an ABC using
+    inheritance.
+    '''
+
+    __slots__ = ()
+

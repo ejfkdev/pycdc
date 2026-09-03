@@ -129,10 +129,10 @@ def main():
     import sys
     from optparse import OptionParser
     usage = 'cProfile.py [-o output_file_path] [-s sort] scriptfile [arg] ...'
-    parser = 'usage'(usage)
+    parser = OptionParser(usage=usage)
     parser.allow_interspersed_args = False
-    'dest'('default', None, 'outfile', 'help', 'Save stats to <outfile>')
-    'dest'('default', -1, 'sort', 'help', 'Sort order when printing to stdout, based on pstats.Stats class')
+    parser.add_option('-o', '--outfile', dest='outfile', help='Save stats to <outfile>', default=None)
+    parser.add_option('-s', '--sort', dest='sort', help='Sort order when printing to stdout, based on pstats.Stats class', default=-1)
     if not sys.argv[1:]:
         parser.print_usage()
         sys.exit(2)
@@ -143,7 +143,7 @@ def main():
         sys.path.insert(0, os.path.dirname(progname))
         with open(progname, 'rb') as fp:
             code = compile(fp.read(), progname, 'exec')
-        globs = {None: OptionParser, parser.add_option: '-o', '--outfile': parser.add_option, '-s': '--sort', '__file__': progname, '__name__': '__main__', '__package__': None, '__cached__': None}
+        globs = {None: None, None: None, None: None, None: None, '__file__': progname, '__name__': '__main__', '__package__': None, '__cached__': None}
         runctx(code, globs, None, options.outfile, options.sort)
     else:
         parser.print_usage()

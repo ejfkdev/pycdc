@@ -11,7 +11,7 @@ import io
 import os
 import struct
 import warnings
-None('the binhex module is deprecated', DeprecationWarning, 2, stacklevel=warnings.warn)
+warnings.warn('the binhex module is deprecated', DeprecationWarning, stacklevel=2)
 __all__ = ['binhex', 'hexbin', 'Error']
 
 class Error(Exception):

@@ -27,7 +27,7 @@ bastion is created.
 """
 
 from warnings import warnpy3k
-'the Bastion module has been removed in Python 3.0'(2, 'stacklevel')
+warnpy3k('the Bastion module has been removed in Python 3.0', stacklevel=2)
 del warnpy3k
 __all__ = ['BastionClass', 'Bastion']
 from types import MethodType
@@ -71,5 +71,4 @@ def _test():
 /* unsupported opcode: JUMP_IF_FALSE 11 @127 */
 __name__ == '__main__'
 _test()
-warnpy3k
 # WARNING: Decompyle incomplete

@@ -224,9 +224,9 @@ class Sniffer:
                 pass
             spaces += 1
             continue
-        quotechar = None(quotes, quotes.get, key=max)
+        quotechar = max(quotes, key=quotes.get)
         if delims:
-            delim = None(delims, delims.get, key=max)
+            delim = max(delims, key=delims.get)
             skipinitialspace = delims[delim] == spaces
             if delim == '\n':
                 delim = ''
@@ -263,7 +263,7 @@ class Sniffer:
                 if len(items) == 1 and items[0][0] == 0:
                     continue
                 if len(items) > 1:
-                    modes[char] = None(items, lambda x: x[1], key=max)
+                    modes[char] = max(items, key=(lambda x: x[1]))
                     items.remove(modes[char])
                     modes[char] = modes[char][0], modes[char][1] - sum((item[1] for item in items))
                     continue

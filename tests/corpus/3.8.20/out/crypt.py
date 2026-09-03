@@ -64,7 +64,7 @@ methods = []
 def _add_method(name, *args, rounds=None):
     method = _Method(name, *args)
     globals()['METHOD_' + name] = method
-    salt = None(method, rounds, rounds=mksalt)
+    salt = mksalt(method, rounds=rounds)
     result = crypt('', salt)
     if result and len(result) == method.total_size:
         methods.append(method)
@@ -74,7 +74,7 @@ def _add_method(name, *args, rounds=None):
 _add_method('SHA512', '6', 16, 106)
 _add_method('SHA256', '5', 16, 63)
 for _v in ('b', 'y', 'a', ''):
-    if None('BLOWFISH', '2' + _v, 22, 59 + len(_v), 16, rounds=_add_method):
+    if _add_method('BLOWFISH', '2' + _v, 22, 59 + len(_v), rounds=16):
         break
 _add_method('MD5', '1', 8, 34)
 _add_method('CRYPT', None, 2, 13)

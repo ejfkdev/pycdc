@@ -4,7 +4,7 @@ def insort_right(a, x, lo=0, hi=None, *, key=None):
     if key is None:
         lo = bisect_right(a, x, lo, hi)
     else:
-        lo = None(a, key(x), lo, hi, key, key=bisect_right)
+        lo = bisect_right(a, key(x), lo, hi, key=key)
     a.insert(lo, x)
 
 def bisect_right(a, x, lo=0, hi=None, *, key=None):
@@ -32,7 +32,7 @@ def insort_left(a, x, lo=0, hi=None, *, key=None):
     if key is None:
         lo = bisect_left(a, x, lo, hi)
     else:
-        lo = None(a, key(x), lo, hi, key, key=bisect_left)
+        lo = bisect_left(a, key(x), lo, hi, key=key)
     a.insert(lo, x)
 
 def bisect_left(a, x, lo=0, hi=None, *, key=None):
@@ -62,4 +62,3 @@ except ImportError:
     pass
 bisect = bisect_right
 insort = insort_right
-# WARNING: Decompyle incomplete

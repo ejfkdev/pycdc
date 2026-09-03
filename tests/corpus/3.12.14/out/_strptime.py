@@ -84,7 +84,7 @@ class LocaleTime(object):
     def _LocaleTime__calc_am_pm(self):
         am_pm = []
         for hour in (1, 22):
-            time_tuple = time.struct_time(1999, 3, 17, hour, 44, 55, 2, 76, 0)
+            time_tuple = time.struct_time((1999, 3, 17, hour, 44, 55, 2, 76, 0))
             am_pm.append(time.strftime('%p', time_tuple).lower().strip())
         self.am_pm = am_pm
 
@@ -109,7 +109,7 @@ class LocaleTime(object):
                     if not tz:
                         continue
                     current_format = current_format.replace(tz, '%Z')
-            current_format = re_sub('\\d(?<![0-9])', lambda m: chr(1632 + int(m[0])), current_format)
+            current_format = re_sub('\\d(?<![0-9])', (lambda m: chr(1632 + int(m[0]))), current_format)
             for old, new in replacement_pairs:
                 current_format = current_format.replace(old, new)
             if '00' in time.strftime(directive, time_tuple2):
@@ -126,7 +126,7 @@ class LocaleTime(object):
     def _LocaleTime__find_month_format(self, directive):
         full_indices = abbr_indices = None
         for m in range(1, 13):
-            time_tuple = time.struct_time(1999, m, 17, 22, 44, 55, 2, 76, 0)
+            time_tuple = time.struct_time((1999, m, 17, 22, 44, 55, 2, 76, 0))
             datetime = time.strftime(directive, time_tuple).lower()
             indices = set(_findall(datetime, self.f_month[m]))
             if not full_indices is not None:
@@ -152,7 +152,7 @@ class LocaleTime(object):
     def _LocaleTime__find_weekday_format(self, directive):
         full_indices = abbr_indices = None
         for wd in range(7):
-            time_tuple = time.struct_time(1999, 3, 17, 22, 44, 55, wd, 76, 0)
+            time_tuple = time.struct_time((1999, 3, 17, 22, 44, 55, wd, 76, 0))
             datetime = time.strftime(directive, time_tuple).lower()
             indices = set(_findall(datetime, self.f_weekday[wd]))
             if not full_indices is not None:

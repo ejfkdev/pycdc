@@ -30,7 +30,7 @@ def _check_cmd(cmd):
             safe_chars(chr(ch))
     safe_chars.append('./-')
     safe_chars = ''.join(safe_chars)
-    if isinstance(cmd, tuple, list):
+    if isinstance(cmd, (tuple, list)):
         check_strs = cmd
     elif isinstance(cmd, str):
         check_strs = [cmd]

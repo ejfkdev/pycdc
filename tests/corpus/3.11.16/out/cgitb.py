@@ -79,10 +79,10 @@ def scanvars(reader, frame, locals):
             if lasttoken == '.':
                 if parent is not __UNDEF__:
                     value = getattr(parent, token, __UNDEF__)
-                    vars.append(prefix + token, prefix, value)
+                    vars.append((prefix + token, prefix, value))
             else:
                 where, value = lookup(token, frame, locals)
-                vars.append(token, where, value)
+                vars.append((token, where, value))
         if token == '.':
             prefix += lasttoken + '.'
             parent = value
@@ -111,7 +111,7 @@ def html(einfo, context=5):
         call = ''
         if func != '?' and func != '<module>':
             call = 'in ' + strong(pydoc.html.escape(func))
-            call += inspect.formatargvalues(args, varargs, varkw, locals, lambda value: '=' + pydoc.html.repr(value))
+            call += inspect.formatargvalues(args, varargs, varkw, locals, (lambda value: '=' + pydoc.html.repr(value)))
         highlight = {}
         def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1
@@ -122,7 +122,7 @@ def html(einfo, context=5):
             return lnum
 
         vars = scanvars(reader, frame, locals)
-        rows = [f'<tr><td bgcolor="#d8bbff">{'<big>&nbsp;</big>'!s}{link!s} {call!s}</td></tr>']
+        rows = [f'<tr><td bgcolor="#d8bbff">{"<big>&nbsp;</big>"!s}{link!s} {call!s}</td></tr>']
         if not index is None:
             i = lnum - index
             for line in lines:
@@ -177,7 +177,7 @@ def text(einfo, context=5):
         call = ''
         if func != '?' and func != '<module>':
             call = 'in ' + func
-            call += inspect.formatargvalues(args, varargs, varkw, locals, lambda value: '=' + pydoc.text.repr(value))
+            call += inspect.formatargvalues(args, varargs, varkw, locals, (lambda value: '=' + pydoc.text.repr(value)))
         highlight = {}
         def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1
@@ -214,7 +214,7 @@ def text(einfo, context=5):
     exception = [f'{str(etype)!s}: {str(evalue)!s}']
     for name in dir(evalue):
         value = pydoc.text.repr(getattr(evalue, name))
-        exception.append(f'\n{'    '!s}{name!s} = {value!s}')
+        exception.append(f'\n{"    "!s}{name!s} = {value!s}')
     return head + ''.join(frames) + ''.join(exception) + '\n\nThe above is a description of an error in a Python program.  Here is\nthe original traceback:\n\n%s\n' % ''.join(traceback.format_exception(etype, evalue, etb))
 
 class Hook:
@@ -228,7 +228,7 @@ class Hook:
         self.format = format
 
     def __call__(self, etype, evalue, etb):
-        self.handle(etype, evalue, etb)
+        self.handle((etype, evalue, etb))
 
     def handle(self, info=None):
         info = info or sys.exc_info()

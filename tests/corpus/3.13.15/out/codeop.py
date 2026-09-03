@@ -51,7 +51,7 @@ def _maybe_compile(compiler, source, filename, symbol):
         if symbol != 'eval':
             source = 'pass'
     with warnings.catch_warnings():
-        warnings.simplefilter('ignore', SyntaxWarning, DeprecationWarning)
+        warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
         try:
             compiler(source, filename, symbol)
         except SyntaxError:

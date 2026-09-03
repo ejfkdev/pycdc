@@ -38,11 +38,11 @@ def parse(source, filename='<unknown>', mode='exec', *, type_comments=False, fea
         feature_version = minor
     elif feature_version is None:
         feature_version = -1
-    return None(source, filename, mode, flags, feature_version, _feature_version=compile)
+    return compile(source, filename, mode, flags, _feature_version=feature_version)
 
 def literal_eval(node_or_string):
     if isinstance(node_or_string, str):
-        node_or_string = None(node_or_string, 'eval', mode=parse)
+        node_or_string = parse(node_or_string, mode='eval')
     if isinstance(node_or_string, Expression):
         node_or_string = node_or_string.body
     def _raise_malformed_node(node):
@@ -55,7 +55,7 @@ def literal_eval(node_or_string):
         return node.value
 
     def _convert_signed_num(node):
-        if isinstance(node, UnaryOp) and isinstance(node.op, UAdd, USub):
+        if isinstance(node, UnaryOp) and isinstance(node.op, (UAdd, USub)):
             operand = _convert_num(node.operand)
             if isinstance(node.op, UAdd):
                 return +operand
@@ -75,7 +75,7 @@ def literal_eval(node_or_string):
             if len(node.keys) != len(node.values):
                 _raise_malformed_node(node)
             return dict(zip(map(_convert, node.keys), map(_convert, node.values)))
-        if isinstance(node, BinOp) and isinstance(node.op, Add, Sub) and isinstance(left, int, float) and isinstance(right, complex):
+        if isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(left, (int, float)) and isinstance(right, complex):
             left = _convert_signed_num(node.left)
             right = _convert_num(node.right)
             if isinstance(node.op, Add):
@@ -182,7 +182,7 @@ def iter_child_nodes(node):
                     yield item
 
 def get_docstring(node, clean=True):
-    if not isinstance(node, AsyncFunctionDef, FunctionDef, ClassDef, Module):
+    if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
     if node.body:
         if not isinstance(node.body[0], Expr):
@@ -404,12 +404,30 @@ def _new(cls, *args, **kwargs):
         return Constant(args, **kwargs)
     return Constant.__new__(cls, *args, **kwargs)
 
-Num = None(/* <function Num> */None, 'Num', Constant, _ABC, metaclass=__build_class__)
-Str = None(/* <function Str> */None, 'Str', Constant, _ABC, metaclass=__build_class__)
-Bytes = None(/* <function Bytes> */None, 'Bytes', Constant, _ABC, metaclass=__build_class__)
-NameConstant = None(/* <function NameConstant> */None, 'NameConstant', Constant, _ABC, metaclass=__build_class__)
-Ellipsis = None(/* <function Ellipsis> */None, 'Ellipsis', Constant, _ABC, metaclass=__build_class__)
-_const_types = {Num: int, float, complex, Str: (str,), Bytes: (bytes,), NameConstant: type(None), bool, Ellipsis: (type(...),)}
+class Num(Constant, metaclass=_ABC):
+    _fields = ('n',)
+    __new__ = _new
+
+class Str(Constant, metaclass=_ABC):
+    _fields = ('s',)
+    __new__ = _new
+
+class Bytes(Constant, metaclass=_ABC):
+    _fields = ('s',)
+    __new__ = _new
+
+class NameConstant(Constant, metaclass=_ABC):
+    __new__ = _new
+
+class Ellipsis(Constant, metaclass=_ABC):
+    _fields = ()
+    def __new__(cls, *args, **kwargs):
+        if cls is Ellipsis:
+            return Constant(*(...,), *args, **kwargs)
+        return Constant.__new__(cls, *args, **kwargs)
+
+
+_const_types = {Num: (int, float, complex), Str: (str,), Bytes: (bytes,), NameConstant: (type(None), bool), Ellipsis: (type(...),)}
 _const_types_not = {Num: (bool,)}
 _const_node_type_names = {bool: 'NameConstant', type(None): 'NameConstant', int: 'Num', float: 'Num', complex: 'Num', str: 'Str', bytes: 'Bytes', type(...): 'Ellipsis'}
 # WARNING: Decompyle incomplete

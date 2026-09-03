@@ -75,10 +75,10 @@ def scanvars(reader, frame, locals):
             if lasttoken == '.':
                 if parent is not __UNDEF__:
                     value = getattr(parent, token, __UNDEF__)
-                    vars.append(prefix + token, prefix, value)
+                    vars.append((prefix + token, prefix, value))
                     continue
         where, value = lookup(token, frame, locals)
-        vars.append(token, where, value)
+        vars.append((token, where, value))
         if token == '.':
             prefix += lasttoken + '.'
             parent = value
@@ -107,7 +107,7 @@ def html(einfo, context=5):
         args, varargs, varkw, locals = inspect.getargvalues(frame)
         call = ''
         if func != '?':
-            call = inspect.formatargvalues + args(varkw, locals, 'formatvalue', lambda value: '=' + pydoc.html.repr(value), varargs)
+            call = 'in ' + strong(func) + inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.html.repr(value)))
         highlight = {}
         def reader(lnum=file, highlight):
             highlight[lnum[0]] = 1
@@ -174,7 +174,7 @@ def text(einfo, context=5):
         args, varargs, varkw, locals = inspect.getargvalues(frame)
         call = ''
         if func != '?':
-            call = inspect.formatargvalues + args(varkw, locals, 'formatvalue', lambda value: '=' + pydoc.text.repr(value), varargs)
+            call = 'in ' + func + inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.text.repr(value)))
         highlight = {}
         def reader(lnum=file, highlight):
             highlight[lnum[0]] = 1
@@ -227,7 +227,7 @@ class Hook:
         self.format = format
 
     def __call__(self, etype, evalue, etb):
-        self.handle(etype, evalue, etb)
+        self.handle((etype, evalue, etb))
 
     def handle(self, info=None):
         info = info or sys.exc_info()
@@ -247,8 +247,6 @@ class Hook:
         self.file.write('<p>A problem occurred in a Python script.\n')
         if self.logdir is not None:
             suffix = ['.txt', '.html'][self.format == 'html']
-            'suffix'
-            tempfile.mkstemp
             msg = 'Tried to save traceback to %s, but failed.' % path
             if self.format == 'html':
                 self.file.write('<p>%s</p>\n' % msg)
@@ -259,5 +257,5 @@ class Hook:
 handler = Hook().handle
 
 def enable(display=1, logdir=None, context=5, format='html'):
-    sys.excepthook = logdir('context', context, 'format', format)
+    sys.excepthook = Hook(display=display, logdir=logdir, context=context, format=format)
 

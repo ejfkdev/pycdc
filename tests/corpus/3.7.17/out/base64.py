@@ -20,7 +20,7 @@ def _bytes_from_decode_data(s):
         raise TypeError('argument should be a bytes-like object or ASCII string, not %r' % s.__class__.__name__) from None
 
 def b64encode(s, altchars=None):
-    encoded = None(s, False, newline=binascii.b2a_base64)
+    encoded = binascii.b2a_base64(s, newline=False)
     if altchars is not None:
         if not len(altchars) == 2:
             raise AssertionError(repr(altchars))

@@ -67,7 +67,7 @@ def scanvars(reader, frame, locals):
         /* unsupported opcode: JUMP_IF_FALSE 48 @172 */
         parent is not __UNDEF__
         value = getattr(parent, token, __UNDEF__)
-        vars.append(prefix + token, prefix, value)
+        vars.append((prefix + token, prefix, value))
         /* unsupported opcode: JUMP_IF_FALSE 24 @287 */
         token == '.'
         prefix += lasttoken + '.'
@@ -105,8 +105,7 @@ def html(einfo, context=5):
         call = ''
         /* unsupported opcode: JUMP_IF_FALSE 57 @448 */
         func != '?'
-        call = inspect.formatargvalues + args(varkw, locals, 'formatvalue', lambda value: '=' + pydoc.html.repr(value), varargs)
-        'in ' + strong(func)
+        call = 'in ' + strong(func) + inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.html.repr(value)))
         highlight = {}
         def reader(lnum=highlight, file, linecache):
             highlight[lnum[0]] = 1
@@ -193,8 +192,7 @@ def text(einfo, context=5):
         call = ''
         /* unsupported opcode: JUMP_IF_FALSE 51 @347 */
         func != '?'
-        call = inspect.formatargvalues + args(varkw, locals, 'formatvalue', lambda value: '=' + pydoc.text.repr(value), varargs)
-        'in ' + func
+        call = 'in ' + func + inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.text.repr(value)))
         highlight = {}
         def reader(lnum=highlight, file, linecache):
             highlight[lnum[0]] = 1
@@ -252,6 +250,6 @@ class Hook(()):
 handler = Hook().handle
 
 def enable(display=1, logdir=None, context=5, format='html'):
-    sys.excepthook = logdir('context', context, 'format', format)
+    sys.excepthook = Hook(display=display, logdir=logdir, context=context, format=format)
 
 # WARNING: Decompyle incomplete

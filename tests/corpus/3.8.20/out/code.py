@@ -49,7 +49,7 @@ class InteractiveInterpreter:
             except ValueError:
                 pass
             else:
-                value = SyntaxError(msg, filename, lineno, offset, line)
+                value = SyntaxError(msg, (filename, lineno, offset, line))
                 sys.last_value = value
         if sys.excepthook is sys.__excepthook__:
             lines = traceback.format_exception_only(type, value)
@@ -126,7 +126,7 @@ def interact(banner=None, readfunc=None, local=None, exitmsg=None):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    None('-q', 'store_true', "don't print version and copyright messages", help=None, action=parser.add_argument)
+    parser.add_argument('-q', action='store_true', help="don't print version and copyright messages")
     args = parser.parse_args()
     if not args.q:
         if sys.flags.quiet:

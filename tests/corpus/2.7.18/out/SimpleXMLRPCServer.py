@@ -145,9 +145,9 @@ class CGIXMLRPCRequestHandler(SimpleXMLRPCDispatcher):
 
 if __name__ == '__main__':
     print 'Running XML-RPC server on port 8000'
-    server = SimpleXMLRPCServer('localhost', 8000)
+    server = SimpleXMLRPCServer(('localhost', 8000))
     server.register_function(pow)
-    server.register_function(lambda x, y: x + y, 'add')
+    server.register_function((lambda x, y: x + y), 'add')
     server.register_multicall_functions()
     server.serve_forever()
     try:

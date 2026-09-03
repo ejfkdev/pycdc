@@ -91,7 +91,7 @@ def parse(fp=None, environ=os.environ, keep_blank_values=0, strict_parsing=0):
         else:
             qs = ''
         environ['QUERY_STRING'] = qs
-    return qs(strict_parsing, 'encoding', encoding, keep_blank_values)
+    return urllib.parse.parse_qs(qs, keep_blank_values, strict_parsing, encoding=encoding)
 
 def parse_qs(qs, keep_blank_values=0, strict_parsing=0):
     warn('cgi.parse_qs is deprecated, use urllib.parse.parse_qs instead', DeprecationWarning, 2)
@@ -287,7 +287,7 @@ class FieldStorage:
                 self.qs_on_post = environ['QUERY_STRING']
             if 'CONTENT_LENGTH' in environ:
                 headers['content-length'] = environ['CONTENT_LENGTH']
-                if not isinstance(headers, Mapping, Message):
+                if not isinstance(headers, (Mapping, Message)):
                     raise TypeError('headers must be mapping or an instance of email.message.Message')
         self.headers = headers
         if fp is None:
@@ -449,7 +449,7 @@ class FieldStorage:
         if self.qs_on_post:
             qs += '&' + self.qs_on_post
         self.list = []
-        query = self.keep_blank_values(self.encoding, 'errors', self.errors, self.strict_parsing, 'encoding')
+        query = urllib.parse.parse_qsl(qs, self.keep_blank_values, self.strict_parsing, encoding=self.encoding, errors=self.errors)
         for key, value in query:
             self.list.append(MiniFieldStorage(key, value))
             continue
@@ -462,7 +462,7 @@ class FieldStorage:
             raise ValueError('Invalid boundary in multipart form: %r' % (ib,))
         self.list = []
         if self.qs_on_post:
-            query = self.keep_blank_values(self.encoding, 'errors', self.errors, self.strict_parsing, 'encoding')
+            query = urllib.parse.parse_qsl(self.qs_on_post, self.keep_blank_values, self.strict_parsing, encoding=self.encoding, errors=self.errors)
             for key, value in query:
                 self.list.append(MiniFieldStorage(key, value))
                 continue
@@ -622,7 +622,7 @@ class FieldStorage:
     def make_file(self):
         if self._binary_file:
             return tempfile.TemporaryFile('wb+')
-        return 'encoding'('\n', self.encoding, 'newline')
+        return tempfile.TemporaryFile('w+', encoding=self.encoding, newline='\n')
 
 
 def test(environ=os.environ):
@@ -663,7 +663,7 @@ def print_form(form):
         print('<P>No form fields.')
     print('<DL>')
     for key in keys:
-        ('<DT>' + html.escape(key) + ':')(' ', 'end')
+        print('<DT>' + html.escape(key) + ':', end=' ')
         value = form[key]
         print('<i>' + html.escape(repr(type(value))) + '</i>')
         print('<DD>' + html.escape(repr(value)))
@@ -695,7 +695,7 @@ def print_environ_usage():
     print('\n<H3>These environment variables could have been set:</H3>\n<UL>\n<LI>AUTH_TYPE\n<LI>CONTENT_LENGTH\n<LI>CONTENT_TYPE\n<LI>DATE_GMT\n<LI>DATE_LOCAL\n<LI>DOCUMENT_NAME\n<LI>DOCUMENT_ROOT\n<LI>DOCUMENT_URI\n<LI>GATEWAY_INTERFACE\n<LI>LAST_MODIFIED\n<LI>PATH\n<LI>PATH_INFO\n<LI>PATH_TRANSLATED\n<LI>QUERY_STRING\n<LI>REMOTE_ADDR\n<LI>REMOTE_HOST\n<LI>REMOTE_IDENT\n<LI>REMOTE_USER\n<LI>REQUEST_METHOD\n<LI>SCRIPT_NAME\n<LI>SERVER_NAME\n<LI>SERVER_PORT\n<LI>SERVER_PROTOCOL\n<LI>SERVER_ROOT\n<LI>SERVER_SOFTWARE\n</UL>\nIn addition, HTTP headers sent by the server may be passed in the\nenvironment as well.  Here are some common variable names:\n<UL>\n<LI>HTTP_ACCEPT\n<LI>HTTP_CONNECTION\n<LI>HTTP_HOST\n<LI>HTTP_PRAGMA\n<LI>HTTP_REFERER\n<LI>HTTP_USER_AGENT\n</UL>\n')
 
 def escape(s, quote=None):
-    'cgi.escape is deprecated, use html.escape instead'('stacklevel', 2, DeprecationWarning)
+    warn('cgi.escape is deprecated, use html.escape instead', DeprecationWarning, stacklevel=2)
     s = s.replace('&', '&amp;')
     s = s.replace('<', '&lt;')
     s = s.replace('>', '&gt;')

@@ -192,7 +192,7 @@ def compact_traceback():
     while True:
         /* unsupported opcode: JUMP_IF_FALSE 62 @56 */
         tb
-        tbinfo.append(tb.tb_frame.f_code.co_filename, tb.tb_frame.f_code.co_name, str(tb.tb_lineno))
+        tbinfo.append((tb.tb_frame.f_code.co_filename, tb.tb_frame.f_code.co_name, str(tb.tb_lineno)))
         tb = tb.tb_next
     del tb
     file, function, line = tbinfo[-1]

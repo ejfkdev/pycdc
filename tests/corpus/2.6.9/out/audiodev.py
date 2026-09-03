@@ -1,7 +1,7 @@
 '''Classes for manipulating audio devices (currently only for Sun and SGI)'''
 
 from warnings import warnpy3k
-'the audiodev module has been removed in Python 3.0'(2, 'stacklevel')
+warnpy3k('the audiodev module has been removed in Python 3.0', stacklevel=2)
 del warnpy3k
 __all__ = ['error', 'AudioDev']
 
@@ -44,5 +44,4 @@ def test(fn=None):
 /* unsupported opcode: JUMP_IF_FALSE 11 @143 */
 __name__ == '__main__'
 test()
-warnpy3k
 # WARNING: Decompyle incomplete

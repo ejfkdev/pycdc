@@ -45,7 +45,7 @@ mdays = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
 class _localized_month:
     _months = None
-    _months.insert(0, lambda x: '')
+    _months.insert(0, (lambda x: ''))
     def __init__(self, format):
         self.format = format
 

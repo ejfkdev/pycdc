@@ -449,7 +449,7 @@ def compact_traceback():
     if not tb:
         raise AssertionError('traceback does not exist')
     while tb:
-        tbinfo.append(tb.tb_frame.f_code.co_filename, tb.tb_frame.f_code.co_name, str(tb.tb_lineno))
+        tbinfo.append((tb.tb_frame.f_code.co_filename, tb.tb_frame.f_code.co_name, str(tb.tb_lineno)))
         tb = tb.tb_next
     del tb
     file, function, line = tbinfo[-1]
@@ -486,7 +486,7 @@ if os.name == 'posix':
 
         def __del__(self):
             if self.fd >= 0:
-                None('unclosed file %r' % self, ResourceWarning, self, source=warnings.warn)
+                warnings.warn('unclosed file %r' % self, ResourceWarning, source=self)
             self.close()
 
         def recv(self, *args):

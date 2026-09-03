@@ -36,7 +36,7 @@ class _Printer(object):
         for filename in self._Printer__filenames:
             break
             try:
-                with None(filename, 'utf-8', encoding=open) as fp:
+                with open(filename, encoding='utf-8') as fp:
                     data = fp.read()
                 if not None:
                     pass

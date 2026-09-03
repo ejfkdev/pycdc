@@ -19,7 +19,7 @@ range_iterator = type(iter(range(0)))
 longrange_iterator = type(iter(range(10715086071862673209484250490600018105614048117055336074437503883703510511249361224931983788156958581275946729175531468251871452856923140435984577574698574803934567774824230985421074605062371141877954182153046474983581941267398767559165543946077062914571196477686542167660429831652624386837205668069376)))
 set_iterator = type(iter(set()))
 str_iterator = type(iter(''))
-tuple_iterator = type(iter(()))
+tuple_iterator = type(iter((())))
 zip_iterator = type(iter(zip()))
 dict_keys = type({}.keys())
 dict_values = type({}.values())
@@ -34,8 +34,44 @@ _coro = _coro()
 coroutine = type(_coro)
 _coro.close()
 del _coro
-Hashable = /* <function Hashable> */None('metaclass', ABCMeta, 'Hashable')
-Awaitable = /* <function Awaitable> */None('metaclass', ABCMeta, 'Awaitable')
+
+class Hashable(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __hash__(self):
+        return 0
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Hashable:
+            for B in C.__mro__:
+                if '__hash__' in B.__dict__:
+                    pass
+                if B.__dict__['__hash__']:
+                    return True
+                break
+                continue
+        return NotImplemented
+
+
+class Awaitable(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __await__(self):
+        yield None
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Awaitable:
+            for B in C.__mro__:
+                if '__await__' in B.__dict__:
+                    pass
+                if B.__dict__['__await__']:
+                    return True
+                break
+                continue
+        return NotImplemented
+
 
 class Coroutine(Awaitable):
     __slots__ = ()
@@ -78,7 +114,19 @@ class Coroutine(Awaitable):
 
 
 Coroutine.register(coroutine)
-AsyncIterable = /* <function AsyncIterable> */None('metaclass', ABCMeta, 'AsyncIterable')
+
+class AsyncIterable(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __aiter__(self):
+        return AsyncIterator()
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is AsyncIterable and any(('__aiter__' in B.__dict__ for B in C.__mro__)):
+            return True
+        return NotImplemented
+
 
 class AsyncIterator(AsyncIterable):
     __slots__ = ()
@@ -96,7 +144,18 @@ class AsyncIterator(AsyncIterable):
         return NotImplemented
 
 
-Iterable = /* <function Iterable> */None('metaclass', ABCMeta, 'Iterable')
+class Iterable(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __iter__(self):
+        pass
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Iterable and any(('__iter__' in B.__dict__ for B in C.__mro__)):
+            return True
+        return NotImplemented
+
 
 class Iterator(Iterable):
     __slots__ = ()
@@ -172,9 +231,45 @@ class Generator(Iterator):
 
 
 Generator.register(generator)
-Sized = /* <function Sized> */None('metaclass', ABCMeta, 'Sized')
-Container = /* <function Container> */None('metaclass', ABCMeta, 'Container')
-Callable = /* <function Callable> */None('metaclass', ABCMeta, 'Callable')
+
+class Sized(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __len__(self):
+        return 0
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Sized and any(('__len__' in B.__dict__ for B in C.__mro__)):
+            return True
+        return NotImplemented
+
+
+class Container(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __contains__(self, x):
+        return False
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Container and any(('__contains__' in B.__dict__ for B in C.__mro__)):
+            return True
+        return NotImplemented
+
+
+class Callable(metaclass=ABCMeta):
+    __slots__ = ()
+    @abstractmethod
+    def __call__(self, *args, **kwds):
+        return False
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Callable and any(('__call__' in B.__dict__ for B in C.__mro__)):
+            return True
+        return NotImplemented
+
 
 class Set(Sized, Iterable, Container):
     '''A set is a finite, iterable container.

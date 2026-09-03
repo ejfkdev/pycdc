@@ -326,7 +326,7 @@ Returns a Dialect object.
                 if len(items) == 1 and items[0][0] == 0:
                     continue
                 if len(items) > 1:
-                    modes[char] = max(items, lambda x: x[1])
+                    modes[char] = max(items, (lambda x: x[1]))
                     items.remove(modes[char])
                     modes[char] = modes[char][0], modes[char][1] - sum((item[1] for item in items))
                     continue

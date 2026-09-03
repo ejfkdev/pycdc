@@ -35,7 +35,7 @@ class BZ2File(_compression.BaseStream):
         self._closefp = False
         self._mode = _MODE_CLOSED
         if buffering is not _sentinel:
-            None("Use of 'buffering' argument is deprecated and ignored since Python 3.0.", DeprecationWarning, 2, stacklevel=warnings.warn)
+            warnings.warn("Use of 'buffering' argument is deprecated and ignored since Python 3.0.", DeprecationWarning, stacklevel=2)
         if 1 <= compresslevel:
             if not compresslevel <= 9:
                 raise ValueError('compresslevel must be between 1 and 9')
@@ -56,7 +56,7 @@ class BZ2File(_compression.BaseStream):
             self._compressor = BZ2Compressor(compresslevel)
         else:
             raise ValueError('Invalid mode: %r' % (mode,))
-        if isinstance(filename, str, bytes, os.PathLike):
+        if isinstance(filename, (str, bytes, os.PathLike)):
             self._fp = _builtin_open(filename, mode)
             self._closefp = True
             self._mode = mode_code
@@ -67,7 +67,7 @@ class BZ2File(_compression.BaseStream):
             else:
                 raise TypeError('filename must be a str, bytes, file or PathLike object')
         if self._mode == _MODE_READ:
-            raw = None(self._fp, BZ2Decompressor, OSError, trailing_error=_compression.DecompressReader)
+            raw = _compression.DecompressReader(self._fp, BZ2Decompressor, trailing_error=OSError)
             self._buffer = io.BufferedReader(raw)
         else:
             self._pos = 0
@@ -170,7 +170,7 @@ def open(filename, mode='rb', compresslevel=9, encoding=None, errors=None, newli
                 raise ValueError("Argument 'errors' not supported in binary mode")
             raise ValueError("Argument 'newline' not supported in binary mode")
     bz_mode = mode.replace('t', '')
-    binary_file = None(filename, bz_mode, compresslevel, compresslevel=BZ2File)
+    binary_file = BZ2File(filename, bz_mode, compresslevel=compresslevel)
     if 't' in mode:
         return io.TextIOWrapper(binary_file, encoding, errors, newline)
     return binary_file

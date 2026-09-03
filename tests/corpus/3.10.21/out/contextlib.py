@@ -189,7 +189,7 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 exc = None
                 del exc
                 return False
-            if isinstance(value, StopIteration, StopAsyncIteration) and exc.__cause__ is value:
+            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
                 exc = None
                 del exc
                 return False
@@ -378,7 +378,7 @@ class _BaseExitStack:
         self._push_exit_callback(_exit_wrapper, True)
 
     def _push_exit_callback(self, callback, is_sync=True):
-        self._exit_callbacks.append(is_sync, callback)
+        self._exit_callbacks.append((is_sync, callback))
 
 
 class ExitStack(_BaseExitStack, AbstractContextManager):

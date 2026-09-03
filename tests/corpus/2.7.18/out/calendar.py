@@ -113,15 +113,15 @@ def timegm(tuple):
 
 def main(args):
     import optparse
-    parser = 'usage'('usage: %prog [options] [year [month]]')
-    'width'('help', 'width of date column (default 2, text only)', 'type', 'int', 'default', 2)
-    'lines'('help', 'number of lines for each week (default 1, text only)', 'type', 'int', 'default', 1)
-    'spacing'('help', 'spacing between months (default 6, text only)', 'type', 'int', 'default', 6)
-    'months'('help', 'months per row (default 3, text only)', 'type', 'int', 'default', 3)
-    'dest'('help', 'CSS to use for page (html only)', 'css', 'default', 'calendar.css')
-    'dest'('help', 'locale to be used from month and weekday names', 'locale', 'default', None)
-    'dest'('help', 'Encoding to use for output', 'encoding', 'default', None)
-    'type'('help', 'output type (text or html)', 'default', 'text', 'choices', ('text', 'html'))
+    parser = optparse.OptionParser(usage='usage: %prog [options] [year [month]]')
+    parser.add_option('-w', '--width', dest='width', type='int', default=2, help='width of date column (default 2, text only)')
+    parser.add_option('-l', '--lines', dest='lines', type='int', default=1, help='number of lines for each week (default 1, text only)')
+    parser.add_option('-s', '--spacing', dest='spacing', type='int', default=6, help='spacing between months (default 6, text only)')
+    parser.add_option('-m', '--months', dest='months', type='int', default=3, help='months per row (default 3, text only)')
+    parser.add_option('-c', '--css', dest='css', default='calendar.css', help='CSS to use for page (html only)')
+    parser.add_option('-L', '--locale', dest='locale', default=None, help='locale to be used from month and weekday names')
+    parser.add_option('-e', '--encoding', dest='encoding', default=None, help='Encoding to use for output')
+    parser.add_option('-t', '--type', dest='type', default='text', choices=('text', 'html'), help='output type (text or html)')
     options, args = parser.parse_args(args)
     if options.locale and not options.encoding:
         parser.error('if --locale is specified --encoding is required')
@@ -129,13 +129,13 @@ def main(args):
     locale = options.locale, options.encoding
     if options.type == 'html':
         if options.locale:
-            cal = 'locale'(locale)
+            cal = LocaleHTMLCalendar(locale=locale)
         else:
             cal = HTMLCalendar()
         encoding = options.encoding
         if encoding is None:
             encoding = sys.getdefaultencoding()
-        optdict = encoding('css', options.css)
+        optdict = dict(encoding=encoding, css=options.css)
         if len(args) == 1:
             print datetime.date.today().year(optdict)
         else:
@@ -145,10 +145,10 @@ def main(args):
                 parser.error('incorrect number of arguments')
                 sys.exit(1)
             if options.locale:
-                cal = 'locale'(locale)
+                cal = LocaleTextCalendar(locale=locale)
             else:
                 cal = TextCalendar()
-            optdict = options.width('l', options.lines)
+            optdict = dict(w=options.width, l=options.lines)
             if len(args) != 3:
                 optdict['c'] = options.spacing
                 optdict['m'] = options.months

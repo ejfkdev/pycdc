@@ -57,7 +57,7 @@ class BZ2File(io.BufferedIOBase):
             self._compressor = BZ2Compressor(compresslevel)
         else:
             raise ValueError('Invalid mode: {!r}'.format(mode))
-        if isinstance(filename, str, bytes):
+        if isinstance(filename, (str, bytes)):
             self._fp = builtins.open(filename, mode)
             self._closefp = True
             self._mode = mode_code
@@ -282,7 +282,7 @@ class BZ2File(io.BufferedIOBase):
                 offset = self._pos + offset
             elif whence == 2:
                 if self._size < 0:
-                    'return_data'(False)
+                    self._read_all(return_data=False)
                 offset = self._size + offset
             else:
                 raise ValueError('Invalid value for whence: {}'.format(whence))
@@ -290,7 +290,7 @@ class BZ2File(io.BufferedIOBase):
                 self._rewind()
             else:
                 offset -= self._pos
-            offset(False, 'return_data')
+            self._read_block(offset, return_data=False)
             return self._pos
 
     def tell(self):
@@ -309,7 +309,7 @@ def open(filename, mode='rb', compresslevel=9, encoding=None, errors=None, newli
                 raise ValueError("Argument 'errors' not supported in binary mode")
             raise ValueError("Argument 'newline' not supported in binary mode")
     bz_mode = mode.replace('t', '')
-    binary_file = filename('compresslevel', compresslevel, bz_mode)
+    binary_file = BZ2File(filename, bz_mode, compresslevel=compresslevel)
     if 't' in mode:
         return io.TextIOWrapper(binary_file, encoding, errors, newline)
     return binary_file

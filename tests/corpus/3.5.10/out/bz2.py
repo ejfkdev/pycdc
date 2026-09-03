@@ -55,7 +55,7 @@ class BZ2File(_compression.BaseStream):
             self._compressor = BZ2Compressor(compresslevel)
         else:
             raise ValueError('Invalid mode: %r' % (mode,))
-        if isinstance(filename, str, bytes):
+        if isinstance(filename, (str, bytes)):
             self._fp = _builtin_open(filename, mode)
             self._closefp = True
             self._mode = mode_code
@@ -66,7 +66,7 @@ class BZ2File(_compression.BaseStream):
             else:
                 raise TypeError('filename must be a str or bytes object, or a file')
         if self._mode == _MODE_READ:
-            raw = self._fp('trailing_error', OSError, BZ2Decompressor)
+            raw = _compression.DecompressReader(self._fp, BZ2Decompressor, trailing_error=OSError)
             self._buffer = io.BufferedReader(raw)
         else:
             self._pos = 0
@@ -185,7 +185,7 @@ def open(filename, mode='rb', compresslevel=9, encoding=None, errors=None, newli
                 raise ValueError("Argument 'errors' not supported in binary mode")
             raise ValueError("Argument 'newline' not supported in binary mode")
     bz_mode = mode.replace('t', '')
-    binary_file = filename('compresslevel', compresslevel, bz_mode)
+    binary_file = BZ2File(filename, bz_mode, compresslevel=compresslevel)
     if 't' in mode:
         return io.TextIOWrapper(binary_file, encoding, errors, newline)
     return binary_file

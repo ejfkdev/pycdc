@@ -26,7 +26,7 @@ def cmp(f1, f2, shallow=True):
         return True
     if s1[1] != s2[1]:
         return False
-    outcome = _cache.get(f1, f2, s1, s2)
+    outcome = _cache.get((f1, f2, s1, s2))
     if outcome is None:
         outcome = _do_cmp(f1, f2)
         if len(_cache) > 100:
@@ -200,7 +200,7 @@ class dircmp:
             sd.report_full_closure()
             continue
 
-    methodmap = phase2('common_funny', phase2, 'common', phase1, 'left_only', phase1, 'right_only', phase1, 'left_list', phase0, 'right_list', phase0)
+    methodmap = dict(subdirs=phase4, same_files=phase3, diff_files=phase3, funny_files=phase3, common_dirs=phase2, common_files=phase2, common_funny=phase2, common=phase1, left_only=phase1, right_only=phase1, left_list=phase0, right_list=phase0)
     def __getattr__(self, attr):
         if attr not in self.methodmap:
             raise AttributeError(attr)

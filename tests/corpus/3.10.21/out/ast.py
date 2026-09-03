@@ -43,11 +43,11 @@ def parse(source, filename='<unknown>', mode='exec', *, type_comments=False, fea
         feature_version = minor
     elif feature_version is None:
         feature_version = -1
-    return None(source, filename, mode, flags, feature_version, _feature_version=compile)
+    return compile(source, filename, mode, flags, _feature_version=feature_version)
 
 def literal_eval(node_or_string):
     if isinstance(node_or_string, str):
-        node_or_string = None(node_or_string.lstrip(' \t'), 'eval', mode=parse)
+        node_or_string = parse(node_or_string.lstrip(' \t'), mode='eval')
     if isinstance(node_or_string, Expression):
         node_or_string = node_or_string.body
     def _raise_malformed_node(node):
@@ -64,7 +64,7 @@ def literal_eval(node_or_string):
         return node.value
 
     def _convert_signed_num(node):
-        if isinstance(node, UnaryOp) and isinstance(node.op, UAdd, USub):
+        if isinstance(node, UnaryOp) and isinstance(node.op, (UAdd, USub)):
             operand = _convert_num(node.operand)
             if isinstance(node.op, UAdd):
                 return +operand
@@ -88,7 +88,7 @@ def literal_eval(node_or_string):
             if len(node.keys) != len(node.values):
                 _raise_malformed_node(node)
             return dict(zip(map(_convert, node.keys), map(_convert, node.values)))
-        if isinstance(node, BinOp) and isinstance(node.op, Add, Sub) and isinstance(left, int, float) and isinstance(right, complex):
+        if isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(left, (int, float)) and isinstance(right, complex):
             left = _convert_signed_num(node.left)
             right = _convert_num(node.right)
             if isinstance(node.op, Add):
@@ -219,7 +219,7 @@ def iter_child_nodes(node):
                     yield item
 
 def get_docstring(node, clean=True):
-    if not isinstance(node, AsyncFunctionDef, FunctionDef, ClassDef, Module):
+    if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
     if node.body:
         if not isinstance(node.body[0], Expr):
@@ -451,12 +451,30 @@ def _new(cls, *args, **kwargs):
         return Constant(args, **kwargs)
     return Constant.__new__(cls, *args, **kwargs)
 
-Num = None(/* <function Num> */None, 'Num', Constant, _ABC, metaclass=__build_class__)
-Str = None(/* <function Str> */None, 'Str', Constant, _ABC, metaclass=__build_class__)
-Bytes = None(/* <function Bytes> */None, 'Bytes', Constant, _ABC, metaclass=__build_class__)
-NameConstant = None(/* <function NameConstant> */None, 'NameConstant', Constant, _ABC, metaclass=__build_class__)
-Ellipsis = None(/* <function Ellipsis> */None, 'Ellipsis', Constant, _ABC, metaclass=__build_class__)
-_const_types = {Num: int, float, complex, Str: (str,), Bytes: (bytes,), NameConstant: type(None), bool, Ellipsis: (type(...),)}
+class Num(Constant, metaclass=_ABC):
+    _fields = ('n',)
+    __new__ = _new
+
+class Str(Constant, metaclass=_ABC):
+    _fields = ('s',)
+    __new__ = _new
+
+class Bytes(Constant, metaclass=_ABC):
+    _fields = ('s',)
+    __new__ = _new
+
+class NameConstant(Constant, metaclass=_ABC):
+    __new__ = _new
+
+class Ellipsis(Constant, metaclass=_ABC):
+    _fields = ()
+    def __new__(cls, *args, **kwargs):
+        if cls is Ellipsis:
+            return Constant(..., *args, **kwargs)
+        return Constant.__new__(cls, *args, **kwargs)
+
+
+_const_types = {Num: (int, float, complex), Str: (str,), Bytes: (bytes,), NameConstant: (type(None), bool), Ellipsis: (type(...),)}
 _const_types_not = {Num: (bool,)}
 _const_node_type_names = {bool: 'NameConstant', type(None): 'NameConstant', int: 'Num', float: 'Num', complex: 'Num', str: 'Str', bytes: 'Bytes', type(...): 'Ellipsis'}
 
@@ -563,7 +581,7 @@ class _Unparser(NodeVisitor):
             traverser(items[0])
             self.write(',')
             return
-        self.interleave(lambda: self.write(', '), traverser, items)
+        self.interleave((lambda: self.write(', ')), traverser, items)
 
     def maybe_newline(self):
         if self._source:
@@ -617,7 +635,7 @@ class _Unparser(NodeVisitor):
             self._precedences[node] = precedence
 
     def get_raw_docstring(self, node):
-        if isinstance(node, AsyncFunctionDef, FunctionDef, ClassDef, Module):
+        if isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
             if len(node.body) < 1:
                 return
         node = node.body[0]
@@ -661,7 +679,7 @@ class _Unparser(NodeVisitor):
 
     def visit_FunctionType(self, node):
         with self.delimit('(', ')'):
-            self.interleave(lambda: self.write(', '), self.traverse, node.argtypes)
+            self.interleave((lambda: self.write(', ')), self.traverse, node.argtypes)
         if not None:
             pass
         self.write(' -> ')
@@ -682,7 +700,7 @@ class _Unparser(NodeVisitor):
 
     def visit_Import(self, node):
         self.fill('import ')
-        self.interleave(lambda: self.write(', '), self.traverse, node.names)
+        self.interleave((lambda: self.write(', ')), self.traverse, node.names)
 
     def visit_ImportFrom(self, node):
         self.fill('from ')
@@ -690,7 +708,7 @@ class _Unparser(NodeVisitor):
         if node.module:
             self.write(node.module)
         self.write(' import ')
-        self.interleave(lambda: self.write(', '), self.traverse, node.names)
+        self.interleave((lambda: self.write(', ')), self.traverse, node.names)
 
     def visit_Assign(self, node):
         self.fill()
@@ -740,7 +758,7 @@ class _Unparser(NodeVisitor):
 
     def visit_Delete(self, node):
         self.fill('del ')
-        self.interleave(lambda: self.write(', '), self.traverse, node.targets)
+        self.interleave((lambda: self.write(', ')), self.traverse, node.targets)
 
     def visit_Assert(self, node):
         self.fill('assert ')
@@ -752,11 +770,11 @@ class _Unparser(NodeVisitor):
 
     def visit_Global(self, node):
         self.fill('global ')
-        self.interleave(lambda: self.write(', '), self.write, node.names)
+        self.interleave((lambda: self.write(', ')), self.write, node.names)
 
     def visit_Nonlocal(self, node):
         self.fill('nonlocal ')
-        self.interleave(lambda: self.write(', '), self.write, node.names)
+        self.interleave((lambda: self.write(', ')), self.write, node.names)
 
     def visit_Await(self, node):
         with self(_Precedence.AWAIT, node):
@@ -842,7 +860,7 @@ class _Unparser(NodeVisitor):
             self.fill('@')
             self.traverse(deco)
         self.fill('class ' + node.name)
-        with None('(', ')', node.bases or node.keywords, condition=self.delimit_if):
+        with self.delimit_if('(', ')', condition=node.bases or node.keywords):
             comma = False
             for e in node.bases:
                 if comma:
@@ -881,7 +899,7 @@ class _Unparser(NodeVisitor):
         if node.returns:
             self.write(' -> ')
             self.traverse(node.returns)
-        with None(self.get_type_comment(node), extra=self.block):
+        with self.block(extra=self.get_type_comment(node)):
             self._write_docstring_and_traverse_body(node)
 
     def visit_For(self, node):
@@ -895,7 +913,7 @@ class _Unparser(NodeVisitor):
         self.traverse(node.target)
         self.write(' in ')
         self.traverse(node.iter)
-        with None(self.get_type_comment(node), extra=self.block):
+        with self.block(extra=self.get_type_comment(node)):
             self.traverse(node.body)
         if not None:
             pass
@@ -952,14 +970,14 @@ class _Unparser(NodeVisitor):
 
     def visit_With(self, node):
         self.fill('with ')
-        self.interleave(lambda: self.write(', '), self.traverse, node.items)
-        with None(self.get_type_comment(node), extra=self.block):
+        self.interleave((lambda: self.write(', ')), self.traverse, node.items)
+        with self.block(extra=self.get_type_comment(node)):
             self.traverse(node.body)
 
     def visit_AsyncWith(self, node):
         self.fill('async with ')
-        self.interleave(lambda: self.write(', '), self.traverse, node.items)
-        with None(self.get_type_comment(node), extra=self.block):
+        self.interleave((lambda: self.write(', ')), self.traverse, node.items)
+        with self.block(extra=self.get_type_comment(node)):
             self.traverse(node.body)
 
     def _str_literal_helper(self, string, *, quote_types=_ALL_QUOTES, escape_special_whitespace=False):
@@ -982,14 +1000,14 @@ class _Unparser(NodeVisitor):
             quote = next((q for q in quote_types if string[0] in q), string[0])
             return string[1:-1], [quote]
         if escaped_string and possible_quotes[0][0] == escaped_string[-1]:
-            ''.join(lambda q: q[0] == escaped_string[-1], key=possible_quotes.sort)
+            possible_quotes.sort(key=(lambda q: q[0] == escaped_string[-1]))
             if not len(possible_quotes[0]) == 3:
                 raise AssertionError
             escaped_string = escaped_string[:-1] + '\\' + escaped_string[-1]
         return escaped_string, possible_quotes
 
     def _write_str_avoiding_backslashes(self, string, *, quote_types=_ALL_QUOTES):
-        string, quote_types = None(string, quote_types, quote_types=self._str_literal_helper)
+        string, quote_types = self._str_literal_helper(string, quote_types=quote_types)
         quote_type = quote_types[0]
         self.write(f'{quote_type}{string}{quote_type}')
 
@@ -1003,11 +1021,11 @@ class _Unparser(NodeVisitor):
         for value in node.values:
             meth = getattr(self, '_fstring_' + type(value).__name__)
             meth(value, self.buffer_writer)
-            buffer.append(self.buffer, isinstance(value, Constant))
+            buffer.append((self.buffer, isinstance(value, Constant)))
         new_buffer = []
         quote_types = _ALL_QUOTES
         for value, is_constant in buffer:
-            value, quote_types = None(value, quote_types, is_constant, escape_special_whitespace=None, quote_types=self._str_literal_helper)
+            value, quote_types = self._str_literal_helper(value, quote_types=quote_types, escape_special_whitespace=is_constant)
             new_buffer.append(value)
         value = ''.join(new_buffer)
         quote_type = quote_types[0]
@@ -1031,7 +1049,7 @@ class _Unparser(NodeVisitor):
 
     def _fstring_FormattedValue(self, node, write):
         write('{')
-        unparser = None(True, _avoid_backslashes=type(self))
+        unparser = type(self)(_avoid_backslashes=True)
         unparser.set_precedence(_Precedence.TEST.next(), node.value)
         expr = unparser.visit(node.value)
         if expr.startswith('{'):
@@ -1057,10 +1075,10 @@ class _Unparser(NodeVisitor):
         self.fill()
         if node.kind == 'u':
             self.write('u')
-        None(node.value, _MULTI_QUOTES, quote_types=self._write_str_avoiding_backslashes)
+        self._write_str_avoiding_backslashes(node.value, quote_types=_MULTI_QUOTES)
 
     def _write_constant(self, value):
-        if isinstance(value, float, complex):
+        if isinstance(value, (float, complex)):
             self.write(repr(value).replace('inf', _INFSTR).replace('nan', f'({_INFSTR}-{_INFSTR})'))
             return
         if self._avoid_backslashes and isinstance(value, str):
@@ -1086,7 +1104,7 @@ class _Unparser(NodeVisitor):
 
     def visit_List(self, node):
         with self.delimit('[', ']'):
-            self.interleave(lambda: self.write(', '), self.traverse, node.elts)
+            self.interleave((lambda: self.write(', ')), self.traverse, node.elts)
 
     def visit_ListComp(self, node):
         with self.delimit('[', ']'):
@@ -1142,7 +1160,7 @@ class _Unparser(NodeVisitor):
     def visit_Set(self, node):
         if node.elts:
             with self.delimit('{', '}'):
-                self.interleave(lambda: self.write(', '), self.traverse, node.elts)
+                self.interleave((lambda: self.write(', ')), self.traverse, node.elts)
             return
             if not None:
                 pass
@@ -1165,7 +1183,7 @@ class _Unparser(NodeVisitor):
             write_key_value_pair(k, v)
 
         with self.delimit('{', '}'):
-            self.interleave(lambda: self.write(', '), write_item, zip(node.keys, node.values))
+            self.interleave((lambda: self.write(', ')), write_item, zip(node.keys, node.values))
 
     def visit_Tuple(self, node):
         with self.delimit('(', ')'):
@@ -1225,7 +1243,7 @@ class _Unparser(NodeVisitor):
 
         with self.require_parens(operator_precedence, node):
             s = f' {operator} '
-            self.interleave(lambda: self.write(s), increasing_level_traverse, node.values)
+            self.interleave((lambda: self.write(s)), increasing_level_traverse, node.values)
 
     def visit_Attribute(self, node):
         self(_Precedence.ATOM, node.value)
@@ -1393,7 +1411,7 @@ class _Unparser(NodeVisitor):
 
     def visit_MatchSequence(self, node):
         with self.delimit('[', ']'):
-            self.interleave(lambda: self.write(', '), self.traverse, node.patterns)
+            self.interleave((lambda: self.write(', ')), self.traverse, node.patterns)
 
     def visit_MatchStar(self, node):
         name = node.name
@@ -1410,7 +1428,7 @@ class _Unparser(NodeVisitor):
 
         with self.delimit('{', '}'):
             keys = node.keys
-            None(self, lambda: self.write(', '), write_key_pattern_pair(keys, node.patterns, True, strict=zip))
+            self.interleave((lambda: self.write(', ')), write_key_pattern_pair, zip(keys, node.patterns, strict=True))
             rest = node.rest
             if rest is not None:
                 if keys:
@@ -1424,7 +1442,7 @@ class _Unparser(NodeVisitor):
         self.traverse(node.cls)
         with self.delimit('(', ')'):
             patterns = node.patterns
-            self.interleave(lambda: self.write(', '), self.traverse, patterns)
+            self.interleave((lambda: self.write(', ')), self.traverse, patterns)
             attrs = node.kwd_attrs
             if attrs:
                 def write_attr_pattern(pair):
@@ -1434,9 +1452,9 @@ class _Unparser(NodeVisitor):
 
                 if patterns:
                     self.write(', ')
-                self.set_precedence(self, lambda: self.write(', '), write_attr_pattern(attrs, node.kwd_patterns, True, strict=zip))
+                self.interleave((lambda: self.write(', ')), write_attr_pattern, zip(attrs, node.kwd_patterns, strict=True))
+                self.set_precedence(None, None, None)
                 return
-        None(None, None, None)
 
     def visit_MatchAs(self, node):
         name = node.name
@@ -1455,7 +1473,7 @@ class _Unparser(NodeVisitor):
     def visit_MatchOr(self, node):
         with self(_Precedence.BOR, node):
             self.set_precedence(_Precedence.BOR.next(), *node.patterns)
-            self.interleave(lambda: self.write(' | '), self.traverse, node.patterns)
+            self.interleave((lambda: self.write(' | ')), self.traverse, node.patterns)
         self.require_parens(None, None, None)
 
 
@@ -1465,19 +1483,19 @@ def unparse(ast_obj):
 
 def main():
     import argparse
-    parser = None('python -m ast', prog=argparse.ArgumentParser)
-    None(parser.add_argument, 'infile'('rb', mode=argparse.FileType), '?', '-', 'the file to parse; defaults to stdin', help=None, default=None, nargs=None, type=None)
-    None('-m', '--mode', 'exec', ('exec', 'single', 'eval', 'func_type'), 'specify what kind of code must be parsed', help=None, choices=None, default=parser.add_argument)
-    None('--no-type-comments', True, 'store_false', "don't add information about type comments", help=None, action=None, default=parser.add_argument)
-    None('-a', '--include-attributes', 'store_true', 'include attributes such as line numbers and column offsets', help=None, action=parser.add_argument)
-    None('-i', '--indent', int, 3, 'indentation of nodes (number of spaces)', help=None, default=None, type=parser.add_argument)
+    parser = argparse.ArgumentParser(prog='python -m ast')
+    parser.add_argument('infile', type=argparse.FileType(mode='rb'), nargs='?', default='-', help='the file to parse; defaults to stdin')
+    parser.add_argument('-m', '--mode', default='exec', choices=('exec', 'single', 'eval', 'func_type'), help='specify what kind of code must be parsed')
+    parser.add_argument('--no-type-comments', default=True, action='store_false', help="don't add information about type comments")
+    parser.add_argument('-a', '--include-attributes', action='store_true', help='include attributes such as line numbers and column offsets')
+    parser.add_argument('-i', '--indent', type=int, default=3, help='indentation of nodes (number of spaces)')
     args = parser.parse_args()
     with args.infile as infile:
         source = infile.read()
     if not None:
         pass
-    tree = None(source, args.infile.name, args.mode, args.no_type_comments, type_comments=parse)
-    None(None(tree, args.include_attributes, args.indent, indent=print, include_attributes=dump))
+    tree = parse(source, args.infile.name, args.mode, type_comments=args.no_type_comments)
+    print(dump(tree, include_attributes=args.include_attributes, indent=args.indent))
 
 if __name__ == '__main__':
     main()

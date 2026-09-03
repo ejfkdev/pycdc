@@ -129,13 +129,13 @@ class ABCMeta(type):
         return subclass
 
     def _dump_registry(cls, file=None):
-        ('Class: %s.%s' % (cls.__module__, cls.__qualname__))(file, 'file')
-        ('Inv.counter: %s' % ABCMeta._abc_invalidation_counter)(file, 'file')
+        print('Class: %s.%s' % (cls.__module__, cls.__qualname__), file=file)
+        print('Inv.counter: %s' % ABCMeta._abc_invalidation_counter, file=file)
         for name in sorted(cls.__dict__.keys()):
             if name.startswith('_abc_'):
                 pass
             value = getattr(cls, name)
-            ('%s: %r' % (name, value))(file, 'file')
+            print('%s: %r' % (name, value), file=file)
             continue
 
     def __instancecheck__(cls, instance):
@@ -166,7 +166,7 @@ class ABCMeta(type):
             else:
                 cls._abc_negative_cache.add(subclass)
             return ok
-        if cls in getattr(subclass, '__mro__', ()):
+        if cls in getattr(subclass, '__mro__', (())):
             cls._abc_cache.add(subclass)
             return True
         for rcls in cls._abc_registry:
@@ -185,7 +185,10 @@ class ABCMeta(type):
         return False
 
 
-ABC = /* <function ABC> */None('metaclass', ABCMeta, 'ABC')
+class ABC(metaclass=ABCMeta):
+    '''Helper class that provides a standard way to create an ABC using
+    inheritance.
+    '''
 
 def get_cache_token():
     return ABCMeta._abc_invalidation_counter

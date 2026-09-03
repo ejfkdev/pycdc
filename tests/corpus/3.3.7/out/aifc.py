@@ -427,7 +427,7 @@ class Aifc_read:
                 if not pos:
                     if name:
                         pass
-                self._markers.append(id, pos, name)
+                self._markers.append((id, pos, name))
                 continue
                 continue
         except EOFError as w:
@@ -567,7 +567,7 @@ class Aifc_write:
             self._markers[i] = id, pos, name
             return
             continue
-        self._markers.append(id, pos, name)
+        self._markers.append((id, pos, name))
 
     def getmark(self, id):
         for marker in self._markers:

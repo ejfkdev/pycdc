@@ -53,7 +53,7 @@ class InteractiveInterpreter:
             except ValueError:
                 pass
             else:
-                value = SyntaxError(msg, filename, lineno, offset, line)
+                value = SyntaxError(msg, (filename, lineno, offset, line))
                 sys.last_value = value
         if sys.excepthook is sys.__excepthook__:
             lines = traceback.format_exception_only(type, value)

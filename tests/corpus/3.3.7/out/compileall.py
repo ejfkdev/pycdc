@@ -74,7 +74,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=
             cfile = fullname + ('c' if __debug__ else 'o')
         else:
             if optimize >= 0:
-                cfile = fullname(not optimize, 'debug_override')
+                cfile = imp.cache_from_source(fullname, debug_override=not optimize)
             else:
                 cfile = imp.cache_from_source(fullname)
             cache_dir = os.path.dirname(cfile)
@@ -94,13 +94,13 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=
         err = None
         del err
         try:
-            ok = fullname(dfile, True, 'optimize', optimize, cfile)
+            ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
         except py_compile.PyCompileError as err:
             print('*** Error compiling {!r}...'.format(fullname))
-            '*** '('', 'end')
+            print('*** ', end='')
             if quiet:
                 pass
-            msg = sys.stdout.encoding('backslashreplace', 'errors')
+            msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
             msg = msg.decode(sys.stdout.encoding)
             print(msg)
             success = 0
@@ -113,21 +113,21 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=False, legacy=Fa
             if dir == os.curdir and skip_curdir:
                 print('Skipping current directory')
                 continue
-        success = success and None('legacy', legacy, 'optimize', optimize, force, 'quiet', quiet)
+        success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize)
         continue
     return success
 
 def main():
     import argparse
-    parser = 'description'('Utilities to support installing Python libraries.')
-    0("don't recurse into subdirectories", 'default', 10, 'dest', 'maxlevels', 'help')
-    'store_true'('force rebuild even if timestamps are up to date', 'dest', 'force', 'help')
-    'store_true'('output only error messages', 'dest', 'quiet', 'help')
-    'store_true'('use legacy (pre-PEP3147) compiled file locations', 'dest', 'legacy', 'help')
-    'dest'('directory to prepend to file paths for use in compile-time tracebacks and in runtime tracebacks in cases where the source file is unavailable', 'ddir', 'default', None, 'help')
-    'dest'('skip files matching the regular expression; the regexp is searched for in the full path of each file considered for compilation', 'rx', 'default', None, 'help')
-    'FILE'('add all the files and directories listed in FILE to the list considered for compilation; if "-", names are read from stdin', 'dest', 'flist', 'help')
-    'FILE|DIR'('zero or more file and directory names to compile; if no arguments given, defaults to the equivalent of -l sys.path', 'nargs', '*', 'help')
+    parser = argparse.ArgumentParser(description='Utilities to support installing Python libraries.')
+    parser.add_argument('-l', action='store_const', const=0, default=10, dest='maxlevels', help="don't recurse into subdirectories")
+    parser.add_argument('-f', action='store_true', dest='force', help='force rebuild even if timestamps are up to date')
+    parser.add_argument('-q', action='store_true', dest='quiet', help='output only error messages')
+    parser.add_argument('-b', action='store_true', dest='legacy', help='use legacy (pre-PEP3147) compiled file locations')
+    parser.add_argument('-d', metavar='DESTDIR', dest='ddir', default=None, help='directory to prepend to file paths for use in compile-time tracebacks and in runtime tracebacks in cases where the source file is unavailable')
+    parser.add_argument('-x', metavar='REGEXP', dest='rx', default=None, help='skip files matching the regular expression; the regexp is searched for in the full path of each file considered for compilation')
+    parser.add_argument('-i', metavar='FILE', dest='flist', help='add all the files and directories listed in FILE to the list considered for compilation; if "-", names are read from stdin')
+    parser.add_argument('compile_dest', metavar='FILE|DIR', nargs='*', help='zero or more file and directory names to compile; if no arguments given, defaults to the equivalent of -l sys.path')
     args = parser.parse_args()
     compile_dests = args.compile_dest
     if args.ddir:
@@ -161,7 +161,7 @@ def main():
                 continue
                 continue
             return success
-        return 'force'(args.force, 'quiet', args.quiet)
+        return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)
     except KeyboardInterrupt:
         print('\n[interrupted]')
         return False

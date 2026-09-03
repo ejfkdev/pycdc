@@ -2,18 +2,15 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "SIG-DIFF": 31,
-  "PASS": 4,
+  "PASS": 5,
+  "SIG-DIFF": 30,
   "INCOMPLETE": 4,
   "SYNTAX-ERR": 1
  },
  "results": [
   {
    "module": "__future__",
-   "verdict": "SIG-DIFF",
-   "ndiff": 4,
-   "ntotal": 163,
-   "detail": "line 159: orig ('BUILD_TUPLE', '') | got ('CALL', '')\nline 160: orig ('CALL', '') | got ('BINARY_OP', '+')\nline 161: orig ('BINARY_OP', '+') | got ('RETURN_VALUE', '')"
+   "verdict": "PASS"
   },
   {
    "module": "__hello__",
@@ -43,7 +40,7 @@
   {
    "module": "_collections_abc",
    "verdict": "SIG-DIFF",
-   "ndiff": 3555,
+   "ndiff": 2899,
    "ntotal": 3732,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -115,7 +112,7 @@
   {
    "module": "_strptime",
    "verdict": "SIG-DIFF",
-   "ndiff": 2807,
+   "ndiff": 2698,
    "ntotal": 2941,
    "detail": "line 49: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 53: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 54: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -152,7 +149,7 @@
   {
    "module": "bdb",
    "verdict": "SIG-DIFF",
-   "ndiff": 2634,
+   "ndiff": 2602,
    "ntotal": 2733,
    "detail": "line 23: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 27: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 28: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -166,7 +163,7 @@
   {
    "module": "bz2",
    "verdict": "SIG-DIFF",
-   "ndiff": 784,
+   "ndiff": 787,
    "ntotal": 838,
    "detail": "line 29: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 33: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
@@ -199,14 +196,14 @@
   {
    "module": "codecs",
    "verdict": "SIG-DIFF",
-   "ndiff": 2079,
+   "ndiff": 2061,
    "ntotal": 2145,
    "detail": "line 18: orig ('BUILD_LIST', '') | got ('NOP', '')\nline 19: orig ('LOAD_CONST', \"('register', 'lookup', 'open', 'EncodedFile', 'BOM', 'BOM_BE', 'BOM_LE', 'BOM32_BE', | got ('BUILD_LIST', '')\nline 20: orig ('LIST_EXTEND', '') | got ('LOAD_CONST', \"('register', 'lookup', 'open', 'EncodedFile', 'BOM', 'BOM_BE', 'BOM_LE', 'BOM32_BE',"
   },
   {
    "module": "codeop",
    "verdict": "SIG-DIFF",
-   "ndiff": 357,
+   "ndiff": 353,
    "ntotal": 370,
    "detail": "line 12: orig ('LOAD_NAME', '__future__') | got ('LOAD_CONST', 'None')\nline 13: orig ('LOAD_ATTR', 'all_feature_names') | got ('STORE_NAME', '_features')\nline 14: orig ('GET_ITER', '') | got ('BUILD_LIST', '')"
   },
@@ -227,7 +224,7 @@
   {
    "module": "contextlib",
    "verdict": "SIG-DIFF",
-   "ndiff": 2129,
+   "ndiff": 2131,
    "ntotal": 2204,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },

@@ -67,7 +67,7 @@ def parse(fp=None, environ=os.environ, keep_blank_values=0, strict_parsing=0, se
     if environ['REQUEST_METHOD'] == 'POST':
         ctype, pdict = parse_header(environ['CONTENT_TYPE'])
         if ctype == 'multipart/form-data':
-            return None(fp, pdict, separator, separator=parse_multipart)
+            return parse_multipart(fp, pdict, separator=separator)
         if ctype == 'application/x-www-form-urlencoded':
             clength = int(environ['CONTENT_LENGTH'])
             if maxlen and clength > maxlen:
@@ -92,7 +92,7 @@ def parse(fp=None, environ=os.environ, keep_blank_values=0, strict_parsing=0, se
         else:
             qs = ''
         environ['QUERY_STRING'] = qs
-    return None(qs, keep_blank_values, strict_parsing, encoding, separator, separator=None, encoding=urllib.parse.parse_qs)
+    return urllib.parse.parse_qs(qs, keep_blank_values, strict_parsing, encoding=encoding, separator=separator)
 
 def parse_qs(qs, keep_blank_values=0, strict_parsing=0):
     warn('cgi.parse_qs is deprecated, use urllib.parse.parse_qs instead', DeprecationWarning, 2)
@@ -111,7 +111,7 @@ def parse_multipart(fp, pdict, encoding='utf-8', errors='replace', separator='&'
         headers['Content-Length'] = pdict['CONTENT-LENGTH']
     except KeyError:
         pass
-    fs = None(fp, headers, encoding, errors, {'REQUEST_METHOD': 'POST'}, separator, separator=None, environ=None, errors=None, encoding=None, headers=FieldStorage)
+    fs = FieldStorage(fp, headers=headers, encoding=encoding, errors=errors, environ={'REQUEST_METHOD': 'POST'}, separator=separator)
     return {fs.getlist(k): k for k in fs}
 
 def _parseparam(s):
@@ -239,7 +239,7 @@ class FieldStorage:
                 self.qs_on_post = environ['QUERY_STRING']
             if 'CONTENT_LENGTH' in environ:
                 headers['content-length'] = environ['CONTENT_LENGTH']
-        elif not isinstance(headers, Mapping, Message):
+        elif not isinstance(headers, (Mapping, Message)):
             raise TypeError('headers must be mapping or an instance of email.message.Message')
         self.headers = headers
         if fp is None:
@@ -401,7 +401,7 @@ class FieldStorage:
         qs = qs.decode(self.encoding, self.errors)
         if self.qs_on_post:
             qs += '&' + self.qs_on_post
-        query = None(qs, self.keep_blank_values, self.strict_parsing, self.encoding, self.errors, self.max_num_fields, self.separator, separator=None, max_num_fields=None, errors=None, encoding=urllib.parse.parse_qsl)
+        query = urllib.parse.parse_qsl(qs, self.keep_blank_values, self.strict_parsing, encoding=self.encoding, errors=self.errors, max_num_fields=self.max_num_fields, separator=self.separator)
         self.list = [MiniFieldStorage(key, value) for key in query]
         self.skip_lines()
 
@@ -412,7 +412,7 @@ class FieldStorage:
             raise ValueError('Invalid boundary in multipart form: %r' % (ib,))
         self.list = []
         if self.qs_on_post:
-            query = None(self.qs_on_post, self.keep_blank_values, self.strict_parsing, self.encoding, self.errors, self.max_num_fields, self.separator, separator=None, max_num_fields=None, errors=None, encoding=urllib.parse.parse_qsl)
+            query = urllib.parse.parse_qsl(self.qs_on_post, self.keep_blank_values, self.strict_parsing, encoding=self.encoding, errors=self.errors, max_num_fields=self.max_num_fields, separator=self.separator)
             self.list.extend((MiniFieldStorage(key, value) for key in query))
         klass = self.FieldStorageClass or self.__class__
         first_line = self.fp.readline()
@@ -583,7 +583,7 @@ class FieldStorage:
     def make_file(self):
         if self._binary_file:
             return tempfile.TemporaryFile('wb+')
-        return None('w+', self.encoding, '\n', newline=None, encoding=tempfile.TemporaryFile)
+        return tempfile.TemporaryFile('w+', encoding=self.encoding, newline='\n')
 
 
 def test(environ=os.environ):
@@ -624,7 +624,7 @@ def print_form(form):
         print('<P>No form fields.')
     print('<DL>')
     for key in keys:
-        None('<DT>' + html.escape(key) + ':', ' ', end=print)
+        print('<DT>' + html.escape(key) + ':', end=' ')
         value = form[key]
         '<i>'(html.escape + html(repr(type(value))) + '</i>')
         '<DD>'(html.escape + html(repr(value)))
@@ -654,7 +654,7 @@ def print_environ_usage():
     print('\n<H3>These environment variables could have been set:</H3>\n<UL>\n<LI>AUTH_TYPE\n<LI>CONTENT_LENGTH\n<LI>CONTENT_TYPE\n<LI>DATE_GMT\n<LI>DATE_LOCAL\n<LI>DOCUMENT_NAME\n<LI>DOCUMENT_ROOT\n<LI>DOCUMENT_URI\n<LI>GATEWAY_INTERFACE\n<LI>LAST_MODIFIED\n<LI>PATH\n<LI>PATH_INFO\n<LI>PATH_TRANSLATED\n<LI>QUERY_STRING\n<LI>REMOTE_ADDR\n<LI>REMOTE_HOST\n<LI>REMOTE_IDENT\n<LI>REMOTE_USER\n<LI>REQUEST_METHOD\n<LI>SCRIPT_NAME\n<LI>SERVER_NAME\n<LI>SERVER_PORT\n<LI>SERVER_PROTOCOL\n<LI>SERVER_ROOT\n<LI>SERVER_SOFTWARE\n</UL>\nIn addition, HTTP headers sent by the server may be passed in the\nenvironment as well.  Here are some common variable names:\n<UL>\n<LI>HTTP_ACCEPT\n<LI>HTTP_CONNECTION\n<LI>HTTP_HOST\n<LI>HTTP_PRAGMA\n<LI>HTTP_REFERER\n<LI>HTTP_USER_AGENT\n</UL>\n')
 
 def escape(s, quote=None):
-    None('cgi.escape is deprecated, use html.escape instead', DeprecationWarning, 2, stacklevel=warn)
+    warn('cgi.escape is deprecated, use html.escape instead', DeprecationWarning, stacklevel=2)
     s = s.replace('&', '&amp;')
     s = s.replace('<', '&lt;')
     s = s.replace('>', '&gt;')

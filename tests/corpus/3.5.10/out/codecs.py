@@ -37,7 +37,7 @@ class CodecInfo(tuple):
 
     _is_text_encoding = True
     def __new__(cls=None, encode=None, decode=None, streamreader=None, streamwriter=None, incrementalencoder=None, incrementaldecoder=None, name=None, *, _is_text_encoding):
-        self = tuple.__new__(cls, encode, decode, streamreader, streamwriter)
+        self = tuple.__new__(cls, (encode, decode, streamreader, streamwriter))
         self.name = name
         self.encode = encode
         self.decode = decode
@@ -258,7 +258,7 @@ class StreamReader(Codec):
                 newchars, decodedbytes = self.decode(data, self.errors)
             except UnicodeDecodeError as exc:
                 newchars, decodedbytes = self.decode(data[:exc.start], self.errors)
-                lines = 'keepends'(True)
+                lines = newchars.splitlines(keepends=True)
                 raise
                 raise
                 if len(lines) <= 1:
@@ -284,19 +284,19 @@ class StreamReader(Codec):
                 self.charbuffer = self.linebuffer[0]
                 self.linebuffer = None
             if not keepends:
-                line = 'keepends'(False)[0]
+                line = line.splitlines(keepends=False)[0]
             return line
         readsize = size or 72
         line = self._empty_charbuffer
         while True:
-            data = readsize(True, 'firstline')
+            data = self.read(readsize, firstline=True)
             if data:
                 if isinstance(data, str):
                     if not data.endswith('\r'):
                         if isinstance(data, bytes) and data.endswith(b'\r'):
-                            data = 'size' + 1('chars', 1)
+                            data += self.read(size=1, chars=1)
             line += data
-            lines = 'keepends'(True)
+            lines = line.splitlines(keepends=True)
             if lines and line0withend != line0withoutend:
                 if len(lines) > 1:
                     line = lines[0]
@@ -308,10 +308,10 @@ class StreamReader(Codec):
                     else:
                         self.charbuffer = lines[0] + self.charbuffer
                     if not keepends:
-                        line = 'keepends'(False)[0]
+                        line = line.splitlines(keepends=False)[0]
                     break
                 line0withend = lines[0]
-                line0withoutend = 'keepends'(False)[0]
+                line0withoutend = lines[0].splitlines(keepends=False)[0]
                 self.charbuffer = self._empty_charbuffer.join(lines[1:]) + self.charbuffer
                 if keepends:
                     line = line0withend
@@ -321,7 +321,7 @@ class StreamReader(Codec):
             if not not data:
                 if size is not None:
                     if line and not keepends:
-                        line = 'keepends'(False)[0]
+                        line = line.splitlines(keepends=False)[0]
                     break
             if readsize < 8000:
                 readsize *= 2
@@ -459,7 +459,7 @@ class StreamRecoder:
     def readlines(self, sizehint=None):
         data = self.reader.read()
         data, bytesencoded = self.encode(data, self.errors)
-        return 'keepends'(True)
+        return data.splitlines(keepends=True)
 
     def __next__(self):
         data = next(self.reader)

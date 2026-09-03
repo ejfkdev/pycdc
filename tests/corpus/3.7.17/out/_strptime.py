@@ -81,7 +81,7 @@ class LocaleTime(object):
     def _LocaleTime__calc_am_pm(self):
         am_pm = []
         for hour in (1, 22):
-            time_tuple = time.struct_time(1999, 3, 17, hour, 44, 55, 2, 76, 0)
+            time_tuple = time.struct_time((1999, 3, 17, hour, 44, 55, 2, 76, 0))
             am_pm.append(time.strftime('%p', time_tuple).lower())
             continue
         self.am_pm = am_pm
@@ -92,7 +92,7 @@ class LocaleTime(object):
         date_time[0] = time.strftime('%c', time_tuple).lower()
         date_time[1] = time.strftime('%x', time_tuple).lower()
         date_time[2] = time.strftime('%X', time_tuple).lower()
-        replacement_pairs = [('%', '%%'), self.f_weekday[2], '%A', self.f_month[3], '%B', self.a_weekday[2], '%a', self.a_month[3], '%b', self.am_pm[1], '%p', ('1999', '%Y'), ('99', '%y'), ('22', '%H'), ('44', '%M'), ('55', '%S'), ('76', '%j'), ('17', '%d'), ('03', '%m'), ('3', '%m'), ('2', '%w'), ('10', '%I')]
+        replacement_pairs = [('%', '%%'), (self.f_weekday[2], '%A'), (self.f_month[3], '%B'), (self.a_weekday[2], '%a'), (self.a_month[3], '%b'), (self.am_pm[1], '%p'), ('1999', '%Y'), ('99', '%y'), ('22', '%H'), ('44', '%M'), ('55', '%S'), ('76', '%j'), ('17', '%d'), ('03', '%m'), ('3', '%m'), ('2', '%w'), ('10', '%I')]
         replacement_pairs.extend([(tz, '%Z') for tz_values in self.timezone for tz in tz_values])
         for offset, directive in ((0, '%c'), (1, '%x'), (2, '%X')):
             current_format = date_time[offset]
@@ -143,7 +143,7 @@ class TimeRE(dict):
         base.__setitem__('X', self.pattern(self.locale_time.LC_time))
 
     def _TimeRE__seqToRE(self, to_convert, directive):
-        to_convert = None(to_convert, len, True, reverse=None, key=sorted)
+        to_convert = sorted(to_convert, key=len, reverse=True)
         for value in to_convert:
             if value != '':
                 pass
@@ -325,7 +325,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                                 if z[3] == ':' and len(z) > 5:
                                     z = z[:3] + z[4:]
                                     if z[5] != ':':
-                                        msg = f'Inconsistent use of : in {found_dict['z']}'
+                                        msg = f'Inconsistent use of : in {found_dict["z"]}'
                                         raise ValueError(msg)
                                     z = z[:5] + z[6:]
                                 hours = int(z[1:3])
@@ -399,7 +399,7 @@ def _strptime_datetime(cls, data_string, format='%a %b %d %H:%M:%S %Y'):
     tzname, gmtoff = tt[-2:]
     args = tt[:6] + (fraction,)
     if gmtoff is not None:
-        tzdelta = None(gmtoff, gmtoff_fraction, microseconds=None, seconds=datetime_timedelta)
+        tzdelta = datetime_timedelta(seconds=gmtoff, microseconds=gmtoff_fraction)
         if tzname:
             tz = datetime_timezone(tzdelta, tzname)
         else:

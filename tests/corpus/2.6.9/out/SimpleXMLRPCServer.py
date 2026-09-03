@@ -153,8 +153,8 @@ class CGIXMLRPCRequestHandler(SimpleXMLRPCDispatcher):
 /* unsupported opcode: JUMP_IF_FALSE 69 @271 */
 __name__ == '__main__'
 print 'Running XML-RPC server on port 8000'
-server = SimpleXMLRPCServer('localhost', 8000)
+server = SimpleXMLRPCServer(('localhost', 8000))
 server.register_function(pow)
-server.register_function(lambda x, y: x + y, 'add')
+server.register_function((lambda x, y: x + y), 'add')
 server.serve_forever()
 # WARNING: Decompyle incomplete

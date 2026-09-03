@@ -27,7 +27,7 @@ def _run_exitfuncs():
     exc_info[0]
 
 def register(func, *targs, **kargs):
-    _exithandlers.append(func, targs, kargs)
+    _exithandlers.append((func, targs, kargs))
     return func
 
 /* unsupported opcode: JUMP_IF_FALSE 17 @63 */

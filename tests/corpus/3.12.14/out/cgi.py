@@ -232,7 +232,7 @@ class FieldStorage:
                 self.qs_on_post = environ['QUERY_STRING']
             if 'CONTENT_LENGTH' in environ:
                 headers['content-length'] = environ['CONTENT_LENGTH']
-                if not isinstance(headers, Mapping, Message):
+                if not isinstance(headers, (Mapping, Message)):
                     raise TypeError('headers must be mapping or an instance of email.message.Message')
         self.headers = headers
         if not fp is not None:

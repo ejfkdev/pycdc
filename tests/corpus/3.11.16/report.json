@@ -2,17 +2,14 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "SIG-DIFF": 31,
-  "PASS": 3,
-  "SYNTAX-ERR": 6
+  "PASS": 4,
+  "SIG-DIFF": 33,
+  "SYNTAX-ERR": 3
  },
  "results": [
   {
    "module": "__future__",
-   "verdict": "SIG-DIFF",
-   "ndiff": 5,
-   "ntotal": 181,
-   "detail": "line 176: orig ('BUILD_TUPLE', '') | got ('PRECALL', '')\nline 177: orig ('PRECALL', '') | got ('CALL', '')\nline 178: orig ('CALL', '') | got ('BINARY_OP', '+')"
+   "verdict": "PASS"
   },
   {
    "module": "__hello__",
@@ -32,8 +29,10 @@
   },
   {
    "module": "_collections_abc",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: f-string: expecting '}'"
+   "verdict": "SIG-DIFF",
+   "ndiff": 3629,
+   "ntotal": 3887,
+   "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "_compat_pickle",
@@ -78,7 +77,7 @@
   {
    "module": "_strptime",
    "verdict": "SIG-DIFF",
-   "ndiff": 2165,
+   "ndiff": 2164,
    "ntotal": 2248,
    "detail": "line 35: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 39: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 40: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -117,7 +116,7 @@
   {
    "module": "asynchat",
    "verdict": "SIG-DIFF",
-   "ndiff": 831,
+   "ndiff": 832,
    "ntotal": 877,
    "detail": "line 27: orig ('KW_NAMES', '') | got ('PRECALL', '')\nline 28: orig ('PRECALL', '') | got ('CALL', '')\nline 29: orig ('CALL', '') | got ('POP_TOP', '')"
   },
@@ -138,7 +137,7 @@
   {
    "module": "bdb",
    "verdict": "SIG-DIFF",
-   "ndiff": 2439,
+   "ndiff": 2440,
    "ntotal": 2548,
    "detail": "line 17: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 21: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -152,7 +151,7 @@
   {
    "module": "bz2",
    "verdict": "SIG-DIFF",
-   "ndiff": 823,
+   "ndiff": 825,
    "ntotal": 877,
    "detail": "line 29: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 33: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
@@ -172,13 +171,17 @@
   },
   {
    "module": "cgi",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: f-string: unmatched '('"
+   "verdict": "SIG-DIFF",
+   "ndiff": 3068,
+   "ntotal": 3160,
+   "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cgitb",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: f-string: expecting '}'"
+   "verdict": "SIG-DIFF",
+   "ndiff": 1607,
+   "ntotal": 1702,
+   "detail": "line 59: orig ('KW_NAMES', '') | got ('PRECALL', '')\nline 60: orig ('PRECALL', '') | got ('CALL', '')\nline 61: orig ('CALL', '') | got ('POP_TOP', '')"
   },
   {
    "module": "chunk",
@@ -197,7 +200,7 @@
   {
    "module": "code",
    "verdict": "SIG-DIFF",
-   "ndiff": 694,
+   "ndiff": 691,
    "ntotal": 715,
    "detail": "line 13: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 17: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
@@ -211,7 +214,7 @@
   {
    "module": "codeop",
    "verdict": "SIG-DIFF",
-   "ndiff": 308,
+   "ndiff": 306,
    "ntotal": 406,
    "detail": "line 82: orig ('FOR_ITER', 'to 122') | got ('FOR_ITER', 'to 120')\nline 90: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 120') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 118')\nline 96: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 120') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 118')"
   },
@@ -234,7 +237,7 @@
   {
    "module": "contextlib",
    "verdict": "SIG-DIFF",
-   "ndiff": 2203,
+   "ndiff": 2196,
    "ntotal": 2283,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },

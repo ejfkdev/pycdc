@@ -143,7 +143,7 @@ def _remove_universal_flags(_config_vars):
         if cv in _config_vars:
             if cv not in os.environ:
                 flags = _config_vars[cv]
-                flags = None('-arch\\s+\\w+\\s', ' ', flags, re.ASCII, flags=re.sub)
+                flags = re.sub('-arch\\s+\\w+\\s', ' ', flags, flags=re.ASCII)
                 flags = re.sub('-isysroot\\s*\\S+', ' ', flags)
                 _save_modified_value(_config_vars, cv, flags)
     return _config_vars

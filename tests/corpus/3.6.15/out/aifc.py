@@ -448,7 +448,7 @@ class Aifc_read:
                 if not pos:
                     if name:
                         pass
-                self._markers.append(id, pos, name)
+                self._markers.append((id, pos, name))
                 continue
         except EOFError as w:
             warnings.warn(w)
@@ -590,7 +590,7 @@ class Aifc_write:
             self._markers[i] = id, pos, name
             return
             continue
-        self._markers.append(id, pos, name)
+        self._markers.append((id, pos, name))
 
     def getmark(self, id):
         for marker in self._markers:
@@ -609,7 +609,7 @@ class Aifc_write:
         return self._nframeswritten
 
     def writeframesraw(self, data):
-        if not isinstance(data, bytes, bytearray):
+        if not isinstance(data, (bytes, bytearray)):
             data = memoryview(data).cast('B')
         self._ensure_header_written(len(data))
         nframes = len(data) // (self._sampwidth * self._nchannels)

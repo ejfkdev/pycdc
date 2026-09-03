@@ -48,15 +48,15 @@ class ABCMeta(type):
         return subclass
 
     def _dump_registry(cls, file=None):
-        None(f'Class: {cls.__module__}.{cls.__qualname__}', file, file=print)
-        None(f'Inv. counter: {get_cache_token()}', file, file=print)
+        print(f'Class: {cls.__module__}.{cls.__qualname__}', file=file)
+        print(f'Inv. counter: {get_cache_token()}', file=file)
         for name in cls.__dict__:
             if name.startswith('_abc_'):
                 pass
             value = getattr(cls, name)
             if isinstance(value, WeakSet):
                 value = set(value)
-            None(f'{name}: {value!r}', file, file=print)
+            print(f'{name}: {value!r}', file=file)
             continue
 
     def _abc_registry_clear(cls):
@@ -115,4 +115,3 @@ class ABCMeta(type):
         return False
 
 
-# WARNING: Decompyle incomplete

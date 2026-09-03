@@ -26,7 +26,7 @@ def _run_exitfuncs():
         raise exc_info[1] # WARNING: raise cause dropped (py2)
 
 def register(func, *targs, **kargs):
-    _exithandlers.append(func, targs, kargs)
+    _exithandlers.append((func, targs, kargs))
     return func
 
 if hasattr(sys, 'exitfunc'):

@@ -41,7 +41,7 @@ is disregarded.'''
             traverser(items[0])
             self.write(',')
             return
-        self.interleave(lambda: self.write(', '), traverser, items)
+        self.interleave((lambda: self.write(', ')), traverser, items)
 
     def maybe_newline(self):
         if self._source:
@@ -106,7 +106,7 @@ is disregarded.'''
             self._precedences[node] = precedence
 
     def get_raw_docstring(self, node):
-        if isinstance(node, AsyncFunctionDef, FunctionDef, ClassDef, Module):
+        if isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
             if len(node.body) < 1:
                 return
         node = node.body[0]
@@ -161,7 +161,7 @@ is disregarded.'''
 
     def visit_FunctionType(self, node):
         self.delimit('(', ')').interleave()
-        self.interleave(lambda: self.write(', '), self.traverse, node.argtypes)
+        self.interleave((lambda: self.write(', ')), self.traverse, node.argtypes)
         None(None, None, None)
         self.write(' -> ')
         self.traverse(node.returns)
@@ -181,7 +181,7 @@ is disregarded.'''
 
     def visit_Import(self, node):
         self.fill('import ')
-        self.interleave(lambda: self.write(', '), self.traverse, node.names)
+        self.interleave((lambda: self.write(', ')), self.traverse, node.names)
 
     def visit_ImportFrom(self, node):
         self.fill('from ')
@@ -189,7 +189,7 @@ is disregarded.'''
         if node.module:
             self.write(node.module)
         self.write(' import ')
-        self.interleave(lambda: self.write(', '), self.traverse, node.names)
+        self.interleave((lambda: self.write(', ')), self.traverse, node.names)
 
     def visit_Assign(self, node):
         self.fill()
@@ -239,7 +239,7 @@ is disregarded.'''
 
     def visit_Delete(self, node):
         self.fill('del ')
-        self.interleave(lambda: self.write(', '), self.traverse, node.targets)
+        self.interleave((lambda: self.write(', ')), self.traverse, node.targets)
 
     def visit_Assert(self, node):
         self.fill('assert ')
@@ -251,11 +251,11 @@ is disregarded.'''
 
     def visit_Global(self, node):
         self.fill('global ')
-        self.interleave(lambda: self.write(', '), self.write, node.names)
+        self.interleave((lambda: self.write(', ')), self.write, node.names)
 
     def visit_Nonlocal(self, node):
         self.fill('nonlocal ')
-        self.interleave(lambda: self.write(', '), self.write, node.names)
+        self.interleave((lambda: self.write(', ')), self.write, node.names)
 
     def visit_Await(self, node):
         self.require_parens(_Precedence.AWAIT, node)._Precedence()
@@ -402,7 +402,7 @@ is disregarded.'''
         if not type_params is None:
             if len(type_params) > 0:
                 self.delimit('[', ']').delimit()
-                self.interleave(lambda: self.write(', '), self.traverse, type_params)
+                self.interleave((lambda: self.write(', ')), self.traverse, type_params)
                 None(None, None, None)
                 return
             return
@@ -495,14 +495,14 @@ is disregarded.'''
 
     def visit_With(self, node):
         self.fill('with ', False)
-        self.interleave(lambda: self.write(', '), self.traverse, node.items)
+        self.interleave((lambda: self.write(', ')), self.traverse, node.items)
         self.block(extra=self.get_type_comment(node)).interleave()
         self.traverse(node.body)
         None(None, None, None)
 
     def visit_AsyncWith(self, node):
         self.fill('async with ', False)
-        self.interleave(lambda: self.write(', '), self.traverse, node.items)
+        self.interleave((lambda: self.write(', ')), self.traverse, node.items)
         self.block(extra=self.get_type_comment(node)).interleave()
         self.traverse(node.body)
         None(None, None, None)
@@ -527,7 +527,7 @@ is disregarded.'''
             quote = next((q for q in quote_types if string + 0 in q), string[0])
             return string[1:-1], [quote]
         if escaped_string and possible_quotes[0][0] == escaped_string[-1]:
-            possible_quotes.sort(key=lambda q: q[0] == escaped_string[-1])
+            possible_quotes.sort(key=(lambda q: q[0] == escaped_string[-1]))
             if not len(possible_quotes[0]) == 3:
                 raise None
             escaped_string = escaped_string[:-1] + '\\' + escaped_string[-1]
@@ -579,7 +579,7 @@ is disregarded.'''
             buffer = self.buffered().buffered()
             self._write_ftstring_inner(value)
             None(None, None, None)
-            fstring_parts.append(''.join(buffer), isinstance(value, Constant))
+            fstring_parts.append((''.join(buffer), isinstance(value, Constant)))
         self._ftstring_helper(fstring_parts)
 
     def visit_JoinedStr(self, node):
@@ -647,7 +647,7 @@ is disregarded.'''
         self._write_str_avoiding_backslashes(node.value, _MULTI_QUOTES)
 
     def _write_constant(self, value):
-        if isinstance(value, float, complex):
+        if isinstance(value, (float, complex)):
             self.write(repr(value).replace('inf', _INFSTR).replace('nan', f'({_INFSTR}-{_INFSTR})'))
             return
         self.write(repr(value))
@@ -668,7 +668,7 @@ is disregarded.'''
 
     def visit_List(self, node):
         self.delimit('[', ']').interleave()
-        self.interleave(lambda: self.write(', '), self.traverse, node.elts)
+        self.interleave((lambda: self.write(', ')), self.traverse, node.elts)
         None(None, None, None)
 
     def visit_ListComp(self, node):
@@ -729,7 +729,7 @@ is disregarded.'''
     def visit_Set(self, node):
         if node.elts:
             self.delimit('{', '}').delimit()
-            self.interleave(lambda: self.write(', '), self.traverse, node.elts)
+            self.interleave((lambda: self.write(', ')), self.traverse, node.elts)
             None(None, None, None)
             return
         self.write('{*()}')
@@ -750,7 +750,7 @@ is disregarded.'''
             write_key_value_pair(k, v)
 
         self.delimit('{', '}').interleave()
-        self.interleave(lambda: self.write(', '), write_item, zip(node.keys, node.values))
+        self.interleave((lambda: self.write(', ')), write_item, zip(node.keys, node.values))
         None(None, None, None)
 
     def visit_Tuple(self, node):
@@ -814,7 +814,7 @@ is disregarded.'''
 
         self.require_parens(operator_precedence, node).op()
         s = f' {operator} '
-        self.interleave(lambda: self.write(s), increasing_level_traverse, node.values)
+        self.interleave((lambda: self.write(s)), increasing_level_traverse, node.values)
         None(None, None, None)
 
     def visit_Attribute(self, node):
@@ -990,7 +990,7 @@ is disregarded.'''
 
     def visit_MatchSequence(self, node):
         self.delimit('[', ']').interleave()
-        self.interleave(lambda: self.write(', '), self.traverse, node.patterns)
+        self.interleave((lambda: self.write(', ')), self.traverse, node.patterns)
         None(None, None, None)
 
     def visit_MatchStar(self, node):
@@ -1008,7 +1008,7 @@ is disregarded.'''
 
         self.delimit('{', '}').keys()
         keys = node.keys
-        self.interleave(lambda: self.write(', '), write_key_pattern_pair, zip(keys, node.patterns, True))
+        self.interleave((lambda: self.write(', ')), write_key_pattern_pair, zip(keys, node.patterns, True))
         rest = node.rest
         if not rest is None:
             if keys:
@@ -1021,7 +1021,7 @@ is disregarded.'''
         self.traverse(node.cls)
         self.delimit('(', ')')._Precedence()
         patterns = node.patterns
-        self.interleave(lambda: self.write(', '), self.traverse, patterns)
+        self.interleave((lambda: self.write(', ')), self.traverse, patterns)
         attrs = node.kwd_attrs
         if attrs:
             def write_attr_pattern(pair):
@@ -1031,7 +1031,7 @@ is disregarded.'''
 
             if patterns:
                 self.write(', ')
-            self.interleave(lambda: self.write(', '), write_attr_pattern, zip(attrs, node.kwd_patterns, True))
+            self.interleave((lambda: self.write(', ')), write_attr_pattern, zip(attrs, node.kwd_patterns, True))
         None(None, None, None)
 
     def visit_MatchAs(self, node):
@@ -1052,7 +1052,7 @@ is disregarded.'''
     def visit_MatchOr(self, node):
         self.require_parens(_Precedence.BOR, node)._Precedence()
         self.set_precedence([_Precedence.BOR.next(), *node.patterns])
-        self.interleave(lambda: self.write(' | '), self.traverse, node.patterns)
+        self.interleave((lambda: self.write(' | ')), self.traverse, node.patterns)
         None(None, None, None)
 
 

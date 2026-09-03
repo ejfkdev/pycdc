@@ -364,7 +364,7 @@ class _BaseExitStack:
         self._push_exit_callback(_exit_wrapper, True)
 
     def _push_exit_callback(self, callback, is_sync=True):
-        self._exit_callbacks.append(is_sync, callback)
+        self._exit_callbacks.append((is_sync, callback))
 
 
 class ExitStack(_BaseExitStack, AbstractContextManager):

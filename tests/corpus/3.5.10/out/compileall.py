@@ -55,19 +55,19 @@ def _walk_dir(dir, ddir=None, maxlevels=10, quiet=0):
             pass
         if not os.path.islink(fullname):
             pass
-        yield from dfile(quiet, 'maxlevels', maxlevels - 1, 'quiet')
+        yield from _walk_dir(fullname, ddir=dfile, maxlevels=maxlevels - 1, quiet=quiet)
         continue
 
 def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1):
     if workers is not None and workers < 0:
         raise ValueError('workers must be greater or equal to 0')
-    files = quiet(ddir, 'maxlevels', maxlevels, 'ddir')
+    files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels, ddir=ddir)
     success = 1
     if workers is not None and workers != 1 and ProcessPoolExecutor is not None:
         workers = workers or None
-        with 'max_workers'(workers) as executor:
-            results = force('rx'(optimize, rx, 'quiet', quiet, 'legacy', legacy, 'optimize'), files)
-            success = results(1, 'default')
+        with ProcessPoolExecutor(max_workers=workers) as executor:
+            results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize), files)
+            success = min(results, default=1)
     else:
         for file in files:
             if not compile_file(file, ddir, force, rx, quiet, legacy, optimize):
@@ -92,7 +92,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         else:
             if optimize >= 0:
                 opt = optimize if optimize >= 1 else ''
-                cfile = fullname(opt, 'optimization')
+                cfile = importlib.util.cache_from_source(fullname, optimization=opt)
             else:
                 cfile = importlib.util.cache_from_source(fullname)
             cache_dir = os.path.dirname(cfile)
@@ -112,15 +112,15 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         err = None
         del err
         try:
-            ok = fullname(dfile, True, 'optimize', optimize, cfile)
+            ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
         except py_compile.PyCompileError as err:
             success = 0
             return success
             if quiet >= 2:
                 pass
             print('*** Error compiling {!r}...'.format(fullname))
-            '*** '('', 'end')
-            msg = sys.stdout.encoding('backslashreplace', 'errors')
+            print('*** ', end='')
+            msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
             msg = msg.decode(sys.stdout.encoding)
             print(msg)
         else:
@@ -136,23 +136,23 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
                 if quiet < 2:
                     print('Skipping current directory')
                     continue
-                    success = success and None('legacy', legacy, 'optimize', optimize, force, 'quiet', quiet)
+                    success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize)
         continue
     return success
 
 def main():
     import argparse
-    parser = 'description'('Utilities to support installing Python libraries.')
-    0("don't recurse into subdirectories", 'default', 10, 'dest', 'maxlevels', 'help')
-    int('control the maximum recursion level. if `-l` and `-r` options are specified, then `-r` takes precedence.', 'dest', 'recursion', 'help')
-    'store_true'('force rebuild even if timestamps are up to date', 'dest', 'force', 'help')
-    'dest'('output only error messages; -qq will suppress the error messages as well.', 'quiet', 'default', 0, 'help')
-    'store_true'('use legacy (pre-PEP3147) compiled file locations', 'dest', 'legacy', 'help')
-    'dest'('directory to prepend to file paths for use in compile-time tracebacks and in runtime tracebacks in cases where the source file is unavailable', 'ddir', 'default', None, 'help')
-    'dest'('skip files matching the regular expression; the regexp is searched for in the full path of each file considered for compilation', 'rx', 'default', None, 'help')
-    'FILE'('add all the files and directories listed in FILE to the list considered for compilation; if "-", names are read from stdin', 'dest', 'flist', 'help')
-    'FILE|DIR'('zero or more file and directory names to compile; if no arguments given, defaults to the equivalent of -l sys.path', 'nargs', '*', 'help')
-    'default'('help', 'Run compileall concurrently', 1, 'type', int)
+    parser = argparse.ArgumentParser(description='Utilities to support installing Python libraries.')
+    parser.add_argument('-l', action='store_const', const=0, default=10, dest='maxlevels', help="don't recurse into subdirectories")
+    parser.add_argument('-r', type=int, dest='recursion', help='control the maximum recursion level. if `-l` and `-r` options are specified, then `-r` takes precedence.')
+    parser.add_argument('-f', action='store_true', dest='force', help='force rebuild even if timestamps are up to date')
+    parser.add_argument('-q', action='count', dest='quiet', default=0, help='output only error messages; -qq will suppress the error messages as well.')
+    parser.add_argument('-b', action='store_true', dest='legacy', help='use legacy (pre-PEP3147) compiled file locations')
+    parser.add_argument('-d', metavar='DESTDIR', dest='ddir', default=None, help='directory to prepend to file paths for use in compile-time tracebacks and in runtime tracebacks in cases where the source file is unavailable')
+    parser.add_argument('-x', metavar='REGEXP', dest='rx', default=None, help='skip files matching the regular expression; the regexp is searched for in the full path of each file considered for compilation')
+    parser.add_argument('-i', metavar='FILE', dest='flist', help='add all the files and directories listed in FILE to the list considered for compilation; if "-", names are read from stdin')
+    parser.add_argument('compile_dest', metavar='FILE|DIR', nargs='*', help='zero or more file and directory names to compile; if no arguments given, defaults to the equivalent of -l sys.path')
+    parser.add_argument('-j', '--workers', default=1, type=int, help='Run compileall concurrently')
     args = parser.parse_args()
     compile_dests = args.compile_dest
     if args.rx:
@@ -183,12 +183,12 @@ def main():
                     if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy):
                         success = False
                         continue
-                        if not dest(args.ddir, args.force, args.rx, args.quiet, args.legacy, 'workers', args.workers, maxlevels):
+                        if not compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers):
                             pass
                         success = False
                 continue
             return success
-        return 'force'(args.force, 'quiet', args.quiet)
+        return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)
     except KeyboardInterrupt:
         print('\n[interrupted]')
         if args.quiet < 2:

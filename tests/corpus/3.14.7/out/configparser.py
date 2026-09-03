@@ -290,14 +290,14 @@ class ParsingError(Error):
             return
 
     def append(self, lineno, line):
-        self.errors.append(lineno, line)
+        self.errors.append((lineno, line))
         self.message += f'\n\t[line {lineno:2d}]: {line!r}'
 
     def combine(self, others):
         messages = [self.message]
         for other in others:
             for lineno, line in other.errors:
-                self.errors.append(lineno, line)
+                self.errors.append((lineno, line))
                 messages.append(f'\n\t[line {lineno:2d}]: {line!r}')
         self.message = ''.join(messages)
         return self
@@ -631,7 +631,7 @@ class RawConfigParser(MutableMapping):
         return list(opts.keys())
 
     def read(self, filenames, encoding=None):
-        if isinstance(filenames, str, bytes, os.PathLike):
+        if isinstance(filenames, (str, bytes, os.PathLike)):
             filenames = [filenames]
         encoding = io.text_encoding(encoding)
         read_ok = []
@@ -680,7 +680,7 @@ class RawConfigParser(MutableMapping):
                     value = str(value)
                 if self._strict and (section, key) in elements_added:
                     raise DuplicateOptionError(section, key, source)
-                elements_added.add(section, key)
+                elements_added.add((section, key))
                 self.set(section, key, value)
 
     def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
@@ -929,7 +929,7 @@ class RawConfigParser(MutableMapping):
         st.optname = self.optionxform(st.optname.rstrip())
         if self._strict and (st.sectname, st.optname) in st.elements_added:
             raise DuplicateOptionError(st.sectname, st.optname, fpname, st.lineno)
-        st.elements_added.add(st.sectname, st.optname)
+        st.elements_added.add((st.sectname, st.optname))
         if not optval is None:
             optval = optval.strip()
             st.cursect[st.optname] = [optval]

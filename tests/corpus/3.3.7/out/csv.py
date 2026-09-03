@@ -229,15 +229,15 @@ class Sniffer:
             spaces += 1
             continue
             continue
-        quotechar = quotes(quotes.get, 'key')
+        quotechar = max(quotes, key=quotes.get)
         if delims:
-            delim = delims(delims.get, 'key')
+            delim = max(delims, key=delims.get)
             skipinitialspace = delims[delim] == spaces
             if delim == '\n':
                 delim = ''
                 delim = ''
                 skipinitialspace = 0
-        dq_regexp = None(None % {max: max, re.compile: '((%(delim)s)|^)\\W*%(quote)s[^%(delim)s\\n]*%(quote)s[^%(delim)s\\n]*%(quote)s\\W*((%(delim)s)|$)', 'delim': re.escape(delim), 'quote': quotechar}, re.MULTILINE)
+        dq_regexp = None(None % {None: None, re.compile: '((%(delim)s)|^)\\W*%(quote)s[^%(delim)s\\n]*%(quote)s[^%(delim)s\\n]*%(quote)s\\W*((%(delim)s)|$)', 'delim': re.escape(delim), 'quote': quotechar}, re.MULTILINE)
         if dq_regexp.search(data):
             doublequote = True
         else:
@@ -268,7 +268,7 @@ class Sniffer:
                 if len(items) == 1 and items[0][0] == 0:
                     continue
                 if len(items) > 1:
-                    modes[char] = items(lambda x: x[1], 'key')
+                    modes[char] = max(items, key=(lambda x: x[1]))
                     items.remove(modes[char])
                     modes[char] = modes[char][0], modes[char][1] - sum((item[1] for item in items))
                     continue

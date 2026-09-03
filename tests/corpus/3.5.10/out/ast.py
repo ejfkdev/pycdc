@@ -32,11 +32,11 @@ def parse(source, filename='<unknown>', mode='exec'):
 
 def literal_eval(node_or_string):
     if isinstance(node_or_string, str):
-        node_or_string = node_or_string('eval', 'mode')
+        node_or_string = parse(node_or_string, mode='eval')
     if isinstance(node_or_string, Expression):
         node_or_string = node_or_string.body
     def _convert(node):
-        if isinstance(node, Str, Bytes):
+        if isinstance(node, (Str, Bytes)):
             return node.s
         if isinstance(node, Num):
             return node.n
@@ -50,12 +50,12 @@ def literal_eval(node_or_string):
             return dict(((_convert(k), _convert(v)) for k in zip(node.keys, node.values)))
         if isinstance(node, NameConstant):
             return node.value
-        if isinstance(node, UnaryOp) and isinstance(node.op, UAdd, USub) and isinstance(node.operand, Num, UnaryOp, BinOp):
+        if isinstance(node, UnaryOp) and isinstance(node.op, (UAdd, USub)) and isinstance(node.operand, (Num, UnaryOp, BinOp)):
             operand = _convert(node.operand)
             if isinstance(node.op, UAdd):
                 return +operand
             return -operand
-        elif isinstance(node, BinOp) and isinstance(node.op, Add, Sub) and isinstance(node.right, Num, UnaryOp, BinOp) and isinstance(node.left, Num, UnaryOp, BinOp):
+        elif isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(node.right, (Num, UnaryOp, BinOp)) and isinstance(node.left, (Num, UnaryOp, BinOp)):
             left = _convert(node.left)
             right = _convert(node.right)
             if isinstance(node.op, Add):
@@ -148,7 +148,7 @@ def iter_child_nodes(node):
         continue
 
 def get_docstring(node, clean=True):
-    if not isinstance(node, AsyncFunctionDef, FunctionDef, ClassDef, Module):
+    if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
     if node.body and isinstance(node.body[0], Expr) and isinstance(node.body[0].value, Str):
         if clean:

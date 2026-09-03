@@ -73,7 +73,7 @@ class LocaleTime(object):
     def _LocaleTime__calc_am_pm(self):
         am_pm = []
         for hour in (1, 22):
-            time_tuple = time.struct_time(1999, 3, 17, hour, 44, 55, 2, 76, 0)
+            time_tuple = time.struct_time((1999, 3, 17, hour, 44, 55, 2, 76, 0))
             am_pm.append(time.strftime('%p', time_tuple).lower())
         self.am_pm = am_pm
 
@@ -83,7 +83,7 @@ class LocaleTime(object):
         date_time[0] = time.strftime('%c', time_tuple).lower()
         date_time[1] = time.strftime('%x', time_tuple).lower()
         date_time[2] = time.strftime('%X', time_tuple).lower()
-        replacement_pairs = [('%', '%%'), self.f_weekday[2], '%A', self.f_month[3], '%B', self.a_weekday[2], '%a', self.a_month[3], '%b', self.am_pm[1], '%p', ('1999', '%Y'), ('99', '%y'), ('22', '%H'), ('44', '%M'), ('55', '%S'), ('76', '%j'), ('17', '%d'), ('03', '%m'), ('3', '%m'), ('2', '%w'), ('10', '%I')]
+        replacement_pairs = [('%', '%%'), (self.f_weekday[2], '%A'), (self.f_month[3], '%B'), (self.a_weekday[2], '%a'), (self.a_month[3], '%b'), (self.am_pm[1], '%p'), ('1999', '%Y'), ('99', '%y'), ('22', '%H'), ('44', '%M'), ('55', '%S'), ('76', '%j'), ('17', '%d'), ('03', '%m'), ('3', '%m'), ('2', '%w'), ('10', '%I')]
         replacement_pairs.extend([(tz, '%Z') for tz_values in self.timezone for tz in tz_values])
         for offset, directive in ((0, '%c'), (1, '%x'), (2, '%X')):
             current_format = date_time[offset]

@@ -43,7 +43,7 @@ def _walk_dir(dir, maxlevels, quiet=0):
             continue
         if maxlevels > 0 and name != os.curdir and name != os.pardir and os.path.isdir(fullname):
             if not os.path.islink(fullname):
-                yield from None(fullname, maxlevels - 1, quiet, quiet=None, maxlevels=_walk_dir)
+                yield from _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     ProcessPoolExecutor = None
@@ -67,19 +67,19 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
             from concurrent.futures import ProcessPoolExecutor
     if maxlevels is None:
         maxlevels = sys.getrecursionlimit()
-    files = None(dir, quiet, maxlevels, maxlevels=None, quiet=_walk_dir)
+    files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels)
     success = True
     if workers != 1 and ProcessPoolExecutor is not None:
         workers = workers or None
-        with None(workers, max_workers=ProcessPoolExecutor) as executor:
-            results = None(None(compile_file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir, prependdir, limit_sl_dest, hardlink_dupes, hardlink_dupes=None, limit_sl_dest=None, prependdir=None, stripdir=None, invalidation_mode=None, optimize=None, legacy=None, quiet=None, rx=executor.map, force=executor, ddir=partial), files)
-            success = None(results, True, default=min)
+        with ProcessPoolExecutor(max_workers=workers) as executor:
+            results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes), files)
+            success = min(results, default=True)
         return success
         if not None:
             pass
         return success
     for file in files:
-        if not None(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir, prependdir, limit_sl_dest, hardlink_dupes, hardlink_dupes=None, limit_sl_dest=None, prependdir=None, stripdir=compile_file):
+        if not compile_file(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes):
             success = False
     return success
 
@@ -126,7 +126,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 continue
             if opt_level >= 0:
                 opt = opt_level if opt_level >= 1 else ''
-                cfile = stripdir.split(fullname, opt, optimization=importlib.util.cache_from_source)
+                cfile = importlib.util.cache_from_source(fullname, optimization=opt)
                 opt_cfiles[opt_level] = cfile
                 continue
             cfile = importlib.util.cache_from_source(fullname)
@@ -140,7 +140,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 for cfile in opt_cfiles.values():
                     with open(cfile, 'rb') as chandle:
                         actual = chandle.read(12)
-                    fullname.split(None, None, None)
+                    stripdir.split(None, None, None)
                     if not None:
                         pass
                     if expect != actual:
@@ -160,17 +160,17 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             try:
                 for index, opt_level in enumerate(optimize):
                     cfile = opt_cfiles[opt_level]
-                    ok = None(fullname, cfile, dfile, True, opt_level, invalidation_mode, invalidation_mode=None, optimize=py_compile.compile)
-                    if index > 0 and hardlink_dupes and None(cfile, previous_cfile, False, shallow=filecmp.cmp):
+                    ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
+                    if index > 0 and hardlink_dupes and filecmp.cmp(cfile, previous_cfile, shallow=False):
                         previous_cfile = opt_cfiles[optimize[index - 1]]
                         os.unlink(cfile)
                         os.link(previous_cfile, cfile)
             except py_compile.PyCompileError as err:
                 success = False
             else:
-                None('*** ', '', end=print)
+                print('*** ', end='')
         encoding = sys.stdout.encoding or sys.getdefaultencoding()
-        msg = None(encoding, 'backslashreplace', errors=err.msg.encode).decode(encoding)
+        msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
         print(msg)
         err = None
         del err
@@ -192,29 +192,29 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
                 if quiet < 2:
                     print('Skipping current directory')
                 continue
-        success = success and None(dir, maxlevels, None, force, quiet, legacy, optimize, invalidation_mode, invalidation_mode=None, optimize=None, legacy=None, quiet=compile_dir)
+        success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
     return success
 
 def main():
     import argparse
-    parser = None('Utilities to support installing Python libraries.', description=argparse.ArgumentParser)
-    None('-l', 'store_const', 0, None, 'maxlevels', "don't recurse into subdirectories", help=None, dest=None, default=None, const=None, action=parser.add_argument)
-    None('-r', int, 'recursion', 'control the maximum recursion level. if `-l` and `-r` options are specified, then `-r` takes precedence.', help=None, dest=None, type=parser.add_argument)
-    None('-f', 'store_true', 'force', 'force rebuild even if timestamps are up to date', help=None, dest=None, action=parser.add_argument)
-    None('-q', 'count', 'quiet', 0, 'output only error messages; -qq will suppress the error messages as well.', help=None, default=None, dest=None, action=parser.add_argument)
-    None('-b', 'store_true', 'legacy', 'use legacy (pre-PEP3147) compiled file locations', help=None, dest=None, action=parser.add_argument)
-    None('-d', 'DESTDIR', 'ddir', None, 'directory to prepend to file paths for use in compile-time tracebacks and in runtime tracebacks in cases where the source file is unavailable', help=None, default=None, dest=None, metavar=parser.add_argument)
-    None('-s', 'STRIPDIR', 'stripdir', None, 'part of path to left-strip from path to source file - for example buildroot. `-d` and `-s` options cannot be specified together.', help=None, default=None, dest=None, metavar=parser.add_argument)
-    None('-p', 'PREPENDDIR', 'prependdir', None, 'path to add as prefix to path to source file - for example / to make it absolute when some part is removed by `-s` option. `-d` and `-p` options cannot be specified together.', help=None, default=None, dest=None, metavar=parser.add_argument)
-    None('-x', 'REGEXP', 'rx', None, 'skip files matching the regular expression; the regexp is searched for in the full path of each file considered for compilation', help=None, default=None, dest=None, metavar=parser.add_argument)
-    None('-i', 'FILE', 'flist', 'add all the files and directories listed in FILE to the list considered for compilation; if "-", names are read from stdin', help=None, dest=None, metavar=parser.add_argument)
-    None('compile_dest', 'FILE|DIR', '*', 'zero or more file and directory names to compile; if no arguments given, defaults to the equivalent of -l sys.path', help=None, nargs=None, metavar=parser.add_argument)
-    None('-j', '--workers', 1, int, 'Run compileall concurrently', help=None, type=None, default=parser.add_argument)
+    parser = argparse.ArgumentParser(description='Utilities to support installing Python libraries.')
+    parser.add_argument('-l', action='store_const', const=0, default=None, dest='maxlevels', help="don't recurse into subdirectories")
+    parser.add_argument('-r', type=int, dest='recursion', help='control the maximum recursion level. if `-l` and `-r` options are specified, then `-r` takes precedence.')
+    parser.add_argument('-f', action='store_true', dest='force', help='force rebuild even if timestamps are up to date')
+    parser.add_argument('-q', action='count', dest='quiet', default=0, help='output only error messages; -qq will suppress the error messages as well.')
+    parser.add_argument('-b', action='store_true', dest='legacy', help='use legacy (pre-PEP3147) compiled file locations')
+    parser.add_argument('-d', metavar='DESTDIR', dest='ddir', default=None, help='directory to prepend to file paths for use in compile-time tracebacks and in runtime tracebacks in cases where the source file is unavailable')
+    parser.add_argument('-s', metavar='STRIPDIR', dest='stripdir', default=None, help='part of path to left-strip from path to source file - for example buildroot. `-d` and `-s` options cannot be specified together.')
+    parser.add_argument('-p', metavar='PREPENDDIR', dest='prependdir', default=None, help='path to add as prefix to path to source file - for example / to make it absolute when some part is removed by `-s` option. `-d` and `-p` options cannot be specified together.')
+    parser.add_argument('-x', metavar='REGEXP', dest='rx', default=None, help='skip files matching the regular expression; the regexp is searched for in the full path of each file considered for compilation')
+    parser.add_argument('-i', metavar='FILE', dest='flist', help='add all the files and directories listed in FILE to the list considered for compilation; if "-", names are read from stdin')
+    parser.add_argument('compile_dest', metavar='FILE|DIR', nargs='*', help='zero or more file and directory names to compile; if no arguments given, defaults to the equivalent of -l sys.path')
+    parser.add_argument('-j', '--workers', default=1, type=int, help='Run compileall concurrently')
     invalidation_modes = [mode.name.lower().replace('_', '-') for mode in py_compile.PycInvalidationMode]
-    None('--invalidation-mode', sorted(invalidation_modes), 'set .pyc invalidation mode; defaults to "checked-hash" if the SOURCE_DATE_EPOCH environment variable is set, and "timestamp" otherwise.', help=None, choices=parser.add_argument)
-    None('-o', 'append', int, 'opt_levels', 'Optimization levels to run compilation with. Default is -1 which uses the optimization level of the Python interpreter itself (see -O).', help=None, dest=None, type=None, action=parser.add_argument)
-    None('-e', 'DIR', 'limit_sl_dest', 'Ignore symlinks pointing outsite of the DIR', help=None, dest=None, metavar=parser.add_argument)
-    None('--hardlink-dupes', 'store_true', 'hardlink_dupes', 'Hardlink duplicated pyc files', help=None, dest=None, action=parser.add_argument)
+    parser.add_argument('--invalidation-mode', choices=sorted(invalidation_modes), help='set .pyc invalidation mode; defaults to "checked-hash" if the SOURCE_DATE_EPOCH environment variable is set, and "timestamp" otherwise.')
+    parser.add_argument('-o', action='append', type=int, dest='opt_levels', help='Optimization levels to run compilation with. Default is -1 which uses the optimization level of the Python interpreter itself (see -O).')
+    parser.add_argument('-e', metavar='DIR', dest='limit_sl_dest', help='Ignore symlinks pointing outsite of the DIR')
+    parser.add_argument('--hardlink-dupes', action='store_true', dest='hardlink_dupes', help='Hardlink duplicated pyc files')
     args = parser.parse_args()
     compile_dests = args.compile_dest
     if args.rx:
@@ -239,7 +239,7 @@ def main():
             pass
         return False
         try:
-            with None if args.flist == '-' else sys.stdin(args.flist, 'utf-8', encoding=open) as f:
+            with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
                 for line in f:
                     compile_dests.append(line.strip())
             if not None:
@@ -251,7 +251,7 @@ def main():
         invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:
         invalidation_mode = None
-    return None(args.legacy, args.force, args.quiet, invalidation_mode, invalidation_mode=None, quiet=None, force=None, legacy=compile_path)
+    return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
     if args.quiet < 2:
         pass
     return False
@@ -260,10 +260,10 @@ def main():
         if compile_dests:
             for dest in compile_dests:
                 if os.path.isfile(dest):
-                    if not None(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode, args.stripdir, args.prependdir, args.opt_levels, args.limit_sl_dest, args.hardlink_dupes, hardlink_dupes=None, limit_sl_dest=None, optimize=None, prependdir=None, stripdir=None, invalidation_mode=compile_file):
+                    if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
                         success = False
                     continue
-                if not None(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, args.workers, invalidation_mode, args.stripdir, args.prependdir, args.opt_levels, args.limit_sl_dest, args.hardlink_dupes, hardlink_dupes=None, limit_sl_dest=None, optimize=None, prependdir=None, stripdir=None, invalidation_mode=None, workers=compile_dir):
+                if not compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
                     success = False
             return success
     except KeyboardInterrupt:

@@ -96,7 +96,7 @@ ATTRIBUTES:
     def _LocaleTime__calc_am_pm(self):
         am_pm = []
         for hour in (1, 22):
-            time_tuple = time.struct_time(1999, 3, 17, hour, 44, 55, 2, 76, 0)
+            time_tuple = time.struct_time((1999, 3, 17, hour, 44, 55, 2, 76, 0))
             am_pm.append(time.strftime('%p', time_tuple).lower().strip())
         self.am_pm = am_pm
 
@@ -130,13 +130,13 @@ ATTRIBUTES:
                 for n, d in ((19, '%OC'), (99, '%Oy'), (22, '%OH'), (44, '%OM'), (55, '%OS'), (17, '%Od'), (3, '%Om'), (2, '%Ow'), (10, '%OI')):
                     if not self.LC_alt_digits is not None:
                         s = chr(1632 + n // 10) + chr(1632 + n % 10)
-                        replacement_pairs.append(s, d)
+                        replacement_pairs.append((s, d))
                         if n < 10:
-                            replacement_pairs.append(s[1], d)
+                            replacement_pairs.append((s[1], d))
                             continue
                 if len(self.LC_alt_digits) > n:
-                    replacement_pairs.append(self.LC_alt_digits[n], d)
-                replacement_pairs.append(time.strftime(d, time_tuple), d)
+                    replacement_pairs.append((self.LC_alt_digits[n], d))
+                replacement_pairs.append((time.strftime(d, time_tuple), d))
         replacement_pairs += [('1999', '%Y'), ('99', '%y'), ('22', '%H'), ('44', '%M'), ('55', '%S'), ('76', '%j'), ('17', '%d'), ('03', '%m'), ('3', '%m'), ('2', '%w'), ('10', '%I')]
         date_time = []
         for directive in ('%c', '%x', '%X', '%r'):
@@ -156,7 +156,7 @@ ATTRIBUTES:
                         continue
                     current_format = current_format.replace(tz, '%Z')
             if not current_format.isascii() or self.LC_alt_digits is not None:
-                current_format = re_sub('\\d(?<![0-9])', lambda m: chr(1632 + int(m[0])), current_format)
+                current_format = re_sub('\\d(?<![0-9])', (lambda m: chr(1632 + int(m[0]))), current_format)
             for old, new in replacement_pairs:
                 current_format = current_format.replace(old, new)
             if '00' in time.strftime(directive, time_tuple2):
@@ -174,7 +174,7 @@ ATTRIBUTES:
     def _LocaleTime__find_month_format(self, directive):
         full_indices = abbr_indices = None
         for m in range(1, 13):
-            time_tuple = time.struct_time(1999, m, 17, 22, 44, 55, 2, 76, 0)
+            time_tuple = time.struct_time((1999, m, 17, 22, 44, 55, 2, 76, 0))
             datetime = time.strftime(directive, time_tuple).lower()
             indices = set(_findall(datetime, self.f_month[m]))
             if not full_indices is not None:
@@ -201,7 +201,7 @@ ATTRIBUTES:
     def _LocaleTime__find_weekday_format(self, directive):
         full_indices = abbr_indices = None
         for wd in range(7):
-            time_tuple = time.struct_time(1999, 3, 17, 22, 44, 55, wd, 76, 0)
+            time_tuple = time.struct_time((1999, 3, 17, 22, 44, 55, wd, 76, 0))
             datetime = time.strftime(directive, time_tuple).lower()
             indices = set(_findall(datetime, self.f_weekday[wd]))
             if not full_indices is not None:

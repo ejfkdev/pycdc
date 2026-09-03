@@ -140,7 +140,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
         weekday = datetime_date(year, month, day).weekday()
     if leap_year_fix:
         year = 1900
-    return time.struct_time(year, month, day, hour, minute, second, weekday, julian, tz), fraction
+    return time.struct_time((year, month, day, hour, minute, second, weekday, julian, tz)), fraction
 
 def _strptime_time(data_string, format='%a %b %d %H:%M:%S %Y'):
     return _strptime(data_string, format)[0]

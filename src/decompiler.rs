@@ -5351,12 +5351,7 @@ impl<'a> Ctx<'a> {
     ) {
         // Python 2 / 3.0-3.5 CALL_FUNCTION: low byte = positional count,
         // high byte = keyword count. 3.6+ CALL_FUNCTION_KW pushes a names
-        // tuple. py2 VAR/KW handled separately.
-        let (npos, nkw) = if self.version.at_least(3, 6) || names_tuple.is_some() {
-            (argc, 0)
-        } else {
-            ((argc & 0xFF) as usize, ((argc >> 8) & 0xFF) as usize)
-        };
+        // tuple and argc counts positional + keyword together.
         let kw_names: Vec<Option<String>> = match &names_tuple {
             Some(e) => match &**e {
                 Expr::Const(o) => match &**o {
@@ -5373,15 +5368,43 @@ impl<'a> Ctx<'a> {
             },
             None => Vec::new(),
         };
-        let nkw = nkw.max(kw_names.len());
-        let args = self.pop_n_exprs(npos);
+        let (npos, nkw) = if names_tuple.is_some() {
+            (argc.saturating_sub(kw_names.len()), kw_names.len())
+        } else if self.version.at_least(3, 6) {
+            (argc, 0)
+        } else {
+            ((argc & 0xFF) as usize, ((argc >> 8) & 0xFF) as usize)
+        };
+        let args;
         let mut keywords = Vec::new();
-        for i in 0..nkw {
-            let v = self.pop_expr();
-            let k = kw_names.get(i).cloned().flatten();
-            keywords.push((k, v));
+        if names_tuple.is_none() && nkw > 0 && !self.version.at_least(3, 6) {
+            // pre-3.6 kwargs sit on top as (name_const, value) pairs
+            for _ in 0..nkw {
+                let v = self.pop_expr();
+                let ke = self.pop_expr();
+                let k = match &*ke {
+                    Expr::Const(o) => match &**o {
+                        PyObject::Str(s) => Some(s.clone()),
+                        PyObject::Bytes(b) => Some(String::from_utf8_lossy(b).into_owned()),
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                keywords.push((k, v));
+            }
+            keywords.reverse();
+            args = self.pop_n_exprs(npos);
+        } else if nkw > 0 {
+            // 3.6+ CALL_FUNCTION_KW: keyword values sit on top (source
+            // order), positionals below them
+            let vals = self.pop_n_exprs(nkw);
+            for (i, v) in vals.into_iter().enumerate() {
+                keywords.push((kw_names.get(i).cloned().flatten(), v));
+            }
+            args = self.pop_n_exprs(npos);
+        } else {
+            args = self.pop_n_exprs(npos);
         }
-        keywords.reverse();
         // CALL_METHOD (3.7-3.10): LOAD_METHOD pushed a self/NULL marker
         // above the method; pop it between the args and the callable.
         let marker = if is_method { self.pop() } else { None };

@@ -302,14 +302,14 @@ class Bdb:
             t = t.tb_next
         while True:
             while f is not None:
-                stack.append(f, f.f_lineno)
+                stack.append((f, f.f_lineno))
                 if f is self.botframe:
                     break
                 f = f.f_back
         stack.reverse()
         i = max(0, len(stack) - 1)
         while t is not None:
-            stack.append(t.tb_frame, t.tb_lineno)
+            stack.append((t.tb_frame, t.tb_lineno))
             t = t.tb_next
         if f is None:
             i = max(0, len(stack) - 1)
@@ -450,7 +450,7 @@ class Breakpoint:
     def bpprint(self, out=None):
         if out is None:
             out = sys.stdout
-        self.bpformat()(out, 'file')
+        print(self.bpformat(), file=out)
 
     def bpformat(self):
         if self.temporary:

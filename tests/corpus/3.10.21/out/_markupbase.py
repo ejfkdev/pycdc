@@ -141,7 +141,7 @@ class ParserBase:
                 if j + 4 > n:
                     return -1
                 if rawdata[j:j + 4] == '<!--':
-                    j = None(j, 0, report=self.parse_comment)
+                    j = self.parse_comment(j, report=0)
                     if j < 0:
                         return j
                     continue

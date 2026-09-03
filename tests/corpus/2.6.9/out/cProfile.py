@@ -50,22 +50,20 @@ def main():
     import sys
     from optparse import OptionParser
     usage = 'cProfile.py [-o output_file_path] [-s sort] scriptfile [arg] ...'
-    parser = 'usage'(usage)
+    parser = OptionParser(usage=usage)
     parser.allow_interspersed_args = False
-    'dest'('default', None, 'outfile', 'help', 'Save stats to <outfile>')
-    'dest'('default', -1, 'sort', 'help', 'Sort order when printing to stdout, based on pstats.Stats class')
+    parser.add_option('-o', '--outfile', dest='outfile', help='Save stats to <outfile>', default=None)
+    parser.add_option('-s', '--sort', dest='sort', help='Sort order when printing to stdout, based on pstats.Stats class', default=-1)
     /* unsupported opcode: JUMP_IF_TRUE 27 @148 */
     sys.argv[1:]
     parser.print_usage()
     sys.exit(2)
-    '--sort'
     options, args = parser.parse_args()
     args[:] = sys.argv
     /* unsupported opcode: JUMP_IF_FALSE 78 @225 */
     len(sys.argv) > 0
     sys.path.insert(0, os.path.dirname(sys.argv[0]))
     run('execfile(%r)' % (sys.argv[0],), options.outfile, options.sort)
-    '-s'
     parser.print_usage()
     return parser
 

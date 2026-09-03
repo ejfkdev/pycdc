@@ -42,7 +42,7 @@ def dis(x=None):
             if hasattr(x, 'co_code'):
                 disassemble(x)
                 break
-            if isinstance(x, bytes, bytearray):
+            if isinstance(x, (bytes, bytearray)):
                 _disassemble_bytes(x)
                 break
             if isinstance(x, str):
@@ -146,19 +146,19 @@ def disassemble(co, lasti=-1):
         if i in linestarts:
             if i > 0:
                 print()
-            ('%3d' % linestarts[i])(' ', 'end')
+            print('%3d' % linestarts[i], end=' ')
         else:
-            '   '(' ', 'end')
+            print('   ', end=' ')
         if i == lasti:
-            '-->'(' ', 'end')
+            print('-->', end=' ')
         else:
-            '   '(' ', 'end')
+            print('   ', end=' ')
         if i in labels:
-            '>>'(' ', 'end')
+            print('>>', end=' ')
         else:
-            '  '(' ', 'end')
-        repr(i).rjust(4)(' ', 'end')
-        opname[op].ljust(20)(' ', 'end')
+            print('  ', end=' ')
+        print(repr(i).rjust(4), end=' ')
+        print(opname[op].ljust(20), end=' ')
         i = i + 1
         if op >= HAVE_ARGUMENT:
             oparg = code[i] + code[i + 1] * 256 + extended_arg
@@ -166,29 +166,29 @@ def disassemble(co, lasti=-1):
             i = i + 2
             if op == EXTENDED_ARG:
                 extended_arg = oparg * 65536
-            repr(oparg).rjust(5)(' ', 'end')
+            print(repr(oparg).rjust(5), end=' ')
             if op in hasconst:
-                ('(' + repr(co.co_consts[oparg]) + ')')(' ', 'end')
+                print('(' + repr(co.co_consts[oparg]) + ')', end=' ')
                 continue
         if op in hasname:
-            ('(' + co.co_names[oparg] + ')')(' ', 'end')
+            print('(' + co.co_names[oparg] + ')', end=' ')
             continue
         if op in hasjrel:
-            ('(to ' + repr(i + oparg) + ')')(' ', 'end')
+            print('(to ' + repr(i + oparg) + ')', end=' ')
             continue
         if op in haslocal:
-            ('(' + co.co_varnames[oparg] + ')')(' ', 'end')
+            print('(' + co.co_varnames[oparg] + ')', end=' ')
             continue
         if op in hascompare:
-            ('(' + cmp_op[oparg] + ')')(' ', 'end')
+            print('(' + cmp_op[oparg] + ')', end=' ')
             continue
         if op in hasfree:
             if free is None:
                 free = co.co_cellvars + co.co_freevars
-            ('(' + free[oparg] + ')')(' ', 'end')
+            print('(' + free[oparg] + ')', end=' ')
             continue
         if op in hasnargs:
-            ('(%d positional, %d keyword pair)' % (code[i - 2], code[i - 1]))(' ', 'end')
+            print('(%d positional, %d keyword pair)' % (code[i - 2], code[i - 1]), end=' ')
             continue
         print()
 
@@ -199,25 +199,25 @@ def _disassemble_bytes(code, lasti=-1, varnames=None, names=None, constants=None
     while i < n:
         op = code[i]
         if i == lasti:
-            '-->'(' ', 'end')
+            print('-->', end=' ')
         else:
-            '   '(' ', 'end')
+            print('   ', end=' ')
         if i in labels:
-            '>>'(' ', 'end')
+            print('>>', end=' ')
         else:
-            '  '(' ', 'end')
-        repr(i).rjust(4)(' ', 'end')
-        opname[op].ljust(15)(' ', 'end')
+            print('  ', end=' ')
+        print(repr(i).rjust(4), end=' ')
+        print(opname[op].ljust(15), end=' ')
         i = i + 1
         if op >= HAVE_ARGUMENT:
             oparg = code[i] + code[i + 1] * 256
             i = i + 2
-            repr(oparg).rjust(5)(' ', 'end')
+            print(repr(oparg).rjust(5), end=' ')
             if op in hasconst:
                 if constants:
-                    ('(' + repr(constants[oparg]) + ')')(' ', 'end')
+                    print('(' + repr(constants[oparg]) + ')', end=' ')
                     continue
-        ('(%d)' % oparg)(' ', 'end')
+        print('(%d)' % oparg, end=' ')
         print()
 
 def _disassemble_str(source):

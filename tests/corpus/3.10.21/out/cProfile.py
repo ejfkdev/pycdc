@@ -111,11 +111,11 @@ def main():
     import pstats
     from optparse import OptionParser
     usage = 'cProfile.py [-o output_file_path] [-s sort] [-m module | scriptfile] [arg] ...'
-    parser = None(usage, usage=OptionParser)
+    parser = OptionParser(usage=usage)
     parser.allow_interspersed_args = False
-    None('-o', '--outfile', 'outfile', 'Save stats to <outfile>', None, default=None, help=None, dest=parser.add_option)
-    None('-s', '--sort', 'sort', 'Sort order when printing to stdout, based on pstats.Stats class', -1, sorted(pstats.Stats.sort_arg_dict_default), choices=None, default=None, help=None, dest=parser.add_option)
-    None('-m', 'module', 'store_true', 'Profile a library module', False, default=None, help=None, action=None, dest=parser.add_option)
+    parser.add_option('-o', '--outfile', dest='outfile', help='Save stats to <outfile>', default=None)
+    parser.add_option('-s', '--sort', dest='sort', help='Sort order when printing to stdout, based on pstats.Stats class', default=-1, choices=sorted(pstats.Stats.sort_arg_dict_default))
+    parser.add_option('-m', dest='module', action='store_true', help='Profile a library module', default=False)
     if not sys.argv[1:]:
         parser.print_usage()
         sys.exit(2)

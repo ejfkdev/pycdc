@@ -58,7 +58,7 @@ def literal_eval(node_or_string):
         return node.value
 
     def _convert_signed_num(node):
-        if isinstance(node, UnaryOp) and isinstance(node.op, UAdd, USub):
+        if isinstance(node, UnaryOp) and isinstance(node.op, (UAdd, USub)):
             operand = _convert_num(node.operand)
             if isinstance(node.op, UAdd):
                 return operand
@@ -82,7 +82,7 @@ def literal_eval(node_or_string):
             if len(node.keys) != len(node.values):
                 _raise_malformed_node(node)
             return dict(zip(map(_convert, node.keys), map(_convert, node.values)))
-        if isinstance(node, BinOp) and isinstance(node.op, Add, Sub) and isinstance(left, int, float) and isinstance(right, complex):
+        if isinstance(node, BinOp) and isinstance(node.op, (Add, Sub)) and isinstance(left, (int, float)) and isinstance(right, complex):
             left = _convert_signed_num(node.left)
             right = _convert_num(node.right)
             if isinstance(node.op, Add):
@@ -235,7 +235,7 @@ def iter_child_nodes(node):
             yield item
 
 def get_docstring(node, clean=True):
-    if not isinstance(node, AsyncFunctionDef, FunctionDef, ClassDef, Module):
+    if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
     if node.body:
         if not isinstance(node.body[0], Expr):

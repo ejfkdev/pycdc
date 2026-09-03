@@ -38,7 +38,7 @@ class CodecInfo(tuple):
 
     _is_text_encoding = True
     def __new__(cls, encode, decode, streamreader=None, streamwriter=None, incrementalencoder=None, incrementaldecoder=None, name=None, *, _is_text_encoding=None):
-        self = tuple.__new__(cls, encode, decode, streamreader, streamwriter)
+        self = tuple.__new__(cls, (encode, decode, streamreader, streamwriter))
         self.name = name
         self.encode = encode
         self.decode = decode

@@ -222,7 +222,7 @@ class FieldStorage:
                 self.qs_on_post = environ['QUERY_STRING']
             if 'CONTENT_LENGTH' in environ:
                 headers['content-length'] = environ['CONTENT_LENGTH']
-        elif not isinstance(headers, Mapping, Message):
+        elif not isinstance(headers, (Mapping, Message)):
             raise TypeError('headers must be mapping or an instance of email.message.Message')
         self.headers = headers
         if not fp is not None:
@@ -585,7 +585,7 @@ def print_exception(type=None, value=None, tb=None, limit=None):
     print()
     print('<H3>Traceback (most recent call last):</H3>')
     list = traceback.format_tb(tb, limit) + traceback.format_exception_only(type, value)
-    print(f'<PRE>{html.escape(''.join(list[:-1]))!s}<B>{html.escape(list[-1])!s}</B></PRE>')
+    print(f'<PRE>{html.escape("".join(list[:-1]))!s}<B>{html.escape(list[-1])!s}</B></PRE>')
     del tb
 
 def print_environ(environ=os.environ):

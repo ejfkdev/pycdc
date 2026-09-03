@@ -310,14 +310,14 @@ class Bdb:
         if t and t.tb_frame is f:
             t = t.tb_next
         while f is not None:
-            stack.append(f, f.f_lineno)
+            stack.append((f, f.f_lineno))
             if f is self.botframe:
                 break
             f = f.f_back
         stack.reverse()
         i = max(0, len(stack) - 1)
         while t is not None:
-            stack.append(t.tb_frame, t.tb_lineno)
+            stack.append((t.tb_frame, t.tb_lineno))
             t = t.tb_next
         if f is None:
             i = max(0, len(stack) - 1)
@@ -384,7 +384,7 @@ class Bdb:
             func = kwds.pop('func')
             self, *args = args
             import warnings
-            None("Passing 'func' as keyword argument is deprecated", DeprecationWarning, 2, stacklevel=warnings.warn)
+            warnings.warn("Passing 'func' as keyword argument is deprecated", DeprecationWarning, stacklevel=2)
         else:
             raise TypeError('runcall expected at least 1 positional argument, got %d' % (len(args) - 1))
         self.reset()
@@ -453,7 +453,7 @@ class Breakpoint:
     def bpprint(self, out=None):
         if out is None:
             out = sys.stdout
-        None(self.bpformat(), out, file=print)
+        print(self.bpformat(), file=out)
 
     def bpformat(self):
         if self.temporary:

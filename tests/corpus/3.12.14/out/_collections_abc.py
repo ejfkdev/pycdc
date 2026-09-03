@@ -353,7 +353,7 @@ class _CallableGenericAlias(GenericAlias):
             if not len(args) == 2:
                 raise TypeError('Callable must be used as Callable[[arg, ...], result].')
         t_args, t_result = args
-        if isinstance(t_args, tuple, list):
+        if isinstance(t_args, (tuple, list)):
             args = [*t_args, t_result]
         elif not _is_param_expr(t_args):
             raise TypeError(f'Expected a list of types, an ellipsis, ParamSpec, or Concatenate. Got {t_args}')
@@ -375,7 +375,7 @@ class _CallableGenericAlias(GenericAlias):
         if not isinstance(item, tuple):
             item = (item,)
         new_args = super().__getitem__(item).__args__
-        if not isinstance(new_args[0], tuple, list):
+        if not isinstance(new_args[0], (tuple, list)):
             t_result = new_args[-1]
             t_args = new_args[:-1]
             new_args = t_args, t_result

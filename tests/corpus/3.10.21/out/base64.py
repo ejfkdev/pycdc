@@ -22,7 +22,7 @@ def _bytes_from_decode_data(s):
         raise TypeError('argument should be a bytes-like object or ASCII string, not %r' % s.__class__.__name__) from None
 
 def b64encode(s, altchars=None):
-    encoded = None(s, False, newline=binascii.b2a_base64)
+    encoded = binascii.b2a_base64(s, newline=False)
     if altchars is not None:
         if not len(altchars) == 2:
             raise AssertionError(repr(altchars))
@@ -135,22 +135,22 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
 def b32encode(s):
     return _b32encode(_b32alphabet, s)
 
-b32encode.__doc__ = None('base32', encoding=_B32_ENCODE_DOCSTRING.format)
+b32encode.__doc__ = _B32_ENCODE_DOCSTRING.format(encoding='base32')
 
 def b32decode(s, casefold=False, map01=None):
     return _b32decode(_b32alphabet, s, casefold, map01)
 
-b32decode.__doc__ = None('base32', _B32_DECODE_MAP01_DOCSTRING, extra_args=None, encoding=_B32_DECODE_DOCSTRING.format)
+b32decode.__doc__ = _B32_DECODE_DOCSTRING.format(encoding='base32', extra_args=_B32_DECODE_MAP01_DOCSTRING)
 
 def b32hexencode(s):
     return _b32encode(_b32hexalphabet, s)
 
-b32hexencode.__doc__ = None('base32hex', encoding=_B32_ENCODE_DOCSTRING.format)
+b32hexencode.__doc__ = _B32_ENCODE_DOCSTRING.format(encoding='base32hex')
 
 def b32hexdecode(s, casefold=False):
     return _b32decode(_b32hexalphabet, s, casefold)
 
-b32hexdecode.__doc__ = None('base32hex', '', extra_args=None, encoding=_B32_DECODE_DOCSTRING.format)
+b32hexdecode.__doc__ = _B32_DECODE_DOCSTRING.format(encoding='base32hex', extra_args='')
 
 def b16encode(s):
     return binascii.hexlify(s).upper()

@@ -35,8 +35,7 @@ def literal_eval(node_or_string):
     _safe_names = {'None': None, 'True': True, 'False': False}
     /* unsupported opcode: JUMP_IF_FALSE 22 @39 */
     isinstance(node_or_string, basestring)
-    node_or_string = node_or_string('eval', 'mode')
-    parse
+    node_or_string = parse(node_or_string, mode='eval')
     /* unsupported opcode: JUMP_IF_FALSE 13 @77 */
     isinstance(node_or_string, Expression)
     node_or_string = node_or_string.body
@@ -148,7 +147,7 @@ def iter_child_nodes(node):
 
 def get_docstring(node, clean=True):
     /* unsupported opcode: JUMP_IF_TRUE 26 @21 */
-    isinstance(node, FunctionDef, ClassDef, Module)
+    isinstance(node, (FunctionDef, ClassDef, Module))
     raise TypeError("%r can't have docstrings" % node.__class__.__name__)
     /* unsupported opcode: JUMP_IF_FALSE 113 @57 */
     node.body
