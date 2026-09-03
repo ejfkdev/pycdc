@@ -13,7 +13,7 @@ class Quitter(object):
         return 'Use %s() or %s to exit' % (self.name, self.eof)
 
     def __call__(self, code=None):
-        raise SystemExit(code)
+        pass
 
 
 class _Printer(object):
@@ -33,7 +33,6 @@ class _Printer(object):
             return
         data = None
         for filename in self._Printer__filenames:
-            continue
             try:
                 with open(filename, 'r') as fp:
                     data = fp.read()
@@ -58,22 +57,21 @@ class _Printer(object):
         prompt = 'Hit Return for more, or q (and Return) to quit: '
         lineno = 0
         while True:
-            break
-            try:
-                for i in range(lineno, lineno + self.MAXLINES):
-                    print(self._Printer__lines[i])
-                    continue
-            except IndexError:
+            while key is None:
+                try:
+                    for i in range(lineno, lineno + self.MAXLINES):
+                        print(self._Printer__lines[i])
+                        continue
+                except IndexError:
+                    break
+                else:
+                    lineno += self.MAXLINES
+                    key = None
+                key = input(prompt)
+                if key not in ('', 'q'):
+                    key = None
+            if key == 'q':
                 break
-        lineno += self.MAXLINES
-        key = None
-        while key is None:
-            key = input(prompt)
-            if key not in ('', 'q'):
-                key = None
-        if key == 'q':
-            pass
-        break
 
 
 class _Helper(object):

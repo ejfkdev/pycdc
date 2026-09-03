@@ -141,8 +141,6 @@ class Cmd:
             self.lastcmd = ''
         if cmd == '':
             return self.default(line)
-        return
-        return func(arg)
 
     def emptyline(self):
         if self.lastcmd:
@@ -174,10 +172,15 @@ class Cmd:
                     compfunc = getattr(self, 'complete_' + cmd)
                 except AttributeError as compfunc:
                     pass
-                else:
-                    compfunc = self.completenames
+            else:
+                compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
         return self.completion_matches[state]
+        return
+        try:
+            pass
+        except IndexError:
+            pass
 
     def get_names(self):
         return dir(self.__class__)
@@ -191,13 +194,16 @@ class Cmd:
         if arg:
             if doc:
                 return
+            self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
+            return
             try:
                 func = getattr(self, 'help_' + arg)
             except AttributeError as doc:
                 self.stdout.write('%s\n' % str(doc))
-            self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
-            return
-            func()
+            except AttributeError:
+                pass
+            else:
+                func()
         else:
             names = self.get_names()
             cmds_doc = []

@@ -275,27 +275,27 @@ class FileInput:
                     pass
                 os.rename(self._filename, self._backupfilename)
                 self._file = open(self._backupfilename, self._mode)
-                self._savestdout = sys.stdout
-                sys.stdout = self._output
-                try:
-                    if hasattr(os, 'chmod'):
-                        os.chmod(self._filename, perm)
-                except OSError:
+                if hasattr(os, 'O_BINARY'):
                     try:
                         perm = os.fstat(self._file.fileno()).st_mode
                     except OSError:
                         self._output = open(self._filename, 'w')
                     else:
                         mode = os.O_CREAT | os.O_WRONLY | os.O_TRUNC
-                        if hasattr(os, 'O_BINARY'):
-                            mode |= os.O_BINARY
-                        fd = os.open(self._filename, mode, perm)
-                        self._output = os.fdopen(fd, 'w')
-                else:
-                    if self._openhook:
-                        self._file = self._openhook(self._filename, self._mode)
-                    else:
-                        self._file = open(self._filename, self._mode)
+                        mode |= os.O_BINARY
+                fd = os.open(self._filename, mode, perm)
+                self._output = os.fdopen(fd, 'w')
+                try:
+                    if hasattr(os, 'chmod'):
+                        os.chmod(self._filename, perm)
+                except OSError:
+                    pass
+                self._savestdout = sys.stdout
+                sys.stdout = self._output
+            elif self._openhook:
+                self._file = self._openhook(self._filename, self._mode)
+            else:
+                self._file = open(self._filename, self._mode)
         self._buffer = self._file.readlines(self._bufsize)
         self._bufindex = 0
         if not self._buffer:
@@ -317,8 +317,8 @@ class FileInput:
                 return self._file.fileno()
             except ValueError:
                 return -1
-            else:
-                return -1
+        else:
+            return -1
 
     def isfirstline(self):
         return self._filelineno == 1

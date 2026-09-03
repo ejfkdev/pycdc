@@ -105,21 +105,13 @@ class Cmd:
                     line = self.cmdqueue.pop(0)
                 elif self.use_rawinput:
                     continue
+                line = self.precmd(line)
+                stop = self.onecmd(line)
+                stop = self.postcmd(stop, line)
                 try:
                     line = input(self.prompt)
                 except EOFError as line:
                     pass
-                else:
-                    self.stdout.write(self.prompt)
-                    self.stdout.flush()
-                    line = self.stdin.readline()
-                    if not len(line):
-                        line = 'EOF'
-                    else:
-                        line = line.rstrip('\r\n')
-                line = self.precmd(line)
-                stop = self.onecmd(line)
-                stop = self.postcmd(stop, line)
         finally:
             self.postloop()
             if self.use_rawinput and self.completekey:
@@ -207,8 +199,8 @@ class Cmd:
                     compfunc = getattr(self, 'complete_' + cmd)
                 except AttributeError as compfunc:
                     pass
-                else:
-                    compfunc = self.completenames
+            else:
+                compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
         try:
             return self.completion_matches[state]
@@ -225,12 +217,12 @@ class Cmd:
 
     def do_help(self, arg):
         if arg:
+            self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
+            return
             try:
                 func = getattr(self, 'help_' + arg)
             except AttributeError:
                 pass
-            self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
-            return
             func()
         else:
             names = self.get_names()

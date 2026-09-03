@@ -10,14 +10,14 @@ def run(statement, filename=None, sort=-1):
     try:
         result = None
     finally:
+        try:
+            prof = prof.run(statement)
+        except SystemExit:
+            pass
         if filename is not None:
             prof.dump_stats(filename)
-            try:
-                prof = prof.run(statement)
-            except SystemExit:
-                pass
-            else:
-                result = prof.print_stats(sort)
+        else:
+            result = prof.print_stats(sort)
     return result
 
 def runctx(statement, globals, locals, filename=None, sort=-1):
@@ -25,14 +25,14 @@ def runctx(statement, globals, locals, filename=None, sort=-1):
     try:
         result = None
     finally:
+        try:
+            prof = prof.runctx(statement, globals, locals)
+        except SystemExit:
+            pass
         if filename is not None:
             prof.dump_stats(filename)
-            try:
-                prof = prof.runctx(statement, globals, locals)
-            except SystemExit:
-                pass
-            else:
-                result = prof.print_stats(sort)
+        else:
+            result = prof.print_stats(sort)
     return result
 
 def help():

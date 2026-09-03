@@ -41,11 +41,12 @@ _errors = [error]
 _defaultmod = None
 for _name in _names:
     if not _defaultmod:
-        _defaultmod = _mod
         try:
             _mod = __import__(_name)
         except ImportError:
-            continue
+            pass
+        else:
+            _defaultmod = _mod
     _errors.append(_mod.error)
     continue
 if not _defaultmod:

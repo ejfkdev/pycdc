@@ -287,34 +287,12 @@ class Aifc_read:
         self._comm_chunk_read = 0
         self._ssnd_chunk = None
         self._ssnd_seek_needed = 1
-        try:
-            chunk = Chunk(self._file)
-        except EOFError:
-            pass
-        else:
-            chunkname = chunk.getname()
-            if chunkname == b'COMM':
-                self._read_comm_chunk(chunk)
-                self._comm_chunk_read = 1
-            elif chunkname == b'SSND':
-                self._ssnd_chunk = chunk
-                dummy = chunk.read(8)
-                self._ssnd_seek_needed = 0
-            elif chunkname == b'FVER':
-                self._version = _read_ulong(chunk)
-            elif chunkname == b'MARK':
-                self._readmark(chunk)
-            chunk.skip()
         if self._comm_chunk_read:
             if not self._ssnd_chunk:
                 raise Error('COMM chunk and/or SSND chunk missing')
 
     def __init__(self, f):
-        if isinstance(f, str):
-            file_object.close()
-            raise
-        else:
-            self.initfp(f)
+        pass
 
     def __enter__(self):
         return self
@@ -466,7 +444,6 @@ class Aifc_write:
             file_object.close()
             raise
             if f.endswith('.aiff'):
-                self._aifc = 0
                 self.initfp(f)
 
     def initfp(self, file):

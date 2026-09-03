@@ -18,14 +18,4 @@ import mimetypes
 /* unsupported opcode: JUMP_IF_FALSE 23 @147 */
 None == ImportError
 from StringIO import StringIO
-
-class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
-    pass
-
-def test(HandlerClass=SimpleHTTPRequestHandler, ServerClass=BaseHTTPServer.HTTPServer):
-    BaseHTTPServer.test(HandlerClass, ServerClass)
-
-/* unsupported opcode: JUMP_IF_FALSE 11 @227 */
-__name__ == '__main__'
-test()
 # WARNING: Decompyle incomplete

@@ -507,7 +507,6 @@ def effective(file, line, frame):
         return b, True
         continue
         return b, True
-        continue
         return b, False
         continue
         continue

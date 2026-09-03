@@ -515,10 +515,7 @@ def effective(file, line, frame):
                 continue
         return b, True
         continue
-        continue
         return b, False
-        continue
-        continue
     return (None, None)
 
 class Tdb(Bdb):

@@ -110,8 +110,7 @@ class Coroutine(Awaitable):
             self(GeneratorExit)
         except (GeneratorExit, StopIteration):
             pass
-        else:
-            raise RuntimeError('coroutine ignored GeneratorExit')
+        raise RuntimeError('coroutine ignored GeneratorExit')
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -176,8 +175,7 @@ class AsyncGenerator(AsyncIterator):
             await self(GeneratorExit)
         except (GeneratorExit, StopAsyncIteration):
             pass
-        else:
-            raise RuntimeError('asynchronous generator ignored GeneratorExit')
+        raise RuntimeError('asynchronous generator ignored GeneratorExit')
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -269,8 +267,7 @@ class Generator(Iterator):
             self(GeneratorExit)
         except (GeneratorExit, StopIteration):
             pass
-        else:
-            raise RuntimeError('generator ignored GeneratorExit')
+        raise RuntimeError('generator ignored GeneratorExit')
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -802,8 +799,7 @@ class Sequence(Reversible, Collection):
                             return i
                 except IndexError:
                     pass
-                else:
-                    i += 1
+                i += 1
         raise ValueError
 
     def count(self, value):

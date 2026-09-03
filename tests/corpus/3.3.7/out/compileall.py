@@ -92,18 +92,29 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=
         if not quiet:
             print('Compiling {!r}...'.format(fullname))
         err = None
-        del err
-        try:
-            ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
-        except py_compile.PyCompileError as err:
-            print('*** Error compiling {!r}...'.format(fullname))
-            print('*** ', end='')
-            if quiet:
-                pass
-            msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
-            msg = msg.decode(sys.stdout.encoding)
-            print(msg)
-            success = 0
+        del err, e
+        e = None
+        if ok == 0:
+            try:
+                ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
+            except py_compile.PyCompileError as err:
+                print('*** Error compiling {!r}...'.format(fullname))
+                print('*** ', end='')
+                if quiet:
+                    pass
+                msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
+                msg = msg.decode(sys.stdout.encoding)
+                print(msg)
+                success = 0
+            except (SyntaxError, UnicodeError, IOError) as e:
+                print('*** Error compiling {!r}...'.format(fullname))
+                print('*** ', end='')
+                if quiet:
+                    pass
+                print(e.__class__.__name__ + ':', e)
+                success = 0
+            else:
+                success = 0
     return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=False, legacy=False, optimize=-1):
@@ -146,8 +157,8 @@ def main():
         except EnvironmentError:
             print('Error reading file list {}'.format(args.flist))
             return False
+    success = True
     try:
-        success = True
         if compile_dests:
             for dest in compile_dests:
                 if os.path.isfile(dest):

@@ -117,24 +117,26 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
                     value = getattr(node, name)
                 except AttributeError as keywords:
                     pass
-            if value is None and getattr(cls, name, ...) is None:
-                keywords = True
-            value, simple = _format(value, level)
-            allsimple = allsimple and simple
-            if keywords:
-                args.append('%s=%s' % (name, value))
-            args.append(value)
+                if value is None and getattr(cls, name, ...) is None:
+                    keywords = True
+                    continue
+                value, simple = _format(value, level)
+                allsimple = allsimple and simple
+                if keywords:
+                    args.append('%s=%s' % (name, value))
+                    continue
+                args.append(value)
             if include_attributes and node._attributes:
                 for name in node._attributes:
                     try:
                         value = getattr(node, name)
                     except AttributeError:
                         pass
-                if value is None and getattr(cls, name, ...) is None:
-                    pass
-                value, simple = _format(value, level)
-                allsimple = allsimple and simple
-                args.append('%s=%s' % (name, value))
+                    if value is None and getattr(cls, name, ...) is None:
+                        continue
+                    value, simple = _format(value, level)
+                    allsimple = allsimple and simple
+                    args.append('%s=%s' % (name, value))
             if allsimple and len(args) <= 3:
                 return '%s(%s)' % (node.__class__.__name__, ', '.join(args)), not args
             return '%s(%s%s)' % (node.__class__.__name__, prefix, sep.join(args)), False
@@ -202,11 +204,10 @@ def increment_lineno(node, n=1):
 
 def iter_fields(node):
     for field in node._fields:
-        pass
-    try:
-        yield (field, getattr(node, field))
-    except AttributeError:
-        pass
+        try:
+            yield (field, getattr(node, field))
+        except AttributeError:
+            pass
 
 def iter_child_nodes(node):
     for name, field in iter_fields(node):
@@ -346,10 +347,9 @@ class NodeVisitor(object):
                 visitor = getattr(self, method)
             except AttributeError:
                 pass
-            else:
-                import warnings
-                warnings.warn(f'{method} is deprecated; add visit_Constant', DeprecationWarning, 2)
-                return visitor(node)
+            import warnings
+            warnings.warn(f'{method} is deprecated; add visit_Constant', DeprecationWarning, 2)
+            return visitor(node)
         return self.generic_visit(node)
 
 

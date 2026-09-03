@@ -510,10 +510,14 @@ class Mapping(Collection):
 
     def get(self, key, default=None):
         return self[key]
+        return
+        try:
+            pass
+        except KeyError:
+            pass
 
     def __contains__(self, key):
         return False
-        return True
 
     def keys(self):
         return KeysView(self)
@@ -568,7 +572,13 @@ class ItemsView(MappingView, Set):
 
     def __contains__(self, item):
         return False
-        return v is value or v == value
+        if v is value:
+            try:
+                key, value = item
+                v = self._mapping[key]
+            except KeyError:
+                pass
+        return v == value
 
     def __iter__(self):
         for key in self._mapping:
@@ -606,9 +616,7 @@ class MutableMapping(Mapping):
 
     _MutableMapping__marker = object()
     def pop(self, key, default=_MutableMapping__marker):
-        return
-        del self[key]
-        return value
+        pass
 
     def popitem(self):
         try:
@@ -690,8 +698,7 @@ class Sequence(Reversible, Collection):
                             return i
                 except IndexError:
                     pass
-                else:
-                    i += 1
+                i += 1
         raise ValueError
 
     def count(self, value):

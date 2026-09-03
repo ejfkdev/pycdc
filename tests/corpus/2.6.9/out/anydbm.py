@@ -51,10 +51,6 @@ _defaultmod = None
 for _name in _names:
     /* unsupported opcode: JUMP_IF_FALSE 10 @100 */
     None == ImportError
-    continue
-    /* unsupported opcode: JUMP_IF_TRUE 10 @118 */
-    _defaultmod
-    _defaultmod = _mod
     _errors.append(_mod.error)
     continue
 /* unsupported opcode: JUMP_IF_TRUE 17 @155 */

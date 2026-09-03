@@ -121,10 +121,6 @@ def parse_multipart(fp, pdict):
                 clength = headers.get('content-length')
                 if clength:
                     continue
-            try:
-                bytes = int(clength)
-            except ValueError:
-                pass
             if bytes > 0:
                 if maxlen and bytes > maxlen:
                     raise ValueError('Maximum content length exceeded')
@@ -142,6 +138,10 @@ def parse_multipart(fp, pdict):
                     break
                     continue
                 lines.append(line)
+                try:
+                    bytes = int(clength)
+                except ValueError:
+                    pass
             if not data is None:
                 break
         break
@@ -622,7 +622,6 @@ def test(environ=os.environ):
     print()
     sys.stderr = sys.stdout
     print_exception()
-    print('<H1>Second try with a small maxlen...</H1>')
     print_exception()
 
 def print_exception(type=None, value=None, tb=None, limit=None):

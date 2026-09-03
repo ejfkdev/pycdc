@@ -57,12 +57,12 @@ def _reduce_ex(self, proto):
         if base is self.__class__:
             raise TypeError("can't pickle %s objects" % base.__name__)
         state = base(self)
+    args = self.__class__, base, state
+    dict = getstate()
     try:
-        args = self.__class__, base, state
         getstate = self.__getstate__
     except AttributeError as dict:
         pass
-    dict = getstate()
     if dict:
         return _reconstructor, args, dict
     return _reconstructor, args
@@ -95,7 +95,6 @@ def _slotnames(cls):
                 continue
                 continue
             continue
-    return names
 
 _extension_registry = {}
 _inverted_registry = {}

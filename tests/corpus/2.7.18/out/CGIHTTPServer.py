@@ -68,10 +68,9 @@ def nobody_uid():
     global nobody
     if nobody:
         return nobody
-    return nobody
 
 def executable(path):
-    return st.st_mode & 73 != 0
+    pass
 
 def test(HandlerClass=CGIHTTPRequestHandler, ServerClass=BaseHTTPServer.HTTPServer):
     SimpleHTTPServer.test(HandlerClass, ServerClass)

@@ -45,19 +45,19 @@ _SYSTEM_VERSION = None
 
 def _get_system_version():
     global _SYSTEM_VERSION
-    if _SYSTEM_VERSION is None:
+    if _SYSTEM_VERSION is None and m is not None:
+        _SYSTEM_VERSION = ''
         try:
-            _SYSTEM_VERSION = ''
-            f = open('/System/Library/CoreServices/SystemVersion.plist')
-        except OSError:
             pass
-        else:
+        finally:
             try:
+                f = open('/System/Library/CoreServices/SystemVersion.plist')
+            except OSError:
+                pass
+            else:
                 m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
-            finally:
-                f.close()
-            if m is not None:
-                _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
+            f.close()
+        _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
     return _SYSTEM_VERSION
 
 def _remove_original_values(_config_vars):
@@ -179,22 +179,20 @@ def compiler_fixup(compiler_so, cc_args):
     if not stripArch:
         if 'ARCHFLAGS' in os.environ:
             while True:
-                pass
-            try:
-                index = compiler_so.index('-arch')
-                del compiler_so[index:index + 2]
-            except ValueError:
-                break
+                try:
+                    index = compiler_so.index('-arch')
+                    del compiler_so[index:index + 2]
+                except ValueError:
+                    break
     if 'ARCHFLAGS' in os.environ and not stripArch:
         compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
     if stripSysroot:
         while True:
-            pass
-        try:
-            index = compiler_so.index('-isysroot')
-            del compiler_so[index:index + 2]
-        except ValueError:
-            break
+            try:
+                index = compiler_so.index('-isysroot')
+                del compiler_so[index:index + 2]
+            except ValueError:
+                break
     sysroot = None
     if '-isysroot' in cc_args:
         idx = cc_args.index('-isysroot')
@@ -234,8 +232,8 @@ def get_platform_osx(_config_vars, osname, release, machine):
                 macrelease = tuple((int(i) for i in macrelease.split('.')[0:2]))
             except ValueError as macrelease:
                 pass
-            else:
-                macrelease = (10, 0)
+        else:
+            macrelease = (10, 0)
         if macrelease >= (10, 4) and '-arch' in cflags.strip():
             machine = 'fat'
             archs = re.findall('-arch\\s+(\\S+)', cflags)

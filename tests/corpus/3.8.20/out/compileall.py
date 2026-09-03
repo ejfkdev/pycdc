@@ -114,18 +114,29 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             return
         if quiet:
             print('*** Error compiling {!r}...'.format(fullname))
-            try:
-                ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize, invalidation_mode=invalidation_mode)
-            except py_compile.PyCompileError as err:
-                success = False
-            else:
-                print('*** ', end='')
+        else:
+            print('*** ', end='')
         msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
         msg = msg(sys.stdout.encoding)
         print(msg)
         err = None
         del err
+        if quiet >= 2:
+            return
+        if quiet:
+            print('*** Error compiling {!r}...'.format(fullname))
+        else:
+            print('*** ', end='')
+        print(e.__class__.__name__ + ':', e)
+        e = None
+        del e
         success = False
+        try:
+            ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize, invalidation_mode=invalidation_mode)
+        except py_compile.PyCompileError as err:
+            success = False
+        except (SyntaxError, UnicodeError, OSError) as e:
+            success = False
     return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
@@ -163,13 +174,7 @@ def main():
         maxlevels = args.recursion
     else:
         maxlevels = args.maxlevels
-    if args.flist:
-        if args.quiet < 2:
-            pass
-        return False
     if args.invalidation_mode:
-        ivl_mode = args.invalidation_mode.replace('-', '_').upper()
-        invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
         try:
             with sys.stdin if args.flist == '-' else open(args.flist) as f:
                 for line in f:
@@ -177,12 +182,18 @@ def main():
         except OSError:
             print('Error reading file list {}'.format(args.flist))
         else:
-            invalidation_mode = None
+            if args.flist:
+                if args.quiet < 2:
+                    pass
+                return False
+            ivl_mode = args.invalidation_mode.replace('-', '_').upper()
+            invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
+    else:
+        invalidation_mode = None
     return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
     if args.quiet < 2:
         pass
     return False
-    return True
 
 if __name__ == '__main__':
     exit_status = int(not main())

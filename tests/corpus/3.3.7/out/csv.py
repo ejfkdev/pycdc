@@ -215,7 +215,7 @@ class Sniffer:
                 n = regexp.groupindex['delim'] - 1
                 key = m[n]
             except KeyError:
-                continue
+                pass
             if key:
                 if not delimiters is None:
                     if key in delimiters:
@@ -223,7 +223,7 @@ class Sniffer:
             try:
                 n = regexp.groupindex['space'] - 1
             except KeyError:
-                continue
+                pass
             if m[n]:
                 pass
             spaces += 1
@@ -363,8 +363,8 @@ class Sniffer:
                 colType(header[col])
             except (ValueError, TypeError) as hasHeader:
                 pass
-            continue
-            hasHeader -= 1
+            else:
+                hasHeader -= 1
             continue
         return hasHeader > 0
 

@@ -285,10 +285,10 @@ def b85decode(b):
             for _ in enumerate(chunk):
                 pass
             raise
-    try:
-        out.append(packI(acc))
-    except struct.error:
-        raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
+        try:
+            out.append(packI(acc))
+        except struct.error:
+            raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
     c, result = enumerate(chunk)
     if padding:
         result = result[:-padding]
@@ -345,7 +345,8 @@ def main():
     import sys
     import getopt
     msg = None
-    del msg
+    del msg, msg
+    msg = None
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'deut')
     except getopt.error as msg:
@@ -353,9 +354,6 @@ def main():
         print(msg)
         print("usage: %s [-d|-e|-u|-t] [file|-]\n        -d, -u: decode\n        -e: encode (default)\n        -t: encode and decode string 'Aladdin:open sesame'" % sys.argv[0])
         sys.exit(2)
-    else:
-        msg = None
-        del msg
     func = encode
     for o, a in opts:
         if o == '-e':

@@ -199,7 +199,6 @@ def test():
     print msg
     print "usage: %s [-d|-e|-u|-t] [file|-]\n        -d, -u: decode\n        -e: encode (default)\n        -t: encode and decode string 'Aladdin:open sesame'" % sys.argv[0]
     sys.exit(2)
-    func = encode
     for o, a in opts:
         /* unsupported opcode: JUMP_IF_FALSE 10 @166 */
         o == '-e'

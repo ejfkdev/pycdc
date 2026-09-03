@@ -172,8 +172,8 @@ class _localimpl:
 
 @contextmanager
 def _patch(self):
+    impl = object.__getattribute__(self, '_local__impl')
     try:
-        impl = object.__getattribute__(self, '_local__impl')
         dct = impl.get_dict()
     except KeyError as dct:
         args, kw = impl.localargs

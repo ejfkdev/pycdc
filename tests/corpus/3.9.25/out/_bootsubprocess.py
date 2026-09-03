@@ -14,13 +14,6 @@ class Popen:
 
     def wait(self):
         pid = os.fork()
-        if pid == 0:
-            os._exit(1)
-            os._exit(1)
-        else:
-            _, status = os.waitpid(pid, 0)
-            self.returncode = os.waitstatus_to_exitcode(status)
-        return self.returncode
 
 
 def _check_cmd(cmd):

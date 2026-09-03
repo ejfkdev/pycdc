@@ -463,9 +463,6 @@ class LegacyInterpolation(Interpolation):
     def before_get(self, parser, section, option, value, vars):
         rawval = value
         depth = MAX_INTERPOLATION_DEPTH
-        while depth:
-            depth -= 1
-            replace = functools.partial(self._interpolation_replace, parser=parser)
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -562,9 +559,9 @@ class RawConfigParser(MutableMapping):
                     pass
             except OSError:
                 pass
-        if isinstance(filename, os.PathLike):
-            filename = os.fspath(filename)
-        read_ok.append(filename)
+            if isinstance(filename, os.PathLike):
+                filename = os.fspath(filename)
+            read_ok.append(filename)
         return read_ok
 
     def read_file(self, f, source=None):
@@ -1037,11 +1034,10 @@ class ConverterMapping(MutableMapping):
             raise KeyError(key)
         del self._data[key]
         for inst in itertools.chain((self._parser,), self._parser.values()):
-            pass
-        try:
-            delattr(inst, k)
-        except AttributeError:
-            pass
+            try:
+                delattr(inst, k)
+            except AttributeError:
+                pass
 
     def __iter__(self):
         return iter(self._data)

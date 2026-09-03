@@ -63,8 +63,7 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
             _check_system_limits()
         except NotImplementedError as workers:
             pass
-        else:
-            from concurrent.futures import ProcessPoolExecutor
+        from concurrent.futures import ProcessPoolExecutor
     if maxlevels is None:
         maxlevels = sys.getrecursionlimit()
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels)
@@ -157,18 +156,8 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             return
         if quiet:
             print('*** Error compiling {!r}...'.format(fullname))
-            try:
-                for index, opt_level in enumerate(optimize):
-                    cfile = opt_cfiles[opt_level]
-                    ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
-                    if index > 0 and hardlink_dupes and filecmp.cmp(cfile, previous_cfile, shallow=False):
-                        previous_cfile = opt_cfiles[optimize[index - 1]]
-                        os.unlink(cfile)
-                        os.link(previous_cfile, cfile)
-            except py_compile.PyCompileError as err:
-                success = False
-            else:
-                print('*** ', end='')
+        else:
+            print('*** ', end='')
         encoding = sys.stdout.encoding or sys.getdefaultencoding()
         msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
         print(msg)
@@ -176,8 +165,19 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         del err
         return success
         err = None
-        del err, e
+        del err
+        try:
+            for index, opt_level in enumerate(optimize):
+                cfile = opt_cfiles[opt_level]
+                ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
+                if index > 0 and hardlink_dupes and filecmp.cmp(cfile, previous_cfile, shallow=False):
+                    previous_cfile = opt_cfiles[optimize[index - 1]]
+                    os.unlink(cfile)
+                    os.link(previous_cfile, cfile)
+        except py_compile.PyCompileError as err:
+            success = False
         e = None
+        del e
         return success
         e = None
         del e

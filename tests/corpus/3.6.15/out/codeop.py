@@ -74,10 +74,10 @@ def _maybe_compile(compiler, source, filename, symbol):
             break
         source = 'pass'
     err = err1 = err2 = None
+    code = code1 = code2 = None
     err = None
     del err
     try:
-        code = code1 = code2 = None
         code = compiler(source, filename, symbol)
     except SyntaxError as err:
         pass

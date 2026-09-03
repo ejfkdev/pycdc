@@ -16,14 +16,14 @@ import cgi
 import sys
 import shutil
 import mimetypes
-
-class test(BaseHTTPServer.BaseHTTPRequestHandler):
-    BaseHTTPServer.test(HandlerClass, ServerClass)
-
 if __name__ == '__main__':
-    test()
     try:
         from cStringIO import StringIO
     except ImportError:
         from StringIO import StringIO
+    else:
+        class test(BaseHTTPServer.BaseHTTPRequestHandler):
+            BaseHTTPServer.test(HandlerClass, ServerClass)
+
+        test()
 # WARNING: Decompyle incomplete

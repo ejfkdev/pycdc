@@ -10,14 +10,12 @@ Written by Marc-Andre Lemburg (mal@lemburg.com).
 import builtins
 import sys
 why = None
-del why
+del why, why
+why = None
 try:
     from _codecs import *
 except ImportError as why:
     raise SystemError('Failed to load the builtin codecs: %s' % why)
-else:
-    why = None
-    del why
 __all__ = ['register', 'lookup', 'open', 'EncodedFile', 'BOM', 'BOM_BE', 'BOM_LE', 'BOM32_BE', 'BOM32_LE', 'BOM64_BE', 'BOM64_LE', 'BOM_UTF8', 'BOM_UTF16', 'BOM_UTF16_LE', 'BOM_UTF16_BE', 'BOM_UTF32', 'BOM_UTF32_LE', 'BOM_UTF32_BE', 'CodecInfo', 'Codec', 'IncrementalEncoder', 'IncrementalDecoder', 'StreamReader', 'StreamWriter', 'StreamReaderWriter', 'StreamRecoder', 'getencoder', 'getdecoder', 'getincrementalencoder', 'getincrementaldecoder', 'getreader', 'getwriter', 'encode', 'decode', 'iterencode', 'iterdecode', 'strict_errors', 'ignore_errors', 'replace_errors', 'xmlcharrefreplace_errors', 'backslashreplace_errors', 'namereplace_errors', 'register_error', 'lookup_error']
 BOM_UTF8 = b'\xef\xbb\xbf'
 BOM_LE = BOM_UTF16_LE = b'\xff\xfe'
@@ -257,20 +255,19 @@ class StreamReader(Codec):
                 pass
             exc = None
             del exc
-            try:
-                newchars, decodedbytes = self.decode(data, self.errors)
-            except UnicodeDecodeError as exc:
-                newchars, decodedbytes = self.decode(data[:exc.start], self.errors)
-                lines = newchars.splitlines(keepends=True)
-                raise
-                raise
-                if len(lines) <= 1:
-                    pass
-                if firstline:
-                    pass
-            else:
-                exc = None
-                del exc
+        exc = None
+        del exc
+        try:
+            newchars, decodedbytes = self.decode(data, self.errors)
+        except UnicodeDecodeError as exc:
+            newchars, decodedbytes = self.decode(data[:exc.start], self.errors)
+            lines = newchars.splitlines(keepends=True)
+            raise
+            raise
+            if len(lines) <= 1:
+                pass
+            if firstline:
+                pass
         self.bytebuffer = data[decodedbytes:]
         self.charbuffer += newchars
         if not newdata:

@@ -234,8 +234,7 @@ class Hook:
         plain = True
         if self.display:
             if plain:
-                doc = pydoc.html.escape(doc)
-                self.file.write('<pre>' + doc + '</pre>\n')
+                pass
             else:
                 self.file.write(doc + '\n')
         self.file.write('<p>A problem occurred in a Python script.\n')
@@ -243,7 +242,7 @@ class Hook:
             suffix = ['.txt', '.html'][self.format == 'html']
             msg = 'Tried to save traceback to %s, but failed.' % path
             if self.format == 'html':
-                self.file.write('<p>%s</p>\n' % msg)
+                pass
             else:
                 self.file.write(msg + '\n')
 

@@ -380,8 +380,8 @@ class BasicInterpolation(Interpolation):
                 if m is None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
                 var = parser.optionxform(m.group(1))
+                rest = rest[m.end():]
                 try:
-                    rest = rest[m.end():]
                     v = map[var]
                 except KeyError:
                     raise InterpolationMissingOptionError(option, section, rawval, var) from None
@@ -434,8 +434,8 @@ class ExtendedInterpolation(Interpolation):
                 path = m.group(1).split(':')
                 rest = rest[m.end():]
                 sect = section
+                opt = option
                 try:
-                    opt = option
                     if len(path) == 1:
                         opt = parser.optionxform(path[0])
                         v = map[opt]
@@ -468,17 +468,16 @@ class LegacyInterpolation(Interpolation):
                 depth -= 1
                 if value and '%(' in value:
                     replace = functools.partial(self._interpolation_replace, parser=parser)
+                    value = self._KEYCRE.sub(replace, value)
                     break
                 e = None
                 del e
                 try:
-                    value = self._KEYCRE.sub(replace, value)
                     value = value % vars
                 except KeyError as e:
                     raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
-                else:
-                    break
                 break
+            break
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -574,7 +573,7 @@ class RawConfigParser(MutableMapping):
                 with open(filename, encoding=encoding) as fp:
                     self._read(fp, filename)
             except OSError:
-                continue
+                pass
             if isinstance(filename, os.PathLike):
                 filename = os.fspath(filename)
             read_ok.append(filename)
@@ -596,10 +595,10 @@ class RawConfigParser(MutableMapping):
     def read_dict(self, dictionary, source='<dict>'):
         elements_added = set()
         for section, keys in dictionary.items():
+            section = str(section)
             if self._strict and section in elements_added:
                 pass
             try:
-                section = str(section)
                 self.add_section(section)
             except (DuplicateSectionError, ValueError):
                 raise
@@ -627,10 +626,10 @@ class RawConfigParser(MutableMapping):
         except NoSectionError:
             raise
             return fallback
+        option = self.optionxform(option)
         if fallback is _UNSET:
             pass
         try:
-            option = self.optionxform(option)
             value = d[option]
         except KeyError:
             raise NoOptionError(option, section)
@@ -644,7 +643,13 @@ class RawConfigParser(MutableMapping):
         return conv(self.get(section, option, **kwargs))
 
     def _get_conv(self, section, option, conv, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        pass
+        try:
+            return self._get(section, conv, option, **(*{'raw': raw, 'vars': vars}, *kwargs))
+        except (NoSectionError, NoOptionError):
+            raise
+            if fallback is _UNSET:
+                pass
+            return fallback
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
         return self._get_conv(section, option, int, **(*{'raw': raw, 'vars': vars, 'fallback': fallback}, *kwargs))
@@ -658,10 +663,10 @@ class RawConfigParser(MutableMapping):
     def items(self, section=_UNSET, raw=False, vars=None):
         if section is _UNSET:
             return super().items()
+        d = self._defaults.copy()
         if section != self.default_section:
             pass
         try:
-            d = self._defaults.copy()
             d.update(self._sections[section])
         except KeyError:
             raise NoSectionError(section)
@@ -887,10 +892,10 @@ class RawConfigParser(MutableMapping):
         return exc
 
     def _unify_values(self, section, vars):
+        sectiondict = {}
         if section != self.default_section:
             pass
         try:
-            sectiondict = {}
             sectiondict = self._sections[section]
         except KeyError:
             raise NoSectionError(section)
@@ -1047,11 +1052,10 @@ class ConverterMapping(MutableMapping):
             raise KeyError(key)
         del self._data[key]
         for inst in itertools.chain((self._parser,), self._parser.values()):
-            continue
             try:
                 delattr(inst, k)
             except AttributeError:
-                continue
+                pass
             continue
             continue
 

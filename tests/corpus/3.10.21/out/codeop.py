@@ -57,16 +57,14 @@ def _maybe_compile(compiler, source, filename, symbol):
         None(None, None, None)
         return
     e = None
-    del e
+    del e, e
+    e = None
     try:
         compiler(source, filename, symbol)
     except SyntaxError:
         compiler(source + '\n', filename, symbol)
     except SyntaxError as e:
         pass
-    else:
-        e = None
-        del e
     None(None, None, None)
     if not None:
         pass

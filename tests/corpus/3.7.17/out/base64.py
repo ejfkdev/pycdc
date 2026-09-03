@@ -109,8 +109,8 @@ def b32decode(s, casefold=False, map01=None):
     b32rev = _b32rev
     for i in range(0, len(s), 8):
         quanta = s[i:i + 8]
+        acc = 0
         try:
-            acc = 0
             for c in quanta:
                 acc = (acc << 5) + b32rev[c]
                 continue
@@ -254,8 +254,8 @@ def b85decode(b):
     packI = struct.Struct('!I').pack
     for i in range(0, len(b), 5):
         chunk = b[i:i + 5]
+        acc = 0
         try:
-            acc = 0
             for c in chunk:
                 acc = acc * 85 + _b85dec[c]
                 continue
@@ -267,7 +267,6 @@ def b85decode(b):
             for _ in enumerate(chunk):
                 pass
             raise
-        continue
         try:
             out.append(packI(acc))
         except struct.error:

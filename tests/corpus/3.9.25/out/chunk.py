@@ -72,8 +72,7 @@ class Chunk:
             self.offset = self.file.tell()
         except (AttributeError, OSError):
             self.seekable = False
-        else:
-            self.seekable = True
+        self.seekable = True
 
     def getname(self):
         return self.chunkname
@@ -82,9 +81,7 @@ class Chunk:
         return self.chunksize
 
     def close(self):
-        if not self.closed:
-            self.closed = True
-            self.closed = True
+        pass
 
     def isatty(self):
         if self.closed:

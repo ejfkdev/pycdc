@@ -81,23 +81,19 @@ def _maybe_compile(compiler, source, filename, symbol):
     with warnings.catch_warnings():
         warnings.simplefilter('error')
         e = None
-        del e
+        del e, e
+        e = None
         try:
             code1 = compiler(source + '\n', filename, symbol)
         except SyntaxError as e:
             err1 = e
-        else:
-            e = None
-            del e
         e = None
-        del e
+        del e, e
+        e = None
         try:
             code2 = compiler(source + '\n\n', filename, symbol)
         except SyntaxError as e:
             err2 = e
-        else:
-            e = None
-            del e
     if not None:
         pass
     err1 = err2 = None

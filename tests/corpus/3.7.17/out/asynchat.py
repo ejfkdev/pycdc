@@ -143,7 +143,6 @@ class async_chat(asyncore.dispatcher):
     def initiate_send(self):
         while self.producer_fifo:
             try:
-                obs = self.ac_out_buffer_size
                 data = first[:obs]
             except TypeError as data:
                 self.producer_fifo.appendleft(data)
@@ -158,19 +157,20 @@ class async_chat(asyncore.dispatcher):
                         if first is None:
                             self.handle_close()
                             return
+                    obs = self.ac_out_buffer_size
             if isinstance(data, str) and self.use_encoding:
                 data = bytes(data, self.encoding)
             if num_sent:
                 if not num_sent < len(data):
                     if obs < len(first):
-                        self.producer_fifo[0] = first[num_sent:]
                         try:
                             num_sent = self.send(data)
                         except OSError:
                             self.handle_error()
                             return
-                        else:
-                            del self.producer_fifo[0]
+                        self.producer_fifo[0] = first[num_sent:]
+                    else:
+                        del self.producer_fifo[0]
             return
 
     def discard_buffers(self):

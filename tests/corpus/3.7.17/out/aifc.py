@@ -306,11 +306,7 @@ class Aifc_read:
                 raise Error('COMM chunk and/or SSND chunk missing')
 
     def __init__(self, f):
-        if isinstance(f, str):
-            file_object.close()
-            raise
-        else:
-            self.initfp(f)
+        pass
 
     def __enter__(self):
         return self
@@ -444,8 +440,8 @@ class Aifc_read:
                 self._compname = b'not compressed'
 
     def _readmark(self, chunk):
+        nmarkers = _read_short(chunk)
         try:
-            nmarkers = _read_short(chunk)
             for i in range(nmarkers):
                 id = _read_short(chunk)
                 pos = _read_long(chunk)
@@ -463,10 +459,10 @@ class Aifc_write:
     _file = None
     def __init__(self, f):
         if isinstance(f, str):
+            file_object = builtins.open(f, 'wb')
             file_object.close()
             raise
             if f.endswith('.aiff'):
-                self._aifc = 0
                 self.initfp(f)
 
     def initfp(self, file):

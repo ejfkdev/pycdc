@@ -166,6 +166,12 @@ struct LegacyTry {
     /// offset where the handler chain begins
     handler_start: usize,
     has_finally: bool,
+    /// when the try body ends with a forward jump over the handler chain,
+    /// the else region spans [else_start, else_stop)
+    else_start: Option<usize>,
+    else_stop: usize,
+    /// handler chain fully parsed (END_FINALLY passed); emit on next jump
+    chain_done: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -566,6 +572,28 @@ impl<'a> Ctx<'a> {
 
             // pre-3.11 handler-chain bookkeeping
             self.legacy_chain_step(&inst);
+            // chain fully parsed (END_FINALLY passed) but no jump emitted it
+            // yet: flush before the continuation executes so statement order
+            // and block targeting stay correct
+            if self.legacy_handler.is_none()
+                && self.legacy_try.as_ref().map_or(false, |l| {
+                    l.chain_done
+                        && !l.handlers.is_empty()
+                        && !l.has_finally
+                        && l.else_start.map_or(true, |_| {
+                            inst.offset >= l.else_stop
+                        })
+                })
+            {
+                let l = self.legacy_try.take().unwrap();
+                self.flush_pending_stores();
+                self.push_stmt(Stmt::Try {
+                    body: l.body,
+                    handlers: l.handlers,
+                    orelse: l.orelse,
+                    finalbody: l.finalbody,
+                });
+            }
             if self.in_handler_prelude
                 && !matches!(
                     inst.op,
@@ -1132,6 +1160,28 @@ impl<'a> Ctx<'a> {
             }
             // END_FINALLY closes a finally handler (and the statement)
             Op::END_FINALLY => {
+                let mut end_at_chain = false;
+                if let Some(l) = self.legacy_try.as_mut() {
+                    if !l.handlers.is_empty() && !l.has_finally {
+                        // last handler mismatch path: chain fully parsed
+                        l.chain_done = true;
+                        if l.else_start == Some(pos) {
+                            // forward jump from the body landed exactly at
+                            // the chain end: no else region, emit now
+                            end_at_chain = true;
+                        }
+                    }
+                }
+                if end_at_chain {
+                    let l = self.legacy_try.take().unwrap();
+                    self.flush_pending_stores();
+                    self.push_stmt(Stmt::Try {
+                        body: l.body,
+                        handlers: l.handlers,
+                        orelse: l.orelse,
+                        finalbody: l.finalbody,
+                    });
+                }
                 if let Some(l) = self.legacy_try.as_mut() {
                     if l.has_finally {
                         let l = self.legacy_try.take().unwrap();
@@ -1147,20 +1197,39 @@ impl<'a> Ctx<'a> {
             // a JUMP_FORWARD inside a handler (not part of an open handler
             // body anymore) ends the chain: emit try (+else target region)
             Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE => {
-                if self.legacy_handler.is_none() && !lt.handlers.is_empty() {
+                if self.legacy_handler.is_none() && !lt.has_finally {
+                    let in_else = lt
+                        .else_start
+                        .map_or(false, |es| pos >= es && pos < lt.else_stop);
+                    let past_chain = lt
+                        .else_start
+                        .map_or(true, |es| pos >= es && pos >= lt.else_stop);
                     if let Some(target) = inst.target {
-                        if target > pos && !lt.has_finally {
-                            // else region spans [next, target)
-                            let l = self.legacy_try.take().unwrap();
-                            let else_stmts = self.decompile_region(inst.end(), target);
-                            self.push_stmt(Stmt::Try {
-                                body: l.body,
-                                handlers: l.handlers,
-                                orelse: else_stmts,
-                                finalbody: l.finalbody,
-                            });
-                            self.skip_until = Some(target);
-                        } else if !lt.has_finally {
+                        // handler normal-exit jump landing exactly where the
+                        // body's forward jump lands == no else region
+                        if !lt.handlers.is_empty() && lt.else_start == Some(target) {
+                            if let Some(l) = self.legacy_try.as_mut() {
+                                l.else_start = None;
+                            }
+                        }
+                        if lt.handlers.is_empty() && lt.else_start.is_none()
+                            && target > pos && target > lt.handler_start
+                        {
+                            // end of the try body: forward jump over the
+                            // handler chain into the else region. Handlers
+                            // are parsed inline as execution continues; else
+                            // statements are redirected into orelse by
+                            // push_stmt until the region ends.
+                            let stop = self.next_boundary(target, usize::MAX);
+                            if let Some(l) = self.legacy_try.as_mut() {
+                                l.else_start = Some(target);
+                                l.else_stop = stop;
+                            }
+                        } else if !lt.handlers.is_empty() && (in_else || (past_chain && target < pos)) {
+                            // end of the else region (back edge or jump out):
+                            // emit the complete try statement; flush first so
+                            // else-region stores land in orelse, not after it
+                            self.flush_pending_stores();
                             let l = self.legacy_try.take().unwrap();
                             self.push_stmt(Stmt::Try {
                                 body: l.body,
@@ -1173,6 +1242,20 @@ impl<'a> Ctx<'a> {
                 }
             }
             _ => {}
+        }
+        // chain fully parsed and no else region followed: emit on the next
+        // instruction so statement order stays correct
+        if let Some(l) = &self.legacy_try {
+            if l.chain_done && l.else_start.is_none() && !l.handlers.is_empty() {
+                let l = self.legacy_try.take().unwrap();
+                self.flush_pending_stores();
+                self.push_stmt(Stmt::Try {
+                    body: l.body,
+                    handlers: l.handlers,
+                    orelse: l.orelse,
+                    finalbody: l.finalbody,
+                });
+            }
         }
         let _ = &lt;
     }
@@ -1477,6 +1560,9 @@ impl<'a> Ctx<'a> {
                         finalbody: Vec::new(),
                         handler_start: pos,
                         has_finally: false,
+                        else_start: None,
+                        else_stop: usize::MAX,
+                        chain_done: false,
                     });
                 }
             }
@@ -1641,6 +1727,16 @@ impl<'a> Ctx<'a> {
                 h.body.push(stmt);
             }
             return;
+        }
+        // statements executed inside a collected try-else region belong to
+        // the Try's orelse, not to the enclosing block
+        if let Some(lt) = self.legacy_try.as_mut() {
+            if let Some(es) = lt.else_start {
+                if self.cur_offset >= es && self.cur_offset < lt.else_stop {
+                    lt.orelse.push(stmt);
+                    return;
+                }
+            }
         }
         if let Some(top) = self.blocks.last_mut() {
             top.stmts.push(stmt);
@@ -2807,7 +2903,11 @@ impl<'a> Ctx<'a> {
             // ---------- control flow ----------
             Op::JUMP_FORWARD => {
                 let target = inst.target.unwrap_or(inst.end());
-                if self.find_loop_exit(target).is_some() {
+                let over_handlers = self
+                    .legacy_try
+                    .as_ref()
+                    .map_or(false, |l| target > l.handler_start);
+                if !over_handlers && self.find_loop_exit(target).is_some() {
                     self.push_stmt(Stmt::Break);
                     self.close_inner_blocks_to_loop();
                 }
@@ -2983,6 +3083,12 @@ impl<'a> Ctx<'a> {
                 // legacy handler body (e.g. `raise` in except on 3.8-3.10)
                 if self.legacy_handler.is_some() {
                     return true;
+                }
+                // stores before the try belong to the enclosing block
+                if !self.pending_stores.is_empty() {
+                    self.flushing = true;
+                    self.flush_pending_stores();
+                    self.flushing = false;
                 }
                 let target = inst.target.unwrap_or(inst.end());
                 self.blocks.push(Block::new(BlockType::Try, inst.end(), target));
@@ -4185,6 +4291,19 @@ impl<'a> Ctx<'a> {
     }
 
     fn handle_jump_backward(&mut self, target: usize) {
+        // back edge at the end of the try body or inside the handler chain
+        // (`continue`-equivalent): not the loop's own back edge, ignore it
+        // so the loop stays open for the handler chain / else region that
+        // follows; the chain machinery emits the Try at the real back edge
+        if self.legacy_try.as_ref().map_or(false, |l| {
+            (self.cur_offset >= l.handler_start
+                && l.else_start.map_or(true, |es| self.cur_offset < es))
+                || (l.handlers.is_empty()
+                    && l.else_start.is_none()
+                    && self.cur_offset < l.handler_start)
+        }) {
+            return;
+        }
         self.close_blocks_at(self.cur_offset);
         let n = self.blocks.len();
         for i in (0..n).rev() {

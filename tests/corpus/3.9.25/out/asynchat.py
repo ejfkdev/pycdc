@@ -155,19 +155,20 @@ class async_chat(asyncore.dispatcher):
             except TypeError as data:
                 self.producer_fifo.appendleft(data)
                 del self.producer_fifo[0]
-        if isinstance(data, str) and self.use_encoding:
-            data = bytes(data, self.encoding)
-        return
-        try:
-            num_sent = self.send(data)
-        except OSError:
-            self.handle_error()
-        if num_sent:
-            if not num_sent < len(data):
-                if obs < len(first):
-                    self.producer_fifo[0] = first[num_sent:]
-                else:
-                    del self.producer_fifo[0]
+            if isinstance(data, str) and self.use_encoding:
+                data = bytes(data, self.encoding)
+            return
+            try:
+                num_sent = self.send(data)
+            except OSError:
+                self.handle_error()
+            if num_sent:
+                if not num_sent < len(data):
+                    if obs < len(first):
+                        self.producer_fifo[0] = first[num_sent:]
+                    else:
+                        del self.producer_fifo[0]
+            return
 
     def discard_buffers(self):
         self.ac_in_buffer = b''

@@ -35,7 +35,7 @@
   {
    "module": "_compat_pickle",
    "verdict": "SIG-DIFF",
-   "ndiff": 32,
+   "ndiff": 33,
    "ntotal": 433,
    "detail": "line 221: orig ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro | got ('SETUP_FINALLY', 'to 454')\nline 222: orig ('STORE_NAME', 'PYTHON2_EXCEPTIONS') | got ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro\nline 223: orig ('SETUP_FINALLY', 'to 454') | got ('STORE_NAME', 'PYTHON2_EXCEPTIONS')"
   },
@@ -70,7 +70,7 @@
   {
    "module": "_sitebuiltins",
    "verdict": "SIG-DIFF",
-   "ndiff": 292,
+   "ndiff": 293,
    "ntotal": 369,
    "detail": "line 72: orig ('SETUP_FINALLY', 'to 22') | got ('LOAD_GLOBAL', 'SystemExit')\nline 73: orig ('LOAD_GLOBAL', 'sys') | got ('LOAD_FAST', 'code')\nline 74: orig ('LOAD_ATTR', 'stdin') | got ('CALL_FUNCTION', '')"
   },
@@ -114,7 +114,7 @@
   {
    "module": "ast",
    "verdict": "SIG-DIFF",
-   "ndiff": 7596,
+   "ndiff": 7509,
    "ntotal": 7851,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
@@ -128,21 +128,21 @@
   {
    "module": "asyncore",
    "verdict": "SIG-DIFF",
-   "ndiff": 2135,
+   "ndiff": 2139,
    "ntotal": 2191,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "base64",
    "verdict": "SIG-DIFF",
-   "ndiff": 1659,
+   "ndiff": 1660,
    "ntotal": 1933,
    "detail": "line 76: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 78: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 246: orig ('POP_JUMP_IF_FALSE', 'to 46') | got ('POP_JUMP_IF_FALSE', 'to 20')"
   },
   {
    "module": "bdb",
    "verdict": "SIG-DIFF",
-   "ndiff": 2317,
+   "ndiff": 2333,
    "ntotal": 2441,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -160,16 +160,16 @@
   {
    "module": "bz2",
    "verdict": "SIG-DIFF",
-   "ndiff": 774,
+   "ndiff": 776,
    "ntotal": 830,
    "detail": "line 28: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 32: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cProfile",
    "verdict": "SIG-DIFF",
-   "ndiff": 303,
+   "ndiff": 301,
    "ntotal": 678,
-   "detail": "line 275: orig ('FOR_ITER', 'to 286') | got ('FOR_ITER', 'to 176')\nline 286: orig ('JUMP_FORWARD', 'to 176') | got ('JUMP_ABSOLUTE', 'to 134')\nline 350: orig ('JUMP_ABSOLUTE', 'to 134') | got ('JUMP_ABSOLUTE', 'to 108')"
+   "detail": "line 294: orig ('JUMP_ABSOLUTE', 'to 134') | got ('JUMP_FORWARD', 'to 176')\nline 374: orig ('SETUP_FINALLY', 'to 36') | got ('LOAD_FAST', 'self')\nline 375: orig ('LOAD_GLOBAL', 'exec') | got ('LOAD_METHOD', 'disable')"
   },
   {
    "module": "calendar",
@@ -188,7 +188,7 @@
   {
    "module": "cgitb",
    "verdict": "SIG-DIFF",
-   "ndiff": 1167,
+   "ndiff": 1169,
    "ntotal": 1432,
    "detail": "line 161: orig ('LOAD_FAST', 'frame') | got ('LOAD_GLOBAL', 'hasattr')\nline 162: orig ('LOAD_ATTR', 'f_globals') | got ('LOAD_FAST', 'builtins')\nline 163: orig ('LOAD_CONST', \"'__builtins__'\") | got ('LOAD_FAST', 'name')"
   },
@@ -202,7 +202,7 @@
   {
    "module": "cmd",
    "verdict": "SIG-DIFF",
-   "ndiff": 1095,
+   "ndiff": 1092,
    "ntotal": 1324,
    "detail": "line 218: orig ('SETUP_FINALLY', 'to 378') | got ('LOAD_FAST', 'self')\nline 219: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 220: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', 'to 106')"
   },
@@ -216,7 +216,7 @@
   {
    "module": "codecs",
    "verdict": "SIG-DIFF",
-   "ndiff": 1845,
+   "ndiff": 1846,
    "ntotal": 2129,
    "detail": "line 209: orig ('SETUP_FINALLY', 'to 470') | got ('LOAD_CONST', 'None')\nline 210: orig ('LOAD_NAME', 'lookup_error') | got ('STORE_NAME', 'namereplace_errors')\nline 211: orig ('LOAD_CONST', \"'strict'\") | got ('SETUP_FINALLY', 'to 474')"
   },
@@ -234,21 +234,21 @@
   {
    "module": "compileall",
    "verdict": "SIG-DIFF",
-   "ndiff": 1440,
+   "ndiff": 1444,
    "ntotal": 1512,
    "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "configparser",
    "verdict": "SIG-DIFF",
-   "ndiff": 3155,
+   "ndiff": 3139,
    "ntotal": 4289,
    "detail": "line 670: orig ('POP_JUMP_IF_TRUE', 'to 32') | got ('POP_JUMP_IF_FALSE', 'to 24')\nline 672: orig ('POP_JUMP_IF_TRUE', 'to 32') | got ('POP_JUMP_IF_FALSE', 'to 32')\nline 925: orig ('POP_JUMP_IF_FALSE', 'to 350') | got ('POP_JUMP_IF_FALSE', 'to 348')"
   },
   {
    "module": "contextlib",
    "verdict": "SIG-DIFF",
-   "ndiff": 1825,
+   "ndiff": 1821,
    "ntotal": 1876,
    "detail": "line 28: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 32: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
@@ -262,9 +262,9 @@
   {
    "module": "copyreg",
    "verdict": "SIG-DIFF",
-   "ndiff": 368,
+   "ndiff": 369,
    "ntotal": 597,
-   "detail": "line 202: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')\nline 210: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 82')\nline 216: orig ('POP_JUMP_IF_FALSE', 'to 52') | got ('POP_JUMP_IF_FALSE', 'to 80')"
+   "detail": "line 30: orig ('JUMP_FORWARD', 'to 82') | got ('JUMP_FORWARD', 'to 62')\nline 202: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')\nline 210: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 82')"
   },
   {
    "module": "crypt",

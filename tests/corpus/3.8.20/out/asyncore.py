@@ -48,6 +48,11 @@ def _strerror(err):
     return os.strerror(err)
     if err in errorcode:
         return
+    return
+    try:
+        pass
+    except (ValueError, OverflowError, NameError):
+        pass
 
 class ExitNow(Exception):
     pass
@@ -55,30 +60,28 @@ class ExitNow(Exception):
 _reraised_exceptions = ExitNow, KeyboardInterrupt, SystemExit
 
 def read(obj):
+    obj.handle_error()
     try:
         obj.handle_read_event()
     except _reraised_exceptions:
         raise
-    else:
-        obj.handle_error()
 
 def write(obj):
+    obj.handle_error()
     try:
         obj.handle_write_event()
     except _reraised_exceptions:
         raise
-    else:
-        obj.handle_error()
 
 def _exception(obj):
+    obj.handle_error()
     try:
         obj.handle_expt_event()
     except _reraised_exceptions:
         raise
-    else:
-        obj.handle_error()
 
 def readwrite(obj, flags):
+    obj.handle_error()
     try:
         if flags & select.POLLIN:
             obj.handle_read_event()
@@ -93,8 +96,8 @@ def readwrite(obj, flags):
         obj.handle_close()
         if e.args[0] not in _DISCONNECTED:
             pass
-    else:
-        obj.handle_error()
+    except _reraised_exceptions:
+        raise
 
 def poll(timeout=0.0, map=None):
     if map is None:
@@ -201,8 +204,8 @@ class dispatcher:
                 raise
                 if err.args[0] in (ENOTCONN, EINVAL):
                     pass
-            else:
-                self.socket = None
+        else:
+            self.socket = None
 
     def __repr__(self):
         status = [self.__class__.__module__ + '.' + self.__class__.__qualname__]
@@ -378,8 +381,6 @@ class dispatcher:
 
     def handle_error(self):
         self_repr = '<__repr__(self) failed for object at %0x>' % id(self)
-        self.log_info('uncaptured python exception, closing channel %s (%s:%s %s)' % (self_repr, t, v, tbinfo), 'error')
-        self.handle_close()
 
     def handle_expt(self):
         self.log_info('unhandled incoming priority event', 'warning')
@@ -447,15 +448,14 @@ def close_all(map=None, ignore_all=False):
     if map is None:
         map = socket_map
     for x in list(map.values()):
-        pass
-    try:
-        x.close()
-    except OSError as x:
-        raise
-        if not ignore_all:
-            pass
-        if x.args[0] == EBADF:
-            pass
+        try:
+            x.close()
+        except OSError as x:
+            raise
+            if not ignore_all:
+                pass
+            if x.args[0] == EBADF:
+                pass
     if not ignore_all:
         raise
     map.clear()

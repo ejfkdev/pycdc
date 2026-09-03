@@ -184,8 +184,8 @@ class Cmd:
                     compfunc = getattr(self, 'complete_' + cmd)
                 except AttributeError as compfunc:
                     pass
-                else:
-                    compfunc = self.completenames
+            else:
+                compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
         return self.completion_matches[state]
         return
@@ -210,6 +210,8 @@ class Cmd:
                 func = getattr(self, 'help_' + arg)
             except AttributeError as doc:
                 self.stdout.write('%s\n' % str(doc))
+            except AttributeError:
+                pass
             self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
             return
             func()

@@ -93,7 +93,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     if rx is not None and mo:
         mo = rx.search(fullname)
         return success
-    if os.path.isfile(fullname) and tail == '.py':
+    if os.path.isfile(fullname) and tail == '.py' and ok == 0:
         if legacy:
             cfile = fullname + 'c'
         else:
@@ -117,7 +117,9 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         if not quiet:
             print('Compiling {!r}...'.format(fullname))
         err = None
-        del err
+        del err, e
+        e = None
+        success = False
         try:
             ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
         except py_compile.PyCompileError as err:
@@ -132,9 +134,16 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
             msg = msg.decode(sys.stdout.encoding)
             print(msg)
-        else:
-            if ok == 0:
-                success = False
+        except (SyntaxError, UnicodeError, OSError) as e:
+            success = False
+            return success
+            if quiet >= 2:
+                pass
+            print('*** Error compiling {!r}...'.format(fullname))
+            print('*** ', end='')
+            if quiet:
+                pass
+            print(e.__class__.__name__ + ':', e)
     return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1):
@@ -171,11 +180,23 @@ def main():
         maxlevels = args.recursion
     else:
         maxlevels = args.maxlevels
-    if args.flist:
-        pass
     if args.workers is not None:
-        args.workers = args.workers or None
-    return True
+        if args.workers:
+            try:
+                with sys.stdin if args.flist == '-' else open(args.flist) as f:
+                    for line in f:
+                        compile_dests.append(line.strip())
+                        continue
+            except OSError:
+                print('Error reading file list {}'.format(args.flist))
+                if args.quiet < 2:
+                    pass
+                return False
+            else:
+                if args.flist:
+                    pass
+        args.workers = None
+    success = True
 
 if __name__ == '__main__':
     exit_status = int(not main())

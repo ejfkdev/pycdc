@@ -126,20 +126,22 @@ import sys
 import os
 import errno
 if hasattr(socket, 'AF_UNIX'):
-    __all__.extend(['UnixStreamServer', 'UnixDatagramServer', 'ThreadingUnixStreamServer', 'ThreadingUnixDatagramServer'])
     try:
         import threading
     except ImportError:
         import dummy_threading as threading
+    else:
+        __all__.extend(['UnixStreamServer', 'UnixDatagramServer', 'ThreadingUnixStreamServer', 'ThreadingUnixDatagramServer'])
 
 def _eintr_retry(func, *args):
     while True:
-        pass
-    if e.args[0] != errno.EINTR:
         try:
             return func(*args)
         except (OSError, select.error), e:
             raise
+            continue
+            if e.args[0] != errno.EINTR:
+                pass
 
 class BaseServer(()):
     pass

@@ -143,15 +143,13 @@ class BZ2File(io.BufferedIOBase):
             if self._decompressor.eof:
                 self._decompressor = BZ2Decompressor()
                 continue
+            self._buffer_offset = 0
             try:
                 self._buffer = self._decompressor.decompress(rawblock)
             except OSError:
                 self._mode = _MODE_READ_EOF
                 self._size = self._pos
                 return False
-            else:
-                self._buffer = self._decompressor.decompress(rawblock)
-            self._buffer_offset = 0
         return True
 
     def _read_all(self, return_data=True):
@@ -322,10 +320,10 @@ def decompress(data):
     results = []
     while True:
         while data:
+            decomp = BZ2Decompressor()
             if results:
                 pass
             try:
-                decomp = BZ2Decompressor()
                 res = decomp.decompress(data)
             except OSError:
                 break

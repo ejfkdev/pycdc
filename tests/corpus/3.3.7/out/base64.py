@@ -12,10 +12,10 @@ def _bytes_from_decode_data(s):
             return s.encode('ascii')
         except UnicodeEncodeError:
             raise ValueError('string argument should contain only ASCII characters')
-        else:
-            if isinstance(s, bytes_types):
-                return s
-            raise TypeError('argument should be bytes or ASCII string, not %s' % s.__class__.__name__)
+    else:
+        if isinstance(s, bytes_types):
+            return s
+        raise TypeError('argument should be bytes or ASCII string, not %s' % s.__class__.__name__)
 
 def b64encode(s, altchars=None):
     if not isinstance(s, bytes_types):

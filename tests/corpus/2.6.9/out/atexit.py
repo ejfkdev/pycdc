@@ -14,13 +14,14 @@ def _run_exitfuncs():
     while True:
         /* unsupported opcode: JUMP_IF_FALSE 129 @12 */
         _exithandlers
-    /* unsupported opcode: JUMP_IF_FALSE 19 @64 */
-    None == SystemExit
-    exc_info = sys.exc_info()
-    import traceback
-    print >>sys.stderr, sys.stderr
-    traceback.print_exc()
-    exc_info = sys.exc_info()
+        func, targs, kargs = _exithandlers.pop()
+        /* unsupported opcode: JUMP_IF_FALSE 19 @64 */
+        None == SystemExit
+        exc_info = sys.exc_info()
+        import traceback
+        print >>sys.stderr, sys.stderr
+        traceback.print_exc()
+        exc_info = sys.exc_info()
     /* unsupported opcode: JUMP_IF_FALSE 28 @155 */
     exc_info is not None
     raise exc_info[1] # WARNING: raise cause dropped (py2)

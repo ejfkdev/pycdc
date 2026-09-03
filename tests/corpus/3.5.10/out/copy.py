@@ -56,8 +56,8 @@ import builtins
 class Error(Exception):
     pass
 
+error = Error
 try:
-    error = Error
     from org.python.core import PyStringMap
 except ImportError as PyStringMap:
     pass
@@ -201,8 +201,8 @@ def _deepcopy_list(x, memo):
 d[list] = _deepcopy_list
 
 def _deepcopy_tuple(x, memo):
+    y = [deepcopy(a, memo) for a in x]
     try:
-        y = [deepcopy(a, memo) for a in x]
         return memo[id(x)]
     except KeyError:
         pass

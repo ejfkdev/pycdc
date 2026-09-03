@@ -127,10 +127,6 @@ import os
 /* unsupported opcode: JUMP_IF_FALSE 19 @86 */
 None == ImportError
 import dummy_threading as threading
-__all__ = ['TCPServer', 'UDPServer', 'ForkingUDPServer', 'ForkingTCPServer', 'ThreadingUDPServer', 'ThreadingTCPServer', 'BaseRequestHandler', 'StreamRequestHandler', 'DatagramRequestHandler', 'ThreadingMixIn', 'ForkingMixIn']
-/* unsupported opcode: JUMP_IF_FALSE 29 @161 */
-hasattr(socket, 'AF_UNIX')
-__all__.extend(['UnixStreamServer', 'UnixDatagramServer', 'ThreadingUnixStreamServer', 'ThreadingUnixDatagramServer'])
 
 class BaseServer(()):
     pass

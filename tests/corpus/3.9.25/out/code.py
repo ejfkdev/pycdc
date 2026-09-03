@@ -35,12 +35,11 @@ class InteractiveInterpreter:
         return False
 
     def runcode(self, code):
+        self.showtraceback()
         try:
             exec(code, self.locals)
         except SystemExit:
             raise
-        else:
-            self.showtraceback()
 
     def showsyntaxerror(self, filename=None):
         type, value, tb = sys.exc_info()
@@ -52,9 +51,8 @@ class InteractiveInterpreter:
                 msg, (dummy_filename, lineno, offset, line) = value.args
             except ValueError:
                 pass
-            else:
-                value = SyntaxError(msg, (filename, lineno, offset, line))
-                sys.last_value = value
+            value = SyntaxError(msg, (filename, lineno, offset, line))
+            sys.last_value = value
         if sys.excepthook is sys.__excepthook__:
             lines = traceback.format_exception_only(type, value)
             self.write(''.join(lines))
@@ -102,7 +100,7 @@ class InteractiveConsole(InteractiveInterpreter):
         elif banner:
             self.write('%s\n' % str(banner))
         if exitmsg is None:
-            self.write('now exiting %s...\n' % self.__class__.__name__)
+            pass
         elif exitmsg != '':
             self.write('%s\n' % exitmsg)
 

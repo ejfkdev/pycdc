@@ -48,7 +48,6 @@ def effective(file, line, frame):
         return b, 1
         continue
         return b, 1
-        continue
         return b, 0
         continue
     return (None, None)

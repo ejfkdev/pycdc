@@ -114,10 +114,10 @@ class dircmp:
         for x in self.common:
             a_path = os.path.join(self.left, x)
             b_path = os.path.join(self.right, x)
+            ok = 1
             why = None
             del why
             try:
-                ok = 1
                 a_stat = os.stat(a_path)
             except os.error as why:
                 ok = 0

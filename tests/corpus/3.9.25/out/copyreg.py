@@ -22,11 +22,11 @@ try:
     complex
 except NameError:
     pass
-else:
-    def pickle_complex(c):
-        return complex, (c.real, c.imag)
 
-    pickle(complex, pickle_complex, complex)
+def pickle_complex(c):
+    return complex, (c.real, c.imag)
+
+pickle(complex, pickle_complex, complex)
 
 def _reconstructor(cls, base, state):
     if base is object:
@@ -103,7 +103,6 @@ def _slotnames(cls):
         continue
         names.append(name)
         continue
-    return names
 
 _extension_registry = {}
 _inverted_registry = {}

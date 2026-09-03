@@ -463,9 +463,6 @@ class LegacyInterpolation(Interpolation):
     def before_get(self, parser, section, option, value, vars):
         rawval = value
         depth = MAX_INTERPOLATION_DEPTH
-        while depth:
-            depth -= 1
-            replace = functools.partial(self._interpolation_replace, parser=parser)
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -560,9 +557,9 @@ class RawConfigParser(MutableMapping):
                     self._read(fp, filename)
             except OSError:
                 pass
-        if isinstance(filename, os.PathLike):
-            filename = os.fspath(filename)
-        read_ok.append(filename)
+            if isinstance(filename, os.PathLike):
+                filename = os.fspath(filename)
+            read_ok.append(filename)
         return read_ok
 
     def read_file(self, f, source=None):
@@ -629,6 +626,13 @@ class RawConfigParser(MutableMapping):
 
     def _get_conv(self, section, option, conv, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
         return self._get(section, conv, option, **(*{'raw': raw, 'vars': vars}, *kwargs))
+        return
+        try:
+            pass
+        except (NoSectionError, NoOptionError):
+            raise
+            if fallback is _UNSET:
+                pass
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
         return self._get_conv(section, option, int, **(*{'raw': raw, 'vars': vars, 'fallback': fallback}, *kwargs))
@@ -1027,11 +1031,10 @@ class ConverterMapping(MutableMapping):
             raise KeyError(key)
         del self._data[key]
         for inst in itertools.chain((self._parser,), self._parser.values()):
-            pass
-        try:
-            delattr(inst, k)
-        except AttributeError:
-            pass
+            try:
+                delattr(inst, k)
+            except AttributeError:
+                pass
 
     def __iter__(self):
         return iter(self._data)

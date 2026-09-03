@@ -91,20 +91,21 @@ def dump(node, annotate_fields=True, include_attributes=False):
             args = []
             keywords = annotate_fields
             for field in node._fields:
-                try:
-                    value = getattr(node, field)
-                except AttributeError as keywords:
-                    pass
-            if keywords:
-                args.append('%s=%s' % (field, _format(value)))
-            args.append(_format(value))
+                if keywords:
+                    try:
+                        value = getattr(node, field)
+                    except AttributeError as keywords:
+                        pass
+                    else:
+                        args.append('%s=%s' % (field, _format(value)))
+                    continue
+                args.append(_format(value))
             if include_attributes and node._attributes:
                 for a in node._attributes:
-                    pass
-                try:
-                    args.append('%s=%s' % (a, _format(getattr(node, a))))
-                except AttributeError:
-                    pass
+                    try:
+                        args.append('%s=%s' % (a, _format(getattr(node, a))))
+                    except AttributeError:
+                        pass
             return '%s(%s)' % (node.__class__.__name__, ', '.join(args))
         if isinstance(node, list):
             return '[%s]' % ', '.join((_format(x) for x in node))
@@ -165,11 +166,10 @@ def increment_lineno(node, n=1):
 
 def iter_fields(node):
     for field in node._fields:
-        pass
-    try:
-        yield (field, getattr(node, field))
-    except AttributeError:
-        pass
+        try:
+            yield (field, getattr(node, field))
+        except AttributeError:
+            pass
 
 def iter_child_nodes(node):
     for name, field in iter_fields(node):
@@ -229,11 +229,7 @@ def _pad_whitespace(source):
 
 def get_source_segment(source, node, *, padded=False):
     return
-    lines = _splitlines_no_ff(source)
     if end_lineno == lineno:
-        return lines[lineno].encode()[col_offset:end_col_offset].decode()
-    if padded:
-        padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
         try:
             lineno = node.lineno - 1
             end_lineno = node.end_lineno - 1
@@ -242,7 +238,12 @@ def get_source_segment(source, node, *, padded=False):
         except AttributeError:
             pass
         else:
-            padding = ''
+            lines = _splitlines_no_ff(source)
+            return lines[lineno].encode()[col_offset:end_col_offset].decode()
+    if padded:
+        padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
+    else:
+        padding = ''
     first = padding + lines[lineno].encode()[col_offset:].decode()
     last = lines[end_lineno].encode()[:end_col_offset].decode()
     lines = lines[lineno + 1:end_lineno]
@@ -389,7 +390,12 @@ class _ABC(type):
             return False
         if cls in _const_types:
             return False
-            return isinstance(value, _const_types[cls]) and not isinstance(value, _const_types_not.get(cls, ()))
+            if isinstance(value, _const_types[cls]):
+                try:
+                    value = inst.value
+                except AttributeError:
+                    pass
+            return not isinstance(value, _const_types_not.get(cls, ()))
         return type.__instancecheck__(cls, inst)
 
 

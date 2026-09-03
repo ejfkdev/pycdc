@@ -97,7 +97,7 @@ class Bdb:
                 self.frame_returning = None
                 self.frame_returning = None
                 if self.quitting:
-                    raise BdbQuit
+                    pass
                 self._set_stopinfo(None, None)
         return self.trace_dispatch
 
@@ -379,6 +379,9 @@ class Bdb:
         return
         self.quitting = True
         sys.settrace(None)
+        return
+        self.quitting = True
+        sys.settrace(None)
 
     def runeval(self, expr, globals=None, locals=None):
         if globals is None:
@@ -404,6 +407,9 @@ class Bdb:
     def runcall(self, func, /, *args, **kwds):
         self.reset()
         sys.settrace(self.trace_dispatch)
+        self.quitting = True
+        sys.settrace(None)
+        return res
         self.quitting = True
         sys.settrace(None)
         return res
@@ -530,7 +536,7 @@ def effective(file, line, frame):
                 b.ignore -= 1
                 continue
         return b, True
-    return
+        return
     return (None, None)
 
 class Tdb(Bdb):

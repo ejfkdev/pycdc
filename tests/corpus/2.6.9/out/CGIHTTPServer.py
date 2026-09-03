@@ -41,7 +41,6 @@ def executable(path):
     /* unsupported opcode: JUMP_IF_FALSE 8 @32 */
     None == os.error
     return False
-    return st.st_mode & 73 != 0
 
 def test(HandlerClass=CGIHTTPRequestHandler, ServerClass=BaseHTTPServer.HTTPServer):
     SimpleHTTPServer.test(HandlerClass, ServerClass)

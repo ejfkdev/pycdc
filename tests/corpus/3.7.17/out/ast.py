@@ -83,19 +83,18 @@ def dump(node, annotate_fields=True, include_attributes=False):
             args = []
             keywords = annotate_fields
             for field in node._fields:
-                try:
-                    value = getattr(node, field)
-                except AttributeError as keywords:
-                    pass
-                continue
                 if keywords:
-                    args.append('%s=%s' % (field, _format(value)))
+                    try:
+                        value = getattr(node, field)
+                    except AttributeError as keywords:
+                        pass
+                    else:
+                        args.append('%s=%s' % (field, _format(value)))
                     continue
                 args.append(_format(value))
                 continue
             if include_attributes and node._attributes:
                 for a in node._attributes:
-                    continue
                     try:
                         args.append('%s=%s' % (a, _format(getattr(node, a))))
                     except AttributeError:
@@ -152,7 +151,6 @@ def increment_lineno(node, n=1):
 
 def iter_fields(node):
     for field in node._fields:
-        continue
         try:
             yield (field, getattr(node, field))
         except AttributeError:

@@ -12,16 +12,15 @@ _exithandlers = []
 def _run_exitfuncs():
     exc_info = None
     while _exithandlers:
-        pass
-    import traceback
-    print >>sys.stderr, sys.stderr
-    traceback.print_exc()
-    exc_info = sys.exc_info()
-    try:
         func, targs, kargs = _exithandlers.pop()
-        func(*targs, **kargs)
-    except SystemExit, exc_info:
-        pass
+        import traceback
+        print >>sys.stderr, sys.stderr
+        traceback.print_exc()
+        exc_info = sys.exc_info()
+        try:
+            func(*targs, **kargs)
+        except SystemExit, exc_info:
+            pass
     if exc_info is not None:
         raise exc_info[1] # WARNING: raise cause dropped (py2)
 

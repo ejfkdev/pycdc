@@ -104,54 +104,54 @@ import sys
 import os
 import traceback
 import re
-
-def resolve_dotted_attribute(obj, attr, allow_dotted_names=True):
-    if allow_dotted_names:
-        attrs = attr.split('.')
-    else:
-        attrs = [attr]
-    for i in attrs:
-        if i.startswith('_'):
-            raise AttributeError('attempt to access private attribute "%s"' % i)
-            continue
-        obj = getattr(obj, i)
-        continue
-    return obj
-
-def list_public_methods(obj):
-    return [member for member in dir(obj) if member.startswith('_') if hasattr(getattr(obj, member), '__call__')]
-
-def remove_duplicates(lst):
-    u = {}
-    for x in lst:
-        u[x] = 1
-        continue
-    return u.keys()
-
-class SimpleXMLRPCDispatcher:
-    pass
-
-class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
-    pass
-
-class SimpleXMLRPCServer(SocketServer.TCPServer, SimpleXMLRPCDispatcher):
-    pass
-
-class MultiPathXMLRPCServer(SimpleXMLRPCServer):
-    pass
-
-class CGIXMLRPCRequestHandler(SimpleXMLRPCDispatcher):
-    pass
-
 if __name__ == '__main__':
-    print 'Running XML-RPC server on port 8000'
-    server = SimpleXMLRPCServer(('localhost', 8000))
-    server.register_function(pow)
-    server.register_function((lambda x, y: x + y), 'add')
-    server.register_multicall_functions()
-    server.serve_forever()
     try:
         import fcntl
     except ImportError, fcntl:
         pass
+    else:
+        def resolve_dotted_attribute(obj, attr, allow_dotted_names=True):
+            if allow_dotted_names:
+                attrs = attr.split('.')
+            else:
+                attrs = [attr]
+            for i in attrs:
+                if i.startswith('_'):
+                    raise AttributeError('attempt to access private attribute "%s"' % i)
+                    continue
+                obj = getattr(obj, i)
+                continue
+            return obj
+
+        def list_public_methods(obj):
+            return [member for member in dir(obj) if member.startswith('_') if hasattr(getattr(obj, member), '__call__')]
+
+        def remove_duplicates(lst):
+            u = {}
+            for x in lst:
+                u[x] = 1
+                continue
+            return u.keys()
+
+        class SimpleXMLRPCDispatcher:
+            pass
+
+        class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+            pass
+
+        class SimpleXMLRPCServer(SocketServer.TCPServer, SimpleXMLRPCDispatcher):
+            pass
+
+        class MultiPathXMLRPCServer(SimpleXMLRPCServer):
+            pass
+
+        class CGIXMLRPCRequestHandler(SimpleXMLRPCDispatcher):
+            pass
+
+        print 'Running XML-RPC server on port 8000'
+        server = SimpleXMLRPCServer(('localhost', 8000))
+        server.register_function(pow)
+        server.register_function((lambda x, y: x + y), 'add')
+        server.register_multicall_functions()
+        server.serve_forever()
 # WARNING: Decompyle incomplete

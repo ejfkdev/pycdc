@@ -592,7 +592,6 @@ def test(environ=os.environ):
     print()
     sys.stderr = sys.stdout
     print_exception()
-    print('<H1>Second try with a small maxlen...</H1>')
     print_exception()
 
 def print_exception(type=None, value=None, tb=None, limit=None):

@@ -211,7 +211,7 @@ class Sniffer:
                 n = groupindex['delim'] - 1
                 key = m[n]
             except KeyError:
-                continue
+                pass
             if key:
                 if not delimiters is None:
                     if key in delimiters:
@@ -219,7 +219,7 @@ class Sniffer:
             try:
                 n = groupindex['space'] - 1
             except KeyError:
-                continue
+                pass
             if m[n]:
                 pass
             spaces += 1

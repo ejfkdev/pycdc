@@ -418,8 +418,8 @@ class Aifc_read:
                 self._compname = b'not compressed'
 
     def _readmark(self, chunk):
+        nmarkers = _read_short(chunk)
         try:
-            nmarkers = _read_short(chunk)
             for i in range(nmarkers):
                 id = _read_short(chunk)
                 pos = _read_long(chunk)

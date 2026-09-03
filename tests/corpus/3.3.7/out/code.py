@@ -35,12 +35,11 @@ class InteractiveInterpreter:
         return False
 
     def runcode(self, code):
+        self.showtraceback()
         try:
             exec(code, self.locals)
         except SystemExit:
             raise
-        else:
-            self.showtraceback()
 
     def showsyntaxerror(self, filename=None):
         type, value, tb = sys.exc_info()
@@ -116,23 +115,21 @@ class InteractiveConsole(InteractiveInterpreter):
             self.write('%s\n' % str(banner))
         more = 0
         while True:
-            pass
-        more = 0
-        try:
-            if more:
-                prompt = sys.ps2
-            else:
-                prompt = sys.ps1
+            more = 0
             try:
-                line = self.raw_input(prompt)
-            except EOFError:
-                self.write('\n')
-                break
-            else:
+                if more:
+                    prompt = sys.ps2
+                else:
+                    prompt = sys.ps1
                 more = self.push(line)
-        except KeyboardInterrupt:
-            self.write('\nKeyboardInterrupt\n')
-            self.resetbuffer()
+                try:
+                    line = self.raw_input(prompt)
+                except EOFError:
+                    self.write('\n')
+                    break
+            except KeyboardInterrupt:
+                self.write('\nKeyboardInterrupt\n')
+                self.resetbuffer()
 
     def push(self, line):
         self.buffer.append(line)

@@ -125,7 +125,6 @@ def increment_lineno(node, n=1):
 
 def iter_fields(node):
     for field in node._fields:
-        continue
         try:
             yield (field, getattr(node, field))
         except AttributeError:

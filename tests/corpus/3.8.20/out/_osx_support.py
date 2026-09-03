@@ -44,16 +44,9 @@ _SYSTEM_VERSION = None
 
 def _get_system_version():
     global _SYSTEM_VERSION
-    if _SYSTEM_VERSION is None:
-        try:
-            _SYSTEM_VERSION = ''
-            f = open('/System/Library/CoreServices/SystemVersion.plist')
-        except OSError:
-            pass
-        else:
-            f.close()
-            if m is not None:
-                _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
+    if _SYSTEM_VERSION is None and m is not None:
+        f.close()
+        _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
     return _SYSTEM_VERSION
 
 _SYSTEM_VERSION_TUPLE = None
@@ -198,17 +191,6 @@ def compiler_fixup(compiler_so, cc_args):
     if not stripArch:
         while 'ARCHFLAGS' in os.environ:
             pass
-    try:
-        index = compiler_so.index('-arch')
-        del compiler_so[index:index + 2]
-    except ValueError:
-        pass
-    else:
-        if not _supports_arm64_builds():
-            for idx in reversed(range(len(compiler_so))):
-                if compiler_so[idx] == '-arch':
-                    if compiler_so[idx + 1] == 'arm64':
-                        del compiler_so[idx:idx + 2]
     if 'ARCHFLAGS' in os.environ:
         if not stripArch:
             compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
@@ -219,6 +201,11 @@ def compiler_fixup(compiler_so, cc_args):
         index = indices[0]
         if compiler_so[index] == '-isysroot':
             del compiler_so[index:index + 2]
+            try:
+                index = compiler_so.index('-arch')
+                del compiler_so[index:index + 2]
+            except ValueError:
+                pass
             continue
         del compiler_so[index:index + 1]
     sysroot = None
@@ -266,8 +253,8 @@ def get_platform_osx(_config_vars, osname, release, machine):
                 macrelease = tuple((int(i) for i in macrelease.split('.')[0:2]))
             except ValueError as macrelease:
                 pass
-            else:
-                macrelease = (10, 0)
+        else:
+            macrelease = (10, 0)
         if macrelease >= (10, 4) and '-arch' in cflags.strip():
             machine = 'fat'
             archs = re.findall('-arch\\s+(\\S+)', cflags)

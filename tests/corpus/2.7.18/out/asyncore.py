@@ -39,213 +39,209 @@ from errno import ECONNABORTED
 from errno import EPIPE
 from errno import EAGAIN
 from errno import errorcode
-
-def _strerror(err):
-    pass
-
-class ExitNow(Exception):
-    pass
-
-_reraised_exceptions = ExitNow, KeyboardInterrupt, SystemExit
-
-def read(obj):
-    obj.handle_error()
-    try:
-        obj.handle_read_event()
-    except _reraised_exceptions:
-        raise
-
-def write(obj):
-    obj.handle_error()
-    try:
-        obj.handle_write_event()
-    except _reraised_exceptions:
-        raise
-
-def _exception(obj):
-    obj.handle_error()
-    try:
-        obj.handle_expt_event()
-    except _reraised_exceptions:
-        raise
-
-def readwrite(obj, flags):
-    obj.handle_error()
-    try:
-        if flags & select.POLLIN:
-            obj.handle_read_event()
-        if flags & select.POLLOUT:
-            obj.handle_write_event()
-        if flags & select.POLLPRI:
-            obj.handle_expt_event()
-        if flags & (select.POLLHUP | select.POLLERR | select.POLLNVAL):
-            obj.handle_close()
-    except socket.error, e:
-        obj.handle_error()
-        obj.handle_close()
-        if e.args[0] not in _DISCONNECTED:
-            pass
-    except _reraised_exceptions:
-        raise
-
-def poll(timeout=0.0, map=None):
-    if map is None:
-        map = socket_map
-    if map:
-        r = []
-        w = []
-        e = []
-        for fd, obj in map.items():
-            is_r = obj.readable()
-            is_w = obj.writable()
-            if is_r:
-                r.append(fd)
-            if is_w and not obj.accepting:
-                w.append(fd)
-            if not is_r:
-                if is_w:
-                    pass
-            e.append(fd)
-            continue
-            continue
-        if [] == r and r == w == e:
-            time.sleep(timeout)
-            return
-        for fd in r:
-            obj = map.get(fd)
-            if obj is None:
-                try:
-                    r, w, e = select.select(r, w, e, timeout)
-                except select.error, err:
-                    raise
-                    return
-                    if err.args[0] != EINTR:
-                        pass
-                continue
-            read(obj)
-            continue
-        for fd in w:
-            obj = map.get(fd)
-            if obj is None:
-                continue
-            write(obj)
-            continue
-        for fd in e:
-            obj = map.get(fd)
-            if obj is None:
-                continue
-            _exception(obj)
-            continue
-            break
-
-def poll2(timeout=0.0, map=None):
-    if map is None:
-        map = socket_map
-    if timeout is not None:
-        timeout = int(timeout * 1000)
-    pollster = select.poll()
-    if map:
-        for fd, obj in map.items():
-            flags = 0
-            if obj.readable():
-                flags |= select.POLLIN | select.POLLPRI
-            if obj.writable() and not obj.accepting:
-                flags |= select.POLLOUT
-            if flags:
-                pass
-            flags |= select.POLLERR | select.POLLHUP | select.POLLNVAL
-            pollster.register(fd, flags)
-            continue
-            continue
-        for fd, flags in r:
-            obj = map.get(fd)
-            if obj is None:
-                try:
-                    r = pollster.poll(timeout)
-                except select.error, err:
-                    raise
-                    if err.args[0] != EINTR:
-                        pass
-                    r = []
-                continue
-            readwrite(obj, flags)
-            continue
-            break
-
-poll3 = poll2
-
-def loop(timeout=30.0, use_poll=False, map=None, count=None):
-    if map is None:
-        map = socket_map
-    if use_poll and hasattr(select, 'poll'):
-        poll_fun = poll2
-    else:
-        poll_fun = poll
-    if count is None:
-        while True:
-            while map:
-                poll_fun(timeout, map)
-            while map:
-                if count > 0:
-                    poll_fun(timeout, map)
-                    count = count - 1
-                    continue
-
-class dispatcher:
-    pass
-
-class dispatcher_with_send(dispatcher):
-    pass
-
-def compact_traceback():
-    t, v, tb = sys.exc_info()
-    tbinfo = []
-    if not tb:
-        raise AssertionError('traceback does not exist')
-    while tb:
-        tbinfo.append((tb.tb_frame.f_code.co_filename, tb.tb_frame.f_code.co_name, str(tb.tb_lineno)))
-        tb = tb.tb_next
-    del tb
-    file, function, line = tbinfo[-1]
-    info = ' '.join(['[%s|%s|%s]' % x for x in tbinfo])
-    return (file, function, line), t, v, info
-
-def close_all(map=None, ignore_all=False):
-    if map is None:
-        map = socket_map
-    for x in map.values():
-        continue
-        if not ignore_all:
-            raise
-            try:
-                x.close()
-            except OSError, x:
-                continue
-                if x.args[0] == EBADF:
-                    pass
-                raise
-                continue
-                if not ignore_all:
-                    pass
-                continue
-            except _reraised_exceptions:
-                raise
-                continue
-            continue
-        continue
-    map.clear()
-
+_DISCONNECTED = frozenset((ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE, EBADF))
 if os.name == 'posix':
-    import fcntl
-    class file_wrapper:
-        pass
-
-    class file_dispatcher(dispatcher):
-        pass
-
     try:
-        _DISCONNECTED = frozenset((ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE, EBADF))
         socket_map
     except NameError, socket_map:
         pass
+    else:
+        def _strerror(err):
+            pass
+
+        class ExitNow(Exception):
+            pass
+
+        _reraised_exceptions = ExitNow, KeyboardInterrupt, SystemExit
+        def read(obj):
+            obj.handle_error()
+            try:
+                obj.handle_read_event()
+            except _reraised_exceptions:
+                raise
+
+        def write(obj):
+            obj.handle_error()
+            try:
+                obj.handle_write_event()
+            except _reraised_exceptions:
+                raise
+
+        def _exception(obj):
+            obj.handle_error()
+            try:
+                obj.handle_expt_event()
+            except _reraised_exceptions:
+                raise
+
+        def readwrite(obj, flags):
+            obj.handle_error()
+            try:
+                if flags & select.POLLIN:
+                    obj.handle_read_event()
+                if flags & select.POLLOUT:
+                    obj.handle_write_event()
+                if flags & select.POLLPRI:
+                    obj.handle_expt_event()
+                if flags & (select.POLLHUP | select.POLLERR | select.POLLNVAL):
+                    obj.handle_close()
+            except socket.error, e:
+                obj.handle_error()
+                obj.handle_close()
+                if e.args[0] not in _DISCONNECTED:
+                    pass
+            except _reraised_exceptions:
+                raise
+
+        def poll(timeout=0.0, map=None):
+            if map is None:
+                map = socket_map
+            if map:
+                r = []
+                w = []
+                e = []
+                for fd, obj in map.items():
+                    is_r = obj.readable()
+                    is_w = obj.writable()
+                    if is_r:
+                        r.append(fd)
+                    if is_w and not obj.accepting:
+                        w.append(fd)
+                    if not is_r:
+                        if is_w:
+                            pass
+                    e.append(fd)
+                    continue
+                    continue
+                if [] == r and r == w == e:
+                    time.sleep(timeout)
+                    return
+                for fd in r:
+                    try:
+                        r, w, e = select.select(r, w, e, timeout)
+                    except select.error, err:
+                        raise
+                        return
+                        if err.args[0] != EINTR:
+                            pass
+                    obj = map.get(fd)
+                    if obj is None:
+                        continue
+                    read(obj)
+                    continue
+                for fd in w:
+                    obj = map.get(fd)
+                    if obj is None:
+                        continue
+                    write(obj)
+                    continue
+                for fd in e:
+                    obj = map.get(fd)
+                    if obj is None:
+                        continue
+                    _exception(obj)
+                    continue
+                    break
+
+        def poll2(timeout=0.0, map=None):
+            if map is None:
+                map = socket_map
+            if timeout is not None:
+                timeout = int(timeout * 1000)
+            pollster = select.poll()
+            if map:
+                for fd, obj in map.items():
+                    flags = 0
+                    if obj.readable():
+                        flags |= select.POLLIN | select.POLLPRI
+                    if obj.writable() and not obj.accepting:
+                        flags |= select.POLLOUT
+                    if flags:
+                        pass
+                    flags |= select.POLLERR | select.POLLHUP | select.POLLNVAL
+                    pollster.register(fd, flags)
+                    continue
+                    continue
+                for fd, flags in r:
+                    try:
+                        r = pollster.poll(timeout)
+                    except select.error, err:
+                        raise
+                        if err.args[0] != EINTR:
+                            pass
+                        r = []
+                    obj = map.get(fd)
+                    if obj is None:
+                        continue
+                    readwrite(obj, flags)
+                    continue
+                    break
+
+        poll3 = poll2
+        def loop(timeout=30.0, use_poll=False, map=None, count=None):
+            if map is None:
+                map = socket_map
+            if use_poll and hasattr(select, 'poll'):
+                poll_fun = poll2
+            else:
+                poll_fun = poll
+            if count is None:
+                while True:
+                    while map:
+                        poll_fun(timeout, map)
+                    while map:
+                        if count > 0:
+                            poll_fun(timeout, map)
+                            count = count - 1
+                            continue
+
+        class dispatcher:
+            pass
+
+        class dispatcher_with_send(dispatcher):
+            pass
+
+        def compact_traceback():
+            t, v, tb = sys.exc_info()
+            tbinfo = []
+            if not tb:
+                raise AssertionError('traceback does not exist')
+            while tb:
+                tbinfo.append((tb.tb_frame.f_code.co_filename, tb.tb_frame.f_code.co_name, str(tb.tb_lineno)))
+                tb = tb.tb_next
+            del tb
+            file, function, line = tbinfo[-1]
+            info = ' '.join(['[%s|%s|%s]' % x for x in tbinfo])
+            return (file, function, line), t, v, info
+
+        def close_all(map=None, ignore_all=False):
+            if map is None:
+                map = socket_map
+            for x in map.values():
+                if not ignore_all:
+                    raise
+                    continue
+                try:
+                    x.close()
+                except OSError, x:
+                    continue
+                    if x.args[0] == EBADF:
+                        pass
+                    raise
+                    continue
+                    if not ignore_all:
+                        pass
+                except _reraised_exceptions:
+                    raise
+                continue
+                continue
+            map.clear()
+
+        import fcntl
+        class file_wrapper:
+            pass
+
+        class file_dispatcher(dispatcher):
+            pass
+
 # WARNING: Decompyle incomplete

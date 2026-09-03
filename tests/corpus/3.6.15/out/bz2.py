@@ -199,10 +199,10 @@ def decompress(data):
     results = []
     while True:
         while data:
+            decomp = BZ2Decompressor()
             if results:
                 pass
             try:
-                decomp = BZ2Decompressor()
                 res = decomp.decompress(data)
             except OSError:
                 break

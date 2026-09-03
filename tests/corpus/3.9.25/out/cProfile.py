@@ -63,18 +63,17 @@ class Profile(_lsprof.Profiler):
                         callers = callersdicts[id(subentry.code)]
                     except KeyError:
                         pass
-                nc = subentry.callcount
-                cc = nc - subentry.reccallcount
-                tt = subentry.inlinetime
-                ct = subentry.totaltime
-                if func in callers:
-                    prev = callers[func]
-                    nc += prev[0]
-                    cc += prev[1]
-                    tt += prev[2]
-                    ct += prev[3]
-                callers[func] = nc, cc, tt, ct
-                continue
+                    nc = subentry.callcount
+                    cc = nc - subentry.reccallcount
+                    tt = subentry.inlinetime
+                    ct = subentry.totaltime
+                    if func in callers:
+                        prev = callers[func]
+                        nc += prev[0]
+                        cc += prev[1]
+                        tt += prev[2]
+                        ct += prev[3]
+                    callers[func] = nc, cc, tt, ct
 
     def run(self, cmd):
         import __main__
@@ -85,7 +84,6 @@ class Profile(_lsprof.Profiler):
         self.enable()
         self.disable()
         self.disable()
-        return self
 
     def runcall(self, func, /, *args, **kw):
         self.enable()
@@ -137,16 +135,14 @@ def main():
         if not None:
             pass
         exc = None
-        del exc
+        del exc, exc
+        exc = None
         try:
             globs = {'__file__': progname, '__name__': '__main__', '__package__': None, '__cached__': None}
             runctx(code, globs, None, options.outfile, options.sort)
         except BrokenPipeError as exc:
             sys.stdout = None
             sys.exit(exc.errno)
-        else:
-            exc = None
-            del exc
     else:
         parser.print_usage()
     return parser

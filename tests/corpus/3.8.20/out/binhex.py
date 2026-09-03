@@ -214,15 +214,6 @@ class _Hqxdecoderengine:
     def read(self, totalwtd):
         decdata = b''
         wtd = totalwtd
-        while wtd > 0:
-            if self.eof:
-                return decdata
-            wtd = (wtd + 2) // 3 * 4
-            decdata = decdata + decdatacur
-            wtd = totalwtd - len(decdata)
-        if not self.eof:
-            pass
-        raise Error('Premature EOF on binhex file')
         return decdata
 
     def close(self):

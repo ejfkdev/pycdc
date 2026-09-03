@@ -61,9 +61,14 @@ class async_chat(asyncore.dispatcher):
         return self.terminator
 
     def handle_read(self):
+        why = None
+        del why
         try:
             data = self.recv(self.ac_in_buffer_size)
         except BlockingIOError:
+            return
+        except OSError as why:
+            self.handle_error()
             return
         if isinstance(data, str) and self.use_encoding:
             data = bytes(str, self.encoding)
@@ -139,7 +144,6 @@ class async_chat(asyncore.dispatcher):
     def initiate_send(self):
         while self.producer_fifo:
             try:
-                obs = self.ac_out_buffer_size
                 data = first[:obs]
             except TypeError as data:
                 self.producer_fifo.appendleft(data)
@@ -154,6 +158,7 @@ class async_chat(asyncore.dispatcher):
                         if first is None:
                             self.handle_close()
                             return
+                    obs = self.ac_out_buffer_size
             if isinstance(data, str) and self.use_encoding:
                 data = bytes(data, self.encoding)
             try:

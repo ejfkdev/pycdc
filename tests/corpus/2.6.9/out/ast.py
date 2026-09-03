@@ -122,11 +122,8 @@ def increment_lineno(node, n=1):
 
 def iter_fields(node):
     for field in node._fields:
-        continue
         /* unsupported opcode: JUMP_IF_FALSE 7 @50 */
         None == AttributeError
-        continue
-        continue
 
 def iter_child_nodes(node):
     for name, field in iter_fields(node):

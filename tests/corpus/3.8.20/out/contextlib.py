@@ -86,7 +86,26 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             raise RuntimeError("generator didn't yield") from None
 
     def __exit__(self, type, value, traceback):
-        pass
+        if type is None:
+            return False
+            try:
+                next(self.gen)
+            except StopIteration:
+                pass
+            else:
+                raise RuntimeError("generator didn't stop")
+        elif value is None:
+            value = type()
+        return
+        exc = None
+        del exc
+        try:
+            self.gen.throw(type, value, traceback)
+        except StopIteration as exc:
+            pass
+        if sys.exc_info()[1] is value:
+            return False
+        raise
 
 
 class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncContextManager):
@@ -100,7 +119,35 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             raise RuntimeError("generator didn't yield") from None
 
     async def __aexit__(self, typ, value, traceback):
-        pass
+        if typ is None:
+            return
+            try:
+                await self.gen.__anext__()
+            except StopAsyncIteration:
+                pass
+            else:
+                raise RuntimeError("generator didn't stop")
+        elif value is None:
+            value = typ()
+        return
+        exc = None
+        del exc
+        try:
+            await self.gen.athrow(typ, value, traceback)
+            raise RuntimeError("generator didn't stop after athrow()")
+        except StopAsyncIteration as exc:
+            pass
+        try:
+            exc = None
+            if exc is value:
+                return False
+            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                return False
+            raise
+        except BaseException as exc:
+            raise
+            if exc is not value:
+                pass
 
 
 def contextmanager(func):
@@ -301,10 +348,10 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
             is_sync, cb = self._exit_callbacks.pop()
             if not is_sync:
                 raise AssertionError
-        new_exc_details = sys.exc_info()
-        _fix_exception_context(new_exc_details[1], exc_details[1])
-        pending_raise = True
-        exc_details = new_exc_details
+            new_exc_details = sys.exc_info()
+            _fix_exception_context(new_exc_details[1], exc_details[1])
+            pending_raise = True
+            exc_details = new_exc_details
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__
@@ -404,11 +451,10 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         suppressed_exc = False
         pending_raise = False
         while self._exit_callbacks:
-            pass
-        new_exc_details = sys.exc_info()
-        _fix_exception_context(new_exc_details[1], exc_details[1])
-        pending_raise = True
-        exc_details = new_exc_details
+            new_exc_details = sys.exc_info()
+            _fix_exception_context(new_exc_details[1], exc_details[1])
+            pending_raise = True
+            exc_details = new_exc_details
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__

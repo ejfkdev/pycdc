@@ -96,7 +96,7 @@ class Bdb:
                 self.frame_returning = None
                 self.frame_returning = None
                 if self.quitting:
-                    raise BdbQuit
+                    pass
                 self._set_stopinfo(None, None)
         return self.trace_dispatch
 
@@ -391,7 +391,6 @@ class Bdb:
         sys.settrace(None)
         self.quitting = True
         sys.settrace(None)
-        return res
 
 
 def set_trace():

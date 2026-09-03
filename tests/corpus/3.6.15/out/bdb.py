@@ -243,8 +243,7 @@ class Bdb:
         self._prune_breaks(filename, lineno)
 
     def clear_bpbynumber(self, arg):
-        bp.deleteMe()
-        self._prune_breaks(bp.file, bp.line)
+        pass
 
     def clear_all_file_breaks(self, filename):
         filename = self.canonic(filename)
@@ -512,9 +511,7 @@ def effective(file, line, frame):
                 continue
         return b, True
         continue
-        continue
         return b, False
-        continue
     return (None, None)
 
 class Tdb(Bdb):

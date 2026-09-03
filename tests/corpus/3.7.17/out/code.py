@@ -25,17 +25,22 @@ class InteractiveInterpreter:
 
     def runsource(self, source, filename='<input>', symbol='single'):
         if code is None:
-            return True
+            try:
+                code = self.compile(source, filename, symbol)
+            except (OverflowError, SyntaxError, ValueError):
+                self.showsyntaxerror(filename)
+                return False
+            else:
+                return True
         self.runcode(code)
         return False
 
     def runcode(self, code):
+        self.showtraceback()
         try:
             exec(code, self.locals)
         except SystemExit:
             raise
-        else:
-            self.showtraceback()
 
     def showsyntaxerror(self, filename=None):
         type, value, tb = sys.exc_info()
@@ -104,23 +109,21 @@ class InteractiveConsole(InteractiveInterpreter):
             self.write('%s\n' % str(banner))
         more = 0
         while True:
-            pass
-        more = 0
-        try:
-            if more:
-                prompt = sys.ps2
-            else:
-                prompt = sys.ps1
+            more = 0
             try:
-                line = self.raw_input(prompt)
-            except EOFError:
-                self.write('\n')
-                break
-            else:
+                if more:
+                    prompt = sys.ps2
+                else:
+                    prompt = sys.ps1
                 more = self.push(line)
-        except KeyboardInterrupt:
-            self.write('\nKeyboardInterrupt\n')
-            self.resetbuffer()
+                try:
+                    line = self.raw_input(prompt)
+                except EOFError:
+                    self.write('\n')
+                    break
+            except KeyboardInterrupt:
+                self.write('\nKeyboardInterrupt\n')
+                self.resetbuffer()
         if exitmsg is None:
             self.write('now exiting %s...\n' % self.__class__.__name__)
         elif exitmsg != '':

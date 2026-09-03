@@ -409,8 +409,6 @@ class dispatcher:
 
     def handle_error(self):
         self_repr = '<__repr__(self) failed for object at %0x>' % id(self)
-        self.log_info('uncaptured python exception, closing channel %s (%s:%s %s)' % (self_repr, t, v, tbinfo), 'error')
-        self.handle_close()
 
     def handle_expt(self):
         self.log_info('unhandled incoming priority event', 'warning')
@@ -479,17 +477,16 @@ def close_all(map=None, ignore_all=False):
     if map is None:
         map = socket_map
     for x in list(map.values()):
-        pass
-    x = None
-    del x
-    try:
-        x.close()
-    except OSError as x:
-        raise
-        if not ignore_all:
-            pass
-        if x.errno == EBADF:
-            pass
+        x = None
+        del x
+        try:
+            x.close()
+        except OSError as x:
+            raise
+            if not ignore_all:
+                pass
+            if x.errno == EBADF:
+                pass
     x = None
     del x
     if not ignore_all:

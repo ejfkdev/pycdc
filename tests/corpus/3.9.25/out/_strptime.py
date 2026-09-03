@@ -198,7 +198,8 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
         format_regex = _regex_cache.get(format)
         if not format_regex:
             err = None
-            del err
+            del err, err
+            err = None
             try:
                 format_regex = _TimeRE_cache.compile(format)
             except KeyError as err:
@@ -207,9 +208,6 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                 if bad_directive == '\\':
                     pass
                 raise ValueError("'%s' is a bad directive in format '%s'" % (bad_directive, format)) from None
-            else:
-                err = None
-                del err
             _regex_cache[format] = format_regex
     if not None:
         pass

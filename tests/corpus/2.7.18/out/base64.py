@@ -166,17 +166,18 @@ def decodestring(s):
 def test():
     import sys
     import getopt
-    func = encode
     for o, a in opts:
+        try:
+            opts, args = getopt.getopt(sys.argv[1:], 'deut')
+        except getopt.error, msg:
+            sys.stdout = sys.stderr
+            print msg
+            print "usage: %s [-d|-e|-u|-t] [file|-]\n        -d, -u: decode\n        -e: encode (default)\n        -t: encode and decode string 'Aladdin:open sesame'" % sys.argv[0]
+            sys.exit(2)
+        else:
+            func = encode
         if o == '-e':
             func = encode
-            try:
-                opts, args = getopt.getopt(sys.argv[1:], 'deut')
-            except getopt.error, msg:
-                sys.stdout = sys.stderr
-                print msg
-                print "usage: %s [-d|-e|-u|-t] [file|-]\n        -d, -u: decode\n        -e: encode (default)\n        -t: encode and decode string 'Aladdin:open sesame'" % sys.argv[0]
-                sys.exit(2)
         if o == '-d':
             func = decode
         if o == '-u':

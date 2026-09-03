@@ -85,8 +85,6 @@ def setfirstweekday(firstweekday):
     /* unsupported opcode: JUMP_IF_FALSE 19 @21 */
     None == AttributeError
     raise IllegalWeekdayError(firstweekday)
-    /* unsupported opcode: JUMP_IF_FALSE 10 @56 */
-    MONDAY <= firstweekday
     /* unsupported opcode: JUMP_IF_TRUE 16 @71 */
     firstweekday <= SUNDAY
     raise IllegalWeekdayError(firstweekday)

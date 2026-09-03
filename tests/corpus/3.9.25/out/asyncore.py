@@ -60,32 +60,30 @@ class ExitNow(Exception):
 _reraised_exceptions = ExitNow, KeyboardInterrupt, SystemExit
 
 def read(obj):
+    obj.handle_error()
     try:
         obj.handle_read_event()
     except _reraised_exceptions:
         raise
-    else:
-        obj.handle_error()
 
 def write(obj):
+    obj.handle_error()
     try:
         obj.handle_write_event()
     except _reraised_exceptions:
         raise
-    else:
-        obj.handle_error()
 
 def _exception(obj):
+    obj.handle_error()
     try:
         obj.handle_expt_event()
     except _reraised_exceptions:
         raise
-    else:
-        obj.handle_error()
 
 def readwrite(obj, flags):
     e = None
-    del e
+    del e, e
+    e = None
     try:
         if flags & select.POLLIN:
             obj.handle_read_event()
@@ -100,10 +98,7 @@ def readwrite(obj, flags):
         obj.handle_close()
         if e.args[0] not in _DISCONNECTED:
             pass
-    else:
-        e = None
-        del e
-        obj.handle_error()
+    obj.handle_error()
 
 def poll(timeout=0.0, map=None):
     if map is None:
@@ -203,7 +198,8 @@ class dispatcher:
             self.set_socket(sock, map)
             self.connected = True
             err = None
-            del err
+            del err, err
+            err = None
             try:
                 self.addr = sock.getpeername()
             except OSError as err:
@@ -212,10 +208,8 @@ class dispatcher:
                 raise
                 if err.args[0] in (ENOTCONN, EINVAL):
                     pass
-            else:
-                err = None
-                del err
-                self.socket = None
+        else:
+            self.socket = None
 
     def __repr__(self):
         status = [self.__class__.__module__ + '.' + self.__class__.__qualname__]
@@ -298,17 +292,15 @@ class dispatcher:
             return
         raise
         why = None
-        del why
+        del why, why
+        why = None
         try:
             conn, addr = self.socket.accept()
         except TypeError:
             pass
         except OSError as why:
             pass
-        else:
-            why = None
-            del why
-            return conn, addr
+        return conn, addr
 
     def send(self, data):
         return result
@@ -323,14 +315,12 @@ class dispatcher:
             return 0
         raise
         why = None
-        del why
+        del why, why
+        why = None
         try:
             result = self.socket.send(data)
         except OSError as why:
             pass
-        else:
-            why = None
-            del why
 
     def recv(self, buffer_size):
         return data
@@ -340,7 +330,8 @@ class dispatcher:
             return b''
         raise
         why = None
-        del why
+        del why, why
+        why = None
         try:
             data = self.socket.recv(buffer_size)
             if not data:
@@ -348,9 +339,6 @@ class dispatcher:
                 return b''
         except OSError as why:
             self.handle_close()
-        else:
-            why = None
-            del why
 
     def close(self):
         self.connected = False
@@ -359,16 +347,14 @@ class dispatcher:
         self.del_channel()
         if self.socket is not None:
             why = None
-            del why
+            del why, why
+            why = None
             try:
                 self.socket.close()
             except OSError as why:
                 raise
                 if why.args[0] not in (ENOTCONN, EBADF):
                     pass
-            else:
-                why = None
-                del why
 
     def log(self, message):
         sys.stderr.write('log: %s\n' % str(message))
@@ -412,8 +398,6 @@ class dispatcher:
 
     def handle_error(self):
         self_repr = '<__repr__(self) failed for object at %0x>' % id(self)
-        self.log_info('uncaptured python exception, closing channel %s (%s:%s %s)' % (self_repr, t, v, tbinfo), 'error')
-        self.handle_close()
 
     def handle_expt(self):
         self.log_info('unhandled incoming priority event', 'warning')
@@ -481,17 +465,16 @@ def close_all(map=None, ignore_all=False):
     if map is None:
         map = socket_map
     for x in list(map.values()):
-        pass
-    x = None
-    del x
-    try:
-        x.close()
-    except OSError as x:
-        raise
-        if not ignore_all:
-            pass
-        if x.args[0] == EBADF:
-            pass
+        x = None
+        del x
+        try:
+            x.close()
+        except OSError as x:
+            raise
+            if not ignore_all:
+                pass
+            if x.args[0] == EBADF:
+                pass
     x = None
     del x
     if not ignore_all:

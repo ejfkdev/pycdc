@@ -56,8 +56,8 @@ import builtins
 class Error(Exception):
     pass
 
+error = Error
 try:
-    error = Error
     from org.python.core import PyStringMap
 except ImportError as PyStringMap:
     pass

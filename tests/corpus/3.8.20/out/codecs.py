@@ -250,17 +250,17 @@ class StreamReader(Codec):
             data = self.bytebuffer + newdata
             if not data:
                 pass
-            try:
-                newchars, decodedbytes = self.decode(data, self.errors)
-            except UnicodeDecodeError as exc:
-                newchars, decodedbytes = self.decode(data[:exc.start], self.errors)
-                lines = newchars.splitlines(keepends=True)
-                raise
-                raise
-                if len(lines) <= 1:
-                    pass
-                if firstline:
-                    pass
+        try:
+            newchars, decodedbytes = self.decode(data, self.errors)
+        except UnicodeDecodeError as exc:
+            newchars, decodedbytes = self.decode(data[:exc.start], self.errors)
+            lines = newchars.splitlines(keepends=True)
+            raise
+            raise
+            if len(lines) <= 1:
+                pass
+            if firstline:
+                pass
         self.bytebuffer = data[decodedbytes:]
         self.charbuffer += newchars
         if not newdata:

@@ -55,7 +55,6 @@ class WeakSet:
 
     def __contains__(self, item):
         return False
-        return wr in self.data
 
     def __reduce__(self):
         return self.__class__, (list(self),), getattr(self, '__dict__', None)

@@ -2,8 +2,8 @@
  "version": "2.6.9",
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
-  "INCOMPLETE": 29,
-  "SIG-DIFF": 11
+  "INCOMPLETE": 28,
+  "SIG-DIFF": 12
  },
  "results": [
   {
@@ -26,7 +26,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 2036,
    "ntotal": 2156,
-   "detail": "line 29: orig ('LOAD_CONST', '<code object Error at 0x7de00a120, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Error at 0xc62010eb8, file \"/Users/e/Documents/')\nline 37: orig ('LOAD_CONST', '<code object NoSectionError at 0x7de00a210, file \"/Users/e/.') | got ('LOAD_CONST', '<code object NoSectionError at 0xc62010f30, file \"/Users/e/D')\nline 45: orig ('LOAD_CONST', '<code object DuplicateSectionError at 0x7de00a6c0, file \"/Us') | got ('LOAD_CONST', '<code object DuplicateSectionError at 0xc62016300, file \"/Us')"
+   "detail": "line 29: orig ('LOAD_CONST', '<code object Error at 0xc46416120, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Error at 0xc84850eb8, file \"/Users/e/Documents/')\nline 37: orig ('LOAD_CONST', '<code object NoSectionError at 0xc46416210, file \"/Users/e/.') | got ('LOAD_CONST', '<code object NoSectionError at 0xc84850f30, file \"/Users/e/D')\nline 45: orig ('LOAD_CONST', '<code object DuplicateSectionError at 0xc464166c0, file \"/Us') | got ('LOAD_CONST', '<code object DuplicateSectionError at 0xc84856300, file \"/Us')"
   },
   {
    "module": "Cookie",
@@ -57,7 +57,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 654,
    "ntotal": 718,
-   "detail": "line 29: orig ('LOAD_CONST', '<code object Empty at 0x908850eb8, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Empty at 0x826850eb8, file \"/Users/e/Documents/')\nline 37: orig ('LOAD_CONST', '<code object Full at 0x908850f30, file \"/Users/e/.pyenv/vers') | got ('LOAD_CONST', '<code object Full at 0x826850f30, file \"/Users/e/Documents/p')\nline 43: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')"
+   "detail": "line 29: orig ('LOAD_CONST', '<code object Empty at 0xc66850eb8, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Empty at 0x94c850eb8, file \"/Users/e/Documents/')\nline 37: orig ('LOAD_CONST', '<code object Full at 0xc66850f30, file \"/Users/e/.pyenv/vers') | got ('LOAD_CONST', '<code object Full at 0x94c850f30, file \"/Users/e/Documents/p')\nline 43: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')"
   },
   {
    "module": "SimpleHTTPServer",
@@ -77,21 +77,21 @@
   {
    "module": "StringIO",
    "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/StringIO.py', 1, 1, '/* unsupported opcode: JUMP_IF_FALSE 13 @36 */\\n'))"
+   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/StringIO.py', 32, 1, '/* unsupported opcode: JUMP_IF_FALSE 13 @36 */\\n'))"
   },
   {
    "module": "UserDict",
    "verdict": "SIG-DIFF",
    "ndiff": 888,
    "ntotal": 923,
-   "detail": "line 4: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 5: orig ('LOAD_CONST', '<code object UserDict at 0x8e68893f0, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object UserDict at 0xb22450eb8, file \"/Users/e/Documen')\nline 13: orig ('LOAD_CONST', '<code object IterableUserDict at 0x8e6889558, file \"/Users/e') | got ('LOAD_CONST', '<code object IterableUserDict at 0xb22450f30, file \"/Users/e')"
+   "detail": "line 4: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 5: orig ('LOAD_CONST', '<code object UserDict at 0xad88893f0, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object UserDict at 0x710850eb8, file \"/Users/e/Documen')\nline 13: orig ('LOAD_CONST', '<code object IterableUserDict at 0xad8889558, file \"/Users/e') | got ('LOAD_CONST', '<code object IterableUserDict at 0x710850f30, file \"/Users/e')"
   },
   {
    "module": "UserList",
    "verdict": "SIG-DIFF",
    "ndiff": 613,
    "ntotal": 633,
-   "detail": "line 11: orig ('LOAD_CONST', '<code object UserList at 0x9f0449828, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object UserList at 0x984844eb8, file \"/Users/e/Documen')\nline 21: orig ('LOAD_CONST', 'None') | got ('LOAD_LOCALS', '')\nline 22: orig ('LOAD_CONST', '<code object __init__ at 0x9f0410eb8, file \"/Users/e/.pyenv/') | got ('RETURN_VALUE', '')"
+   "detail": "line 11: orig ('LOAD_CONST', '<code object UserList at 0x93e889828, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object UserList at 0x71e004eb8, file \"/Users/e/Documen')\nline 21: orig ('LOAD_CONST', 'None') | got ('LOAD_LOCALS', '')\nline 22: orig ('LOAD_CONST', '<code object __init__ at 0x93e850eb8, file \"/Users/e/.pyenv/') | got ('RETURN_VALUE', '')"
   },
   {
    "module": "UserString",
@@ -115,7 +115,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 49,
    "ntotal": 132,
-   "detail": "line 32: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 33: orig ('LOAD_CONST', '<code object _Feature at 0xbfc40a0a8, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object _Feature at 0xba6444eb8, file \"/Users/e/Documen')\nline 85: orig ('LOAD_CONST', '<code object __init__ at 0xbfc404eb8, file \"/Users/e/.pyenv/') | got ('LOAD_LOCALS', '')"
+   "detail": "line 32: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 33: orig ('LOAD_CONST', '<code object _Feature at 0xa5c8560a8, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object _Feature at 0x7a4850eb8, file \"/Users/e/Documen')\nline 85: orig ('LOAD_CONST', '<code object __init__ at 0xa5c850eb8, file \"/Users/e/.pyenv/') | got ('LOAD_LOCALS', '')"
   },
   {
    "module": "_abcoll",
@@ -124,8 +124,10 @@
   },
   {
    "module": "_strptime",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/_strptime.py', 40, 5, '    /* unsupported opcode: JUMP_IF_TRUE 32 @27 */\\n'))"
+   "verdict": "SIG-DIFF",
+   "ndiff": 1651,
+   "ntotal": 1690,
+   "detail": "line 39: orig ('SETUP_EXCEPT', '#47') | got ('LOAD_CONST', '-1')\nline 40: orig ('LOAD_CONST', '-1') | got ('LOAD_CONST', \"('allocate_lock',)\")\nline 41: orig ('LOAD_CONST', \"('allocate_lock',)\") | got ('IMPORT_NAME', 'dummy_thread')"
   },
   {
    "module": "_threading_local",
@@ -137,7 +139,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 471,
    "ntotal": 516,
-   "detail": "line 4: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 5: orig ('LOAD_CONST', '<code object _C at 0xb76850eb8, file \"/Users/e/.pyenv/versio') | got ('LOAD_CONST', '<code object _C at 0xbbe010eb8, file \"/Users/e/Documents/pro')\nline 15: orig ('LOAD_CONST', '<code object abstractmethod at 0xb76850f30, file \"/Users/e/.') | got ('LOAD_CONST', '<code object abstractmethod at 0xbbe010f30, file \"/Users/e/D')"
+   "detail": "line 4: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 5: orig ('LOAD_CONST', '<code object _C at 0xc6c850eb8, file \"/Users/e/.pyenv/versio') | got ('LOAD_CONST', '<code object _C at 0xbfc004eb8, file \"/Users/e/Documents/pro')\nline 15: orig ('LOAD_CONST', '<code object abstractmethod at 0xc6c850f30, file \"/Users/e/.') | got ('LOAD_CONST', '<code object abstractmethod at 0xbfc004f30, file \"/Users/e/D')"
   },
   {
    "module": "aifc",
@@ -187,7 +189,7 @@
   {
    "module": "binhex",
    "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/binhex.py', 20, 1, '/* unsupported opcode: JUMP_IF_FALSE 54 @206 */\\n'))"
+   "detail": "SyntaxError: ('invalid syntax', ('/Users/e/Documents/project/pycdc/tests/corpus/2.6.9/out/binhex.py', 21, 1, '/* unsupported opcode: JUMP_IF_FALSE 54 @206 */\\n'))"
   },
   {
    "module": "bisect",
@@ -219,14 +221,14 @@
    "verdict": "SIG-DIFF",
    "ndiff": 474,
    "ntotal": 487,
-   "detail": "line 4: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 5: orig ('LOAD_CONST', '<code object Chunk at 0xbd08566c0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Chunk at 0xc4c850eb8, file \"/Users/e/Documents/')\nline 15: orig ('LOAD_NAME', 'True') | got ('LOAD_LOCALS', '')"
+   "detail": "line 4: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 5: orig ('LOAD_CONST', '<code object Chunk at 0x7d68566c0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Chunk at 0xbde850eb8, file \"/Users/e/Documents/')\nline 15: orig ('LOAD_NAME', 'True') | got ('LOAD_LOCALS', '')"
   },
   {
    "module": "cmd",
    "verdict": "SIG-DIFF",
    "ndiff": 1320,
    "ntotal": 1350,
-   "detail": "line 21: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 22: orig ('LOAD_CONST', '<code object Cmd at 0x804885d50, file \"/Users/e/.pyenv/versi') | got ('LOAD_CONST', '<code object Cmd at 0x7b6850f30, file \"/Users/e/Documents/pr')\nline 32: orig ('LOAD_CONST', '\"A simple framework for writing line-oriented command interp') | got ('LOAD_LOCALS', '')"
+   "detail": "line 21: orig ('LOAD_CONST', '()') | got ('LOAD_CONST', '((),)')\nline 22: orig ('LOAD_CONST', '<code object Cmd at 0x7de885d50, file \"/Users/e/.pyenv/versi') | got ('LOAD_CONST', '<code object Cmd at 0xbf4850f30, file \"/Users/e/Documents/pr')\nline 32: orig ('LOAD_CONST', '\"A simple framework for writing line-oriented command interp') | got ('LOAD_LOCALS', '')"
   }
  ]
 }

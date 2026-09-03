@@ -317,8 +317,7 @@ class _BaseExitStack:
             exit_method = _cb_type.__exit__
         except AttributeError:
             self._push_exit_callback(exit)
-        else:
-            self._push_cm_exit(exit, exit_method)
+        self._push_cm_exit(exit, exit_method)
         return exit
 
     def enter_context(self, cm):
@@ -376,10 +375,10 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
             is_sync, cb = self._exit_callbacks.pop()
             if not is_sync:
                 raise AssertionError
-        new_exc_details = sys.exc_info()
-        _fix_exception_context(new_exc_details[1], exc_details[1])
-        pending_raise = True
-        exc_details = new_exc_details
+            new_exc_details = sys.exc_info()
+            _fix_exception_context(new_exc_details[1], exc_details[1])
+            pending_raise = True
+            exc_details = new_exc_details
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__
@@ -430,8 +429,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             exit_method = _cb_type.__aexit__
         except AttributeError:
             self._push_exit_callback(exit, False)
-        else:
-            self._push_async_cm_exit(exit, exit_method)
+        self._push_async_cm_exit(exit, exit_method)
         return exit
 
     def push_async_callback(self, callback, /, *args, **kwds):
@@ -467,11 +465,10 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         suppressed_exc = False
         pending_raise = False
         while self._exit_callbacks:
-            pass
-        new_exc_details = sys.exc_info()
-        _fix_exception_context(new_exc_details[1], exc_details[1])
-        pending_raise = True
-        exc_details = new_exc_details
+            new_exc_details = sys.exc_info()
+            _fix_exception_context(new_exc_details[1], exc_details[1])
+            pending_raise = True
+            exc_details = new_exc_details
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__

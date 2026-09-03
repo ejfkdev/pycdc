@@ -43,7 +43,25 @@ class _GeneratorContextManager(ContextDecorator):
             raise RuntimeError("generator didn't yield") from None
 
     def __exit__(self, type, value, traceback):
-        pass
+        if type is None:
+            try:
+                next(self.gen)
+            except StopIteration:
+                return False
+            else:
+                raise RuntimeError("generator didn't stop")
+        elif value is None:
+            value = type()
+        exc = None
+        del exc
+        try:
+            self.gen.throw(type, value, traceback)
+        except StopIteration as exc:
+            return exc is not value
+        if sys.exc_info()[1] is value:
+            return False
+        raise
+        raise RuntimeError("generator didn't stop after throw()")
 
 
 def contextmanager(func):
@@ -167,8 +185,8 @@ class ExitStack(object):
         self.push(_exit_wrapper)
 
     def push(self, exit):
+        _cb_type = type(exit)
         try:
-            _cb_type = type(exit)
             exit_method = _cb_type.__exit__
         except AttributeError:
             self._exit_callbacks.append(exit)
@@ -214,11 +232,11 @@ class ExitStack(object):
         suppressed_exc = False
         pending_raise = False
         while self._exit_callbacks:
-            pass
-        new_exc_details = sys.exc_info()
-        _fix_exception_context(new_exc_details[1], exc_details[1])
-        pending_raise = True
-        exc_details = new_exc_details
+            cb = self._exit_callbacks.pop()
+            new_exc_details = sys.exc_info()
+            _fix_exception_context(new_exc_details[1], exc_details[1])
+            pending_raise = True
+            exc_details = new_exc_details
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__

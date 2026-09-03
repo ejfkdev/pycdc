@@ -63,6 +63,13 @@ class async_chat(asyncore.dispatcher):
     def handle_read(self):
         if isinstance(data, str) and self.use_encoding:
             data = bytes(str, self.encoding)
+            try:
+                data = self.recv(self.ac_in_buffer_size)
+            except BlockingIOError:
+                return
+            except OSError as why:
+                self.handle_error()
+                return
         self.ac_in_buffer = self.ac_in_buffer + data
         while True:
             while self.ac_in_buffer:
@@ -71,13 +78,6 @@ class async_chat(asyncore.dispatcher):
                 if not terminator:
                     self.collect_incoming_data(self.ac_in_buffer)
                     self.ac_in_buffer = b''
-                    try:
-                        data = self.recv(self.ac_in_buffer_size)
-                    except BlockingIOError:
-                        return
-                    except OSError as why:
-                        self.handle_error()
-                        return
                     continue
                 if isinstance(terminator, int):
                     n = terminator
@@ -141,34 +141,35 @@ class async_chat(asyncore.dispatcher):
         self.producer_fifo.append(None)
 
     def initiate_send(self):
-        try:
+        while self.producer_fifo and self.connected:
+            first = self.producer_fifo[0]
+            if not first:
+                del self.producer_fifo[0]
+                if first is None:
+                    self.handle_close()
+                    return
             obs = self.ac_out_buffer_size
-            data = first[:obs]
-        except TypeError as data:
-            self.producer_fifo.appendleft(data)
-            del self.producer_fifo[0]
-            if data:
-                pass
-            while self.producer_fifo and self.connected:
-                first = self.producer_fifo[0]
-                if not first:
-                    del self.producer_fifo[0]
-                    if first is None:
-                        self.handle_close()
-                        return
-        if isinstance(data, str) and self.use_encoding:
-            data = bytes(data, self.encoding)
-        if num_sent:
-            if not num_sent < len(data):
-                if obs < len(first):
-                    self.producer_fifo[0] = first[num_sent:]
-                    try:
-                        num_sent = self.send(data)
-                    except OSError:
-                        self.handle_error()
-                        return
+            try:
+                data = first[:obs]
+            except TypeError as data:
+                self.producer_fifo.appendleft(data)
+                del self.producer_fifo[0]
+                if data:
+                    pass
+            if isinstance(data, str) and self.use_encoding:
+                data = bytes(data, self.encoding)
+            if num_sent:
+                if not num_sent < len(data):
+                    if obs < len(first):
+                        try:
+                            num_sent = self.send(data)
+                        except OSError:
+                            self.handle_error()
+                            return
+                        self.producer_fifo[0] = first[num_sent:]
                     else:
                         del self.producer_fifo[0]
+            return
 
     def discard_buffers(self):
         self.ac_in_buffer = b''

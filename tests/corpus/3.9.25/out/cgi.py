@@ -570,7 +570,6 @@ def test(environ=os.environ):
     print()
     sys.stderr = sys.stdout
     print_exception()
-    print('<H1>Second try with a small maxlen...</H1>')
     print_exception()
 
 def print_exception(type=None, value=None, tb=None, limit=None):
@@ -612,15 +611,13 @@ def print_directory():
     print()
     print('<H3>Current Working Directory:</H3>')
     msg = None
-    del msg
+    del msg, msg
+    msg = None
     try:
         pwd = os.getcwd()
     except OSError as msg:
         print('OSError:', html.escape(str(msg)))
-    else:
-        msg = None
-        del msg
-        print(html.escape(pwd))
+    print(html.escape(pwd))
     print()
 
 def print_arguments():

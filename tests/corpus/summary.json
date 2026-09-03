@@ -2,16 +2,16 @@
  "2.6.9": {
   "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
   "counts": {
-   "INCOMPLETE": 29,
-   "SIG-DIFF": 11
+   "INCOMPLETE": 28,
+   "SIG-DIFF": 12
   }
  },
  "2.7.18": {
   "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
   "counts": {
-   "SIG-DIFF": 37,
-   "SYNTAX-ERR": 2,
-   "PASS": 1
+   "SIG-DIFF": 38,
+   "PASS": 1,
+   "SYNTAX-ERR": 1
   }
  },
  "3.10.21": {
@@ -60,33 +60,33 @@
  "3.3.7": {
   "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
   "counts": {
-   "SIG-DIFF": 34,
-   "SYNTAX-ERR": 5,
-   "INCOMPLETE": 1
+   "SIG-DIFF": 36,
+   "INCOMPLETE": 1,
+   "SYNTAX-ERR": 3
   }
  },
  "3.5.10": {
   "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
   "counts": {
    "PASS": 4,
-   "SIG-DIFF": 31,
-   "SYNTAX-ERR": 5
+   "SIG-DIFF": 34,
+   "SYNTAX-ERR": 2
   }
  },
  "3.6.15": {
   "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
   "counts": {
    "PASS": 4,
-   "SIG-DIFF": 32,
-   "SYNTAX-ERR": 4
+   "SIG-DIFF": 35,
+   "SYNTAX-ERR": 1
   }
  },
  "3.7.17": {
   "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
   "counts": {
    "PASS": 4,
-   "SIG-DIFF": 31,
-   "SYNTAX-ERR": 5
+   "SIG-DIFF": 34,
+   "SYNTAX-ERR": 2
   }
  },
  "3.8.20": {

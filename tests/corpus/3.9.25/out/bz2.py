@@ -69,14 +69,6 @@ class BZ2File(_compression.BaseStream):
             self._pos = 0
 
     def close(self):
-        with self._lock:
-            if self._mode == _MODE_CLOSED:
-                return
-            self._fp = None
-            self._closefp = False
-            self._mode = _MODE_CLOSED
-            self._buffer = None
-        None(None, None, None)
         if not None:
             pass
 
@@ -194,17 +186,17 @@ def decompress(data):
     results = []
     while data:
         if results:
-            try:
-                decomp = BZ2Decompressor()
-                res = decomp.decompress(data)
-            except OSError:
-                pass
-            else:
-                raise
-                if not decomp.eof:
-                    raise ValueError('Compressed data ended before the end-of-stream marker was reached')
-                data = decomp.unused_data
             break
+        raise
+        try:
+            decomp = BZ2Decompressor()
+            res = decomp.decompress(data)
+        except OSError:
+            pass
+        results.append(res)
+        if not decomp.eof:
+            raise ValueError('Compressed data ended before the end-of-stream marker was reached')
+        data = decomp.unused_data
     return b''.join(results)
 
 # WARNING: Decompyle incomplete
