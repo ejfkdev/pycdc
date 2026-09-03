@@ -83,8 +83,8 @@
   {
    "module": "_osx_support",
    "verdict": "SIG-DIFF",
-   "ndiff": 1571,
-   "ntotal": 1771,
+   "ndiff": 1570,
+   "ntotal": 1770,
    "detail": "line 161: orig ('SWAP', '') | got ('POP_TOP', '')\nline 163: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', 'None')\nline 164: orig ('END_FOR', '') | got ('RETURN_VALUE', '')"
   },
   {

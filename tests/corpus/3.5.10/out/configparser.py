@@ -657,7 +657,7 @@ class RawConfigParser(MutableMapping):
     def getboolean(self=None, section=None, option=None, *, raw, vars, fallback, **kwargs):
         return section(option, self._convert_to_boolean, 'raw', 'vars', 'fallback', kwargs)
 
-    def items(self, section=False, raw=None, vars=(__class__,)):
+    def items(self, section=_UNSET, raw=False, vars=None):
         if section is _UNSET:
             return super().items()
         d = self._defaults.copy()
@@ -929,7 +929,7 @@ class ConfigParser(RawConfigParser):
     '''ConfigParser implementing interpolation.'''
 
     _DEFAULT_INTERPOLATION = BasicInterpolation()
-    def set(self, section, option, value=(__class__,)):
+    def set(self, section, option, value=None):
         self._validate_value_types(option=option, value=value)
         super().set(section, option, value)
 

@@ -371,11 +371,11 @@ impl Printer {
                 if handlers.is_empty() && finalbody.is_empty() {
                     // A try without except/finally is invalid Python — the
                     // structure was only partially recovered; keep the body
-                    // statements so the output stays compilable.
+                    // statements AT THE CURRENT INDENT so the output stays
+                    // compilable.
                     self.write_line("# WARNING: unrecovered try/except structure");
-                    self.block(body);
-                    if !orelse.is_empty() {
-                        self.block(orelse);
+                    for s in body.iter().chain(orelse.iter()) {
+                        self.stmt(s);
                     }
                     return;
                 }

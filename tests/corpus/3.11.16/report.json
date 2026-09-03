@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
   "PASS": 4,
-  "SIG-DIFF": 34,
-  "SYNTAX-ERR": 2
+  "SIG-DIFF": 35,
+  "SYNTAX-ERR": 1
  },
  "results": [
   {
@@ -24,8 +24,10 @@
   },
   {
    "module": "_bootsubprocess",
-   "verdict": "SYNTAX-ERR",
-   "detail": "cent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/Users/e/.local/share/uv/python/cpython-3.11.16-macos-aarch64-none/lib/python3.11/py_compile.py\", line 150, in compile\n    raise py_exc\npy_compile.PyCompileError: Sorry: IndentationError: unexpected indent (_bootsubprocess.py, line 63)\n"
+   "verdict": "SIG-DIFF",
+   "ndiff": 330,
+   "ntotal": 396,
+   "detail": "line 62: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 322') | got ('EXTENDED_ARG', '')\nline 63: orig ('NOP', '') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 602')\nline 64: orig ('LOAD_FAST', 'self') | got ('NOP', '')"
   },
   {
    "module": "_collections_abc",
@@ -239,7 +241,7 @@
   {
    "module": "contextlib",
    "verdict": "SIG-DIFF",
-   "ndiff": 2196,
+   "ndiff": 2197,
    "ntotal": 2283,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },

@@ -113,7 +113,7 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             except StopIteration:
                 pass
             # WARNING: unrecovered try/except structure
-                raise RuntimeError("generator didn't stop")
+            raise RuntimeError("generator didn't stop")
         if not value is not None:
             value = typ()
         try:
@@ -152,7 +152,7 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             except StopAsyncIteration:
                 pass
             # WARNING: unrecovered try/except structure
-                raise RuntimeError("generator didn't stop")
+            raise RuntimeError("generator didn't stop")
         if not value is not None:
             value = typ()
         try:

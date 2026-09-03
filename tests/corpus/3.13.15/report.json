@@ -83,7 +83,7 @@
   {
    "module": "_osx_support",
    "verdict": "SIG-DIFF",
-   "ndiff": 1333,
+   "ndiff": 1340,
    "ntotal": 1534,
    "detail": "line 155: orig ('SWAP', '') | got ('POP_TOP', '')\nline 157: orig ('RETURN_VALUE', '') | got ('RETURN_CONST', 'None')\nline 169: orig ('NOP', '') | got ('LOAD_CONST', '0')"
   },
@@ -225,7 +225,7 @@
   {
    "module": "contextlib",
    "verdict": "SIG-DIFF",
-   "ndiff": 2131,
+   "ndiff": 2129,
    "ntotal": 2204,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },

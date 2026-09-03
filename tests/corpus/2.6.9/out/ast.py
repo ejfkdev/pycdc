@@ -58,7 +58,7 @@ def dump(node, annotate_fields=True, include_attributes=False):
         /* unsupported opcode: JUMP_IF_FALSE 17 @94 */
         annotate_fields
         ('%s=%s' % field for field in fields)
-        rv = None % ([], '%s(%s'((b for a in fields)))
+        rv = '%s(%s' % (node.__class__.__name__, ', '.join((b for a in fields)))
         /* unsupported opcode: JUMP_IF_FALSE 79 @141 */
         include_attributes
         /* unsupported opcode: JUMP_IF_FALSE 69 @151 */
@@ -69,6 +69,7 @@ def dump(node, annotate_fields=True, include_attributes=False):
         ', '
         rv += ' '
         rv += ', '.join(('%s=%s' % (a, _format(getattr(node, a))) for a in node._attributes))
+        []
         return rv + ')'
 
     /* unsupported opcode: JUMP_IF_TRUE 26 @33 */

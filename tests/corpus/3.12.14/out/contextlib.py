@@ -113,7 +113,7 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             except StopIteration:
                 pass
             # WARNING: unrecovered try/except structure
-                raise RuntimeError("generator didn't stop")
+            raise RuntimeError("generator didn't stop")
         if not value is not None:
             value = typ()
         try:
@@ -152,7 +152,7 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             except StopAsyncIteration:
                 pass
             # WARNING: unrecovered try/except structure
-                raise RuntimeError("generator didn't stop")
+            raise RuntimeError("generator didn't stop")
         if not value is not None:
             value = typ()
         try:
@@ -399,10 +399,10 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
             if not is_sync:
                 raise AssertionError
             # WARNING: unrecovered try/except structure
-                if cb(exc_details):
-                    suppressed_exc = True
-                    pending_raise = False
-                    exc_details = (None, None, None)
+            if cb(exc_details):
+                suppressed_exc = True
+                pending_raise = False
+                exc_details = (None, None, None)
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__
@@ -494,14 +494,14 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
             # WARNING: unrecovered try/except structure
-                if is_sync:
-                    cb_suppress = cb(exc_details)
+            if is_sync:
+                cb_suppress = cb(exc_details)
             # WARNING: unrecovered try/except structure
-                cb_suppress = await cb(exc_details)
-                if cb_suppress:
-                    suppressed_exc = True
-                    pending_raise = False
-                    exc_details = (None, None, None)
+            cb_suppress = await cb(exc_details)
+            if cb_suppress:
+                suppressed_exc = True
+                pending_raise = False
+                exc_details = (None, None, None)
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__

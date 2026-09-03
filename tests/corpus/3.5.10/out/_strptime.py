@@ -133,7 +133,7 @@ class LocaleTime(object):
 class TimeRE(dict):
     '''Handle conversion from format directives to regexes.'''
 
-    def __init__(self, locale_time=(__class__,)):
+    def __init__(self, locale_time=None):
         if locale_time:
             self.locale_time = locale_time
         else:

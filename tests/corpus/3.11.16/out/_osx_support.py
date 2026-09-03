@@ -46,7 +46,7 @@ def _get_system_version():
         except OSError:
             pass
         # WARNING: unrecovered try/except structure
-            m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
+        m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
         f.close()
 
 _SYSTEM_VERSION_TUPLE = None

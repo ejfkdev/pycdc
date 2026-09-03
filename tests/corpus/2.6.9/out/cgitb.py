@@ -107,7 +107,7 @@ def html(einfo, context=5):
         func != '?'
         call = 'in ' + strong(func) + inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.html.repr(value)))
         highlight = {}
-        def reader(lnum=highlight, file, linecache):
+        def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1
             try:
                 return linecache.getline(file, lnum[0])
@@ -194,7 +194,7 @@ def text(einfo, context=5):
         func != '?'
         call = 'in ' + func + inspect.formatargvalues(args, varargs, varkw, locals, formatvalue=(lambda value: '=' + pydoc.text.repr(value)))
         highlight = {}
-        def reader(lnum=highlight, file, linecache):
+        def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1
             try:
                 return linecache.getline(file, lnum[0])

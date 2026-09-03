@@ -3,9 +3,9 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 4,
-  "SIG-DIFF": 29,
+  "SIG-DIFF": 30,
   "INCOMPLETE": 5,
-  "SYNTAX-ERR": 2
+  "SYNTAX-ERR": 1
  },
  "results": [
   {
@@ -52,7 +52,7 @@
   {
    "module": "_osx_support",
    "verdict": "SIG-DIFF",
-   "ndiff": 1310,
+   "ndiff": 1314,
    "ntotal": 1489,
    "detail": "line 153: orig ('SWAP', '') | got ('POP_TOP', '')\nline 155: orig ('RETURN_VALUE', '') | got ('RETURN_CONST', 'None')\nline 166: orig ('NOP', '') | got ('LOAD_CONST', '0')"
   },
@@ -217,8 +217,10 @@
   },
   {
    "module": "contextlib",
-   "verdict": "SYNTAX-ERR",
-   "detail": "t recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/Users/e/.local/share/uv/python/cpython-3.12.14-macos-aarch64-none/lib/python3.12/py_compile.py\", line 150, in compile\n    raise py_exc\npy_compile.PyCompileError: Sorry: IndentationError: unexpected indent (contextlib.py, line 497)\n"
+   "verdict": "SIG-DIFF",
+   "ndiff": 2113,
+   "ntotal": 2190,
+   "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "copy",

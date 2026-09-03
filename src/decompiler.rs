@@ -5874,25 +5874,19 @@ impl<'a> Ctx<'a> {
                 // 0x02 kwdefaults, 0x04 annotations? handled above
             }
         } else {
-            // <= 3.5: defaults are individual stack values (argcount-
-            // defaults count of them); MAKE_CLOSURE adds a closure tuple
-            // below the code object (already popped).
+            // <= 3.5: defaults are individual stack values; MAKE_CLOSURE
+            // (py2.1+/3.3-3.5) pushes the closure tuple ABOVE the defaults:
+            // [defaults..., closure, code, qualname]
             // <=3.5: MAKE_FUNCTION arg = number of defaults on the stack
             let ndefaults = flags as usize;
+            if inst.op == Op::MAKE_CLOSURE {
+                let _closure = self.pop_expr();
+            }
             let mut defaults = Vec::new();
             for _ in 0..ndefaults {
                 defaults.push(self.pop_expr());
             }
             defaults.reverse();
-            if inst.op == Op::MAKE_CLOSURE || (self.version.major == 2 && self.version.at_least(2, 1)) {
-                // closure tuple sits below the defaults when free variables
-                // are present (MAKE_CLOSURE 2.1+, or CO_NOFREE not set)
-                if !self.code.freevars.is_empty() && !self.code.cellvars.is_empty()
-                    || inst.op == Op::MAKE_CLOSURE
-                {
-                    let _closure = self.pop_expr();
-                }
-            }
             params = self.build_params_legacy(&code_obj, defaults);
         }
 
