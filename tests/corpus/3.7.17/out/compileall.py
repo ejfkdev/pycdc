@@ -43,17 +43,11 @@ def _walk_dir(dir, ddir=None, maxlevels=10, quiet=0):
             yield (fullname, ddir)
             continue
         if maxlevels > 0:
-            pass
-        if name != os.curdir:
-            pass
-        if name != os.pardir:
-            pass
-        if os.path.isdir(fullname):
-            pass
-        if not os.path.islink(fullname):
-            pass
-        yield from _walk_dir(fullname, ddir=dfile, maxlevels=maxlevels - 1, quiet=quiet)
-        continue
+            if name != os.curdir:
+                if name != os.pardir:
+                    if os.path.isdir(fullname):
+                        pass
+    yield from _walk_dir(fullname, ddir=dfile, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None):
     ProcessPoolExecutor = None
@@ -75,10 +69,8 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
             success = min(results, default=True)
     else:
         for file, dfile in files_and_ddirs:
-            if not compile_file(file, dfile, force, rx, quiet, legacy, optimize, invalidation_mode):
-                pass
-            success = False
-            continue
+            pass
+    success = False
     return success
 
 def _compile_file_tuple(file_and_dfile, **kwargs):
@@ -154,8 +146,7 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
             if quiet < 2:
                 print('Skipping current directory')
                 continue
-                success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
-        continue
+        success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
     return success
 
 def main():
@@ -190,7 +181,6 @@ def main():
                 with sys.stdin if args.flist == '-' else open(args.flist) as f:
                     for line in f:
                         compile_dests.append(line.strip())
-                        continue
             except OSError:
                 if args.quiet < 2:
                     print('Error reading file list {}'.format(args.flist))

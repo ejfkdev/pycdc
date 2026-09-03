@@ -77,7 +77,6 @@ class Profile(_lsprof.Profiler):
             callers = {}
             callersdicts[id(entry.code)] = callers
             self.stats[func] = cc, nc, tt, ct, callers
-            continue
         for entry in entries:
             if entry.calls:
                 func = label(entry.code)
@@ -86,7 +85,7 @@ class Profile(_lsprof.Profiler):
                         try:
                             callers = callersdicts[id(subentry.code)]
                         except KeyError:
-                            continue
+                            pass
                         else:
                             nc = subentry.callcount
                             cc = nc - subentry.reccallcount
@@ -98,9 +97,7 @@ class Profile(_lsprof.Profiler):
                             tt += prev[2]
                             ct += prev[3]
                     callers[func] = nc, cc, tt, ct
-                    continue
-                    continue
-            continue
+                continue
 
     def run(self, cmd):
         import __main__

@@ -183,15 +183,12 @@ if __name__ == '__main__':
             for p in parts:
                 i = p.find('=')
                 if i >= 0:
-                    pass
-                name = p[:i].strip().lower()
-                value = p[i + 1:].strip()
-                if len(value) >= 2 and value[0] == value[-1] and value[-1] == '"':
-                    value = value[1:-1]
-                    value = value.replace('\\\\', '\\').replace('\\"', '"')
-                pdict[name] = value
-                continue
-                continue
+                    name = p[:i].strip().lower()
+                    value = p[i + 1:].strip()
+                    if len(value) >= 2 and value[0] == value[-1] and value[-1] == '"':
+                        value = value[1:-1]
+                        value = value.replace('\\\\', '\\').replace('\\"', '"')
+                    pdict[name] = value
             return key, pdict
 
         class MiniFieldStorage:
@@ -351,10 +348,7 @@ if __name__ == '__main__':
                 found = []
                 for item in self.list:
                     if item.name == key:
-                        pass
-                    found.append(item)
-                    continue
-                    continue
+                        found.append(item)
                 if not found:
                     raise KeyError # WARNING: raise cause dropped (py2)
                 if len(found) == 1:
@@ -602,7 +596,6 @@ if __name__ == '__main__':
                         result.append(value[0])
                         continue
                     result.append(value)
-                    continue
                 return result
 
             def items(self):
@@ -612,7 +605,6 @@ if __name__ == '__main__':
                         result.append((key, value[0]))
                         continue
                     result.append((key, value))
-                    continue
                 return result
 
 
@@ -631,7 +623,6 @@ if __name__ == '__main__':
                         result.append(self[key])
                     except IndexError:
                         result.append(self.dict[key])
-                    continue
                 return result
 
             def items(self):
@@ -641,7 +632,6 @@ if __name__ == '__main__':
                         result.append((key, self[key]))
                     except IndexError:
                         result.append((key, self.dict[key]))
-                    continue
                 return result
 
 
@@ -701,7 +691,6 @@ if __name__ == '__main__':
             print '<DL>'
             for key in keys:
                 print '<DT>', escape(key), '<DD>', escape(environ[key])
-                continue
             print '</DL>'
             print
 
@@ -717,7 +706,6 @@ if __name__ == '__main__':
                 value = form[key]
                 print '<DT>' + escape(key) + ':', '<i>' + escape(repr(type(value))) + '</i>'
                 print '<DD>' + escape(repr(value))
-                continue
             print '</DL>'
             print
 

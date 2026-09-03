@@ -3,7 +3,6 @@ NAME_MAPPING = {None: None, None: None, None: None, None: None, None: None, None
 PYTHON2_EXCEPTIONS = ('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferError', 'BytesWarning', 'DeprecationWarning', 'EOFError', 'EnvironmentError', 'Exception', 'FloatingPointError', 'FutureWarning', 'GeneratorExit', 'IOError', 'ImportError', 'ImportWarning', 'IndentationError', 'IndexError', 'KeyError', 'KeyboardInterrupt', 'LookupError', 'MemoryError', 'NameError', 'NotImplementedError', 'OSError', 'OverflowError', 'PendingDeprecationWarning', 'ReferenceError', 'RuntimeError', 'RuntimeWarning', 'StopIteration', 'SyntaxError', 'SyntaxWarning', 'SystemError', 'SystemExit', 'TabError', 'TypeError', 'UnboundLocalError', 'UnicodeDecodeError', 'UnicodeEncodeError', 'UnicodeError', 'UnicodeTranslateError', 'UnicodeWarning', 'UserWarning', 'ValueError', 'Warning', 'ZeroDivisionError')
 for excname in PYTHON2_EXCEPTIONS:
     NAME_MAPPING['exceptions', excname] = 'builtins', excname
-    continue
 NAME_MAPPING[('exceptions', 'StandardError')] = ('builtins', 'Exception')
 REVERSE_IMPORT_MAPPING = dict(((v, k) for k, v in IMPORT_MAPPING.items()))
 REVERSE_NAME_MAPPING = dict(((v, k) for k, v in NAME_MAPPING.items()))

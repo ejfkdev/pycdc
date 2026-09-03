@@ -165,6 +165,20 @@ class Normalizer(ast.NodeTransformer):
         node.body = self.visit(node.body)
         return node
 
+    def visit_Call(self, node):
+        self.generic_visit(node)
+        # set(genexpr) == set comprehension, list(genexpr) == list comp
+        # (decompiler renders pre-3.x style comprehension code this way)
+        if (isinstance(node.func, ast.Name)
+                and node.func.id in ('set', 'list')
+                and len(node.args) == 1 and not node.keywords
+                and isinstance(node.args[0], ast.GeneratorExp)):
+            ge = node.args[0]
+            if node.func.id == 'set':
+                return ast.SetComp(elt=ge.elt, generators=ge.generators)
+            return ast.ListComp(elt=ge.elt, generators=ge.generators)
+        return node
+
 
 def dump(src):
     tree = ast.parse(src)

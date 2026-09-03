@@ -197,8 +197,6 @@ class RawConfigParser:
         if defaults:
             for key, value in defaults.items():
                 self._defaults[self.optionxform(key)] = value
-                continue
-                break
 
     def defaults(self):
         return self._defaults
@@ -240,7 +238,6 @@ class RawConfigParser:
                 self._read(fp, filename)
                 fp.close()
                 read_ok.append(filename)
-            continue
         return read_ok
 
     def readfp(self, fp, filename=None):
@@ -314,7 +311,6 @@ class RawConfigParser:
             fp.write('[%s]\n' % DEFAULTSECT)
             for key, value in self._defaults.items():
                 fp.write('%s = %s\n' % (key, str(value).replace('\n', '\n\t')))
-                continue
             fp.write('\n')
         for section in self._sections:
             fp.write('[%s]\n' % section)
@@ -322,9 +318,7 @@ class RawConfigParser:
                 if key != '__name__':
                     fp.write('%s = %s\n' % (key, str(value).replace('\n', '\n\t')))
                     continue
-                continue
             fp.write('\n')
-            continue
 
     def remove_option(self, section, option):
         if not not section:
@@ -399,9 +393,9 @@ class RawConfigParser:
                 optval = ''
             optname = self.optionxform(optname.rstrip())
             cursect[optname] = optval
-        if not e:
-            e = ParsingError(fpname)
-        e.append(lineno, repr(line))
+            if not e:
+                e = ParsingError(fpname)
+            e.append(lineno, repr(line))
         if e:
             raise e
 
@@ -417,8 +411,6 @@ class ConfigParser(RawConfigParser):
                     if section != DEFAULTSECT:
                         raise NoSectionError(section)
                 d[self.optionxform(key)] = value
-                continue
-                break
         option = self.optionxform(option)
         if raw:
             try:
@@ -439,8 +431,6 @@ class ConfigParser(RawConfigParser):
                     if section != DEFAULTSECT:
                         raise NoSectionError(section)
                 d[self.optionxform(key)] = value
-                continue
-                break
         options = d.keys()
         if '__name__' in options:
             options.remove('__name__')

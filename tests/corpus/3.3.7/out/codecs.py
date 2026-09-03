@@ -545,10 +545,7 @@ def iterencode(iterator, encoding, errors='strict', **kwargs):
     for input in iterator:
         output = encoder.encode(input)
         if output:
-            pass
-        yield output
-        continue
-        continue
+            yield output
     output = encoder.encode('', True)
     if output:
         yield output
@@ -558,10 +555,7 @@ def iterdecode(iterator, encoding, errors='strict', **kwargs):
     for input in iterator:
         output = decoder.decode(input)
         if output:
-            pass
-        yield output
-        continue
-        continue
+            yield output
     output = decoder.decode(b'', True)
     if output:
         yield output
@@ -576,7 +570,6 @@ def make_encoding_map(decoding_map):
             m[v] = k
             continue
         m[v] = None
-        continue
     return m
 
 backslashreplace_errors = None

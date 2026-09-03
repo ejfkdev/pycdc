@@ -78,7 +78,6 @@ def b32encode(s):
     for i in range(0, len(s), 5):
         c = from_bytes(s[i:i + 5], 'big')
         encoded += b32tab2[c >> 30] + b32tab2[c >> 20 & 1023] + b32tab2[c >> 10 & 1023] + b32tab2[c & 1023]
-        continue
     if leftover == 1:
         encoded[-6:] = b'======'
     elif leftover == 2:
@@ -114,11 +113,9 @@ def b32decode(s, casefold=False, map01=None):
         try:
             for c in quanta:
                 acc = (acc << 5) + b32rev[c]
-                continue
         except KeyError:
             raise binascii.Error('Non-base32 digit found') from None
         decoded += acc.to_bytes(5, 'big')
-        continue
     if not l % 8:
         if padchars not in frozenset({0, 1, 3, 4, 6}):
             raise binascii.Error('Incorrect padding')
@@ -202,28 +199,25 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
             acc = 0
             for x in curr:
                 acc = 85 * acc + (x - 33)
-                continue
             try:
                 decoded_append(packI(acc))
             except struct.error:
                 raise ValueError('Ascii85 overflow') from None
             curr_clear()
             continue
-            if x == 122:
-                if curr:
-                    raise ValueError('z inside Ascii85 5-tuple')
-                decoded_append(b'\x00\x00\x00\x00')
-                continue
-            if foldspaces and x == 121:
-                if curr:
-                    raise ValueError('y inside Ascii85 5-tuple')
-                decoded_append(b'    ')
-                continue
-            if x in ignorechars:
-                continue
-                continue
-            raise ValueError('Non-Ascii85 digit found: %c' % x)
-        continue
+        if x == 122:
+            if curr:
+                raise ValueError('z inside Ascii85 5-tuple')
+            decoded_append(b'\x00\x00\x00\x00')
+            continue
+        if foldspaces and x == 121:
+            if curr:
+                raise ValueError('y inside Ascii85 5-tuple')
+            decoded_append(b'    ')
+            continue
+        if x in ignorechars:
+            continue
+    raise ValueError('Non-Ascii85 digit found: %c' % x)
     result = b''.join(decoded)
     padding = 4 - len(curr)
     if padding:
@@ -248,7 +242,6 @@ def b85decode(b):
         _b85dec = [None] * 256
         for i, c in enumerate(_b85alphabet):
             _b85dec[c] = i
-            continue
     b = _bytes_from_decode_data(b)
     padding = -len(b) % 5
     b = b + b'~' * padding
@@ -260,20 +253,15 @@ def b85decode(b):
         try:
             for c in chunk:
                 acc = acc * 85 + _b85dec[c]
-                continue
         except TypeError as j:
             for _ in enumerate(chunk):
                 if _b85dec[c] is None:
-                    pass
-                raise ValueError('bad base85 character at position %d' % (i + j)) from None
-                continue
+                    raise ValueError('bad base85 character at position %d' % (i + j)) from None
             raise
         try:
             out.append(packI(acc))
         except struct.error:
             raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
-        continue
-        continue
     c, result = enumerate(chunk)
     if padding:
         result = result[:-padding]
@@ -324,7 +312,6 @@ def encodebytes(s):
     for i in range(0, len(s), MAXBINSIZE):
         chunk = s[i:i + MAXBINSIZE]
         pieces(binascii.b2a_base64(chunk))
-        continue
     return b''.join(pieces)
 
 def encodestring(s):
@@ -359,11 +346,8 @@ def main():
             func = decode
         if o == '-u':
             func = decode
-        if o == '-t':
-            pass
         test()
         return
-        continue
     if args and args[0] != '-':
         with open(args[0], 'rb') as f:
             func(f, sys.stdout.buffer)

@@ -86,7 +86,6 @@ class LocaleTime(object):
         for hour in (1, 22):
             time_tuple = time.struct_time((1999, 3, 17, hour, 44, 55, 2, 76, 0))
             am_pm.append(time.strftime('%p', time_tuple).lower())
-            continue
         self.am_pm = am_pm
 
     def _LocaleTime__calc_date_time(self):
@@ -101,16 +100,13 @@ class LocaleTime(object):
             current_format = date_time[offset]
             for old, new in replacement_pairs:
                 if old:
-                    pass
-                current_format = current_format.replace(old, new)
-                continue
+                    current_format = current_format.replace(old, new)
             time_tuple = time.struct_time((1999, 1, 3, 1, 1, 1, 6, 3, 0))
             if '00' in time.strftime(directive, time_tuple):
                 U_W = '%W'
             else:
                 U_W = '%U'
             date_time[offset] = current_format.replace('11', U_W)
-            continue
         self.LC_date_time = date_time[0]
         self.LC_date = date_time[1]
         self.LC_time = date_time[2]
@@ -149,13 +145,8 @@ class TimeRE(dict):
         to_convert = sorted(to_convert, key=len, reverse=True)
         for value in to_convert:
             if value != '':
-                pass
-            break
-            continue
-            return ''
-        regex = '|'.join((re_escape(stuff) for stuff in to_convert))
-        regex = '(?P<%s>%s' % (directive, regex)
-        return '%s)' % regex
+                break
+        return ''
 
     def pattern(self, format):
         processed_format = ''
@@ -201,11 +192,9 @@ def _calc_julian_from_V(iso_year, iso_week, iso_weekday):
 def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
     global _TimeRE_cache
     for index, arg in enumerate([data_string, format]):
-        if not isinstance(arg, str):
-            pass
-        msg = 'strptime() argument {} must be str, not {}'
-        raise TypeError(msg.format(index, type(arg)))
-        continue
+        pass
+    msg = 'strptime() argument {} must be str, not {}'
+    raise TypeError(msg.format(index, type(arg)))
     with _cache_lock:
         locale_time = _TimeRE_cache.locale_time
         if not _getlang() != locale_time.lang or time.tzname != locale_time.tzname:
@@ -326,13 +315,11 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                     found_zone = found_dict['Z'].lower()
                     for value, tz_values in enumerate(locale_time.timezone):
                         if found_zone in tz_values:
-                            pass
-                        if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                            break
-                        else:
-                            tz = value
-                            break
-                        continue
+                            if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
+                                break
+                            else:
+                                tz = value
+                                break
         continue
     if year is None and iso_year is not None:
         if not iso_week is None:

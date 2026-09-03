@@ -48,10 +48,7 @@ class WeakSet:
             for itemref in self.data:
                 item = itemref()
                 if item is not None:
-                    pass
-                yield item
-                continue
-                continue
+                    yield item
 
     def __len__(self):
         return len(self.data) - len(self._pending_removals)
@@ -105,7 +102,6 @@ class WeakSet:
             self._commit_removals()
         for element in other:
             self.add(element)
-            continue
 
     def __ior__(self, other):
         self.update(other)

@@ -84,7 +84,6 @@ def copy_location(new_node, old_node):
         if attr in old_node._attributes and attr in new_node._attributes and hasattr(old_node, attr):
             setattr(new_node, attr, getattr(old_node, attr))
             continue
-        continue
     return new_node
 
 def fix_missing_locations(node):
@@ -101,7 +100,6 @@ def fix_missing_locations(node):
                 col_offset = node.col_offset
         for child in iter_child_nodes(node):
             _fix(child, lineno, col_offset)
-            continue
 
     _fix(node, 1, 0)
     return node
@@ -113,7 +111,6 @@ def increment_lineno(node, n=1):
         if 'lineno' in child._attributes:
             child.lineno = getattr(child, 'lineno', 0) + n
             continue
-        continue
     return node
 
 def iter_fields(node):
@@ -122,7 +119,6 @@ def iter_fields(node):
             yield (field, getattr(node, field))
         except AttributeError:
             pass
-        continue
 
 def iter_child_nodes(node):
     for name, field in iter_fields(node):
@@ -134,9 +130,7 @@ def iter_child_nodes(node):
                 if isinstance(item, AST):
                     yield item
                     continue
-                continue
-                continue
-        continue
+            continue
 
 def get_docstring(node, clean=True):
     if not isinstance(node, (FunctionDef, ClassDef, Module)):
@@ -187,13 +181,10 @@ class NodeVisitor(object):
                     if isinstance(item, AST):
                         self.visit(item)
                         continue
-                    continue
-                    continue
-                    if not isinstance(value, AST):
-                        break
-                    self.visit(value)
-                    continue
-            continue
+                continue
+            if isinstance(value, AST):
+                self.visit(value)
+                continue
 
 
 class NodeTransformer(NodeVisitor):
@@ -243,7 +234,6 @@ class NodeTransformer(NodeVisitor):
                         if value is None:
                             continue
                     new_values.append(value)
-                    continue
                 new_values[:] = old_value
                 continue
             if isinstance(old_value, AST):
@@ -252,8 +242,6 @@ class NodeTransformer(NodeVisitor):
                     delattr(node, field)
                     continue
             setattr(node, field, new_node)
-            continue
-            continue
         return node
 
 

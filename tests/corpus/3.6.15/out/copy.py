@@ -100,7 +100,6 @@ def _copy_immutable(x):
 
 for t in type(None), int, float, bool, complex, str, tuple, bytes, frozenset, type, range, slice, types.BuiltinFunctionType, type(Ellipsis), type(NotImplemented), types.FunctionType, weakref.ref:
     d[t] = _copy_immutable
-    continue
 t = getattr(types, 'CodeType', None)
 if t is not None:
     d[t] = _copy_immutable
@@ -185,7 +184,6 @@ def _deepcopy_list(x, memo, deepcopy=deepcopy):
     append = y.append
     for a in x:
         append(deepcopy(a, memo))
-        continue
     return y
 
 d[list] = _deepcopy_list
@@ -198,11 +196,9 @@ def _deepcopy_tuple(x, memo, deepcopy=deepcopy):
         pass
     for k, j in zip(x, y):
         if k is not j:
-            pass
-        y = tuple(y)
-        break
-        continue
-        y = x
+            y = tuple(y)
+            break
+    y = x
     return y
 
 d[tuple] = _deepcopy_tuple
@@ -212,7 +208,6 @@ def _deepcopy_dict(x, memo, deepcopy=deepcopy):
     memo[id(x)] = y
     for key, value in x.items():
         y[deepcopy(key, memo)] = deepcopy(value, memo)
-        continue
     return y
 
 d[dict] = _deepcopy_dict
@@ -253,28 +248,23 @@ def _reconstruct(x, memo, func, args, state=None, listiter=None, dictiter=None, 
             if slotstate is not None:
                 for key, value in slotstate.items():
                     setattr(y, key, value)
-                    continue
     if listiter is not None:
         if deep:
             for item in listiter:
                 item = deepcopy(item, memo)
                 y.append(item)
-                continue
-                break
-                for item in listiter:
-                    y.append(item)
-                    continue
+        else:
+            for item in listiter:
+                y.append(item)
     if dictiter is not None:
         if deep:
             for key, value in dictiter:
                 key = deepcopy(key, memo)
                 value = deepcopy(value, memo)
                 y[key] = value
-                continue
-                break
-                for key, value in dictiter:
-                    y[key] = value
-                    continue
+        else:
+            for key, value in dictiter:
+                y[key] = value
     return y
 
 del types, weakref, PyStringMap

@@ -47,7 +47,6 @@ def lwp_cookie_str(cookie):
     keys.sort()
     for k in keys:
         h.append((k, str(cookie._rest[k])))
-        continue
     h.append(('version', str(cookie.version)))
     return join_header_words([h])
 
@@ -73,7 +72,6 @@ class LWPCookieJar(FileCookieJar):
             if not ignore_expires and cookie.is_expired(now):
                 continue
             r.append('Set-Cookie3: %s' % lwp_cookie_str(cookie))
-            continue
         return '\n'.join(r + [''])
 
     def save(self, filename=None, ignore_discard=False, ignore_expires=False):

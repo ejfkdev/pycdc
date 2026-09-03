@@ -60,7 +60,6 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                     if path[i] == '/':
                         self.cgi_info = path[:i], path[i + 1:]
                         return True
-            continue
         return False
 
     cgi_directories = ['/cgi-bin', '/htbin']
@@ -160,7 +159,6 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 accept.append(line.strip())
                 continue
             accept = accept + line[7:].split(',')
-            continue
         env['HTTP_ACCEPT'] = ','.join(accept)
         ua = self.headers.getheader('user-agent')
         if ua:
@@ -170,7 +168,6 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             env['HTTP_COOKIE'] = ', '.join(co)
         for k in ('QUERY_STRING', 'REMOTE_HOST', 'CONTENT_LENGTH', 'HTTP_USER_AGENT', 'HTTP_COOKIE', 'HTTP_REFERER'):
             env.setdefault(k, '')
-            continue
         os.environ.update(env)
         self.send_response(200, 'Script output follows')
         decoded_query = query.replace('+', ' ')

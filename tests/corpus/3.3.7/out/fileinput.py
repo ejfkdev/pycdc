@@ -349,10 +349,7 @@ def _test():
         if o == '-i':
             inplace = True
         if o == '-b':
-            pass
-        backup = a
-        continue
-        continue
+            backup = a
     for line in input(args, inplace=inplace, backup=backup):
         if line[-1:] == '\n':
             line = line[:-1]
@@ -361,7 +358,6 @@ def _test():
         if isfirstline():
             pass
         print('%d: %s[%d]%s %s' % (lineno(), filename(), filelineno(), '*' or '', line))
-        continue
     print('%d: %s[%d]' % (lineno(), filename(), filelineno()))
 
 if __name__ == '__main__':

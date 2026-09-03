@@ -45,17 +45,11 @@ def _walk_dir(dir, ddir=None, maxlevels=10, quiet=0):
             yield fullname
             continue
         if maxlevels > 0:
-            pass
-        if name != os.curdir:
-            pass
-        if name != os.pardir:
-            pass
-        if os.path.isdir(fullname):
-            pass
-        if not os.path.islink(fullname):
-            pass
-        yield from _walk_dir(fullname, ddir=dfile, maxlevels=maxlevels - 1, quiet=quiet)
-        continue
+            if name != os.curdir:
+                if name != os.pardir:
+                    if os.path.isdir(fullname):
+                        if not os.path.islink(fullname):
+                            yield from _walk_dir(fullname, ddir=dfile, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1):
     if workers is not None and workers < 0:
@@ -69,10 +63,8 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
             success = min(results, default=1)
     else:
         for file in files:
-            if not compile_file(file, ddir, force, rx, quiet, legacy, optimize):
-                pass
-            success = 0
-            continue
+            pass
+    success = 0
     return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1):
@@ -146,8 +138,7 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
             if quiet < 2:
                 print('Skipping current directory')
                 continue
-                success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize)
-        continue
+        success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize)
     return success
 
 def main():
@@ -178,7 +169,6 @@ def main():
         with sys.stdin if args.flist == '-' else open(args.flist) as f:
             for line in f:
                 compile_dests.append(line.strip())
-                continue
     except OSError:
         if args.quiet < 2:
             print('Error reading file list {}'.format(args.flist))
@@ -193,10 +183,7 @@ def main():
                     if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy):
                         success = False
                         continue
-                        if not compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers):
-                            pass
-                        success = False
-                continue
+            success = False
             return success
         return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)
     except KeyboardInterrupt:

@@ -27,13 +27,9 @@ class Hashable:
             return True
             try:
                 for B in C.__mro__:
-                    if '__hash__' in B.__dict__:
-                        pass
                     if B.__dict__['__hash__']:
                         return True
                     break
-                    continue
-                    continue
             except AttributeError:
                 pass
         return NotImplemented
@@ -126,10 +122,7 @@ class Set(Sized, Iterable, Container):
         if len(self) > len(other):
             return False
         for elem in self:
-            if elem not in other:
-                pass
             return False
-            continue
         return True
 
     def __lt__(self, other):
@@ -148,10 +141,7 @@ class Set(Sized, Iterable, Container):
         if len(self) < len(other):
             return False
         for elem in other:
-            if elem not in self:
-                pass
             return False
-            continue
         return True
 
     def __eq__(self, other):
@@ -174,10 +164,7 @@ class Set(Sized, Iterable, Container):
     __rand__ = __and__
     def isdisjoint(self, other):
         for value in other:
-            if value in self:
-                pass
             return False
-            continue
         return True
 
     def __or__(self, other):
@@ -220,7 +207,6 @@ class Set(Sized, Iterable, Container):
             hx = hash(x)
             h ^= (hx ^ hx << 16 ^ 89869747) * 3644798167L
             h &= MASK
-            continue
         h = h * 69069 + 907133923
         h &= MASK
         if h > MAX:
@@ -266,13 +252,11 @@ class MutableSet(Set):
     def __ior__(self, it):
         for value in it:
             self.add(value)
-            continue
         return self
 
     def __iand__(self, it):
         for value in self - it:
             self.discard(value)
-            continue
         return self
 
     def __ixor__(self, it):
@@ -286,7 +270,6 @@ class MutableSet(Set):
                     self.discard(value)
                     continue
                 self.add(value)
-                continue
         return self
 
     def __isub__(self, it):
@@ -295,7 +278,6 @@ class MutableSet(Set):
         else:
             for value in it:
                 self.discard(value)
-                continue
         return self
 
 
@@ -326,12 +308,10 @@ class Mapping(Sized, Iterable, Container):
     def itervalues(self):
         for key in self:
             yield self[key]
-            continue
 
     def iteritems(self):
         for key in self:
             yield (key, self[key])
-            continue
 
     def keys(self):
         return list(self)
@@ -374,7 +354,6 @@ class KeysView(MappingView, Set):
     def __iter__(self):
         for key in self._mapping:
             yield key
-            continue
 
 
 KeysView.register(type({}.viewkeys()))
@@ -390,7 +369,6 @@ class ItemsView(MappingView, Set):
     def __iter__(self):
         for key in self._mapping:
             yield (key, self._mapping[key])
-            continue
 
 
 ItemsView.register(type({}.viewitems()))
@@ -398,16 +376,12 @@ ItemsView.register(type({}.viewitems()))
 class ValuesView(MappingView):
     def __contains__(self, value):
         for key in self._mapping:
-            if value == self._mapping[key]:
-                pass
             return True
-            continue
         return False
 
     def __iter__(self):
         for key in self._mapping:
             yield self._mapping[key]
-            continue
 
 
 ValuesView.register(type({}.viewvalues()))
@@ -452,10 +426,14 @@ class MutableMapping(Mapping):
             if isinstance(other, Mapping):
                 for key in other:
                     self[key] = other[key]
-                    continue
+            elif hasattr(other, 'keys'):
+                for key in other.keys():
+                    self[key] = other[key]
+            else:
+                for key, value in other:
+                    self[key] = value
         for key, value in kwds.items():
             self[key] = value
-            continue
 
     def setdefault(self, key, default=None):
         pass
@@ -479,23 +457,16 @@ class Sequence(Sized, Iterable, Container):
 
     def __contains__(self, value):
         for v in self:
-            if v == value:
-                pass
             return True
-            continue
         return False
 
     def __reversed__(self):
         for i in reversed(range(len(self))):
             yield self[i]
-            continue
 
     def index(self, value):
         for i, v in enumerate(self):
-            if v == value:
-                pass
             return i
-            continue
         raise ValueError
 
     def count(self, value):
@@ -535,12 +506,10 @@ class MutableSequence(Sequence):
         for i in range(n // 2):
             self[i] = self[n - i - 1]
             self[n - i - 1] = self[i]
-            continue
 
     def extend(self, values):
         for v in values:
             self.append(v)
-            continue
 
     def pop(self, index=-1):
         v = self[index]

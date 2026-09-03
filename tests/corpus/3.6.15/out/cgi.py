@@ -189,14 +189,12 @@ def parse_header(line):
     for p in parts:
         i = p.find('=')
         if i >= 0:
-            pass
-        name = p[:i].strip().lower()
-        value = p[i + 1:].strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[-1] == '"':
-            value = value[1:-1]
-            value = value.replace('\\\\', '\\').replace('\\"', '"')
-        pdict[name] = value
-        continue
+            name = p[:i].strip().lower()
+            value = p[i + 1:].strip()
+            if len(value) >= 2 and value[0] == value[-1] and value[-1] == '"':
+                value = value[1:-1]
+                value = value.replace('\\\\', '\\').replace('\\"', '"')
+            pdict[name] = value
     return key, pdict
 
 class MiniFieldStorage:
@@ -390,9 +388,7 @@ class FieldStorage:
         found = []
         for item in self.list:
             if item.name == key:
-                pass
-            found.append(item)
-            continue
+                found.append(item)
         if not found:
             raise KeyError(key)
         if len(found) == 1:
@@ -656,7 +652,6 @@ def print_environ(environ=os.environ):
     print('<DL>')
     for key in keys:
         print('<DT>', html.escape(key), '<DD>', html.escape(environ[key]))
-        continue
     print('</DL>')
     print()
 
@@ -672,7 +667,6 @@ def print_form(form):
         value = form[key]
         print('<i>' + html.escape(repr(type(value))) + '</i>')
         print('<DD>' + html.escape(repr(value)))
-        continue
     print('</DL>')
     print()
 

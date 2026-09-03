@@ -59,8 +59,7 @@ if __name__ == '__main__':
                         if ord(c) > 127:
                             break
                             continue
-                continue
-                finfo.Type = 'TEXT'
+            finfo.Type = 'TEXT'
             fp.seek(0, 2)
             dsize = fp.tell()
             fp.close()

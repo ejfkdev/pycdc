@@ -107,7 +107,6 @@ if os.name == 'posix':
                         if is_w:
                             e.append(fd)
                             continue
-                    continue
                 None if [] == r else r == w == e
                 if None:
                     time.sleep(timeout)
@@ -125,20 +124,16 @@ if os.name == 'posix':
                     if obj is None:
                         continue
                     read(obj)
-                    continue
                 for fd in w:
                     obj = map.get(fd)
                     if obj is None:
                         continue
                     write(obj)
-                    continue
                 for fd in e:
                     obj = map.get(fd)
                     if obj is None:
                         continue
                     _exception(obj)
-                    continue
-                    break
 
         def poll2(timeout=0.0, map=None):
             if map is None:
@@ -157,7 +152,6 @@ if os.name == 'posix':
                         flags |= select.POLLERR | select.POLLHUP | select.POLLNVAL
                         pollster.register(fd, flags)
                         continue
-                    continue
                 for fd, flags in r:
                     try:
                         r = pollster.poll(timeout)
@@ -170,8 +164,6 @@ if os.name == 'posix':
                     if obj is None:
                         continue
                     readwrite(obj, flags)
-                    continue
-                    break
 
         poll3 = poll2
         def loop(timeout=30.0, use_poll=False, map=None, count=None):
@@ -420,8 +412,6 @@ if os.name == 'posix':
                         continue
                 except _reraised_exceptions:
                     raise
-                continue
-                continue
             map.clear()
 
         import fcntl

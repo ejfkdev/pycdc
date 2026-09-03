@@ -74,7 +74,6 @@ def b32encode(s):
         c2 += (c1 & 1) << 16
         c3 += (c2 & 3) << 8
         encoded += bytes([_b32tab[c1 >> 11], _b32tab[c1 >> 6 & 31], _b32tab[c1 >> 1 & 31], _b32tab[c2 >> 12], _b32tab[c2 >> 7 & 31], _b32tab[c2 >> 2 & 31], _b32tab[c3 >> 5], _b32tab[c3 & 31]])
-        continue
     if leftover == 1:
         encoded[-6:] = b'======'
     elif leftover == 2:
@@ -112,12 +111,9 @@ def b32decode(s, casefold=False, map01=None):
         acc += _b32rev[c] << shift
         shift -= 5
         if shift < 0:
-            pass
-        parts.append(binascii.unhexlify(bytes('%010x' % acc, 'ascii')))
-        acc = 0
-        shift = 35
-        continue
-        continue
+            parts.append(binascii.unhexlify(bytes('%010x' % acc, 'ascii')))
+            acc = 0
+            shift = 35
     last = binascii.unhexlify(bytes('%010x' % acc, 'ascii'))
     if padchars == 0:
         last = b''
@@ -180,7 +176,6 @@ def encodebytes(s):
     for i in range(0, len(s), MAXBINSIZE):
         chunk = s[i:i + MAXBINSIZE]
         pieces.append(binascii.b2a_base64(chunk))
-        continue
     return b''.join(pieces)
 
 def encodestring(s):
@@ -218,11 +213,8 @@ def main():
             func = decode
         if o == '-u':
             func = decode
-        if o == '-t':
-            pass
         test()
         return
-        continue
     if args and args[0] != '-':
         with open(args[0], 'rb') as f:
             func(f, sys.stdout.buffer)

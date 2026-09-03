@@ -291,6 +291,9 @@ struct Ctx<'a> {
     /// py2 `if` statement: offset of the else-branch POP_TOP absorbed by
     /// the JUMP_IF_FALSE/TRUE rewrite (it must not pop a real value)
     py2_else_pop_at: Option<usize>,
+    /// loop tops whose loop already closed via their back edge: later dead
+    /// back edges to the same top are padding, not `continue`
+    closed_loop_tops: Vec<usize>,
     /// PEP 709 inline comprehension state (3.12+ listcomp/setcomp/dictcomp)
     inline_comp: Option<InlineComp>,
     inline_comp_stack: Vec<InlineComp>,
@@ -452,6 +455,7 @@ pub fn decompile(code: &CodeObject, version: PythonVersion) -> crate::Result<Dec
         skip_until: None,
         broken_loop_top: None,
         py2_else_pop_at: None,
+        closed_loop_tops: Vec::new(),
         inline_comp: None,
         inline_comp_stack: Vec::new(),
         pending_restore_vars: Vec::new(),
@@ -4421,6 +4425,47 @@ impl<'a> Ctx<'a> {
             return;
         }
 
+        // py2/<=3.7: `if cond: stmt` at the END of a loop body compiles the
+        // false-jump straight to the loop top (fusing skip and continue):
+        // [PJIF loop_top; stmts; JUMP_ABS loop_top; JUMP_ABS loop_top]. The
+        // then-body ends at the first backward jump to the loop top.
+        if !jump_if_true {
+            let loop_top = self
+                .blocks
+                .iter()
+                .rev()
+                .find(|b| matches!(b.kind, BlockType::While | BlockType::For))
+                .map(|b| b.start);
+            if let Some(lt) = loop_top {
+                if target == lt {
+                    let mut then_end = None;
+                    if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
+                        for ins in self.instrs.iter().skip(ci + 1) {
+                            if ins.is_backward && ins.target == Some(lt) {
+                                then_end = Some(ins.offset);
+                                break;
+                            }
+                            if matches!(ins.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                                break;
+                            }
+                            if ins.offset >= lt && lt > self.cur_offset {
+                                break;
+                            }
+                        }
+                    }
+                    if let Some(te) = then_end {
+                        let mut blk = Block::new(BlockType::If, self.cur_next, te);
+                        blk.cond = Some(cond);
+                        blk.cond_set = true;
+                        blk.jump_if_true = false;
+                        blk.stack_depth = self.stack.len();
+                        self.blocks.push(blk);
+                        return;
+                    }
+                }
+            }
+        }
+
         // close inner blocks that end at the current instruction before
         // opening the new one
         self.close_blocks_at(self.cur_offset);
@@ -4825,6 +4870,14 @@ impl<'a> Ctx<'a> {
     }
 
     fn handle_jump_backward(&mut self, target: usize) {
+        // dead back-edge padding: the loop owning this top already closed
+        if self
+            .closed_loop_tops
+            .iter()
+            .any(|t| self.effective_offset(*t) == self.effective_offset(target))
+        {
+            return;
+        }
         // back edge at the end of the try body or inside the handler chain
         // (`continue`-equivalent): not the loop's own back edge, ignore it
         // so the loop stays open for the handler chain / else region that
@@ -4881,6 +4934,7 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 if b.start == target || b.end == target {
+                    self.closed_loop_tops.push(b.start);
                     while self.blocks.len() > i {
                         self.force_close_top(target);
                     }
@@ -4906,6 +4960,12 @@ impl<'a> Ctx<'a> {
             self.push_stmt(Stmt::Continue);
         } else if self.broken_loop_top == Some(target) {
             // dead back-edge padding after a `break` closed the loop
+        } else if self
+            .closed_loop_tops
+            .iter()
+            .any(|t| self.effective_offset(*t) == self.effective_offset(target))
+        {
+            // dead back-edge padding after the loop already closed
         } else {
             self.mark_unclean();
         }
@@ -4934,7 +4994,9 @@ impl<'a> Ctx<'a> {
         if convert {
             let top = self.blocks.last_mut().unwrap();
             top.kind = BlockType::For;
-            top.start = self.cur_next;
+            // back edges target the FOR_ITER instruction itself, so the
+            // block must start there (matches the fresh-For path below)
+            top.start = self.cur_offset;
             top.iter = Some(iter);
             top.target = None;
             top.is_async = is_async;

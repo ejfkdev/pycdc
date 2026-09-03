@@ -244,7 +244,6 @@ if __name__ == '__main__':
                 self.coded_value = None
                 for K in self._reserved:
                     dict.__setitem__(self, K, '')
-                    continue
 
             def __setitem__(self, K, V):
                 K = K.lower()
@@ -300,7 +299,6 @@ if __name__ == '__main__':
                         RA(str(self._reserved[K]))
                         continue
                     RA('%s=%s' % (self._reserved[K], V))
-                    continue
                 return _semispacejoin(result)
 
 
@@ -337,7 +335,6 @@ if __name__ == '__main__':
                 items.sort()
                 for K, V in items:
                     result.append(V.output(attrs, header))
-                    continue
                 return sep.join(result)
 
             __str__ = output
@@ -347,7 +344,6 @@ if __name__ == '__main__':
                 items.sort()
                 for K, V in items:
                     L.append('%s=%s' % (K, repr(V.value)))
-                    continue
                 return '<%s: %s>' % (self.__class__.__name__, _spacejoin(L))
 
             def js_output(self, attrs=None):
@@ -356,7 +352,6 @@ if __name__ == '__main__':
                 items.sort()
                 for K, V in items:
                     result.append(V.js_output(attrs))
-                    continue
                 return _nulljoin(result)
 
             def load(self, rawdata):
@@ -365,7 +360,6 @@ if __name__ == '__main__':
                 else:
                     for k, v in rawdata.items():
                         self[k] = v
-                        continue
 
             def _BaseCookie__ParseString(self, str, patt=_CookiePattern):
                 i = 0

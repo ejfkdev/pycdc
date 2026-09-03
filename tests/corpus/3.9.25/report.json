@@ -306,7 +306,7 @@
    "module": "copyreg",
    "ast_detail": "diff at token 158: orig  value=BinOp(left=Constant(value=1) | dec  value=Constant(value=512))",
    "verdict": "SIG-DIFF",
-   "ndiff": 367,
+   "ndiff": 368,
    "ntotal": 563,
    "detail": "line 168: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')\nline 176: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 82')\nline 188: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')"
   }

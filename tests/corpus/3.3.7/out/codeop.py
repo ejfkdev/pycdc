@@ -65,16 +65,10 @@ def _maybe_compile(compiler, source, filename, symbol):
     for line in source.split('\n'):
         line = line.strip()
         if line:
-            pass
-        if line[0] != '#':
-            pass
-        break
-        continue
-        continue
-        if not symbol != 'eval':
-            break
+            if line[0] != '#':
+                break
+    if symbol != 'eval':
         source = 'pass'
-        break
     err = err1 = err2 = None
     code = code1 = code2 = None
     err = None
@@ -119,10 +113,7 @@ class Compile:
         codeob = compile(source, filename, symbol, self.flags, 1)
         for feature in _features:
             if codeob.co_flags & feature.compiler_flag:
-                pass
-            self.flags |= feature.compiler_flag
-            continue
-            continue
+                self.flags |= feature.compiler_flag
         return codeob
 
 

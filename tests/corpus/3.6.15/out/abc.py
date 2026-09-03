@@ -106,10 +106,7 @@ class ABCMeta(type):
             for name in getattr(base, '__abstractmethods__', set()):
                 value = getattr(cls, name, None)
                 if getattr(value, '__isabstractmethod__', False):
-                    pass
-                abstracts.add(name)
-                continue
-            continue
+                    abstracts.add(name)
         cls.__abstractmethods__ = frozenset(abstracts)
         cls._abc_registry = WeakSet()
         cls._abc_cache = WeakSet()
@@ -133,12 +130,10 @@ class ABCMeta(type):
         print('Inv.counter: %s' % ABCMeta._abc_invalidation_counter, file=file)
         for name in sorted(cls.__dict__):
             if name.startswith('_abc_'):
-                pass
-            value = getattr(cls, name)
-            if isinstance(value, WeakSet):
-                value = set(value)
-            print('%s: %r' % (name, value), file=file)
-            continue
+                value = getattr(cls, name)
+                if isinstance(value, WeakSet):
+                    value = set(value)
+                print('%s: %r' % (name, value), file=file)
 
     def __instancecheck__(cls, instance):
         subclass = instance.__class__
@@ -172,17 +167,11 @@ class ABCMeta(type):
             cls._abc_cache.add(subclass)
             return True
         for rcls in cls._abc_registry:
-            if issubclass(subclass, rcls):
-                pass
             cls._abc_cache.add(subclass)
             return True
-            continue
         for scls in cls.__subclasses__():
-            if issubclass(subclass, scls):
-                pass
             cls._abc_cache.add(subclass)
             return True
-            continue
         cls._abc_negative_cache.add(subclass)
         return False
 

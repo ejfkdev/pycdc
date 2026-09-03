@@ -336,7 +336,6 @@ class Aifc_read:
         for marker in self._markers:
             if id == marker[0]:
                 return marker
-            continue
         raise Error # WARNING: raise cause dropped (py2)
 
     def setpos(self, pos):
@@ -564,14 +563,12 @@ class Aifc_write:
             if id == self._markers[i][0]:
                 self._markers[i] = id, pos, name
                 return
-            continue
         self._markers.append((id, pos, name))
 
     def getmark(self, id):
         for marker in self._markers:
             if id == marker[0]:
                 return marker
-            continue
         raise Error # WARNING: raise cause dropped (py2)
 
     def getmarkers(self):
@@ -761,7 +758,6 @@ class Aifc_write:
             if len(name) & 1 == 0:
                 length = length + 1
                 continue
-            continue
         _write_long(self._file, length)
         self._marklength = length + 8
         _write_short(self._file, len(self._markers))
@@ -770,7 +766,6 @@ class Aifc_write:
             _write_short(self._file, id)
             _write_long(self._file, pos)
             _write_string(self._file, name)
-            continue
 
 
 def open(f, mode=None):

@@ -48,7 +48,6 @@ for _name in _names:
         else:
             _defaultmod = _mod
     _errors.append(_mod.error)
-    continue
 if not _defaultmod:
     raise ImportError # WARNING: raise cause dropped (py2)
 error = tuple(_errors)

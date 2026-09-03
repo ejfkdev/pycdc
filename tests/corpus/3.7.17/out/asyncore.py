@@ -114,9 +114,7 @@ def poll(timeout=0.0, map=None):
                     w.append(fd)
             if not is_r:
                 if is_w:
-                    pass
-            e.append(fd)
-            continue
+                    e.append(fd)
         if [] == r and r == w:
             if w == e:
                 pass
@@ -128,19 +126,16 @@ def poll(timeout=0.0, map=None):
             if obj is None:
                 continue
             read(obj)
-            continue
         for fd in w:
             obj = map.get(fd)
             if obj is None:
                 continue
             write(obj)
-            continue
         for fd in e:
             obj = map.get(fd)
             if obj is None:
                 continue
             _exception(obj)
-            continue
 
 def poll2(timeout=0.0, map=None):
     if map is None:
@@ -157,16 +152,13 @@ def poll2(timeout=0.0, map=None):
                 if not obj.accepting:
                     flags |= select.POLLOUT
             if flags:
-                pass
-            pollster.register(fd, flags)
-            continue
+                pollster.register(fd, flags)
         r = pollster.poll(timeout)
         for fd, flags in r:
             obj = map.get(fd)
             if obj is None:
                 continue
             readwrite(obj, flags)
-            continue
 
 poll3 = poll2
 
@@ -459,12 +451,8 @@ def close_all(map=None, ignore_all=False):
                 pass
             elif not ignore_all:
                 raise
-        continue
-        continue
-        if not ignore_all:
-            raise
-        continue
-        continue
+    if not ignore_all:
+        raise
     map.clear()
 
 if os.name == 'posix':

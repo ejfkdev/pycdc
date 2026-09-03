@@ -206,7 +206,6 @@ class Bdb:
             return 'There is no breakpoint at %s:%d' % (filename, lineno)
         for bp in Breakpoint.bplist[filename, lineno][:]:
             bp.deleteMe()
-            continue
         if not Breakpoint.bplist.has_key((filename, lineno)):
             self.breaks[filename].remove(lineno)
         if not self.breaks[filename]:
@@ -231,8 +230,6 @@ class Bdb:
             blist = Breakpoint.bplist[filename, line]
             for bp in blist:
                 bp.deleteMe()
-                continue
-            continue
         del self.breaks[filename]
 
     def clear_all_breaks(self):
@@ -242,7 +239,6 @@ class Bdb:
             if bp:
                 bp.deleteMe()
                 continue
-            continue
         self.breaks = {}
 
     def get_break(self, filename, lineno):
@@ -469,12 +465,6 @@ def effective(file, line, frame):
             if b.ignore > 0:
                 b.ignore = b.ignore - 1
                 continue
-                continue
-        return b, 1
-        continue
-        return b, 1
-        return b, 0
-        continue
     return (None, None)
 
 class Tdb(Bdb):

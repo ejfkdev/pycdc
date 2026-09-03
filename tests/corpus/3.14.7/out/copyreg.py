@@ -114,7 +114,6 @@ def _slotnames(cls):
                         continue
             names.append(name)
         names.append(name)
-        continue
     try:
         cls.__slotnames__ = names
     finally:

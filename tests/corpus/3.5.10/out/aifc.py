@@ -350,10 +350,7 @@ class Aifc_read:
 
     def getmark(self, id):
         for marker in self._markers:
-            if id == marker[0]:
-                pass
             return marker
-            continue
         raise Error('marker {0!r} does not exist'.format(id))
 
     def setpos(self, pos):
@@ -437,9 +434,7 @@ class Aifc_read:
                 name = _read_string(chunk)
                 if not pos:
                     if name:
-                        pass
-                self._markers.append((id, pos, name))
-                continue
+                        self._markers.append((id, pos, name))
         except EOFError as w:
             warnings.warn(w)
 
@@ -575,19 +570,13 @@ class Aifc_write:
         if not isinstance(name, bytes):
             raise Error('marker name must be bytes')
         for i in range(len(self._markers)):
-            if id == self._markers[i][0]:
-                pass
             self._markers[i] = id, pos, name
             return
-            continue
         self._markers.append((id, pos, name))
 
     def getmark(self, id):
         for marker in self._markers:
-            if id == marker[0]:
-                pass
             return marker
-            continue
         raise Error('marker {0!r} does not exist'.format(id))
 
     def getmarkers(self):
@@ -761,9 +750,7 @@ class Aifc_write:
             id, pos, name = marker
             length = length + len(name) + 1 + 6
             if len(name) & 1 == 0:
-                pass
-            length = length + 1
-            continue
+                length = length + 1
         _write_ulong(self._file, length)
         self._marklength = length + 8
         _write_short(self._file, len(self._markers))
@@ -772,7 +759,6 @@ class Aifc_write:
             _write_short(self._file, id)
             _write_ulong(self._file, pos)
             _write_string(self._file, name)
-            continue
 
 
 def open(f, mode=None):

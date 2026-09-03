@@ -99,7 +99,6 @@ class MimeWriter:
                 continue
         for i in range(1, len(lines)):
             lines[i] = '    ' + lines[i].strip()
-            continue
         value = '\n'.join(lines) + '\n'
         line = key + ': ' + value
         if prefix:
@@ -114,7 +113,6 @@ class MimeWriter:
     def startbody(self, ctype, plist=[], prefix=1):
         for name, value in plist:
             ctype = ctype + ';\n %s="%s"' % (name, value)
-            continue
         self.addheader('Content-Type', ctype, prefix=prefix)
         self.flushheaders()
         self._fp.write('\n')

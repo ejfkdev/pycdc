@@ -56,14 +56,10 @@ if __name__ == '__main__':
             data = open(name).read(256)
             for c in data:
                 if not c.isspace():
-                    pass
-                if not c < ' ':
-                    if ord(c) > 127:
-                        pass
-                break
-                continue
-                continue
-                finfo.Type = 'TEXT'
+                    if not c < ' ':
+                        if ord(c) > 127:
+                            break
+            finfo.Type = 'TEXT'
             fp.seek(0, 2)
             dsize = fp.tell()
             fp.close()

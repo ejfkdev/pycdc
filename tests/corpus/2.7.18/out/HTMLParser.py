@@ -343,7 +343,6 @@ class HTMLParser(markupbase.ParserBase):
                         import htmlentitydefs as entitydefs
                         ValueError = {'apos': "'"}
                     ValueError[k] = unichr(v)
-                    continue
                 HTMLParser.entitydefs = ValueError
 
         return re.sub('&(#?[xX]?(?:[0-9a-fA-F]+|\\w{1,8}));', v, KeyError)

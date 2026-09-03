@@ -126,7 +126,6 @@ class DictReader:
         elif lf > lr:
             for key in self.fieldnames[lr:]:
                 d[key] = self.restval
-                continue
         return d
 
 
@@ -193,9 +192,7 @@ class Sniffer:
             regexp = re.compile(restr, re.DOTALL | re.MULTILINE)
             matches = regexp.findall(data)
             if matches:
-                pass
-            break
-            continue
+                break
         if not matches:
             return ('', False, None, 0)
         quotes = {}
@@ -221,9 +218,7 @@ class Sniffer:
             except KeyError:
                 pass
             if m[n]:
-                pass
-            spaces += 1
-            continue
+                spaces += 1
         quotechar = max(quotes, key=quotes.get)
         if delims:
             delim = max(delims, key=delims.get)
@@ -257,8 +252,6 @@ class Sniffer:
                     freq = line.count(char)
                     metaFrequency[freq] = metaFrequency.get(freq, 0) + 1
                     charFrequency[char] = metaFrequency
-                    continue
-                continue
             for char in charFrequency.keys():
                 items = list(charFrequency[char].items())
                 if len(items) == 1 and items[0][0] == 0:
@@ -269,7 +262,6 @@ class Sniffer:
                     modes[char] = modes[char][0], modes[char][1] - sum((item[1] for item in items))
                     continue
                 modes[char] = items[0]
-                continue
             modeList = modes.items()
             total = float(chunkLength * iteration)
             consistency = 1.0
@@ -278,16 +270,11 @@ class Sniffer:
                 if consistency >= threshold:
                     for k, v in modeList:
                         if v[0] > 0:
-                            pass
-                        if v[1] > 0:
-                            pass
-                        if v[1] / total >= consistency:
-                            pass
-                        if not delimiters is None:
-                            if k in delimiters:
-                                pass
-                        delims[k] = v
-                        continue
+                            if v[1] > 0:
+                                if v[1] / total >= consistency:
+                                    if not delimiters is None:
+                                        if k in delimiters:
+                                            delims[k] = v
                     consistency -= 0.01
                     continue
             if len(delims) == 1:
@@ -300,11 +287,8 @@ class Sniffer:
             return ('', 0)
         if len(delims) > 1:
             for d in self.preferred:
-                if d in delims.keys():
-                    pass
                 skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
                 return d, skipinitialspace
-                continue
         items = [(v, k) for k, v in delims.items()]
         items.sort()
         delim = items[-1][1]
@@ -318,7 +302,6 @@ class Sniffer:
         columnTypes = {}
         for i in range(columns):
             columnTypes[i] = None
-            continue
         checked = 0
         for row in rdr:
             if checked > 20:
@@ -328,23 +311,17 @@ class Sniffer:
                 continue
             for col in list(columnTypes.keys()):
                 for thisType in [int, float, complex]:
-                    continue
                     try:
                         thisType(row[col])
                         break
                     except (ValueError, OverflowError):
                         pass
-                    continue
-                    continue
-                    thisType = len(row[col])
+                thisType = len(row[col])
                 if thisType != columnTypes[col]:
-                    pass
-                if columnTypes[col] is None:
-                    columnTypes[col] = thisType
-                    continue
+                    if columnTypes[col] is None:
+                        columnTypes[col] = thisType
+                        continue
                 del columnTypes[col]
-                continue
-            continue
         hasHeader = 0
         for col, colType in columnTypes.items():
             if type(colType) == type(0):
@@ -352,14 +329,12 @@ class Sniffer:
                     hasHeader += 1
                     continue
             hasHeader -= 1
-            continue
-            try:
-                colType(header[col])
-            except (ValueError, TypeError) as hasHeader:
-                pass
-            else:
-                hasHeader -= 1
-            continue
+        try:
+            colType(header[col])
+        except (ValueError, TypeError) as hasHeader:
+            pass
+        else:
+            hasHeader -= 1
         return hasHeader > 0
 
 

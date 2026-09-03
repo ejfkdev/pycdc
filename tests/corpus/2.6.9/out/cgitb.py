@@ -73,7 +73,6 @@ def scanvars(reader, frame, locals):
                     vars.append((prefix + token, prefix, value))
                     continue
         lasttoken = token
-        continue
     return vars
 
 def html(einfo, context=5):
@@ -123,8 +122,6 @@ def html(einfo, context=5):
                 else:
                     rows.append('<tr><td>%s</td></tr>' % grey(line))
                 i += 1
-                continue
-                break
         done, dump = {}, []
         for name, where, value in vars:
             if name in done:
@@ -140,10 +137,8 @@ def html(einfo, context=5):
                 dump.append('%s&nbsp;= %s' % (name, pydoc.html.repr(value)))
                 continue
             dump.append(name + ' <em>undefined</em>')
-            continue
         rows.append('<tr><td>%s</td></tr>' % small(grey(', '.join(dump))))
         frames.append('\n<table width="100%%" cellspacing=0 cellpadding=0 border=0>\n%s</table>' % '\n'.join(rows))
-        continue
     exception = ['<p>%s: %s' % (strong(pydoc.html.escape(str(etype))), pydoc.html.escape(str(evalue)))]
     if isinstance(evalue, BaseException):
         for name in dir(evalue):
@@ -151,8 +146,6 @@ def html(einfo, context=5):
                 continue
             value = pydoc.html.repr(getattr(evalue, name))
             exception.append('\n<br>%s%s&nbsp;=\n%s' % (indent, name, value))
-            continue
-            break
     import traceback
     return head + ''.join(frames) + ''.join(exception) + "\n\n\n<!-- The above is a description of an error in a Python program, formatted\n     for a Web browser because the 'cgitb' module was enabled.  In case you\n     are not reading this in a Web browser, here is the original traceback:\n\n%s\n-->\n" % pydoc.html.escape(''.join(traceback.format_exception(etype, evalue, etb)))
 
@@ -196,8 +189,6 @@ def text(einfo, context=5):
                 num = '%5d ' % i
                 rows.append(num + line.rstrip())
                 i += 1
-                continue
-                break
         done, dump = {}, []
         for name, where, value in vars:
             if name in done:
@@ -211,17 +202,13 @@ def text(einfo, context=5):
                 dump.append('%s = %s' % (name, pydoc.text.repr(value)))
                 continue
             dump.append(name + ' undefined')
-            continue
         rows.append('\n'.join(dump))
         frames.append('\n%s\n' % '\n'.join(rows))
-        continue
     exception = ['%s: %s' % (str(etype), str(evalue))]
     if isinstance(evalue, BaseException):
         for name in dir(evalue):
             value = pydoc.text.repr(getattr(evalue, name))
             exception.append('\n%s%s = %s' % ('    ', name, value))
-            continue
-            break
     import traceback
     return head + ''.join(frames) + ''.join(exception) + '\n\nThe above is a description of an error in a Python program.  Here is\nthe original traceback:\n\n%s\n' % ''.join(traceback.format_exception(etype, evalue, etb))
 

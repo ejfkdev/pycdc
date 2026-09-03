@@ -395,7 +395,6 @@ class ForkingMixIn:
                 if e.errno == errno.ECHILD:
                     self.active_children.discard(pid)
                     continue
-            continue
 
     def handle_timeout(self):
         self.collect_children()

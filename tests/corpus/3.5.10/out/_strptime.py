@@ -86,7 +86,6 @@ class LocaleTime(object):
         for hour in (1, 22):
             time_tuple = time.struct_time((1999, 3, 17, hour, 44, 55, 2, 76, 0))
             am_pm.append(time.strftime('%p', time_tuple).lower())
-            continue
         self.am_pm = am_pm
 
     def _LocaleTime__calc_date_time(self):
@@ -101,16 +100,13 @@ class LocaleTime(object):
             current_format = date_time[offset]
             for old, new in replacement_pairs:
                 if old:
-                    pass
-                current_format = current_format.replace(old, new)
-                continue
+                    current_format = current_format.replace(old, new)
             time_tuple = time.struct_time((1999, 1, 3, 1, 1, 1, 6, 3, 0))
             if '00' in time.strftime(directive, time_tuple):
                 U_W = '%W'
             else:
                 U_W = '%U'
             date_time[offset] = current_format.replace('11', U_W)
-            continue
         self.LC_date_time = date_time[0]
         self.LC_date = date_time[1]
         self.LC_time = date_time[2]
@@ -149,13 +145,8 @@ class TimeRE(dict):
         to_convert = sorted(to_convert, key=len, reverse=True)
         for value in to_convert:
             if value != '':
-                pass
-            break
-            continue
-            return ''
-        regex = '|'.join((re_escape(stuff) for stuff in to_convert))
-        regex = '(?P<%s>%s' % (directive, regex)
-        return '%s)' % regex
+                break
+        return ''
 
     def pattern(self, format):
         processed_format = ''
@@ -192,11 +183,9 @@ def _calc_julian_from_U_or_W(year, week_of_year, day_of_week, week_starts_Mon):
 def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
     global _TimeRE_cache
     for index, arg in enumerate([data_string, format]):
-        if not isinstance(arg, str):
-            pass
-        msg = 'strptime() argument {} must be str, not {}'
-        raise TypeError(msg.format(index, type(arg)))
-        continue
+        pass
+    msg = 'strptime() argument {} must be str, not {}'
+    raise TypeError(msg.format(index, type(arg)))
     with _cache_lock:
         locale_time = _TimeRE_cache.locale_time
         if not _getlang() != locale_time.lang or time.tzname != locale_time.tzname:
@@ -239,84 +228,65 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                 year += 2000
                 continue
         year += 1900
-        continue
-        if group_key == 'Y':
-            year = int(found_dict['Y'])
-            continue
-        if group_key == 'm':
-            month = int(found_dict['m'])
-            continue
-        if group_key == 'B':
-            month = locale_time.f_month.index(found_dict['B'].lower())
-            continue
-        if group_key == 'b':
-            month = locale_time.a_month.index(found_dict['b'].lower())
-            continue
-        if group_key == 'd':
-            day = int(found_dict['d'])
-            continue
-        if group_key == 'H':
-            hour = int(found_dict['H'])
-            continue
-        if group_key == 'I':
-            hour = int(found_dict['I'])
-            ampm = found_dict.get('p', '').lower()
-            if (ampm in ('', locale_time.am_pm[0]) and hour == 12 or ampm == locale_time.am_pm[1]) and hour != 12:
-                hour += 12
-                continue
-                if group_key == 'M':
-                    minute = int(found_dict['M'])
-                    continue
-                if group_key == 'S':
-                    second = int(found_dict['S'])
-                    continue
-                if group_key == 'f':
-                    s = found_dict['f']
-                    s += '0' * (6 - len(s))
-                    fraction = int(s)
-                    continue
-                if group_key == 'A':
-                    weekday = locale_time.f_weekday.index(found_dict['A'].lower())
-                    continue
-                if group_key == 'a':
-                    weekday = locale_time.a_weekday.index(found_dict['a'].lower())
-                    continue
-                if group_key == 'w':
-                    weekday = int(found_dict['w'])
-                    if weekday == 0:
-                        weekday = 6
-                        continue
-        weekday -= 1
-        continue
-        if group_key == 'j':
-            julian = int(found_dict['j'])
-            continue
-        if group_key in ('U', 'W'):
-            week_of_year = int(found_dict[group_key])
-            if group_key == 'U':
-                week_of_year_start = 6
-                continue
-        week_of_year_start = 0
-        continue
-        if group_key == 'z':
-            z = found_dict['z']
-            tzoffset = int(z[1:3]) * 60 + int(z[3:5])
-            if z.startswith('-'):
-                tzoffset = -tzoffset
-                continue
-                if group_key == 'Z':
-                    pass
-                found_zone = found_dict['Z'].lower()
-                for value, tz_values in enumerate(locale_time.timezone):
-                    if found_zone in tz_values:
-                        pass
-                    if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                        break
-                        continue
-                    tz = value
-                    break
-                    continue
-        continue
+    if group_key == 'Y':
+        year = int(found_dict['Y'])
+    if group_key == 'm':
+        month = int(found_dict['m'])
+    if group_key == 'B':
+        month = locale_time.f_month.index(found_dict['B'].lower())
+    if group_key == 'b':
+        month = locale_time.a_month.index(found_dict['b'].lower())
+    if group_key == 'd':
+        day = int(found_dict['d'])
+    if group_key == 'H':
+        hour = int(found_dict['H'])
+    if group_key == 'I':
+        hour = int(found_dict['I'])
+        ampm = found_dict.get('p', '').lower()
+        if (ampm in ('', locale_time.am_pm[0]) and hour == 12 or ampm == locale_time.am_pm[1]) and hour != 12:
+            hour += 12
+            if group_key == 'M':
+                minute = int(found_dict['M'])
+            if group_key == 'S':
+                second = int(found_dict['S'])
+            if group_key == 'f':
+                s = found_dict['f']
+                s += '0' * (6 - len(s))
+                fraction = int(s)
+            if group_key == 'A':
+                weekday = locale_time.f_weekday.index(found_dict['A'].lower())
+            if group_key == 'a':
+                weekday = locale_time.a_weekday.index(found_dict['a'].lower())
+            if group_key == 'w':
+                weekday = int(found_dict['w'])
+                if weekday == 0:
+                    weekday = 6
+                else:
+                    weekday -= 1
+            else:
+                if group_key == 'j':
+                    julian = int(found_dict['j'])
+                if group_key in ('U', 'W'):
+                    week_of_year = int(found_dict[group_key])
+                    if group_key == 'U':
+                        week_of_year_start = 6
+                    else:
+                        week_of_year_start = 0
+                elif group_key == 'z':
+                    z = found_dict['z']
+                    tzoffset = int(z[1:3]) * 60 + int(z[3:5])
+                    if z.startswith('-'):
+                        tzoffset = -tzoffset
+                        if group_key == 'Z':
+                            pass
+                        found_zone = found_dict['Z'].lower()
+                        for value, tz_values in enumerate(locale_time.timezone):
+                            if found_zone in tz_values:
+                                if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
+                                    break
+                                    continue
+                            tz = value
+                            break
     leap_year_fix = False
     if year is None and month == 2 and day == 29:
         year = 1904

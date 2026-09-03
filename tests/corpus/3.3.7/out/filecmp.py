@@ -140,9 +140,7 @@ class dircmp:
                 self.common_files.append(x)
                 continue
             self.common_funny.append(x)
-            continue
-            self.common_funny.append(x)
-            continue
+        self.common_funny.append(x)
 
     def phase3(self):
         xx = cmpfiles(self.left, self.right, self.common_files)
@@ -154,13 +152,11 @@ class dircmp:
             a_x = os.path.join(self.left, x)
             b_x = os.path.join(self.right, x)
             self.subdirs[x] = dircmp(a_x, b_x, self.ignore, self.hide)
-            continue
 
     def phase4_closure(self):
         self.phase4()
         for sd in self.subdirs.values():
             sd.phase4_closure()
-            continue
 
     def report(self):
         print('diff', self.left, self.right)
@@ -191,14 +187,12 @@ class dircmp:
         for sd in self.subdirs.values():
             print()
             sd.report()
-            continue
 
     def report_full_closure(self):
         self.report()
         for sd in self.subdirs.values():
             print()
             sd.report_full_closure()
-            continue
 
     methodmap = dict(subdirs=phase4, same_files=phase3, diff_files=phase3, funny_files=phase3, common_dirs=phase2, common_files=phase2, common_funny=phase2, common=phase1, left_only=phase1, right_only=phase1, left_list=phase0, right_list=phase0)
     def __getattr__(self, attr):
@@ -214,7 +208,6 @@ def cmpfiles(a, b, common, shallow=True):
         ax = os.path.join(a, x)
         bx = os.path.join(b, x)
         res[_cmp(ax, bx, shallow)].append(x)
-        continue
     return res
 
 def _cmp(a, b, sh, abs=abs, cmp=cmp):

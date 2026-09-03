@@ -152,7 +152,6 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 accept.append(line.strip())
                 continue
             accept = accept + line[7:].split(',')
-            continue
         env['HTTP_ACCEPT'] = ','.join(accept)
         ua = self.headers.getheader('user-agent')
         if ua:
@@ -162,7 +161,6 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             env['HTTP_COOKIE'] = ', '.join(co)
         for k in ('QUERY_STRING', 'REMOTE_HOST', 'CONTENT_LENGTH', 'HTTP_USER_AGENT', 'HTTP_COOKIE', 'HTTP_REFERER'):
             env.setdefault(k, '')
-            continue
         self.send_response(200, 'Script output follows')
         decoded_query = query.replace('+', ' ')
         if self.have_fork:
@@ -233,12 +231,8 @@ def _url_collapse_path(path):
             head_parts.pop()
             continue
         if part:
-            pass
-        if part != '.':
-            pass
-        head_parts.append(part)
-        continue
-        continue
+            if part != '.':
+                head_parts.append(part)
     if path_parts:
         tail_part = path_parts.pop()
         if tail_part:

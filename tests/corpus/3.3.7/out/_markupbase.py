@@ -318,4 +318,3 @@ class ParserBase:
         pass
 
 
-# WARNING: Decompyle incomplete

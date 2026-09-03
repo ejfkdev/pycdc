@@ -99,23 +99,19 @@ def _copy_immutable(x):
 
 for t in type(None), int, float, bool, str, tuple, bytes, frozenset, type, range, types.BuiltinFunctionType, type(Ellipsis), types.FunctionType, weakref.ref:
     d[t] = _copy_immutable
-    continue
 t = getattr(types, 'CodeType', None)
 if t is not None:
     d[t] = _copy_immutable
 for name in ('complex', 'unicode'):
     t = getattr(builtins, name, None)
     if t is not None:
-        pass
-    d[t] = _copy_immutable
-    continue
+        d[t] = _copy_immutable
 
 def _copy_with_constructor(x):
     return type(x)(x)
 
 for t in list, dict, set:
     d[t] = _copy_with_constructor
-    continue
 
 def _copy_with_copy_method(x):
     return x.copy()
@@ -195,7 +191,6 @@ def _deepcopy_list(x, memo):
     memo[id(x)] = y
     for a in x:
         y.append(deepcopy(a, memo))
-        continue
     return y
 
 d[list] = _deepcopy_list
@@ -208,11 +203,9 @@ def _deepcopy_tuple(x, memo):
         pass
     for k, j in zip(x, y):
         if k is not j:
-            pass
-        y = tuple(y)
-        break
-        continue
-        y = x
+            y = tuple(y)
+            break
+    y = x
     return y
 
 d[tuple] = _deepcopy_tuple
@@ -222,7 +215,6 @@ def _deepcopy_dict(x, memo):
     memo[id(x)] = y
     for key, value in x.items():
         y[deepcopy(key, memo)] = deepcopy(value, memo)
-        continue
     return y
 
 d[dict] = _deepcopy_dict
@@ -282,20 +274,17 @@ def _reconstruct(x, info, deep, memo=None):
             if slotstate is not None:
                 for key, value in slotstate.items():
                     setattr(y, key, value)
-                    continue
     if listiter is not None:
         for item in listiter:
             if deep:
                 item = deepcopy(item, memo)
             y.append(item)
-            continue
     if dictiter is not None:
         for key, value in dictiter:
             if deep:
                 key = deepcopy(key, memo)
                 value = deepcopy(value, memo)
             y[key] = value
-            continue
     return y
 
 del d, types

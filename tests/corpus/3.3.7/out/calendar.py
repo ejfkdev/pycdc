@@ -105,7 +105,6 @@ class Calendar(object):
     def iterweekdays(self):
         for i in range(self.firstweekday, self.firstweekday + 7):
             yield (i % 7)
-            continue
 
     def itermonthdates(self, year, month):
         date = datetime.date(year, month, 1)
@@ -128,7 +127,6 @@ class Calendar(object):
                 yield (0, date.weekday())
                 continue
             yield (date.day, date.weekday())
-            continue
 
     def itermonthdays(self, year, month):
         for date in self.itermonthdates(year, month):
@@ -136,7 +134,6 @@ class Calendar(object):
                 yield 0
                 continue
             yield date.day
-            continue
 
     def monthdatescalendar(self, year, month):
         dates = list(self.itermonthdates(year, month))
@@ -212,7 +209,6 @@ class TextCalendar(Calendar):
         for week in self.monthdays2calendar(theyear, themonth):
             s += self.formatweek(week, w).rstrip()
             s += '\n' * l
-            continue
         return s
 
     def formatyear(self, theyear, w=2, l=1, c=6, m=3):
@@ -242,11 +238,8 @@ class TextCalendar(Calendar):
                         weeks.append('')
                         continue
                     weeks.append(self.formatweek(cal[j], w))
-                    continue
                 a(formatstring(weeks, colwidth, c).rstrip())
                 a('\n' * l)
-                continue
-            continue
         return ''.join(v)
 
     def pryear(self, theyear, w=0, l=0, c=6, m=3):
@@ -294,7 +287,6 @@ class HTMLCalendar(Calendar):
         for week in self.monthdays2calendar(theyear, themonth):
             a(self.formatweek(week))
             a('\n')
-            continue
         a('</table>')
         a('\n')
         return ''.join(v)
@@ -313,9 +305,7 @@ class HTMLCalendar(Calendar):
                 a('<td>')
                 a(self.formatmonth(theyear, m, withyear=False))
                 a('</td>')
-                continue
             a('</tr>')
-            continue
         a('</table>')
         return ''.join(v)
 

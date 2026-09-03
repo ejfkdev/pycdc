@@ -39,8 +39,6 @@ class _Printer(object):
                 break
             except OSError:
                 pass
-            continue
-            continue
         if not data:
             data = self._Printer__data
         self._Printer__lines = data.split('\n')
@@ -61,7 +59,6 @@ class _Printer(object):
                 try:
                     for i in range(lineno, lineno + self.MAXLINES):
                         print(self._Printer__lines[i])
-                        continue
                 except IndexError:
                     break
                 else:

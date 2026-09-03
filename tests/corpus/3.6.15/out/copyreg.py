@@ -44,12 +44,9 @@ def _reduce_ex(self, proto):
         raise AssertionError
     for base in self.__class__.__mro__:
         if hasattr(base, '__flags__'):
-            pass
-        if not base.__flags__ & _HEAPTYPE:
-            pass
-        break
-        continue
-        base = object
+            if not base.__flags__ & _HEAPTYPE:
+                break
+    base = object
     if base is object:
         state = None
     else:
@@ -82,24 +79,19 @@ def _slotnames(cls):
     else:
         for c in cls.__mro__:
             if '__slots__' in c.__dict__:
-                pass
-            slots = c.__dict__['__slots__']
-            if isinstance(slots, str):
-                slots = (slots,)
-            for name in slots:
-                if name in ('__dict__', '__weakref__'):
-                    continue
-                continue
+                slots = c.__dict__['__slots__']
+                if isinstance(slots, str):
+                    slots = (slots,)
+                for name in slots:
+                    if name in ('__dict__', '__weakref__'):
+                        continue
                 if name.startswith('__') and not name.endswith('__'):
                     stripped = c.__name__.lstrip('_')
                     if stripped:
                         names.append('_%s%s' % (stripped, name))
                         continue
-                names.append(name)
-                continue
-                names.append(name)
-                continue
-            continue
+            names.append(name)
+            names.append(name)
 
 _extension_registry = {}
 _inverted_registry = {}

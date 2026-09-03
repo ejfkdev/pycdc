@@ -185,7 +185,6 @@ if __name__ == '__main__':
                 write = self.write
                 for line in iterable:
                     write(line)
-                    continue
 
             def flush(self):
                 _complain_ifclosed(self.closed)
@@ -209,7 +208,6 @@ if __name__ == '__main__':
             f = StringIO()
             for line in lines[:-2]:
                 f.write(line)
-                continue
             f.writelines(lines[-2:])
             if f.getvalue() != text:
                 raise RuntimeError # WARNING: raise cause dropped (py2)

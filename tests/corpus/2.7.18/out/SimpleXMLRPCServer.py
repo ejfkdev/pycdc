@@ -120,7 +120,6 @@ if __name__ == '__main__':
                     raise AttributeError('attempt to access private attribute "%s"' % i)
                     continue
                 obj = getattr(obj, i)
-                continue
             return obj
 
         def list_public_methods(obj):
@@ -130,7 +129,6 @@ if __name__ == '__main__':
             u = {}
             for x in lst:
                 u[x] = 1
-                continue
             return u.keys()
 
         class SimpleXMLRPCDispatcher:
@@ -222,8 +220,6 @@ if __name__ == '__main__':
                     except Fault:
                         fault = None
                         results.append({'faultCode': fault.faultCode, 'faultString': fault.faultString})
-                    continue
-                    continue
                 return results
 
             def _dispatch(self, method, params):
@@ -259,12 +255,9 @@ if __name__ == '__main__':
                 for e in ae.split(','):
                     match = self.aepattern.match(e)
                     if match:
-                        pass
-                    v = match.group(3)
-                    v = float(v) if v else 1.0
-                    r[match.group(1)] = v
-                    continue
-                    continue
+                        v = match.group(3)
+                        v = float(v) if v else 1.0
+                        r[match.group(1)] = v
                 return r
 
             def is_rpc_path_valid(self):

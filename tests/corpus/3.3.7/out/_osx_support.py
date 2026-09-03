@@ -18,10 +18,7 @@ def _find_executable(executable, path=None):
     if not os.path.isfile(executable):
         for p in paths:
             f = os.path.join(p, executable)
-            if os.path.isfile(f):
-                pass
             return f
-            continue
         return
     return executable
 
@@ -64,10 +61,7 @@ def _get_system_version():
 def _remove_original_values(_config_vars):
     for k in list(_config_vars):
         if k.startswith(_INITPRE):
-            pass
-        del _config_vars[k]
-        continue
-        continue
+            del _config_vars[k]
 
 def _save_modified_value(_config_vars, cv, newvalue):
     oldvalue = _config_vars.get(cv, '')
@@ -97,29 +91,20 @@ def _find_appropriate_compiler(_config_vars):
     if cc != oldcc:
         for cv in _COMPILER_CONFIG_VARS:
             if cv in _config_vars:
-                pass
-            if cv not in os.environ:
-                pass
-            cv_split = _config_vars[cv].split()
-            cv_split[0] = cc if cv != 'CXX' else cc + '++'
-            _save_modified_value(_config_vars, cv, ' '.join(cv_split))
-            continue
-            continue
-            break
+                if cv not in os.environ:
+                    cv_split = _config_vars[cv].split()
+                    cv_split[0] = cc if cv != 'CXX' else cc + '++'
+                    _save_modified_value(_config_vars, cv, ' '.join(cv_split))
     return _config_vars
 
 def _remove_universal_flags(_config_vars):
     for cv in _UNIVERSAL_CONFIG_VARS:
         if cv in _config_vars:
-            pass
-        if cv not in os.environ:
-            pass
-        flags = _config_vars[cv]
-        flags = re.sub('-arch\\s+\\w+\\s', ' ', flags, re.ASCII)
-        flags = re.sub('-isysroot [^ \t]*', ' ', flags)
-        _save_modified_value(_config_vars, cv, flags)
-        continue
-        continue
+            if cv not in os.environ:
+                flags = _config_vars[cv]
+                flags = re.sub('-arch\\s+\\w+\\s', ' ', flags, re.ASCII)
+                flags = re.sub('-isysroot [^ \t]*', ' ', flags)
+                _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def _remove_unsupported_archs(_config_vars):
@@ -129,14 +114,10 @@ def _remove_unsupported_archs(_config_vars):
         status = os.system("echo 'int main{};' | '%s' -c -arch ppc -x c -o /dev/null /dev/null 2>/dev/null" % (_config_vars['CC'].replace("'", '\'"\'"\''),))
         for cv in _UNIVERSAL_CONFIG_VARS:
             if cv in _config_vars:
-                pass
-            if cv not in os.environ:
-                pass
-            flags = _config_vars[cv]
-            flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
-            _save_modified_value(_config_vars, cv, flags)
-            continue
-            continue
+                if cv not in os.environ:
+                    flags = _config_vars[cv]
+                    flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
+                    _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def _override_all_archs(_config_vars):
@@ -144,16 +125,11 @@ def _override_all_archs(_config_vars):
         arch = os.environ['ARCHFLAGS']
         for cv in _UNIVERSAL_CONFIG_VARS:
             if cv in _config_vars:
-                pass
-            if '-arch' in _config_vars[cv]:
-                pass
-            flags = _config_vars[cv]
-            flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
-            flags = flags + ' ' + arch
-            _save_modified_value(_config_vars, cv, flags)
-            continue
-            continue
-            break
+                if '-arch' in _config_vars[cv]:
+                    flags = _config_vars[cv]
+                    flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
+                    flags = flags + ' ' + arch
+                    _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def _check_for_unavailable_sdk(_config_vars):
@@ -164,14 +140,10 @@ def _check_for_unavailable_sdk(_config_vars):
         if not os.path.exists(sdk):
             for cv in _UNIVERSAL_CONFIG_VARS:
                 if cv in _config_vars:
-                    pass
-                if cv not in os.environ:
-                    pass
-                flags = _config_vars[cv]
-                flags = re.sub('-isysroot\\s+\\S+(?:\\s|$)', ' ', flags)
-                _save_modified_value(_config_vars, cv, flags)
-                continue
-                continue
+                    if cv not in os.environ:
+                        flags = _config_vars[cv]
+                        flags = re.sub('-isysroot\\s+\\S+(?:\\s|$)', ' ', flags)
+                        _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def compiler_fixup(compiler_so, cc_args):

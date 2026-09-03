@@ -80,7 +80,6 @@ class UserDict:
             else:
                 for k, v in dict.items():
                     self[k] = v
-                    continue
         if len(kwargs):
             self.data.update(kwargs)
 
@@ -108,7 +107,6 @@ class UserDict:
         d = cls()
         for key in iterable:
             d[key] = value
-            continue
         return d
 
 
@@ -124,7 +122,6 @@ class DictMixin:
     def __iter__(self):
         for k in self.keys():
             yield k
-            continue
 
     def has_key(self, key):
         pass
@@ -135,7 +132,6 @@ class DictMixin:
     def iteritems(self):
         for k in self:
             yield (k, self[k])
-            continue
 
     def iterkeys(self):
         return self.__iter__()
@@ -143,7 +139,6 @@ class DictMixin:
     def itervalues(self):
         for _, v in self.iteritems():
             yield v
-            continue
 
     def values(self):
         _[1] = []
@@ -158,7 +153,6 @@ class DictMixin:
     def clear(self):
         for key in self.keys():
             del self[key]
-            continue
 
     def setdefault(self, key, default=None):
         pass
@@ -176,16 +170,12 @@ class DictMixin:
         elif hasattr(other, 'iteritems'):
             for k, v in other.iteritems():
                 self[k] = v
-                continue
-                break
-                if hasattr(other, 'keys'):
-                    for k in other.keys():
-                        self[k] = other[k]
-                        continue
-                        break
-                        for k, v in other:
-                            self[k] = v
-                            continue
+        elif hasattr(other, 'keys'):
+            for k in other.keys():
+                self[k] = other[k]
+        else:
+            for k, v in other:
+                self[k] = v
         if kwargs:
             self.update(kwargs)
 

@@ -83,7 +83,6 @@ class MozillaCookieJar(FileCookieJar):
                     name = cookie.name
                     value = cookie.value
                 f.write('\t'.join([cookie.domain, initial_dot, cookie.path, secure, expires, name, value]) + '\n')
-                continue
         finally:
             f.close()
 

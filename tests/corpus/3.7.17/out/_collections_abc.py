@@ -46,14 +46,10 @@ def _check_methods(C, *methods):
     mro = C.__mro__
     for method in methods:
         for B in mro:
-            if method in B.__dict__:
-                pass
             if B.__dict__[method] is None:
                 return NotImplemented
             break
-            continue
-            return NotImplemented
-        continue
+        return NotImplemented
     return True
 
 class Hashable(metaclass=ABCMeta):
@@ -338,10 +334,7 @@ class Set(Collection):
         if len(self) > len(other):
             return False
         for elem in self:
-            if elem not in other:
-                pass
             return False
-            continue
         return True
 
     def __lt__(self, other):
@@ -360,10 +353,7 @@ class Set(Collection):
         if len(self) < len(other):
             return False
         for elem in other:
-            if elem not in self:
-                pass
             return False
-            continue
         return True
 
     def __eq__(self, other):
@@ -383,10 +373,7 @@ class Set(Collection):
     __rand__ = __and__
     def isdisjoint(self, other):
         for value in other:
-            if value in self:
-                pass
             return False
-            continue
         return True
 
     def __or__(self, other):
@@ -428,7 +415,6 @@ class Set(Collection):
             hx = hash(x)
             h ^= (hx ^ hx << 16 ^ 89869747) * 3644798167
             h &= MASK
-            continue
         h = h * 69069 + 907133923
         h &= MASK
         if h > MAX:
@@ -485,13 +471,11 @@ class MutableSet(Set):
     def __ior__(self, it):
         for value in it:
             self.add(value)
-            continue
         return self
 
     def __iand__(self, it):
         for value in self - it:
             self.discard(value)
-            continue
         return self
 
     def __ixor__(self, it):
@@ -505,7 +489,6 @@ class MutableSet(Set):
                     self.discard(value)
                     continue
                 self.add(value)
-                continue
         return self
 
     def __isub__(self, it):
@@ -514,7 +497,6 @@ class MutableSet(Set):
         else:
             for value in it:
                 self.discard(value)
-                continue
         return self
 
 
@@ -598,7 +580,6 @@ class ItemsView(MappingView, Set):
     def __iter__(self):
         for key in self._mapping:
             yield (key, self._mapping[key])
-            continue
 
 
 ItemsView.register(dict_items)
@@ -609,16 +590,13 @@ class ValuesView(MappingView, Collection):
         for key in self._mapping:
             v = self._mapping[key]
             if not v is value:
-                if v == value:
-                    pass
+                pass
             return True
-            continue
         return False
 
     def __iter__(self):
         for key in self._mapping:
             yield self._mapping[key]
-            continue
 
 
 ValuesView.register(dict_values)
@@ -664,19 +642,14 @@ class MutableMapping(Mapping):
             if isinstance(other, Mapping):
                 for key in other:
                     self[key] = other[key]
-                    continue
-                    break
-                    if hasattr(other, 'keys'):
-                        for key in other.keys():
-                            self[key] = other[key]
-                            continue
-                            break
-                            for key, value in other:
-                                self[key] = value
-                                continue
+            elif hasattr(other, 'keys'):
+                for key in other.keys():
+                    self[key] = other[key]
+            else:
+                for key, value in other:
+                    self[key] = value
         for key, value in kwds.items():
             self[key] = value
-            continue
 
     def setdefault(self, key, default=None):
         try:
@@ -706,16 +679,13 @@ class Sequence(Reversible, Collection):
     def __contains__(self, value):
         for v in self:
             if not v is value:
-                if v == value:
-                    pass
+                pass
             return True
-            continue
         return False
 
     def __reversed__(self):
         for i in reversed(range(len(self))):
             yield self[i]
-            continue
 
     def index(self, value, start=0, stop=None):
         if start is not None and start < 0:
@@ -786,12 +756,10 @@ class MutableSequence(Sequence):
         for i in range(n // 2):
             self[i] = self[n - i - 1]
             self[n - i - 1] = self[i]
-            continue
 
     def extend(self, values):
         for v in values:
             self.append(v)
-            continue
 
     def pop(self, index=-1):
         v = self[index]

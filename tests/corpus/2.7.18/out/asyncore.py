@@ -110,10 +110,7 @@ if os.name == 'posix':
                         w.append(fd)
                     if not is_r:
                         if is_w:
-                            pass
-                    e.append(fd)
-                    continue
-                    continue
+                            e.append(fd)
                 if [] == r and r == w == e:
                     time.sleep(timeout)
                     return
@@ -130,20 +127,16 @@ if os.name == 'posix':
                     if obj is None:
                         continue
                     read(obj)
-                    continue
                 for fd in w:
                     obj = map.get(fd)
                     if obj is None:
                         continue
                     write(obj)
-                    continue
                 for fd in e:
                     obj = map.get(fd)
                     if obj is None:
                         continue
                     _exception(obj)
-                    continue
-                    break
 
         def poll2(timeout=0.0, map=None):
             if map is None:
@@ -159,11 +152,8 @@ if os.name == 'posix':
                     if obj.writable() and not obj.accepting:
                         flags |= select.POLLOUT
                     if flags:
-                        pass
-                    flags |= select.POLLERR | select.POLLHUP | select.POLLNVAL
-                    pollster.register(fd, flags)
-                    continue
-                    continue
+                        flags |= select.POLLERR | select.POLLHUP | select.POLLNVAL
+                        pollster.register(fd, flags)
                 for fd, flags in r:
                     try:
                         r = pollster.poll(timeout)
@@ -176,8 +166,6 @@ if os.name == 'posix':
                     if obj is None:
                         continue
                     readwrite(obj, flags)
-                    continue
-                    break
 
         poll3 = poll2
         def loop(timeout=30.0, use_poll=False, map=None, count=None):
@@ -448,8 +436,6 @@ if os.name == 'posix':
                         continue
                 except _reraised_exceptions:
                     raise
-                continue
-                continue
             map.clear()
 
         import fcntl

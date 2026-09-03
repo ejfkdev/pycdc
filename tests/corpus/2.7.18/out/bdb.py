@@ -96,10 +96,7 @@ class Bdb:
 
     def is_skipped_module(self, module_name):
         for pattern in self.skip:
-            if fnmatch.fnmatch(module_name, pattern):
-                pass
             return True
-            continue
         return False
 
     def stop_here(self, frame):
@@ -228,7 +225,6 @@ class Bdb:
             return 'There is no breakpoint at %s:%d' % (filename, lineno)
         for bp in Breakpoint.bplist[filename, lineno][:]:
             bp.deleteMe()
-            continue
         self._prune_breaks(filename, lineno)
 
     def clear_bpbynumber(self, arg):
@@ -251,8 +247,6 @@ class Bdb:
             blist = Breakpoint.bplist[filename, line]
             for bp in blist:
                 bp.deleteMe()
-                continue
-            continue
         del self.breaks[filename]
 
     def clear_all_breaks(self):
@@ -260,10 +254,7 @@ class Bdb:
             return 'There are no breakpoints'
         for bp in Breakpoint.bpbynumber:
             if bp:
-                pass
-            bp.deleteMe()
-            continue
-            continue
+                bp.deleteMe()
         self.breaks = {}
 
     def get_break(self, filename, lineno):
@@ -490,12 +481,6 @@ def effective(file, line, frame):
             if b.ignore > 0:
                 b.ignore = b.ignore - 1
                 continue
-                continue
-        return b, 1
-        continue
-        return b, 1
-        return b, 0
-        continue
     return (None, None)
 
 class Tdb(Bdb):

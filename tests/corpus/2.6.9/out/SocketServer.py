@@ -370,7 +370,6 @@ class ForkingMixIn:
             except ValueError:
                 e = None
                 raise ValueError('%s. x=%d and list=%r' % (e.message, pid, self.active_children))
-            continue
 
     def handle_timeout(self):
         self.collect_children()

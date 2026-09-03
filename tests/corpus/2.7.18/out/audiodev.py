@@ -62,41 +62,32 @@ class Play_Audio_sgi:
     def setoutrate(self, rate):
         for raw, cooked in self.frameratelist:
             if rate == raw:
-                pass
-            self.params[1] = cooked
-            self.inited_outrate = 1
-            break
-            continue
-            continue
-            raise error # WARNING: raise cause dropped (py2)
+                self.params[1] = cooked
+                self.inited_outrate = 1
+                break
+        raise error # WARNING: raise cause dropped (py2)
 
     def setsampwidth(self, width):
         for raw, cooked in self.sampwidthlist:
             if width == raw:
-                pass
-            self.config.setwidth(cooked)
-            self.inited_width = 1
-            break
-            continue
-            continue
-            if width == 0:
-                import AL
-                self.inited_width = 0
-                self.config.setwidth(AL.SAMPLE_16)
-                self.converter = self.ulaw2lin
+                self.config.setwidth(cooked)
+                self.inited_width = 1
                 break
+        if width == 0:
+            import AL
+            self.inited_width = 0
+            self.config.setwidth(AL.SAMPLE_16)
+            self.converter = self.ulaw2lin
+        else:
             raise error # WARNING: raise cause dropped (py2)
 
     def setnchannels(self, nchannels):
         for raw, cooked in self.nchannelslist:
             if nchannels == raw:
-                pass
-            self.config.setchannels(cooked)
-            self.inited_nchannels = 1
-            break
-            continue
-            continue
-            raise error # WARNING: raise cause dropped (py2)
+                self.config.setchannels(cooked)
+                self.inited_nchannels = 1
+                break
+        raise error # WARNING: raise cause dropped (py2)
 
     def writeframes(self, data):
         if not (self.inited_outrate and self.inited_nchannels):

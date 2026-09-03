@@ -513,7 +513,6 @@ class RawConfigParser(MutableMapping):
         if defaults:
             for key, value in defaults.items():
                 self._defaults[self.optionxform(key)] = value
-                continue
         self._delimiters = tuple(delimiters)
         if delimiters == ('=', ':'):
             self._optcre = self.OPTCRE_NV if allow_no_value else self.OPTCRE
@@ -575,7 +574,6 @@ class RawConfigParser(MutableMapping):
             if isinstance(filename, os.PathLike):
                 filename = os.fspath(filename)
             read_ok.append(filename)
-            continue
         return read_ok
 
     def read_file(self, f, source=None):
@@ -610,8 +608,6 @@ class RawConfigParser(MutableMapping):
                     raise DuplicateOptionError(section, key, source)
                 elements_added.add((section, key))
                 self.set(section, key, value)
-                continue
-            continue
 
     def readfp(self, fp, filename=None):
         warnings.warn("This method will be removed in future versions.  Use 'parser.read_file()' instead.", DeprecationWarning, stacklevel=2)
@@ -673,7 +669,6 @@ class RawConfigParser(MutableMapping):
         if vars:
             for key, value in vars.items():
                 d[self.optionxform(key)] = value
-                continue
         value_getter = lambda option: self._interpolation.before_get(self, section, option, d[option], d)
         if raw:
             value_getter = lambda option: d[option]
@@ -720,7 +715,6 @@ class RawConfigParser(MutableMapping):
             self._write_section(fp, self.default_section, self._defaults.items(), d)
         for section in self._sections:
             self._write_section(fp, section, self._sections[section].items(), d)
-            continue
 
     def _write_section(self, fp, section_name, section_items, delimiter):
         fp.write('[{}]\n'.format(section_name))
@@ -732,7 +726,6 @@ class RawConfigParser(MutableMapping):
                 else:
                     value = ''
             fp.write('{}{}\n'.format(key, value))
-            continue
         fp.write('\n')
 
     def remove_option(self, section, option):
@@ -804,19 +797,14 @@ class RawConfigParser(MutableMapping):
                         next_prefixes[prefix] = index
                         if not index == 0:
                             if index > 0:
-                                pass
-                            if line[index - 1].isspace():
-                                pass
-                        comment_start = min(comment_start, index)
-                        continue
+                                if line[index - 1].isspace():
+                                    comment_start = min(comment_start, index)
                     inline_prefixes = next_prefixes
                     continue
             for prefix in self._comment_prefixes:
                 if line.strip().startswith(prefix):
-                    pass
-                comment_start = 0
-                break
-                continue
+                    comment_start = 0
+                    break
             if comment_start == sys.maxsize:
                 comment_start = None
             value = line[:comment_start].strip()
@@ -882,8 +870,6 @@ class RawConfigParser(MutableMapping):
                 if isinstance(val, list):
                     val = '\n'.join(val).rstrip()
                 options[name] = self._interpolation.before_read(self, section, name, val)
-                continue
-            continue
 
     def _handle_error(self, exc, fpname, lineno, line):
         if not exc:
@@ -905,7 +891,6 @@ class RawConfigParser(MutableMapping):
                 if value is not None:
                     value = str(value)
                 vardict[self.optionxform(key)] = value
-                continue
         return _ChainMap(vardict, sectiondict, self._defaults)
 
     def _convert_to_boolean(self, value):
@@ -957,7 +942,6 @@ class SectionProxy(MutableMapping):
             key = 'get' + conv
             getter = functools.partial(self.get, _impl=getattr(parser, key))
             setattr(self, key, getter)
-            continue
 
     def __repr__(self):
         return '<Section: {}>'.format(self._name)
@@ -1017,12 +1001,9 @@ class ConverterMapping(MutableMapping):
         self._data = {}
         for getter in dir(self._parser):
             m = self.GETTERCRE.match(getter)
-            if not not m:
-                pass
-            if not callable(getattr(self._parser, getter)):
-                continue
-            self._data[m.group('name')] = None
-            continue
+        if not callable(getattr(self._parser, getter)):
+            pass
+        self._data[m.group('name')] = None
 
     def __getitem__(self, key):
         return self._data[key]
@@ -1041,7 +1022,6 @@ class ConverterMapping(MutableMapping):
         for proxy in self._parser.values():
             getter = functools.partial(proxy.get, _impl=func)
             setattr(proxy, k, getter)
-            continue
 
     def __delitem__(self, key):
         try:
@@ -1054,8 +1034,6 @@ class ConverterMapping(MutableMapping):
                 delattr(inst, k)
             except AttributeError:
                 pass
-            continue
-            continue
 
     def __iter__(self):
         return iter(self._data)

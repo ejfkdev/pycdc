@@ -90,15 +90,12 @@ def dump(node, annotate_fields=True, include_attributes=False):
                         args.append('%s=%s' % (field, _format(value)))
                     continue
                 args.append(_format(value))
-                continue
             if include_attributes and node._attributes:
                 for a in node._attributes:
                     try:
                         args.append('%s=%s' % (a, _format(getattr(node, a))))
                     except AttributeError:
                         pass
-                    continue
-                    continue
             return '%s(%s)' % (node.__class__.__name__, ', '.join(args))
         if isinstance(node, list):
             return '[%s]' % ', '.join((_format(x) for x in node))
@@ -111,13 +108,9 @@ def dump(node, annotate_fields=True, include_attributes=False):
 def copy_location(new_node, old_node):
     for attr in ('lineno', 'col_offset'):
         if attr in old_node._attributes:
-            pass
-        if attr in new_node._attributes:
-            pass
-        if hasattr(old_node, attr):
-            pass
-        setattr(new_node, attr, getattr(old_node, attr))
-        continue
+            if attr in new_node._attributes:
+                if hasattr(old_node, attr):
+                    setattr(new_node, attr, getattr(old_node, attr))
     return new_node
 
 def fix_missing_locations(node):
@@ -134,7 +127,6 @@ def fix_missing_locations(node):
                 col_offset = node.col_offset
         for child in iter_child_nodes(node):
             _fix(child, lineno, col_offset)
-            continue
 
     _fix(node, 1, 0)
     return node
@@ -142,9 +134,7 @@ def fix_missing_locations(node):
 def increment_lineno(node, n=1):
     for child in walk(node):
         if 'lineno' in child._attributes:
-            pass
-        child.lineno = getattr(child, 'lineno', 0) + n
-        continue
+            child.lineno = getattr(child, 'lineno', 0) + n
     return node
 
 def iter_fields(node):
@@ -153,8 +143,6 @@ def iter_fields(node):
             yield (field, getattr(node, field))
         except AttributeError:
             pass
-        continue
-        continue
 
 def iter_child_nodes(node):
     for name, field in iter_fields(node):
@@ -162,13 +150,9 @@ def iter_child_nodes(node):
             yield field
             continue
         if isinstance(field, list):
-            pass
-        for item in field:
-            if isinstance(item, AST):
-                pass
-            yield item
-            continue
-        continue
+            for item in field:
+                if isinstance(item, AST):
+                    yield item
 
 def get_docstring(node, clean=True):
     if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
@@ -226,14 +210,10 @@ class NodeVisitor(object):
             if isinstance(value, list):
                 for item in value:
                     if isinstance(item, AST):
-                        pass
-                    self.visit(item)
-                    continue
-                    continue
-                    if isinstance(value, AST):
-                        pass
-                    self.visit(value)
-            continue
+                        self.visit(item)
+                continue
+            if isinstance(value, AST):
+                self.visit(value)
 
 
 class NodeTransformer(NodeVisitor):
@@ -285,17 +265,14 @@ class NodeTransformer(NodeVisitor):
                         new_values.extend(value)
                         continue
                     new_values.append(value)
-                    continue
                 old_value[:] = new_values
                 continue
             if isinstance(old_value, AST):
-                pass
-            new_node = self.visit(old_value)
-            if new_node is None:
-                delattr(node, field)
-                continue
+                new_node = self.visit(old_value)
+                if new_node is None:
+                    delattr(node, field)
+                    continue
             setattr(node, field, new_node)
-            continue
         return node
 
 

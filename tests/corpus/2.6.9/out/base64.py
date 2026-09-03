@@ -15,7 +15,6 @@ def _translate(s, altchars):
     translation = _translation[:]
     for k, v in altchars.items():
         translation[ord(k)] = v
-        continue
     return s.translate(''.join(translation))
 
 def b64encode(s, altchars=None):
@@ -65,7 +64,6 @@ def b32encode(s):
         c2 += (c1 & 1) << 16
         c3 += (c2 & 3) << 8
         parts.extend([_b32tab[c1 >> 11], _b32tab[c1 >> 6 & 31], _b32tab[c1 >> 1 & 31], _b32tab[c2 >> 12], _b32tab[c2 >> 7 & 31], _b32tab[c2 >> 2 & 31], _b32tab[c3 >> 5], _b32tab[c3 & 31]])
-        continue
     encoded = EMPTYSTRING.join(parts)
     if leftover == 1:
         return encoded[:-6] + '======'
@@ -105,7 +103,6 @@ def b32decode(s, casefold=False, map01=None):
             acc = 0
             shift = 35
             continue
-        continue
     last = binascii.unhexlify('%010x' % acc)
     if padchars == 0:
         last = ''
@@ -165,7 +162,6 @@ def encodestring(s):
     for i in range(0, len(s), MAXBINSIZE):
         chunk = s[i:i + MAXBINSIZE]
         pieces.append(binascii.b2a_base64(chunk))
-        continue
     return ''.join(pieces)
 
 def decodestring(s):
@@ -194,7 +190,6 @@ def test():
         if o == '-t':
             test1()
             return
-        continue
     if args and args[0] != '-':
         func(open(args[0], 'rb'), sys.stdout)
     else:

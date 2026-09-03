@@ -27,28 +27,22 @@ def dis(x=None):
         items = sorted(x.__dict__.items())
         for name, x1 in items:
             if isinstance(x1, _have_code):
-                pass
-            print('Disassembly of %s:' % name)
-            msg = None
-            del msg
-            try:
-                dis(x1)
-            except TypeError as msg:
-                print('Sorry:', msg)
-            print()
-            continue
-            continue
-            break
-            if hasattr(x, 'co_code'):
-                disassemble(x)
-                break
-            if isinstance(x, (bytes, bytearray)):
-                _disassemble_bytes(x)
-                break
-            if isinstance(x, str):
-                _disassemble_str(x)
-                break
-            raise TypeError("don't know how to disassemble %s objects" % type(x).__name__)
+                print('Disassembly of %s:' % name)
+                msg = None
+                del msg
+                try:
+                    dis(x1)
+                except TypeError as msg:
+                    print('Sorry:', msg)
+                print()
+    elif hasattr(x, 'co_code'):
+        disassemble(x)
+    elif isinstance(x, (bytes, bytearray)):
+        _disassemble_bytes(x)
+    elif isinstance(x, str):
+        _disassemble_str(x)
+    else:
+        raise TypeError("don't know how to disassemble %s objects" % type(x).__name__)
 
 def distb(tb=None):
     if tb is None:
@@ -67,15 +61,12 @@ def pretty_flags(flags):
     for i in range(32):
         flag = 1 << i
         if flags & flag:
-            pass
-        names.append(COMPILER_FLAG_NAMES.get(flag, hex(flag)))
-        flags ^= flag
-        if not flags:
-            break
-            continue
-        continue
-        continue
-        names.append(hex(flags))
+            names.append(COMPILER_FLAG_NAMES.get(flag, hex(flag)))
+            flags ^= flag
+            if not flags:
+                break
+                continue
+    names.append(hex(flags))
     return ', '.join(names)
 
 def code_info(x):
@@ -102,32 +93,22 @@ def _format_code_info(co):
         lines.append('Constants:')
         for i_c in enumerate(co.co_consts):
             lines.append('%4d: %r' % i_c)
-            continue
-            break
     if co.co_names:
         lines.append('Names:')
         for i_n in enumerate(co.co_names):
             lines.append('%4d: %s' % i_n)
-            continue
-            break
     if co.co_varnames:
         lines.append('Variable names:')
         for i_n in enumerate(co.co_varnames):
             lines.append('%4d: %s' % i_n)
-            continue
-            break
     if co.co_freevars:
         lines.append('Free variables:')
         for i_n in enumerate(co.co_freevars):
             lines.append('%4d: %s' % i_n)
-            continue
-            break
     if co.co_cellvars:
         lines.append('Cell variables:')
         for i_n in enumerate(co.co_cellvars):
             lines.append('%4d: %s' % i_n)
-            continue
-            break
     return '\n'.join(lines)
 
 def show_code(co):
@@ -259,7 +240,6 @@ def findlinestarts(code):
                 lastlineno = lineno
             addr += byte_incr
         lineno += line_incr
-        continue
     if lineno != lastlineno:
         yield (addr, lineno)
 

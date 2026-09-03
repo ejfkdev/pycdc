@@ -487,8 +487,6 @@ class RawConfigParser(MutableMapping):
         if defaults:
             for key, value in defaults.items():
                 self._defaults[self.optionxform(key)] = value
-                continue
-                break
         self._delimiters = tuple(delimiters)
         if delimiters == ('=', ':'):
             self._optcre = self.OPTCRE_NV if allow_no_value else self.OPTCRE
@@ -546,7 +544,6 @@ class RawConfigParser(MutableMapping):
             except IOError:
                 pass
             read_ok.append(filename)
-            continue
         return read_ok
 
     def read_file(self, f, source=None):
@@ -576,8 +573,6 @@ class RawConfigParser(MutableMapping):
                     raise DuplicateOptionError(section, key, source)
                 elements_added.add((section, key))
                 self.set(section, key, value)
-                continue
-            continue
 
     def readfp(self, fp, filename=None):
         warnings.warn("This method will be removed in future versions.  Use 'parser.read_file()' instead.", DeprecationWarning, stacklevel=2)
@@ -651,8 +646,6 @@ class RawConfigParser(MutableMapping):
         if vars:
             for key, value in vars.items():
                 d[self.optionxform(key)] = value
-                continue
-                break
         value_getter = lambda option: self._interpolation.before_get(self, section, option, d[option], d)
         if raw:
             value_getter = lambda option: d[option]
@@ -699,7 +692,6 @@ class RawConfigParser(MutableMapping):
             self._write_section(fp, self.default_section, self._defaults.items(), d)
         for section in self._sections:
             self._write_section(fp, section, self._sections[section].items(), d)
-            continue
 
     def _write_section(self, fp, section_name, section_items, delimiter):
         fp.write('[{}]\n'.format(section_name))
@@ -711,7 +703,6 @@ class RawConfigParser(MutableMapping):
                 else:
                     value = ''
             fp.write('{}{}\n'.format(key, value))
-            continue
         fp.write('\n')
 
     def remove_option(self, section, option):
@@ -783,21 +774,14 @@ class RawConfigParser(MutableMapping):
                         next_prefixes[prefix] = index
                         if not index == 0:
                             if index > 0:
-                                pass
-                            if line[index - 1].isspace():
-                                pass
-                        comment_start = min(comment_start, index)
-                        continue
-                        continue
-                    inline_prefixes = next_prefixes
+                                if line[index - 1].isspace():
+                                    comment_start = min(comment_start, index)
                     continue
+                inline_prefixes = next_prefixes
             for prefix in self._comment_prefixes:
                 if line.strip().startswith(prefix):
-                    pass
-                comment_start = 0
-                break
-                continue
-                continue
+                    comment_start = 0
+                    break
             if comment_start == sys.maxsize:
                 comment_start = None
             value = line[:comment_start].strip()
@@ -806,52 +790,46 @@ class RawConfigParser(MutableMapping):
                     if comment_start is None and cursect is not None and optname and cursect[optname] is not None:
                         cursect[optname].append('')
                         continue
-            continue
-            indent_level = sys.maxsize
-            continue
-            first_nonspace = self.NONSPACECRE.search(line)
-            cur_indent_level = first_nonspace.start() if first_nonspace else 0
-            if cursect is not None and optname and cur_indent_level > indent_level:
-                cursect[optname].append(value)
-                continue
-            indent_level = cur_indent_level
-            mo = self.SECTCRE.match(value)
-            if mo:
-                sectname = mo.group('header')
-                if sectname in self._sections:
-                    if self._strict and sectname in elements_added:
-                        raise DuplicateSectionError(sectname, fpname, lineno)
-                    cursect = self._sections[sectname]
-                    elements_added.add(sectname)
-                elif sectname == self.default_section:
-                    cursect = self._defaults
-                else:
-                    cursect = self._dict()
-                    self._sections[sectname] = cursect
-                    self._proxies[sectname] = SectionProxy(self, sectname)
-                    elements_added.add(sectname)
-                optname = None
-                continue
-            if cursect is None:
-                raise MissingSectionHeaderError(fpname, lineno, line)
-                continue
-            mo = self._optcre.match(value)
-            if mo:
-                optname, vi, optval = mo.group('option', 'vi', 'value')
-                if not optname:
-                    e = self._handle_error(e, fpname, lineno, line)
-                optname = self.optionxform(optname.rstrip())
-                if self._strict and (sectname, optname) in elements_added:
-                    raise DuplicateOptionError(sectname, optname, fpname, lineno)
-                elements_added.add((sectname, optname))
-                if optval is not None:
-                    optval = optval.strip()
-                    cursect[optname] = [optval]
-                    continue
-            cursect[optname] = None
-            continue
+        indent_level = sys.maxsize
+        first_nonspace = self.NONSPACECRE.search(line)
+        cur_indent_level = first_nonspace.start() if first_nonspace else 0
+        if cursect is not None and optname and cur_indent_level > indent_level:
+            cursect[optname].append(value)
+        indent_level = cur_indent_level
+        mo = self.SECTCRE.match(value)
+        if mo:
+            sectname = mo.group('header')
+            if sectname in self._sections:
+                if self._strict and sectname in elements_added:
+                    raise DuplicateSectionError(sectname, fpname, lineno)
+                cursect = self._sections[sectname]
+                elements_added.add(sectname)
+            elif sectname == self.default_section:
+                cursect = self._defaults
+            else:
+                cursect = self._dict()
+                self._sections[sectname] = cursect
+                self._proxies[sectname] = SectionProxy(self, sectname)
+                elements_added.add(sectname)
+            optname = None
+        if cursect is None:
+            raise MissingSectionHeaderError(fpname, lineno, line)
+        mo = self._optcre.match(value)
+        if mo:
+            optname, vi, optval = mo.group('option', 'vi', 'value')
+            if not optname:
+                e = self._handle_error(e, fpname, lineno, line)
+            optname = self.optionxform(optname.rstrip())
+            if self._strict and (sectname, optname) in elements_added:
+                raise DuplicateOptionError(sectname, optname, fpname, lineno)
+            elements_added.add((sectname, optname))
+            if optval is not None:
+                optval = optval.strip()
+                cursect[optname] = [optval]
+            else:
+                cursect[optname] = None
+        else:
             e = self._handle_error(e, fpname, lineno, line)
-            continue
         if e:
             raise e
         self._join_multiline_values()
@@ -864,8 +842,6 @@ class RawConfigParser(MutableMapping):
                 if isinstance(val, list):
                     val = '\n'.join(val).rstrip()
                 options[name] = self._interpolation.before_read(self, section, name, val)
-                continue
-            continue
 
     def _handle_error(self, exc, fpname, lineno, line):
         if not exc:
@@ -886,8 +862,6 @@ class RawConfigParser(MutableMapping):
                 if value is not None:
                     value = str(value)
                 vardict[self.optionxform(key)] = value
-                continue
-                break
         return _ChainMap(vardict, sectiondict, self._defaults)
 
     def _convert_to_boolean(self, value):

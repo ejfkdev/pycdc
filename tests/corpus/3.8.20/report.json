@@ -298,7 +298,7 @@
    "module": "copyreg",
    "ast_detail": "diff at token 207: orig  value=BinOp(left=Constant(value=1 | dec  value=Constant(value=512",
    "verdict": "SIG-DIFF",
-   "ndiff": 355,
+   "ndiff": 354,
    "ntotal": 544,
    "detail": "line 175: orig ('FOR_ITER', 'to 54') | got ('FOR_ITER', 'to 40')\nline 182: orig ('LOAD_FAST', 'base') | got ('JUMP_ABSOLUTE', '')\nline 183: orig ('LOAD_ATTR', '__flags__') | got ('LOAD_FAST', 'base')"
   },

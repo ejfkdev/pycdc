@@ -9,11 +9,9 @@ else:
     PYTHON2_EXCEPTIONS += ('WindowsError',)
 for excname in PYTHON2_EXCEPTIONS:
     NAME_MAPPING['exceptions', excname] = 'builtins', excname
-    continue
 MULTIPROCESSING_EXCEPTIONS = ('AuthenticationError', 'BufferTooShort', 'ProcessError', 'TimeoutError')
 for excname in MULTIPROCESSING_EXCEPTIONS:
     NAME_MAPPING['multiprocessing', excname] = 'multiprocessing.context', excname
-    continue
 REVERSE_IMPORT_MAPPING = dict(((v, k) for k, v in IMPORT_MAPPING.items()))
 if not len(REVERSE_IMPORT_MAPPING) == len(IMPORT_MAPPING):
     raise AssertionError
@@ -27,5 +25,4 @@ REVERSE_NAME_MAPPING.update({('_functools', 'reduce'): ('__builtin__', 'reduce')
 PYTHON3_OSERROR_EXCEPTIONS = ('BrokenPipeError', 'ChildProcessError', 'ConnectionAbortedError', 'ConnectionError', 'ConnectionRefusedError', 'ConnectionResetError', 'FileExistsError', 'FileNotFoundError', 'InterruptedError', 'IsADirectoryError', 'NotADirectoryError', 'PermissionError', 'ProcessLookupError', 'TimeoutError')
 for excname in PYTHON3_OSERROR_EXCEPTIONS:
     REVERSE_NAME_MAPPING['builtins', excname] = ('exceptions', 'OSError')
-    continue
 # WARNING: Decompyle incomplete

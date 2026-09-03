@@ -60,9 +60,7 @@ if __name__ == '__main__':
                             path = index
                             break
                             continue
-                        continue
-                        return self.list_directory(path)
-                        break
+                    return self.list_directory(path)
                 ctype = self.guess_type(path)
 
             def list_directory(self, path):
@@ -88,7 +86,6 @@ if __name__ == '__main__':
                     if os.path.islink(fullname):
                         displayname = name + '@'
                     f.write('<li><a href="%s">%s</a>\n' % (urllib.quote(linkname), cgi.escape(displayname)))
-                    continue
                 f.write('</ul>\n<hr>\n</body>\n</html>\n')
                 length = f.tell()
                 f.seek(0)
@@ -112,7 +109,6 @@ if __name__ == '__main__':
                     if word in (os.curdir, os.pardir):
                         continue
                     path = os.path.join(path, word)
-                    continue
                 return path
 
             def copyfile(self, source, outputfile):

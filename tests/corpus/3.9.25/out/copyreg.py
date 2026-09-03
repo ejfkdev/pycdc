@@ -100,9 +100,7 @@ def _slotnames(cls):
                         names.append('_%s%s' % (stripped, name))
                         continue
         names.append(name)
-        continue
         names.append(name)
-        continue
 
 _extension_registry = {}
 _inverted_registry = {}

@@ -82,7 +82,6 @@ class ServerHTMLDoc(pydoc.HTMLDoc):
         for key, value in methods.items():
             fdict[key] = '#-' + key
             fdict[value] = fdict[key]
-            continue
         server_name = self.escape(server_name)
         head = '<big><big><strong>%s</strong></big></big>' % server_name
         result = self.heading(head, '#ffffff', '#7799ee')
@@ -93,7 +92,6 @@ class ServerHTMLDoc(pydoc.HTMLDoc):
         method_items = sorted(methods.items())
         for key, value in method_items:
             contents.append(self.docroutine(value, key, funcs=fdict))
-            continue
         result = result + self.bigsection('Methods', '#ffffff', '#eeaa77', pydoc.join(contents))
         return result
 
@@ -145,7 +143,6 @@ class XMLRPCDocGenerator:
                 pass
             else:
                 method = method_info
-            continue
         documenter = ServerHTMLDoc()
         documentation = documenter.docserver(self.server_name, self.server_documentation, methods)
         return documenter.page(self.server_title, documentation)

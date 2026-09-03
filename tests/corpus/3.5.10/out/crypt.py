@@ -36,10 +36,7 @@ methods = []
 for _method in METHOD_SHA512, METHOD_SHA256, METHOD_MD5:
     _result = crypt('', _method)
     if _result:
-        pass
-    if len(_result) == _method.total_size:
-        pass
-    methods.append(_method)
-    continue
+        if len(_result) == _method.total_size:
+            methods.append(_method)
 methods.append(METHOD_CRYPT)
 del _result, _method

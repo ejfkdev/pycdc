@@ -119,9 +119,8 @@ class async_chat(asyncore.dispatcher):
         if len(data) > sabs:
             for i in xrange(0, len(data), sabs):
                 self.producer_fifo.append(data[i:i + sabs])
-                continue
-                break
-                self.producer_fifo.append(data)
+        else:
+            self.producer_fifo.append(data)
         self.initiate_send()
 
     def push_with_producer(self, producer):

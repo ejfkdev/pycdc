@@ -236,16 +236,13 @@ class Cmd:
             help = {}
             for name in names:
                 if name[:5] == 'help_':
-                    pass
-                help[name[5:]] = 1
-                continue
+                    help[name[5:]] = 1
         names.sort()
         prevname = ''
         for name in names:
             if name[:3] == 'do_':
-                pass
-            if name == prevname:
-                continue
+                if name == prevname:
+                    continue
             prevname = name
             cmd = name[3:]
             if cmd in help:
@@ -256,7 +253,6 @@ class Cmd:
                 cmds_doc.append(cmd)
                 continue
             cmds_undoc.append(cmd)
-            continue
         self.stdout.write('%s\n' % str(self.doc_leader))
         self.print_topics(self.doc_header, cmds_doc, 15, 80)
         self.print_topics(self.misc_header, list(help.keys()), 15, 80)
@@ -293,20 +289,15 @@ class Cmd:
                         break
                     x = list[i]
                     colwidth = max(colwidth, len(x))
-                    continue
                 colwidths.append(colwidth)
                 totwidth += colwidth + 2
                 if totwidth > displaywidth:
-                    pass
-                break
-                continue
+                    break
             if totwidth <= displaywidth:
-                pass
-            break
-            continue
-            nrows = len(list)
-            ncols = 1
-            colwidths = [0]
+                break
+        nrows = len(list)
+        ncols = 1
+        colwidths = [0]
         for row in range(nrows):
             texts = []
             for col in range(ncols):
@@ -316,16 +307,13 @@ class Cmd:
                 else:
                     x = list[i]
                 texts.append(x)
-                continue
             while texts:
                 if not texts[-1]:
                     del texts[-1]
                     continue
             for col in range(len(texts)):
                 texts[col] = texts[col].ljust(colwidths[col])
-                continue
             self.stdout.write('%s\n' % str('  '.join(texts)))
-            continue
 
 
 # WARNING: Decompyle incomplete
