@@ -56,7 +56,7 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1321,
+   "ndiff": 1315,
    "ntotal": 1489,
    "detail": "line 153: orig ('SWAP', '') | got ('POP_TOP', '')\nline 155: orig ('RETURN_VALUE', '') | got ('RETURN_CONST', 'None')\nline 158: orig ('LOAD_FAST', 'executable') | got ('RETURN_CONST', 'None')"
   },
@@ -64,9 +64,9 @@
    "module": "_py_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 414,
+   "ndiff": 385,
    "ntotal": 503,
-   "detail": "line 81: orig ('LOAD_FAST', 'namespace') | got ('LOAD_FAST', 'bases')\nline 82: orig ('LOAD_ATTR', 'NULL|self + items') | got ('GET_ITER', '')\nline 83: orig ('CALL', '') | got ('FOR_ITER', 'to 140')"
+   "detail": "line 90: orig ('FOR_ITER', 'to 128') | got ('FOR_ITER', 'to 130')\nline 99: orig ('POP_JUMP_IF_FALSE', 'to 126') | got ('POP_JUMP_IF_TRUE', 'to 124')\nline 100: orig ('LOAD_FAST', 'name') | got ('JUMP_BACKWARD', 'to 84')"
   },
   {
    "module": "_pylong",
@@ -174,8 +174,8 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2777,
-   "ntotal": 2886,
+   "ndiff": 2767,
+   "ntotal": 2891,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {

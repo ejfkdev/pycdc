@@ -736,9 +736,16 @@ impl<'a> Ctx<'a> {
                 self.close_blocks_at(pos);
             }
 
-            // comprehension loop-target stores consume no stack value
+            // comprehension loop-target stores consume no stack value —
+            // only while the comprehension is live and its target unset
+            // (an unpacked `for k, v in` target arrives via the frame
+            // machinery; post-loop restore stores must pop normally)
             if self.comp_target_store
                 && self.unpack_frames.is_empty()
+                && self
+                    .inline_comp
+                    .as_ref()
+                    .map_or(false, |c| !c.target_seen)
                 && matches!(
                     inst.op,
                     Op::STORE_FAST
@@ -7381,9 +7388,14 @@ impl<'a> Ctx<'a> {
                 self.awaiting_for_target = false;
                 return;
             }
-            if let Expr::Name(n) = &*target {
-                if comp.cleared_vars.contains(n) {
-                    return;
+            // post-loop restore swallow: only when no unpack frame is
+            // collecting — an in-loop tuple-target store (`for k, v in`)
+            // also hits a cleared var but must complete the frame
+            if self.unpack_frames.is_empty() {
+                if let Expr::Name(n) = &*target {
+                    if comp.cleared_vars.contains(n) {
+                        return;
+                    }
                 }
             }
         }
@@ -9981,6 +9993,21 @@ impl<'a> Ctx<'a> {
                 if matches!(&**e, Expr::List(_) | Expr::Set(_) | Expr::Dict(_)) {
                     self.stack[i] = Sv::E(expr.clone());
                     replaced = true;
+                    // 3.13+ emits `END_FOR; POP_TOP/POP_ITER`: the VM's
+                    // cleanup drops the exhausted iterator that sat ABOVE
+                    // the result — we never modeled that slot, so eat the
+                    // upcoming cleanup instead of letting it swallow the
+                    // comprehension
+                    if self.version.at_least(3, 13) && i + 1 == n {
+                        if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
+                            if matches!(
+                                self.instrs.get(ci + 1).map(|x| x.op),
+                                Some(Op::POP_TOP) | Some(Op::POP_ITER)
+                            ) {
+                                self.skip_until = Some(self.instrs[ci + 1].end());
+                            }
+                        }
+                    }
                     break;
                 }
             }

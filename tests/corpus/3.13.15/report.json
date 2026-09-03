@@ -92,7 +92,7 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1364,
+   "ndiff": 1357,
    "ntotal": 1534,
    "detail": "line 155: orig ('SWAP', '') | got ('POP_TOP', '')\nline 157: orig ('RETURN_VALUE', '') | got ('RETURN_CONST', 'None')\nline 161: orig ('LOAD_FAST', 'executable') | got ('RETURN_CONST', 'None')"
   },
@@ -100,9 +100,9 @@
    "module": "_py_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 425,
+   "ndiff": 356,
    "ntotal": 517,
-   "detail": "line 82: orig ('LOAD_FAST', 'namespace') | got ('LOAD_FAST', 'bases')\nline 83: orig ('LOAD_ATTR', 'items + NULL|self') | got ('GET_ITER', '')\nline 84: orig ('CALL', '') | got ('FOR_ITER', 'to L4')"
+   "detail": "line 135: orig ('POP_JUMP_IF_TRUE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 137: orig ('LOAD_FAST', 'abstracts') | got ('JUMP_BACKWARD', 'to L5')\nline 138: orig ('LOAD_ATTR', 'add + NULL|self') | got ('END_FOR', '')"
   },
   {
    "module": "_pylong",

@@ -145,11 +145,12 @@ def _b32encode(alphabet, s):
 
 def _b32decode(alphabet, s, casefold=False, map01=None):
     if alphabet not in _b32rev:
-        pass
-    _b32rev[alphabet], s = enumerate(alphabet)
+        _b32rev[alphabet] = {v: k for k, v in enumerate(alphabet)}
+    s = _bytes_from_decode_data(s)
     if len(s) % 8:
         raise binascii.Error('Incorrect padding')
     if not map01 is None:
+        map01 = _bytes_from_decode_data(map01)
         assert len(map01) == 1, repr(map01)
         s = s.translate(bytes.maketrans(b'01', b'O' + map01))
     if casefold:

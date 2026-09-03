@@ -529,6 +529,7 @@ class FieldStorage:
         if self.qs_on_post:
             qs += '&' + self.qs_on_post
         query = urllib.parse.parse_qsl(qs, self.keep_blank_values, self.strict_parsing, encoding=self.encoding, errors=self.errors, max_num_fields=self.max_num_fields, separator=self.separator)
+        self.list = [MiniFieldStorage(key, value) for key, value in query]
         self.skip_lines()
 
     FieldStorageClass = None

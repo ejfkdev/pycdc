@@ -179,7 +179,7 @@ If the forward reference cannot be evaluated, raise an exception.
 
     def __hash__(self):
         if self.__extra_names__:
-            return None((None, hash, self.__forward_arg__, self.__forward_module__ if isinstance(self.__cell__, dict) else id(self.__globals__)(tuple(sorted)), (id,), self.__owner__, tuple(sorted(self.__extra_names__.items()))))
+            return hash((self.__forward_arg__, self.__forward_module__, id(self.__globals__), self.__forward_is_class__ if isinstance(self.__cell__, dict) else tuple(sorted([(name, id(cell)) for name, cell in self.__cell__.items()])), (id,), self.__owner__, tuple(sorted(self.__extra_names__.items()))))
         return None((None, None, None, None, None, None, None))
 
     def __or__(self, other):
@@ -704,6 +704,7 @@ default, contingent on type(obj):
         if not locals is not None:
             locals = {}
         locals = {param.__name__: param for param in type_params} | locals
+    return_value = {key: value for key, value in ann.items() if isinstance(value, str)}
     return return_value
 
 def type_repr(value):
@@ -731,6 +732,8 @@ def annotations_to_string(annotations):
 
 Always returns a fresh a dictionary.
 '''
+
+    return {n: t for n, t in annotations.items() if isinstance(t, str)}
 
 def _rewrite_star_unpack(arg):
     """If the given argument annotation expression is a star unpack e.g. `'*Ts'`

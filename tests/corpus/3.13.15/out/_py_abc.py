@@ -27,9 +27,12 @@ even via super()).
     _abc_invalidation_counter = 0
     def __new__(mcls, name, bases, namespace, /, **kwargs):
         cls = super().__new__(mcls, name, bases, namespace, **kwargs)
-        for abstracts, base in bases:
-            for value in getattr(base, '__abstractmethods__', set()):
-                abstracts.add(name)
+        abstracts = {name for name, value in namespace.items() if getattr(value, '__isabstractmethod__', False)}
+        for base in bases:
+            for name in getattr(base, '__abstractmethods__', set()):
+                value = getattr(cls, name, None)
+                if not getattr(value, '__isabstractmethod__', False):
+                    pass
         cls.__abstractmethods__ = frozenset(abstracts)
         cls._abc_registry = WeakSet()
         cls._abc_cache = WeakSet()
@@ -124,4 +127,3 @@ Returns the subclass, to allow usage as a class decorator.
                         return False
 
 
-# WARNING: Decompyle incomplete

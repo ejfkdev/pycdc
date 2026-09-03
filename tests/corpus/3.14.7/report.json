@@ -92,17 +92,17 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1564,
-   "ntotal": 1763,
+   "ndiff": 1664,
+   "ntotal": 1862,
    "detail": "line 161: orig ('SWAP', '') | got ('POP_TOP', '')\nline 163: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', 'None')\nline 164: orig ('END_FOR', '') | got ('RETURN_VALUE', '')"
   },
   {
    "module": "_py_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 477,
+   "ndiff": 422,
    "ntotal": 582,
-   "detail": "line 88: orig ('LOAD_FAST_BORROW', 'namespace') | got ('LOAD_FAST_BORROW', 'bases')\nline 89: orig ('LOAD_ATTR', 'items + NULL|self') | got ('GET_ITER', '')\nline 90: orig ('CALL', '') | got ('FOR_ITER', 'to L4')"
+   "detail": "line 141: orig ('POP_JUMP_IF_TRUE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 144: orig ('LOAD_FAST_BORROW', 'abstracts') | got ('JUMP_BACKWARD', 'to L5')\nline 145: orig ('LOAD_ATTR', 'add + NULL|self') | got ('END_FOR', '')"
   },
   {
    "module": "_py_warnings",

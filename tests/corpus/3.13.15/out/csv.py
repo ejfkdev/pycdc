@@ -399,10 +399,11 @@ additional chunks as necessary.
                     skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
                     d, skipinitialspace
                     return
+                    items = [(v, k) for k, v in delims.items()]
                     items.sort()
-                    items, delim = delims.items()
+                    delim = items[-1][1]
+                    skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
                     return delim, skipinitialspace
-                    data[0].count(delim) == data[0].count('%c ' % delim)
                     c = None
                     v, k = None, None
 
