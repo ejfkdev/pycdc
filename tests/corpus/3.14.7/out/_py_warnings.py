@@ -579,7 +579,6 @@ See PEP 702 for details.
         self.stacklevel = stacklevel
 
     def __call__(self, arg, /):
-        nonlocal msg, category, stacklevel, original_new, original_init_subclass
         msg = self.message
         category = self.category
         stacklevel = self.stacklevel

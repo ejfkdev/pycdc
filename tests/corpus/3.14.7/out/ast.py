@@ -94,7 +94,6 @@ def literal_eval(node_or_string):
 
 def dump(node, annotate_fields=True, include_attributes=False, *, indent=None, show_empty=False):
     def _format(node, level=0):
-        nonlocal level
         if not indent is None:
             level += 1
             prefix = '\n' + indent * level

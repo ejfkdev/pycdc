@@ -3,9 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 5,
-  "SIG-DIFF": 27,
-  "INCOMPLETE": 6,
-  "SYNTAX-ERR": 2
+  "SIG-DIFF": 29,
+  "INCOMPLETE": 6
  },
  "results": [
   {
@@ -97,8 +96,10 @@
   },
   {
    "module": "_py_warnings",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: no binding for nonlocal 'msg' found"
+   "verdict": "SIG-DIFF",
+   "ndiff": 2590,
+   "ntotal": 3167,
+   "detail": "line 322: orig ('LOAD_GLOBAL', '_wm') | got ('NOP', '')\nline 323: orig ('LOAD_ATTR', 'filters') | got ('LOAD_GLOBAL', '_wm')\nline 324: orig ('RETURN_VALUE', '') | got ('LOAD_ATTR', 'filters')"
   },
   {
    "module": "_pylong",
@@ -153,8 +154,10 @@
   },
   {
    "module": "ast",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: name 'level' is parameter and nonlocal"
+   "verdict": "SIG-DIFF",
+   "ndiff": 1964,
+   "ntotal": 2649,
+   "detail": "line 9: orig ('LOAD_CONST', \"('<unknown>', 'exec')\") | got ('NOP', '')\nline 10: orig ('LOAD_CONST', \"'type_comments'\") | got ('LOAD_CONST', \"('<unknown>', 'exec')\")\nline 11: orig ('LOAD_CONST', 'False') | got ('LOAD_CONST', \"'type_comments'\")"
   },
   {
    "module": "base64",

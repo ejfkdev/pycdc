@@ -691,7 +691,6 @@ class RawConfigParser(MutableMapping):
         return self._get_conv(section, option, self._convert_to_boolean, **kwargs)
 
     def items(self, section=_UNSET, raw=False, vars=None):
-        nonlocal d
         if section is _UNSET:
             return super().items()
         d = self._defaults.copy()

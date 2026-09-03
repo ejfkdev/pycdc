@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
   "PASS": 4,
-  "SIG-DIFF": 33,
-  "SYNTAX-ERR": 3
+  "SIG-DIFF": 34,
+  "SYNTAX-ERR": 2
  },
  "results": [
   {
@@ -231,8 +231,10 @@
   },
   {
    "module": "configparser",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: no binding for nonlocal 'd' found"
+   "verdict": "SIG-DIFF",
+   "ndiff": 3919,
+   "ntotal": 4746,
+   "detail": "line 724: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 78') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 48')\nline 726: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 78') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 78')\nline 764: orig ('KW_NAMES', '') | got ('PRECALL', '')"
   },
   {
    "module": "contextlib",

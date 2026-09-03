@@ -3,9 +3,9 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 4,
-  "SIG-DIFF": 28,
+  "SIG-DIFF": 29,
   "INCOMPLETE": 5,
-  "SYNTAX-ERR": 3
+  "SYNTAX-ERR": 2
  },
  "results": [
   {
@@ -210,8 +210,10 @@
   },
   {
    "module": "configparser",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: no binding for nonlocal 'd' found"
+   "verdict": "SIG-DIFF",
+   "ndiff": 3287,
+   "ntotal": 4238,
+   "detail": "line 835: orig ('KW_NAMES', \"('raw', 'fallback')\") | got ('CALL', '')\nline 836: orig ('CALL', '') | got ('STORE_FAST', 'rawval')\nline 837: orig ('STORE_FAST', 'rawval') | got ('LOAD_FAST', 'depth')"
   },
   {
    "module": "contextlib",

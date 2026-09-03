@@ -3,9 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
   "PASS": 5,
-  "SIG-DIFF": 30,
-  "INCOMPLETE": 4,
-  "SYNTAX-ERR": 1
+  "SIG-DIFF": 31,
+  "INCOMPLETE": 4
  },
  "results": [
   {
@@ -218,8 +217,10 @@
   },
   {
    "module": "configparser",
-   "verdict": "SYNTAX-ERR",
-   "detail": "SyntaxError: no binding for nonlocal 'd' found"
+   "verdict": "SIG-DIFF",
+   "ndiff": 4301,
+   "ntotal": 4503,
+   "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "contextlib",

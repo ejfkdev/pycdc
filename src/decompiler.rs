@@ -1975,10 +1975,8 @@ impl<'a> Ctx<'a> {
                     .unwrap_or("/*bad-deref*/")
                     .to_string();
                 // STORE_DEREF on a freevar (not cellvar) implies `nonlocal`
-                let idx = arg as usize;
-                let is_free = idx >= self.code.cellvars.len()
+                let is_free = self.code.freevars.iter().any(|f| *f == n)
                     && self.version.at_least(3, 0)
-                    && !self.code.freevars.is_empty()
                     && self.code.name != "<module>";
                 if is_free && !self.nonlocals.contains(&n) {
                     self.nonlocals.push(n.clone());
