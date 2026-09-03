@@ -113,14 +113,13 @@ class Calendar(object):
         oneday = datetime.timedelta(days=1)
         while True:
             yield date
+            try:
+                date += oneday
+            except OverflowError:
+                break
             if date.month != month:
                 if date.weekday() == self.firstweekday:
-                    try:
-                        date += oneday
-                    except OverflowError:
-                        break
-                    else:
-                        break
+                    break
 
     def itermonthdays2(self, year, month):
         for i, d in enumerate(self.itermonthdays(year, month), self.firstweekday):
@@ -421,12 +420,11 @@ c = TextCalendar()
 firstweekday = c.getfirstweekday
 
 def setfirstweekday(firstweekday):
-    if MONDAY <= firstweekday:
-        try:
-            firstweekday.__index__
-        except AttributeError:
-            raise IllegalWeekdayError(firstweekday)
-    if not firstweekday <= SUNDAY:
+    try:
+        firstweekday.__index__
+    except AttributeError:
+        raise IllegalWeekdayError(firstweekday)
+    if not MONDAY <= firstweekday <= SUNDAY:
         raise IllegalWeekdayError(firstweekday)
     c.firstweekday = firstweekday
 

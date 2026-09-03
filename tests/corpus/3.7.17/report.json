@@ -3,7 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
   "PASS": 6,
-  "SIG-DIFF": 34
+  "SIG-DIFF": 33,
+  "AST-PASS": 1
  },
  "results": [
   {
@@ -32,7 +33,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 270: orig  ctx=Store())) | dec  ctx=Store()))]",
+   "ast_detail": "diff at token 271: orig  ctx=Store())) | dec  ctx=Store()))]",
    "verdict": "SIG-DIFF",
    "ndiff": 261,
    "ntotal": 495,
@@ -40,7 +41,7 @@
   },
   {
    "module": "_dummy_thread",
-   "ast_detail": "diff at token 74: orig  Try(body=[Expr(value=Call(func=Name(id='function' | dec  Import(names=[alias(name='traceback'",
+   "ast_detail": "diff at token 13: orig  value=BinOp(left=Num(n=2) | dec  value=Num(n=2147483648))",
    "verdict": "SIG-DIFF",
    "ndiff": 272,
    "ntotal": 387,
@@ -48,7 +49,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 496: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
+   "ast_detail": "diff at token 498: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
    "ndiff": 977,
    "ntotal": 1409,
@@ -108,15 +109,11 @@
   },
   {
    "module": "abc",
-   "ast_detail": "diff at token 95: orig  asname=None) | dec  asname=None)]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 340,
-   "ntotal": 379,
-   "detail": "line 31: orig ('SETUP_EXCEPT', 'to 106') | got ('SETUP_EXCEPT', 'to 162')\nline 33: orig ('LOAD_CONST', \"('get_cache_token', '_abc_init', '_abc_register', '_abc_instancecheck', '_abc_subcla | got ('LOAD_CONST', \"('get_cache_token',)\")\nline 37: orig ('IMPORT_FROM', '_abc_init') | got ('POP_TOP', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 260: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 261: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2531,
    "ntotal": 3095,
@@ -132,7 +129,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 654: orig  orelse=[])] | dec  orelse=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 656: orig  orelse=[])] | dec  orelse=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
    "ndiff": 272,
    "ntotal": 816,
@@ -148,7 +145,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "",
+   "ast_detail": "diff at token 49: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1576,
    "ntotal": 1946,
@@ -156,7 +153,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 312: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 313: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 1763,
    "ntotal": 2350,
@@ -164,7 +161,7 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "",
+   "ast_detail": "diff at token 674: orig  Try(body=[Expr(value=Call(func=Attribute(value=Name(id='ofp' | dec  If(test=Name(id='close_on_error'",
    "verdict": "SIG-DIFF",
    "ndiff": 1212,
    "ntotal": 1815,
@@ -184,7 +181,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 578: orig  args=[Starred(value=Name(id='args' | dec  args=[Name(id='args'",
+   "ast_detail": "diff at token 582: orig  args=[Starred(value=Name(id='args' | dec  args=[Name(id='args'",
    "verdict": "SIG-DIFF",
    "ndiff": 205,
    "ntotal": 633,
@@ -200,7 +197,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "",
+   "ast_detail": "diff at token 72: orig  'logfile' | dec  'logfp'])",
    "verdict": "SIG-DIFF",
    "ndiff": 2876,
    "ntotal": 3011,
@@ -288,7 +285,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 201: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
+   "ast_detail": "diff at token 177: orig  value=BinOp(left=Num(n=1) | dec  value=Num(n=512))",
    "verdict": "SIG-DIFF",
    "ndiff": 358,
    "ntotal": 540,

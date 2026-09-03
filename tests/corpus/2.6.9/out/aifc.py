@@ -144,13 +144,22 @@ class Error(Exception):
 _AIFC_version = 2726318400L
 
 def _read_long(file):
-    pass
+    try:
+        return struct.unpack('>l', file.read(4))[0]
+    except struct.error:
+        raise EOFError
 
 def _read_ulong(file):
-    pass
+    try:
+        return struct.unpack('>L', file.read(4))[0]
+    except struct.error:
+        raise EOFError
 
 def _read_short(file):
-    pass
+    try:
+        return struct.unpack('>h', file.read(2))[0]
+    except struct.error:
+        raise EOFError
 
 def _read_string(file):
     length = ord(file.read(1))
@@ -253,15 +262,14 @@ class Aifc_read:
         self._comm_chunk_read = 0
         while True:
             self._ssnd_seek_needed = 1
+            try:
+                chunk = Chunk(self._file)
+            except EOFError:
+                break
+            chunkname = chunk.getname()
             if chunkname == 'COMM':
-                try:
-                    chunk = Chunk(self._file)
-                except EOFError:
-                    break
-                else:
-                    chunkname = chunk.getname()
-                    self._read_comm_chunk(chunk)
-                    self._comm_chunk_read = 1
+                self._read_comm_chunk(chunk)
+                self._comm_chunk_read = 1
             elif chunkname == 'SSND':
                 self._ssnd_chunk = chunk
                 dummy = chunk.read(8)
@@ -431,6 +439,18 @@ class Aifc_read:
 
     def _readmark(self, chunk):
         nmarkers = _read_short(chunk)
+        try:
+            for i in range(nmarkers):
+                id = _read_short(chunk)
+                pos = _read_long(chunk)
+                name = _read_string(chunk)
+                if not pos:
+                    if name:
+                        self._markers.append((id, pos, name))
+                        continue
+        except EOFError:
+            print 'Warning: MARK chunk contains only', len(self._markers), 'marker', 'markers', 'instead of', nmarkers
+            None if len(self._markers) == 1 else None
 
 
 class Aifc_write:

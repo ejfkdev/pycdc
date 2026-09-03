@@ -215,14 +215,13 @@ class RawConfigParser:
         return section in self._sections
 
     def options(self, section):
+        try:
+            opts = self._sections[section].copy()
+        except KeyError:
+            raise NoSectionError(section)
+        opts.update(self._defaults)
         if '__name__' in opts:
-            try:
-                opts = self._sections[section].copy()
-            except KeyError:
-                raise NoSectionError(section)
-            else:
-                opts.update(self._defaults)
-                del opts['__name__']
+            del opts['__name__']
         return opts.keys()
 
     def read(self, filenames):
@@ -234,15 +233,16 @@ class RawConfigParser:
                 fp = open(filename)
             except IOError:
                 continue
-            else:
-                self._read(fp, filename)
-                fp.close()
-                read_ok.append(filename)
+            self._read(fp, filename)
+            fp.close()
+            read_ok.append(filename)
         return read_ok
 
     def readfp(self, fp, filename=None):
         if filename is None:
             pass
+        filename = '<???>'
+        self._read(fp, filename)
 
     def get(self, section, option):
         opt = self.optionxform(option)
@@ -259,17 +259,16 @@ class RawConfigParser:
         raise NoOptionError(option, section)
 
     def items(self, section):
+        try:
+            d2 = self._sections[section]
+        except KeyError:
+            if section != DEFAULTSECT:
+                raise NoSectionError(section)
+            d2 = self._dict()
+        d = self._defaults.copy()
+        d.update(d2)
         if '__name__' in d:
-            try:
-                d2 = self._sections[section]
-            except KeyError:
-                if section != DEFAULTSECT:
-                    raise NoSectionError(section)
-                d2 = self._dict()
-            else:
-                d = self._defaults.copy()
-                d.update(d2)
-                del d['__name__']
+            del d['__name__']
         return d.items()
 
     def _get(self, section, conv, option):
@@ -305,6 +304,11 @@ class RawConfigParser:
         if not not section:
             if section == DEFAULTSECT:
                 sectdict = self._defaults
+        try:
+            sectdict = self._sections[section]
+        except KeyError:
+            raise NoSectionError(section)
+        sectdict[self.optionxform(option)] = value
 
     def write(self, fp):
         if self._defaults:
@@ -324,15 +328,14 @@ class RawConfigParser:
         if not not section:
             if section == DEFAULTSECT:
                 sectdict = self._defaults
+        try:
+            sectdict = self._sections[section]
+        except KeyError:
+            raise NoSectionError(section)
+        option = self.optionxform(option)
+        existed = option in sectdict
         if existed:
-            try:
-                sectdict = self._sections[section]
-            except KeyError:
-                raise NoSectionError(section)
-            else:
-                option = self.optionxform(option)
-                existed = option in sectdict
-                del sectdict[option]
+            del sectdict[option]
         return existed
 
     def remove_section(self, section):
@@ -410,33 +413,32 @@ class RawConfigParser:
 class ConfigParser(RawConfigParser):
     def get(self, section, option, raw=False, vars=None):
         d = self._defaults.copy()
+        try:
+            d.update(self._sections[section])
+        except KeyError:
+            if section != DEFAULTSECT:
+                raise NoSectionError(section)
         if vars:
             for key, value in vars.items():
-                try:
-                    d.update(self._sections[section])
-                except KeyError:
-                    if section != DEFAULTSECT:
-                        raise NoSectionError(section)
                 d[self.optionxform(key)] = value
         option = self.optionxform(option)
+        try:
+            value = d[option]
+        except KeyError:
+            raise NoOptionError(option, section)
         if raw:
-            try:
-                value = d[option]
-            except KeyError:
-                raise NoOptionError(option, section)
-            else:
-                return value
+            return value
         return self._interpolate(section, option, value, d)
 
     def items(self, section, raw=False, vars=None):
         d = self._defaults.copy()
+        try:
+            d.update(self._sections[section])
+        except KeyError:
+            if section != DEFAULTSECT:
+                raise NoSectionError(section)
         if vars:
             for key, value in vars.items():
-                try:
-                    d.update(self._sections[section])
-                except KeyError:
-                    if section != DEFAULTSECT:
-                        raise NoSectionError(section)
                 d[self.optionxform(key)] = value
         options = d.keys()
         if '__name__' in options:
@@ -502,13 +504,12 @@ class SafeConfigParser(ConfigParser):
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
                 var = self.optionxform(m.group(1))
                 rest = rest[m.end():]
+                try:
+                    v = map[var]
+                except KeyError:
+                    raise InterpolationMissingOptionError(option, section, rest, var)
                 if '%' in v:
-                    try:
-                        v = map[var]
-                    except KeyError:
-                        raise InterpolationMissingOptionError(option, section, rest, var)
-                    else:
-                        self._interpolate_some(option, accum, v, section, map, depth + 1)
+                    self._interpolate_some(option, accum, v, section, map, depth + 1)
                     continue
             accum.append(v)
             continue

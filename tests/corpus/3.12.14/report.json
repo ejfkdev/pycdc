@@ -111,7 +111,7 @@
   },
   {
    "module": "abc",
-   "ast_detail": "diff at token 89: orig  names=[alias(name='get_cache_token') | dec  names=[alias(name='get_cache_token')]",
+   "ast_detail": "diff at token 109: orig  orelse=[ClassDef(name='ABCMeta' | dec  orelse=[]",
    "verdict": "SIG-DIFF",
    "ndiff": 405,
    "ntotal": 450,
@@ -129,7 +129,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 198: orig  Expr(value=Yield()) | dec  Expr(value=Yield(value=Constant(value=None)))",
+   "ast_detail": "diff at token 199: orig  Expr(value=Yield()) | dec  Expr(value=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
    "ndiff": 2415,
    "ntotal": 2530,
@@ -153,7 +153,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 159: orig  keywords=[]))])] | dec  keywords=[]))",
+   "ast_detail": "diff at token 162: orig  keywords=[]))])] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 508,
    "ntotal": 699,
@@ -169,7 +169,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "",
+   "ast_detail": "diff at token 44: orig  ctx=Load())] | dec  ctx=Load())",
    "verdict": "SIG-DIFF",
    "ndiff": 2758,
    "ntotal": 2886,
@@ -260,7 +260,7 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 15: orig  orelse=[Raise(exc=Call(func=Name(id='ImportError' | dec  orelse=[])",
+   "ast_detail": "diff at token 39: orig  ctx=Load())] | dec  ctx=Load())",
    "verdict": "SIG-DIFF",
    "ndiff": 411,
    "ntotal": 462,
@@ -276,7 +276,7 @@
   },
   {
    "module": "datetime",
-   "ast_detail": "diff at token 3: orig  ImportFrom(module='_datetime' | dec  Expr(value=Constant(value=None))",
+   "ast_detail": "diff at token 1: orig  names=[alias(name='*') | dec  names=[alias(name='*')]",
    "verdict": "SIG-DIFF",
    "ndiff": 35,
    "ntotal": 43,
@@ -284,7 +284,7 @@
   },
   {
    "module": "decimal",
-   "ast_detail": "diff at token 3: orig  ImportFrom(module='_decimal' | dec  Expr(value=Constant(value=None))",
+   "ast_detail": "diff at token 1: orig  names=[alias(name='*') | dec  names=[alias(name='*')]",
    "verdict": "SIG-DIFF",
    "ndiff": 43,
    "ntotal": 53,

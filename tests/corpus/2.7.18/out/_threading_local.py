@@ -197,6 +197,10 @@ class local(_localbase):
         key = object.__getattribute__(self, '_local__key')
         return
         for thread in threads:
+            try:
+                __dict__ = thread.__dict__
+            except AttributeError:
+                continue
             if key in __dict__:
                 continue
 

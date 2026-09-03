@@ -125,14 +125,13 @@ import select
 import sys
 import os
 import errno
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threading
+__all__ = ['TCPServer', 'UDPServer', 'ForkingUDPServer', 'ForkingTCPServer', 'ThreadingUDPServer', 'ThreadingTCPServer', 'BaseRequestHandler', 'StreamRequestHandler', 'DatagramRequestHandler', 'ThreadingMixIn', 'ForkingMixIn']
 if hasattr(socket, 'AF_UNIX'):
-    try:
-        import threading
-    except ImportError:
-        import dummy_threading as threading
-    else:
-        __all__ = ['TCPServer', 'UDPServer', 'ForkingUDPServer', 'ForkingTCPServer', 'ThreadingUDPServer', 'ThreadingTCPServer', 'BaseRequestHandler', 'StreamRequestHandler', 'DatagramRequestHandler', 'ThreadingMixIn', 'ForkingMixIn']
-        __all__.extend(['UnixStreamServer', 'UnixDatagramServer', 'ThreadingUnixStreamServer', 'ThreadingUnixDatagramServer'])
+    __all__.extend(['UnixStreamServer', 'UnixDatagramServer', 'ThreadingUnixStreamServer', 'ThreadingUnixDatagramServer'])
 
 def _eintr_retry(func, *args):
     while True:
@@ -337,7 +336,11 @@ class TCPServer(BaseServer):
         return self.socket.accept()
 
     def shutdown_request(self, request):
-        pass
+        try:
+            request.shutdown(socket.SHUT_WR)
+        except socket.error:
+            pass
+        self.close_request(request)
 
     def close_request(self, request):
         request.close()
@@ -509,13 +512,21 @@ class StreamRequestHandler(BaseRequestHandler):
     def finish(self):
         if not self.wfile.closed:
             pass
+        self.wfile.close()
+        self.rfile.close()
 
 
 class DatagramRequestHandler(BaseRequestHandler):
     '''Define self.rfile and self.wfile for datagram sockets.'''
 
     def setup(self):
-        pass
+        try:
+            from cStringIO import StringIO
+        except ImportError:
+            from StringIO import StringIO
+        self.packet, self.socket = self.request
+        self.rfile = StringIO(self.packet)
+        self.wfile = StringIO()
 
     def finish(self):
         self.socket.sendto(self.wfile.getvalue(), self.client_address)

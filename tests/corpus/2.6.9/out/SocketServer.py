@@ -124,14 +124,13 @@ import socket
 import select
 import sys
 import os
+try:
+    import threading
+except ImportError:
+    import dummy_threading as threading
+__all__ = ['TCPServer', 'UDPServer', 'ForkingUDPServer', 'ForkingTCPServer', 'ThreadingUDPServer', 'ThreadingTCPServer', 'BaseRequestHandler', 'StreamRequestHandler', 'DatagramRequestHandler', 'ThreadingMixIn', 'ForkingMixIn']
 if hasattr(socket, 'AF_UNIX'):
-    try:
-        import threading
-    except ImportError:
-        import dummy_threading as threading
-    else:
-        __all__ = ['TCPServer', 'UDPServer', 'ForkingUDPServer', 'ForkingTCPServer', 'ThreadingUDPServer', 'ThreadingTCPServer', 'BaseRequestHandler', 'StreamRequestHandler', 'DatagramRequestHandler', 'ThreadingMixIn', 'ForkingMixIn']
-        __all__.extend(['UnixStreamServer', 'UnixDatagramServer', 'ThreadingUnixStreamServer', 'ThreadingUnixDatagramServer'])
+    __all__.extend(['UnixStreamServer', 'UnixDatagramServer', 'ThreadingUnixStreamServer', 'ThreadingUnixDatagramServer'])
 
 class BaseServer:
     '''Base class for server classes.
@@ -352,20 +351,20 @@ class ForkingMixIn:
         if self.active_children is None:
             return
         while len(self.active_children) >= self.max_children:
+            try:
+                pid, status = os.waitpid(0, 0)
+            except os.error:
+                pid = None
             if pid not in self.active_children:
-                try:
-                    pid, status = os.waitpid(0, 0)
-                except os.error:
-                    pid = None
                 continue
             self.active_children.remove(pid)
             continue
         for child in self.active_children:
+            try:
+                pid, status = os.waitpid(child, os.WNOHANG)
+            except os.error:
+                pid = None
             if not pid:
-                try:
-                    pid, status = os.waitpid(child, os.WNOHANG)
-                except os.error:
-                    pid = None
                 continue
             try:
                 self.active_children.remove(pid)
@@ -491,7 +490,13 @@ class DatagramRequestHandler(BaseRequestHandler):
     '''Define self.rfile and self.wfile for datagram sockets.'''
 
     def setup(self):
-        pass
+        try:
+            from cStringIO import StringIO
+        except ImportError:
+            from StringIO import StringIO
+        self.packet, self.socket = self.request
+        self.rfile = StringIO(self.packet)
+        self.wfile = StringIO()
 
     def finish(self):
         self.socket.sendto(self.wfile.getvalue(), self.client_address)

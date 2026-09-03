@@ -98,6 +98,59 @@ class LWPCookieJar(FileCookieJar):
         header = 'Set-Cookie3:'
         boolean_attrs = ('port_spec', 'path_spec', 'domain_dot', 'secure', 'discard')
         value_attrs = ('version', 'port', 'path', 'domain', 'expires', 'comment', 'commenturl')
+        try:
+            while True:
+                line = f.readline()
+                if line == '':
+                    break
+                if not line.startswith(header):
+                    continue
+                line = line[len(header):].strip()
+                for data in split_header_words([line]):
+                    name, value = data[0]
+                    standard = {}
+                    rest = {}
+                    for k in boolean_attrs:
+                        standard[k] = False
+                    for k, v in data[1:]:
+                        if k is not None:
+                            lc = k.lower()
+                        else:
+                            lc = None
+                        if not lc in value_attrs:
+                            if lc in boolean_attrs:
+                                k = lc
+                        if k in boolean_attrs:
+                            if v is None:
+                                v = True
+                            standard[k] = v
+                            continue
+                        if k in value_attrs:
+                            standard[k] = v
+                            continue
+                        rest[k] = v
+                    h = standard.get
+                    expires = h('expires')
+                    discard = h('discard')
+                    if expires is not None:
+                        expires = iso2time(expires)
+                    if expires is None:
+                        discard = True
+                    domain = h('domain')
+                    domain_specified = domain.startswith('.')
+                    c = Cookie(h('version'), name, value, h('port'), h('port_spec'), domain, domain_specified, h('domain_dot'), h('path'), h('path_spec'), h('secure'), expires, discard, h('comment'), h('commenturl'), rest)
+                    if not ignore_discard:
+                        if c.discard:
+                            continue
+                    if not ignore_expires:
+                        if c.is_expired(now):
+                            continue
+                    self.set_cookie(c)
+        except IOError:
+            raise
+        except Exception:
+            _warn_unhandled_exception()
+            raise LoadError('invalid Set-Cookie3 format file %r: %r' % (filename, line))
 
 
 # WARNING: Decompyle incomplete

@@ -1268,6 +1268,17 @@ impl<'a> Ctx<'a> {
             // a JUMP_FORWARD inside a handler (not part of an open handler
             // body anymore) ends the chain: emit try (+else target region)
             Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE => {
+                // py2 handler normal exits are forward jumps: one
+                // landing exactly on the body jump's target retracts the
+                // presumed else region (no-else chain)
+                if lt.else_start == inst.target
+                    && (self.legacy_handler.is_some() || !lt.handlers.is_empty())
+                    && inst.target.map_or(false, |t| t > pos)
+                {
+                    if let Some(l) = self.legacy_try.as_mut() {
+                        l.else_start = None;
+                    }
+                }
                 if self.legacy_handler.is_none() && !lt.has_finally {
                     let in_else = lt
                         .else_start

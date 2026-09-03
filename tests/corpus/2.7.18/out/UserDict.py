@@ -180,14 +180,31 @@ class DictMixin:
             del self[key]
 
     def setdefault(self, key, default=None):
-        pass
+        try:
+            return self[key]
+        except KeyError:
+            self[key] = default
+        return default
 
     def pop(self, key, *args):
         if len(args) > 1:
             raise TypeError # WARNING: raise cause dropped (py2)
+        try:
+            value = self[key]
+        except KeyError:
+            if args:
+                return args[0]
+            raise
+        del self[key]
+        return value
 
     def popitem(self):
-        pass
+        try:
+            k, v = self.iteritems().next()
+        except StopIteration:
+            raise KeyError # WARNING: raise cause dropped (py2)
+        del self[k]
+        return k, v
 
     def update(self, other=None, **kwargs):
         if other is None:

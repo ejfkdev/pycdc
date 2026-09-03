@@ -216,13 +216,12 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
             continue
 
     def send_error(self, code, message=None):
+        try:
+            short, long = self.responses[code]
+        except KeyError:
+            short, long = '???', '???'
         if message is None:
-            try:
-                short, long = self.responses[code]
-            except KeyError:
-                short, long = '???', '???'
-            else:
-                message = short
+            message = short
         explain = long
         self.log_error('code %d, message %s', code, message)
         content = self.error_message_format % {'code': code, 'message': _quote_html(message), 'explain': explain}

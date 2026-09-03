@@ -136,11 +136,32 @@ class async_chat(asyncore.dispatcher):
         self.producer_fifo.append(None)
 
     def initiate_send(self):
+        try:
+            with catch_warnings():
+                if py3kwarning:
+                    filterwarnings('ignore', '.*buffer', DeprecationWarning)
+                data = buffer(first, 0, obs)
+        except TypeError:
+            data = first.more()
+            if data:
+                self.producer_fifo.appendleft(data)
+            else:
+                del self.producer_fifo[0]
+            if self.connected:
+                first = self.producer_fifo[0]
+                if not first:
+                    del self.producer_fifo[0]
+                    if first is None:
+                        self.handle_close()
+                        return
+                obs = self.ac_out_buffer_size
+            while self.producer_fifo:
+                pass
         if num_sent:
             if not num_sent < len(data):
                 if obs < len(first):
                     try:
-                        pass
+                        num_sent = self.send(data)
                     except socket.error:
                         self.handle_error()
                         return

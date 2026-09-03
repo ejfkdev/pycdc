@@ -56,4 +56,8 @@ def bisect_left(a, x, lo=0, hi=None):
             hi = mid
     return lo
 
+try:
+    from _bisect import *
+except ImportError:
+    pass
 # WARNING: Decompyle incomplete

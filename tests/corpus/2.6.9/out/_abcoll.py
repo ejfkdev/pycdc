@@ -23,6 +23,7 @@ class Hashable:
     def __subclasshook__(cls, C):
         if cls is Hashable:
             pass
+        return NotImplemented
 
 
 class Iterable:
@@ -218,9 +219,20 @@ class MutableSet(Set):
 
     def pop(self):
         it = iter(self)
+        try:
+            value = next(it)
+        except StopIteration:
+            raise KeyError
+        self.discard(value)
+        return value
 
     def clear(self):
-        pass
+        try:
+            while True:
+                self.pop()
+                continue
+        except KeyError:
+            pass
 
     def __ior__(self, it):
         for value in it:
@@ -351,10 +363,21 @@ class MutableMapping(Mapping):
         pass
 
     def popitem(self):
-        pass
+        try:
+            key = next(iter(self))
+        except StopIteration:
+            raise KeyError
+        value = self[key]
+        del self[key]
+        return key, value
 
     def clear(self):
-        pass
+        try:
+            while True:
+                self.popitem()
+                continue
+        except KeyError:
+            pass
 
     def update(self, other=(), **kwds):
         if isinstance(other, Mapping):
@@ -371,7 +394,11 @@ class MutableMapping(Mapping):
             self[key] = value
 
     def setdefault(self, key, default=None):
-        pass
+        try:
+            return self[key]
+        except KeyError:
+            self[key] = default
+        return default
 
 
 MutableMapping.register(dict)

@@ -24,16 +24,15 @@ def _find_executable(executable, path=None):
 
 def _read_output(commandstring):
     import contextlib
+    try:
+        import tempfile
+        fp = tempfile.NamedTemporaryFile()
+    except ImportError:
+        fp = open('/tmp/_osx_support.%s' % (os.getpid(),), 'w+b')
     with contextlib.closing(fp) as fp:
+        cmd = "%s 2>/dev/null >'%s'" % (commandstring, fp.name)
         if not os.system(cmd):
-            try:
-                import tempfile
-                fp = tempfile.NamedTemporaryFile()
-            except ImportError:
-                fp = open('/tmp/_osx_support.%s' % (os.getpid(),), 'w+b')
-            else:
-                cmd = "%s 2>/dev/null >'%s'" % (commandstring, fp.name)
-                return fp.read().strip()
+            return fp.read().strip()
         return
 
 def _find_build_tool(toolname):
@@ -74,8 +73,9 @@ def _supports_universal_builds():
     osx_version = _get_system_version()
     if osx_version:
         pass
+    osx_version = ''
     if osx_version:
-        pass
+        return bool(osx_version >= (10, 4))
     return False
 
 def _find_appropriate_compiler(_config_vars):

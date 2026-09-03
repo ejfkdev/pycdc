@@ -159,36 +159,29 @@ def normalize_body(body):
 
 
 class Normalizer(ast.NodeTransformer):
-    def visit_body_holder(self, node):
-        return node
-
-    def generic_visit_body(self, node):
+    def generic_visit(self, node):
+        # normalize every statement-list field (body/orelse/finalbody) on
+        # every node kind -- including py2 TryExcept/TryFinally and ExceptHandler
         for field in ('body', 'orelse', 'finalbody'):
-            if hasattr(node, field):
-                val = getattr(node, field)
-                if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
-                    val = [self.visit(s) for s in val]
-                    setattr(node, field, normalize_body(val))
-        # handlers list
-        if hasattr(node, 'handlers'):
+            val = getattr(node, field, None)
+            if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
+                val = [self.visit(st) for st in val]
+                setattr(node, field, normalize_body(val))
+        if getattr(node, 'handlers', None):
             node.handlers = [self.visit(h) for h in node.handlers]
-        return node
-
-    def visit_Module(self, node):
-        node.body = [self.visit(s) for s in node.body]
-        node.body = normalize_body(node.body)
-        return node
-
-    def visit_FunctionDef(self, node):
-        node.args = self.visit(node.args)
-        self.generic_visit_body(node)
-        return node
-
-    def visit_AsyncFunctionDef(self, node):
-        return self.visit_FunctionDef(node)
-
-    def visit_ClassDef(self, node):
-        self.generic_visit_body(node)
+        for field, value in ast.iter_fields(node):
+            if field in ('body', 'orelse', 'finalbody', 'handlers'):
+                continue
+            if isinstance(value, list):
+                new = []
+                for item in value:
+                    if isinstance(item, ast.AST):
+                        new.append(self.visit(item))
+                    else:
+                        new.append(item)
+                setattr(node, field, new)
+            elif isinstance(value, ast.AST):
+                setattr(node, field, self.visit(value))
         return node
 
     def visit_While(self, node):
@@ -198,97 +191,13 @@ class Normalizer(ast.NodeTransformer):
             node.test = ast.Name(id='True', ctx=ast.Load())
         return node
 
-    def visit_Lambda(self, node):
-        node.args = self.visit(node.args)
-        node.body = self.visit(node.body)
-        return node
-
-    # ---- constant folding: compilers fold arithmetic on number literals,
-    # so the decompiled constant and the source expression must compare
-    # equal after folding both sides ----
-    def _numval(self, node):
-        k = const_key(node)
-        if k is not None and k[0] in ('num', 'bool'):
-            v = node.n if isinstance(node, ast.Num) else (
-                node.value if hasattr(ast, 'Constant') and isinstance(node, ast.Constant) else None)
-            if isinstance(v, bool):
-                return int(v)
-            if isinstance(v, (int, float, complex)) or (hasattr(v, 'real') and not isinstance(v, bytes) and not isinstance(v, str)):
-                return v
-        return None
-
-    def visit_UnaryOp(self, node):
-        self.generic_visit(node)
-        v = self._numval(node.operand)
-        if v is None:
-            return node
-        try:
-            if isinstance(node.op, ast.USub):
-                r = -v
-            elif isinstance(node.op, ast.UAdd):
-                r = +v
-            elif isinstance(node.op, ast.Invert):
-                r = ~v
-            else:
-                return node
-        except Exception:
-            return node
-        return ast.Num(n=r)
-
-    def visit_BinOp(self, node):
-        self.generic_visit(node)
-        l = self._numval(node.left)
-        r = self._numval(node.right)
-        if l is None or r is None:
-            return node
-        op = node.op
-        try:
-            if isinstance(op, ast.Add):
-                v = l + r
-            elif isinstance(op, ast.Sub):
-                v = l - r
-            elif isinstance(op, ast.Mult):
-                v = l * r
-            elif isinstance(op, ast.Div):
-                if hasattr(ast, 'Div') and sys.version_info[0] == 2:
-                    v = l / r
-                else:
-                    v = l / r
-            elif isinstance(op, ast.FloorDiv):
-                v = l // r
-            elif isinstance(op, ast.Mod):
-                v = l % r
-            elif isinstance(op, ast.Pow):
-                if abs(r) > 64:
-                    return node
-                v = l ** r
-            elif isinstance(op, ast.LShift):
-                if r > 64:
-                    return node
-                v = l << r
-            elif isinstance(op, ast.RShift):
-                v = l >> r
-            elif isinstance(op, ast.BitOr):
-                v = l | r
-            elif isinstance(op, ast.BitXor):
-                v = l ^ r
-            elif isinstance(op, ast.BitAnd):
-                v = l & r
-            else:
-                return node
-        except Exception:
-            return node
-        if isinstance(v, (int, float, complex)) or (hasattr(v, 'numerator') and not isinstance(v, bool)):
-            return ast.Num(n=v)
-        return node
-
     def visit_Call(self, node):
         self.generic_visit(node)
         # set(genexpr) == set comprehension, list(genexpr) == list comp
         # (decompiler renders pre-3.x style comprehension code this way)
         if (isinstance(node.func, ast.Name)
                 and node.func.id in ('set', 'list')
-                and len(node.args) == 1 and not node.keywords
+                and len(node.args) == 1 and not getattr(node, 'keywords', [])
                 and isinstance(node.args[0], ast.GeneratorExp)):
             ge = node.args[0]
             if node.func.id == 'set':

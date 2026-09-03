@@ -211,13 +211,12 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
             self.handle_one_request()
 
     def send_error(self, code, message=None):
+        try:
+            short, long = self.responses[code]
+        except KeyError:
+            short, long = '???', '???'
         if message is None:
-            try:
-                short, long = self.responses[code]
-            except KeyError:
-                short, long = '???', '???'
-            else:
-                message = short
+            message = short
         explain = long
         self.log_error('code %d, message %s', code, message)
         self.send_response(code, message)

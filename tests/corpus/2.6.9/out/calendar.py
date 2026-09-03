@@ -472,12 +472,11 @@ c = TextCalendar()
 firstweekday = c.getfirstweekday
 
 def setfirstweekday(firstweekday):
-    if MONDAY <= firstweekday:
-        try:
-            firstweekday.__index__
-        except AttributeError:
-            raise IllegalWeekdayError(firstweekday)
-    if not firstweekday <= SUNDAY:
+    try:
+        firstweekday.__index__
+    except AttributeError:
+        raise IllegalWeekdayError(firstweekday)
+    if not MONDAY <= firstweekday <= SUNDAY:
         raise IllegalWeekdayError(firstweekday)
     c.firstweekday = firstweekday
 

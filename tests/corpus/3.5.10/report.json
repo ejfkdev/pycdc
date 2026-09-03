@@ -33,7 +33,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 197: orig  attr='_decomp_factory' | dec  attr='_decomp_args'",
+   "ast_detail": "diff at token 198: orig  attr='_decomp_factory' | dec  attr='_decomp_args'",
    "verdict": "SIG-DIFF",
    "ndiff": 276,
    "ntotal": 490,
@@ -41,7 +41,7 @@
   },
   {
    "module": "_dummy_thread",
-   "ast_detail": "diff at token 73: orig  Try(body=[Expr(value=Call(func=Name(id='function' | dec  Import(names=[alias(name='traceback'",
+   "ast_detail": "diff at token 12: orig  value=BinOp(left=Num(n=2) | dec  value=Num(n=2147483648))",
    "verdict": "SIG-DIFF",
    "ndiff": 194,
    "ntotal": 291,
@@ -49,7 +49,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 472: orig  orelse=[If(test=Compare(left=Name(id='c' | dec  orelse=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 474: orig  orelse=[If(test=Compare(left=Name(id='c' | dec  orelse=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 911,
    "ntotal": 1372,
@@ -109,7 +109,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 260: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 261: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2147,
    "ntotal": 3025,
@@ -141,7 +141,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "",
+   "ast_detail": "diff at token 49: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1804,
    "ntotal": 1970,
@@ -149,7 +149,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 298: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 299: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 1668,
    "ntotal": 2332,
@@ -157,7 +157,7 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "",
+   "ast_detail": "diff at token 674: orig  Try(body=[Expr(value=Call(func=Attribute(value=Name(id='ofp' | dec  If(test=Name(id='close_on_error'",
    "verdict": "SIG-DIFF",
    "ndiff": 1218,
    "ntotal": 1817,
@@ -189,7 +189,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "",
+   "ast_detail": "diff at token 71: orig  'logfile' | dec  'logfp'])",
    "verdict": "SIG-DIFF",
    "ndiff": 2915,
    "ntotal": 3039,
@@ -281,7 +281,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 266: orig  Try(body=[Assign(targets=[Name(id='getstate' | dec  Assign(targets=[Name(id='dict'",
+   "ast_detail": "diff at token 177: orig  value=BinOp(left=Num(n=1) | dec  value=Num(n=512))",
    "verdict": "SIG-DIFF",
    "ndiff": 337,
    "ntotal": 525,

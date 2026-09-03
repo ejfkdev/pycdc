@@ -61,13 +61,12 @@ class Chunk:
         self.chunkname = file.read(4)
         if len(self.chunkname) < 4:
             raise EOFError
+        try:
+            self.chunksize = struct.unpack(strflag + 'L', file.read(4))[0]
+        except struct.error:
+            raise EOFError
         if inclheader:
-            try:
-                self.chunksize = struct.unpack(strflag + 'L', file.read(4))[0]
-            except struct.error:
-                raise EOFError
-            else:
-                self.chunksize = self.chunksize - 8
+            self.chunksize = self.chunksize - 8
         self.size_read = 0
         try:
             self.offset = self.file.tell()

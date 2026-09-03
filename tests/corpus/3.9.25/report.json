@@ -3,7 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
   "PASS": 6,
-  "SIG-DIFF": 34
+  "SIG-DIFF": 33,
+  "AST-PASS": 1
  },
  "results": [
   {
@@ -44,7 +45,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 233: orig  ctx=Store())) | dec  ctx=Store()))]",
+   "ast_detail": "diff at token 234: orig  ctx=Store())) | dec  ctx=Store()))]",
    "verdict": "SIG-DIFF",
    "ndiff": 203,
    "ntotal": 515,
@@ -52,7 +53,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 467: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
+   "ast_detail": "diff at token 469: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
    "ndiff": 968,
    "ntotal": 1391,
@@ -112,11 +113,7 @@
   },
   {
    "module": "abc",
-   "ast_detail": "diff at token 83: orig  names=[alias(name='get_cache_token') | dec  names=[alias(name='get_cache_token')]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 340,
-   "ntotal": 380,
-   "detail": "line 31: orig ('SETUP_FINALLY', 'to 106') | got ('SETUP_FINALLY', 'to 162')\nline 33: orig ('LOAD_CONST', \"('get_cache_token', '_abc_init', '_abc_register', '_abc_instancecheck', '_abc_subcla | got ('LOAD_CONST', \"('get_cache_token',)\")\nline 37: orig ('IMPORT_FROM', '_abc_init') | got ('POP_TOP', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "aifc",
@@ -128,7 +125,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 135: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 136: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 6112,
    "ntotal": 7149,
@@ -152,7 +149,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "",
+   "ast_detail": "diff at token 44: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
    "ndiff": 1478,
    "ntotal": 1868,
@@ -160,7 +157,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 284: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 285: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2246,
    "ntotal": 2340,
@@ -168,7 +165,7 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "",
+   "ast_detail": "diff at token 123: orig  Assign(targets=[Tuple(elts=[Name(id='dir' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 1559,
    "ntotal": 2036,
@@ -188,7 +185,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 155: orig  keywords=[]))])] | dec  keywords=[]))])",
+   "ast_detail": "diff at token 158: orig  keywords=[]))])] | dec  keywords=[]))])",
    "verdict": "SIG-DIFF",
    "ndiff": 386,
    "ntotal": 686,
@@ -204,7 +201,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "",
+   "ast_detail": "diff at token 52: orig  'logfile' | dec  'logfp'])",
    "verdict": "SIG-DIFF",
    "ndiff": 2769,
    "ntotal": 2887,
@@ -296,7 +293,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 191: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
+   "ast_detail": "diff at token 158: orig  value=BinOp(left=Constant(value=1) | dec  value=Constant(value=512))",
    "verdict": "SIG-DIFF",
    "ndiff": 367,
    "ntotal": 563,

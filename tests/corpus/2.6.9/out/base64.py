@@ -26,6 +26,11 @@ def b64encode(s, altchars=None):
 def b64decode(s, altchars=None):
     if altchars is not None:
         s = _translate(s, {altchars[0]: '+', altchars[1]: '/'})
+    try:
+        return binascii.a2b_base64(s)
+    except binascii.Error:
+        msg = None
+        raise TypeError(msg)
 
 def standard_b64encode(s):
     return b64encode(s)
@@ -169,17 +174,16 @@ def decodestring(s):
 def test():
     import sys
     import getopt
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'deut')
+    except getopt.error:
+        msg = None
+        sys.stdout = sys.stderr
+        print msg
+        print "usage: %s [-d|-e|-u|-t] [file|-]\n        -d, -u: decode\n        -e: encode (default)\n        -t: encode and decode string 'Aladdin:open sesame'" % sys.argv[0]
+        sys.exit(2)
+    func = encode
     for o, a in opts:
-        try:
-            opts, args = getopt.getopt(sys.argv[1:], 'deut')
-        except getopt.error:
-            msg = None
-            sys.stdout = sys.stderr
-            print msg
-            print "usage: %s [-d|-e|-u|-t] [file|-]\n        -d, -u: decode\n        -e: encode (default)\n        -t: encode and decode string 'Aladdin:open sesame'" % sys.argv[0]
-            sys.exit(2)
-        else:
-            func = encode
         if o == '-e':
             func = encode
         if o == '-d':

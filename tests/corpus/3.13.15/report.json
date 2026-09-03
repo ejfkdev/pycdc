@@ -25,7 +25,7 @@
   },
   {
    "module": "_android_support",
-   "ast_detail": "",
+   "ast_detail": "diff at token 186: orig  body=[While(test=Name(id='line' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 597,
    "ntotal": 635,
@@ -70,7 +70,7 @@
   },
   {
    "module": "_ios_support",
-   "ast_detail": "diff at token 2: orig  names=[alias(name='cdll') | dec  names=[alias(name='cdll')]",
+   "ast_detail": "diff at token 11: orig  args=[Constant(value=\"ctypes isn't available; iOS system calls will not be available\")] | dec  args=[Constant(value=\"ctypes isn't available; iOS system calls will not be availa",
    "verdict": "SIG-DIFF",
    "ndiff": 179,
    "ntotal": 194,
@@ -150,7 +150,7 @@
   },
   {
    "module": "abc",
-   "ast_detail": "diff at token 56: orig  names=[alias(name='get_cache_token') | dec  names=[alias(name='get_cache_token')]",
+   "ast_detail": "diff at token 75: orig  value=Constant(value='abc'))])] | dec  value=Constant(value='abc'))])])",
    "verdict": "SIG-DIFF",
    "ndiff": 413,
    "ntotal": 456,
@@ -187,7 +187,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 109: orig  args=[Starred(value=Name(id='sort' | dec  args=[Name(id='sort'",
+   "ast_detail": "diff at token 112: orig  args=[Starred(value=Name(id='sort' | dec  args=[Name(id='sort'",
    "verdict": "SIG-DIFF",
    "ndiff": 417,
    "ntotal": 703,
@@ -281,7 +281,7 @@
   },
   {
    "module": "datetime",
-   "ast_detail": "diff at token 3: orig  ImportFrom(module='_datetime' | dec  Expr(value=Constant(value=None))",
+   "ast_detail": "diff at token 1: orig  names=[alias(name='*') | dec  names=[alias(name='*')]",
    "verdict": "SIG-DIFF",
    "ndiff": 35,
    "ntotal": 43,
@@ -289,7 +289,7 @@
   },
   {
    "module": "decimal",
-   "ast_detail": "diff at token 3: orig  ImportFrom(module='_decimal' | dec  Expr(value=Constant(value=None))",
+   "ast_detail": "diff at token 1: orig  names=[alias(name='*') | dec  names=[alias(name='*')]",
    "verdict": "SIG-DIFF",
    "ndiff": 41,
    "ntotal": 51,

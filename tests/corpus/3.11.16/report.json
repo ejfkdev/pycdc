@@ -48,7 +48,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 174: orig  args=[] | dec  args=[Tuple(elts=[]",
+   "ast_detail": "diff at token 175: orig  args=[] | dec  args=[Tuple(elts=[]",
    "verdict": "SIG-DIFF",
    "ndiff": 309,
    "ntotal": 614,
@@ -116,7 +116,7 @@
   },
   {
    "module": "abc",
-   "ast_detail": "diff at token 83: orig  names=[alias(name='get_cache_token') | dec  names=[alias(name='get_cache_token')]",
+   "ast_detail": "diff at token 103: orig  orelse=[ClassDef(name='ABCMeta' | dec  orelse=[]",
    "verdict": "SIG-DIFF",
    "ndiff": 432,
    "ntotal": 471,
@@ -148,7 +148,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "",
+   "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Try(body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1852,
    "ntotal": 2117,
@@ -156,7 +156,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 290: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 291: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2439,
    "ntotal": 2548,
@@ -180,7 +180,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 155: orig  keywords=[]))])] | dec  keywords=[]))",
+   "ast_detail": "diff at token 158: orig  keywords=[]))])] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 550,
    "ntotal": 742,
@@ -196,7 +196,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "",
+   "ast_detail": "diff at token 44: orig  ctx=Load())] | dec  ctx=Load())",
    "verdict": "SIG-DIFF",
    "ndiff": 3074,
    "ntotal": 3160,
@@ -296,7 +296,7 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 15: orig  orelse=[Raise(exc=Call(func=Name(id='ImportError' | dec  orelse=[])",
+   "ast_detail": "diff at token 21: orig  finalbody=[]) | dec  finalbody=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 479,
    "ntotal": 492,

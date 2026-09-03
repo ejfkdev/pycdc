@@ -247,7 +247,12 @@ class Bdb:
         self._prune_breaks(filename, lineno)
 
     def clear_bpbynumber(self, arg):
-        pass
+        try:
+            bp = self.get_bpbynumber(arg)
+        except ValueError as err:
+            return str(err)
+        bp.deleteMe()
+        self._prune_breaks(bp.file, bp.line)
 
     def clear_all_file_breaks(self, filename):
         filename = self.canonic(filename)

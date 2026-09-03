@@ -144,16 +144,28 @@ class Error(Exception):
 _AIFC_version = 2726318400L
 
 def _read_long(file):
-    pass
+    try:
+        return struct.unpack('>l', file.read(4))[0]
+    except struct.error:
+        raise EOFError
 
 def _read_ulong(file):
-    pass
+    try:
+        return struct.unpack('>L', file.read(4))[0]
+    except struct.error:
+        raise EOFError
 
 def _read_short(file):
-    pass
+    try:
+        return struct.unpack('>h', file.read(2))[0]
+    except struct.error:
+        raise EOFError
 
 def _read_ushort(file):
-    pass
+    try:
+        return struct.unpack('>H', file.read(2))[0]
+    except struct.error:
+        raise EOFError
 
 def _read_string(file):
     length = ord(file.read(1))
@@ -263,15 +275,14 @@ class Aifc_read:
         self._ssnd_chunk = None
         while True:
             self._ssnd_seek_needed = 1
+            try:
+                chunk = Chunk(self._file)
+            except EOFError:
+                break
+            chunkname = chunk.getname()
             if chunkname == 'COMM':
-                try:
-                    chunk = Chunk(self._file)
-                except EOFError:
-                    break
-                else:
-                    chunkname = chunk.getname()
-                    self._read_comm_chunk(chunk)
-                    self._comm_chunk_read = 1
+                self._read_comm_chunk(chunk)
+                self._comm_chunk_read = 1
             elif chunkname == 'SSND':
                 self._ssnd_chunk = chunk
                 dummy = chunk.read(8)
@@ -437,6 +448,16 @@ class Aifc_read:
 
     def _readmark(self, chunk):
         nmarkers = _read_short(chunk)
+        try:
+            for i in range(nmarkers):
+                id = _read_short(chunk)
+                pos = _read_long(chunk)
+                name = _read_string(chunk)
+                if not pos:
+                    if name:
+                        self._markers.append((id, pos, name))
+        except EOFError:
+            print 'Warning: MARK chunk contains only', len(self._markers), 'marker', 'markers', 'instead of', nmarkers
 
 
 class Aifc_write:
@@ -705,17 +726,16 @@ class Aifc_write:
                 self._datalength = (self._datalength + 3) // 4
                 if self._datalength & 1:
                     self._datalength = self._datalength + 1
+        try:
+            self._form_length_pos = self._file.tell()
+        except (AttributeError, IOError):
+            self._form_length_pos = None
+        commlength = self._write_form_length(self._datalength)
         if self._aifc:
-            try:
-                self._form_length_pos = self._file.tell()
-            except (AttributeError, IOError):
-                self._form_length_pos = None
-            else:
-                commlength = self._write_form_length(self._datalength)
-                self._file.write('AIFC')
-                self._file.write('FVER')
-                _write_ulong(self._file, 4)
-                _write_ulong(self._file, self._version)
+            self._file.write('AIFC')
+            self._file.write('FVER')
+            _write_ulong(self._file, 4)
+            _write_ulong(self._file, self._version)
         else:
             self._file.write('AIFF')
         self._file.write('COMM')

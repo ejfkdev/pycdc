@@ -60,4 +60,13 @@ def bisect_left(a, x, lo=0, hi=None):
         continue
     return lo
 
+try:
+    from _bisect import bisect_right
+    from _bisect import bisect_left
+    from _bisect import insort_left
+    from _bisect import insort_right
+    from _bisect import insort
+    from _bisect import bisect
+except ImportError:
+    pass
 # WARNING: Decompyle incomplete

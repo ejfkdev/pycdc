@@ -201,15 +201,14 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if '=' not in query:
             cmdline.append(query)
         self.log_message('command: %s', subprocess.list2cmdline(cmdline))
+        try:
+            nbytes = int(length)
+        except (TypeError, ValueError):
+            nbytes = 0
+        p = subprocess.Popen(cmdline, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if self.command.lower() == 'post':
             if nbytes > 0:
-                try:
-                    nbytes = int(length)
-                except (TypeError, ValueError):
-                    nbytes = 0
-                else:
-                    p = subprocess.Popen(cmdline, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    data = self.rfile.read(nbytes)
+                data = self.rfile.read(nbytes)
             else:
                 data = None
         while select.select([self.rfile._sock], [], [], 0)[0]:
@@ -234,6 +233,11 @@ def nobody_uid():
     global nobody
     if nobody:
         return nobody
+    try:
+        pass
+    except KeyError:
+        nobody = 1 + max(map((lambda x: x[2]), pwd.getpwall()))
+    return nobody
 
 def executable(path):
     pass

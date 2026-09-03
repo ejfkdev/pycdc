@@ -18,7 +18,17 @@ class Queue:
     '''
 
     def __init__(self, maxsize=0):
-        pass
+        try:
+            import threading
+        except ImportError:
+            import dummy_threading as threading
+        self.maxsize = maxsize
+        self._init(maxsize)
+        self.mutex = threading.Lock()
+        self.not_empty = threading.Condition(self.mutex)
+        self.not_full = threading.Condition(self.mutex)
+        self.all_tasks_done = threading.Condition(self.mutex)
+        self.unfinished_tasks = 0
 
     def task_done(self):
         self.all_tasks_done.acquire()

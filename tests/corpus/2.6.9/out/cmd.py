@@ -98,34 +98,35 @@ class Cmd:
             if self.use_rawinput:
                 if self.completekey:
                     pass
-        if intro is not None:
-            self.intro = intro
-        if self.intro:
-            self.stdout.write(str(self.intro) + '\n')
-        stop = None
-        while not stop:
-            if self.cmdqueue:
-                line = self.cmdqueue.pop(0)
-            elif self.use_rawinput:
-                continue
-            try:
-                line = raw_input(self.prompt)
-            except EOFError:
-                pass
-            else:
+        try:
+            if intro is not None:
+                self.intro = intro
+            if self.intro:
+                self.stdout.write(str(self.intro) + '\n')
+            stop = None
+            while not stop:
+                if self.cmdqueue:
+                    line = self.cmdqueue.pop(0)
+                elif self.use_rawinput:
+                    continue
                 line = 'EOF'
                 line = self.precmd(line)
                 stop = self.onecmd(line)
                 stop = self.postcmd(stop, line)
-            continue
-        self.postloop()
-        try:
-            import readline
-            readline.set_completer(self.old_completer)
-        except ImportError:
-            if self.use_rawinput:
-                if self.completekey:
+                try:
+                    line = raw_input(self.prompt)
+                except EOFError:
                     pass
+                continue
+            self.postloop()
+        finally:
+            try:
+                import readline
+                readline.set_completer(self.old_completer)
+            except ImportError:
+                if self.use_rawinput:
+                    if self.completekey:
+                        pass
 
     def precmd(self, line):
         return line

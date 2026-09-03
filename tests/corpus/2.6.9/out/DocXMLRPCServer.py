@@ -135,15 +135,15 @@ class XMLRPCDocGenerator:
                     continue
             if not hasattr(self.instance, '_dispatch'):
                 continue
-            if not 0:
-                raise AssertionError # WARNING: raise cause dropped (py2)
-            methods[method_name] = method
+            method = method_info
             try:
                 method = resolve_dotted_attribute(self.instance, method_name)
             except AttributeError:
                 pass
             else:
-                method = method_info
+                if not 0:
+                    raise AssertionError # WARNING: raise cause dropped (py2)
+                methods[method_name] = method
         documenter = ServerHTMLDoc()
         documentation = documenter.docserver(self.server_name, self.server_documentation, methods)
         return documenter.page(self.server_title, documentation)

@@ -40,13 +40,12 @@ _names = ['dbhash', 'gdbm', 'dbm', 'dumbdbm']
 _errors = [error]
 _defaultmod = None
 for _name in _names:
+    try:
+        _mod = __import__(_name)
+    except ImportError:
+        continue
     if not _defaultmod:
-        try:
-            _mod = __import__(_name)
-        except ImportError:
-            continue
-        else:
-            _defaultmod = _mod
+        _defaultmod = _mod
     _errors.append(_mod.error)
 if not _defaultmod:
     raise ImportError # WARNING: raise cause dropped (py2)

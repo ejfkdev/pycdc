@@ -9,12 +9,11 @@ def run(statement, filename=None, sort=-1):
     prof = Profile()
     result = None
     try:
-        pass
-    finally:
         try:
             prof = prof.run(statement)
         except SystemExit:
             pass
+    finally:
         if filename is not None:
             prof.dump_stats(filename)
         else:
@@ -25,12 +24,11 @@ def runctx(statement, globals, locals, filename=None, sort=-1):
     prof = Profile()
     result = None
     try:
-        pass
-    finally:
         try:
             prof = prof.runctx(statement, globals, locals)
         except SystemExit:
             pass
+    finally:
         if filename is not None:
             prof.dump_stats(filename)
         else:
@@ -83,21 +81,20 @@ class Profile(_lsprof.Profiler):
             if entry.calls:
                 func = label(entry.code)
                 for subentry in entry.calls:
+                    try:
+                        callers = callersdicts[id(subentry.code)]
+                    except KeyError:
+                        continue
+                    nc = subentry.callcount
+                    cc = nc - subentry.reccallcount
+                    tt = subentry.inlinetime
+                    ct = subentry.totaltime
                     if func in callers:
-                        try:
-                            callers = callersdicts[id(subentry.code)]
-                        except KeyError:
-                            continue
-                        else:
-                            nc = subentry.callcount
-                            cc = nc - subentry.reccallcount
-                            tt = subentry.inlinetime
-                            ct = subentry.totaltime
-                            prev = callers[func]
-                            nc += prev[0]
-                            cc += prev[1]
-                            tt += prev[2]
-                            ct += prev[3]
+                        prev = callers[func]
+                        nc += prev[0]
+                        cc += prev[1]
+                        tt += prev[2]
+                        ct += prev[3]
                     callers[func] = nc, cc, tt, ct
                 else:
                     continue

@@ -81,9 +81,8 @@ class WeakSet(object):
                 itemref = self.data.pop()
             except KeyError:
                 raise KeyError('pop from empty WeakSet')
-            else:
-                item = itemref()
-                return item
+            item = itemref()
+            return item
 
     def remove(self, item):
         if self._pending_removals:
