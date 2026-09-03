@@ -237,9 +237,8 @@ class Cmd:
         names.sort()
         prevname = ''
         for name in names:
-            if name[:3] == 'do_':
-                if name == prevname:
-                    continue
+            if name[:3] == 'do_' or name == prevname:
+                continue
             prevname = name
             cmd = name[3:]
             if cmd in help:

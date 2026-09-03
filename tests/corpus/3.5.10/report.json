@@ -255,7 +255,7 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4185,
+   "ndiff": 4178,
    "ntotal": 4295,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },

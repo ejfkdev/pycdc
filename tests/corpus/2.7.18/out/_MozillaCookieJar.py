@@ -55,9 +55,8 @@ class MozillaCookieJar(FileCookieJar):
                     break
                 if line.endswith('\n'):
                     line = line[:-1]
-                if not line.strip().startswith(('#', '$')):
-                    if line.strip() == '':
-                        continue
+                if line.strip().startswith(('#', '$')) or line.strip() == '':
+                    continue
                 domain, domain_specified, path, secure, expires, name, value = line.split('\t')
                 secure = secure == 'TRUE'
                 domain_specified = domain_specified == 'TRUE'

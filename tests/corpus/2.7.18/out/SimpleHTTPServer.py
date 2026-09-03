@@ -116,10 +116,9 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         words = filter(None, words)
         path = os.getcwd()
         for word in words:
-            pass
-        if word in (os.curdir, os.pardir):
-            pass
-        path = os.path.join(path, word)
+            if os.path.dirname(word) or word in (os.curdir, os.pardir):
+                continue
+            path = os.path.join(path, word)
         if trailing_slash:
             path += '/'
         return path

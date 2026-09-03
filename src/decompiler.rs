@@ -4533,6 +4533,121 @@ impl<'a> Ctx<'a> {
         Some((merged, target, exit))
     }
 
+    /// Fused `if a or b [or c]: continue` chain (common on py2): the first
+    /// operand's cond jump targets the LOOP TOP; further operands jump to
+    /// the loop top as well, and the last one jumps forward over a body
+    /// that is exactly a back-edge jump. Returns (cond, body_start,
+    /// body_end).
+    fn try_or_continue_chain(
+        &self,
+        loop_top: usize,
+        first_cond: &ExprRef,
+    ) -> Option<(ExprRef, usize, usize)> {
+        let is_cond_jump = |o: Op| {
+            matches!(
+                o,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+            )
+        };
+        let jump_true =
+            |o: Op| matches!(o, Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE);
+        let Some(&ci) = self.idx_of.get(&self.cur_offset) else {
+            return None;
+        };
+        let mut parts: Vec<ExprRef> = vec![first_cond.clone()];
+        let mut k = ci + 1;
+        let mut exit: Option<usize> = None;
+        let mut body_start = 0usize;
+        loop {
+            let region_start = k;
+            let mut jidx = None;
+            while k < self.instrs.len() {
+                let ins = &self.instrs[k];
+                if is_cond_jump(ins.op) {
+                    jidx = Some(k);
+                    break;
+                }
+                if !is_pure_value_op(ins.op) {
+                    return None;
+                }
+                k += 1;
+            }
+            let jk = jidx?;
+            let operand = self.sim_value_region(region_start, jk)?;
+            let jins = &self.instrs[jk];
+            let jt = jump_true(jins.op);
+            if jins.target == Some(loop_top) {
+                // another operand short-circuiting to the continue body
+                parts.push(if jt {
+                    operand
+                } else {
+                    Rc::new(Expr::Unary { op: UnaryOp::Not, operand })
+                });
+                k = jk + 1;
+                continue;
+            }
+            if let Some(t) = jins.target {
+                if t > self.cur_offset && self.idx_of.contains_key(&t) {
+                    parts.push(if jt {
+                        Rc::new(Expr::Unary { op: UnaryOp::Not, operand })
+                    } else {
+                        operand
+                    });
+                    exit = Some(t);
+                    body_start = self.instrs[jk].end();
+                    break;
+                }
+            }
+            return None;
+        }
+        let exit = exit?;
+        if parts.len() < 2 {
+            return None;
+        }
+        // the body between the chain and the exit must be exactly the
+        // continue back edge (plus optional dead padding jumps)
+        let Some(&bsi) = self.idx_of.get(&body_start) else {
+            return None;
+        };
+        let Some(&ei) = self.idx_of.get(&exit) else {
+            return None;
+        };
+        if ei <= bsi {
+            return None;
+        }
+        let mut saw_back_edge = false;
+        for m in bsi..ei {
+            let ins = &self.instrs[m];
+            if ins.is_backward
+                && ins.target == Some(loop_top)
+                && matches!(
+                    ins.op,
+                    Op::JUMP_ABSOLUTE
+                        | Op::JUMP_BACKWARD
+                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                )
+            {
+                saw_back_edge = true;
+                continue;
+            }
+            if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP | Op::NOP) {
+                continue;
+            }
+            return None;
+        }
+        if !saw_back_edge {
+            return None;
+        }
+        let merged = Rc::new(Expr::BoolOp {
+            op: BoolOpKind::Or,
+            values: parts,
+        }) as ExprRef;
+        Some((merged, body_start, exit))
+    }
+
     /// Evaluate a straight-line value-expression instruction region on a
     /// scratch stack (py2 boolop condition merging). Returns None when any
     /// instruction is not pure value computation.
@@ -4962,6 +5077,20 @@ impl<'a> Ctx<'a> {
                         || (b.start <= target && target < b.cond_end);
                     if !matches_loop {
                         continue;
+                    }
+                    // fused `if a or b: continue` chain: this jump carries
+                    // the first operand straight to the loop top; the
+                    // remaining operands and the continue body follow
+                    if let Some((merged, body_start, body_end)) =
+                        self.try_or_continue_chain(target, &cond)
+                    {
+                        let mut blk = Block::new(BlockType::If, body_start, body_end);
+                        blk.cond = Some(merged);
+                        blk.cond_set = true;
+                        blk.stack_depth = self.stack.len();
+                        self.blocks.push(blk);
+                        self.skip_until = Some(body_start);
+                        return;
                     }
                     if jump_if_true && self.blocks[i].cond_set {
                         // 3.10+ rotated while back edge: closes the loop
