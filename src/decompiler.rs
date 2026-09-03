@@ -3129,6 +3129,16 @@ impl<'a> Ctx<'a> {
                     .and_then(|i| self.instrs.get(*i))
                     .map(|x| x.op == Op::POP_TOP)
                     .unwrap_or(false);
+                if jump_if_true && next_pop {
+                    // py2 `assert cond[, msg]`: JUMP_IF_TRUE L; POP_TOP;
+                    // LOAD AssertionError; ...; RAISE 1; L:
+                    if let Some(msg) = self.is_assert_fallthrough(target) {
+                        let cond = self.pop_expr();
+                        self.push_stmt(Stmt::Assert { test: cond, msg });
+                        self.skip_until = Some(target);
+                        return true;
+                    }
+                }
                 if next_pop && target_pop {
                     // if-statement shape: both paths discard the value
                     let cond = self.pop_expr();
@@ -4299,13 +4309,26 @@ impl<'a> Ctx<'a> {
             }
         }
 
-        // 5) assert detection: `if not cond: raise AssertionError`
+        // 5) assert detection. Canonical shape (all versions):
+        //   <cond>; PJIT L; LOAD AssertionError; [<msg>; CALL 1]; RAISE 1; L:
+        // i.e. the raise block is the jump's fall-through and the target
+        // lands right after it.
+        if jump_if_true {
+            if let Some(msg) = self.is_assert_fallthrough(target) {
+                self.push_stmt(Stmt::Assert { test: cond, msg });
+                self.skip_until = Some(target);
+                return;
+            }
+        }
+        // `if not cond: raise AssertionError` written as a statement: the
+        // raise block is the jump target
         if !jump_if_true && self.is_assert_target(target) {
             let msg = self.try_extract_assert_msg(target);
             self.push_stmt(Stmt::Assert {
                 test: cond,
                 msg,
             });
+            self.skip_until = Some(target);
             return;
         }
 
@@ -4497,6 +4520,100 @@ impl<'a> Ctx<'a> {
         blk.jump_if_true = jump_if_true;
         blk.stack_depth = self.stack.len();
         self.blocks.push(blk);
+    }
+
+
+    /// Detect the canonical `assert` raise block as the fall-through of a
+    /// cond jump: returns Some(msg_option) when [cur_next, target) is
+    /// exactly `LOAD AssertionError; [<msg expr>; CALL 1]; RAISE_VARARGS 1`.
+    fn is_assert_fallthrough(&self, target: usize) -> Option<Option<ExprRef>> {
+        let &i0 = self.idx_of.get(&self.cur_offset)?;
+        let mut k = i0 + 1;
+        loop {
+            let skip = matches!(
+                self.instrs.get(k).map(|x| x.op),
+                Some(Op::TO_BOOL) | Some(Op::COPY) | Some(Op::NOP)
+            ) || (!self.version.at_least(3, 0)
+                && matches!(self.instrs.get(k).map(|x| x.op), Some(Op::POP_TOP)));
+            if !skip {
+                break;
+            }
+            k += 1;
+        }
+        let err_load = match self.instrs.get(k) {
+            Some(ins) if ins.op == Op::LOAD_ASSERTION_ERROR => true,
+            Some(ins) if matches!(ins.op, Op::LOAD_GLOBAL | Op::LOAD_NAME) => {
+                let idx = if ins.op == Op::LOAD_GLOBAL && self.version.at_least(3, 10) {
+                    (ins.arg as usize) >> 1
+                } else {
+                    ins.arg as usize
+                };
+                self.const_name(idx) == "AssertionError"
+            }
+            _ => false,
+        };
+        if !err_load {
+            return None;
+        }
+        let msg_start = k + 1;
+        // find the terminating RAISE_VARARGS 1; jumps (other than in msg
+        // expressions we don't expect) invalidate the shape
+        let mut raise_idx = None;
+        let mut call_idx = None;
+        let mut j = msg_start;
+        while j < self.instrs.len() && j <= i0 + 60 {
+            let ins = &self.instrs[j];
+            if ins.op == Op::RAISE_VARARGS && ins.arg == 1 {
+                raise_idx = Some(j);
+                break;
+            }
+            if matches!(ins.op, Op::CALL | Op::CALL_FUNCTION) && ins.arg <= 1 {
+                call_idx = Some(j);
+            }
+            if ins.target.is_some()
+                && !matches!(ins.op, Op::CALL | Op::CALL_FUNCTION | Op::FOR_ITER)
+            {
+                return None;
+            }
+            if matches!(ins.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                return None;
+            }
+            j += 1;
+        }
+        let ri = raise_idx?;
+        // the raise must land on `target`, possibly through dead padding
+        // jumps (py2 emits JUMP_FORWARD 0 after the raise)
+        let mut off = self.instrs[ri].end();
+        loop {
+            if self.effective_offset(off) == self.effective_offset(target) {
+                break;
+            }
+            let advanced = match self.idx_of.get(&off) {
+                Some(&pi) => {
+                    let p = &self.instrs[pi];
+                    if matches!(p.op, Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE)
+                        && p.target == Some(target)
+                    {
+                        let nxt = p.end();
+                        off = nxt;
+                        true
+                    } else {
+                        false
+                    }
+                }
+                None => false,
+            };
+            if !advanced {
+                return None;
+            }
+        }
+        let msg = match call_idx {
+            Some(ci2) if ci2 > msg_start && ci2 < ri => {
+                self.sim_value_region(msg_start, ci2)
+            }
+            _ => None,
+        };
+        Some(msg)
     }
 
     /// True when the code at `target` immediately raises AssertionError.

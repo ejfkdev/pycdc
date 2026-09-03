@@ -50,14 +50,12 @@ def compute_powers(w, base, more_than, show=False):
             continue
         lo = this >> 1
         hi = this - lo
-        if not lo in d:
-            raise AssertionError
+        assert lo in d
         if show:
             print('square at', this)
         sq = d[lo] * d[lo]
         if hi != lo:
-            if not hi == lo + 1:
-                raise AssertionError
+            assert hi == lo + 1
             if show:
                 print('    and * base')
             sq *= base

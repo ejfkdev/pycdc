@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 4,
-  "SIG-DIFF": 36
+  "PASS": 5,
+  "SIG-DIFF": 35
  },
  "results": [
   {
@@ -38,7 +38,7 @@
    "module": "_compat_pickle",
    "ast_detail": "diff at token 286: orig  Assign(targets=[Name(id='PYTHON2_EXCEPTIONS' | dec  Try(body=[Assign(targets=[Name(id='PYTHON2_EXCEPTIONS'",
    "verdict": "SIG-DIFF",
-   "ndiff": 5,
+   "ndiff": 3,
    "ntotal": 433,
    "detail": "line 221: orig ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro | got ('SETUP_FINALLY', 'to 454')\nline 222: orig ('STORE_NAME', 'PYTHON2_EXCEPTIONS') | got ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro\nline 223: orig ('SETUP_FINALLY', 'to 454') | got ('STORE_NAME', 'PYTHON2_EXCEPTIONS')"
   },
@@ -54,9 +54,9 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 171: orig  right=Constant(value=1))))] | dec  right=Constant(value=1))))",
    "verdict": "SIG-DIFF",
-   "ndiff": 948,
+   "ndiff": 947,
    "ntotal": 1361,
-   "detail": "line 208: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')\nline 292: orig ('POP_JUMP_IF_FALSE', 'to 456') | got ('POP_JUMP_IF_FALSE', 'to 448')\nline 348: orig ('JUMP_FORWARD', 'to 436') | got ('JUMP_FORWARD', 'to 428')"
+   "detail": "line 292: orig ('POP_JUMP_IF_FALSE', 'to 456') | got ('POP_JUMP_IF_FALSE', 'to 448')\nline 348: orig ('JUMP_FORWARD', 'to 436') | got ('JUMP_FORWARD', 'to 428')\nline 361: orig ('JUMP_FORWARD', 'to 436') | got ('JUMP_FORWARD', 'to 428')"
   },
   {
    "module": "_osx_support",
@@ -68,11 +68,7 @@
   },
   {
    "module": "_py_abc",
-   "ast_detail": "diff at token 501: orig  body=[Assert(test=Call(func=Name(id='isinstance' | dec  body=[If(test=UnaryOp(op=Not()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1,
-   "ntotal": 491,
-   "detail": "line 406: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')"
+   "verdict": "PASS"
   },
   {
    "module": "_sitebuiltins",
@@ -128,7 +124,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 49: orig  Assert(test=Compare(left=Name(id='major' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 129: orig  If(test=NamedExpr(target=Name(id='lno' | dec  If(test=Call(func=Name(id='getattr'",
    "verdict": "SIG-DIFF",
    "ndiff": 7556,
    "ntotal": 7851,
@@ -298,9 +294,9 @@
    "module": "copyreg",
    "ast_detail": "diff at token 46: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 373,
+   "ndiff": 372,
    "ntotal": 597,
-   "detail": "line 202: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')\nline 210: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 82')\nline 216: orig ('POP_JUMP_IF_FALSE', 'to 52') | got ('POP_JUMP_IF_FALSE', 'to 80')"
+   "detail": "line 210: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 82')\nline 216: orig ('POP_JUMP_IF_FALSE', 'to 52') | got ('POP_JUMP_IF_FALSE', 'to 80')\nline 221: orig ('POP_JUMP_IF_TRUE', 'to 52') | got ('POP_JUMP_IF_TRUE', 'to 50')"
   },
   {
    "module": "crypt",

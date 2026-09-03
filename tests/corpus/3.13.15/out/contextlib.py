@@ -400,8 +400,7 @@ For example:
         pending_raise = False
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
-            if not is_sync:
-                raise AssertionError
+            assert is_sync
             try:
                 if not exc is not None:
                     exc_details = (None, None, None)

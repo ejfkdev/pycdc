@@ -84,8 +84,7 @@ even via super()).
             return False
         ok = cls.__subclasshook__(subclass)
         if ok is not NotImplemented:
-            if not isinstance(ok, bool):
-                raise AssertionError
+            assert isinstance(ok, bool)
             if ok:
                 cls._abc_cache.add(subclass)
                 return ok

@@ -349,8 +349,7 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
         pending_raise = False
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
-            if not is_sync:
-                raise AssertionError
+            assert is_sync
             try:
                 if cb(exc_details):
                     suppressed_exc = True

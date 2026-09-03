@@ -46,7 +46,7 @@
    "module": "_compat_pickle",
    "ast_detail": "diff at token 286: orig  Assign(targets=[Name(id='PYTHON2_EXCEPTIONS' | dec  Try(body=[Assign(targets=[Name(id='PYTHON2_EXCEPTIONS'",
    "verdict": "SIG-DIFF",
-   "ndiff": 5,
+   "ndiff": 3,
    "ntotal": 291,
    "detail": "line 82: orig ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro | got ('SETUP_FINALLY', 'to 176')\nline 83: orig ('STORE_NAME', 'PYTHON2_EXCEPTIONS') | got ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro\nline 84: orig ('SETUP_FINALLY', 'to 176') | got ('STORE_NAME', 'PYTHON2_EXCEPTIONS')"
   },
@@ -60,11 +60,11 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 223: orig  Assert(test=Compare(left=Subscript(value=Name(id='rawdata' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 290: orig  orelse=[If(test=Compare(left=Subscript(value=Name(id='rawdata' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 969,
+   "ndiff": 968,
    "ntotal": 1391,
-   "detail": "line 218: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')\nline 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')"
+   "detail": "line 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 385: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')"
   },
   {
    "module": "_osx_support",
@@ -76,11 +76,11 @@
   },
   {
    "module": "_py_abc",
-   "ast_detail": "diff at token 501: orig  body=[Assert(test=Call(func=Name(id='isinstance' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 559: orig  body=[If(test=Call(func=Name(id='issubclass' | dec  body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='cls'",
    "verdict": "SIG-DIFF",
-   "ndiff": 45,
+   "ndiff": 44,
    "ntotal": 489,
-   "detail": "line 405: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')\nline 443: orig ('FOR_ITER', 'to 214') | got ('FOR_ITER', 'to 202')\nline 445: orig ('LOAD_GLOBAL', 'issubclass') | got ('LOAD_FAST', 'cls')"
+   "detail": "line 443: orig ('FOR_ITER', 'to 214') | got ('FOR_ITER', 'to 202')\nline 445: orig ('LOAD_GLOBAL', 'issubclass') | got ('LOAD_FAST', 'cls')\nline 446: orig ('LOAD_FAST', 'subclass') | got ('LOAD_ATTR', '_abc_cache')"
   },
   {
    "module": "_sitebuiltins",
@@ -136,7 +136,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 49: orig  Assert(test=Compare(left=Name(id='major' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 136: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=Call(func=Name(id='isinstance'",
    "verdict": "SIG-DIFF",
    "ndiff": 6118,
    "ntotal": 7149,
@@ -306,9 +306,9 @@
    "module": "copyreg",
    "ast_detail": "diff at token 158: orig  value=BinOp(left=Constant(value=1) | dec  value=Constant(value=512))",
    "verdict": "SIG-DIFF",
-   "ndiff": 368,
+   "ndiff": 367,
    "ntotal": 563,
-   "detail": "line 168: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')\nline 176: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 82')\nline 188: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')"
+   "detail": "line 176: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 82')\nline 188: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 189: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'base')"
   }
  ]
 }

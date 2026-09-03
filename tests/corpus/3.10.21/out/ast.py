@@ -38,8 +38,7 @@ def parse(source, filename='<unknown>', mode='exec', *, type_comments=False, fea
         flags |= PyCF_TYPE_COMMENTS
     if isinstance(feature_version, tuple):
         major, minor = feature_version
-        if not major == 3:
-            raise AssertionError
+        assert major == 3
         feature_version = minor
     elif feature_version is None:
         feature_version = -1
@@ -1006,8 +1005,7 @@ class _Unparser(NodeVisitor):
             return string[1:-1], [quote]
         if escaped_string and possible_quotes[0][0] == escaped_string[-1]:
             possible_quotes.sort(key=(lambda q: q[0] == escaped_string[-1]))
-            if not len(possible_quotes[0]) == 3:
-                raise AssertionError
+            assert len(possible_quotes[0]) == 3
             escaped_string = escaped_string[:-1] + '\\' + escaped_string[-1]
         return escaped_string, possible_quotes
 

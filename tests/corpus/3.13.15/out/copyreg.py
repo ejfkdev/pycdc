@@ -44,8 +44,7 @@ _HEAPTYPE = 512
 _new_type = type(int.__new__)
 
 def _reduce_ex(self, proto):
-    if not proto < 2:
-        raise AssertionError
+    assert proto < 2
     cls = self.__class__
     for base in cls.__mro__:
         if hasattr(base, '__flags__'):

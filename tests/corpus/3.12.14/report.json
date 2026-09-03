@@ -35,9 +35,9 @@
    "module": "_compat_pickle",
    "ast_detail": "diff at token 341: orig  orelse=[AugAssign(target=Name(id='PYTHON2_EXCEPTIONS' | dec  orelse=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 3,
+   "ndiff": 1,
    "ntotal": 448,
-   "detail": "line 282: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_NAME', 'AssertionError')\nline 305: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_NAME', 'AssertionError')\nline 403: orig ('JUMP_BACKWARD', 'to 462') | got ('JUMP_BACKWARD', 'to 452')"
+   "detail": "line 403: orig ('JUMP_BACKWARD', 'to 462') | got ('JUMP_BACKWARD', 'to 452')"
   },
   {
    "module": "_compression",
@@ -48,9 +48,9 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 174: orig  right=Constant(value=1))))] | dec  right=Constant(value=1))))",
    "verdict": "SIG-DIFF",
-   "ndiff": 902,
+   "ndiff": 901,
    "ntotal": 1303,
-   "detail": "line 201: orig ('LOAD_ASSERTION_ERROR', '') | got ('PUSH_NULL', '')\nline 281: orig ('POP_JUMP_IF_FALSE', 'to 818') | got ('POP_JUMP_IF_FALSE', 'to 806')\nline 335: orig ('JUMP_FORWARD', 'to 792') | got ('JUMP_FORWARD', 'to 780')"
+   "detail": "line 281: orig ('POP_JUMP_IF_FALSE', 'to 818') | got ('POP_JUMP_IF_FALSE', 'to 806')\nline 335: orig ('JUMP_FORWARD', 'to 792') | got ('JUMP_FORWARD', 'to 780')\nline 348: orig ('JUMP_FORWARD', 'to 792') | got ('JUMP_FORWARD', 'to 780')"
   },
   {
    "module": "_osx_support",
@@ -254,9 +254,9 @@
    "module": "copyreg",
    "ast_detail": "diff at token 38: orig  If(test=Compare(left=Name(id='constructor_ob' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 406,
+   "ndiff": 403,
    "ntotal": 611,
-   "detail": "line 180: orig ('POP_JUMP_IF_TRUE', 'to 16') | got ('POP_JUMP_IF_TRUE', 'to 24')\nline 181: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')\nline 189: orig ('FOR_ITER', 'to 228') | got ('FOR_ITER', 'to 232')"
+   "detail": "line 189: orig ('FOR_ITER', 'to 228') | got ('FOR_ITER', 'to 224')\nline 195: orig ('POP_JUMP_IF_FALSE', 'to 136') | got ('POP_JUMP_IF_FALSE', 'to 192')\nline 200: orig ('POP_JUMP_IF_TRUE', 'to 136') | got ('POP_JUMP_IF_TRUE', 'to 134')"
   },
   {
    "module": "crypt",

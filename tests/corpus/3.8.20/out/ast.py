@@ -33,8 +33,7 @@ def parse(source, filename='<unknown>', mode='exec', *, type_comments=False, fea
         flags |= PyCF_TYPE_COMMENTS
     if isinstance(feature_version, tuple):
         major, minor = feature_version
-        if not major == 3:
-            raise AssertionError
+        assert major == 3
         feature_version = minor
     elif feature_version is None:
         feature_version = -1

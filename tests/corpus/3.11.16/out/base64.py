@@ -17,8 +17,7 @@ def _bytes_from_decode_data(s):
 def b64encode(s, altchars=None):
     encoded = binascii.b2a_base64(s, False)
     if not altchars is None:
-        if not len(altchars) == 2:
-            raise repr(altchars)()
+        assert len(altchars) == 2
         return encoded.translate(bytes.maketrans(b'+/', altchars))
     return encoded
 
@@ -26,8 +25,7 @@ def b64decode(s, altchars=None, validate=False):
     s = _bytes_from_decode_data(s)
     if not altchars is None:
         altchars = _bytes_from_decode_data(altchars)
-        if not len(altchars) == 2:
-            raise repr(altchars)()
+        assert len(altchars) == 2
         s = s.translate(bytes.maketrans(altchars, b'+/'))
     return binascii.a2b_base64(s, validate)
 
@@ -90,8 +88,7 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
         raise binascii.Error('Incorrect padding')
     if not map01 is None:
         map01 = _bytes_from_decode_data(map01)
-        if not len(map01) == 1:
-            raise repr(map01)()
+        assert len(map01) == 1
         s = s.translate(bytes.maketrans(b'01', b'O' + map01))
     if casefold:
         s = s.upper()
@@ -304,8 +301,7 @@ def test():
     print(repr(s1))
     s2 = decodebytes(s1)
     print(repr(s2))
-    if not s0 == s2:
-        raise AssertionError
+    assert s0 == s2
 
 if __name__ == '__main__':
     main()

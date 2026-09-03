@@ -3,7 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
   "PASS": 4,
-  "SIG-DIFF": 36
+  "SIG-DIFF": 35,
+  "AST-PASS": 1
  },
  "results": [
   {
@@ -28,11 +29,7 @@
   },
   {
    "module": "_compat_pickle",
-   "ast_detail": "diff at token 409: orig  Assert(test=Compare(left=Call(func=Name(id='len' | dec  If(test=UnaryOp(op=Not()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 567,
-   "ntotal": 655,
-   "detail": "line 87: orig ('LOAD_CONST', \"('__builtin__', 'xrange')\") | got ('LOAD_CONST', \"'__builtin__'\")\nline 88: orig ('LOAD_CONST', \"('builtins', 'range')\") | got ('LOAD_CONST', \"'xrange'\")\nline 89: orig ('LOAD_CONST', \"('__builtin__', 'reduce')\") | got ('BUILD_TUPLE', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_compression",
@@ -52,7 +49,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 247: orig  Assert(test=Compare(left=Subscript(value=Name(id='rawdata' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 318: orig  orelse=[If(test=Compare(left=Subscript(value=Name(id='rawdata' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 798,
    "ntotal": 1372,
@@ -104,7 +101,7 @@
   },
   {
    "module": "abc",
-   "ast_detail": "diff at token 542: orig  body=[Assert(test=Call(func=Name(id='isinstance' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 601: orig  body=[If(test=Call(func=Name(id='issubclass' | dec  body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='cls'",
    "verdict": "SIG-DIFF",
    "ndiff": 59,
    "ntotal": 567,
@@ -282,7 +279,7 @@
    "module": "copy",
    "ast_detail": "diff at token 26: orig  name=None | dec  name='PyStringMap'",
    "verdict": "SIG-DIFF",
-   "ndiff": 932,
+   "ndiff": 933,
    "ntotal": 1006,
    "detail": "line 39: orig ('JUMP_FORWARD', 'to 133') | got ('JUMP_FORWARD', 'to 146')\nline 45: orig ('POP_TOP', '') | got ('STORE_NAME', 'PyStringMap')\nline 47: orig ('LOAD_CONST', 'None') | got ('SETUP_FINALLY', 'to 132')"
   },

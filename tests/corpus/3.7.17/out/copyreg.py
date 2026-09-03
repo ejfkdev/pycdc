@@ -40,8 +40,7 @@ def _reconstructor(cls, base, state):
 _HEAPTYPE = 512
 
 def _reduce_ex(self, proto):
-    if not proto < 2:
-        raise AssertionError
+    assert proto < 2
     for base in self.__class__.__mro__:
         if hasattr(base, '__flags__'):
             pass

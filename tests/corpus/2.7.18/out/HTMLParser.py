@@ -20,8 +20,7 @@ class HTMLParseError(Exception):
     '''Exception raised for all parse errors.'''
 
     def __init__(self, msg, position=(None, None)):
-        if not msg:
-            raise AssertionError
+        assert msg
         self.msg = msg
         self.lineno = position[0]
         self.offset = position[1]
@@ -179,8 +178,7 @@ class HTMLParser(markupbase.ParserBase):
 
     def parse_pi(self, i):
         rawdata = self.rawdata
-        if not rawdata[i:i + 2] == '<?':
-            raise AssertionError('unexpected call to parse_pi()')
+        assert rawdata[i:i + 2] == '<?', 'unexpected call to parse_pi()'
         match = piclose.search(rawdata, i + 2)
         if not match:
             return -1
@@ -198,8 +196,7 @@ class HTMLParser(markupbase.ParserBase):
         self._HTMLParser__starttag_text = rawdata[i:endpos]
         attrs = []
         match = tagfind.match(rawdata, i + 1)
-        if not match:
-            raise AssertionError('unexpected call to parse_starttag()')
+        assert match, 'unexpected call to parse_starttag()'
         k = match.end()
         self.lasttag = match.group(1).lower()
         tag = match.group(1).lower()
@@ -262,8 +259,7 @@ class HTMLParser(markupbase.ParserBase):
 
     def parse_endtag(self, i):
         rawdata = self.rawdata
-        if not rawdata[i:i + 2] == '</':
-            raise AssertionError('unexpected call to parse_endtag')
+        assert rawdata[i:i + 2] == '</', 'unexpected call to parse_endtag'
         match = endendtag.search(rawdata, i + 1)
         if not match:
             return -1

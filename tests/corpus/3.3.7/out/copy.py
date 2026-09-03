@@ -238,13 +238,11 @@ def _keep_alive(x, memo):
 def _reconstruct(x, info, deep, memo=None):
     if isinstance(info, str):
         return x
-    if not isinstance(info, tuple):
-        raise AssertionError
+    assert isinstance(info, tuple)
     if memo is None:
         memo = {}
     n = len(info)
-    if not n in (2, 3, 4, 5):
-        raise AssertionError
+    assert n in (2, 3, 4, 5)
     callable, args = info[:2]
     if n > 2:
         state = info[2]

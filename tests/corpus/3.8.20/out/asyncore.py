@@ -433,8 +433,7 @@ class dispatcher_with_send(dispatcher):
 def compact_traceback():
     t, v, tb = sys.exc_info()
     tbinfo = []
-    if not tb:
-        raise AssertionError('traceback does not exist')
+    assert tb, 'traceback does not exist'
     while tb:
         tbinfo.append((tb.tb_frame.f_code.co_filename, tb.tb_frame.f_code.co_name, str(tb.tb_lineno)))
         tb = tb.tb_next

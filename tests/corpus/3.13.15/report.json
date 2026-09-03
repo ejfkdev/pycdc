@@ -59,9 +59,9 @@
    "module": "_compat_pickle",
    "ast_detail": "diff at token 338: orig  body=[Pass()])] | dec  body=[Pass()])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 8,
+   "ndiff": 6,
    "ntotal": 451,
-   "detail": "line 283: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_NAME', 'AssertionError')\nline 306: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_NAME', 'AssertionError')\nline 418: orig ('UNPACK_SEQUENCE', '') | got ('STORE_FAST', '_')"
+   "detail": "line 418: orig ('UNPACK_SEQUENCE', '') | got ('STORE_FAST', '_')\nline 419: orig ('STORE_FAST_STORE_FAST', 'k, v') | got ('LOAD_GLOBAL', 'v')\nline 420: orig ('LOAD_FAST_LOAD_FAST', 'v, k') | got ('LOAD_GLOBAL', 'k')"
   },
   {
    "module": "_compression",
@@ -80,9 +80,9 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 140: orig  right=Constant(value=1))))] | dec  right=Constant(value=1))))",
    "verdict": "SIG-DIFF",
-   "ndiff": 867,
+   "ndiff": 865,
    "ntotal": 1243,
-   "detail": "line 199: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_CONST', \"'unexpected call to parse_declaration'\")\nline 200: orig ('LOAD_CONST', \"'unexpected call to parse_declaration'\") | got ('PUSH_NULL', '')\nline 272: orig ('POP_JUMP_IF_FALSE', 'to L20') | got ('POP_JUMP_IF_FALSE', 'to L19')"
+   "detail": "line 272: orig ('POP_JUMP_IF_FALSE', 'to L20') | got ('POP_JUMP_IF_FALSE', 'to L19')\nline 324: orig ('JUMP_FORWARD', 'to L18') | got ('JUMP_FORWARD', 'to L17')\nline 335: orig ('JUMP_FORWARD', 'to L18') | got ('JUMP_FORWARD', 'to L17')"
   },
   {
    "module": "_opcode_metadata",
@@ -108,7 +108,7 @@
    "module": "_pylong",
    "ast_detail": "diff at token 34: orig  If(test=BoolOp(op=Or() | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 166,
+   "ndiff": 164,
    "ntotal": 1025,
    "detail": "line 109: orig ('POP_JUMP_IF_FALSE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L5')\nline 116: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 119: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L3')"
   },
@@ -267,9 +267,9 @@
    "module": "copyreg",
    "ast_detail": "diff at token 31: orig  If(test=Compare(left=Name(id='constructor_ob' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 415,
+   "ndiff": 414,
    "ntotal": 627,
-   "detail": "line 182: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')\nline 197: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 204: orig ('POP_TOP', '') | got ('JUMP_FORWARD', 'to L4')"
+   "detail": "line 197: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 204: orig ('POP_TOP', '') | got ('JUMP_FORWARD', 'to L4')\nline 205: orig ('JUMP_FORWARD', 'to L7') | got ('LOAD_FAST', 'base')"
   },
   {
    "module": "csv",

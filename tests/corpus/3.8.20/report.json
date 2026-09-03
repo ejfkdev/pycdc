@@ -30,7 +30,7 @@
    "module": "_compat_pickle",
    "ast_detail": "diff at token 504: orig  Assign(targets=[Name(id='PYTHON2_EXCEPTIONS' | dec  Try(body=[Assign(targets=[Name(id='PYTHON2_EXCEPTIONS'",
    "verdict": "SIG-DIFF",
-   "ndiff": 5,
+   "ndiff": 3,
    "ntotal": 292,
    "detail": "line 82: orig ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro | got ('SETUP_FINALLY', 'to 176')\nline 83: orig ('STORE_NAME', 'PYTHON2_EXCEPTIONS') | got ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro\nline 84: orig ('SETUP_FINALLY', 'to 176') | got ('STORE_NAME', 'PYTHON2_EXCEPTIONS')"
   },
@@ -52,7 +52,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 298: orig  Assert(test=Compare(left=Subscript(value=Name(id='rawdata' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 381: orig  orelse=[If(test=Compare(left=Subscript(value=Name(id='rawdata' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 945,
    "ntotal": 1389,
@@ -68,7 +68,7 @@
   },
   {
    "module": "_py_abc",
-   "ast_detail": "diff at token 610: orig  body=[Assert(test=Call(func=Name(id='isinstance' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 671: orig  body=[If(test=Call(func=Name(id='issubclass' | dec  body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='cls'",
    "verdict": "SIG-DIFF",
    "ndiff": 44,
    "ntotal": 487,
@@ -128,7 +128,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 59: orig  Assert(test=Compare(left=Name(id='major' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 174: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=Call(func=Name(id='isinstance'",
    "verdict": "SIG-DIFF",
    "ndiff": 1167,
    "ntotal": 1734,

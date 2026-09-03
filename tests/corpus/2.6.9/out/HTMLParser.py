@@ -20,8 +20,7 @@ class HTMLParseError(Exception):
     '''Exception raised for all parse errors.'''
 
     def __init__(self, msg, position=(None, None)):
-        if not msg:
-            raise AssertionError
+        assert msg
         self.msg = msg
         self.lineno = position[0]
         self.offset = position[1]

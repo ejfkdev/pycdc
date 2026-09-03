@@ -3,7 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
   "PASS": 4,
-  "SIG-DIFF": 36
+  "SIG-DIFF": 35,
+  "AST-PASS": 1
  },
  "results": [
   {
@@ -28,11 +29,7 @@
   },
   {
    "module": "_compat_pickle",
-   "ast_detail": "diff at token 410: orig  Assert(test=Compare(left=Call(func=Name(id='len' | dec  If(test=UnaryOp(op=Not()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 574,
-   "ntotal": 623,
-   "detail": "line 46: orig ('LOAD_CONST', \"('__builtin__', 'xrange')\") | got ('LOAD_CONST', \"'__builtin__'\")\nline 47: orig ('LOAD_CONST', \"('builtins', 'range')\") | got ('LOAD_CONST', \"'xrange'\")\nline 48: orig ('LOAD_CONST', \"('__builtin__', 'reduce')\") | got ('BUILD_TUPLE', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_compression",
@@ -52,7 +49,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 247: orig  Assert(test=Compare(left=Subscript(value=Name(id='rawdata' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 318: orig  orelse=[If(test=Compare(left=Subscript(value=Name(id='rawdata' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 962,
    "ntotal": 1408,
@@ -104,7 +101,7 @@
   },
   {
    "module": "abc",
-   "ast_detail": "diff at token 558: orig  body=[Assert(test=Call(func=Name(id='isinstance' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 617: orig  body=[If(test=Call(func=Name(id='issubclass' | dec  body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='cls'",
    "verdict": "SIG-DIFF",
    "ndiff": 59,
    "ntotal": 582,

@@ -16,8 +16,7 @@ except AttributeError as getpreferredencoding:
     pass
 else:
     def getpreferredencoding(do_setlocale=True):
-        if not not do_setlocale:
-            raise AssertionError
+        assert not do_setlocale
         result = _locale.nl_langinfo(_locale.CODESET)
         if not result and sys.platform == 'darwin':
             result = 'UTF-8'

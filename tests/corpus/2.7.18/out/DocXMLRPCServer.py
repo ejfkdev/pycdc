@@ -142,8 +142,7 @@ class XMLRPCDocGenerator:
                     continue
             if not hasattr(self.instance, '_dispatch'):
                 continue
-            if not 0:
-                raise AssertionError('Could not find method in self.functions and no instance installed')
+            assert 0, 'Could not find method in self.functions and no instance installed'
             methods[method_name] = method
             try:
                 method = resolve_dotted_attribute(self.instance, method_name)
