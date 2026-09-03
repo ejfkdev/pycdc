@@ -258,6 +258,7 @@ class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 v = match.group(3)
                 v = float(v) if v else 1.0
                 r[match.group(1)] = v
+            continue
         return r
 
     def is_rpc_path_valid(self):

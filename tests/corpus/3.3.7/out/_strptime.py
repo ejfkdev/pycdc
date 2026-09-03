@@ -99,6 +99,7 @@ class LocaleTime(object):
             for old, new in replacement_pairs:
                 if old:
                     current_format = current_format.replace(old, new)
+                continue
             time_tuple = time.struct_time((1999, 1, 3, 1, 1, 1, 6, 3, 0))
             if '00' in time.strftime(directive, time_tuple):
                 U_W = '%W'
@@ -142,6 +143,7 @@ class TimeRE(dict):
         for value in to_convert:
             if value != '':
                 break
+            continue
         else:
             return ''
         regex = '|'.join((re_escape(stuff) for stuff in to_convert))

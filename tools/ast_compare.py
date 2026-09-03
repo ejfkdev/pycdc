@@ -289,8 +289,9 @@ class Normalizer(ast.NodeTransformer):
         # bare `yield` and `yield None` are the same operation
         if node.value is None:
             node.value = ast.Name(id='None', ctx=ast.Load())
-        elif isinstance(node.value, ast.Name) and node.value.id == 'None':
-            pass
+        elif hasattr(ast, 'NameConstant') and isinstance(node.value, ast.NameConstant) \
+                and node.value.value is None:
+            node.value = ast.Name(id='None', ctx=ast.Load())
         return node
 
     def visit_Raise(self, node):

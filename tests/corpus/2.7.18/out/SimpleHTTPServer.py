@@ -64,10 +64,10 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 if os.path.exists(index):
                     path = index
                     break
+                continue
             else:
                 return self.list_directory(path)
-        else:
-            ctype = self.guess_type(path)
+        ctype = self.guess_type(path)
         try:
             pass
         except:

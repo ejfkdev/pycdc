@@ -58,6 +58,7 @@ except ImportError:
                 if not c < ' ':
                     if ord(c) > 127:
                         break
+            continue
         else:
             finfo.Type = 'TEXT'
         fp.seek(0, 2)
@@ -272,6 +273,7 @@ class _Hqxdecoderengine:
             if not decdata:
                 if not self.eof:
                     raise Error('Premature EOF on binhex file')
+            continue
         return decdata
 
     def close(self):
@@ -332,6 +334,7 @@ class HexBin:
                 break
             if ch != '\n':
                 dummy = ifp.readline()
+            continue
         hqxifp = _Hqxdecoderengine(ifp)
         self.ifp = _Rledecoderengine(hqxifp)
         self.crc = 0

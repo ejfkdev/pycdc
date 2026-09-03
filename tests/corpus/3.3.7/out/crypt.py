@@ -37,5 +37,6 @@ for _method in METHOD_SHA512, METHOD_SHA256, METHOD_MD5:
     if _result:
         if len(_result) == _method.total_size:
             methods.append(_method)
+    continue
 methods.append(METHOD_CRYPT)
 del _result, _method

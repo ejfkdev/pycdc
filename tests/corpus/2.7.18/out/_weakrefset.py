@@ -49,6 +49,7 @@ class WeakSet(object):
                 item = itemref()
                 if item is not None:
                     yield item
+                continue
 
     def __len__(self):
         return len(self.data) - len(self._pending_removals)

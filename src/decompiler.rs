@@ -621,6 +621,15 @@ impl<'a> Ctx<'a> {
                         if b.short_circuit.is_some() {"S"} else if b.value_merge.is_some() {"V"} else {""})).collect::<Vec<_>>().join(","));
             }
             self.legacy_chain_step(&inst);
+            // an if/else branch may have closed exactly at this offset
+            // while the chain step ran (the fused or-continue chain skips
+            // ahead into its body); close it before executing here
+            if matches!(
+                inst.op,
+                Op::JUMP_ABSOLUTE | Op::JUMP_FORWARD | Op::JUMP | Op::POP_TOP
+            ) {
+                self.close_blocks_at(pos);
+            }
             // chain fully parsed (END_FINALLY passed) but no jump emitted it
             // yet: flush before the continuation executes so statement order
             // and block targeting stay correct
@@ -1722,7 +1731,15 @@ impl<'a> Ctx<'a> {
                 let iter = b.iter.take().unwrap_or_else(|| self.name_expr("???"));
                 let body = std::mem::take(&mut b.stmts);
                 let is_async = b.is_async;
-                if let Some(else_end) = b.loop_else_end {
+                let probed_else = if b.loop_else_end.is_none()
+                    && b.for_setup_end.is_none()
+                    && pos == b.end
+                {
+                    self.probe_for_else(pos)
+                } else {
+                    None
+                };
+                if let Some(else_end) = b.loop_else_end.or(probed_else) {
                     self.pending_loop
                         .push((None, Some(target), Some(iter), body, is_async));
                     let else_blk = Block::new(BlockType::ForElse, pos, else_end);
@@ -3243,6 +3260,28 @@ impl<'a> Ctx<'a> {
                 // folded chain exit (jump inside an open If/Else region at
                 // its boundary) must go through the folded machinery first
                 if target > self.cur_offset {
+                    // a forward jump flying over an enclosing loop's
+                    // exhaustion exit to a continuation no other jump
+                    // targets is a `break` over a for/while-else region:
+                    // record the else end so the loop close can build it
+                    for b in self.blocks.iter_mut().rev() {
+                        if matches!(b.kind, BlockType::While | BlockType::For) {
+                            if b.end < target && b.loop_else_end.is_none() {
+                                let others = self
+                                    .instrs
+                                    .iter()
+                                    .filter(|i| {
+                                        i.target == Some(target)
+                                            && i.offset != self.cur_offset
+                                    })
+                                    .count();
+                                if others == 0 {
+                                    b.loop_else_end = Some(target);
+                                }
+                            }
+                            break;
+                        }
+                    }
                     if self.find_loop_exit(target).is_some() {
                         self.push_stmt(Stmt::Break);
                         self.close_inner_blocks_to_loop();
@@ -4543,6 +4582,7 @@ impl<'a> Ctx<'a> {
         loop_top: usize,
         first_cond: &ExprRef,
     ) -> Option<(ExprRef, usize, usize)> {
+
         let is_cond_jump = |o: Op| {
             matches!(
                 o,
@@ -4558,6 +4598,9 @@ impl<'a> Ctx<'a> {
             return None;
         };
         let mut parts: Vec<ExprRef> = vec![first_cond.clone()];
+        // operands collected via jumps to the loop top, with their polarity
+        let mut top_parts: Vec<ExprRef> = vec![first_cond.clone()];
+        let mut top_jumps_true = true;
         let mut k = ci + 1;
         let mut exit: Option<usize> = None;
         let mut body_start = 0usize;
@@ -4571,21 +4614,89 @@ impl<'a> Ctx<'a> {
                     break;
                 }
                 if !is_pure_value_op(ins.op) {
-                    return None;
+                    // not an operand region any more — the body starts here
+                    break;
                 }
                 k += 1;
             }
-            let jk = jidx?;
+            let jk = match jidx {
+                Some(x) => x,
+                None => {
+                    // no further operand jump: the body starts right here
+                    // (all operands short-circuit to the loop top and the
+                    // body is a bare continue/break jump)
+                    let mut m = region_start;
+                    let mut body_jump: Option<(usize, usize)> = None;
+                    while m < self.instrs.len() {
+                        let ins = &self.instrs[m];
+                        if ins.op == Op::POP_TOP || ins.op == Op::NOP {
+                            m += 1;
+                            continue;
+                        }
+                        if let Some(t) = ins.target {
+                            let back = ins.is_backward
+                                && t == loop_top
+                                && matches!(
+                                    ins.op,
+                                    Op::JUMP_ABSOLUTE
+                                        | Op::JUMP_BACKWARD
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                );
+                            // a forward jump leaving the loop block is the
+                            // `break` (it may fly over a for-else region)
+                            let fwd_exit = !ins.is_backward
+                                && self
+                                    .blocks
+                                    .iter()
+                                    .rev()
+                                    .find(|b| {
+                                        matches!(b.kind, BlockType::While | BlockType::For)
+                                            && b.start == loop_top
+                                    })
+                                    .map_or(false, |b| t >= b.end);
+                            if back || fwd_exit {
+                                body_jump = Some((ins.end(), t));
+                                break;
+                            }
+                        }
+                        return None;
+                    }
+                    let (body_end, _t) = body_jump?;
+                    if top_parts.len() < 2 || !top_jumps_true {
+                        // all-false-jumping chain: the body runs only when
+                        // every operand holds -> And
+                        if top_parts.len() < 2 {
+                            return None;
+                        }
+                    }
+                    let op = if top_jumps_true {
+                        BoolOpKind::Or
+                    } else {
+                        BoolOpKind::And
+                    };
+                    let vals = if top_jumps_true { parts } else { top_parts };
+                    if vals.len() < 2 {
+                        return None;
+                    }
+                    let merged =
+                        Rc::new(Expr::BoolOp { op, values: vals }) as ExprRef;
+                    let body_off = self.instrs.get(region_start).map(|i| i.offset)?;
+                    return Some((merged, body_off, body_end));
+                }
+            };
             let operand = self.sim_value_region(region_start, jk)?;
             let jins = &self.instrs[jk];
             let jt = jump_true(jins.op);
             if jins.target == Some(loop_top) {
-                // another operand short-circuiting to the continue body
-                parts.push(if jt {
-                    operand
-                } else {
-                    Rc::new(Expr::Unary { op: UnaryOp::Not, operand })
-                });
+                // another operand short-circuiting to the loop top
+                if jt {
+                    // jumps to top when TRUE: `if a or ...: continue`
+                    parts.push(operand.clone());
+                }
+                // jumps to top when FALSE: the body needs every operand
+                // true (`if a and ...: break`) — raw participation
+                top_parts.push(operand);
+                top_jumps_true = top_jumps_true && jt;
                 k = jk + 1;
                 continue;
             }
@@ -4603,7 +4714,10 @@ impl<'a> Ctx<'a> {
             }
             return None;
         }
-        let exit = exit?;
+        let exit = match exit {
+            Some(x) => x,
+            None => return None,
+        };
         if parts.len() < 2 {
             return None;
         }
@@ -4618,27 +4732,42 @@ impl<'a> Ctx<'a> {
         if ei <= bsi {
             return None;
         }
-        let mut saw_back_edge = false;
+        // the body must leave the loop immediately: a back edge to the top
+        // (`continue`) or a forward jump to the loop exit (`break`, which
+        // 3.8 prefixes with POP_TOP), plus dead padding
+        let loop_exit = self
+            .blocks
+            .iter()
+            .rev()
+            .find(|b| matches!(b.kind, BlockType::While | BlockType::For) && b.start == loop_top)
+            .and_then(|b| self.loop_exit_offset(b));
+        let mut saw_exit_jump = false;
         for m in bsi..ei {
             let ins = &self.instrs[m];
-            if ins.is_backward
-                && ins.target == Some(loop_top)
-                && matches!(
-                    ins.op,
-                    Op::JUMP_ABSOLUTE
-                        | Op::JUMP_BACKWARD
-                        | Op::JUMP_BACKWARD_NO_INTERRUPT
-                )
-            {
-                saw_back_edge = true;
-                continue;
+            if let Some(t) = ins.target {
+                let back_to_top = ins.is_backward
+                    && t == loop_top
+                    && matches!(
+                        ins.op,
+                        Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    );
+                let fwd_to_exit = !ins.is_backward
+                    && loop_exit.map_or(false, |le| {
+                        self.effective_offset(t) == self.effective_offset(le)
+                    });
+                if back_to_top || fwd_to_exit {
+                    saw_exit_jump = true;
+                    continue;
+                }
             }
-            if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP | Op::NOP) {
+            if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP | Op::NOP | Op::POP_TOP) {
                 continue;
             }
             return None;
         }
-        if !saw_back_edge {
+        if !saw_exit_jump {
             return None;
         }
         let merged = Rc::new(Expr::BoolOp {
@@ -5632,6 +5761,20 @@ impl<'a> Ctx<'a> {
                 if self.effective_offset(exit) == te {
                     return Some(i);
                 }
+                // a break flying over a for/while-else region: any offset
+                // strictly between the exhaustion exit and the else end is
+                // also a loop exit
+                if let Some(le) = b.loop_else_end {
+                    if exit < target && target <= le {
+                        return Some(i);
+                    }
+                }
+                // for-else detected at close time may not be recorded yet:
+                // accept a forward jump that lands past the block end on an
+                // instruction no jump targets (post-else continuation)
+                if target > b.end && !self.targets.contains(&target) {
+                    return Some(i);
+                }
             }
         }
         None
@@ -5689,6 +5832,40 @@ impl<'a> Ctx<'a> {
             .get(&off)
             .and_then(|&i| self.instrs.get(i))
             .map_or(false, |x| x.op == Op::POP_BLOCK && x.end() <= end)
+    }
+
+    /// 3.8+ for-else: when the For closes at the FOR_ITER exhaustion exit,
+    /// a following unconditional jump over untargeted code marks an else
+    /// region [pos, jump_target). Plain loops have no such jump (the next
+    /// statement follows directly or a nested structure intervenes).
+    fn probe_for_else(&self, pos: usize) -> Option<usize> {
+        let Some(&pi) = self.idx_of.get(&pos) else {
+            return None;
+        };
+        for ins in self.instrs.iter().skip(pi) {
+            if let Some(t) = ins.target {
+                if matches!(
+                    ins.op,
+                    Op::JUMP_ABSOLUTE
+                        | Op::JUMP_FORWARD
+                        | Op::JUMP
+                        | Op::JUMP_BACKWARD
+                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                ) && t > pos
+                    && !self.targets.contains(&t)
+                {
+                    return Some(t);
+                }
+                // any other targeted jump: nested structure, no for-else
+                return None;
+            }
+            if matches!(ins.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::POP_TOP) {
+                continue;
+            }
+            // plain statement code with no jump: no else region
+            return None;
+        }
+        None
     }
 
     fn back_edge_exit(&self, loop_start: usize) -> Option<usize> {

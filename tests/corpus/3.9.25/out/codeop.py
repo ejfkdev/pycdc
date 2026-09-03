@@ -65,11 +65,8 @@ PyCF_DONT_IMPLY_DEDENT = 512
 def _maybe_compile(compiler, source, filename, symbol):
     for line in source.split('\n'):
         line = line.strip()
-        if line:
-            if line[0] != '#':
-                pass
-            else:
-                continue
+        if line and line[0] != '#':
+            pass
     if symbol != 'eval':
         source = 'pass'
     err = err1 = err2 = None

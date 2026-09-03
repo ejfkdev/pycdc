@@ -87,7 +87,7 @@
    "module": "_strptime",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2053,
+   "ndiff": 2003,
    "ntotal": 2142,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -97,7 +97,7 @@
   },
   {
    "module": "_threading_local",
-   "ast_detail": "diff at token 271: orig  Expr(value=Yield(value=Name(id='None' | dec  Expr(value=Yield(value=Constant(value=None)))])",
+   "ast_detail": "diff at token 272: orig  ctx=Load())))])] | dec  ctx=Load())))])",
    "verdict": "SIG-DIFF",
    "ndiff": 386,
    "ntotal": 451,
@@ -227,7 +227,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1086,
+   "ndiff": 1089,
    "ntotal": 1329,
    "detail": "line 218: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'self')\nline 219: orig ('SETUP_FINALLY', 'to 380') | got ('LOAD_ATTR', 'use_rawinput')\nline 220: orig ('LOAD_FAST', 'intro') | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -249,11 +249,11 @@
   },
   {
    "module": "codeop",
-   "ast_detail": "diff at token 53: orig  If(test=BoolOp(op=And() | dec  If(test=Name(id='line'",
+   "ast_detail": "diff at token 62: orig  body=[Break()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 217,
+   "ndiff": 262,
    "ntotal": 356,
-   "detail": "line 86: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 128: orig ('SETUP_WITH', 'to 276') | got ('SETUP_WITH', 'to 288')\nline 135: orig ('SETUP_FINALLY', 'to 158') | got ('LOAD_CONST', 'None')"
+   "detail": "line 72: orig ('FOR_ITER', 'to 44') | got ('FOR_ITER', 'to 40')\nline 86: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 87: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'symbol')"
   },
   {
    "module": "colorsys",
@@ -263,7 +263,7 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1289,
+   "ndiff": 1281,
    "ntotal": 1513,
    "detail": "line 157: orig ('FOR_ITER', 'to 246') | got ('FOR_ITER', 'to 210')\nline 201: orig ('LOAD_GLOBAL', 'os') | got ('JUMP_ABSOLUTE', '')\nline 202: orig ('LOAD_ATTR', 'path') | got ('LOAD_GLOBAL', '_walk_dir')"
   },
@@ -295,9 +295,9 @@
    "module": "copyreg",
    "ast_detail": "diff at token 191: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 369,
+   "ndiff": 365,
    "ntotal": 563,
-   "detail": "line 176: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 82')\nline 188: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 189: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'base')"
+   "detail": "line 188: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 189: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'base')\nline 190: orig ('LOAD_FAST', 'base') | got ('LOAD_ATTR', '__new__')"
   }
  ]
 }

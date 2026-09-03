@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
   "PASS": 6,
-  "SIG-DIFF": 32,
-  "AST-PASS": 2
+  "SIG-DIFF": 31,
+  "AST-PASS": 3
  },
  "results": [
   {
@@ -59,7 +59,7 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 998,
+   "ndiff": 1002,
    "ntotal": 1168,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 128') | got ('SETUP_LOOP', 'to 114')\nline 142: orig ('FOR_ITER', 'to 126') | got ('FOR_ITER', 'to 112')\nline 151: orig ('LOAD_GLOBAL', 'os') | got ('LOAD_FAST', 'f')"
   },
@@ -85,11 +85,7 @@
   },
   {
    "module": "_threading_local",
-   "ast_detail": "diff at token 295: orig  Expr(value=Yield(value=Name(id='None' | dec  Expr(value=Yield(value=NameConstant(value=None)))])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 332,
-   "ntotal": 392,
-   "detail": "line 39: orig ('LOAD_CONST', \"('current_thread', 'RLock')\") | got ('LOAD_CONST', \"('current_thread',)\")\nline 43: orig ('IMPORT_FROM', 'RLock') | got ('POP_TOP', '')\nline 44: orig ('STORE_NAME', 'RLock') | got ('LOAD_CONST', '0')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_weakrefset",
@@ -135,15 +131,15 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2140,
-   "ntotal": 2222,
+   "ndiff": 2121,
+   "ntotal": 2216,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "base64",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1179,
+   "ndiff": 1186,
    "ntotal": 1949,
    "detail": "line 737: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 738: orig ('COMPARE_OP', 'not in') | got ('LOAD_CONST', '0')\nline 739: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', '1')"
   },
@@ -247,9 +243,9 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 786,
+   "ndiff": 819,
    "ntotal": 1030,
-   "detail": "line 135: orig ('SETUP_LOOP', 'to 284') | got ('SETUP_LOOP', 'to 296')\nline 138: orig ('FOR_ITER', 'to 282') | got ('FOR_ITER', 'to 294')\nline 179: orig ('POP_JUMP_IF_FALSE', '') | got ('EXTENDED_ARG', '')"
+   "detail": "line 135: orig ('SETUP_LOOP', 'to 284') | got ('SETUP_LOOP', 'to 282')\nline 138: orig ('FOR_ITER', 'to 282') | got ('FOR_ITER', 'to 280')\nline 201: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },
   {
    "module": "configparser",

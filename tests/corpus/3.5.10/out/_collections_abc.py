@@ -102,8 +102,7 @@ class Coroutine(Awaitable):
                 else:
                     return NotImplemented
             return True
-        else:
-            return NotImplemented
+        return NotImplemented
 
 
 Coroutine.register(coroutine)
@@ -224,8 +223,7 @@ class Generator(Iterator):
                 else:
                     return NotImplemented
             return True
-        else:
-            return NotImplemented
+        return NotImplemented
 
 
 Generator.register(generator)

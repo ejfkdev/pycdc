@@ -88,8 +88,7 @@ def _find_appropriate_compiler(_config_vars):
                     cv_split = _config_vars[cv].split()
                     cv_split[0] = cc if cv != 'CXX' else cc + '++'
                     _save_modified_value(_config_vars, cv, ' '.join(cv_split))
-    else:
-        return _config_vars
+    return _config_vars
 
 def _remove_universal_flags(_config_vars):
     for cv in _UNIVERSAL_CONFIG_VARS:
@@ -113,8 +112,7 @@ def _remove_unsupported_archs(_config_vars):
                         flags = _config_vars[cv]
                         flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
                         _save_modified_value(_config_vars, cv, flags)
-        else:
-            return _config_vars
+    return _config_vars
 
 def _override_all_archs(_config_vars):
     if 'ARCHFLAGS' in os.environ:
@@ -126,8 +124,7 @@ def _override_all_archs(_config_vars):
                     flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
                     flags = flags + ' ' + arch
                     _save_modified_value(_config_vars, cv, flags)
-    else:
-        return _config_vars
+    return _config_vars
 
 def _check_for_unavailable_sdk(_config_vars):
     cflags = _config_vars.get('CFLAGS', '')
@@ -141,8 +138,7 @@ def _check_for_unavailable_sdk(_config_vars):
                         flags = _config_vars[cv]
                         flags = re.sub('-isysroot\\s*\\S+(?:\\s|$)', ' ', flags)
                         _save_modified_value(_config_vars, cv, flags)
-        else:
-            return _config_vars
+    return _config_vars
 
 def compiler_fixup(compiler_so, cc_args):
     stripArch = stripSysroot = False

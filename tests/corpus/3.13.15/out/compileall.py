@@ -139,10 +139,11 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     # WARNING: continue outside loop (unrecovered structure)
                 finally:
                     if not expect != actual:
-                        try:
-                            pass
-                        except OSError:
-                            pass
+                        pass
+                    try:
+                        pass
+                    except OSError:
+                        pass
                     try:
                         pass
                     except OSError:

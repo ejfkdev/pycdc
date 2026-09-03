@@ -267,6 +267,7 @@ class StreamReader(Codec):
             if not newdata:
                 break
             continue
+            continue
         if chars < 0:
             result = self.charbuffer
             self.charbuffer = self._empty_charbuffer
@@ -326,6 +327,7 @@ class StreamReader(Codec):
                     break
             if readsize < 8000:
                 readsize *= 2
+            continue
             continue
         return line
 
@@ -546,6 +548,7 @@ def iterencode(iterator, encoding, errors='strict', **kwargs):
         output = encoder.encode(input)
         if output:
             yield output
+        continue
     output = encoder.encode('', True)
     if output:
         yield output
@@ -556,6 +559,7 @@ def iterdecode(iterator, encoding, errors='strict', **kwargs):
         output = decoder.decode(input)
         if output:
             yield output
+        continue
     output = decoder.decode(b'', True)
     if output:
         yield output

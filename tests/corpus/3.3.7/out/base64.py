@@ -112,6 +112,7 @@ def b32decode(s, casefold=False, map01=None):
             parts.append(binascii.unhexlify(bytes('%010x' % acc, 'ascii')))
             acc = 0
             shift = 35
+        continue
     last = binascii.unhexlify(bytes('%010x' % acc, 'ascii'))
     if padchars == 0:
         last = b''

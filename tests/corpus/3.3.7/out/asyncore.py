@@ -112,6 +112,7 @@ def poll(timeout=0.0, map=None):
             if not is_r:
                 if is_w:
                     e.append(fd)
+            continue
         if [] == r and r == w == e:
             time.sleep(timeout)
             return
@@ -134,8 +135,6 @@ def poll(timeout=0.0, map=None):
             if obj is None:
                 continue
             _exception(obj)
-    else:
-        return
 
 def poll2(timeout=0.0, map=None):
     if map is None:
@@ -152,6 +151,7 @@ def poll2(timeout=0.0, map=None):
                 flags |= select.POLLOUT
             if flags:
                 pollster.register(fd, flags)
+            continue
         try:
             r = pollster.poll(timeout)
         except InterruptedError:
@@ -161,8 +161,6 @@ def poll2(timeout=0.0, map=None):
             if obj is None:
                 continue
             readwrite(obj, flags)
-    else:
-        return
 
 poll3 = poll2
 

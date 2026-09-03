@@ -33,6 +33,7 @@ def dis(x=None):
                 except TypeError as msg:
                     print('Sorry:', msg)
                 print()
+            continue
         else:
             if hasattr(x, 'co_code'):
                 disassemble(x)

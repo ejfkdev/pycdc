@@ -205,6 +205,7 @@ class BaseServer:
                     break
                 if self in r:
                     self._handle_request_noblock()
+                continue
         finally:
             self.__shutdown_request = False
             self.__is_shut_down.set()

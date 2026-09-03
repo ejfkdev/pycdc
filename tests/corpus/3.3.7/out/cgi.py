@@ -196,6 +196,7 @@ def parse_header(line):
                     value = value[1:-1]
                     value = value.replace('\\\\', '\\').replace('\\"', '"')
             pdict[name] = value
+        continue
     return key, pdict
 
 class MiniFieldStorage:
@@ -377,6 +378,7 @@ class FieldStorage:
         for item in self.list:
             if item.name == key:
                 found.append(item)
+            continue
         if not found:
             raise KeyError(key)
         if len(found) == 1:
@@ -466,6 +468,7 @@ class FieldStorage:
                 if not data.strip():
                     break
                 continue
+                continue
             if not hdr_text:
                 break
             self.bytes_read += len(hdr_text)
@@ -477,6 +480,7 @@ class FieldStorage:
             if not part.done:
                 if self.bytes_read >= self.length and self.length > 0:
                     break
+            continue
             continue
         self.skip_lines()
 

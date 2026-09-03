@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
   "PASS": 6,
-  "SIG-DIFF": 32,
-  "AST-PASS": 2
+  "SIG-DIFF": 31,
+  "AST-PASS": 3
  },
  "results": [
   {
@@ -59,7 +59,7 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1109,
+   "ndiff": 1099,
    "ntotal": 1272,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 128') | got ('SETUP_LOOP', 'to 114')\nline 142: orig ('FOR_ITER', 'to 126') | got ('FOR_ITER', 'to 112')\nline 151: orig ('LOAD_GLOBAL', 'os') | got ('LOAD_FAST', 'f')"
   },
@@ -93,11 +93,7 @@
   },
   {
    "module": "_threading_local",
-   "ast_detail": "diff at token 295: orig  Expr(value=Yield(value=Name(id='None' | dec  Expr(value=Yield(value=NameConstant(value=None)))])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 332,
-   "ntotal": 392,
-   "detail": "line 39: orig ('LOAD_CONST', \"('current_thread', 'RLock')\") | got ('LOAD_CONST', \"('current_thread',)\")\nline 43: orig ('IMPORT_FROM', 'RLock') | got ('POP_TOP', '')\nline 44: orig ('STORE_NAME', 'RLock') | got ('LOAD_CONST', '0')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_weakrefset",
@@ -139,15 +135,15 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2140,
-   "ntotal": 2212,
+   "ndiff": 2120,
+   "ntotal": 2207,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "base64",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1570,
+   "ndiff": 1579,
    "ntotal": 1946,
    "detail": "line 330: orig ('LOAD_METHOD', 'translate') | got ('LOAD_GLOBAL', 'bytes')\nline 331: orig ('LOAD_GLOBAL', 'bytes') | got ('LOAD_METHOD', 'maketrans')\nline 332: orig ('LOAD_METHOD', 'maketrans') | got ('LOAD_FAST', 'altchars')"
   },

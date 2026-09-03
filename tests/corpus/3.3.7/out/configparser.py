@@ -769,12 +769,14 @@ class RawConfigParser(MutableMapping):
                             if index > 0:
                                 if line[index - 1].isspace():
                                     comment_start = min(comment_start, index)
+                        continue
                     inline_prefixes = next_prefixes
                 else:
                     for prefix in self._comment_prefixes:
                         if line.strip().startswith(prefix):
                             comment_start = 0
                             break
+                        continue
                     if comment_start == sys.maxsize:
                         comment_start = None
                     value = line[:comment_start].strip()

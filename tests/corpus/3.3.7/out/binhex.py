@@ -253,6 +253,7 @@ class _Hqxdecoderengine:
             if not decdata:
                 if not self.eof:
                     raise Error('Premature EOF on binhex file')
+            continue
         return decdata
 
     def close(self):
@@ -311,6 +312,7 @@ class HexBin:
                 continue
             if ch == b':':
                 break
+            continue
             continue
         hqxifp = _Hqxdecoderengine(ifp)
         self.ifp = _Rledecoderengine(hqxifp)

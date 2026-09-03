@@ -45,6 +45,7 @@ def _reduce_ex(self, proto):
         if hasattr(base, '__flags__'):
             if not base.__flags__ & _HEAPTYPE:
                 break
+        continue
     else:
         base = object
     if base is object:

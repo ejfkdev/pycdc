@@ -520,6 +520,7 @@ class SafeConfigParser(ConfigParser):
                     accum.append(v)
             else:
                 raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
+            continue
 
     def set(self, section, option, value):
         if not isinstance(value, basestring):

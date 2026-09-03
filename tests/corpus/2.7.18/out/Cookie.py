@@ -381,6 +381,7 @@ class BaseCookie(dict):
                 rval, cval = self.value_decode(V)
                 self.__set(K, rval, cval)
                 M = self[K]
+            continue
 
 
 class SimpleCookie(BaseCookie):

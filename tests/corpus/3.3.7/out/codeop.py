@@ -67,6 +67,7 @@ def _maybe_compile(compiler, source, filename, symbol):
         if line:
             if line[0] != '#':
                 break
+        continue
     else:
         if symbol != 'eval':
             source = 'pass'
@@ -109,6 +110,7 @@ class Compile:
         for feature in _features:
             if codeob.co_flags & feature.compiler_flag:
                 self.flags |= feature.compiler_flag
+            continue
         return codeob
 
 

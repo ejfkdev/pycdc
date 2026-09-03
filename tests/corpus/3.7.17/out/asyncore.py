@@ -137,8 +137,6 @@ def poll(timeout=0.0, map=None):
             if obj is None:
                 continue
             _exception(obj)
-    else:
-        return
 
 def poll2(timeout=0.0, map=None):
     if map is None:
@@ -162,8 +160,6 @@ def poll2(timeout=0.0, map=None):
             if obj is None:
                 continue
             readwrite(obj, flags)
-    else:
-        return
 
 poll3 = poll2
 

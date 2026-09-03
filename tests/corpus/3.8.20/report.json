@@ -83,7 +83,7 @@
    "module": "_strptime",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2054,
+   "ndiff": 1777,
    "ntotal": 2133,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -93,7 +93,7 @@
   },
   {
    "module": "_threading_local",
-   "ast_detail": "diff at token 346: orig  Expr(value=Yield(value=Name(id='None' | dec  Expr(value=Yield(value=Constant(value=None",
+   "ast_detail": "diff at token 477: orig  body=[Return(value=Call(func=Attribute(value=Name(id='object' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 350,
    "ntotal": 406,
@@ -223,7 +223,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1058,
+   "ndiff": 1060,
    "ntotal": 1305,
    "detail": "line 219: orig ('SETUP_FINALLY', 'to 320') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 221: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -245,11 +245,11 @@
   },
   {
    "module": "codeop",
-   "ast_detail": "diff at token 74: orig  If(test=BoolOp(op=And() | dec  If(test=Name(id='line'",
+   "ast_detail": "diff at token 85: orig  body=[Break()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 134,
+   "ndiff": 254,
    "ntotal": 345,
-   "detail": "line 87: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 210: orig ('SETUP_FINALLY', 'to 332') | got ('LOAD_CONST', 'None')\nline 211: orig ('LOAD_FAST', 'code') | got ('DUP_TOP', '')"
+   "detail": "line 73: orig ('FOR_ITER', 'to 44') | got ('FOR_ITER', 'to 40')\nline 87: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 88: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'symbol')"
   },
   {
    "module": "colorsys",

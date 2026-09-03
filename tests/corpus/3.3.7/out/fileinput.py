@@ -350,6 +350,7 @@ def _test():
             inplace = True
         if o == '-b':
             backup = a
+        continue
     for line in input(args, inplace=inplace, backup=backup):
         if line[-1:] == '\n':
             line = line[:-1]

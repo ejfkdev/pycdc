@@ -65,6 +65,7 @@ class ABCMeta(type):
                 value = getattr(cls, name, None)
                 if getattr(value, '__isabstractmethod__', False):
                     abstracts.add(name)
+                continue
         cls.__abstractmethods__ = frozenset(abstracts)
         cls._abc_registry = WeakSet()
         cls._abc_cache = WeakSet()
@@ -89,6 +90,7 @@ class ABCMeta(type):
             if name.startswith('_abc_'):
                 value = getattr(cls, name)
                 print >>file, file
+            continue
 
     def __instancecheck__(cls, instance):
         subclass = getattr(instance, '__class__', None)

@@ -131,43 +131,47 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         head, tail = name[:-3], name[-3:]
         if tail == '.py':
             if not force:
-                return success
-    try:
-        mtime = int(os.stat(fullname).st_mtime)
-        expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
-        for cfile in opt_cfiles.values():
-            with open(cfile, 'rb') as chandle:
-                actual = chandle.read(12)
-            if not None:
                 pass
-            if expect != actual:
+            try:
+                mtime = int(os.stat(fullname).st_mtime)
+                expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+                for cfile in opt_cfiles.values():
+                    with open(cfile, 'rb') as chandle:
+                        actual = chandle.read(12)
+                    if not None:
+                        pass
+                    if expect != actual:
+                        break
+                else:
+                    return success
+            except OSError:
                 pass
-    except OSError:
-        pass
-    if not quiet:
-        print('Compiling {!r}...'.format(fullname))
-    if quiet >= 2:
-        return
-    if quiet:
-        print('*** Error compiling {!r}...'.format(fullname))
-    else:
-        print('*** ', end='')
-    encoding = sys.stdout.encoding or sys.getdefaultencoding()
-    msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
-    print(msg)
-    err = None
-    del err, err
-    err = None
-    if quiet >= 2:
-        return
-    if quiet:
-        print('*** Error compiling {!r}...'.format(fullname))
-    else:
-        print('*** ', end='')
-    print(e.__class__.__name__ + ':', e)
+            if not quiet:
+                print('Compiling {!r}...'.format(fullname))
+            if quiet >= 2:
+                return
+            if quiet:
+                print('*** Error compiling {!r}...'.format(fullname))
+            else:
+                print('*** ', end='')
+            encoding = sys.stdout.encoding or sys.getdefaultencoding()
+            msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+            print(msg)
+            err = None
+            del err
+        err = None
+        del err
+        if quiet >= 2:
+            return
+        if quiet:
+            print('*** Error compiling {!r}...'.format(fullname))
+        else:
+            print('*** ', end='')
+        print(e.__class__.__name__ + ':', e)
+        e = None
+        del e
     e = None
-    del e, e
-    e = None
+    del e
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     success = True
