@@ -6,6 +6,23 @@ class _C:
 _InstanceType = type(_C())
 
 def abstractmethod(funcobj):
+    """A decorator indicating abstract methods.
+
+    Requires that the metaclass is ABCMeta or derived from it.  A
+    class that has a metaclass derived from ABCMeta cannot be
+    instantiated unless all of its abstract methods are overridden.
+    The abstract methods can be called using any of the normal
+    'super' call mechanisms.
+
+    Usage:
+
+        class C:
+            __metaclass__ = ABCMeta
+            @abstractmethod
+            def my_abstract_method(self, ...):
+                ...
+    """
+
     funcobj.__isabstractmethod__ = True
     return funcobj
 
@@ -71,6 +88,8 @@ class ABCMeta(type):
         return cls
 
     def register(cls, subclass):
+        '''Register a virtual subclass of an ABC.'''
+
         if not isinstance(cls, type):
             raise TypeError('Can only register classes')
         if issubclass(subclass, cls):
@@ -81,6 +100,8 @@ class ABCMeta(type):
         ABCMeta._abc_invalidation_counter += 1
 
     def _dump_registry(cls, file=None):
+        '''Debug helper to print the ABC registry.'''
+
         print >>file, file
         print >>file, file
         for name in sorted(cls.__dict__.keys()):
@@ -90,6 +111,8 @@ class ABCMeta(type):
                 continue
 
     def __instancecheck__(cls, instance):
+        '''Override for isinstance(instance, cls).'''
+
         subclass = getattr(instance, '__class__', None)
         if subclass in cls._abc_cache:
             return True
@@ -105,6 +128,8 @@ class ABCMeta(type):
         return cls.__subclasscheck__(subclass) or cls.__subclasscheck__(subtype)
 
     def __subclasscheck__(cls, subclass):
+        '''Override for issubclass(subclass, cls).'''
+
         if subclass in cls._abc_cache:
             return True
         if cls._abc_negative_cache_version < ABCMeta._abc_invalidation_counter:

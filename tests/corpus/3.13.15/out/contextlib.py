@@ -16,11 +16,13 @@ class AbstractContextManager(abc.ABC):
     __class_getitem__ = classmethod(GenericAlias)
     __slots__ = ()
     def __enter__(self):
+        '''Return `self` upon entering the runtime context.'''
+
         return self
 
     @abc.abstractmethod
     def __exit__(self, exc_type, exc_value, traceback):
-        pass
+        '''Raise any exception triggered within the runtime context.'''
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -35,11 +37,13 @@ class AbstractAsyncContextManager(abc.ABC):
     __class_getitem__ = classmethod(GenericAlias)
     __slots__ = ()
     async def __aenter__(self):
+        '''Return `self` upon entering the runtime context.'''
+
         return self
 
     @abc.abstractmethod
     async def __aexit__(self, exc_type, exc_value, traceback):
-        pass
+        '''Raise any exception triggered within the runtime context.'''
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -52,6 +56,16 @@ class ContextDecorator(object):
     '''A base class or mixin that enables context managers to work as decorators.'''
 
     def _recreate_cm(self):
+        '''Return a recreated instance of self.
+
+Allows an otherwise one-shot context manager like
+_GeneratorContextManager to support use as
+a decorator via implicit recreation.
+
+This is a private interface just for _GeneratorContextManager.
+See issue #11647 for details.
+'''
+
         return self
 
     def __call__(self, func):
@@ -68,6 +82,9 @@ class AsyncContextDecorator(object):
     '''A base class or mixin that enables async context managers to work as decorators.'''
 
     def _recreate_cm(self):
+        '''Return a recreated instance of self.
+        '''
+
         return self
 
     def __call__(self, func):
@@ -173,6 +190,33 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
 
 
 def contextmanager(func):
+    '''@contextmanager decorator.
+
+Typical usage:
+
+    @contextmanager
+    def some_generator(<arguments>):
+        <setup>
+        try:
+            yield <value>
+        finally:
+            <cleanup>
+
+This makes this:
+
+    with some_generator(<arguments>) as <variable>:
+        <body>
+
+equivalent to this:
+
+    <setup>
+    try:
+        <variable> = <value>
+        <body>
+    finally:
+        <cleanup>
+'''
+
     @wraps(func)
     def helper(*args, **kwds):
         return _GeneratorContextManager(func, args, kwds)
@@ -180,6 +224,33 @@ def contextmanager(func):
     return helper
 
 def asynccontextmanager(func):
+    '''@asynccontextmanager decorator.
+
+Typical usage:
+
+    @asynccontextmanager
+    async def some_async_generator(<arguments>):
+        <setup>
+        try:
+            yield <value>
+        finally:
+            <cleanup>
+
+This makes this:
+
+    async with some_async_generator(<arguments>) as <variable>:
+        <body>
+
+equivalent to this:
+
+    <setup>
+    try:
+        <variable> = <value>
+        <body>
+    finally:
+        <cleanup>
+'''
+
     @wraps(func)
     def helper(*args, **kwds):
         return _AsyncGeneratorContextManager(func, args, kwds)
@@ -329,12 +400,21 @@ class _BaseExitStack:
         self._exit_callbacks = deque()
 
     def pop_all(self):
+        '''Preserve the context stack by transferring it to a new instance.'''
+
         new_stack = type(self)()
         new_stack._exit_callbacks = self._exit_callbacks
         self._exit_callbacks = deque()
         return new_stack
 
     def push(self, exit):
+        '''Registers a callback with the standard __exit__ method signature.
+
+Can suppress exceptions the same way __exit__ method can.
+Also accepts any object with an __exit__ method (registering a call
+to the method instead of the object itself).
+'''
+
         _cb_type = type(exit)
         try:
             exit_method = _cb_type.__exit__
@@ -344,6 +424,12 @@ class _BaseExitStack:
         return exit
 
     def enter_context(self, cm):
+        '''Enters the supplied context manager.
+
+If successful, also pushes its __exit__ method as a callback and
+returns the result of the __enter__ method.
+'''
+
         cls = type(cm)
         try:
             _enter = cls.__enter__
@@ -355,12 +441,19 @@ class _BaseExitStack:
         return result
 
     def callback(self, callback, /, *args, **kwds):
+        '''Registers an arbitrary callback and arguments.
+
+Cannot suppress exceptions.
+'''
+
         _exit_wrapper = self._create_cb_wrapper(*[callback, *args], **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper)
         return callback
 
     def _push_cm_exit(self, cm, cm_exit):
+        '''Helper to correctly register callbacks to __exit__ methods.'''
+
         _exit_wrapper = self._create_exit_wrapper(cm, cm_exit)
         self._push_exit_callback(_exit_wrapper, True)
 
@@ -456,6 +549,12 @@ For example:
         return _exit_wrapper
 
     async def enter_async_context(self, cm):
+        '''Enters the supplied async context manager.
+
+If successful, also pushes its __aexit__ method as a callback and
+returns the result of the __aenter__ method.
+'''
+
         cls = type(cm)
         try:
             _enter = cls.__aenter__
@@ -469,6 +568,14 @@ For example:
                 return result
 
     def push_async_exit(self, exit):
+        '''Registers a coroutine function with the standard __aexit__ method
+signature.
+
+Can suppress exceptions the same way __aexit__ method can.
+Also accepts any object with an __aexit__ method (registering a call
+to the method instead of the object itself).
+'''
+
         _cb_type = type(exit)
         try:
             exit_method = _cb_type.__aexit__
@@ -478,18 +585,28 @@ For example:
         return exit
 
     def push_async_callback(self, callback, /, *args, **kwds):
+        '''Registers an arbitrary coroutine function and arguments.
+
+Cannot suppress exceptions.
+'''
+
         _exit_wrapper = self._create_async_cb_wrapper(*[callback, *args], **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper, False)
         return callback
 
     async def aclose(self):
+        '''Immediately unwind the context stack.'''
+
         while True:
             while True:
                 await self.__aexit__(None, None, None)
                 return
 
     def _push_async_cm_exit(self, cm, cm_exit):
+        '''Helper to correctly register coroutine function to __aexit__
+method.'''
+
         _exit_wrapper = self._create_async_exit_wrapper(cm, cm_exit)
         self._push_exit_callback(_exit_wrapper, False)
 

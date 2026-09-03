@@ -41,17 +41,39 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     have_popen3 = hasattr(os, 'popen3')
     rbufsize = 0
     def do_POST(self):
+        '''Serve a POST request.
+
+        This is only implemented for CGI scripts.
+
+        '''
+
         if self.is_cgi():
             self.run_cgi()
         else:
             self.send_error(501, 'Can only POST to CGI scripts')
 
     def send_head(self):
+        '''Version of send_head that support CGI scripts'''
+
         if self.is_cgi():
             return self.run_cgi()
         return SimpleHTTPServer.SimpleHTTPRequestHandler.send_head(self)
 
     def is_cgi(self):
+        """Test whether self.path corresponds to a CGI script,
+        and return a boolean.
+
+        This function sets self.cgi_info to a tuple (dir, rest)
+        when it returns True, where dir is the directory part before
+        the CGI script name.  Note that rest begins with a
+        slash if it is not empty.
+
+        The default implementation tests whether the path
+        begins with one of the strings in the list
+        self.cgi_directories (and the next character is a '/'
+        or the end of the string).
+        """
+
         path = self.path
         for x in self.cgi_directories:
             i = len(x)
@@ -64,13 +86,19 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     cgi_directories = ['/cgi-bin', '/htbin']
     def is_executable(self, path):
+        '''Test whether argument path is an executable file.'''
+
         return executable(path)
 
     def is_python(self, path):
+        '''Test whether argument path is a Python script.'''
+
         head, tail = os.path.splitext(path)
         return tail.lower() in ('.py', '.pyw')
 
     def run_cgi(self):
+        '''Execute a CGI script.'''
+
         path = self.path
         dir, rest = self.cgi_info
         i = path.find('/', len(dir) + 1)
@@ -239,6 +267,8 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 nobody = None
 
 def nobody_uid():
+    """Internal routine to get nobody's uid"""
+
     global nobody
     if nobody:
         return nobody
@@ -249,7 +279,7 @@ def nobody_uid():
     return nobody
 
 def executable(path):
-    pass
+    '''Test for executable file.'''
 
 def test(HandlerClass=CGIHTTPRequestHandler, ServerClass=BaseHTTPServer.HTTPServer):
     SimpleHTTPServer.test(HandlerClass, ServerClass)

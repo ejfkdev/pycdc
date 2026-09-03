@@ -10,6 +10,12 @@ import sys
 _exithandlers = []
 
 def _run_exitfuncs():
+    '''run any registered exit functions
+
+    _exithandlers is traversed in reverse order so functions are executed
+    last in, first out.
+    '''
+
     exc_info = None
     while _exithandlers:
         func, targs, kargs = _exithandlers.pop()

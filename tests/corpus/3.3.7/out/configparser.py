@@ -510,9 +510,17 @@ class RawConfigParser(MutableMapping):
         return self._defaults
 
     def sections(self):
+        '''Return a list of section names, excluding [DEFAULT]'''
+
         return list(self._sections.keys())
 
     def add_section(self, section):
+        '''Create a new section in the configuration.
+
+        Raise DuplicateSectionError if a section by the specified name
+        already exists. Raise ValueError if name is DEFAULT.
+        '''
+
         if section == self.default_section:
             raise ValueError('Invalid section name: %r' % section)
         if section in self._sections:
@@ -521,9 +529,16 @@ class RawConfigParser(MutableMapping):
         self._proxies[section] = SectionProxy(self, section)
 
     def has_section(self, section):
+        '''Indicate whether the named section is present in the configuration.
+
+        The DEFAULT section is not acknowledged.
+        '''
+
         return section in self._sections
 
     def options(self, section):
+        '''Return a list of option names for the given section name.'''
+
         try:
             opts = self._sections[section].copy()
         except KeyError:
@@ -532,6 +547,18 @@ class RawConfigParser(MutableMapping):
         return list(opts.keys())
 
     def read(self, filenames, encoding=None):
+        """Read and parse a filename or a list of filenames.
+
+        Files that cannot be opened are silently ignored; this is
+        designed so that you can specify a list of potential
+        configuration file locations (e.g. current directory, user's
+        home directory, systemwide directory), and all existing
+        configuration files in the list will be read.  A single
+        filename may also be given.
+
+        Return list of successfully read files.
+        """
+
         if isinstance(filenames, str):
             filenames = [filenames]
         read_ok = []
@@ -545,15 +572,38 @@ class RawConfigParser(MutableMapping):
         return read_ok
 
     def read_file(self, f, source=None):
+        """Like read() but the argument must be a file-like object.
+
+        The `f' argument must be iterable, returning one line at a time.
+        Optional second argument is the `source' specifying the name of the
+        file being read. If not given, it is taken from f.name. If `f' has no
+        `name' attribute, `<???>' is used.
+        """
+
         if source is None:
             pass
         self._read(f, source)
 
     def read_string(self, string, source='<string>'):
+        '''Read configuration from a given string.'''
+
         sfile = io.StringIO(string)
         self.read_file(sfile, source)
 
     def read_dict(self, dictionary, source='<dict>'):
+        """Read configuration from a dictionary.
+
+        Keys are section names, values are dictionaries with keys and values
+        that should be present in the section. If the used dictionary type
+        preserves order, sections and their keys will be added in order.
+
+        All types held in the dictionary are converted to strings during
+        reading, including section names, option names and keys.
+
+        Optional second argument is the `source' specifying the name of the
+        dictionary being read.
+        """
+
         elements_added = set()
         for section, keys in dictionary.items():
             section = str(section)
@@ -577,6 +627,21 @@ class RawConfigParser(MutableMapping):
         self.read_file(fp, source=filename)
 
     def get(self=None, section=None, option=None, *, raw, vars, fallback):
+        """Get an option value for a given section.
+
+        If `vars' is provided, it must be a dictionary. The option is looked up
+        in `vars' (if provided), `section', and in `DEFAULTSECT' in that order.
+        If the key is not found and `fallback' is provided, it is used as
+        a fallback value. `None' can be provided as a `fallback' value.
+
+        If interpolation is enabled and the optional argument `raw' is False,
+        all interpolations are expanded in the return values.
+
+        Arguments `raw', `vars', and `fallback' are keyword only.
+
+        The section DEFAULT is special.
+        """
+
         if fallback is _UNSET:
             raise
         else:
@@ -632,6 +697,17 @@ class RawConfigParser(MutableMapping):
             pass
 
     def items(self, section=_UNSET, raw=False, vars=None):
+        """Return a list of (name, value) tuples for each option in a section.
+
+        All % interpolations are expanded in the return values, based on the
+        defaults passed into the constructor, unless the optional argument
+        `raw' is true.  Additional substitutions may be provided using the
+        `vars' argument, which must be a dictionary whose contents overrides
+        any pre-existing defaults.
+
+        The section DEFAULT is special.
+        """
+
         if section is _UNSET:
             return super().items()
         d = self._defaults.copy()
@@ -649,6 +725,13 @@ class RawConfigParser(MutableMapping):
         return [(option, value_getter(option)) for option in d.keys()]
 
     def popitem(self):
+        '''Remove a section from the parser and return it as
+        a (section_name, section_proxy) tuple. If no section is present, raise
+        KeyError.
+
+        The section DEFAULT is never returned because it cannot be removed.
+        '''
+
         for key in self.sections():
             value = self[key]
             del self[key]
@@ -659,6 +742,10 @@ class RawConfigParser(MutableMapping):
         return optionstr.lower()
 
     def has_option(self, section, option):
+        """Check for the existence of a given option in a given section.
+        If the specified `section' is None or an empty string, DEFAULT is
+        assumed. If the specified `section' does not exist, returns False."""
+
         if not section or section == self.default_section:
             option = self.optionxform(option)
             return option in self._defaults
@@ -668,6 +755,8 @@ class RawConfigParser(MutableMapping):
         return option in self._sections[section] or option in self._defaults
 
     def set(self, section, option, value=None):
+        '''Set an option.'''
+
         if value:
             value = self._interpolation.before_set(self, section, option, value)
         if not section or section == self.default_section:
@@ -679,6 +768,12 @@ class RawConfigParser(MutableMapping):
         sectdict[self.optionxform(option)] = value
 
     def write(self, fp, space_around_delimiters=True):
+        """Write an .ini-format representation of the configuration state.
+
+        If `space_around_delimiters' is True (the default), delimiters
+        between keys and values are surrounded by spaces.
+        """
+
         if space_around_delimiters:
             d = ' {} '.format(self._delimiters[0])
         else:
@@ -700,6 +795,8 @@ class RawConfigParser(MutableMapping):
         fp.write('\n')
 
     def remove_option(self, section, option):
+        '''Remove an option.'''
+
         if not section or section == self.default_section:
             sectdict = self._defaults
         try:
@@ -713,6 +810,8 @@ class RawConfigParser(MutableMapping):
         return existed
 
     def remove_section(self, section):
+        '''Remove a file section.'''
+
         existed = section in self._sections
         if existed:
             del self._sections[section], self._proxies[section]
@@ -747,6 +846,23 @@ class RawConfigParser(MutableMapping):
         return itertools.chain((self.default_section,), self._sections.keys())
 
     def _read(self, fp, fpname):
+        """Parse a sectioned configuration file.
+
+        Each section in a configuration file contains a header, indicated by
+        a name in square brackets (`[]'), plus key/value options, indicated by
+        `name' and `value' delimited with a specific substring (`=' or `:' by
+        default).
+
+        Values can span multiple lines, as long as they are indented deeper
+        than the first line of the value. Depending on the parser's mode, blank
+        lines may be treated as parts of multiline values or ignored.
+
+        Configuration files may include comments, prefixed by specific
+        characters (`#' and `;' by default). Comments may appear on their own
+        in an otherwise empty line or may be entered in lines holding values or
+        section names.
+        """
+
         elements_added = set()
         cursect = None
         sectname = None
@@ -853,6 +969,11 @@ class RawConfigParser(MutableMapping):
         return exc
 
     def _unify_values(self, section, vars):
+        """Create a sequence of lookups with 'vars' taking priority over
+        the 'section' which takes priority over the DEFAULTSECT.
+
+        """
+
         sectiondict = {}
         try:
             sectiondict = self._sections[section]
@@ -868,11 +989,27 @@ class RawConfigParser(MutableMapping):
         return _ChainMap(vardict, sectiondict, self._defaults)
 
     def _convert_to_boolean(self, value):
+        '''Return a boolean value translating from other types if necessary.
+        '''
+
         if value.lower() not in self.BOOLEAN_STATES:
             raise ValueError('Not a boolean: %s' % value)
         return self.BOOLEAN_STATES[value.lower()]
 
     def _validate_value_types(self=None, *, section, option, value):
+        '''Raises a TypeError for non-string values.
+
+        The only legal non-string value if we allow valueless
+        options is None, so we need to check if the value is a
+        string if:
+        - we do not allow valueless options, or
+        - we allow valueless options but the value is not None
+
+        For compatibility reasons this method is not used in classic set()
+        for RawConfigParsers. It is invoked in every case for mapping protocol
+        access and in ConfigParser.set().
+        '''
+
         if not isinstance(section, str):
             raise TypeError('section names must be strings')
         if not isinstance(option, str):
@@ -907,6 +1044,8 @@ class SectionProxy(MutableMapping):
     '''A proxy for a single section from a parser.'''
 
     def __init__(self, parser, name):
+        '''Creates a view on a section of the specified `name` in `parser`.'''
+
         self._parser = parser
         self._name = name
 

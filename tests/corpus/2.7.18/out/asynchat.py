@@ -55,6 +55,8 @@ class async_chat(asyncore.dispatcher):
         raise NotImplementedError('must be implemented in subclass')
 
     def set_terminator(self, term):
+        '''Set the input delimiter.  Can be a fixed string of any length, an integer, or None'''
+
         self.terminator = term
 
     def get_terminator(self):
@@ -64,8 +66,7 @@ class async_chat(asyncore.dispatcher):
         while self.ac_in_buffer:
             try:
                 data = self.recv(self.ac_in_buffer_size)
-            except socket.error:
-                why = None
+            except socket.error, why:
                 if why.args[0] in _BLOCKING_IO_ERRORS:
                     return
                 self.handle_error()
@@ -127,9 +128,13 @@ class async_chat(asyncore.dispatcher):
         self.initiate_send()
 
     def readable(self):
+        '''predicate for inclusion in the readable for select()'''
+
         return 1
 
     def writable(self):
+        '''predicate for inclusion in the writable for select()'''
+
         return self.producer_fifo or not self.connected
 
     def close_when_done(self):

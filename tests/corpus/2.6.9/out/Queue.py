@@ -88,6 +88,12 @@ class Queue:
             self.not_full.release()
 
     def put_nowait(self, item):
+        '''Put an item into the queue without blocking.
+
+        Only enqueue the item if a free slot is immediately available.
+        Otherwise raise the Full exception.
+        '''
+
         return self.put(item, False)
 
     def get(self, block=True, timeout=None):
@@ -118,6 +124,12 @@ class Queue:
             self.not_empty.release()
 
     def get_nowait(self):
+        '''Remove and return an item from the queue without blocking.
+
+        Only get an item if one is immediately available. Otherwise
+        raise the Empty exception.
+        '''
+
         return self.get(False)
 
     def _init(self, maxsize):

@@ -134,11 +134,12 @@ if hasattr(socket, 'AF_UNIX'):
     __all__.extend(['UnixStreamServer', 'UnixDatagramServer', 'ThreadingUnixStreamServer', 'ThreadingUnixDatagramServer'])
 
 def _eintr_retry(func, *args):
+    '''restart a system call interrupted by EINTR'''
+
     while True:
         try:
             return func(*args)
-        except (OSError, select.error):
-            e = None
+        except (OSError, select.error), e:
             if e.args[0] != errno.EINTR:
                 raise
             continue
@@ -188,13 +189,19 @@ class BaseServer:
 
     timeout = None
     def __init__(self, server_address, RequestHandlerClass):
+        '''Constructor.  May be extended, do not override.'''
+
         self.server_address = server_address
         self.RequestHandlerClass = RequestHandlerClass
         self.__is_shut_down = threading.Event()
         self.__shutdown_request = False
 
     def server_activate(self):
-        pass
+        '''Called by constructor to activate the server.
+
+        May be overridden.
+
+        '''
 
     def serve_forever(self, poll_interval=0.5):
         self.__is_shut_down.clear()
@@ -211,10 +218,22 @@ class BaseServer:
             self.__is_shut_down.set()
 
     def shutdown(self):
+        '''Stops the serve_forever loop.
+
+        Blocks until the loop has finished. This must be called while
+        serve_forever() is running in another thread, or it will
+        deadlock.
+        '''
+
         self.__shutdown_request = True
         self.__is_shut_down.wait()
 
     def handle_request(self):
+        '''Handle one request, possibly blocking.
+
+        Respects self.timeout.
+        '''
+
         timeout = self.socket.gettimeout()
         if timeout is None:
             timeout = self.timeout
@@ -227,6 +246,13 @@ class BaseServer:
         self._handle_request_noblock()
 
     def _handle_request_noblock(self):
+        '''Handle one request, without blocking.
+
+        I assume that select.select has returned that the socket is
+        readable before this function was called, so there should be
+        no risk of blocking in get_request().
+        '''
+
         if self.verify_request(request, client_address):
             try:
                 pass
@@ -237,9 +263,18 @@ class BaseServer:
             self.shutdown_request(request)
 
     def handle_timeout(self):
-        pass
+        '''Called if no new request arrives within self.timeout.
+
+        Overridden by ForkingMixIn.
+        '''
 
     def verify_request(self, request, client_address):
+        '''Verify the request.  May be overridden.
+
+        Return True if we should proceed with this request.
+
+        '''
+
         return True
 
     def process_request(self, request, client_address):
@@ -247,7 +282,11 @@ class BaseServer:
         self.shutdown_request(request)
 
     def server_close(self):
-        pass
+        '''Called to clean-up the server.
+
+        May be overridden.
+
+        '''
 
     def finish_request(self, request, client_address):
         self.RequestHandlerClass(request, client_address, self)
@@ -256,9 +295,15 @@ class BaseServer:
         self.close_request(request)
 
     def close_request(self, request):
-        pass
+        '''Called to clean up an individual request.'''
 
     def handle_error(self, request, client_address):
+        '''Handle an error gracefully.  May be overridden.
+
+        The default is to print a traceback and continue.
+
+        '''
+
         print '-' * 40
         print 'Exception happened during processing of request from', client_address
         import traceback
@@ -323,6 +368,12 @@ class TCPServer(BaseServer):
             pass
 
     def server_bind(self):
+        '''Called by constructor to bind the socket.
+
+        May be overridden.
+
+        '''
+
         if self.allow_reuse_address:
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(self.server_address)
@@ -335,12 +386,26 @@ class TCPServer(BaseServer):
         self.socket.close()
 
     def fileno(self):
+        '''Return socket file number.
+
+        Interface required by select().
+
+        '''
+
         return self.socket.fileno()
 
     def get_request(self):
+        '''Get the request and client address from the socket.
+
+        May be overridden.
+
+        '''
+
         return self.socket.accept()
 
     def shutdown_request(self, request):
+        '''Called to shutdown and close an individual request.'''
+
         try:
             request.shutdown(socket.SHUT_WR)
         except socket.error:
@@ -378,14 +443,15 @@ class ForkingMixIn:
     active_children = None
     max_children = 40
     def collect_children(self):
+        '''Internal routine to wait for children that have exited.'''
+
         if self.active_children is None:
             return
         while len(self.active_children) >= self.max_children:
             try:
                 pid, _ = os.waitpid(-1, 0)
                 self.active_children.discard(pid)
-            except OSError:
-                e = None
+            except OSError, e:
                 if e.errno == errno.ECHILD:
                     self.active_children.clear()
                 elif e.errno != errno.EINTR:
@@ -394,8 +460,7 @@ class ForkingMixIn:
             try:
                 pid, _ = os.waitpid(pid, os.WNOHANG)
                 self.active_children.discard(pid)
-            except OSError:
-                e = None
+            except OSError, e:
                 if e.errno == errno.ECHILD:
                     self.active_children.discard(pid)
                 continue
@@ -427,6 +492,12 @@ class ThreadingMixIn:
 
     daemon_threads = False
     def process_request_thread(self, request, client_address):
+        '''Same as in BaseServer but as a thread.
+
+        In addition, exception handling is done here.
+
+        '''
+
         try:
             self.finish_request(request, client_address)
             self.shutdown_request(request)
@@ -435,6 +506,8 @@ class ThreadingMixIn:
             self.shutdown_request(request)
 
     def process_request(self, request, client_address):
+        '''Start a new thread to process the request.'''
+
         t = threading.Thread(target=self.process_request_thread, args=(request, client_address))
         t.daemon = self.daemon_threads
         t.start()

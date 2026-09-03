@@ -58,6 +58,26 @@ class LocaleTime(object):
     '''
 
     def __init__(self):
+        '''Set all attributes.
+
+        Order of methods called matters for dependency reasons.
+
+        The locale language is set at the offset and then checked again before
+        exiting.  This is to make sure that the attributes were not set with a
+        mix of information from more than one locale.  This would most likely
+        happen when using threads where one thread calls a locale-dependent
+        function while another thread changes the locale while the function in
+        the other thread is still running.  Proper coding would call for
+        locks to prevent changing the locale while locale-dependent code is
+        running.  The check here is done in case someone does not think about
+        doing this.
+
+        Only other possible issue is if someone changed the timezone and did
+        not call tz.tzset .  That is an issue for the programmer, though,
+        since changing the timezone is worthless without that call.
+
+        '''
+
         self.lang = _getlang()
         self.__calc_weekday()
         self.__calc_month()
@@ -123,6 +143,18 @@ class LocaleTime(object):
         self.LC_time = date_time[2]
 
     def __find_month_format(self, directive):
+        '''Find the month format appropriate for the current locale.
+
+        In some locales (for example French and Hebrew), the default month
+        used in __calc_date_time has the same name in full and abbreviated
+        form.  Also, the month name can by accident match other part of the
+        representation: the day of the week name (for example in Morisyen)
+        or the month number (for example in Japanese).  Thus, cycle months
+        of the year and find all positions that match the month name for
+        each month,  If no common positions are found, the representation
+        does not use the month name.
+        '''
+
         full_indices = abbr_indices = None
         for m in range(1, 13):
             time_tuple = time.struct_time((1999, m, 17, 22, 44, 55, 2, 76, 0))
@@ -148,6 +180,11 @@ class LocaleTime(object):
                 return (None, None)
 
     def __find_weekday_format(self, directive):
+        '''Find the day of the week format appropriate for the current locale.
+
+        Similar to __find_month_format().
+        '''
+
         full_indices = abbr_indices = None
         for wd in range(7):
             time_tuple = time.struct_time((1999, 3, 17, 22, 44, 55, wd, 76, 0))
@@ -192,6 +229,12 @@ class TimeRE(dict):
     '''Handle conversion from format directives to regexes.'''
 
     def __init__(self, locale_time=None):
+        '''Create keys/values.
+
+        Order of execution is important for dependency reasons.
+
+        '''
+
         if locale_time:
             self.locale_time = locale_time
         else:
@@ -208,13 +251,29 @@ class TimeRE(dict):
         base.__setitem__('c', self.pattern(self.locale_time.LC_date_time))
 
     def __seqToRE(self, to_convert, directive):
-        to_convert = sorted(to_convert, len, True)
+        """Convert a list to a regex string for matching a directive.
+
+        Want possible matching values to be from longest to shortest.  This
+        prevents the possibility of a match occurring for a value that also
+        a substring of a larger value that should have matched (e.g., 'abc'
+        matching when 'abcdef' should have been the match).
+
+        """
+
+        to_convert = sorted(to_convert, key=len, reverse=True)
         for value in to_convert:
             if not value != '':
                 pass
         return ''
 
     def pattern(self, format):
+        '''Return regex pattern for the format string.
+
+        Need to make sure that any characters that might be interpreted as
+        regex syntax are escaped.
+
+        '''
+
         format = re_sub('([\\\\.^$*+?\\(\\){}\\[\\]|])', '\\\\\\1', format)
         format = re_sub('\\s+', '\\\\s+', format)
         format = re_sub("'", "['ʼ]", format)
@@ -225,6 +284,8 @@ class TimeRE(dict):
         return format
 
     def compile(self, format):
+        '''Return a compiled re object for the format string.'''
+
         return re_compile(self.pattern(format), IGNORECASE)
 
 
@@ -234,6 +295,10 @@ _CACHE_MAX_SIZE = 5
 _regex_cache = {}
 
 def _calc_julian_from_U_or_W(year, week_of_year, day_of_week, week_starts_Mon):
+    '''Calculate the Julian day based on the year, week of the year, and day of
+    the week, with week_start_day representing whether the week of the year
+    assumes the week starts on Sunday or Monday (6 or 0).'''
+
     first_weekday = datetime_date(year, 1, 1).weekday()
     if not week_starts_Mon:
         first_weekday = (first_weekday + 1) % 7
@@ -245,6 +310,10 @@ def _calc_julian_from_U_or_W(year, week_of_year, day_of_week, week_starts_Mon):
     return 1 + days_to_week + day_of_week
 
 def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
+    '''Return a 2-tuple consisting of a time struct and an int containing
+    the number of microseconds based on the input string and the
+    format string.'''
+
     global _TimeRE_cache
     for index, arg in enumerate([data_string, format]):
         if isinstance(arg, str):
@@ -456,10 +525,16 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                     return (year, month, day, hour, minute, second, weekday, julian, tz, tzname, gmtoff), fraction, gmtoff_fraction
 
 def _strptime_time(data_string, format='%a %b %d %H:%M:%S %Y'):
+    '''Return a time struct based on the input string and the
+    format string.'''
+
     tt = _strptime(data_string, format)[0]
     return time.struct_time(tt[:time._STRUCT_TM_ITEMS])
 
 def _strptime_datetime(cls, data_string, format='%a %b %d %H:%M:%S %Y'):
+    '''Return a class cls instance based on the input string and the
+    format string.'''
+
     tt, fraction, gmtoff_fraction = _strptime(data_string, format)
     tzname, gmtoff = tt[-2:]
     args = tt[:6] + (fraction,)

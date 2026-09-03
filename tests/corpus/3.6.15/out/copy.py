@@ -58,19 +58,24 @@ class Error(Exception):
 error = Error
 try:
     from org.python.core import PyStringMap
-except ImportError as PyStringMap:
-    pass
+except ImportError:
+    PyStringMap = None
 __all__ = ['Error', 'copy', 'deepcopy']
 
 def copy(x):
+    """Shallow copy operation on arbitrary Python objects.
+
+    See the module's __doc__ string for more info.
+    """
+
     cls = type(x)
     copier = _copy_dispatch.get(cls)
     if copier:
         return copier(x)
     try:
         issc = issubclass(cls, type)
-    except TypeError as issc:
-        pass
+    except TypeError:
+        issc = False
     if issc:
         return _copy_immutable(x)
     copier = getattr(cls, '__copy__', None)
@@ -112,6 +117,11 @@ if PyStringMap is not None:
 del d, t
 
 def deepcopy(x, memo=None, _nil=[]):
+    """Deep copy operation on arbitrary Python objects.
+
+    See the module's __doc__ string for more info.
+    """
+
     if memo is None:
         memo = {}
     d = id(x)
@@ -124,8 +134,8 @@ def deepcopy(x, memo=None, _nil=[]):
         y = copier(x, memo)
     try:
         issc = issubclass(cls, type)
-    except TypeError as issc:
-        pass
+    except TypeError:
+        issc = 0
     if issc:
         y = _deepcopy_atomic(x, memo)
     else:
@@ -222,6 +232,16 @@ d[types.MethodType] = _deepcopy_method
 del d
 
 def _keep_alive(x, memo):
+    '''Keeps a reference to the object x in the memo.
+
+    Because we remember objects by their id, we have
+    to assure that possibly temporary objects are kept
+    alive by referencing them.
+    We store a reference at the id of the memo, which should
+    normally not be used unless someone tries to deepcopy
+    the memo itself...
+    '''
+
     try:
         memo[id(memo)].append(x)
     except KeyError:

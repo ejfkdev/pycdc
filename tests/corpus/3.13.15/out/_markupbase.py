@@ -26,6 +26,8 @@ by the SGML/HTML and XHTML parsers.'''
         self.offset = 0
 
     def getpos(self):
+        '''Return current line number and offset.'''
+
         return self.lineno, self.offset
 
     def updatepos(self, i, j):

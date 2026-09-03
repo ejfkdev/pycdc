@@ -148,6 +148,12 @@ class Set(Sized, Iterable, Container):
 
     @classmethod
     def _from_iterable(cls, it):
+        '''Construct an instance of the class from any iterable input.
+
+        Must override this method if the class constructor signature
+        does not accept an iterable for an input.
+        '''
+
         return cls(it)
 
     def __and__(self, other):
@@ -183,6 +189,21 @@ class Set(Sized, Iterable, Container):
 
     __hash__ = None
     def _hash(self):
+        """Compute the hash value of a set.
+
+        Note that we don't define __hash__: not all sets are hashable.
+        But if you define a hashable set type, its __hash__ should
+        call this function.
+
+        This must be compatible __eq__.
+
+        All sets ought to compare equal if they contain the same
+        elements, regardless of how they are implemented, and
+        regardless of the order of the elements; so there's not much
+        freedom for __eq__ or __hash__.  We match the algorithm used
+        by the built-in frozenset type.
+        """
+
         MAX = sys.maxint
         MASK = 2 * MAX + 1
         n = len(self)
@@ -206,18 +227,26 @@ Set.register(frozenset)
 class MutableSet(Set):
     @abstractmethod
     def add(self, value):
+        '''Add an element.'''
+
         raise NotImplementedError
 
     @abstractmethod
     def discard(self, value):
+        '''Remove an element.  Do not raise an exception if absent.'''
+
         raise NotImplementedError
 
     def remove(self, value):
+        '''Remove an element. If not a member, raise a KeyError.'''
+
         if value not in self:
             raise KeyError(value)
         self.discard(value)
 
     def pop(self):
+        '''Return the popped value.  Raise KeyError if empty.'''
+
         it = iter(self)
         try:
             value = next(it)
@@ -227,6 +256,8 @@ class MutableSet(Set):
         return value
 
     def clear(self):
+        '''This is slow (creates N new iterators!) but effective.'''
+
         try:
             while True:
                 self.pop()

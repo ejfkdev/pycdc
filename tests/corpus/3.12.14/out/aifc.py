@@ -138,7 +138,7 @@ import struct
 import builtins
 import warnings
 __all__ = ['Error', 'open']
-warnings._deprecated(__name__, (3, 13))
+warnings._deprecated(__name__, remove=(3, 13))
 
 class Error(Exception):
     pass
@@ -399,21 +399,21 @@ with warnings.catch_warnings():
 
             def _alaw2lin(self, data):
                 with warnings.catch_warnings():
-                    warnings.simplefilter('ignore', DeprecationWarning)
+                    warnings.simplefilter('ignore', category=DeprecationWarning)
                     import audioop
                     while True:
                         return audioop.alaw2lin(data, 2)
 
             def _ulaw2lin(self, data):
                 with warnings.catch_warnings():
-                    warnings.simplefilter('ignore', DeprecationWarning)
+                    warnings.simplefilter('ignore', category=DeprecationWarning)
                     import audioop
                     while True:
                         return audioop.ulaw2lin(data, 2)
 
             def _adpcm2lin(self, data):
                 with warnings.catch_warnings():
-                    warnings.simplefilter('ignore', DeprecationWarning)
+                    warnings.simplefilter('ignore', category=DeprecationWarning)
                     import audioop
                     while True:
                         if not hasattr(self, '_adpcmstate'):
@@ -423,7 +423,7 @@ with warnings.catch_warnings():
 
             def _sowt2lin(self, data):
                 with warnings.catch_warnings():
-                    warnings.simplefilter('ignore', DeprecationWarning)
+                    warnings.simplefilter('ignore', category=DeprecationWarning)
                     import audioop
                     while True:
                         return audioop.byteswap(data, 2)
@@ -676,21 +676,21 @@ with warnings.catch_warnings():
 
             def _lin2alaw(self, data):
                 with warnings.catch_warnings():
-                    warnings.simplefilter('ignore', DeprecationWarning)
+                    warnings.simplefilter('ignore', category=DeprecationWarning)
                     import audioop
                     while True:
                         return audioop.lin2alaw(data, 2)
 
             def _lin2ulaw(self, data):
                 with warnings.catch_warnings():
-                    warnings.simplefilter('ignore', DeprecationWarning)
+                    warnings.simplefilter('ignore', category=DeprecationWarning)
                     import audioop
                     while True:
                         return audioop.lin2ulaw(data, 2)
 
             def _lin2adpcm(self, data):
                 with warnings.catch_warnings():
-                    warnings.simplefilter('ignore', DeprecationWarning)
+                    warnings.simplefilter('ignore', category=DeprecationWarning)
                     import audioop
                     while True:
                         if not hasattr(self, '_adpcmstate'):
@@ -700,7 +700,7 @@ with warnings.catch_warnings():
 
             def _lin2sowt(self, data):
                 with warnings.catch_warnings():
-                    warnings.simplefilter('ignore', DeprecationWarning)
+                    warnings.simplefilter('ignore', category=DeprecationWarning)
                     import audioop
                     while True:
                         return audioop.byteswap(data, 2)

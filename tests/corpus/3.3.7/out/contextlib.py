@@ -9,6 +9,16 @@ class ContextDecorator(object):
     '''A base class or mixin that enables context managers to work as decorators.'''
 
     def _recreate_cm(self):
+        '''Return a recreated instance of self.
+
+        Allows an otherwise one-shot context manager like
+        _GeneratorContextManager to support use as
+        a decorator via implicit recreation.
+
+        This is a private interface just for _GeneratorContextManager.
+        See issue #11647 for details.
+        '''
+
         return self
 
     def __call__(self, func):
@@ -58,6 +68,34 @@ class _GeneratorContextManager(ContextDecorator):
 
 
 def contextmanager(func):
+    '''@contextmanager decorator.
+
+    Typical usage:
+
+        @contextmanager
+        def some_generator(<arguments>):
+            <setup>
+            try:
+                yield <value>
+            finally:
+                <cleanup>
+
+    This makes this:
+
+        with some_generator(<arguments>) as <variable>:
+            <body>
+
+    equivalent to this:
+
+        <setup>
+        try:
+            <variable> = <value>
+            <body>
+        finally:
+            <cleanup>
+
+    '''
+
     @wraps(func)
     def helper(*args, **kwds):
         return _GeneratorContextManager(func, *args, **kwds)
@@ -109,12 +147,16 @@ class ExitStack(object):
         self._exit_callbacks = deque()
 
     def pop_all(self):
+        '''Preserve the context stack by transferring it to a new instance'''
+
         new_stack = type(self)()
         new_stack._exit_callbacks = self._exit_callbacks
         self._exit_callbacks = deque()
         return new_stack
 
     def _push_cm_exit(self, cm, cm_exit):
+        '''Helper to correctly register callbacks to __exit__ methods'''
+
         def _exit_wrapper(*exc_details):
             return cm_exit(cm, *exc_details)
 
@@ -122,6 +164,14 @@ class ExitStack(object):
         self.push(_exit_wrapper)
 
     def push(self, exit):
+        '''Registers a callback with the standard __exit__ method signature
+
+        Can suppress exceptions the same way __exit__ methods can.
+
+        Also accepts any object with an __exit__ method (registering a call
+        to the method instead of the object itself)
+        '''
+
         _cb_type = type(exit)
         try:
             exit_method = _cb_type.__exit__
@@ -132,6 +182,11 @@ class ExitStack(object):
         return exit
 
     def callback(self, callback, *args, **kwds):
+        '''Registers an arbitrary callback and arguments.
+
+        Cannot suppress exceptions.
+        '''
+
         def _exit_wrapper(exc_type, exc, tb):
             callback(*args, **kwds)
 
@@ -140,6 +195,12 @@ class ExitStack(object):
         return callback
 
     def enter_context(self, cm):
+        '''Enters the supplied context manager
+
+        If successful, also pushes its __exit__ method as a callback and
+        returns the result of the __enter__ method.
+        '''
+
         _cm_type = type(cm)
         _exit = _cm_type.__exit__
         result = _cm_type.__enter__(cm)

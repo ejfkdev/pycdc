@@ -201,6 +201,8 @@ class BinHex:
 
 
 def binhex(inp, out):
+    '''binhex(infilename, outfilename): create binhex-encoded copy of a file'''
+
     finfo = getfileinfo(inp)
     ofp = BinHex(finfo, out)
     ifp = io.open(inp, 'rb')
@@ -230,6 +232,8 @@ class _Hqxdecoderengine:
         self.eof = 0
 
     def read(self, totalwtd):
+        '''Read at least wtd bytes (or until EOF)'''
+
         decdata = b''
         wtd = totalwtd
         while wtd > 0:
@@ -392,6 +396,8 @@ class HexBin:
 
 
 def hexbin(inp, out):
+    '''hexbin(infilename, outfilename) - Decode binhexed file'''
+
     ifp = HexBin(inp)
     finfo = ifp.FInfo
     if not out:

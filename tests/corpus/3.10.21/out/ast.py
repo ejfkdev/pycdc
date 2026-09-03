@@ -33,6 +33,12 @@ from enum import IntEnum
 from enum import auto
 
 def parse(source, filename='<unknown>', mode='exec', *, type_comments=False, feature_version=None):
+    '''
+    Parse the source into an AST node.
+    Equivalent to compile(source, filename, mode, PyCF_ONLY_AST).
+    Pass type_comments=True to get back type comments where the syntax allows.
+    '''
+
     flags = PyCF_ONLY_AST
     if type_comments:
         flags |= PyCF_TYPE_COMMENTS
@@ -45,6 +51,15 @@ def parse(source, filename='<unknown>', mode='exec', *, type_comments=False, fea
     return compile(source, filename, mode, flags, _feature_version=feature_version)
 
 def literal_eval(node_or_string):
+    '''
+    Evaluate an expression node or a string containing only a Python
+    expression.  The string or node provided may only consist of the following
+    Python literal structures: strings, bytes, numbers, tuples, lists, dicts,
+    sets, booleans, and None.
+
+    Caution: A complex expression can overflow the C stack and cause a crash.
+    '''
+
     if isinstance(node_or_string, str):
         node_or_string = parse(node_or_string.lstrip(' \t'), mode='eval')
     if isinstance(node_or_string, Expression):
@@ -99,6 +114,18 @@ def literal_eval(node_or_string):
     return _convert(node_or_string)
 
 def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
+    '''
+    Return a formatted dump of the tree in node.  This is mainly useful for
+    debugging purposes.  If annotate_fields is true (by default),
+    the returned string will show the names and the values for fields.
+    If annotate_fields is false, the result string will be more compact by
+    omitting unambiguous field names.  Attributes such as line
+    numbers and column offsets are not dumped by default.  If this is wanted,
+    include_attributes can be set to true.  If indent is a non-negative
+    integer or string, then the tree will be pretty-printed with that indent
+    level. None (the default) selects the single line representation.
+    '''
+
     def _format(node, level=0):
         if indent is not None:
             level += 1
@@ -116,8 +143,8 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
                 if value is None and getattr(cls, name, ...) is None:
                     try:
                         value = getattr(node, name)
-                    except AttributeError as keywords:
-                        pass
+                    except AttributeError:
+                        keywords = True
                     else:
                         keywords = True
                     continue
@@ -155,6 +182,11 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
     return _format(node)[0]
 
 def copy_location(new_node, old_node):
+    '''
+    Copy source location (`lineno`, `col_offset`, `end_lineno`, and `end_col_offset`
+    attributes) from *old_node* to *new_node* if possible, and return *new_node*.
+    '''
+
     for attr in ('lineno', 'col_offset', 'end_lineno', 'end_col_offset'):
         if attr in old_node._attributes and attr in new_node._attributes:
             value = getattr(old_node, attr, None)
@@ -164,6 +196,14 @@ def copy_location(new_node, old_node):
     return new_node
 
 def fix_missing_locations(node):
+    '''
+    When you compile a node tree with compile(), the compiler expects lineno and
+    col_offset attributes for every node that supports them.  This is rather
+    tedious to fill in for generated nodes, so this helper adds these attributes
+    recursively where not already set, by setting them to the values of the
+    parent node.  It works recursively starting at *node*.
+    '''
+
     def _fix(node, lineno, col_offset, end_lineno, end_col_offset):
         if 'lineno' in node._attributes:
             if not hasattr(node, 'lineno'):
@@ -192,6 +232,12 @@ def fix_missing_locations(node):
     return node
 
 def increment_lineno(node, n=1):
+    '''
+    Increment the line number and end line number of each node in the tree
+    starting at *node* by *n*. This is useful to "move code" to a different
+    location in a file.
+    '''
+
     for child in walk(node):
         if isinstance(child, TypeIgnore):
             child.lineno = getattr(child, 'lineno', 0) + n
@@ -205,6 +251,11 @@ def increment_lineno(node, n=1):
     return node
 
 def iter_fields(node):
+    '''
+    Yield a tuple of ``(fieldname, value)`` for each field in ``node._fields``
+    that is present on *node*.
+    '''
+
     for field in node._fields:
         try:
             yield (field, getattr(node, field))
@@ -212,6 +263,11 @@ def iter_fields(node):
             pass
 
 def iter_child_nodes(node):
+    '''
+    Yield all direct child nodes of *node*, that is, all fields that are nodes
+    and all items of fields that are lists of nodes.
+    '''
+
     for name, field in iter_fields(node):
         if isinstance(field, AST):
             yield field
@@ -222,6 +278,15 @@ def iter_child_nodes(node):
                     yield item
 
 def get_docstring(node, clean=True):
+    '''
+    Return the docstring for the given node or None if no docstring can
+    be found.  If the node provided does not have docstrings a TypeError
+    will be raised.
+
+    If *clean* is `True`, all tabs are expanded to spaces and any whitespace
+    that can be uniformly removed from the second line onwards is removed.
+    '''
+
     if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
     if not node.body or not isinstance(node.body[0], Expr):
@@ -239,6 +304,11 @@ def get_docstring(node, clean=True):
     return text
 
 def _splitlines_no_ff(source):
+    '''Split a string into lines ignoring form feed and other chars.
+
+    This mimics how the Python parser splits source code.
+    '''
+
     idx = 0
     lines = []
     next_line = ''
@@ -258,6 +328,8 @@ def _splitlines_no_ff(source):
     return lines
 
 def _pad_whitespace(source):
+    """Replace all chars except '\\f\\t' in a line with spaces."""
+
     result = ''
     for c in source:
         if c in '\x0c\t':
@@ -267,6 +339,15 @@ def _pad_whitespace(source):
     return result
 
 def get_source_segment(source, node, *, padded=False):
+    '''Get source code segment of the *source* that generated *node*.
+
+    If some location information (`lineno`, `end_lineno`, `col_offset`,
+    or `end_col_offset`) is missing, return None.
+
+    If *padded* is `True`, the first line of a multi-line statement will
+    be padded with spaces to match its original position.
+    '''
+
     if padded:
         try:
             if node.end_lineno is None or node.end_col_offset is None:
@@ -293,6 +374,12 @@ def get_source_segment(source, node, *, padded=False):
     return ''.join(lines)
 
 def walk(node):
+    """
+    Recursively yield all descendant nodes in the tree starting at *node*
+    (including *node* itself), in no specified order.  This is useful if you
+    only want to modify nodes in place and don't care about the context.
+    """
+
     from collections import deque
     todo = deque([node])
     while todo:
@@ -321,11 +408,15 @@ class NodeVisitor(object):
     """
 
     def visit(self, node):
+        '''Visit a node.'''
+
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
         return visitor(node)
 
     def generic_visit(self, node):
+        '''Called if no explicit visitor function exists for a node.'''
+
         for field, value in iter_fields(node):
             if isinstance(value, list):
                 for item in value:
@@ -418,6 +509,8 @@ class NodeTransformer(NodeVisitor):
 
 if not hasattr(Constant, 'n'):
     def _getter(self):
+        '''Deprecated. Use value instead.'''
+
         return self.value
 
     def _setter(self, value):
@@ -492,6 +585,8 @@ class ExtSlice(slice):
 
 if not hasattr(Tuple, 'dims'):
     def _dims_getter(self):
+        '''Deprecated. Use elts instead.'''
+
         return self.elts
 
     def _dims_setter(self, value):
@@ -560,6 +655,8 @@ class _Unparser(NodeVisitor):
         self._avoid_backslashes = _avoid_backslashes
 
     def interleave(self, inter, f, seq):
+        '''Call f on each item in seq, calling inter() in between.'''
+
         seq = iter(seq)
         try:
             f(next(seq))
@@ -570,6 +667,10 @@ class _Unparser(NodeVisitor):
             f(x)
 
     def items_view(self, traverser, items):
+        '''Traverse and separate the given *items* with a comma and append it to
+        the buffer. If *items* is a single item sequence, a trailing comma
+        will be added.'''
+
         if len(items) == 1:
             traverser(items[0])
             self.write(',')
@@ -577,6 +678,8 @@ class _Unparser(NodeVisitor):
         self.interleave((lambda: self.write(', ')), traverser, items)
 
     def maybe_newline(self):
+        """Adds a newline if it isn't the start of generated source"""
+
         if self._source:
             self.write('\n')
             return
@@ -618,6 +721,8 @@ class _Unparser(NodeVisitor):
         return nullcontext()
 
     def require_parens(self, precedence, node):
+        '''Shortcut to adding precedence related parens'''
+
         return self.delimit_if('(', ')', self.get_precedence(node) > precedence)
 
     def get_precedence(self, node):
@@ -628,6 +733,11 @@ class _Unparser(NodeVisitor):
             self._precedences[node] = precedence
 
     def get_raw_docstring(self, node):
+        '''If a docstring node is found in the body of the *node* parameter,
+        return that docstring node, None otherwise.
+
+        Logic mirrored from ``_PyAST_GetDocString``.'''
+
         if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)) or len(node.body) < 1:
             return
         node = node.body[0]
@@ -652,6 +762,9 @@ class _Unparser(NodeVisitor):
         super().visit(node)
 
     def visit(self, node):
+        '''Outputs a source code string that, if converted back to an ast
+        (using ast.parse) will generate an AST equivalent to *node*'''
+
         self._source = []
         self.traverse(node)
         return ''.join(self._source)
@@ -972,6 +1085,10 @@ class _Unparser(NodeVisitor):
             self.traverse(node.body)
 
     def _str_literal_helper(self, string, *, quote_types=_ALL_QUOTES, escape_special_whitespace=False):
+        '''Helper for writing string literals, minimizing escapes.
+        Returns the tuple (string literal to write, possible quote types).
+        '''
+
         def escape_char(c):
             if not escape_special_whitespace:
                 if c in '\n\t':
@@ -997,6 +1114,8 @@ class _Unparser(NodeVisitor):
         return escaped_string, possible_quotes
 
     def _write_str_avoiding_backslashes(self, string, *, quote_types=_ALL_QUOTES):
+        '''Write string literal value with a best effort attempt to avoid backslashes.'''
+
         string, quote_types = self._str_literal_helper(string, quote_types=quote_types)
         quote_type = quote_types[0]
         self.write(f'{quote_type}{string}{quote_type}')

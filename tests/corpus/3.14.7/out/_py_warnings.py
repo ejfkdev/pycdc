@@ -71,16 +71,23 @@ def _new_context():
     return old_context, new_context
 
 def _get_filters():
+    '''Return the current list of filters.  This is a non-public API used by
+module functions and by the unit tests.'''
+
     return _wm._get_context()._filters
 
 def _filters_mutated_lock_held():
     _wm._filters_version += 1
 
 def showwarning(message, category, filename, lineno, file=None, line=None):
+    '''Hook to write a warning to a file; replace if you like.'''
+
     msg = _wm.WarningMessage(message, category, filename, lineno, file, line)
     _wm._showwarnmsg_impl(msg)
 
 def formatwarning(message, category, filename, lineno, line=None):
+    '''Function to format a warning the standard way.'''
+
     msg = _wm.WarningMessage(message, category, filename, lineno, None, line)
     return _wm._formatwarnmsg_impl(msg)
 
@@ -151,6 +158,8 @@ def _formatwarnmsg_impl(msg):
 _showwarning_orig = showwarning
 
 def _showwarnmsg(msg):
+    '''Hook to write a warning to a file; replace if you like.'''
+
     try:
         sw = _wm.showwarning
     except AttributeError:
@@ -165,6 +174,8 @@ def _showwarnmsg(msg):
 _formatwarning_orig = formatwarning
 
 def _formatwarnmsg(msg):
+    '''Function to format a warning the standard way.'''
+
     try:
         fw = _wm.formatwarning
     except AttributeError:
@@ -174,6 +185,17 @@ def _formatwarnmsg(msg):
     return _wm._formatwarnmsg_impl(msg)
 
 def filterwarnings(action, message='', category=Warning, module='', lineno=0, append=False):
+    '''Insert an entry into the list of warnings filters (at the front).
+
+'action' -- one of "error", "ignore", "always", "all", "default", "module",
+            or "once"
+'message' -- a regex that the warning message must match
+'category' -- a class that the warning must be a subclass of
+'module' -- a regex that the module name must match
+'lineno' -- an integer line number, 0 matches all warnings
+'append' -- if true, append to the list of filters
+'''
+
     if action not in frozenset({'all', 'once', 'error', 'always', 'ignore', 'module', 'default'}):
         raise ValueError(f'invalid action: {action!r}')
     if not isinstance(message, str):
@@ -201,6 +223,16 @@ def filterwarnings(action, message='', category=Warning, module='', lineno=0, ap
     _wm._add_filter(action, message, category, module, lineno, append)
 
 def simplefilter(action, category=Warning, lineno=0, append=False):
+    '''Insert a simple entry into the list of warnings filters (at the front).
+
+A simple filter matches all modules and messages.
+'action' -- one of "error", "ignore", "always", "all", "default", "module",
+            or "once"
+'category' -- a class that the warning must be a subclass of
+'lineno' -- an integer line number, 0 matches all warnings
+'append' -- if true, append to the list of filters
+'''
+
     if action not in frozenset({'all', 'once', 'error', 'always', 'ignore', 'module', 'default'}):
         raise ValueError(f'invalid action: {action!r}')
     if not isinstance(lineno, int):
@@ -313,9 +345,13 @@ def _is_filename_to_skip(filename, skip_file_prefixes):
                 return None((filename(prefix) for prefix in skip_file_prefixes))
 
 def _is_internal_frame(frame):
+    '''Signal whether the frame is an internal CPython implementation detail.'''
+
     return _is_internal_filename(frame.f_code.co_filename)
 
 def _next_external_frame(frame, skip_file_prefixes):
+    """Find the next frame that doesn't involve Python or user internals."""
+
     frame = frame.f_back
     while not frame is None:
         filename = frame.f_code.co_filename
@@ -326,6 +362,8 @@ def _next_external_frame(frame, skip_file_prefixes):
     return frame
 
 def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixes=()):
+    '''Issue a warning, or maybe ignore it or raise an exception.'''
+
     if isinstance(message, Warning):
         category = message.__class__
     if not category is not None:
@@ -469,6 +507,11 @@ context.
 """
 
     def __init__(self, *, record=False, module=None, action=None, category=Warning, lineno=0, append=False):
+        """Specify whether to record warnings and if an alternative module
+should be used other than sys.modules['warnings'].
+
+"""
+
         self._record = record
         self._module = sys.modules['warnings'] if not module is not None else module
         self._entered = False
@@ -596,7 +639,7 @@ See PEP 702 for details.
                 if cls is arg:
                     _wm.warn(msg, category, stacklevel + 1)
                 if original_new is not object.__new__:
-                    return [cls, *args](*{**kwargs})
+                    return original_new(*[cls, *args], **kwargs)
                 if cls.__init__ is object.__init__:
                     if not args:
                         if kwargs:
@@ -611,12 +654,12 @@ See PEP 702 for details.
                 @functools.wraps(original_init_subclass)
                 def __init_subclass__(*args, **kwargs):
                     _wm.warn(msg, category, stacklevel + 1)
-                    return args(*{**kwargs})
+                    return original_init_subclass(*args, **kwargs)
 
             else:
                 def __init_subclass__(cls, *args, **kwargs):
                     _wm.warn(msg, category, stacklevel + 1)
-                    return args(*{**kwargs})
+                    return super().__init_subclass__(*args, **kwargs)
 
             arg.__init_subclass__ = classmethod(__init_subclass__)
             arg.__deprecated__ = msg
@@ -629,7 +672,7 @@ See PEP 702 for details.
             @functools.wraps(arg)
             def wrapper(*args, **kwargs):
                 _wm.warn(msg, category, stacklevel + 1)
-                return args(*{**kwargs})
+                return arg(*args, **kwargs)
 
             if inspect.iscoroutinefunction(arg):
                 wrapper = inspect.markcoroutinefunction(wrapper)
@@ -642,6 +685,16 @@ See PEP 702 for details.
 _DEPRECATED_MSG = '{name!r} is deprecated and slated for removal in Python {remove}'
 
 def _deprecated(name, message=_DEPRECATED_MSG, *, remove, _version=sys.version_info):
+    '''Warn that *name* is deprecated or should be removed.
+
+RuntimeError is raised if *remove* specifies a major/minor tuple older than
+the current Python version or the same version but past the alpha.
+
+The *message* argument is formatted with *name* and *remove* as a Python
+version tuple (e.g. (3, 11)).
+
+'''
+
     remove_formatted = f'{remove[0]}.{remove[1]}'
     if not _version[:2] > remove:
         if _version[:2] == remove:

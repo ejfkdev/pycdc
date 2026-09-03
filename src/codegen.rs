@@ -95,6 +95,10 @@ pub fn generate(body: &[Stmt], version: PythonVersion, clean: bool) -> String {
     if !clean {
         p.write_line("# WARNING: Decompyle incomplete");
     }
+    // py2 refuses non-ASCII source without a PEP 263 coding declaration
+    if version.major < 3 && !p.out.is_ascii() {
+        return format!("# -*- coding: utf-8 -*-\n{}", p.out);
+    }
     p.out
 }
 

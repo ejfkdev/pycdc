@@ -84,10 +84,18 @@ class Coroutine(Awaitable):
     __slots__ = ()
     @abstractmethod
     def send(self, value):
+        '''Send a value into the coroutine.
+        Return next yielded value or raise StopIteration.
+        '''
+
         raise StopIteration
 
     @abstractmethod
     def throw(self, typ, val=None, tb=None):
+        '''Raise an exception in the coroutine.
+        Return next yielded value or raise StopIteration.
+        '''
+
         if val is None:
             if tb is None:
                 raise typ
@@ -97,6 +105,9 @@ class Coroutine(Awaitable):
         raise val
 
     def close(self):
+        '''Raise GeneratorExit inside coroutine.
+        '''
+
         try:
             self(GeneratorExit)
         except (GeneratorExit, StopIteration):
@@ -130,6 +141,8 @@ class AsyncIterator(AsyncIterable):
     __slots__ = ()
     @abstractmethod
     async def __anext__(self):
+        '''Return the next item or raise StopAsyncIteration when exhausted.'''
+
         raise StopAsyncIteration
 
     def __aiter__(self):
@@ -145,14 +158,26 @@ class AsyncIterator(AsyncIterable):
 class AsyncGenerator(AsyncIterator):
     __slots__ = ()
     async def __anext__(self):
+        '''Return the next item from the asynchronous generator.
+        When exhausted, raise StopAsyncIteration.
+        '''
+
         return await self.asend(None)
 
     @abstractmethod
     async def asend(self, value):
+        '''Send a value into the asynchronous generator.
+        Return next yielded value or raise StopAsyncIteration.
+        '''
+
         raise StopAsyncIteration
 
     @abstractmethod
     async def athrow(self, typ, val=None, tb=None):
+        '''Raise an exception in the asynchronous generator.
+        Return next yielded value or raise StopAsyncIteration.
+        '''
+
         if val is None:
             if tb is None:
                 raise typ
@@ -162,6 +187,9 @@ class AsyncGenerator(AsyncIterator):
         raise val
 
     async def aclose(self):
+        '''Raise GeneratorExit inside coroutine.
+        '''
+
         try:
             await self(GeneratorExit)
         except (GeneratorExit, StopAsyncIteration):
@@ -195,6 +223,8 @@ class Iterator(Iterable):
     __slots__ = ()
     @abstractmethod
     def __next__(self):
+        '''Return the next item from the iterator. When exhausted, raise StopIteration'''
+
         raise StopIteration
 
     def __iter__(self):
@@ -237,14 +267,26 @@ class Reversible(Iterable):
 class Generator(Iterator):
     __slots__ = ()
     def __next__(self):
+        '''Return the next item from the generator.
+        When exhausted, raise StopIteration.
+        '''
+
         return self.send(None)
 
     @abstractmethod
     def send(self, value):
+        '''Send a value into the generator.
+        Return next yielded value or raise StopIteration.
+        '''
+
         raise StopIteration
 
     @abstractmethod
     def throw(self, typ, val=None, tb=None):
+        '''Raise an exception in the generator.
+        Return next yielded value or raise StopIteration.
+        '''
+
         if val is None:
             if tb is None:
                 raise typ
@@ -254,6 +296,9 @@ class Generator(Iterator):
         raise val
 
     def close(self):
+        '''Raise GeneratorExit inside generator.
+        '''
+
         try:
             self(GeneratorExit)
         except (GeneratorExit, StopIteration):
@@ -365,6 +410,12 @@ class Set(Collection):
 
     @classmethod
     def _from_iterable(cls, it):
+        '''Construct an instance of the class from any iterable input.
+
+        Must override this method if the class constructor signature
+        does not accept an iterable for an input.
+        '''
+
         return cls(it)
 
     def __and__(self, other):
@@ -374,6 +425,8 @@ class Set(Collection):
 
     __rand__ = __and__
     def isdisjoint(self, other):
+        '''Return True if two sets have a null intersection.'''
+
         for value in other:
             return False
         return True
@@ -408,6 +461,21 @@ class Set(Collection):
 
     __rxor__ = __xor__
     def _hash(self):
+        """Compute the hash value of a set.
+
+        Note that we don't define __hash__: not all sets are hashable.
+        But if you define a hashable set type, its __hash__ should
+        call this function.
+
+        This must be compatible __eq__.
+
+        All sets ought to compare equal if they contain the same
+        elements, regardless of how they are implemented, and
+        regardless of the order of the elements; so there's not much
+        freedom for __eq__ or __hash__.  We match the algorithm used
+        by the built-in frozenset type.
+        """
+
         MAX = sys.maxsize
         MASK = 2 * MAX + 1
         n = len(self)
@@ -443,18 +511,26 @@ class MutableSet(Set):
     __slots__ = ()
     @abstractmethod
     def add(self, value):
+        '''Add an element.'''
+
         raise NotImplementedError
 
     @abstractmethod
     def discard(self, value):
+        '''Remove an element.  Do not raise an exception if absent.'''
+
         raise NotImplementedError
 
     def remove(self, value):
+        '''Remove an element. If not a member, raise a KeyError.'''
+
         if value not in self:
             raise KeyError(value)
         self.discard(value)
 
     def pop(self):
+        '''Return the popped value.  Raise KeyError if empty.'''
+
         it = iter(self)
         try:
             value = next(it)
@@ -464,6 +540,8 @@ class MutableSet(Set):
         return value
 
     def clear(self):
+        '''This is slow (creates N new iterators!) but effective.'''
+
         try:
             while True:
                 self.pop()
@@ -510,6 +588,8 @@ class Mapping(Collection):
         raise KeyError
 
     def get(self, key, default=None):
+        '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
+
         return self[key]
         try:
             pass
@@ -520,12 +600,18 @@ class Mapping(Collection):
         pass
 
     def keys(self):
+        """D.keys() -> a set-like object providing a view on D's keys"""
+
         return KeysView(self)
 
     def items(self):
+        """D.items() -> a set-like object providing a view on D's items"""
+
         return ItemsView(self)
 
     def values(self):
+        """D.values() -> an object providing a view on D's values"""
+
         return ValuesView(self)
 
     def __eq__(self, other):
@@ -609,9 +695,15 @@ class MutableMapping(Mapping):
 
     __marker = object()
     def pop(self, key, default=__marker):
-        pass
+        '''D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
+          If key is not found, d is returned if given, otherwise KeyError is raised.
+        '''
 
     def popitem(self):
+        '''D.popitem() -> (k, v), remove and return some (key, value) pair
+           as a 2-tuple; but raise KeyError if D is empty.
+        '''
+
         try:
             key = next(iter(self))
         except StopIteration:
@@ -621,6 +713,8 @@ class MutableMapping(Mapping):
         return key, value
 
     def clear(self):
+        '''D.clear() -> None.  Remove all items from D.'''
+
         try:
             while True:
                 self.popitem()
@@ -628,6 +722,12 @@ class MutableMapping(Mapping):
             pass
 
     def update(self, other=(), /, **kwds):
+        ''' D.update([E, ]**F) -> None.  Update D from mapping/iterable E and F.
+            If E present and has a .keys() method, does:     for k in E: D[k] = E[k]
+            If E present and lacks .keys() method, does:     for (k, v) in E: D[k] = v
+            In either case, this is followed by: for k, v in F.items(): D[k] = v
+        '''
+
         if isinstance(other, Mapping):
             for key in other:
                 self[key] = other[key]
@@ -641,6 +741,8 @@ class MutableMapping(Mapping):
             self[key] = value
 
     def setdefault(self, key, default=None):
+        '''D.setdefault(k[,d]) -> D.get(k,d), also set D[k]=d if k not in D'''
+
         return self[key]
         try:
             pass
@@ -678,6 +780,13 @@ class Sequence(Reversible, Collection):
             yield self[i]
 
     def index(self, value, start=0, stop=None):
+        '''S.index(value, [start, [stop]]) -> integer -- return first index of value.
+           Raises ValueError if the value is not present.
+
+           Supporting start and stop arguments is optional, but
+           recommended.
+        '''
+
         if start is not None and start < 0:
             start = max(len(self) + start, 0)
         if stop is not None and stop < 0:
@@ -696,6 +805,8 @@ class Sequence(Reversible, Collection):
         raise ValueError
 
     def count(self, value):
+        '''S.count(value) -> integer -- return number of occurrences of value'''
+
         return sum((1 for v in self if v is value if v == value))
 
 
@@ -727,12 +838,16 @@ class MutableSequence(Sequence):
 
     @abstractmethod
     def insert(self, index, value):
+        '''S.insert(index, value) -- insert value before index'''
+
         raise IndexError
 
     def append(self, value):
         self(len(self), value)
 
     def clear(self):
+        '''S.clear() -> None -- remove all items from S'''
+
         try:
             while True:
                 self.pop()
@@ -740,23 +855,35 @@ class MutableSequence(Sequence):
             pass
 
     def reverse(self):
+        '''S.reverse() -- reverse *IN PLACE*'''
+
         n = len(self)
         for i in range(n // 2):
             self[i] = self[n - i - 1]
             self[n - i - 1] = self[i]
 
     def extend(self, values):
+        '''S.extend(iterable) -- extend sequence by appending elements from the iterable'''
+
         if values is self:
             values = list(values)
         for v in values:
             self.append(v)
 
     def pop(self, index=-1):
+        '''S.pop([index]) -> item -- remove and return item at index (default last).
+           Raise IndexError if list is empty or index is out of range.
+        '''
+
         v = self[index]
         del self[index]
         return v
 
     def remove(self, value):
+        '''S.remove(value) -- remove first occurrence of value.
+           Raise ValueError if the value is not present.
+        '''
+
         del self[self.index(value)]
 
     def __iadd__(self, values):

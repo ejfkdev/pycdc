@@ -79,8 +79,13 @@ def _maybe_compile(compiler, source, filename, symbol):
         warnings.simplefilter('error')
         try:
             code1 = compiler(source + '\n', filename, symbol)
-        except SyntaxError as e:
+        except SyntaxError:
+            e = None
             err1 = e
+            e = None
+            del e
+            e = None
+            del e
         try:
             code2 = compiler(source + '\n\n', filename, symbol)
         except SyntaxError as e:
@@ -94,6 +99,25 @@ def _compile(source, filename, symbol):
     return compile(source, filename, symbol, PyCF_DONT_IMPLY_DEDENT)
 
 def compile_command(source, filename='<input>', symbol='single'):
+    '''Compile a command and determine whether it is incomplete.
+
+    Arguments:
+
+    source -- the source string; may contain \\n characters
+    filename -- optional filename from which source was read; default
+                "<input>"
+    symbol -- optional grammar start symbol; "single" (default), "exec"
+              or "eval"
+
+    Return value / exceptions raised:
+
+    - Return a code object if the command is complete and valid
+    - Return None if the command is incomplete
+    - Raise SyntaxError, ValueError or OverflowError if the command is a
+      syntax error (OverflowError and ValueError can be produced by
+      malformed literals).
+    '''
+
     return _maybe_compile(_compile, source, filename, symbol)
 
 class Compile:
@@ -124,6 +148,25 @@ class CommandCompiler:
         self.compiler = Compile()
 
     def __call__(self, source, filename='<input>', symbol='single'):
+        '''Compile a command and determine whether it is incomplete.
+
+        Arguments:
+
+        source -- the source string; may contain \\n characters
+        filename -- optional filename from which source was read;
+                    default "<input>"
+        symbol -- optional grammar start symbol; "single" (default) or
+                  "eval"
+
+        Return value / exceptions raised:
+
+        - Return a code object if the command is complete and valid
+        - Return None if the command is incomplete
+        - Raise SyntaxError, ValueError or OverflowError if the command is a
+          syntax error (OverflowError and ValueError can be produced by
+          malformed literals).
+        '''
+
         return _maybe_compile(self.compiler, source, filename, symbol)
 
 

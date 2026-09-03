@@ -18,6 +18,16 @@ def _bytes_from_decode_data(s):
         raise TypeError('argument should be bytes or ASCII string, not %s' % s.__class__.__name__)
 
 def b64encode(s, altchars=None):
+    """Encode a byte string using Base64.
+
+    s is the byte string to encode.  Optional altchars must be a byte
+    string of length 2 which specifies an alternative alphabet for the
+    '+' and '/' characters.  This allows an application to
+    e.g. generate url or filesystem safe Base64 strings.
+
+    The encoded byte string is returned.
+    """
+
     if not isinstance(s, bytes_types):
         raise TypeError('expected bytes, not %s' % s.__class__.__name__)
     encoded = binascii.b2a_base64(s)[:-1]
@@ -29,6 +39,20 @@ def b64encode(s, altchars=None):
     return encoded
 
 def b64decode(s, altchars=None, validate=False):
+    """Decode a Base64 encoded byte string.
+
+    s is the byte string to decode.  Optional altchars must be a
+    string of length 2 which specifies the alternative alphabet used
+    instead of the '+' and '/' characters.
+
+    The decoded string is returned.  A binascii.Error is raised if s is
+    incorrectly padded.
+
+    If validate is False (the default), non-base64-alphabet characters are
+    discarded prior to the padding check.  If validate is True,
+    non-base64-alphabet characters in the input result in a binascii.Error.
+    """
+
     s = _bytes_from_decode_data(s)
     if altchars is not None:
         altchars = _bytes_from_decode_data(altchars)
@@ -39,18 +63,48 @@ def b64decode(s, altchars=None, validate=False):
     return binascii.a2b_base64(s)
 
 def standard_b64encode(s):
+    '''Encode a byte string using the standard Base64 alphabet.
+
+    s is the byte string to encode.  The encoded byte string is returned.
+    '''
+
     return b64encode(s)
 
 def standard_b64decode(s):
+    '''Decode a byte string encoded with the standard Base64 alphabet.
+
+    s is the byte string to decode.  The decoded byte string is
+    returned.  binascii.Error is raised if the input is incorrectly
+    padded or if there are non-alphabet characters present in the
+    input.
+    '''
+
     return b64decode(s)
 
 _urlsafe_encode_translation = bytes.maketrans(b'+/', b'-_')
 _urlsafe_decode_translation = bytes.maketrans(b'-_', b'+/')
 
 def urlsafe_b64encode(s):
+    """Encode a byte string using a url-safe Base64 alphabet.
+
+    s is the byte string to encode.  The encoded byte string is
+    returned.  The alphabet uses '-' instead of '+' and '_' instead of
+    '/'.
+    """
+
     return b64encode(s).translate(_urlsafe_encode_translation)
 
 def urlsafe_b64decode(s):
+    """Decode a byte string encoded with the standard Base64 alphabet.
+
+    s is the byte string to decode.  The decoded byte string is
+    returned.  binascii.Error is raised if the input is incorrectly
+    padded or if there are non-alphabet characters present in the
+    input.
+
+    The alphabet uses '-' instead of '+' and '_' instead of '/'.
+    """
+
     s = _bytes_from_decode_data(s)
     s = s.translate(_urlsafe_decode_translation)
     return b64decode(s)
@@ -60,6 +114,11 @@ _b32tab = [v[0] for k, v in sorted(_b32alphabet.items())]
 _b32rev = dict([(v[0], k) for k, v in _b32alphabet.items()])
 
 def b32encode(s):
+    '''Encode a byte string using Base32.
+
+    s is the byte string to encode.  The encoded byte string is returned.
+    '''
+
     if not isinstance(s, bytes_types):
         raise TypeError('expected bytes, not %s' % s.__class__.__name__)
     quanta, leftover = divmod(len(s), 5)
@@ -83,6 +142,25 @@ def b32encode(s):
     return bytes(encoded)
 
 def b32decode(s, casefold=False, map01=None):
+    '''Decode a Base32 encoded byte string.
+
+    s is the byte string to decode.  Optional casefold is a flag
+    specifying whether a lowercase alphabet is acceptable as input.
+    For security purposes, the default is False.
+
+    RFC 3548 allows for optional mapping of the digit 0 (zero) to the
+    letter O (oh), and for optional mapping of the digit 1 (one) to
+    either the letter I (eye) or letter L (el).  The optional argument
+    map01 when not None, specifies which letter the digit 1 should be
+    mapped to (when map01 is not None, the digit 0 is always mapped to
+    the letter O).  For security purposes the default is None, so that
+    0 and 1 are not allowed in the input.
+
+    The decoded byte string is returned.  binascii.Error is raised if
+    the input is incorrectly padded or if there are non-alphabet
+    characters present in the input.
+    '''
+
     s = _bytes_from_decode_data(s)
     quanta, leftover = divmod(len(s), 8)
     if leftover:
@@ -130,11 +208,27 @@ def b32decode(s, casefold=False, map01=None):
     return b''.join(parts)
 
 def b16encode(s):
+    '''Encode a byte string using Base16.
+
+    s is the byte string to encode.  The encoded byte string is returned.
+    '''
+
     if not isinstance(s, bytes_types):
         raise TypeError('expected bytes, not %s' % s.__class__.__name__)
     return binascii.hexlify(s).upper()
 
 def b16decode(s, casefold=False):
+    '''Decode a Base16 encoded byte string.
+
+    s is the byte string to decode.  Optional casefold is a flag
+    specifying whether a lowercase alphabet is acceptable as input.
+    For security purposes, the default is False.
+
+    The decoded byte string is returned.  binascii.Error is raised if
+    s were incorrectly padded or if there are non-alphabet characters
+    present in the string.
+    '''
+
     s = _bytes_from_decode_data(s)
     if casefold:
         s = s.upper()
@@ -146,6 +240,8 @@ MAXLINESIZE = 76
 MAXBINSIZE = MAXLINESIZE // 4 * 3
 
 def encode(input, output):
+    '''Encode a file; input and output are binary files.'''
+
     while True:
         s = input.read(MAXBINSIZE)
         if not s:
@@ -160,6 +256,8 @@ def encode(input, output):
         continue
 
 def decode(input, output):
+    '''Decode a file; input and output are binary files.'''
+
     while True:
         line = input.readline()
         if not line:
@@ -169,6 +267,9 @@ def decode(input, output):
         continue
 
 def encodebytes(s):
+    '''Encode a bytestring into a bytestring containing multiple lines
+    of base-64 data.'''
+
     if not isinstance(s, bytes_types):
         raise TypeError('expected bytes, not %s' % s.__class__.__name__)
     pieces = []
@@ -178,21 +279,29 @@ def encodebytes(s):
     return b''.join(pieces)
 
 def encodestring(s):
+    '''Legacy alias of encodebytes().'''
+
     import warnings
     warnings.warn('encodestring() is a deprecated alias, use encodebytes()', DeprecationWarning, 2)
     return encodebytes(s)
 
 def decodebytes(s):
+    '''Decode a bytestring of base-64 data into a bytestring.'''
+
     if not isinstance(s, bytes_types):
         raise TypeError('expected bytes, not %s' % s.__class__.__name__)
     return binascii.a2b_base64(s)
 
 def decodestring(s):
+    '''Legacy alias of decodebytes().'''
+
     import warnings
     warnings.warn('decodestring() is a deprecated alias, use decodebytes()', DeprecationWarning, 2)
     return decodebytes(s)
 
 def main():
+    '''Small main program'''
+
     import sys
     import getopt
     try:

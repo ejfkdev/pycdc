@@ -312,9 +312,22 @@ _CookiePattern = re.compile('(?x)(?P<key>' + _LegalCharsPatt + '+?)\\s*=\\s*(?P<
 
 class BaseCookie(dict):
     def value_decode(self, val):
+        """real_value, coded_value = value_decode(STRING)
+        Called prior to setting a cookie's value from the network
+        representation.  The VALUE is the value read from HTTP
+        header.
+        Override this function to modify the behavior of cookies.
+        """
+
         return val, val
 
     def value_encode(self, val):
+        """real_value, coded_value = value_encode(VALUE)
+        Called prior to setting a cookie's value from the dictionary
+        representation.  The VALUE is the value being assigned.
+        Override this function to modify the behavior of cookies.
+        """
+
         strval = str(val)
         return strval, strval
 
@@ -323,15 +336,21 @@ class BaseCookie(dict):
             self.load(input)
 
     def __set(self, key, real_value, coded_value):
+        """Private method for setting a cookie's value"""
+
         M = self.get(key, Morsel())
         M.set(key, real_value, coded_value)
         dict.__setitem__(self, key, M)
 
     def __setitem__(self, key, value):
+        '''Dictionary style assignment.'''
+
         rval, cval = self.value_encode(value)
         self.__set(key, rval, cval)
 
     def output(self, attrs=None, header='Set-Cookie:', sep='\r\n'):
+        '''Return a string suitable for HTTP.'''
+
         result = []
         items = self.items()
         items.sort()
@@ -349,6 +368,8 @@ class BaseCookie(dict):
         return '<%s: %s>' % (self.__class__.__name__, _spacejoin(L))
 
     def js_output(self, attrs=None):
+        '''Return a string suitable for JavaScript.'''
+
         result = []
         items = self.items()
         items.sort()
@@ -357,6 +378,12 @@ class BaseCookie(dict):
         return _nulljoin(result)
 
     def load(self, rawdata):
+        """Load cookies from a string (presumably HTTP_COOKIE) or
+        from a dictionary.  Loading cookies from a dictionary 'd'
+        is equivalent to calling:
+            map(Cookie.__setitem__, d.keys(), d.values())
+        """
+
         if type(rawdata) == type(''):
             self.__ParseString(rawdata)
         else:

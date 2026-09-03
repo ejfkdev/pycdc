@@ -48,6 +48,31 @@ def _walk_dir(dir, maxlevels, quiet=0):
     yield from _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
+    '''Byte-compile all modules in the given directory tree.
+
+    Arguments (only dir is required):
+
+    dir:       the directory to byte-compile
+    maxlevels: maximum recursion level (default `sys.getrecursionlimit()`)
+    ddir:      the directory that will be prepended to the path to the
+               file as it is compiled into each byte-code file.
+    force:     if True, force compilation, even if timestamps are up-to-date
+    quiet:     full output with False or 0, errors only with 1,
+               no output with 2
+    legacy:    if True, produce legacy pyc paths instead of PEP 3147 paths
+    optimize:  int or list of optimization levels or -1 for level of
+               the interpreter. Multiple levels leads to multiple compiled
+               files each with one optimization level.
+    workers:   maximum number of parallel workers
+    invalidation_mode: how the up-to-dateness of the pyc will be checked
+    stripdir:  part of path to left-strip from source file path
+    prependdir: path to prepend to beginning of original file path, applied
+               after stripdir
+    limit_sl_dest: ignore symlinks if they are pointing outside of
+                   the defined path
+    hardlink_dupes: hardlink duplicated pyc files
+    '''
+
     ProcessPoolExecutor = None
     if ddir is not None:
         if stripdir is not None or prependdir is not None:
@@ -62,8 +87,8 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
         pass
     try:
         from concurrent.futures import ProcessPoolExecutor
-    except ImportError as workers:
-        pass
+    except ImportError:
+        workers = 1
     if maxlevels is None:
         maxlevels = sys.getrecursionlimit()
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels)
@@ -81,6 +106,29 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
     return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
+    '''Byte-compile one file.
+
+    Arguments (only fullname is required):
+
+    fullname:  the file to byte-compile
+    ddir:      if given, the directory name compiled in to the
+               byte-code file.
+    force:     if True, force compilation, even if timestamps are up-to-date
+    quiet:     full output with False or 0, errors only with 1,
+               no output with 2
+    legacy:    if True, produce legacy pyc paths instead of PEP 3147 paths
+    optimize:  int or list of optimization levels or -1 for level of
+               the interpreter. Multiple levels leads to multiple compiled
+               files each with one optimization level.
+    invalidation_mode: how the up-to-dateness of the pyc will be checked
+    stripdir:  part of path to left-strip from source file path
+    prependdir: path to prepend to beginning of original file path, applied
+               after stripdir
+    limit_sl_dest: ignore symlinks if they are pointing outside of
+                   the defined path.
+    hardlink_dupes: hardlink duplicated pyc files
+    '''
+
     if ddir is not None:
         if stripdir is not None or prependdir is not None:
             raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
@@ -149,6 +197,8 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
             if quiet >= 2:
+                err = None
+                del err
                 return
             if quiet:
                 print('*** Error compiling {!r}...'.format(fullname))
@@ -157,19 +207,38 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             encoding = sys.stdout.encoding or sys.getdefaultencoding()
             msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
             print(msg)
+            err = None
+            del err
         err = None
         del err
         if quiet >= 2:
+            e = None
+            del e
             return
         if quiet:
             print('*** Error compiling {!r}...'.format(fullname))
         else:
             print('*** ', end='')
         print(e.__class__.__name__ + ':', e)
+        e = None
+        del e
     e = None
     del e
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
+    '''Byte-compile all module on sys.path.
+
+    Arguments (all optional):
+
+    skip_curdir: if true, skip current directory (default True)
+    maxlevels:   max recursion level (default 0)
+    force: as for compile_dir() (default False)
+    quiet: as for compile_dir() (default 0)
+    legacy: as for compile_dir() (default False)
+    optimize: as for compile_dir() (default -1)
+    invalidation_mode: as for compiler_dir()
+    '''
+
     success = True
     for dir in sys.path:
         if (dir and dir == os.curdir) and skip_curdir:
@@ -180,6 +249,8 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
     return success
 
 def main():
+    '''Script main program.'''
+
     import argparse
     parser = argparse.ArgumentParser(description='Utilities to support installing Python libraries.')
     parser.add_argument('-l', action='store_const', const=0, default=None, dest='maxlevels', help="don't recurse into subdirectories")

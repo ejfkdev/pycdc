@@ -149,16 +149,18 @@ class Bdb:
         return self.canonic(frame.f_code.co_filename) in self.breaks
 
     def user_call(self, frame, argument_list):
-        pass
+        '''This method is called when there is the remote possibility
+        that we ever need to stop in this function.'''
 
     def user_line(self, frame):
-        pass
+        '''This method is called when we stop or break at this line.'''
 
     def user_return(self, frame, return_value):
-        pass
+        '''This method is called when a return trap is set here.'''
 
     def user_exception(self, frame, exc_info):
-        pass
+        '''This method is called if an exception occurs,
+        but only if we are to stop at or just below this level.'''
 
     def _set_stopinfo(self, stopframe, returnframe, stoplineno=0):
         self.stopframe = stopframe
@@ -167,11 +169,16 @@ class Bdb:
         self.stoplineno = stoplineno
 
     def set_until(self, frame, lineno=None):
+        '''Stop when the line with the line no greater than the current one is
+        reached or when returning from current frame'''
+
         if lineno is None:
             lineno = frame.f_lineno + 1
         self._set_stopinfo(frame, frame, lineno)
 
     def set_step(self):
+        '''Stop after one line of code.'''
+
         if self.frame_returning:
             caller_frame = self.frame_returning.f_back
             if caller_frame and not caller_frame.f_trace:
@@ -182,12 +189,19 @@ class Bdb:
         self._set_stopinfo(frame, None)
 
     def set_return(self, frame):
+        '''Stop when returning from the given frame.'''
+
         if frame.f_code.co_flags & CO_GENERATOR:
             self._set_stopinfo(frame, None, -1)
         else:
             self._set_stopinfo(frame.f_back, frame)
 
     def set_trace(self, frame=None):
+        """Start debugging from `frame`.
+
+        If frame is not specified, debugging starts from caller's frame.
+        """
+
         if frame is None:
             frame = sys._getframe().f_back
         self.reset()
@@ -485,6 +499,8 @@ class Breakpoint:
 
 
 def checkfuncname(b, frame):
+    '''Check whether we should break here because of `b.funcname`.'''
+
     if not b.funcname:
         if b.line != frame.f_lineno:
             return False
@@ -498,6 +514,14 @@ def checkfuncname(b, frame):
     return True
 
 def effective(file, line, frame):
+    '''Determine which breakpoint for this file:line is to be acted upon.
+
+    Called only if we know there is a bpt at this
+    location.  Returns breakpoint that was triggered and a flag
+    that indicates if it is ok to delete a temporary bp.
+
+    '''
+
     possibles = Breakpoint.bplist[file, line]
     for b in possibles:
         if not b.enabled:

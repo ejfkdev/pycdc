@@ -49,7 +49,7 @@ default is 1, i.e. aligned.
 '''
 
 import warnings
-warnings._deprecated(__name__, (3, 13))
+warnings._deprecated(__name__, remove=(3, 13))
 
 class Chunk:
     def __init__(self, file, align=True, bigendian=True, inclheader=False):
@@ -70,9 +70,13 @@ class Chunk:
             raise EOFError from None
 
     def getname(self):
+        '''Return the name (ID) of the current chunk.'''
+
         return self.chunkname
 
     def getsize(self):
+        '''Return the size of the current chunk.'''
+
         return self.chunksize
 
     def close(self):
@@ -89,6 +93,11 @@ class Chunk:
         return False
 
     def seek(self, pos, whence=0):
+        '''Seek to specified position into the chunk.
+        Default position is 0 (start of chunk).
+        If the file is not seekable, this will result in an error.
+        '''
+
         if self.closed:
             raise ValueError('I/O operation on closed file')
         if not self.seekable:
@@ -108,6 +117,11 @@ class Chunk:
         return self.size_read
 
     def read(self, size=-1):
+        '''Read at most size bytes from the chunk.
+        If size is omitted or negative, read until the end
+        of the chunk.
+        '''
+
         if self.closed:
             raise ValueError('I/O operation on closed file')
         if self.size_read >= self.chunksize:
@@ -125,6 +139,12 @@ class Chunk:
         return data
 
     def skip(self):
+        '''Skip the rest of the chunk.
+        If you are not interested in the contents of the chunk,
+        this method should be called so that the file points to
+        the start of the next chunk.
+        '''
+
         if self.closed:
             raise ValueError('I/O operation on closed file')
         if self.seekable:

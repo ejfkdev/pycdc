@@ -59,6 +59,11 @@ error = Error
 __all__ = ['Error', 'copy', 'deepcopy']
 
 def copy(x):
+    """Shallow copy operation on arbitrary Python objects.
+
+    See the module's __doc__ string for more info.
+    """
+
     cls = type(x)
     copier = _copy_dispatch.get(cls)
     if copier:
@@ -99,6 +104,11 @@ d[bytearray] = bytearray.copy
 del d, t
 
 def deepcopy(x, memo=None, _nil=[]):
+    """Deep copy operation on arbitrary Python objects.
+
+    See the module's __doc__ string for more info.
+    """
+
     if not memo is not None:
         memo = {}
     d = id(x)
@@ -196,6 +206,16 @@ d[types.MethodType] = _deepcopy_method
 del d
 
 def _keep_alive(x, memo):
+    '''Keeps a reference to the object x in the memo.
+
+    Because we remember objects by their id, we have
+    to assure that possibly temporary objects are kept
+    alive by referencing them.
+    We store a reference at the id of the memo, which should
+    normally not be used unless someone tries to deepcopy
+    the memo itself...
+    '''
+
     try:
         memo[id(memo)].append(x)
     except KeyError:

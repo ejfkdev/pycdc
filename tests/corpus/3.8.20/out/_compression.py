@@ -91,6 +91,8 @@ class DecompressReader(io.RawIOBase):
         return self._pos
 
     def tell(self):
+        '''Return the current file position.'''
+
         return self._pos
 
 

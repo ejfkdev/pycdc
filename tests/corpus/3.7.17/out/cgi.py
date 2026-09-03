@@ -23,6 +23,29 @@ logfile = ''
 logfp = None
 
 def initlog(*allargs):
+    '''Write a log message, if there is a log file.
+
+    Even though this function is called initlog(), you should always
+    use log(); log is a variable that is set either to initlog
+    (initially), to dolog (once the log file has been opened), or to
+    nolog (when logging is disabled).
+
+    The first argument is a format string; the remaining arguments (if
+    any) are arguments to the % operator, so e.g.
+        log("%s: %s", "a", "b")
+    will write "a: b" to the log file, followed by a newline.
+
+    If the global logfp is not None, it should be a file object to
+    which log data is written.
+
+    If the global logfp is None, the global logfile may be a string
+    giving a filename to open, in append mode.  This file should be
+    world writable!!!  If the file can't be opened, logging is
+    silently disabled (since there is no safe place where we could
+    send an error message).
+
+    '''
+
     global logfp, log
     if logfile:
         if not logfp:
@@ -41,9 +64,11 @@ def dolog(fmt, *args):
     logfp.write(fmt % args + '\n')
 
 def nolog(*allargs):
-    pass
+    '''Dummy function, assigned to log when logging is disabled.'''
 
 def closelog():
+    '''Close the log file.'''
+
     global logfile, logfp, log
     logfile = ''
     if logfp:
@@ -55,6 +80,29 @@ log = initlog
 maxlen = 0
 
 def parse(fp=None, environ=os.environ, keep_blank_values=0, strict_parsing=0, separator='&'):
+    '''Parse a query in the environment or from a file (default stdin)
+
+        Arguments, all optional:
+
+        fp              : file pointer; default: sys.stdin.buffer
+
+        environ         : environment dictionary; default: os.environ
+
+        keep_blank_values: flag indicating whether blank values in
+            percent-encoded forms should be treated as blank strings.
+            A true value indicates that blanks should be retained as
+            blank strings.  The default false value indicates that
+            blank values are to be ignored and treated as if they were
+            not included.
+
+        strict_parsing: flag indicating what to do with parsing errors.
+            If false (the default), errors are silently ignored.
+            If true, errors raise a ValueError exception.
+
+        separator: str. The symbol to use for separating the query arguments.
+            Defaults to &.
+    '''
+
     if fp is None:
         fp = sys.stdin
     if hasattr(fp, 'encoding'):
@@ -104,6 +152,19 @@ def parse_qsl(qs, keep_blank_values=0, strict_parsing=0):
     return urllib.parse.parse_qsl(qs, keep_blank_values, strict_parsing)
 
 def parse_multipart(fp, pdict, encoding='utf-8', errors='replace', separator='&'):
+    '''Parse multipart input.
+
+    Arguments:
+    fp   : input file
+    pdict: dictionary containing other parameters of content-type header
+    encoding, errors: request encoding and error handler, passed to
+        FieldStorage
+
+    Returns a dictionary just like parse_qs(): keys are the field names, each
+    value is a list of values for that field. For non-file fields, the value
+    is a list of strings.
+    '''
+
     boundary = pdict['boundary'].decode('ascii')
     ctype = 'multipart/form-data; boundary={}'.format(boundary)
     headers = Message()
@@ -131,6 +192,12 @@ def _parseparam(s):
                 continue
 
 def parse_header(line):
+    '''Parse a Content-type like header.
+
+    Return the main content-type and a dictionary of options.
+
+    '''
+
     parts = _parseparam(';' + line)
     key = parts.__next__()
     pdict = {}
@@ -160,10 +227,14 @@ class MiniFieldStorage:
     disposition_options = {}
     headers = {}
     def __init__(self, name, value):
+        '''Constructor from field name and value.'''
+
         self.name = name
         self.value = value
 
     def __repr__(self):
+        '''Return printable representation.'''
+
         return 'MiniFieldStorage(%r, %r)' % (self.name, self.value)
 
 
@@ -211,6 +282,50 @@ class FieldStorage:
     """
 
     def __init__(self, fp=None, headers=None, outerboundary=b'', environ=os.environ, keep_blank_values=0, strict_parsing=0, limit=None, encoding='utf-8', errors='replace', max_num_fields=None, separator='&'):
+        '''Constructor.  Read multipart/* until last part.
+
+        Arguments, all optional:
+
+        fp              : file pointer; default: sys.stdin.buffer
+            (not used when the request method is GET)
+            Can be :
+            1. a TextIOWrapper object
+            2. an object whose read() and readline() methods return bytes
+
+        headers         : header dictionary-like object; default:
+            taken from environ as per CGI spec
+
+        outerboundary   : terminating multipart boundary
+            (for internal use only)
+
+        environ         : environment dictionary; default: os.environ
+
+        keep_blank_values: flag indicating whether blank values in
+            percent-encoded forms should be treated as blank strings.
+            A true value indicates that blanks should be retained as
+            blank strings.  The default false value indicates that
+            blank values are to be ignored and treated as if they were
+            not included.
+
+        strict_parsing: flag indicating what to do with parsing errors.
+            If false (the default), errors are silently ignored.
+            If true, errors raise a ValueError exception.
+
+        limit : used internally to read parts of multipart/form-data forms,
+            to exit from the reading loop when reached. It is the difference
+            between the form content-length and the number of bytes already
+            read
+
+        encoding, errors : the encoding and error handler used to decode the
+            binary stream to strings. Must be the same as the charset defined
+            for the page sending the form (content-type : meta http-equiv or
+            header)
+
+        max_num_fields: int. If set, then __init__ throws a ValueError
+            if there are more than n fields read by parse_qsl().
+
+        '''
+
         method = 'GET'
         self.keep_blank_values = keep_blank_values
         self.strict_parsing = strict_parsing
@@ -316,6 +431,8 @@ class FieldStorage:
         self.file.close()
 
     def __repr__(self):
+        '''Return a printable representation.'''
+
         return 'FieldStorage(%r, %r, %r)' % (self.name, self.filename, self.value)
 
     def __iter__(self):
@@ -335,6 +452,8 @@ class FieldStorage:
         return value
 
     def __getitem__(self, key):
+        '''Dictionary style indexing.'''
+
         if self.list is None:
             raise TypeError('not indexable')
         found = []
@@ -348,6 +467,8 @@ class FieldStorage:
         return found
 
     def getvalue(self, key, default=None):
+        """Dictionary style get() method, including 'value' lookup."""
+
         if key in self:
             value = self[key]
             if isinstance(value, list):
@@ -357,6 +478,8 @@ class FieldStorage:
             return default
 
     def getfirst(self, key, default=None):
+        ''' Return the first value received.'''
+
         if key in self:
             value = self[key]
             if isinstance(value, list):
@@ -366,6 +489,8 @@ class FieldStorage:
             return default
 
     def getlist(self, key):
+        ''' Return list of received values.'''
+
         if key in self:
             value = self[key]
             if isinstance(value, list):
@@ -375,16 +500,22 @@ class FieldStorage:
             return []
 
     def keys(self):
+        '''Dictionary style keys() method.'''
+
         if self.list is None:
             raise TypeError('not indexable')
         return list(set((item.name for item in self.list)))
 
     def __contains__(self, key):
+        '''Dictionary style __contains__ method.'''
+
         if self.list is None:
             raise TypeError('not indexable')
         return any((item.name == key for item in self.list))
 
     def __len__(self):
+        '''Dictionary style len(x) support.'''
+
         return len(self.keys())
 
     def __bool__(self):
@@ -393,6 +524,8 @@ class FieldStorage:
         return bool(self.list)
 
     def read_urlencoded(self):
+        '''Internal: read data in query string format.'''
+
         qs = self.fp.read(self.length)
         if not isinstance(qs, bytes):
             raise ValueError('%s should return bytes, got %s' % (self.fp, type(qs).__name__))
@@ -405,6 +538,8 @@ class FieldStorage:
 
     FieldStorageClass = None
     def read_multi(self, environ, keep_blank_values, strict_parsing):
+        '''Internal: read a part that is itself multipart.'''
+
         ib = self.innerboundary
         if not valid_boundary(ib):
             raise ValueError('Invalid boundary in multipart form: %r' % (ib,))
@@ -460,6 +595,8 @@ class FieldStorage:
                 return
 
     def read_single(self):
+        '''Internal: read an atomic part.'''
+
         if self.length >= 0:
             self.read_binary()
             self.skip_lines()
@@ -469,6 +606,8 @@ class FieldStorage:
 
     bufsize = 8192
     def read_binary(self):
+        '''Internal: read binary data.'''
+
         self.file = self.make_file()
         todo = self.length
         if todo >= 0:
@@ -484,6 +623,8 @@ class FieldStorage:
                 todo = todo - len(data)
 
     def read_lines(self):
+        '''Internal: read lines until EOF or outerboundary.'''
+
         if self._binary_file:
             self.file = BytesIO()
             self.__file = BytesIO()
@@ -496,6 +637,8 @@ class FieldStorage:
             self.read_lines_to_eof()
 
     def __write(self, line):
+        '''line is always bytes, not string'''
+
         if self.__file is not None:
             if self.__file.tell() + len(line) > 1000:
                 self.file = self.make_file()
@@ -508,6 +651,8 @@ class FieldStorage:
             self.file.write(line.decode(self.encoding, self.errors))
 
     def read_lines_to_eof(self):
+        '''Internal: read lines until EOF.'''
+
         while True:
             line = self.fp.readline(65536)
             self.bytes_read += len(line)
@@ -517,6 +662,11 @@ class FieldStorage:
             self.__write(line)
 
     def read_lines_to_outerboundary(self):
+        '''Internal: read lines until outerboundary.
+        Data is read as bytes: boundaries and line ends must be converted
+        to bytes for comparisons.
+        '''
+
         next_boundary = b'--' + self.outerboundary
         last_boundary = next_boundary + b'--'
         delim = b''
@@ -563,6 +713,8 @@ class FieldStorage:
             self.__write(odelim + line)
 
     def skip_lines(self):
+        '''Internal: skip lines until outer boundary if defined.'''
+
         if not self.outerboundary or self.done:
             return
         next_boundary = b'--' + self.outerboundary
@@ -584,12 +736,43 @@ class FieldStorage:
             last_line_lfend = line.endswith(b'\n')
 
     def make_file(self):
+        """Overridable: return a readable & writable file.
+
+        The file will be used as follows:
+        - data is written to it
+        - seek(0)
+        - data is read from it
+
+        The file is opened in binary mode for files, in text mode
+        for other fields
+
+        This version opens a temporary file for reading and writing,
+        and immediately deletes (unlinks) it.  The trick (on Unix!) is
+        that the file can still be used, but it can't be opened by
+        another process, and it will automatically be deleted when it
+        is closed or when the current process terminates.
+
+        If you want a more permanent file, you derive a class which
+        overrides this method.  If you want a visible temporary file
+        that is nevertheless automatically deleted when the script
+        terminates, try defining a __del__ method in a derived class
+        which unlinks the temporary files you have created.
+
+        """
+
         if self._binary_file:
             return tempfile.TemporaryFile('wb+')
         return tempfile.TemporaryFile('w+', encoding=self.encoding, newline='\n')
 
 
 def test(environ=os.environ):
+    '''Robust test CGI script, usable as main program.
+
+    Write minimal HTTP headers and dump all information provided to
+    the script in HTML form.
+
+    '''
+
     global maxlen
     print('Content-type: text/html')
     print()
@@ -633,6 +816,8 @@ def print_exception(type=None, value=None, tb=None, limit=None):
     del tb
 
 def print_environ(environ=os.environ):
+    '''Dump the shell environment as HTML.'''
+
     keys = sorted(environ.keys())
     print()
     print('<H3>Shell Environment:</H3>')
@@ -643,6 +828,8 @@ def print_environ(environ=os.environ):
     print()
 
 def print_form(form):
+    '''Dump the contents of a form as HTML.'''
+
     keys = sorted(form.keys())
     print()
     print('<H3>Form Contents:</H3>')

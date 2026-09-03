@@ -31,6 +31,9 @@ class ServerHTMLDoc(pydoc.HTMLDoc):
     '''Class used to generate pydoc HTML document for a server'''
 
     def markup(self, text, escape=None, funcs={}, classes={}, methods={}):
+        '''Mark up some plain text, given a context of symbols to look for.
+        Each context dictionary maps object names to anchor names.'''
+
         escape = escape or self.escape
         results = []
         here = 0
@@ -62,6 +65,8 @@ class ServerHTMLDoc(pydoc.HTMLDoc):
         return ''.join(results)
 
     def docroutine(self, object, name, mod=None, funcs={}, classes={}, methods={}, cl=None):
+        '''Produce HTML documentation for a function or method object.'''
+
         if cl:
             pass
         anchor = (cl.__name__ or '') + '-' + name
@@ -86,6 +91,8 @@ class ServerHTMLDoc(pydoc.HTMLDoc):
         return '<dl><dt>%s</dt>%s</dl>\n' % (decl, doc)
 
     def docserver(self, server_name, package_documentation, methods):
+        '''Produce HTML documentation for an XML-RPC server.'''
+
         fdict = {}
         for key, value in methods.items():
             fdict[key] = '#-' + key
@@ -117,15 +124,31 @@ class XMLRPCDocGenerator:
         self.server_title = 'XML-RPC Server Documentation'
 
     def set_server_title(self, server_title):
+        '''Set the HTML title of the generated server documentation'''
+
         self.server_title = server_title
 
     def set_server_name(self, server_name):
+        '''Set the name of the generated HTML server documentation'''
+
         self.server_name = server_name
 
     def set_server_documentation(self, server_documentation):
+        '''Set the documentation string for the entire server.'''
+
         self.server_documentation = server_documentation
 
     def generate_html_documentation(self):
+        '''generate_html_documentation() => html documentation for the server
+
+        Generates HTML documentation for the server using introspection for
+        installed functions and instances that do not implement the
+        _dispatch method. Alternatively, instances can choose to implement
+        the _get_method_argstring(method_name) method to provide the
+        argument string used in the documentation and the
+        _methodHelp(method_name) method to provide the help text used
+        in the documentation.'''
+
         methods = {}
         for method_name in self.system_listMethods():
             if method_name in self.funcs:
@@ -166,6 +189,12 @@ class DocXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
     '''
 
     def do_GET(self):
+        '''Handles the HTTP GET request.
+
+        Interpret all HTTP GET requests as requests for server
+        documentation.
+        '''
+
         if not self.is_rpc_path_valid():
             self.report_404()
             return
@@ -194,6 +223,12 @@ class DocCGIXMLRPCRequestHandler(CGIXMLRPCRequestHandler, XMLRPCDocGenerator):
     CGI'''
 
     def handle_get(self):
+        '''Handles the HTTP GET request.
+
+        Interpret all HTTP GET requests as requests for server
+        documentation.
+        '''
+
         response = self.generate_html_documentation()
         print 'Content-Type: text/html'
         print 'Content-Length: %d' % len(response)

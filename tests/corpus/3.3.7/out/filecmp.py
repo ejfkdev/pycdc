@@ -17,6 +17,26 @@ _cache = {}
 BUFSIZE = 8192
 
 def cmp(f1, f2, shallow=True):
+    '''Compare two files.
+
+    Arguments:
+
+    f1 -- First file name
+
+    f2 -- Second file name
+
+    shallow -- Just check stat signature (do not read the files).
+               defaults to 1.
+
+    Return value:
+
+    True if the files are the same, False otherwise.
+
+    This function uses a cache for past comparisons and the results,
+    with a cache invalidation mechanism relying on stale signatures.
+
+    '''
+
     s1 = _sig(os.stat(f1))
     s2 = _sig(os.stat(f2))
     if s1[0] != stat.S_IFREG or s2[0] != stat.S_IFREG:
@@ -197,6 +217,19 @@ class dircmp:
 
 
 def cmpfiles(a, b, common, shallow=True):
+    """Compare common files in two directories.
+
+    a, b -- directory names
+    common -- list of file names found in both directories
+    shallow -- if true, do comparison based solely on stat() information
+
+    Returns a tuple of three lists:
+      files that compare equal
+      files that are different
+      filenames that aren't regular files.
+
+    """
+
     res = [], [], []
     for x in common:
         ax = os.path.join(a, x)

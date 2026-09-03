@@ -9,6 +9,12 @@ _COMPILER_CONFIG_VARS = ('BLDSHARED', 'LDSHARED', 'CC', 'CXX')
 _INITPRE = '_OSX_SUPPORT_INITIAL_'
 
 def _find_executable(executable, path=None):
+    """Tries to find 'executable' in the directories listed in 'path'.
+
+    A string listing directories separated by 'os.pathsep'; defaults to
+    os.environ['PATH'].  Returns the complete filename or None if not found.
+    """
+
     if path is None:
         path = os.environ['PATH']
     paths = path.split(os.pathsep)
@@ -25,6 +31,8 @@ def _find_executable(executable, path=None):
     return executable
 
 def _read_output(commandstring, capture_stderr=False):
+    '''Output from successful command execution or None'''
+
     import contextlib
     try:
         import tempfile
@@ -39,16 +47,27 @@ def _read_output(commandstring, capture_stderr=False):
     (fp.read().decode('utf-8').strip() if not os.system(cmd) else None)(None, None, None)
 
 def _find_build_tool(toolname):
+    '''Find a build tool on current path or using xcrun'''
+
     return _find_executable(toolname) or _read_output('/usr/bin/xcrun -find %s' % (toolname,)) or ''
 
 _SYSTEM_VERSION = None
 
 def _get_system_version():
+    '''Return the OS X system version as a string'''
+
     global _SYSTEM_VERSION
 
 _SYSTEM_VERSION_TUPLE = None
 
 def _get_system_version_tuple():
+    '''
+    Return the macOS system version as a tuple
+
+    The return value is safe to use to compare
+    two version numbers.
+    '''
+
     global _SYSTEM_VERSION_TUPLE
     if _SYSTEM_VERSION_TUPLE is None:
         osx_version = _get_system_version()
@@ -62,11 +81,15 @@ def _get_system_version_tuple():
     return _SYSTEM_VERSION_TUPLE
 
 def _remove_original_values(_config_vars):
+    '''Remove original unmodified values for testing'''
+
     for k in list(_config_vars):
         if k.startswith(_INITPRE):
             del _config_vars[k]
 
 def _save_modified_value(_config_vars, cv, newvalue):
+    '''Save modified and original unmodified value of configuration var'''
+
     oldvalue = _config_vars.get(cv, '')
     if oldvalue != newvalue:
         if _INITPRE + cv not in _config_vars:
@@ -76,6 +99,8 @@ def _save_modified_value(_config_vars, cv, newvalue):
 _cache_default_sysroot = None
 
 def _default_sysroot(cc):
+    """ Returns the root of the default SDK for this system, or '/' """
+
     global _cache_default_sysroot
     if _cache_default_sysroot is not None:
         return _cache_default_sysroot
@@ -100,18 +125,24 @@ def _default_sysroot(cc):
     return _cache_default_sysroot
 
 def _supports_universal_builds():
+    '''Returns True if universal builds are supported on this system'''
+
     osx_version = _get_system_version_tuple()
     if osx_version:
         return bool(osx_version >= (10, 4))
     return False
 
 def _supports_arm64_builds():
+    '''Returns True if arm64 builds are supported on this system'''
+
     osx_version = _get_system_version_tuple()
     if osx_version:
         return osx_version >= (11, 0)
     return False
 
 def _find_appropriate_compiler(_config_vars):
+    '''Find appropriate C compiler for extension module builds'''
+
     if 'CC' in os.environ:
         return _config_vars
     cc = oldcc = _config_vars['CC'].split()[0]
@@ -132,6 +163,8 @@ def _find_appropriate_compiler(_config_vars):
     return _config_vars
 
 def _remove_universal_flags(_config_vars):
+    '''Remove all universal build arguments from config vars'''
+
     for cv in _UNIVERSAL_CONFIG_VARS:
         if cv in _config_vars and cv not in os.environ:
             flags = _config_vars[cv]
@@ -141,6 +174,8 @@ def _remove_universal_flags(_config_vars):
     return _config_vars
 
 def _remove_unsupported_archs(_config_vars):
+    '''Remove any unsupported archs from config vars'''
+
     if 'CC' in os.environ:
         return _config_vars
     if re.search('-arch\\s+ppc', _config_vars['CFLAGS']) is not None:
@@ -154,6 +189,8 @@ def _remove_unsupported_archs(_config_vars):
     return _config_vars
 
 def _override_all_archs(_config_vars):
+    '''Allow override of all archs with ARCHFLAGS env var'''
+
     if 'ARCHFLAGS' in os.environ:
         arch = os.environ['ARCHFLAGS']
         for cv in _UNIVERSAL_CONFIG_VARS:
@@ -165,6 +202,8 @@ def _override_all_archs(_config_vars):
     return _config_vars
 
 def _check_for_unavailable_sdk(_config_vars):
+    '''Remove references to any SDKs not available'''
+
     cflags = _config_vars.get('CFLAGS', '')
     m = re.search('-isysroot\\s*(\\S+)', cflags)
     if m is not None:
@@ -178,6 +217,15 @@ def _check_for_unavailable_sdk(_config_vars):
     return _config_vars
 
 def compiler_fixup(compiler_so, cc_args):
+    """
+    This function will strip '-isysroot PATH' and '-arch ARCH' from the
+    compile flags if the user has specified one them in extra_compile_flags.
+
+    This is needed because '-arch ARCH' adds another architecture to the
+    build, without a way to remove an architecture. Furthermore GCC will
+    barf if multiple '-isysroot' arguments are present.
+    """
+
     stripArch = stripSysroot = False
     compiler_so = list(compiler_so)
     if not _supports_universal_builds():
@@ -229,6 +277,30 @@ def compiler_fixup(compiler_so, cc_args):
     return compiler_so
 
 def customize_config_vars(_config_vars):
+    '''Customize Python build configuration variables.
+
+    Called internally from sysconfig with a mutable mapping
+    containing name/value pairs parsed from the configured
+    makefile used to build this interpreter.  Returns
+    the mapping updated as needed to reflect the environment
+    in which the interpreter is running; in the case of
+    a Python from a binary installer, the installed
+    environment may be very different from the build
+    environment, i.e. different OS levels, different
+    built tools, different available CPU architectures.
+
+    This customization is performed whenever
+    distutils.sysconfig.get_config_vars() is first
+    called.  It may be used in environments where no
+    compilers are present, i.e. when installing pure
+    Python dists.  Customization of compiler paths
+    and detection of unavailable archs is deferred
+    until the first extension module build is
+    requested (in distutils.sysconfig.customize_compiler).
+
+    Currently called from distutils.sysconfig
+    '''
+
     if not _supports_universal_builds():
         _remove_universal_flags(_config_vars)
     _override_all_archs(_config_vars)
@@ -242,6 +314,8 @@ def customize_compiler(_config_vars):
     return _config_vars
 
 def get_platform_osx(_config_vars, osname, release, machine):
+    '''Filter values for get_platform()'''
+
     macver = _config_vars.get('MACOSX_DEPLOYMENT_TARGET', '')
     macrelease = _get_system_version() or macver
     macver = macver or macrelease
@@ -252,8 +326,8 @@ def get_platform_osx(_config_vars, osname, release, machine):
         if macrelease:
             try:
                 macrelease = tuple((int(i) for i in macrelease.split('.')[0:2]))
-            except ValueError as macrelease:
-                pass
+            except ValueError:
+                macrelease = (10, 3)
         else:
             macrelease = (10, 3)
         if macrelease >= (10, 4) and '-arch' in cflags.strip():

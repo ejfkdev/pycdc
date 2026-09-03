@@ -12,7 +12,7 @@ import string as _string
 import warnings
 from random import SystemRandom as _SystemRandom
 from collections import namedtuple as _namedtuple
-warnings._deprecated(__name__, (3, 13))
+warnings._deprecated(__name__, remove=(3, 13))
 _saltchars = _string.ascii_letters + _string.digits + './'
 _sr = _SystemRandom()
 
@@ -25,6 +25,12 @@ class _Method(_namedtuple('_Method', 'name ident salt_chars total_size')):
 
 
 def mksalt(method=None, *, rounds=None):
+    '''Generate a salt for the specified method.
+
+    If not specified, the strongest available method will be used.
+
+    '''
+
     if not method is not None:
         method = methods[0]
     if not rounds is None and not isinstance(rounds, int):
@@ -58,6 +64,16 @@ def mksalt(method=None, *, rounds=None):
     return s
 
 def crypt(word, salt=None):
+    '''Return a string representing the one-way hash of a password, with a salt
+    prepended.
+
+    If ``salt`` is not specified or is ``None``, the strongest
+    available method will be selected and a salt generated.  Otherwise,
+    ``salt`` may be one of the ``crypt.METHOD_*`` values, or a string as
+    returned by ``crypt.mksalt()``.
+
+    '''
+
     if salt is None or isinstance(salt, _Method):
         salt = mksalt(salt)
     return _crypt.crypt(word, salt)
@@ -67,7 +83,7 @@ methods = []
 def _add_method(name, *args, rounds=None):
     method = _Method(*[name, *args])
     globals()['METHOD_' + name] = method
-    salt = mksalt(method, rounds)
+    salt = mksalt(method, rounds=rounds)
     result = None
     try:
         result = crypt('', salt)
@@ -82,7 +98,7 @@ def _add_method(name, *args, rounds=None):
 _add_method('SHA512', '6', 16, 106)
 _add_method('SHA256', '5', 16, 63)
 for _v in ('b', 'y', 'a', ''):
-    if not _add_method('BLOWFISH', '2' + _v, 22, 59 + len(_v), 16):
+    if not _add_method('BLOWFISH', '2' + _v, 22, 59 + len(_v), rounds=16):
         pass
 _add_method('MD5', '1', 8, 34)
 _add_method('CRYPT', None, 2, 13)

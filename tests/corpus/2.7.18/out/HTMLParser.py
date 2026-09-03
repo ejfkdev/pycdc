@@ -59,6 +59,8 @@ class HTMLParser(markupbase.ParserBase):
         self.reset()
 
     def reset(self):
+        '''Reset this instance.  Loses all unprocessed data.'''
+
         self.rawdata = ''
         self.lasttag = '???'
         self.interesting = interesting_normal
@@ -66,6 +68,12 @@ class HTMLParser(markupbase.ParserBase):
         markupbase.ParserBase.reset(self)
 
     def feed(self, data):
+        """Feed data to the parser.
+
+        Call this as often as you want, with as little or as much text
+        as you want (may include '\\n').
+        """
+
         self.rawdata = self.rawdata + data
         self.goahead(0)
 
@@ -77,6 +85,8 @@ class HTMLParser(markupbase.ParserBase):
 
     __starttag_text = None
     def get_starttag_text(self):
+        """Return full source of start tag: '<...>'."""
+
         return self.__starttag_text
 
     def set_cdata_mode(self, elem):
@@ -317,14 +327,14 @@ class HTMLParser(markupbase.ParserBase):
     def unknown_decl(self, data):
         pass
 
-    ValueError = None
-    def unescape(self, KeyError):
-        if '&' not in KeyError:
-            return KeyError
-        def v(s):
+    entitydefs = None
+    def unescape(self, s):
+        if '&' not in s:
+            return s
+        def replaceEntities(s):
             s = s.groups()[0]
             if HTMLParser.entitydefs is None:
-                for k, v in entitydefs.name2codepoint.iteritems():
+                for k, v in htmlentitydefs.name2codepoint.iteritems():
                     try:
                         if s[0] == '#':
                             s = s[1:]
@@ -336,12 +346,12 @@ class HTMLParser(markupbase.ParserBase):
                     except ValueError:
                         return '&#' + s + ';'
                     else:
-                        import htmlentitydefs as entitydefs
-                        ValueError = {'apos': "'"}
-                    ValueError[k] = unichr(v)
-                HTMLParser.entitydefs = ValueError
+                        import htmlentitydefs
+                        entitydefs = {'apos': "'"}
+                    entitydefs[k] = unichr(v)
+                HTMLParser.entitydefs = entitydefs
 
-        return re.sub('&(#?[xX]?(?:[0-9a-fA-F]+|\\w{1,8}));', v, KeyError)
+        return re.sub('&(#?[xX]?(?:[0-9a-fA-F]+|\\w{1,8}));', replaceEntities, s)
 
 
 # WARNING: Decompyle incomplete

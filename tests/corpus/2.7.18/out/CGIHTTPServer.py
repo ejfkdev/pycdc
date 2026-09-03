@@ -42,17 +42,39 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     have_popen3 = hasattr(os, 'popen3')
     rbufsize = 0
     def do_POST(self):
+        '''Serve a POST request.
+
+        This is only implemented for CGI scripts.
+
+        '''
+
         if self.is_cgi():
             self.run_cgi()
         else:
             self.send_error(501, 'Can only POST to CGI scripts')
 
     def send_head(self):
+        '''Version of send_head that support CGI scripts'''
+
         if self.is_cgi():
             return self.run_cgi()
         return SimpleHTTPServer.SimpleHTTPRequestHandler.send_head(self)
 
     def is_cgi(self):
+        """Test whether self.path corresponds to a CGI script.
+
+        Returns True and updates the cgi_info attribute to the tuple
+        (dir, rest) if self.path requires running a CGI script.
+        Returns False otherwise.
+
+        If any exception is raised, the caller should assume that
+        self.path was rejected as invalid and act accordingly.
+
+        The default implementation tests whether the normalized url
+        path begins with one of the strings in self.cgi_directories
+        (and the next character is a '/' or the end of the string).
+        """
+
         collapsed_path = _url_collapse_path(self.path)
         dir_sep = collapsed_path.find('/', 1)
         head, tail = collapsed_path[:dir_sep], collapsed_path[dir_sep + 1:]
@@ -63,13 +85,19 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     cgi_directories = ['/cgi-bin', '/htbin']
     def is_executable(self, path):
+        '''Test whether argument path is an executable file.'''
+
         return executable(path)
 
     def is_python(self, path):
+        '''Test whether argument path is a Python script.'''
+
         head, tail = os.path.splitext(path)
         return tail.lower() in ('.py', '.pyw')
 
     def run_cgi(self):
+        '''Execute a CGI script.'''
+
         dir, rest = self.cgi_info
         path = dir + '/' + rest
         i = path.find('/', len(dir) + 1)
@@ -227,6 +255,20 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 
 def _url_collapse_path(path):
+    """
+    Given a URL path, remove extra '/'s and '.' path elements and collapse
+    any '..' references and returns a colllapsed path.
+
+    Implements something akin to RFC-2396 5.2 step 6 to parse relative paths.
+    The utility of this function is limited to is_cgi method and helps
+    preventing some security attacks.
+
+    Returns: The reconstituted URL, which will always start with a '/'.
+
+    Raises: IndexError if too many '..' occur within the path.
+
+    """
+
     path, _, query = path.partition('?')
     path = urllib.unquote(path)
     path_parts = path.split('/')
@@ -256,6 +298,8 @@ def _url_collapse_path(path):
 nobody = None
 
 def nobody_uid():
+    """Internal routine to get nobody's uid"""
+
     global nobody
     if nobody:
         return nobody
@@ -266,7 +310,7 @@ def nobody_uid():
     return nobody
 
 def executable(path):
-    pass
+    '''Test for executable file.'''
 
 def test(HandlerClass=CGIHTTPRequestHandler, ServerClass=BaseHTTPServer.HTTPServer):
     SimpleHTTPServer.test(HandlerClass, ServerClass)

@@ -88,14 +88,14 @@ methods.
         for color_name in self.__dataclass_fields__:
             color_state[color_name] = getattr(self, color_name)
         color_state.update(kwargs)
-        return ()(*{**color_state})
+        return type(self)(*(), **color_state)
 
     @classmethod
     def no_colors(cls) -> __classdict__:
         color_state = {}
         for color_name in cls.__dataclass_fields__:
             color_state[color_name] = ''
-        return ()(*{**color_state})
+        return cls(*(), **color_state)
 
     def __getitem__(self, key: __classdict__) -> __classdict__:
         return self._name_to_value(key)
@@ -278,10 +278,23 @@ below.
     traceback = field(default_factory=Traceback)
     unittest = field(default_factory=Unittest)
     def copy_with(self, *, argparse: __classdict__ | None=None, syntax: __classdict__ | None=None, traceback: __classdict__ | None=None, unittest: __classdict__ | None=None) -> __classdict__:
+        '''Return a new Theme based on this instance with some sections replaced.
+
+Themes are immutable to protect against accidental modifications that
+could lead to invalid terminal states.
+'''
+
         return type(self)(argparse=argparse or self.argparse, syntax=syntax or self.syntax, traceback=traceback or self.traceback, unittest=unittest or self.unittest)
 
     @classmethod
     def no_colors(cls) -> __classdict__:
+        '''Return a new Theme where colors in all sections are empty strings.
+
+This allows writing user code as if colors are always used. The color
+fields will be ANSI color code strings when colorization is desired
+and possible, and empty strings otherwise.
+'''
+
         return cls(argparse=Argparse.no_colors(), syntax=Syntax.no_colors(), traceback=Traceback.no_colors(), unittest=Unittest.no_colors())
 
     def __annotate_func__(format, /):
@@ -305,12 +318,16 @@ def get_colors(colorize: bool=False, *, file: IO[str] | IO[bytes] | None=None) -
     return NoColors
 
 def decolor(text: str) -> str:
+    '''Remove ANSI color codes from a string.'''
+
     for code in ColorCodes:
         text = text.replace(code, '')
     return text
 
 def can_colorize(*, file: IO[str] | IO[bytes] | None=None) -> bool:
     def _safe_getenv(k: str, fallback: str | None=None) -> str | None:
+        '''Exception-safe environment retrieval. See gh-128636.'''
+
         try:
             pass
         except Exception:
@@ -352,6 +369,19 @@ default_theme = Theme()
 theme_no_color = default_theme.no_colors()
 
 def get_theme(*, tty_file: IO[str] | IO[bytes] | None=None, force_color: bool=False, force_no_color: bool=False) -> Theme:
+    '''Returns the currently set theme, potentially in a zero-color variant.
+
+In cases where colorizing is not possible (see `can_colorize`), the returned
+theme contains all empty strings in all color definitions.
+See `Theme.no_colors()` for more information.
+
+It is recommended not to cache the result of this function for extended
+periods of time because the user might influence theme selection by
+the interactive shell, a debugger, or application-specific code. The
+environment (including environment variable state and console configuration
+on Windows) can also change in the course of the application life cycle.
+'''
+
     if not force_color:
         if not force_no_color:
             if can_colorize(file=tty_file):

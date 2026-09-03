@@ -34,17 +34,32 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     server_version = 'SimpleHTTP/' + __version__
     def do_GET(self):
+        '''Serve a GET request.'''
+
         f = self.send_head()
         if f:
             self.copyfile(f, self.wfile)
             f.close()
 
     def do_HEAD(self):
+        '''Serve a HEAD request.'''
+
         f = self.send_head()
         if f:
             f.close()
 
     def send_head(self):
+        '''Common code for GET and HEAD commands.
+
+        This sends the response code and MIME headers.
+
+        Return value is either a file object (which has to be copied
+        to the outputfile by the caller unless the command was HEAD,
+        and must be closed by the caller under all circumstances), or
+        None, in which case the caller has nothing further to do.
+
+        '''
+
         path = self.translate_path(self.path)
         f = None
         if os.path.isdir(path):
@@ -64,6 +79,14 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         ctype = self.guess_type(path)
 
     def list_directory(self, path):
+        '''Helper to produce a directory listing (absent index.html).
+
+        Return value is either a file object, or None (indicating an
+        error).  In either case, the headers are sent, making the
+        interface the same as for send_head().
+
+        '''
+
         for name in list:
             try:
                 list = os.listdir(path)
@@ -97,6 +120,14 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return f
 
     def translate_path(self, path):
+        '''Translate a /-separated PATH to the local filename syntax.
+
+        Components that mean special things to the local file system
+        (e.g. drive or directory names) are ignored.  (XXX They should
+        probably be diagnosed.)
+
+        '''
+
         path = path.split('?', 1)[0]
         path = path.split('#', 1)[0]
         path = posixpath.normpath(urllib.unquote(path))
@@ -115,6 +146,20 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         shutil.copyfileobj(source, outputfile)
 
     def guess_type(self, path):
+        """Guess the type of a file.
+
+        Argument is a PATH (a filename).
+
+        Return value is a string of the form type/subtype,
+        usable for a MIME Content-type header.
+
+        The default implementation looks the file's extension
+        up in the table self.extensions_map, using application/octet-stream
+        as a default; however it would be permissible (if
+        slow) to look inside the data to make a better guess.
+
+        """
+
         base, ext = posixpath.splitext(path)
         if ext in self.extensions_map:
             return self.extensions_map[ext]

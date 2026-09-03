@@ -19,10 +19,15 @@ class _localimpl:
         self.dicts = {}
 
     def get_dict(self):
+        '''Return the dict for the current thread. Raises KeyError if none
+defined.'''
+
         thread = current_thread()
         return self.dicts[id(thread)][1]
 
     def create_dict(self):
+        '''Create a new dict for the current thread, and return it.'''
+
         localdict = {}
         key = self.key
         thread = current_thread()

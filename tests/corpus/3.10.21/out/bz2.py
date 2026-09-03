@@ -27,6 +27,24 @@ class BZ2File(_compression.BaseStream):
     '''
 
     def __init__(self, filename, mode='r', *, compresslevel=9):
+        """Open a bzip2-compressed file.
+
+        If filename is a str, bytes, or PathLike object, it gives the
+        name of the file to be opened. Otherwise, it should be a file
+        object, which will be used to read or write the compressed data.
+
+        mode can be 'r' for reading (default), 'w' for (over)writing,
+        'x' for creating exclusively, or 'a' for appending. These can
+        equivalently be given as 'rb', 'wb', 'xb', and 'ab'.
+
+        If mode is 'w', 'x' or 'a', compresslevel can be a number between 1
+        and 9 specifying the level of compression: 1 produces the least
+        compression, and 9 (default) produces the most compression.
+
+        If mode is 'r', the input file may be the concatenation of
+        multiple compressed streams.
+        """
+
         self._fp = None
         self._closefp = False
         self._mode = _MODE_CLOSED
@@ -67,6 +85,12 @@ class BZ2File(_compression.BaseStream):
         self._pos = 0
 
     def close(self):
+        '''Flush and close the file.
+
+        May be called more than once without error. Once the file is
+        closed, any other operation on it will raise a ValueError.
+        '''
+
         if self._mode == _MODE_CLOSED:
             return
         self._fp = None
@@ -89,6 +113,8 @@ class BZ2File(_compression.BaseStream):
 
     @property
     def closed(self):
+        '''True if this file is closed.'''
+
         return self._mode == _MODE_CLOSED
 
     def fileno(self):
@@ -96,6 +122,8 @@ class BZ2File(_compression.BaseStream):
         return self._fp.fileno()
 
     def seekable(self):
+        '''Return whether the file supports seeking.'''
+
         return self.readable() and self._buffer.seekable()
 
     def readable(self):
@@ -125,6 +153,13 @@ class BZ2File(_compression.BaseStream):
         return self._buffer.readinto(b)
 
     def readline(self, size=-1):
+        """Read a line of uncompressed bytes from the file.
+
+        The terminating newline (if present) is retained. If size is
+        non-negative, no more than size bytes will be read (in which
+        case the line may be incomplete). Returns b'' if already at EOF.
+        """
+
         if not isinstance(size, int):
             if not hasattr(size, '__index__'):
                 raise TypeError('Integer argument expected')
@@ -133,6 +168,13 @@ class BZ2File(_compression.BaseStream):
         return self._buffer.readline(size)
 
     def readlines(self, size=-1):
+        '''Read a list of lines of uncompressed bytes from the file.
+
+        size can be specified to control the number of lines read: no
+        further lines will be read once the total size of the lines read
+        so far equals or exceeds size.
+        '''
+
         if not isinstance(size, int):
             if not hasattr(size, '__index__'):
                 raise TypeError('Integer argument expected')
@@ -153,6 +195,14 @@ class BZ2File(_compression.BaseStream):
         return length
 
     def writelines(self, seq):
+        '''Write a sequence of byte strings to the file.
+
+        Returns the number of uncompressed bytes written.
+        seq can be any iterable yielding byte strings.
+
+        Line separators are not added between the written byte strings.
+        '''
+
         return _compression.BaseStream.writelines(self, seq)
 
     def seek(self, offset, whence=io.SEEK_SET):
@@ -167,6 +217,26 @@ class BZ2File(_compression.BaseStream):
 
 
 def open(filename, mode='rb', compresslevel=9, encoding=None, errors=None, newline=None):
+    '''Open a bzip2-compressed file in binary or text mode.
+
+    The filename argument can be an actual filename (a str, bytes, or
+    PathLike object), or an existing file object to read from or write
+    to.
+
+    The mode argument can be "r", "rb", "w", "wb", "x", "xb", "a" or
+    "ab" for binary mode, or "rt", "wt", "xt" or "at" for text mode.
+    The default mode is "rb", and the default compresslevel is 9.
+
+    For binary mode, this function is equivalent to the BZ2File
+    constructor: BZ2File(filename, mode, compresslevel). In this case,
+    the encoding, errors and newline arguments must not be provided.
+
+    For text mode, a BZ2File object is created, and wrapped in an
+    io.TextIOWrapper instance with the specified encoding, error
+    handling behavior, and line ending(s).
+
+    '''
+
     if 't' in mode:
         if 'b' in mode:
             raise ValueError('Invalid mode: %r' % (mode,))
@@ -185,9 +255,21 @@ def open(filename, mode='rb', compresslevel=9, encoding=None, errors=None, newli
     return binary_file
 
 def compress(data, compresslevel=9):
+    '''Compress a block of data.
+
+    compresslevel, if given, must be a number between 1 and 9.
+
+    For incremental compression, use a BZ2Compressor object instead.
+    '''
+
     comp = BZ2Compressor(compresslevel)
     return comp.compress(data) + comp.flush()
 
 def decompress(data):
+    '''Decompress a block of data.
+
+    For incremental decompression, use a BZ2Decompressor object instead.
+    '''
+
     results = []
 

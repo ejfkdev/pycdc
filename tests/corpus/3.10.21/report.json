@@ -79,7 +79,7 @@
    "module": "_strptime",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2050,
+   "ndiff": 2053,
    "ntotal": 2141,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -119,8 +119,8 @@
    "module": "ast",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 7513,
-   "ntotal": 7884,
+   "ndiff": 7538,
+   "ntotal": 7877,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
   {
@@ -235,7 +235,7 @@
    "module": "codecs",
    "ast_detail": "diff at token 2: orig  Try(body=[ImportFrom(module='_codecs' | dec  If(test=Compare(left=Attribute(value=Name(id='sys'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1871,
+   "ndiff": 1832,
    "ntotal": 2129,
    "detail": "line 11: orig ('SETUP_FINALLY', 'to 34') | got ('LOAD_NAME', 'sys')\nline 12: orig ('LOAD_CONST', '0') | got ('LOAD_ATTR', 'byteorder')\nline 13: orig ('LOAD_CONST', \"('*',)\") | got ('LOAD_CONST', \"'little'\")"
   },
@@ -263,13 +263,13 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2911,
+   "ndiff": 2925,
    "ntotal": 4289,
    "detail": "line 1021: orig ('SETUP_FINALLY', 'to 246') | got ('LOAD_CONST', \"'%'\")\nline 1022: orig ('LOAD_FAST', 'map') | got ('LOAD_FAST', 'v')\nline 1023: orig ('LOAD_FAST', 'var') | got ('CONTAINS_OP', '')"
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 60: orig  body=[Return(value=Constant(value=None))] | dec  body=[Pass()]",
+   "ast_detail": "diff at token 60: orig  body=[Return(value=Constant(value=None))] | dec  body=[]",
    "verdict": "SIG-DIFF",
    "ndiff": 1815,
    "ntotal": 1876,
@@ -279,15 +279,15 @@
    "module": "copy",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 861,
+   "ndiff": 623,
    "ntotal": 913,
-   "detail": "line 35: orig ('JUMP_FORWARD', 'to 92') | got ('JUMP_FORWARD', 'to 106')\nline 38: orig ('JUMP_IF_NOT_EXC_MATCH', 'to 90') | got ('JUMP_IF_NOT_EXC_MATCH', 'to 104')\nline 40: orig ('POP_TOP', '') | got ('STORE_NAME', 'PyStringMap')"
+   "detail": "line 286: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, None)')\nline 287: orig ('LOAD_CONST', '(None, None, None)') | got ('LOAD_NAME', 'deepcopy')\nline 288: orig ('LOAD_NAME', 'deepcopy') | got ('LOAD_CONST', \"('deepcopy',)\")"
   },
   {
    "module": "copyreg",
    "ast_detail": "diff at token 46: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 372,
+   "ndiff": 365,
    "ntotal": 597,
    "detail": "line 210: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 82')\nline 216: orig ('POP_JUMP_IF_FALSE', 'to 52') | got ('POP_JUMP_IF_FALSE', 'to 80')\nline 221: orig ('POP_JUMP_IF_TRUE', 'to 52') | got ('POP_JUMP_IF_TRUE', 'to 50')"
   },

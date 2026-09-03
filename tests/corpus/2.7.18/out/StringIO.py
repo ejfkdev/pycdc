@@ -73,6 +73,9 @@ class StringIO:
         return r
 
     def close(self):
+        '''Free the memory buffer.
+        '''
+
         if not self.closed:
             self.closed = True
             del self.buf, self.pos
@@ -127,6 +130,14 @@ class StringIO:
         return r
 
     def readlines(self, sizehint=0):
+        '''Read until EOF using readline() and return a list containing the
+        lines thus read.
+
+        If the optional sizehint argument is present, instead of reading up
+        to EOF, whole lines totalling approximately sizehint bytes (or more
+        to accommodate a final whole line).
+        '''
+
         total = 0
         lines = []
         line = self.readline()
@@ -180,6 +191,14 @@ class StringIO:
         self.pos = newpos
 
     def writelines(self, iterable):
+        '''Write a sequence of strings to the file. The sequence can be any
+        iterable object producing strings, typically a list of strings. There
+        is no return value.
+
+        (The name is intended to match readlines(); writelines() does not add
+        line separators.)
+        '''
+
         write = self.write
         for line in iterable:
             write(line)

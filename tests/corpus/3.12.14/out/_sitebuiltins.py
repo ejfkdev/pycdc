@@ -37,7 +37,7 @@ class _Printer(object):
             return
         data = None
         for filename in self.__filenames:
-            with open(filename, 'utf-8') as fp:
+            with open(filename, encoding='utf-8') as fp:
                 data = fp.read()
                 try:
                     pass

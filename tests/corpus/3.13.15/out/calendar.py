@@ -103,14 +103,21 @@ month_name = _localized_month('%B')
 month_abbr = _localized_month('%b')
 
 def isleap(year):
+    '''Return True for leap years, False for non-leap years.'''
+
     return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
 
 def leapdays(y1, y2):
+    '''Return number of leap years in range [y1, y2).
+Assume y1 <= y2.'''
+
     y1 -= 1
     y2 -= 1
     return y2 // 4 - y1 // 4 - (y2 // 100 - y1 // 100) + (y2 // 400 - y1 // 400)
 
 def weekday(year, month, day):
+    '''Return weekday (0-6 ~ Mon-Sun) for year, month (1-12), day (1-31).'''
+
     if datetime.MINYEAR <= year:
         if not year <= datetime.MAXYEAR:
             year = 2000 + year % 400
@@ -157,14 +164,30 @@ provides data to subclasses.
 
     firstweekday = property(getfirstweekday, setfirstweekday)
     def iterweekdays(self):
+        '''
+Return an iterator for one week of weekday numbers starting with the
+configured first one.
+'''
+
         for i in range(self.firstweekday, self.firstweekday + 7):
             yield (i % 7)
 
     def itermonthdates(self, year, month):
+        '''
+Return an iterator for one month. The iterator will yield datetime.date
+values and will always iterate through complete weeks, so it will yield
+dates outside the specified month.
+'''
+
         for y, m, d in self.itermonthdays3(year, month):
             yield datetime.date(y, m, d)
 
     def itermonthdays(self, year, month):
+        '''
+Like itermonthdates(), but will yield day numbers. For days outside
+the specified month the day number is 0.
+'''
+
         day1, ndays = monthrange(year, month)
         days_before = (day1 - self.firstweekday) % 7
         while True:
@@ -180,10 +203,20 @@ provides data to subclasses.
                 return
 
     def itermonthdays2(self, year, month):
+        '''
+Like itermonthdates(), but will yield (day number, weekday number)
+tuples. For days outside the specified month the day number is 0.
+'''
+
         for i, d in enumerate(self.itermonthdays(year, month), self.firstweekday):
             yield (d, i % 7)
 
     def itermonthdays3(self, year, month):
+        '''
+Like itermonthdates(), but will yield (year, month, day) tuples.  Can be
+used for dates outside of datetime.date range.
+'''
+
         day1, ndays = monthrange(year, month)
         days_before = (day1 - self.firstweekday) % 7
         days_after = (self.firstweekday - day1 - ndays) % 7
@@ -198,30 +231,72 @@ provides data to subclasses.
             yield (y, m, d)
 
     def itermonthdays4(self, year, month):
+        '''
+Like itermonthdates(), but will yield (year, month, day, day_of_week) tuples.
+Can be used for dates outside of datetime.date range.
+'''
+
         for i, (y, m, d) in enumerate(self.itermonthdays3(year, month)):
             yield (y, m, d, (self.firstweekday + i) % 7)
 
     def monthdatescalendar(self, year, month):
+        """
+Return a matrix (list of lists) representing a month's calendar.
+Each row represents a week; week entries are datetime.date values.
+"""
+
         dates = list(self.itermonthdates(year, month))
         return [dates[i:i + 7] for i in range(0, len(dates), 7)]
 
     def monthdays2calendar(self, year, month):
+        """
+Return a matrix representing a month's calendar.
+Each row represents a week; week entries are
+(day number, weekday number) tuples. Day numbers outside this month
+are zero.
+"""
+
         days = list(self.itermonthdays2(year, month))
         return [days[i:i + 7] for i in range(0, len(days), 7)]
 
     def monthdayscalendar(self, year, month):
+        """
+Return a matrix representing a month's calendar.
+Each row represents a week; days outside this month are zero.
+"""
+
         days = list(self.itermonthdays(year, month))
         return [days[i:i + 7] for i in range(0, len(days), 7)]
 
     def yeardatescalendar(self, year, width=3):
+        '''
+Return the data for the specified year ready for formatting. The return
+value is a list of month rows. Each month row contains up to width months.
+Each month contains between 4 and 6 weeks and each week contains 1-7
+days. Days are datetime.date objects.
+'''
+
         months = [self.monthdatescalendar(year, m) for m in Month]
         return [months[i:i + width] for i in range(0, len(months), width)]
 
     def yeardays2calendar(self, year, width=3):
+        '''
+Return the data for the specified year ready for formatting (similar to
+yeardatescalendar()). Entries in the week lists are
+(day number, weekday number) tuples. Day numbers outside this month are
+zero.
+'''
+
         months = [self.monthdays2calendar(year, m) for m in Month]
         return [months[i:i + width] for i in range(0, len(months), width)]
 
     def yeardayscalendar(self, year, width=3):
+        '''
+Return the data for the specified year ready for formatting (similar to
+yeardatescalendar()). Entries in the week lists are day numbers.
+Day numbers outside this month are zero.
+'''
+
         months = [self.monthdayscalendar(year, m) for m in Month]
         return [months[i:i + width] for i in range(0, len(months), width)]
 
@@ -236,6 +311,10 @@ similar to the UNIX program cal.
         print(self.formatweek(theweek, width), '')
 
     def formatday(self, day, weekday, width):
+        '''
+Returns a formatted day.
+'''
+
         if day == 0:
             s = ''
         else:
@@ -243,9 +322,17 @@ similar to the UNIX program cal.
         return s.center(width)
 
     def formatweek(self, theweek, width):
+        '''
+Returns a single week in a string (no newline).
+'''
+
         return ' '.join((self.formatday(d, wd, width) for _ in theweek))
 
     def formatweekday(self, day, width):
+        '''
+Returns a formatted week day name.
+'''
+
         if width >= 9:
             names = day_name
         else:
@@ -253,6 +340,10 @@ similar to the UNIX program cal.
         return names[day][:width].center(width)
 
     def formatweekheader(self, width):
+        '''
+Return a header for a week.
+'''
+
         return ' '.join((self.formatweekday(i, width) for i in self.iterweekdays()))
 
     def formatmonthname(self, theyear, themonth, width, withyear=True):
@@ -266,6 +357,10 @@ similar to the UNIX program cal.
         print(self.formatmonth(theyear, themonth, w, l), '')
 
     def formatmonth(self, theyear, themonth, w=0, l=0):
+        """
+Return a month's calendar string (multi-line).
+"""
+
         w = max(2, w)
         l = max(1, l)
         s = self.formatmonthname(theyear, themonth, 7 * (w + 1) - 1)
@@ -279,6 +374,10 @@ similar to the UNIX program cal.
         return s
 
     def formatyear(self, theyear, w=2, l=1, c=6, m=3):
+        """
+Returns a year's calendar as a multi-line string.
+"""
+
         w = max(2, w)
         l = max(1, l)
         c = max(2, c)
@@ -327,18 +426,34 @@ This calendar returns complete HTML pages.
     cssclass_year_head = 'year'
     cssclass_year = 'year'
     def formatday(self, day, weekday):
+        '''
+Return a day as a table cell.
+'''
+
         if day == 0:
             return '<td class="%s">&nbsp;</td>' % self.cssclass_noday
         return '<td class="%s">%d</td>' % (self.cssclasses[weekday], day)
 
     def formatweek(self, theweek):
+        '''
+Return a complete week as a table row.
+'''
+
         s = ''.join((self.formatday(d, wd) for _ in theweek))
         return '<tr>%s</tr>' % s
 
     def formatweekday(self, day):
+        '''
+Return a weekday name as a table header.
+'''
+
         return f'<th class="{self.cssclasses_weekday_head[day]!s}">{day_abbr[day]!s}</th>'
 
     def formatweekheader(self):
+        '''
+Return a header for a week as a table row.
+'''
+
         s = ''.join((self.formatweekday(i) for i in self.iterweekdays()))
         return '<tr>%s</tr>' % s
 
@@ -351,6 +466,10 @@ This calendar returns complete HTML pages.
         return f'<tr><th colspan="7" class="{self.cssclass_month_head!s}">{s!s}</th></tr>'
 
     def formatmonth(self, theyear, themonth, withyear=True):
+        '''
+Return a formatted month as a table.
+'''
+
         v = []
         a = v.append
         a('<table border="0" cellpadding="0" cellspacing="0" class="%s">' % self.cssclass_month)
@@ -367,6 +486,10 @@ This calendar returns complete HTML pages.
         return ''.join(v)
 
     def formatyear(self, theyear, width=3):
+        '''
+Return a formatted year as a table of tables.
+'''
+
         v = []
         a = v.append
         width = max(width, 1)
@@ -385,6 +508,10 @@ This calendar returns complete HTML pages.
         return ''.join(v)
 
     def formatyearpage(self, theyear, width=3, css='calendar.css', encoding=None):
+        '''
+Return a formatted year as a complete HTML page.
+'''
+
         if not encoding is not None:
             encoding = sys.getdefaultencoding()
         v = []
@@ -496,6 +623,8 @@ def format(cols, colwidth=_colwidth, spacing=_spacing):
     print(formatstring(cols, colwidth, spacing))
 
 def formatstring(cols, colwidth=_colwidth, spacing=_spacing):
+    '''Returns a string formatted from n strings, centered within n columns.'''
+
     spacing *= ' '
     return spacing.join((c.center(colwidth) for c in cols))
 
@@ -503,6 +632,8 @@ EPOCH = 1970
 _EPOCH_ORD = datetime.date(EPOCH, 1, 1).toordinal()
 
 def timegm(tuple):
+    '''Unrelated but handy function to calculate Unix timestamp from GMT.'''
+
     year, month, day, hour, minute, second = tuple[:6]
     days = datetime.date(year, month, 1).toordinal() - _EPOCH_ORD + day - 1
     hours = days * 24 + hour

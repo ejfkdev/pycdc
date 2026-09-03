@@ -1,6 +1,13 @@
 from _weakrefset import WeakSet
 
 def get_cache_token():
+    '''Returns the current ABC cache token.
+
+    The token is an opaque object (supporting equality testing) identifying the
+    current version of the ABC cache for virtual subclasses. The token changes
+    with every call to ``register()`` on any ABC.
+    '''
+
     return ABCMeta._abc_invalidation_counter
 
 class ABCMeta(type):
@@ -32,6 +39,11 @@ class ABCMeta(type):
         return cls
 
     def register(cls, subclass):
+        '''Register a virtual subclass of an ABC.
+
+        Returns the subclass, to allow usage as a class decorator.
+        '''
+
         if not isinstance(subclass, type):
             raise TypeError('Can only register classes')
         if issubclass(subclass, cls):
@@ -43,8 +55,8 @@ class ABCMeta(type):
         return subclass
 
     def _dump_registry(cls, file=None):
-        print(f'Class: {cls.__module__}.{cls.__qualname__}', file)
-        print(f'Inv. counter: {get_cache_token()}', file)
+        print(f'Class: {cls.__module__}.{cls.__qualname__}', file=file)
+        print(f'Inv. counter: {get_cache_token()}', file=file)
         for name in cls.__dict__:
             if not name.startswith('_abc_'):
                 pass
@@ -52,7 +64,7 @@ class ABCMeta(type):
                 value = getattr(cls, name)
                 if isinstance(value, WeakSet):
                     value = set(value)
-                print(f'{name}: {value!r}', file)
+                print(f'{name}: {value!r}', file=file)
 
     def _abc_registry_clear(cls):
         cls._abc_registry.clear()
@@ -62,6 +74,8 @@ class ABCMeta(type):
         cls._abc_negative_cache.clear()
 
     def __instancecheck__(cls, instance):
+        '''Override for isinstance(instance, cls).'''
+
         subclass = instance.__class__
         if subclass in cls._abc_cache:
             return True
@@ -73,6 +87,8 @@ class ABCMeta(type):
         return any((cls.__subclasscheck__(c) for c in (subclass, subtype)))
 
     def __subclasscheck__(cls, subclass):
+        '''Override for issubclass(subclass, cls).'''
+
         if not isinstance(subclass, type):
             raise TypeError('issubclass() arg 1 must be a class')
         if subclass in cls._abc_cache:

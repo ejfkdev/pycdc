@@ -88,6 +88,15 @@ class MimeWriter:
         self._headers = []
 
     def addheader(self, key, value, prefix=0):
+        '''Add a header line to the MIME message.
+
+        The key is the name of the header, where the value obviously provides
+        the value of the header. The optional argument prefix determines
+        where the header is inserted; 0 means append at the end, 1 means
+        insert at the start. The default is to append.
+
+        '''
+
         lines = value.split('\n')
         while lines:
             if not lines[-1]:
@@ -111,6 +120,16 @@ class MimeWriter:
         self._headers = []
 
     def startbody(self, ctype, plist=[], prefix=1):
+        '''Returns a file-like object for writing the body of the message.
+
+        The content-type is set to the provided ctype, and the optional
+        parameter, plist, provides additional parameters for the
+        content-type declaration.  The optional argument prefix determines
+        where the header is inserted; 0 means append at the end, 1 means
+        insert at the start. The default is to insert at the start.
+
+        '''
+
         for name, value in plist:
             ctype = ctype + ';\n %s="%s"' % (name, value)
         self.addheader('Content-Type', ctype, prefix=prefix)
@@ -119,6 +138,19 @@ class MimeWriter:
         return self._fp
 
     def startmultipartbody(self, subtype, boundary=None, plist=[], prefix=1):
+        '''Returns a file-like object for writing the body of the message.
+
+        Additionally, this method initializes the multi-part code, where the
+        subtype parameter provides the multipart subtype, the boundary
+        parameter may provide a user-defined boundary specification, and the
+        plist parameter provides optional parameters for the subtype.  The
+        optional argument, prefix, determines where the header is inserted;
+        0 means append at the end, 1 means insert at the start. The default
+        is to insert at the start.  Subparts should be created using the
+        nextpart() method.
+
+        '''
+
         self._boundary = boundary or mimetools.choose_boundary()
         return self.startbody('multipart/' + subtype, [('boundary', self._boundary)] + plist, prefix=prefix)
 

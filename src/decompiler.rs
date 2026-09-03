@@ -1240,15 +1240,18 @@ impl<'a> Ctx<'a> {
         }
 
         match inst.op {
-            // `except E as name:` — the store right after the match jump.
-            // py2 `except E, n:` assigns implicitly (no store instruction),
-            // so never capture there: the first store is real code.
+            // `except E as name:` (py3) / `except E, name:` (py2) — both
+            // emit an explicit store inside the handler prelude whose value
+            // is the phantom exception we never model. A body store instead
+            // pops a real pushed value, so an empty simulation stack is the
+            // discriminator (LOAD_CONST is prelude-allowed and would
+            // otherwise let a first body statement be swallowed as a name).
             Op::STORE_FAST | Op::STORE_NAME | Op::STORE_DEREF => {
                 // the `as` store sits inside the handler prelude (right
                 // after the POP_TOPs); a store after real body instructions
                 // started (prelude cleared) is a body statement
-                let wants_name = self.version.at_least(3, 0)
-                    && self.in_handler_prelude
+                let wants_name = self.in_handler_prelude
+                    && self.stack.is_empty()
                     && self
                         .legacy_handler
                         .as_ref()
@@ -2074,7 +2077,7 @@ impl<'a> Ctx<'a> {
         self.code
             .varnames
             .get(idx)
-            .cloned()
+            .map(|n| sanitize_varname(n))
             .unwrap_or_else(|| format!("/*bad-local-{idx}*/"))
     }
 
@@ -3036,38 +3039,56 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::CALL_FUNCTION_EX => {
-                if arg & 1 != 0 {
-                    let kwargs = self.pop_expr();
-                    let args = self.pop_expr();
-                    let func = self.pop_expr();
-                    if self.version.at_least(3, 11) {
-                        self.pop(); // NULL/self marker
+                // Stack layouts (bottom..top):
+                // * <=3.10: [callable, args(, kwargs)] — oparg bit 0 = kwargs
+                // * 3.11/3.12: [NULL_or_self, callable, args(, kwargs)]
+                // * 3.13: [callable, NULL_or_self, args(, kwargs)] — oparg
+                //   bit 0 still selects the kwargs slot
+                // * 3.14: oparg removed; a kwargs slot is ALWAYS present on
+                //   top: [callable, NULL_or_self, args, kwargs_dict_or_NULL]
+                // pop_expr skips NULL markers, so popping callable after
+                // args consumes the 3.13+/3.14 self slot automatically.
+                let kwargs_opt: Option<ExprRef> = if self.version.at_least(3, 14) {
+                    match self.stack.pop() {
+                        Some(Sv::E(e)) => Some(e),
+                        Some(Sv::Null) => None,
+                        other => {
+                            if let Some(o) = other {
+                                self.stack.push(o);
+                            }
+                            self.clean = false;
+                            None
+                        }
                     }
-                    let (pos, star) = flatten_ex_args(args);
-                    let (mut keywords, star_kw) = flatten_ex_kwargs(kwargs);
-                    let _ = &mut keywords;
-                    self.push(Rc::new(Expr::Call {
-                        func,
-                        args: pos,
-                        keywords: Vec::new(),
-                        star_args: star,
-                        star_kwargs: star_kw,
-                    }));
+                } else if arg & 1 != 0 {
+                    Some(self.pop_expr())
                 } else {
-                    let args = self.pop_expr();
-                    let func = self.pop_expr();
-                    if self.version.at_least(3, 11) {
-                        self.pop(); // NULL/self marker
+                    None
+                };
+                let args = self.pop_expr();
+                let func = self.pop_expr();
+                if self.version.at_least(3, 11) && !self.version.at_least(3, 13) {
+                    // 3.11/3.12: the self/NULL slot sits BELOW the callable
+                    if matches!(self.stack.last(), Some(Sv::Null)) {
+                        self.stack.pop();
                     }
-                    let (pos, star) = flatten_ex_args(args);
-                    self.push(Rc::new(Expr::Call {
-                        func,
-                        args: pos,
-                        keywords: Vec::new(),
-                        star_args: star,
-                        star_kwargs: None,
-                    }));
                 }
+                let (pos, star) = flatten_ex_args(args);
+                let star_kw = match kwargs_opt {
+                    Some(kw) => {
+                        let (mut keywords, star_kw) = flatten_ex_kwargs(kw);
+                        let _ = &mut keywords;
+                        star_kw
+                    }
+                    None => None,
+                };
+                self.push(Rc::new(Expr::Call {
+                    func,
+                    args: pos,
+                    keywords: Vec::new(),
+                    star_args: star,
+                    star_kwargs: star_kw,
+                }));
                 true
             }
             Op::KW_NAMES => {
@@ -7370,13 +7391,14 @@ impl<'a> Ctx<'a> {
             if let Expr::Name(fname) = &*target {
                 let fd = fd;
                 let name = fname.clone();
-                let body = self
+                let mut body = self
                     .decompile_function(&fd.code)
                     .unwrap_or_else(|| vec![Stmt::Pass]);
                 let mut fd2 = (**fd).clone();
                 fd2.name = name;
                 fd2.returns = fd2.params.returns_annotation.take();
                 fd2.is_async = fd2.code.is_coroutine() || fd2.code.is_async_generator();
+                fold_py2_tuple_params(&mut fd2.params, &fd.code.varnames, &mut body);
                 let fdef = Rc::new(fd2);
                 self.push_stmt(Stmt::FuncDef(fdef, body));
                 return;
@@ -7671,7 +7693,10 @@ impl<'a> Ctx<'a> {
         if args.len() == 1 && keywords.is_empty() {
             if let Expr::Function(fd) = &*args[0] {
                 let mut fd = (**fd).clone();
-                fd.decorators.push(func.clone());
+                // decorators apply bottom-up; the renderer prints source
+                // order (top-down), so each newly applied (outer) decorator
+                // goes to the front
+                fd.decorators.insert(0, func.clone());
                 self.push(Rc::new(Expr::Function(Rc::new(fd))));
                 return;
             }
@@ -7791,16 +7816,14 @@ impl<'a> Ctx<'a> {
         let func = callable;
 
         let kw_names = std::mem::take(&mut self.last_kw_names);
-        let (pos_args, keywords) = if !kw_names.is_empty() && kw_names.len() == args.len() {
-            // 3.11 KW_NAMES: tuple covers all args; positional ones are None
-            let mut pos = Vec::new();
-            let mut kws = Vec::new();
-            for (i, a) in args.into_iter().enumerate() {
-                match kw_names.get(i).cloned().flatten() {
-                    Some(k) => kws.push((Some(k), a)),
-                    None => pos.push(a),
-                }
-            }
+        let (pos_args, keywords) = if !kw_names.is_empty() && kw_names.len() <= args.len() {
+            // 3.11/3.12 KW_NAMES names the TRAILING k args of the call;
+            // the leading ones are positional
+            let npos = args.len() - kw_names.len();
+            let mut it = args.into_iter();
+            let pos: Vec<ExprRef> = it.by_ref().take(npos).collect();
+            let kws: Vec<(Option<String>, ExprRef)> =
+                it.zip(kw_names.into_iter()).map(|(a, k)| (k, a)).collect();
             (pos, kws)
         } else {
             (args, Vec::new())
@@ -7811,7 +7834,7 @@ impl<'a> Ctx<'a> {
         if pos_args.len() == 1 && keywords.is_empty() {
             if let Expr::Function(fd) = &*pos_args[0] {
                 let mut fd = (**fd).clone();
-                fd.decorators.push(func.clone());
+                fd.decorators.insert(0, func.clone());
                 self.push(Rc::new(Expr::Function(Rc::new(fd))));
                 return;
             }
@@ -7843,7 +7866,7 @@ impl<'a> Ctx<'a> {
                 if pos_args.is_empty() && keywords.is_empty() {
                     if let Some(Sv::E(deco)) = marker.clone() {
                         let mut fd = (**fd).clone();
-                        fd.decorators.push(deco);
+                        fd.decorators.insert(0, deco);
                         self.push(Rc::new(Expr::Function(Rc::new(fd))));
                         return;
                     }
@@ -7855,7 +7878,7 @@ impl<'a> Ctx<'a> {
                 if let Some(Sv::E(m)) = &marker {
                     if let Expr::Function(fd) = &**m {
                         let mut fd = (**fd).clone();
-                        fd.decorators.push(func.clone());
+                        fd.decorators.insert(0, func.clone());
                         self.push(Rc::new(Expr::Function(Rc::new(fd))));
                         return;
                     }
@@ -8258,7 +8281,7 @@ impl<'a> Ctx<'a> {
         let mut params = Parameters::empty();
         for n in code.varnames.iter().take(argcount) {
             params.args.push(Param {
-                name: n.clone(),
+                name: sanitize_varname(n),
                 annotation: None,
             });
         }
@@ -8412,7 +8435,27 @@ impl<'a> Ctx<'a> {
                 if !d.clean {
                     self.mark_unclean();
                 }
-                Some(postprocess_body(d.body, code))
+                let mut body = postprocess_body(d.body, code);
+                // Function docstrings never appear in bytecode: CPython
+                // stores them in consts[0]. Up to 3.13 the compiler always
+                // reserves slot 0 (None when there is no docstring), so a
+                // leading string const IS the docstring; 3.14 dropped the
+                // reserved slot and marks it with CO_HAS_DOCSTRING instead.
+                if !scope_self && code.name != "<module>" {
+                    let marked = if self.version.at_least(3, 14) {
+                        code.flags & 0x0400_0000 != 0
+                    } else {
+                        true
+                    };
+                    if marked && !matches!(body.first(), Some(Stmt::Expr(_))) {
+                        if let Some(c0) = code.consts.first() {
+                            if matches!(&**c0, PyObject::Str(_) | PyObject::Bytes(_)) {
+                                body.insert(0, Stmt::Expr(Rc::new(Expr::Const(c0.clone()))));
+                            }
+                        }
+                    }
+                }
+                Some(body)
             }
             Err(_) => {
                 self.mark_unclean();
@@ -8746,6 +8789,61 @@ fn binop_from_text(op_text: &str) -> BinaryOp {
 
 fn dotted_last(module: &str) -> &str {
     module.rsplit('.').next().unwrap_or(module)
+}
+
+/// py2 names synthetic tuple-parameter locals `.0`, `.1`, ...; these are
+/// not valid identifiers — rename to `_0`, `_1` when they leak through
+/// without being folded back into `(a, b)` signature form.
+fn sanitize_varname(n: &str) -> String {
+    if n.starts_with('.') {
+        n.replace('.', "_")
+    } else {
+        n.to_string()
+    }
+}
+
+/// Render an unpack target as py2 tuple-parameter text: `(a, b)`.
+fn tuple_param_text(e: &ExprRef) -> Option<String> {
+    match &**e {
+        Expr::Name(n) => Some(n.clone()),
+        Expr::Tuple(items) => {
+            let mut parts = Vec::new();
+            for it in items {
+                parts.push(tuple_param_text(it)?);
+            }
+            Some(format!("({})", parts.join(", ")))
+        }
+        _ => None,
+    }
+}
+
+/// py2 `def f((a, b))`: the compiler creates a synthetic `.N` parameter
+/// and emits the unpack `a, b = _N` at the body's head. Fold the unpacks
+/// back into the signature (valid py2 tuple-param syntax) and drop the
+/// statements. `varnames` are the code object's raw locals (params were
+/// already sanitized to `_N`).
+fn fold_py2_tuple_params(params: &mut Parameters, varnames: &[String], body: &mut Vec<Stmt>) {
+    for (pi, p) in params.args.iter_mut().enumerate() {
+        if !varnames.get(pi).map_or(false, |n| n.starts_with('.')) {
+            continue;
+        }
+        let san = sanitize_varname(varnames.get(pi).map(|s| s.as_str()).unwrap_or(""));
+        let mut found = None;
+        for (bi, stmt) in body.iter().enumerate().take(8) {
+            if let Stmt::Assign { targets, value } = stmt {
+                if targets.len() == 1 && matches!(&**value, Expr::Name(n) if *n == san) {
+                    if let Some(text) = tuple_param_text(&targets[0]) {
+                        found = Some((bi, text));
+                        break;
+                    }
+                }
+            }
+        }
+        if let Some((bi, text)) = found {
+            p.name = text;
+            body.remove(bi);
+        }
+    }
 }
 
 /// Cleanup applied to a decompiled function/module body:

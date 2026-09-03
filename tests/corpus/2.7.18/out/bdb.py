@@ -139,13 +139,14 @@ class Bdb:
         return self.canonic(frame.f_code.co_filename) in self.breaks
 
     def user_call(self, frame, argument_list):
-        pass
+        '''This method is called when there is the remote possibility
+        that we ever need to stop in this function.'''
 
     def user_line(self, frame):
-        pass
+        '''This method is called when we stop or break at this line.'''
 
     def user_return(self, frame, return_value):
-        pass
+        '''This method is called when a return trap is set here.'''
 
     def user_exception(self, frame, exc_info):
         exc_type, exc_value, exc_traceback = exc_info
@@ -160,6 +161,8 @@ class Bdb:
         self._set_stopinfo(frame, frame, frame.f_lineno + 1)
 
     def set_step(self):
+        '''Stop after one line of code.'''
+
         if self.frame_returning:
             caller_frame = self.frame_returning.f_back
             if caller_frame and not caller_frame.f_trace:
@@ -173,6 +176,11 @@ class Bdb:
         self._set_stopinfo(frame.f_back, frame)
 
     def set_trace(self, frame=None):
+        """Start debugging from `frame`.
+
+        If frame is not specified, debugging starts from caller's frame.
+        """
+
         if frame is None:
             frame = sys._getframe().f_back
         self.reset()
@@ -453,6 +461,8 @@ class Breakpoint:
 
 
 def checkfuncname(b, frame):
+    '''Check whether we should break here because of `b.funcname`.'''
+
     if not b.funcname:
         if b.line != frame.f_lineno:
             return False
@@ -466,6 +476,14 @@ def checkfuncname(b, frame):
     return True
 
 def effective(file, line, frame):
+    '''Determine which breakpoint for this file:line is to be acted upon.
+
+    Called only if we know there is a bpt at this
+    location.  Returns breakpoint that was triggered and a flag
+    that indicates if it is ok to delete a temporary bp.
+
+    '''
+
     possibles = Breakpoint.bplist[file, line]
     for i in range(0, len(possibles)):
         b = possibles[i]

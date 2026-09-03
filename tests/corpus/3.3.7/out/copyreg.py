@@ -58,8 +58,8 @@ def _reduce_ex(self, proto):
     dict = getstate()
     try:
         getstate = self.__getstate__
-    except AttributeError as dict:
-        pass
+    except AttributeError:
+        dict = None
     if dict:
         return _reconstructor, args, dict
     return _reconstructor, args
@@ -68,6 +68,16 @@ def __newobj__(cls, *args):
     return cls.__new__(cls, *args)
 
 def _slotnames(cls):
+    """Return a list of slot names for a given class.
+
+    This needs to find slots defined by the class and its bases, so we
+    can't simply return the __slots__ attribute.  We must walk down
+    the Method Resolution Order and concatenate the __slots__ of each
+    class found there.  (This assumes classes don't modify their
+    __slots__ attribute to misrepresent their slots after the class is
+    defined.)
+    """
+
     names = cls.__dict__.get('__slotnames__')
     if names is not None:
         return names
@@ -101,6 +111,8 @@ _inverted_registry = {}
 _extension_cache = {}
 
 def add_extension(module, name, code):
+    '''Register an extension code.'''
+
     code = int(code)
     if not 1 <= code <= 2147483647:
         raise ValueError('code out of range')
@@ -115,6 +127,8 @@ def add_extension(module, name, code):
     _inverted_registry[code] = key
 
 def remove_extension(module, name, code):
+    '''Unregister an extension code.  For testing only.'''
+
     key = module, name
     if _extension_registry.get(key) != code or _inverted_registry.get(code) != key:
         raise ValueError('key %s is not registered with code %s' % (key, code))

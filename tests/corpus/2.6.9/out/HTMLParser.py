@@ -1,20 +1,20 @@
 '''A parser for HTML and XHTML.'''
 
 import markupbase
-import replaceEntities
-interesting_normal = replaceEntities.compile('[&<]')
-interesting_cdata = replaceEntities.compile('<(/|\\Z)')
-incomplete = replaceEntities.compile('&[a-zA-Z#]')
-entityref = replaceEntities.compile('&([a-zA-Z][-.a-zA-Z0-9]*)[^a-zA-Z0-9]')
-charref = replaceEntities.compile('&#(?:[0-9]+|[xX][0-9a-fA-F]+)[^0-9a-fA-F]')
-starttagopen = replaceEntities.compile('<[a-zA-Z]')
-piclose = replaceEntities.compile('>')
-commentclose = replaceEntities.compile('--\\s*>')
-tagfind = replaceEntities.compile('[a-zA-Z][-.a-zA-Z0-9:_]*')
-attrfind = replaceEntities.compile('\\s*([a-zA-Z_][-.:a-zA-Z_0-9]*)(\\s*=\\s*(\\\'[^\\\']*\\\'|"[^"]*"|[-a-zA-Z0-9./,:;+*%?!&$\\(\\)_#=~@]*))?')
-locatestarttagend = replaceEntities.compile('\n  <[a-zA-Z][-.a-zA-Z0-9:_]*          # tag name\n  (?:\\s+                             # whitespace before attribute name\n    (?:[a-zA-Z_][-.:a-zA-Z0-9_]*     # attribute name\n      (?:\\s*=\\s*                     # value indicator\n        (?:\'[^\']*\'                   # LITA-enclosed value\n          |\\"[^\\"]*\\"                # LIT-enclosed value\n          |[^\'\\">\\s]+                # bare value\n         )\n       )?\n     )\n   )*\n  \\s*                                # trailing whitespace\n', replaceEntities.VERBOSE)
-endendtag = replaceEntities.compile('>')
-endtagfind = replaceEntities.compile('</\\s*([a-zA-Z][-.a-zA-Z0-9:_]*)\\s*>')
+import re
+interesting_normal = re.compile('[&<]')
+interesting_cdata = re.compile('<(/|\\Z)')
+incomplete = re.compile('&[a-zA-Z#]')
+entityref = re.compile('&([a-zA-Z][-.a-zA-Z0-9]*)[^a-zA-Z0-9]')
+charref = re.compile('&#(?:[0-9]+|[xX][0-9a-fA-F]+)[^0-9a-fA-F]')
+starttagopen = re.compile('<[a-zA-Z]')
+piclose = re.compile('>')
+commentclose = re.compile('--\\s*>')
+tagfind = re.compile('[a-zA-Z][-.a-zA-Z0-9:_]*')
+attrfind = re.compile('\\s*([a-zA-Z_][-.:a-zA-Z_0-9]*)(\\s*=\\s*(\\\'[^\\\']*\\\'|"[^"]*"|[-a-zA-Z0-9./,:;+*%?!&$\\(\\)_#=~@]*))?')
+locatestarttagend = re.compile('\n  <[a-zA-Z][-.a-zA-Z0-9:_]*          # tag name\n  (?:\\s+                             # whitespace before attribute name\n    (?:[a-zA-Z_][-.:a-zA-Z0-9_]*     # attribute name\n      (?:\\s*=\\s*                     # value indicator\n        (?:\'[^\']*\'                   # LITA-enclosed value\n          |\\"[^\\"]*\\"                # LIT-enclosed value\n          |[^\'\\">\\s]+                # bare value\n         )\n       )?\n     )\n   )*\n  \\s*                                # trailing whitespace\n', re.VERBOSE)
+endendtag = re.compile('>')
+endtagfind = re.compile('</\\s*([a-zA-Z][-.a-zA-Z0-9:_]*)\\s*>')
 
 class HTMLParseError(Exception):
     '''Exception raised for all parse errors.'''
@@ -59,12 +59,21 @@ class HTMLParser(markupbase.ParserBase):
         self.reset()
 
     def reset(self):
+        '''Reset this instance.  Loses all unprocessed data.'''
+
         self.rawdata = ''
         self.lasttag = '???'
         self.interesting = interesting_normal
         markupbase.ParserBase.reset(self)
 
     def feed(self, data):
+        """Feed data to the parser.
+
+        Call this as often as you want, with as little or as much text
+        as you want (may include '
+').
+        """
+
         self.rawdata = self.rawdata + data
         self.goahead(0)
 
@@ -76,6 +85,8 @@ class HTMLParser(markupbase.ParserBase):
 
     __starttag_text = None
     def get_starttag_text(self):
+        """Return full source of start tag: '<...>'."""
+
         return self.__starttag_text
 
     def set_cdata_mode(self):
@@ -269,11 +280,11 @@ class HTMLParser(markupbase.ParserBase):
     def unknown_decl(self, data):
         self.error('unknown declaration: %r' % (data,))
 
-    htmlentitydefs = None
-    def unescape(self, KeyError):
-        if '&' not in KeyError:
-            return KeyError
-        def v(s):
+    entitydefs = None
+    def unescape(self, s):
+        if '&' not in s:
+            return s
+        def replaceEntities(s):
             s = s.groups()[0]
             if s[0] == '#':
                 s = s[1:]
@@ -282,14 +293,14 @@ class HTMLParser(markupbase.ParserBase):
                 else:
                     c = int(s)
                 return unichr(c)
-            import htmlentitydefs as unichr
+            import htmlentitydefs
             if HTMLParser.entitydefs is None:
-                htmlentitydefs = {'apos': "'"}
+                entitydefs = {'apos': "'"}
                 HTMLParser.entitydefs = {'apos': "'"}
-                for k, v in unichr.name2codepoint.iteritems():
-                    htmlentitydefs[k] = unichr(v)
+                for k, v in htmlentitydefs.name2codepoint.iteritems():
+                    entitydefs[k] = unichr(v)
 
-        return re.sub('&(#?[xX]?(?:[0-9a-fA-F]+|\\w{1,8}));', v, KeyError)
+        return re.sub('&(#?[xX]?(?:[0-9a-fA-F]+|\\w{1,8}));', replaceEntities, s)
 
 
 # WARNING: Decompyle incomplete

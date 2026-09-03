@@ -289,12 +289,12 @@ class ParsingError(Error):
 
     @property
     def filename(self):
-        warnings.warn("The 'filename' attribute will be removed in Python 3.12. Use 'source' instead.", DeprecationWarning, 2)
+        warnings.warn("The 'filename' attribute will be removed in Python 3.12. Use 'source' instead.", DeprecationWarning, stacklevel=2)
         return self.source
 
     @filename.setter
     def filename(self, value):
-        warnings.warn("The 'filename' attribute will be removed in Python 3.12. Use 'source' instead.", DeprecationWarning, 2)
+        warnings.warn("The 'filename' attribute will be removed in Python 3.12. Use 'source' instead.", DeprecationWarning, stacklevel=2)
         self.source = value
 
     def append(self, lineno, line):
@@ -360,7 +360,7 @@ class BasicInterpolation(Interpolation):
         return value
 
     def _interpolate_some(self, parser, option, accum, rest, section, map, depth):
-        rawval = parser.get(section, option, True, rest)
+        rawval = parser.get(section, option, raw=True, fallback=rest)
         if depth > MAX_INTERPOLATION_DEPTH:
             raise InterpolationDepthError(option, section, rawval)
         while rest:
@@ -405,7 +405,7 @@ class ExtendedInterpolation(Interpolation):
         return value
 
     def _interpolate_some(self, parser, option, accum, rest, section, map, depth):
-        rawval = parser.get(section, option, True, rest)
+        rawval = parser.get(section, option, raw=True, fallback=rest)
         if depth > MAX_INTERPOLATION_DEPTH:
             raise InterpolationDepthError(option, section, rawval)
         while rest:
@@ -435,7 +435,7 @@ class ExtendedInterpolation(Interpolation):
                     elif len(path) == 2:
                         sect = path[0]
                         opt = parser.optionxform(path[1])
-                        v = parser.get(sect, opt, True)
+                        v = parser.get(sect, opt, raw=True)
                     else:
                         raise InterpolationSyntaxError(option, section, f'More than one \':\' found: {rest!r}')
                 except (KeyError, NoSectionError, NoOptionError):
@@ -449,7 +449,7 @@ class LegacyInterpolation(Interpolation):
     _KEYCRE = re.compile('%\\(([^)]*)\\)s|.')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        warnings.warn('LegacyInterpolation has been deprecated since Python 3.2 and will be removed from the configparser module in Python 3.13. Use BasicInterpolation or ExtendedInterpolation instead.', DeprecationWarning, 2)
+        warnings.warn('LegacyInterpolation has been deprecated since Python 3.2 and will be removed from the configparser module in Python 3.13. Use BasicInterpolation or ExtendedInterpolation instead.', DeprecationWarning, stacklevel=2)
 
     def before_get(self, parser, section, option, value, vars):
         rawval = value
@@ -457,7 +457,7 @@ class LegacyInterpolation(Interpolation):
         while depth:
             depth -= 1
             if value and '%(' in value:
-                replace = functools.partial(self._interpolation_replace, parser)
+                replace = functools.partial(self._interpolation_replace, parser=parser)
                 value = self._KEYCRE.sub(replace, value)
                 try:
                     value = value % vars
@@ -528,9 +528,17 @@ class RawConfigParser(MutableMapping):
         return self._defaults
 
     def sections(self):
+        '''Return a list of section names, excluding [DEFAULT]'''
+
         return list(self._sections.keys())
 
     def add_section(self, section):
+        '''Create a new section in the configuration.
+
+        Raise DuplicateSectionError if a section by the specified name
+        already exists. Raise ValueError if name is DEFAULT.
+        '''
+
         if section == self.default_section:
             raise ValueError('Invalid section name: %r' % section)
         if section in self._sections:
@@ -539,21 +547,40 @@ class RawConfigParser(MutableMapping):
         self._proxies[section] = SectionProxy(self, section)
 
     def has_section(self, section):
+        '''Indicate whether the named section is present in the configuration.
+
+        The DEFAULT section is not acknowledged.
+        '''
+
         return section in self._sections
 
     def options(self, section):
+        '''Return a list of option names for the given section name.'''
+
         try:
             opts = self._sections[section].copy()
         except KeyError:
             raise NoSectionError(section) from None
 
     def read(self, filenames, encoding=None):
+        """Read and parse a filename or an iterable of filenames.
+
+        Files that cannot be opened are silently ignored; this is
+        designed so that you can specify an iterable of potential
+        configuration file locations (e.g. current directory, user's
+        home directory, systemwide directory), and all existing
+        configuration files in the iterable will be read.  A single
+        filename may also be given.
+
+        Return list of successfully read files.
+        """
+
         if isinstance(filenames, (str, bytes, os.PathLike)):
             filenames = [filenames]
         encoding = io.text_encoding(encoding)
         read_ok = []
         for filename in filenames:
-            with open(filename, encoding) as fp:
+            with open(filename, encoding=encoding) as fp:
                 self._read(fp, filename)
                 try:
                     pass
@@ -561,6 +588,14 @@ class RawConfigParser(MutableMapping):
                     pass
 
     def read_file(self, f, source=None):
+        '''Like read() but the argument must be a file-like object.
+
+        The `f` argument must be iterable, returning one line at a time.
+        Optional second argument is the `source` specifying the name of the
+        file being read. If not given, it is taken from f.name. If `f` has no
+        `name` attribute, `<???>` is used.
+        '''
+
         if not source is not None:
             try:
                 source = f.name
@@ -568,10 +603,25 @@ class RawConfigParser(MutableMapping):
                 source = '<???>'
 
     def read_string(self, string, source='<string>'):
+        '''Read configuration from a given string.'''
+
         sfile = io.StringIO(string)
         self.read_file(sfile, source)
 
     def read_dict(self, dictionary, source='<dict>'):
+        '''Read configuration from a dictionary.
+
+        Keys are section names, values are dictionaries with keys and values
+        that should be present in the section. If the used dictionary type
+        preserves order, sections and their keys will be added in order.
+
+        All types held in the dictionary are converted to strings during
+        reading, including section names, option names and keys.
+
+        Optional second argument is the `source` specifying the name of the
+        dictionary being read.
+        '''
+
         elements_added = set()
         for section, keys in dictionary.items():
             section = str(section)
@@ -582,10 +632,25 @@ class RawConfigParser(MutableMapping):
                     raise
 
     def readfp(self, fp, filename=None):
-        warnings.warn("This method will be removed in Python 3.12. Use 'parser.read_file()' instead.", DeprecationWarning, 2)
-        self.read_file(fp, filename)
+        warnings.warn("This method will be removed in Python 3.12. Use 'parser.read_file()' instead.", DeprecationWarning, stacklevel=2)
+        self.read_file(fp, source=filename)
 
     def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
+        '''Get an option value for a given section.
+
+        If `vars` is provided, it must be a dictionary. The option is looked up
+        in `vars` (if provided), `section`, and in `DEFAULTSECT` in that order.
+        If the key is not found and `fallback` is provided, it is used as
+        a fallback value. `None` can be provided as a `fallback` value.
+
+        If interpolation is enabled and the optional argument `raw` is False,
+        all interpolations are expanded in the return values.
+
+        Arguments `raw`, `vars`, and `fallback` are keyword only.
+
+        The section DEFAULT is special.
+        '''
+
         try:
             d = self._unify_values(section, vars)
         except NoSectionError:
@@ -613,6 +678,17 @@ class RawConfigParser(MutableMapping):
         return self._get_conv(section, option, self._convert_to_boolean, **kwargs)
 
     def items(self, section=_UNSET, raw=False, vars=None):
+        '''Return a list of (name, value) tuples for each option in a section.
+
+        All % interpolations are expanded in the return values, based on the
+        defaults passed into the constructor, unless the optional argument
+        `raw` is true.  Additional substitutions may be provided using the
+        `vars` argument, which must be a dictionary whose contents overrides
+        any pre-existing defaults.
+
+        The section DEFAULT is special.
+        '''
+
         if section is _UNSET:
             return super().items()
         d = self._defaults.copy()
@@ -623,6 +699,13 @@ class RawConfigParser(MutableMapping):
                 raise NoSectionError(section)
 
     def popitem(self):
+        '''Remove a section from the parser and return it as
+        a (section_name, section_proxy) tuple. If no section is present, raise
+        KeyError.
+
+        The section DEFAULT is never returned because it cannot be removed.
+        '''
+
         for key in self.sections():
             value = self[key]
             del self[key]
@@ -634,6 +717,10 @@ class RawConfigParser(MutableMapping):
         return optionstr.lower()
 
     def has_option(self, section, option):
+        '''Check for the existence of a given option in a given section.
+        If the specified `section` is None or an empty string, DEFAULT is
+        assumed. If the specified `section` does not exist, returns False.'''
+
         if not section or section == self.default_section:
             option = self.optionxform(option)
             return option in self._defaults
@@ -643,6 +730,8 @@ class RawConfigParser(MutableMapping):
         return option in self._sections[section] or option in self._defaults
 
     def set(self, section, option, value=None):
+        '''Set an option.'''
+
         if value:
             value = self._interpolation.before_set(self, section, option, value)
         if not section or section == self.default_section:
@@ -654,6 +743,15 @@ class RawConfigParser(MutableMapping):
                 raise NoSectionError(section) from None
 
     def write(self, fp, space_around_delimiters=True):
+        '''Write an .ini-format representation of the configuration state.
+
+        If `space_around_delimiters` is True (the default), delimiters
+        between keys and values are surrounded by spaces.
+
+        Please note that comments in the original configuration file are not
+        preserved when writing the configuration back.
+        '''
+
         if space_around_delimiters:
             d = ' {} '.format(self._delimiters[0])
         else:
@@ -675,6 +773,8 @@ class RawConfigParser(MutableMapping):
         fp.write('\n')
 
     def remove_option(self, section, option):
+        '''Remove an option.'''
+
         if not section or section == self.default_section:
             sectdict = self._defaults
         else:
@@ -684,6 +784,8 @@ class RawConfigParser(MutableMapping):
                 raise NoSectionError(section) from None
 
     def remove_section(self, section):
+        '''Remove a file section.'''
+
         existed = section in self._sections
         if existed:
             del self._sections[section], self._proxies[section]
@@ -721,6 +823,23 @@ class RawConfigParser(MutableMapping):
         return itertools.chain((self.default_section,), self._sections.keys())
 
     def _read(self, fp, fpname):
+        """Parse a sectioned configuration file.
+
+        Each section in a configuration file contains a header, indicated by
+        a name in square brackets (`[]`), plus key/value options, indicated by
+        `name` and `value` delimited with a specific substring (`=` or `:` by
+        default).
+
+        Values can span multiple lines, as long as they are indented deeper
+        than the first line of the value. Depending on the parser's mode, blank
+        lines may be treated as parts of multiline values or ignored.
+
+        Configuration files may include comments, prefixed by specific
+        characters (`#` and `;` by default). Comments may appear on their own
+        in an otherwise empty line or may be entered in lines holding values or
+        section names. Please note that comments get stripped off when reading configuration files.
+        """
+
         elements_added = set()
         cursect = None
         sectname = None
@@ -729,7 +848,7 @@ class RawConfigParser(MutableMapping):
         indent_level = 0
         e = None
         try:
-            for lineno, line in enumerate(fp, 1):
+            for lineno, line in enumerate(fp, start=1):
                 comment_start = sys.maxsize
                 inline_prefixes = {p: -1 for p in self._inline_comment_prefixes}
                 if comment_start == sys.maxsize and inline_prefixes:
@@ -822,6 +941,9 @@ class RawConfigParser(MutableMapping):
                 options[name] = self._interpolation.before_read(self, section, name, val)
 
     def _read_defaults(self, defaults):
+        '''Read the defaults passed in the initializer.
+        Note: values can be non-string.'''
+
         for key, value in defaults.items():
             self._defaults[self.optionxform(key)] = value
 
@@ -832,6 +954,11 @@ class RawConfigParser(MutableMapping):
         return exc
 
     def _unify_values(self, section, vars):
+        """Create a sequence of lookups with 'vars' taking priority over
+        the 'section' which takes priority over the DEFAULTSECT.
+
+        """
+
         sectiondict = {}
         try:
             sectiondict = self._sections[section]
@@ -840,11 +967,27 @@ class RawConfigParser(MutableMapping):
                 raise NoSectionError(section) from None
 
     def _convert_to_boolean(self, value):
+        '''Return a boolean value translating from other types if necessary.
+        '''
+
         if value.lower() not in self.BOOLEAN_STATES:
             raise ValueError('Not a boolean: %s' % value)
         return self.BOOLEAN_STATES[value.lower()]
 
     def _validate_value_types(self, *, section='', option='', value=''):
+        '''Raises a TypeError for non-string values.
+
+        The only legal non-string value if we allow valueless
+        options is None, so we need to check if the value is a
+        string if:
+        - we do not allow valueless options, or
+        - we allow valueless options but the value is not None
+
+        For compatibility reasons this method is not used in classic set()
+        for RawConfigParsers. It is invoked in every case for mapping protocol
+        access and in ConfigParser.set().
+        '''
+
         if not isinstance(section, str):
             raise TypeError('section names must be strings')
         if not isinstance(option, str):
@@ -872,6 +1015,12 @@ class ConfigParser(RawConfigParser):
         super().add_section(section)
 
     def _read_defaults(self, defaults):
+        '''Reads the defaults passed in the initializer, implicitly converting
+        values to strings like the rest of the API.
+
+        Does not perform interpolation for backwards compatibility.
+        '''
+
         try:
             hold_interpolation = self._interpolation
             self._interpolation = Interpolation()
@@ -886,18 +1035,20 @@ class SafeConfigParser(ConfigParser):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        warnings.warn('The SafeConfigParser class has been renamed to ConfigParser in Python 3.2. This alias will be removed in Python 3.12. Use ConfigParser directly instead.', DeprecationWarning, 2)
+        warnings.warn('The SafeConfigParser class has been renamed to ConfigParser in Python 3.2. This alias will be removed in Python 3.12. Use ConfigParser directly instead.', DeprecationWarning, stacklevel=2)
 
 
 class SectionProxy(MutableMapping):
     '''A proxy for a single section from a parser.'''
 
     def __init__(self, parser, name):
+        '''Creates a view on a section of the specified `name` in `parser`.'''
+
         self._parser = parser
         self._name = name
         for conv in parser.converters:
             key = 'get' + conv
-            getter = functools.partial(self.get, getattr(parser, key))
+            getter = functools.partial(self.get, _impl=getattr(parser, key))
             setattr(self, key, getter)
 
     def __repr__(self):
@@ -940,6 +1091,13 @@ class SectionProxy(MutableMapping):
         return self._name
 
     def get(self, option, fallback=None, *, raw=False, vars=None, _impl=None, **kwargs):
+        '''Get an option value.
+
+        Unless `fallback` is provided, `None` will be returned if the option
+        is not found.
+
+        '''
+
         if not _impl:
             _impl = self._parser.get
         return _impl(self._name, option, **kwargs)

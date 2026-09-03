@@ -58,6 +58,8 @@ is disregarded.'''
         self._in_interactive = False
 
     def interleave(self, inter, f, seq):
+        '''Call f on each item in seq, calling inter() in between.'''
+
         seq = iter(seq)
         try:
             f(next(seq))
@@ -68,6 +70,10 @@ is disregarded.'''
             f(x)
 
     def items_view(self, traverser, items):
+        '''Traverse and separate the given *items* with a comma and append it to
+the buffer. If *items* is a single item sequence, a trailing comma
+will be added.'''
+
         if len(items) == 1:
             traverser(items[0])
             self.write(',')
@@ -75,16 +81,23 @@ is disregarded.'''
         self.interleave((lambda: self.write(', ')), traverser, items)
 
     def maybe_newline(self):
+        """Adds a newline if it isn't the start of generated source"""
+
         if self._source:
             self.write('\n')
             return
 
     def maybe_semicolon(self):
+        '''Adds a "; " delimiter if it isn't the start of generated source'''
+
         if self._source:
             self.write('; ')
             return
 
     def fill(self, text='', *, allow_semicolon=True):
+        '''Indent a piece of text and append it, according to the current
+indentation level, or only delineate with semicolon if applicable'''
+
         if self._in_interactive:
             if not self._indent:
                 if allow_semicolon:
@@ -127,6 +140,8 @@ is disregarded.'''
         return nullcontext()
 
     def require_parens(self, precedence, node):
+        '''Shortcut to adding precedence related parens'''
+
         return self.delimit_if('(', ')', self.get_precedence(node) > precedence)
 
     def get_precedence(self, node):
@@ -137,6 +152,11 @@ is disregarded.'''
             self._precedences[node] = precedence
 
     def get_raw_docstring(self, node):
+        '''If a docstring node is found in the body of the *node* parameter,
+return that docstring node, None otherwise.
+
+Logic mirrored from ``_PyAST_GetDocString``.'''
+
         if isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
             if len(node.body) < 1:
                 return
@@ -162,6 +182,9 @@ is disregarded.'''
         None(node)
 
     def visit(self, node):
+        '''Outputs a source code string that, if converted back to an ast
+(using ast.parse) will generate an AST equivalent to *node*'''
+
         self._source = []
         self.traverse(node)
         return ''.join(self._source)
@@ -553,6 +576,10 @@ is disregarded.'''
         None(None, None, None)
 
     def _str_literal_helper(self, string, *, quote_types=_ALL_QUOTES, escape_special_whitespace=False):
+        '''Helper for writing string literals, minimizing escapes.
+Returns the tuple (string literal to write, possible quote types).
+'''
+
         def escape_char(c):
             if not escape_special_whitespace:
                 if c in '\n\t':
@@ -580,6 +607,8 @@ is disregarded.'''
         return escaped_string, possible_quotes
 
     def _write_str_avoiding_backslashes(self, string, *, quote_types=_ALL_QUOTES):
+        '''Write string literal value with a best effort attempt to avoid backslashes.'''
+
         string, quote_types = self._str_literal_helper(string, quote_types)
         quote_type = quote_types[0]
         self.write(f'{quote_type}{string}{quote_type}')

@@ -29,9 +29,21 @@ from _ast import *
 from _ast import __version__
 
 def parse(expr, filename='<unknown>', mode='exec'):
+    '''
+    Parse an expression into an AST node.
+    Equivalent to compile(expr, filename, mode, PyCF_ONLY_AST).
+    '''
+
     return compile(expr, filename, mode, PyCF_ONLY_AST)
 
 def literal_eval(node_or_string):
+    '''
+    Safely evaluate an expression node or a string containing a Python
+    expression.  The string or node provided may only consist of the following
+    Python literal structures: strings, numbers, tuples, lists, dicts, booleans,
+    and None.
+    '''
+
     _safe_names = {'None': None, 'True': True, 'False': False}
     if isinstance(node_or_string, basestring):
         node_or_string = parse(node_or_string, mode='eval')
@@ -56,6 +68,15 @@ def literal_eval(node_or_string):
     return _convert(node_or_string)
 
 def dump(node, annotate_fields=True, include_attributes=False):
+    '''
+    Return a formatted dump of the tree in *node*.  This is mainly useful for
+    debugging purposes.  The returned string will show the names and the values
+    for fields.  This makes the code impossible to evaluate, so if evaluation is
+    wanted *annotate_fields* must be set to False.  Attributes such as line
+    numbers and column offsets are not dumped by default.  If this is wanted,
+    *include_attributes* can be set to True.
+    '''
+
     def _format(node):
         if isinstance(node, AST):
             _[1] = []
@@ -81,6 +102,11 @@ def dump(node, annotate_fields=True, include_attributes=False):
     return _format(node)
 
 def copy_location(new_node, old_node):
+    '''
+    Copy source location (`lineno` and `col_offset` attributes) from
+    *old_node* to *new_node* if possible, and return *new_node*.
+    '''
+
     for attr in ('lineno', 'col_offset'):
         if attr in old_node._attributes:
             if attr in new_node._attributes:
@@ -90,6 +116,14 @@ def copy_location(new_node, old_node):
     return new_node
 
 def fix_missing_locations(node):
+    '''
+    When you compile a node tree with compile(), the compiler expects lineno and
+    col_offset attributes for every node that supports them.  This is rather
+    tedious to fill in for generated nodes, so this helper adds these attributes
+    recursively where not already set, by setting them to the values of the
+    parent node.  It works recursively starting at *node*.
+    '''
+
     def _fix(node, lineno, col_offset):
         if 'lineno' in node._attributes:
             if not hasattr(node, 'lineno'):
@@ -108,6 +142,11 @@ def fix_missing_locations(node):
     return node
 
 def increment_lineno(node, n=1):
+    '''
+    Increment the line number of each node in the tree starting at *node* by *n*.
+    This is useful to "move code" to a different location in a file.
+    '''
+
     if 'lineno' in node._attributes:
         node.lineno = getattr(node, 'lineno', 0) + n
     for child in walk(node):
@@ -117,6 +156,11 @@ def increment_lineno(node, n=1):
     return node
 
 def iter_fields(node):
+    '''
+    Yield a tuple of ``(fieldname, value)`` for each field in ``node._fields``
+    that is present on *node*.
+    '''
+
     for field in node._fields:
         try:
             yield (field, getattr(node, field))
@@ -124,6 +168,11 @@ def iter_fields(node):
             continue
 
 def iter_child_nodes(node):
+    '''
+    Yield all direct child nodes of *node*, that is, all fields that are nodes
+    and all items of fields that are lists of nodes.
+    '''
+
     for name, field in iter_fields(node):
         if isinstance(field, AST):
             yield field
@@ -137,6 +186,12 @@ def iter_child_nodes(node):
                 continue
 
 def get_docstring(node, clean=True):
+    '''
+    Return the docstring for the given node or None if no docstring can
+    be found.  If the node provided does not have docstrings a TypeError
+    will be raised.
+    '''
+
     if not isinstance(node, (FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
     if node.body:
@@ -148,6 +203,12 @@ def get_docstring(node, clean=True):
                 return node.body[0].value.s
 
 def walk(node):
+    """
+    Recursively yield all child nodes of *node*, in no specified order.  This is
+    useful if you only want to modify nodes in place and don't care about the
+    context.
+    """
+
     from collections import deque
     todo = deque([node])
     while todo:
@@ -177,11 +238,15 @@ class NodeVisitor(object):
     """
 
     def visit(self, node):
+        '''Visit a node.'''
+
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
         return visitor(node)
 
     def generic_visit(self, node):
+        '''Called if no explicit visitor function exists for a node.'''
+
         for field, value in iter_fields(node):
             if isinstance(value, list):
                 for item in value:

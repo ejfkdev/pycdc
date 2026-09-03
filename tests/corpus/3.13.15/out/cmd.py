@@ -74,6 +74,17 @@ in order to inherit Cmd's methods and encapsulate action methods.
     nohelp = '*** No help on %s'
     use_rawinput = 1
     def __init__(self, completekey='tab', stdin=None, stdout=None):
+        """Instantiate a line-oriented interpreter framework.
+
+The optional argument 'completekey' is the readline name of a
+completion key; it defaults to the Tab key. If completekey is
+not None and the readline module is available, command completion
+is done automatically. The optional arguments stdin and stdout
+specify alternate input and output file objects; if not specified,
+sys.stdin and sys.stdout are used.
+
+"""
+
         if not stdin is None:
             self.stdin = stdin
         else:
@@ -146,18 +157,33 @@ in order to inherit Cmd's methods and encapsulate action methods.
             return
 
     def precmd(self, line):
+        '''Hook method executed just before the command line is
+interpreted, but after the input prompt is generated and issued.
+
+'''
+
         return line
 
     def postcmd(self, stop, line):
+        '''Hook method executed just after a command dispatch is finished.'''
+
         return stop
 
     def preloop(self):
-        pass
+        '''Hook method executed once when the cmdloop() method is called.'''
 
     def postloop(self):
-        pass
+        '''Hook method executed once when the cmdloop() method is about to
+return.
+
+'''
 
     def parseline(self, line):
+        """Parse the line into a command name and a string containing
+the arguments.  Returns a tuple containing (command, args, line).
+'command' and 'args' may be None if the line couldn't be parsed.
+"""
+
         line = line.strip()
         if not line:
             return None, None, line
@@ -176,6 +202,16 @@ in order to inherit Cmd's methods and encapsulate action methods.
         return cmd, arg, line
 
     def onecmd(self, line):
+        '''Interpret the argument as though it had been typed in response
+to the prompt.
+
+This may be overridden, but should not normally need to be;
+see the precmd() and postcmd() methods for useful execution hooks.
+The return value is a flag indicating whether interpretation of
+commands by the interpreter should stop.
+
+'''
+
         cmd, arg, line = self.parseline(line)
         if not line:
             return self.emptyline()
@@ -192,6 +228,13 @@ in order to inherit Cmd's methods and encapsulate action methods.
         return func(arg)
 
     def emptyline(self):
+        '''Called when an empty line is entered in response to the prompt.
+
+If this method is not overridden, it repeats the last nonempty
+command entered.
+
+'''
+
         if self.lastcmd:
             return self.onecmd(self.lastcmd)
 
@@ -199,6 +242,13 @@ in order to inherit Cmd's methods and encapsulate action methods.
         self.stdout.write('*** Unknown syntax: %s\n' % line)
 
     def completedefault(self, *ignored):
+        '''Method called to complete an input line when no command-specific
+complete_*() method is available.
+
+By default, it returns an empty list.
+
+'''
+
         return []
 
     def completenames(self, text, *ignored):
@@ -206,6 +256,12 @@ in order to inherit Cmd's methods and encapsulate action methods.
         return [a[3:] for a in self.get_names() if a.startswith(dotext)]
 
     def complete(self, text, state):
+        """Return the next possible completion for 'text'.
+
+If a command has not been entered, then complete against command list.
+Otherwise try to call complete_<command> to get list of completions.
+"""
+
         if state == 0:
             import readline
             origline = readline.get_line_buffer()
@@ -234,11 +290,13 @@ in order to inherit Cmd's methods and encapsulate action methods.
         return dir(self.__class__)
 
     def complete_help(self, *args):
-        commands = None(self.completenames(*args))
+        commands = set(self.completenames(*args))
         topics = set((None for a in self.get_names() if a.startswith('help_' + args[0])))
         return list(commands | topics)
 
     def do_help(self, arg):
+        '''List available commands with "help" or detailed help with "help cmd".'''
+
         if arg:
             try:
                 func = getattr(self, 'help_' + arg)
@@ -286,6 +344,12 @@ in order to inherit Cmd's methods and encapsulate action methods.
             return
 
     def columnize(self, list, displaywidth=80):
+        '''Display a list of strings as a compact set of columns.
+
+Each column is only as wide as necessary.
+Columns are separated by two spaces (one was not legible enough).
+'''
+
         if not list:
             self.stdout.write('<empty>\n')
             return

@@ -39,7 +39,7 @@ from errno import EPIPE
 from errno import EAGAIN
 from errno import errorcode
 _DEPRECATION_MSG = 'The {name} module is deprecated and will be removed in Python {remove}. The recommended replacement is asyncio'
-warnings._deprecated(__name__, _DEPRECATION_MSG, (3, 12))
+warnings._deprecated(__name__, _DEPRECATION_MSG, remove=(3, 12))
 _DISCONNECTED = frozenset({ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE, EBADF})
 try:
     socket_map

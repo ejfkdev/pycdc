@@ -59,6 +59,8 @@ def get_colors(colorize=False, *, file=None):
 
 def can_colorize(*, file=None):
     def _safe_getenv(k, fallback=None):
+        '''Exception-safe environment retrieval. See gh-128636.'''
+
         try:
             pass
         except Exception:

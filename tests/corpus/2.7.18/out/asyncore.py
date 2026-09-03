@@ -85,8 +85,7 @@ def readwrite(obj, flags):
             obj.handle_expt_event()
         if flags & (select.POLLHUP | select.POLLERR | select.POLLNVAL):
             obj.handle_close()
-    except socket.error:
-        e = None
+    except socket.error, e:
         if e.args[0] not in _DISCONNECTED:
             obj.handle_error()
         else:
@@ -117,8 +116,7 @@ def poll(timeout=0.0, map=None):
             return
         try:
             r, w, e = select.select(r, w, e, timeout)
-        except select.error:
-            err = None
+        except select.error, err:
             if err.args[0] != EINTR:
                 raise
             else:
@@ -158,8 +156,7 @@ def poll2(timeout=0.0, map=None):
             continue
         try:
             r = pollster.poll(timeout)
-        except select.error:
-            err = None
+        except select.error, err:
             if err.args[0] != EINTR:
                 raise
             r = []
@@ -209,8 +206,7 @@ class dispatcher:
             self.connected = True
             try:
                 self.addr = sock.getpeername()
-            except socket.error:
-                err = None
+            except socket.error, err:
                 if err.args[0] in (ENOTCONN, EINVAL):
                     self.connected = False
                 else:
@@ -295,8 +291,7 @@ class dispatcher:
             conn, addr = self.socket.accept()
         except TypeError:
             return
-        except socket.error:
-            why = None
+        except socket.error, why:
             if why.args[0] in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
                 return
             raise
@@ -307,8 +302,7 @@ class dispatcher:
         try:
             result = self.socket.send(data)
             return result
-        except socket.error:
-            why = None
+        except socket.error, why:
             if why.args[0] == EWOULDBLOCK:
                 return 0
             if why.args[0] in _DISCONNECTED:
@@ -323,8 +317,7 @@ class dispatcher:
                 self.handle_close()
                 return ''
             return data
-        except socket.error:
-            why = None
+        except socket.error, why:
             if why.args[0] in _DISCONNECTED:
                 self.handle_close()
                 return ''
@@ -337,8 +330,7 @@ class dispatcher:
         self.del_channel()
         try:
             self.socket.close()
-        except socket.error:
-            why = None
+        except socket.error, why:
             if why.args[0] not in (ENOTCONN, EBADF):
                 raise
 
@@ -464,8 +456,7 @@ def close_all(map=None, ignore_all=False):
             raise
         try:
             x.close()
-        except OSError:
-            x = None
+        except OSError, x:
             if x.args[0] == EBADF:
                 pass
             else:

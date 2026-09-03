@@ -23,6 +23,12 @@ else:
 
 
     def mksalt(method=None, *, rounds=None):
+        '''Generate a salt for the specified method.
+
+    If not specified, the strongest available method will be used.
+
+    '''
+
         if method is None:
             method = methods[0]
         if rounds is not None:
@@ -57,6 +63,16 @@ else:
         return s
 
     def crypt(word, salt=None):
+        '''Return a string representing the one-way hash of a password, with a salt
+    prepended.
+
+    If ``salt`` is not specified or is ``None``, the strongest
+    available method will be selected and a salt generated.  Otherwise,
+    ``salt`` may be one of the ``crypt.METHOD_*`` values, or a string as
+    returned by ``crypt.mksalt()``.
+
+    '''
+
         if salt is None or isinstance(salt, _Method):
             salt = mksalt(salt)
         return _crypt.crypt(word, salt)

@@ -237,6 +237,14 @@ Returns a Dialect object.
         self.preferred = [',', '\t', ';', ' ', ':']
 
     def sniff(self, sample, delimiters=None):
+        '''
+Returns a dialect (or None) corresponding to the sample
+
+If several delimiters fit the sample equally well, the
+delimiters listed in the preferred attribute are preferred, in
+that order, no matter how many times each of them occurs.
+'''
+
         sample = sample.replace('\r\n', '\n').replace('\r', '\n')
         quotechar, doublequote, delimiter, skipinitialspace = self._guess_quote_and_delimiter(sample, delimiters)
         if not delimiter:
@@ -255,6 +263,17 @@ Returns a Dialect object.
         return dialect
 
     def _guess_quote_and_delimiter(self, data, delimiters):
+        """
+Looks for text enclosed between two identical quotes
+(the probable quotechar) which are preceded and followed
+by the same character (the probable delimiter).
+For example:
+                 ,'some text',
+The quote with the most wins, same with the delimiter.
+If there is no quotechar the delimiter can't be determined
+this way.
+"""
+
         body = '(?:(?P=quote){2}|(?!(?P=quote)).)*+'
         matches = []
         for restr in ('(?P<delim>[^\\w\\n"\\\'])(?P<space> ?)(?P<quote>["\\\'])%s(?P=quote)(?P=delim)', '(?:^|\\n)(?P<quote>["\\\'])%s(?P=quote)(?P<delim>[^\\w\\n"\\\'])(?P<space> ?)', '(?P<delim>[^\\w\\n"\\\'])(?P<space> ?)(?P<quote>["\\\'])%s(?P=quote)(?:$|\\n)', '(?:^|\\n)(?P<quote>["\\\'])%s(?P=quote)(?:$|\\n)'):
@@ -305,6 +324,24 @@ Returns a Dialect object.
         return quotechar, doublequote, delim, skipinitialspace
 
     def _guess_delimiter(self, data, delimiters):
+        """
+The delimiter /should/ occur the same number of times on
+each row. However, due to malformed data, it may not. We don't want
+an all or nothing approach, so we allow for small variations in this
+number.
+  1) build a table of the frequency of each character on every line.
+  2) build a table of frequencies of this frequency (meta-frequency?),
+     e.g.  'x occurred 5 times in 10 rows, 6 times in 1000 rows,
+     7 times in 2 rows'
+  3) use the mode of the meta-frequency to determine the /expected/
+     frequency for that character
+  4) find out how often the character actually meets that goal
+  5) the character that best meets its goal is the delimiter
+For performance reasons, the data is evaluated in chunks, so it can
+try and evaluate the smallest portion of the data possible, evaluating
+additional chunks as necessary.
+"""
+
         data = list(filter(None, data.split('\n')))
         ascii = [chr(c) for c in range(127)]
         chunkLength = min(10, len(data))

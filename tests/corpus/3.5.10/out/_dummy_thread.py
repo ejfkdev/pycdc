@@ -17,6 +17,19 @@ TIMEOUT_MAX = 2147483648
 error = RuntimeError
 
 def start_new_thread(function, args, kwargs={}):
+    '''Dummy implementation of _thread.start_new_thread().
+
+    Compatibility is maintained by making sure that ``args`` is a
+    tuple and ``kwargs`` is a dictionary.  If an exception is raised
+    and it is SystemExit (which can be done by _thread.exit()) it is
+    caught and nothing is done; all other exceptions are printed out
+    by using traceback.print_exc().
+
+    If the executed function calls interrupt_main the KeyboardInterrupt will be
+    raised when the function returns.
+
+    '''
+
     global _main, _interrupt
     if type(args) != type(tuple()):
         raise TypeError('2nd arg must be a tuple')
@@ -35,20 +48,35 @@ def start_new_thread(function, args, kwargs={}):
         raise KeyboardInterrupt
 
 def exit():
+    '''Dummy implementation of _thread.exit().'''
+
     raise SystemExit
 
 def get_ident():
+    '''Dummy implementation of _thread.get_ident().
+
+    Since this module should only be used when _threadmodule is not
+    available, it is safe to assume that the current process is the
+    only thread.  Thus a constant can be safely returned.
+    '''
+
     return -1
 
 def allocate_lock():
+    '''Dummy implementation of _thread.allocate_lock().'''
+
     return LockType()
 
 def stack_size(size=None):
+    '''Dummy implementation of _thread.stack_size().'''
+
     if size is not None:
         raise error('setting thread stack size not supported')
     return 0
 
 def _set_sentinel():
+    '''Dummy implementation of _thread._set_sentinel().'''
+
     return LockType()
 
 class LockType(object):
@@ -66,6 +94,17 @@ class LockType(object):
         self.locked_status = False
 
     def acquire(self, waitflag=None, timeout=-1):
+        """Dummy implementation of acquire().
+
+        For blocking calls, self.locked_status is automatically set to
+        True and returned appropriately based on value of
+        ``waitflag``.  If it is non-blocking, then the value is
+        actually checked and not set if it is already acquired.  This
+        is all done so that threading.Condition's assert statements
+        aren't triggered and throw a little fit.
+
+        """
+
         if waitflag is None or waitflag:
             self.locked_status = True
             return True
@@ -82,6 +121,8 @@ class LockType(object):
         self.release()
 
     def release(self):
+        '''Release the dummy lock.'''
+
         if not self.locked_status:
             raise error
         self.locked_status = False
@@ -98,6 +139,9 @@ _interrupt = False
 _main = True
 
 def interrupt_main():
+    '''Set _interrupt flag to True to have start_new_thread raise
+    KeyboardInterrupt upon exiting.'''
+
     global _interrupt
     if _main:
         raise KeyboardInterrupt

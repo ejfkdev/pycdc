@@ -417,11 +417,17 @@ impl<'a> MarshalReader<'a> {
         // CPython writes with surrogatepass; replace invalid sequences.
         let s = String::from_utf8_lossy(&b).into_owned();
         let obj = Rc::new(PyObject::Str(s));
-        // py2.4+: interned strings (and unicode on 2.x) join the
-        // TYPE_STRINGREF table.
+        // py2.4+: only TYPE_INTERNED strings join the TYPE_STRINGREF
+        // table — CPython's writer registers interned str objects (and
+        // later unicode objects too, but under the same w_ref dict keyed
+        // by object pointer; a unicode const written as TYPE_UNICODE is
+        // NOT registered), while plain TYPE_STRING/TYPE_UNICODE literals
+        // only occupy file space. Registering unicode here shifts every
+        // later STRINGREF index by one (seen as `def f(...)` reading a
+        // wrong name whenever a non-ASCII const precedes it).
         if self.version.major == 2
             && self.version.at_least(2, 4)
-            && (code == TYPE_INTERNED || code == TYPE_UNICODE)
+            && code == TYPE_INTERNED
         {
             self.interned.push(obj.clone());
         }

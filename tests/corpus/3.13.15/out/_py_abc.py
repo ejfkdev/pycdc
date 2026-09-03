@@ -1,6 +1,13 @@
 from _weakrefset import WeakSet
 
 def get_cache_token():
+    '''Returns the current ABC cache token.
+
+The token is an opaque object (supporting equality testing) identifying the
+current version of the ABC cache for virtual subclasses. The token changes
+with every call to ``register()`` on any ABC.
+'''
+
     return ABCMeta._abc_invalidation_counter
 
 class ABCMeta(type):
@@ -31,6 +38,11 @@ even via super()).
         return cls
 
     def register(cls, subclass):
+        '''Register a virtual subclass of an ABC.
+
+Returns the subclass, to allow usage as a class decorator.
+'''
+
         if not isinstance(subclass, type):
             raise TypeError('Can only register classes')
         if issubclass(subclass, cls):
@@ -61,6 +73,8 @@ even via super()).
         cls._abc_negative_cache.clear()
 
     def __instancecheck__(cls, instance):
+        '''Override for isinstance(instance, cls).'''
+
         subclass = instance.__class__
         if subclass in cls._abc_cache:
             return True
@@ -72,6 +86,8 @@ even via super()).
         return any((cls.__subclasscheck__(c) for c in (subclass, subtype)))
 
     def __subclasscheck__(cls, subclass):
+        '''Override for issubclass(subclass, cls).'''
+
         if not isinstance(subclass, type):
             raise TypeError('issubclass() arg 1 must be a class')
         if subclass in cls._abc_cache:

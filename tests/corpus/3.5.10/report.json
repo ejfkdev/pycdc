@@ -59,7 +59,7 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 987,
+   "ndiff": 984,
    "ntotal": 1157,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 182') | got ('SETUP_LOOP', 'to 161')\nline 142: orig ('FOR_ITER', 'to 181') | got ('FOR_ITER', 'to 160')\nline 151: orig ('LOAD_GLOBAL', 'os') | got ('LOAD_FAST', 'f')"
   },
@@ -211,9 +211,9 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1024,
+   "ndiff": 1031,
    "ntotal": 1310,
-   "detail": "line 221: orig ('SETUP_FINALLY', 'to 430') | got ('SETUP_FINALLY', 'to 350')\nline 245: orig ('SETUP_LOOP', 'to 416') | got ('SETUP_LOOP', 'to 346')\nline 257: orig ('JUMP_FORWARD', 'to 364') | got ('JUMP_FORWARD', 'to 235')"
+   "detail": "line 221: orig ('SETUP_FINALLY', 'to 430') | got ('SETUP_FINALLY', 'to 337')\nline 245: orig ('SETUP_LOOP', 'to 416') | got ('SETUP_LOOP', 'to 333')\nline 257: orig ('JUMP_FORWARD', 'to 364') | got ('JUMP_FORWARD', 'to 235')"
   },
   {
    "module": "code",
@@ -227,9 +227,9 @@
    "module": "codecs",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1782,
-   "ntotal": 2153,
-   "detail": "line 286: orig ('JUMP_FORWARD', 'to 862') | got ('JUMP_FORWARD', 'to 875')\nline 292: orig ('POP_TOP', '') | got ('STORE_NAME', 'strict_errors')\nline 294: orig ('LOAD_CONST', 'None') | got ('SETUP_FINALLY', 'to 861')"
+   "ndiff": 1729,
+   "ntotal": 2151,
+   "detail": "line 353: orig ('LOAD_CONST', \"'_is_text_encoding'\") | got ('LOAD_CONST', 'None')\nline 355: orig ('LOAD_CONST', '<code __new__>') | got ('LOAD_CONST', 'None')\nline 356: orig ('LOAD_CONST', \"'CodecInfo.__new__'\") | got ('LOAD_CONST', '<code __new__>')"
   },
   {
    "module": "codeop",
@@ -243,15 +243,15 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 972,
+   "ndiff": 799,
    "ntotal": 1026,
-   "detail": "line 31: orig ('JUMP_FORWARD', 'to 113') | got ('JUMP_FORWARD', 'to 126')\nline 37: orig ('POP_TOP', '') | got ('STORE_NAME', 'ProcessPoolExecutor')\nline 39: orig ('LOAD_CONST', 'None') | got ('SETUP_FINALLY', 'to 112')"
+   "detail": "line 160: orig ('SETUP_LOOP', 'to 349') | got ('SETUP_LOOP', 'to 348')\nline 163: orig ('FOR_ITER', 'to 348') | got ('FOR_ITER', 'to 347')\nline 226: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },
   {
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4178,
+   "ndiff": 4172,
    "ntotal": 4295,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },
@@ -265,11 +265,11 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 26: orig  name=None | dec  name='PyStringMap'",
+   "ast_detail": "diff at token 440: orig  orelse=[Try(body=[Assign(targets=[Name(id='issc' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 933,
-   "ntotal": 1006,
-   "detail": "line 39: orig ('JUMP_FORWARD', 'to 133') | got ('JUMP_FORWARD', 'to 146')\nline 45: orig ('POP_TOP', '') | got ('STORE_NAME', 'PyStringMap')\nline 47: orig ('LOAD_CONST', 'None') | got ('SETUP_FINALLY', 'to 132')"
+   "ndiff": 493,
+   "ntotal": 992,
+   "detail": "line 492: orig ('JUMP_FORWARD', 'to 372') | got ('SETUP_EXCEPT', 'to 134')\nline 493: orig ('SETUP_EXCEPT', 'to 137') | got ('LOAD_GLOBAL', 'issubclass')\nline 494: orig ('LOAD_GLOBAL', 'issubclass') | got ('LOAD_FAST', 'cls')"
   },
   {
    "module": "copyreg",

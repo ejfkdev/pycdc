@@ -34,6 +34,8 @@ import tokenize
 import traceback
 
 def reset():
+    '''Return a string that resets the CGI and browser to a known state.'''
+
     return '<!--: spam\nContent-Type: text/html\n\n<body bgcolor="#f0f0f8"><font color="#f0f0f8" size="-5"> -->\n<body bgcolor="#f0f0f8"><font color="#f0f0f8" size="-5"> --> -->\n</font> </font> </font> </script> </object> </blockquote> </pre>\n</table> </table> </table> </table> </table> </font> </font> </font>'
 
 __UNDEF__ = []
@@ -54,6 +56,8 @@ def grey(text):
     return ''
 
 def lookup(name, frame, locals):
+    '''Find the value for a given name in the given environment.'''
+
     if name in locals:
         return 'local', locals[name]
     if name in frame.f_globals:
@@ -65,6 +69,8 @@ def lookup(name, frame, locals):
     return None, __UNDEF__
 
 def scanvars(reader, frame, locals):
+    '''Scan one logical line of Python and look up values of variables used.'''
+
     vars, lasttoken, parent, prefix, value = [], None, None, '', __UNDEF__
     for ttype, token, start, end, line in tokenize.generate_tokens(reader):
         if ttype == tokenize.NEWLINE:
@@ -86,6 +92,8 @@ def scanvars(reader, frame, locals):
     return vars
 
 def html(einfo, context=5):
+    '''Return a nice HTML document describing a given traceback.'''
+
     etype, evalue, etb = einfo
     if isinstance(etype, type):
         etype = etype.__name__
@@ -155,6 +163,8 @@ def html(einfo, context=5):
     return "\n\n\n<!-- The above is a description of an error in a Python program, formatted\n     for a Web browser because the 'cgitb' module was enabled.  In case you\n     are not reading this in a Web browser, here is the original traceback:\n\n%s\n-->\n" + pydoc.html.escape % pydoc.html(''(traceback.format_exception(etype, evalue, etb)))
 
 def text(einfo, context=5):
+    '''Return a plain text document describing a given traceback.'''
+
     etype, evalue, etb = einfo
     if isinstance(etype, type):
         etype = etype.__name__
@@ -266,5 +276,11 @@ class Hook:
 handler = Hook().handle
 
 def enable(display=1, logdir=None, context=5, format='html'):
+    """Install an exception handler that formats tracebacks as HTML.
+
+    The optional argument 'display' can be set to 0 to suppress sending the
+    traceback to the browser, and 'logdir' can be set to a directory to cause
+    tracebacks to be written to files there."""
+
     sys.excepthook = Hook(display=display, logdir=logdir, context=context, format=format)
 

@@ -20,11 +20,17 @@ except ImportError:
     _decimal = None
 
 def int_to_decimal(n):
+    """Asymptotically fast conversion of an 'int' to Decimal."""
+
     D = decimal.Decimal
     D2 = D(2)
     BITLIM = 128
     mem = {}
     def w2pow(w):
+        '''Return D(2)**w and store the result. Also possibly save some
+        intermediate results. In context, these are likely to be reused
+        across various levels of the conversion to Decimal.'''
+
         if not mem.get(w) is not None:
             result = mem.get(w)
             if w <= BITLIM:
@@ -62,6 +68,8 @@ def int_to_decimal(n):
         return result
 
 def int_to_decimal_string(n):
+    """Asymptotically fast conversion of an 'int' to a decimal string."""
+
     w = n.bit_length()
     if w > 450000:
         if not _decimal is None:
@@ -90,9 +98,17 @@ def int_to_decimal_string(n):
     return sign + s
 
 def _str_to_int_inner(s):
+    """Asymptotically fast conversion of a 'str' to an 'int'."""
+
     DIGLIM = 2048
     mem = {}
     def w5pow(w):
+        """Return 5**w and store the result.
+        Also possibly save some intermediate results. In context, these
+        are likely to be reused across various levels of the conversion
+        to 'int'.
+        """
+
         if not mem.get(w) is not None:
             result = mem.get(w)
             if w <= DIGLIM:
@@ -114,10 +130,15 @@ def _str_to_int_inner(s):
     return inner(0, len(s))
 
 def int_from_string(s):
+    """Asymptotically fast version of PyLong_FromString(), conversion
+    of a string of decimal digits into an 'int'."""
+
     s = s.rstrip().replace('_', '')
     return _str_to_int_inner(s)
 
 def str_to_int(s):
+    """Asymptotically fast version of decimal string to 'int' conversion."""
+
     m = re.match('\\s*([+-]?)([0-9_]+)\\s*', s)
     if not m:
         raise ValueError('invalid literal for int() with base 10')
@@ -129,6 +150,19 @@ def str_to_int(s):
 _DIV_LIMIT = 4000
 
 def _div2n1n(a, b, n):
+    '''Divide a 2n-bit nonnegative integer a by an n-bit positive integer
+    b, using a recursive divide-and-conquer algorithm.
+
+    Inputs:
+      n is a positive integer
+      b is a positive integer with exactly n bits
+      a is a nonnegative integer such that a < 2**n * b
+
+    Output:
+      (q, r) such that a = b*q+r and 0 <= r < b.
+
+    '''
+
     if a.bit_length() - n <= _DIV_LIMIT:
         return divmod(a, b)
     pad = n & 1
@@ -146,6 +180,8 @@ def _div2n1n(a, b, n):
     return q1 << half_n | q2, r
 
 def _div3n2n(a12, a3, b, b1, b2, n):
+    '''Helper function for _div2n1n; not intended to be called directly.'''
+
     if a12 >> n == b1:
         q, r = (1 << n) - 1, a12 - (b1 << n) + b1
     else:
@@ -157,6 +193,19 @@ def _div3n2n(a12, a3, b, b1, b2, n):
     return q, r
 
 def _int2digits(a, n):
+    '''Decompose non-negative int a into base 2**n
+
+    Input:
+      a is a non-negative integer
+
+    Output:
+      List of the digits of a in base 2**n in little-endian order,
+      meaning the most significant digit is last. The most
+      significant digit is guaranteed to be non-zero.
+      If a is 0 then the output is an empty list.
+
+    '''
+
     a_digits = [0] * ((a.bit_length() + n - 1) // n)
     def inner(x, L, R):
         if L + 1 == R:
@@ -174,6 +223,10 @@ def _int2digits(a, n):
     return a_digits
 
 def _digits2int(digits, n):
+    '''Combine base-2**n digits into an int. This function is the
+    inverse of `_int2digits`. For more details, see _int2digits.
+    '''
+
     def inner(L, R):
         if L + 1 == R:
             return digits[L]
@@ -186,6 +239,9 @@ def _digits2int(digits, n):
     return 0
 
 def _divmod_pos(a, b):
+    '''Divide a non-negative integer a by a positive integer b, giving
+    quotient and remainder.'''
+
     n = b.bit_length()
     a_digits = _int2digits(a, n)
     r = 0
@@ -198,6 +254,10 @@ def _divmod_pos(a, b):
     return q, r
 
 def int_divmod(a, b):
+    """Asymptotically fast replacement for divmod, for 'int'.
+    Its time complexity is O(n**1.58), where n = #bits(a) + #bits(b).
+    """
+
     if b == 0:
         raise ZeroDivisionError
     if b < 0:

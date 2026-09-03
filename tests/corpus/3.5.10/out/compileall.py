@@ -18,8 +18,8 @@ import py_compile
 import struct
 try:
     from concurrent.futures import ProcessPoolExecutor
-except ImportError as ProcessPoolExecutor:
-    pass
+except ImportError:
+    ProcessPoolExecutor = None
 from functools import partial
 __all__ = ['compile_dir', 'compile_file', 'compile_path']
 
@@ -51,6 +51,22 @@ def _walk_dir(dir, ddir=None, maxlevels=10, quiet=0):
                             yield from _walk_dir(fullname, ddir=dfile, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1):
+    '''Byte-compile all modules in the given directory tree.
+
+    Arguments (only dir is required):
+
+    dir:       the directory to byte-compile
+    maxlevels: maximum recursion level (default 10)
+    ddir:      the directory that will be prepended to the path to the
+               file as it is compiled into each byte-code file.
+    force:     if True, force compilation, even if timestamps are up-to-date
+    quiet:     full output with False or 0, errors only with 1,
+               no output with 2
+    legacy:    if True, produce legacy pyc paths instead of PEP 3147 paths
+    optimize:  optimization level or -1 for level of the interpreter
+    workers:   maximum number of parallel workers
+    '''
+
     if workers is not None and workers < 0:
         raise ValueError('workers must be greater or equal to 0')
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels, ddir=ddir)
@@ -68,6 +84,20 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
     return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1):
+    '''Byte-compile one file.
+
+    Arguments (only fullname is required):
+
+    fullname:  the file to byte-compile
+    ddir:      if given, the directory name compiled in to the
+               byte-code file.
+    force:     if True, force compilation, even if timestamps are up-to-date
+    quiet:     full output with False or 0, errors only with 1,
+               no output with 2
+    legacy:    if True, produce legacy pyc paths instead of PEP 3147 paths
+    optimize:  optimization level or -1 for level of the interpreter
+    '''
+
     success = 1
     name = os.path.basename(fullname)
     if ddir is not None:
@@ -80,6 +110,18 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1):
+    '''Byte-compile all module on sys.path.
+
+    Arguments (all optional):
+
+    skip_curdir: if true, skip current directory (default True)
+    maxlevels:   max recursion level (default 0)
+    force: as for compile_dir() (default False)
+    quiet: as for compile_dir() (default 0)
+    legacy: as for compile_dir() (default False)
+    optimize: as for compile_dir() (default -1)
+    '''
+
     success = 1
     for dir in sys.path:
         if (not dir or dir == os.curdir) and skip_curdir:
@@ -90,6 +132,8 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
     return success
 
 def main():
+    '''Script main program.'''
+
     import argparse
     parser = argparse.ArgumentParser(description='Utilities to support installing Python libraries.')
     parser.add_argument('-l', action='store_const', const=0, default=10, dest='maxlevels', help="don't recurse into subdirectories")

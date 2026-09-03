@@ -52,6 +52,17 @@ if not _defaultmod:
 error = tuple(_errors)
 
 def open(file, flag='r', mode=438):
+    """Open or create database at path given by *file*.
+
+    Optional argument *flag* can be 'r' (default) for read-only access, 'w'
+    for read-write access of an existing database, 'c' for read-write access
+    to a new or existing database, and 'n' for read-write access to a new
+    database.
+
+    Note: 'r' and 'w' fail if the database doesn't exist; 'c' creates it
+    only if it doesn't exist; and 'n' always creates a new database.
+    """
+
     from whichdb import whichdb
     result = whichdb(file)
     if result is None:

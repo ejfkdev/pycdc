@@ -9,6 +9,13 @@ del _opcodes_all
 _have_code = types.MethodType, types.FunctionType, types.CodeType, type
 
 def _try_compile(source, name):
+    '''Attempts to compile the given source, first as an expression and
+       then as a statement if the first approach fails.
+
+       Utility function to accept strings in functions that otherwise
+       expect code objects
+    '''
+
     try:
         c = compile(source, name, 'eval')
     except SyntaxError:
@@ -16,6 +23,12 @@ def _try_compile(source, name):
     return c
 
 def dis(x=None):
+    '''Disassemble classes, methods, functions, or code.
+
+    With no argument, disassemble the last traceback.
+
+    '''
+
     if x is None:
         distb()
         return
@@ -45,6 +58,8 @@ def dis(x=None):
                 raise TypeError("don't know how to disassemble %s objects" % type(x).__name__)
 
 def distb(tb=None):
+    '''Disassemble a traceback (default: last traceback).'''
+
     if tb is None:
         try:
             tb = sys.last_traceback
@@ -57,6 +72,8 @@ def distb(tb=None):
 COMPILER_FLAG_NAMES = {1: 'OPTIMIZED', 2: 'NEWLOCALS', 4: 'VARARGS', 8: 'VARKEYWORDS', 16: 'NESTED', 32: 'GENERATOR', 64: 'NOFREE'}
 
 def pretty_flags(flags):
+    '''Return pretty representation of code flags.'''
+
     names = []
     for i in range(32):
         flag = 1 << i
@@ -70,6 +87,8 @@ def pretty_flags(flags):
     return ', '.join(names)
 
 def code_info(x):
+    '''Formatted details of methods, functions, or code.'''
+
     if hasattr(x, '__func__'):
         x = x.__func__
     if hasattr(x, '__code__'):
@@ -115,6 +134,8 @@ def show_code(co):
     print(code_info(co))
 
 def disassemble(co, lasti=-1):
+    '''Disassemble a code object.'''
+
     code = co.co_code
     labels = findlabels(code)
     linestarts = dict(findlinestarts(co))
@@ -207,6 +228,12 @@ def _disassemble_str(source):
 disco = disassemble
 
 def findlabels(code):
+    '''Detect all offsets in a byte code which are jump targets.
+
+    Return the list of offsets.
+
+    '''
+
     labels = []
     n = len(code)
     i = 0
@@ -227,6 +254,12 @@ def findlabels(code):
     return labels
 
 def findlinestarts(code):
+    '''Find the offsets in a byte code which are start of lines in the source.
+
+    Generate pairs (offset, lineno) as described in Python/compile.c.
+
+    '''
+
     byte_increments = list(code.co_lnotab[0::2])
     line_increments = list(code.co_lnotab[1::2])
     lastlineno = None
@@ -243,6 +276,8 @@ def findlinestarts(code):
         yield (addr, lineno)
 
 def _test():
+    '''Simple test program to disassemble a file.'''
+
     if sys.argv[1:]:
         if sys.argv[2:]:
             sys.stderr.write('usage: python dis.py [-|file]\n')
