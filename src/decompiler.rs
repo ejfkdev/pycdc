@@ -1,0 +1,6846 @@
+//! Bytecode -> AST decompiler.
+//!
+//! Strategy (pycdc-inspired, fully normalized):
+//! * the instruction stream is pre-decoded by `bytecode::decode_instructions`,
+//!   so this module never deals with wordcode/EXTENDED_ARG/CACHE/jump-unit
+//!   differences — only canonical `Op` values and absolute byte targets
+//! * a simulated value stack builds expressions; a block stack builds
+//!   statements and control flow (if/while/for/try/with) from jump-target
+//!   arithmetic
+//! * anything unhandled degrades gracefully into `Stmt::Unimplemented` and
+//!   sets `clean = false`, which the CLI reports as a warning comment
+
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
+
+use crate::ast::*;
+use crate::bytecode::{binary_op_name, compare_op_index, Instruction};
+use crate::code::CodeObject;
+use crate::object::{ObjectRef, PyObject};
+use crate::opcode::{table_for, OpcodeTable};
+use crate::version::PythonVersion;
+
+pub struct Decompiled {
+    pub body: Vec<Stmt>,
+    /// False when at least one construct could not be fully recovered.
+    pub clean: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BlockType {
+    Main,
+    If,
+    Else,
+    Try,
+    #[allow(dead_code)]
+    TryElse,
+    Except,
+    Finally,
+    While,
+    WhileElse,
+    For,
+    ForElse,
+    With,
+    /// try/finally container (SETUP_FINALLY era and 3.11+ exception table)
+    Container,
+}
+
+#[derive(Debug, Clone)]
+struct Block {
+    kind: BlockType,
+    /// First byte offset covered by this block.
+    #[allow(dead_code)]
+    start: usize,
+    /// Region end (exclusive); the block is closed when the stream reaches it.
+    end: usize,
+    stmts: Vec<Stmt>,
+    cond: Option<ExprRef>,
+    /// for loops
+    target: Option<ExprRef>,
+    iter: Option<ExprRef>,
+    is_async: bool,
+    /// except blocks
+    handler_type: Option<ExprRef>,
+    handler_name: Option<ExprRef>,
+    /// if blocks: end of the else branch (set by the closing JUMP_FORWARD)
+    else_end: Option<usize>,
+    /// loops: end of the else branch
+    loop_else_end: Option<usize>,
+    /// try blocks: where the finally handler begins
+    finally_target: Option<usize>,
+    /// with blocks: the context item
+    with_item: Option<WithItem>,
+    /// whether the loop/if condition has been filled in
+    cond_set: bool,
+    /// for rotated 3.8+ while loops: end offset of the cond jump instr
+    cond_end: usize,
+    /// stack depth when the block was created (value-flow merge detection)
+    stack_depth: usize,
+    /// block opened by COPY + cond jump: closing merges stack values into
+    /// BoolOp (and/or chains) or chained comparisons
+    value_merge: Option<BoolOpKind>,
+    /// this Else block is an elif continuation
+    is_elif: bool,
+    /// conditional jump polarity that opened this If block
+    jump_if_true: bool,
+    /// Some(or_form) when the block merges a JUMP_IF_*_OR_POP short circuit
+    short_circuit: Option<bool>,
+}
+
+impl Block {
+    fn new(kind: BlockType, start: usize, end: usize) -> Block {
+        Block {
+            kind,
+            start,
+            end,
+            stmts: Vec::new(),
+            cond: None,
+            target: None,
+            iter: None,
+            is_async: false,
+            handler_type: None,
+            handler_name: None,
+            else_end: None,
+            loop_else_end: None,
+            finally_target: None,
+            with_item: None,
+            cond_set: true,
+            cond_end: 0,
+            stack_depth: 0,
+            value_merge: None,
+            is_elif: false,
+            jump_if_true: false,
+            short_circuit: None,
+        }
+    }
+}
+
+/// A value on the simulated stack.
+#[derive(Debug, Clone)]
+enum Sv {
+    E(ExprRef),
+    /// NULL marker pushed before callables (3.11+)
+    Null,
+    /// IMPORT_NAME result awaiting IMPORT_FROM / IMPORT_STAR / store
+    ImportModule {
+        level: u32,
+        module: String,
+        /// pending `from x import (a, b)` name list being built
+        fromlist: Option<ExprRef>,
+    },
+    /// One name of a pending `from x import a, b` (IMPORT_FROM result)
+    ImportFrom {
+        level: u32,
+        module: String,
+        name: String,
+    },
+}
+
+/// A PEP 709 inline comprehension being recognized (3.12+). The whole
+/// instruction region is pre-scanned, so `end` (the END_FOR offset of the
+/// outermost loop) and all FOR_ITER offsets are known up front.
+#[derive(Debug, Clone)]
+struct InlineComp {
+    kind: CompKind,
+    #[allow(dead_code)]
+    iter: ExprRef,
+    /// offset just past the outermost END_FOR
+    end: usize,
+    for_iter_offsets: Vec<usize>,
+    gens: Vec<Comprehension>,
+    /// generator currently being filled by the main loop
+    cur: Option<PartialGen>,
+    elt: Option<ExprRef>,
+    key: Option<ExprRef>,
+    cleared_vars: Vec<String>,
+    target_seen: bool,
+}
+
+/// Reconstructed try-statement region (3.11+ exception-table driven).
+#[derive(Debug, Clone)]
+struct TryCtx {
+    /// first protected offset
+    start: usize,
+    /// end of the try body (first except/else boundary)
+    body_end: usize,
+    /// end of the whole protected region (else end / finally start)
+    region_end: usize,
+    except_handler: Option<usize>,
+    finally_handler: Option<usize>,
+}
+
+impl TryCtx {
+    fn cover_end(&self) -> usize {
+        self.region_end
+    }
+}
+
+#[derive(Debug, Clone)]
+struct PartialGen {
+    target: Option<ExprRef>,
+    iter: ExprRef,
+    ifs: Vec<ExprRef>,
+}
+
+/// Per-unpack-frame collected targets (inner Vec per open frame).
+struct FrameTargets(Vec<Vec<(ExprRef, bool)>>);
+
+struct Ctx<'a> {
+    code: &'a CodeObject,
+    table: &'a OpcodeTable,
+    version: PythonVersion,
+    instrs: Vec<Instruction>,
+    idx_of: HashMap<usize, usize>,
+    targets: HashSet<usize>,
+    stack: Vec<Sv>,
+    blocks: Vec<Block>,
+    clean: bool,
+    /// unpack frames (remaining, count, star_at, value)
+    unpack_frames: Vec<(usize, usize, Option<usize>, ExprRef)>,
+    /// next STORE_* is a comprehension loop target: consumes no stack value
+    comp_target_store: bool,
+    /// GET_AWAITABLE seen: the next YIELD_VALUE is an `await`
+    await_mode: bool,
+    /// context expression stashed by BEFORE_ASYNC_WITH (<=3.9)
+    pending_async_with_ctx: Option<ExprRef>,
+    /// the END_SEND after an await yield must not pop
+    skip_end_send: bool,
+    pending_gen_code: Option<std::rc::Rc<crate::code::CodeObject>>,
+    recent_code_const: Option<std::rc::Rc<crate::code::CodeObject>>,
+    /// pending kw names for the next CALL (3.11/3.12 KW_NAMES)
+    last_kw_names: Vec<Option<String>>,
+    /// `global`/`nonlocal` collection (emitted at top of function bodies)
+    globals: Vec<String>,
+    nonlocals: Vec<String>,
+    exc_entries: Vec<crate::code::ExceptionEntry>,
+    /// reconstructed try regions keyed by body start offset (3.11+)
+    try_ctxs: HashMap<usize, TryCtx>,
+    /// first offset of out-of-line handler code (main pass stops here)
+    handler_zone: Option<usize>,
+    /// with-body regions from the exception table (3.11+): start -> end
+    with_regions: HashMap<usize, usize>,
+    /// try context whose body block is currently open
+    active_try: Option<TryCtx>,
+    /// try context awaiting else/finally emission
+    pending_try_ctx: Option<TryCtx>,
+
+    // side tables used while blocks are open
+    pending_then: Vec<Vec<Stmt>>,
+    pending_handlers: Vec<ExceptHandler>,
+    pending_try_body: Vec<Vec<Stmt>>,
+    pending_try_handlers: Vec<Vec<ExceptHandler>>,
+    pending_loop: Vec<(Option<ExprRef>, Option<ExprRef>, Option<ExprRef>, Vec<Stmt>, bool)>,
+    pending_with: Vec<Vec<WithItem>>,
+    pending_try_orelse: Vec<Vec<Stmt>>,
+    with_exits: usize,
+    pending_print: Vec<ExprRef>,
+    pending_print_dest: Option<ExprRef>,
+    unpack_targets: FrameTargets,
+    awaiting_for_target: bool,
+    #[allow(dead_code)]
+    pending_if_stmts: Vec<Vec<Stmt>>,
+    cur_offset: usize,
+    cur_next: usize,
+    prev_op: Option<Op>,
+    prev_op_at_exec: Option<Op>,
+    /// instruction offsets to skip (false-path cleanup of value merges)
+    skip_until: Option<usize>,
+    /// PEP 709 inline comprehension state (3.12+ listcomp/setcomp/dictcomp)
+    inline_comp: Option<InlineComp>,
+    inline_comp_stack: Vec<InlineComp>,
+    /// variables whose post-comprehension restore store must be swallowed
+    pending_restore_vars: Vec<String>,
+    cur_line: Option<u32>,
+    pending_stores: Vec<(ExprRef, ExprRef)>,
+    last_store_line: Option<u32>,
+    /// offset where the current store group began
+    group_start: usize,
+    /// offset of the last statement flush (group scan window start)
+    last_flush_offset: usize,
+    flushing: bool,
+    pending_aug: Option<(ExprRef, BinaryOp)>,
+    pending_decorators: Vec<ExprRef>,
+    pending_class_decorators: Vec<ExprRef>,
+    pending_py2_class: Option<(ExprRef, ExprRef, ExprRef)>,
+    /// collected `from ... import` names while building one statement
+    import_names: Vec<(String, Option<String>)>,
+    import_module: Option<(u32, String)>,
+}
+
+pub fn decompile(code: &CodeObject, version: PythonVersion) -> crate::Result<Decompiled> {
+    let table = table_for(version)?;
+    let instrs = crate::bytecode::decode_instructions(code, table, version);
+    let mut idx_of = HashMap::new();
+    let mut targets = HashSet::new();
+    for (i, inst) in instrs.iter().enumerate() {
+        idx_of.insert(inst.offset, i);
+        idx_of.insert(inst.end(), i);
+        if let Some(t) = inst.target {
+            targets.insert(t);
+        }
+    }
+    let mut exc_entries = code.exception_entries().to_vec();
+    // Filter out entries whose handler is pure interpreter cleanup
+    // (generators, inline comprehensions, with statements): these do not
+    // correspond to a source-level try/finally.
+    {
+        let cleanup_ops = |op: Op| {
+            matches!(
+                op,
+                Op::SWAP
+                    | Op::COPY
+                    | Op::POP_TOP
+                    | Op::RERAISE
+                    | Op::CALL_INTRINSIC_1
+                    | Op::CALL_INTRINSIC_2
+                    | Op::END_ASYNC_FOR
+                    | Op::CLEANUP_THROW
+                    | Op::PREP_RERAISE_STAR
+                    | Op::POP_EXCEPT
+                    | Op::POP_BLOCK
+                    | Op::NOP
+                    | Op::CACHE
+                    | Op::RETURN_VALUE
+                    | Op::RETURN_CONST
+                    | Op::LOAD_CONST
+                    | Op::STORE_FAST
+                    | Op::STORE_NAME
+                    | Op::STORE_DEREF
+            )
+        };
+        exc_entries.retain(|e| {
+            let Some(&hi) = idx_of.get(&e.target) else {
+                return true;
+            };
+            let mut saw_reraise = false;
+            for ins in instrs.iter().skip(hi).take(14) {
+                if matches!(ins.op, Op::RERAISE) {
+                    saw_reraise = true;
+                }
+                if !cleanup_ops(ins.op) {
+                    return true; // user code in handler -> real try
+                }
+                if ins.is_backward && ins.target.unwrap_or(0) <= e.start {
+                    break;
+                }
+            }
+            !saw_reraise
+        });
+    }
+
+    // classify exception-table targets: handlers starting with PUSH_EXC_INFO
+    // are out-of-line handler regions; CHECK_EXC_MATCH inside => except
+    // dispatch, otherwise => finally handler.
+    // target -> handler kind: true = except dispatch, false = finally.
+    // `with` cleanup handlers (WITH_EXCEPT_START) are tracked separately.
+    let mut handler_kind: HashMap<usize, bool> = HashMap::new();
+    let mut with_regions: HashMap<usize, usize> = HashMap::new(); // body start -> end
+    let mut all_handler_targets: Vec<usize> = Vec::new();
+    for e in &exc_entries {
+        if let Some(&hi) = idx_of.get(&e.target) {
+            let window: Vec<_> = instrs.iter().skip(hi).take(40).collect();
+            if window.iter().any(|x| x.op == Op::WITH_EXCEPT_START) {
+                with_regions.insert(e.start, e.end);
+                all_handler_targets.push(e.target);
+                continue;
+            }
+            if instrs.get(hi).map(|x| x.op) == Some(Op::PUSH_EXC_INFO) {
+                let is_except = window.iter().any(|x| x.op == Op::CHECK_EXC_MATCH);
+                handler_kind.insert(e.target, is_except);
+                all_handler_targets.push(e.target);
+            }
+        }
+    }
+    // handler zone: everything from the first classified handler target to
+    // the end of the code is out-of-line handler/cleanup code
+    let handler_zone = all_handler_targets.iter().min().copied();
+    let mut ctx = Ctx {
+        code,
+        table,
+        version,
+        instrs,
+        idx_of,
+        targets,
+        stack: Vec::new(),
+        blocks: vec![Block::new(BlockType::Main, 0, usize::MAX)],
+        clean: true,
+        unpack_frames: Vec::new(),
+        comp_target_store: false,
+        await_mode: false,
+        pending_async_with_ctx: None,
+        skip_end_send: false,
+        pending_gen_code: None,
+        recent_code_const: None,
+        last_kw_names: Vec::new(),
+        globals: Vec::new(),
+        nonlocals: Vec::new(),
+        exc_entries: exc_entries.clone(),
+        try_ctxs: HashMap::new(),
+        handler_zone,
+        with_regions: with_regions.clone(),
+        active_try: None,
+        pending_try_ctx: None,
+        pending_then: Vec::new(),
+        pending_handlers: Vec::new(),
+        pending_try_body: Vec::new(),
+        pending_try_handlers: Vec::new(),
+        pending_loop: Vec::new(),
+        pending_with: Vec::new(),
+        pending_try_orelse: Vec::new(),
+        with_exits: 0,
+        pending_print: Vec::new(),
+        pending_print_dest: None,
+        unpack_targets: FrameTargets(Vec::new()),
+        awaiting_for_target: false,
+        pending_if_stmts: Vec::new(),
+        cur_offset: 0,
+        cur_next: 0,
+        prev_op: None,
+        prev_op_at_exec: None,
+        skip_until: None,
+        inline_comp: None,
+        inline_comp_stack: Vec::new(),
+        pending_restore_vars: Vec::new(),
+        cur_line: None,
+        pending_stores: Vec::new(),
+        last_store_line: None,
+        group_start: 0,
+        last_flush_offset: 0,
+        flushing: false,
+        pending_aug: None,
+        pending_decorators: Vec::new(),
+        pending_class_decorators: Vec::new(),
+        pending_py2_class: None,
+        import_names: Vec::new(),
+        import_module: None,
+    };
+
+    // chained try-region grouping (3.11+): entries in the main flow, ordered
+    // by start; an entry starting where the current region ends extends it
+    if version.at_least(3, 11) {
+        let mut main_entries: Vec<_> = exc_entries
+            .iter()
+            .filter(|e| handler_kind.contains_key(&e.target))
+            .filter(|e| handler_zone.map_or(true, |z| e.start < z && e.end <= z))
+            .collect();
+        main_entries.sort_by_key(|e| e.start);
+        let mut regions: Vec<TryCtx> = Vec::new();
+        for e in main_entries {
+            let is_exc = handler_kind[&e.target];
+            let extends = regions
+                .last()
+                .map(|r| r.cover_end() == e.start)
+                .unwrap_or(false);
+            if extends {
+                let r = regions.last_mut().unwrap();
+                if is_exc {
+                    r.except_handler.get_or_insert(e.target);
+                } else {
+                    r.finally_handler.get_or_insert(e.target);
+                    r.region_end = e.end;
+                }
+            } else {
+                let mut r = TryCtx {
+                    start: e.start,
+                    body_end: e.end,
+                    region_end: e.end,
+                    except_handler: None,
+                    finally_handler: None,
+                };
+                if is_exc {
+                    r.except_handler = Some(e.target);
+                } else {
+                    r.finally_handler = Some(e.target);
+                }
+                regions.push(r);
+            }
+        }
+        // dedupe: keep regions with at least a body
+        for r in regions {
+            ctx.try_ctxs.insert(r.start, r);
+        }
+    }
+
+    ctx.run();
+
+    // Fold any blocks still open at EOF into statements.
+    while ctx.blocks.len() > 1 {
+        let pos = ctx.instrs.last().map(|i| i.end()).unwrap_or(0);
+        ctx.force_close_top(pos);
+    }
+    ctx.flush_stack();
+
+    let mut root = ctx.blocks.remove(0);
+    let mut body = std::mem::take(&mut root.stmts);
+
+    // `global`/`nonlocal` declarations first (only meaningful in functions)
+    if code.name != "<module>" {
+        if !ctx.globals.is_empty() {
+            body.insert(0, Stmt::Global(std::mem::take(&mut ctx.globals)));
+        }
+        if !ctx.nonlocals.is_empty() {
+            body.insert(0, Stmt::Nonlocal(std::mem::take(&mut ctx.nonlocals)));
+        }
+    }
+
+    Ok(Decompiled {
+        body,
+        clean: ctx.clean,
+    })
+}
+
+impl<'a> Ctx<'a> {
+    fn run(&mut self) {
+        let mut pc = 0usize;
+        while pc < self.instrs.len() {
+            let inst = self.instrs[pc];
+            let pos = inst.offset;
+            if let Some(zone) = self.handler_zone {
+                if pos >= zone {
+                    break;
+                }
+            }
+            if let Some(skip) = self.skip_until {
+                if pos < skip {
+                    pc += 1;
+                    continue;
+                }
+                self.skip_until = None;
+            }
+            self.cur_offset = pos;
+            self.cur_next = inst.end();
+            if let Some(l) = inst.line {
+                self.cur_line = Some(l);
+            }
+
+            // py2 inline comprehension: region ends at the FOR_ITER exit
+            if self.version.major == 2 {
+                let end_hit = self
+                    .inline_comp
+                    .as_ref()
+                    .map(|c| pos >= c.end && c.end != usize::MAX)
+                    .unwrap_or(false);
+                if end_hit {
+                    // py2 FOR_ITER leaves the iterator on the stack at exit
+                    self.pop();
+                    self.finish_inline_comp();
+                }
+            }
+
+            // 3.11+: open try blocks driven by the exception table
+            self.open_exception_blocks(pos);
+
+            // Close finished blocks before handling this instruction.
+            self.close_blocks_at(pos);
+
+            // comprehension loop-target stores consume no stack value
+            if self.comp_target_store
+                && matches!(
+                    inst.op,
+                    Op::STORE_FAST
+                        | Op::STORE_NAME
+                        | Op::STORE_DEREF
+                        | Op::STORE_FAST_LOAD_FAST
+                )
+            {
+                self.comp_target_store = false;
+                let name = match inst.op {
+                    Op::STORE_NAME => self.const_name(inst.arg as usize),
+                    Op::STORE_FAST_LOAD_FAST => {
+                        self.local_name(((inst.arg >> 4) & 0xF) as usize)
+                    }
+                    _ => self.local_name(inst.arg as usize),
+                };
+                let target_e = self.name_expr(name.clone());
+                if let Some(comp) = &mut self.inline_comp {
+                    if let Some(cur) = &mut comp.cur {
+                        cur.target = Some(target_e);
+                    }
+                    comp.target_seen = true;
+                }
+                if inst.op == Op::STORE_FAST_LOAD_FAST {
+                    let load = self.local_name((inst.arg & 0xF) as usize);
+                    self.push(self.name_expr(load));
+                }
+                self.prev_op = Some(inst.op);
+                pc += 1;
+                continue;
+            }
+            let prev = self.prev_op;
+            self.prev_op_at_exec = prev;
+            if !self.exec(&inst) {
+                break;
+            }
+            // keep prev_op meaningful across transparent ops
+            if !matches!(inst.op, Op::NOT_TAKEN | Op::NOP | Op::CACHE) {
+                self.prev_op = Some(inst.op);
+            }
+            pc += 1;
+        }
+    }
+
+    fn open_exception_blocks(&mut self, pos: usize) {
+        if !self.version.at_least(3, 11) || self.inline_comp.is_some() {
+            return;
+        }
+        // a pending try's protected region ends here: emit else/finally parts
+        if let Some(tc) = &self.pending_try_ctx {
+            if tc.region_end == pos && tc.region_end > tc.body_end {
+                let tc = self.pending_try_ctx.take().unwrap();
+                self.emit_try_tail(tc, pos);
+            }
+        }
+        if let Some(tc) = self.try_ctxs.get(&pos).cloned() {
+            let mut blk = Block::new(BlockType::Try, pos, tc.body_end);
+            blk.finally_target = tc.except_handler.or(tc.finally_handler);
+            self.active_try = Some(tc);
+            self.blocks.push(blk);
+        }
+    }
+
+    /// Emit the else/finally structure of a completed try region and
+    /// decompile the out-of-line handlers.
+    fn emit_try_tail(&mut self, tc: TryCtx, pos: usize) {
+        // `else:` clause = statements collected between body end and cover end
+        let has_else = {
+            let top_stmts = self.blocks.last().map(|b| b.stmts.len()).unwrap_or(0);
+            top_stmts > 0
+        };
+        let mut orelse = Vec::new();
+        if has_else {
+            if let Some(top) = self.blocks.last_mut() {
+                orelse = std::mem::take(&mut top.stmts);
+            }
+        }
+        // inline finally body (main flow): from pos until the flow's RETURN
+        let stop = self
+            .instrs
+            .iter()
+            .skip_while(|i| i.offset < pos)
+            .find(|i| matches!(i.op, Op::RETURN_VALUE | Op::RETURN_CONST))
+            .map(|i| i.offset)
+            .unwrap_or(self.code.code.len());
+        let mut finalbody = if tc.finally_handler.is_some() && stop > pos {
+            let body = self.decompile_region(pos, stop);
+            // main pass must not re-execute the inline finally body
+            self.skip_until = Some(stop);
+            body
+        } else {
+            Vec::new()
+        };
+        // except handlers (out-of-line)
+        let handlers = match tc.except_handler {
+            Some(h) => self.parse_except_dispatch(h),
+            None => Vec::new(),
+        };
+        // finally handler body (exception path duplicate) — only use it when
+        // there was no inline finally body
+        if finalbody.is_empty() {
+            if let Some(fh) = tc.finally_handler {
+                let body = self.decompile_region(fh, self.handler_region_end(fh));
+                finalbody = body;
+            }
+        }
+        let body = self.pending_try_body.pop().unwrap_or_default();
+        if handlers.is_empty() && finalbody.is_empty() && orelse.is_empty() && body.is_empty()
+        {
+            return;
+        }
+        self.push_stmt(Stmt::Try {
+            body,
+            handlers,
+            orelse,
+            finalbody,
+        });
+    }
+
+    /// Linearly decompile the instruction range [from, to), returning its
+    /// statements. Used for out-of-line handler regions (finally bodies).
+    fn decompile_region(&mut self, from: usize, to: usize) -> Vec<Stmt> {
+        let Some(&fi) = self.idx_of.get(&from) else {
+            return Vec::new();
+        };
+        let saved_blocks = std::mem::replace(
+            &mut self.blocks,
+            vec![Block::new(BlockType::Main, from, to)],
+        );
+        let saved_stack = std::mem::take(&mut self.stack);
+        let saved_skip = self.skip_until;
+        let saved_line = self.cur_line;
+        let saved_stores = std::mem::take(&mut self.pending_stores);
+
+        let mut pc = fi;
+        while pc < self.instrs.len() {
+            let inst = self.instrs[pc];
+            if inst.offset >= to {
+                break;
+            }
+            let pos = inst.offset;
+            if let Some(skip) = self.skip_until {
+                if pos < skip {
+                    pc += 1;
+                    continue;
+                }
+                self.skip_until = None;
+            }
+            self.cur_offset = pos;
+            self.cur_next = inst.end();
+            if let Some(l) = inst.line {
+                self.cur_line = Some(l);
+            }
+            self.close_blocks_at(pos);
+            if !self.exec(&inst) {
+                break;
+            }
+            if !matches!(inst.op, Op::NOT_TAKEN | Op::NOP | Op::CACHE) {
+                self.prev_op = Some(inst.op);
+            }
+            pc += 1;
+        }
+        self.flush_pending_stores();
+        while self.blocks.len() > 1 {
+            let p = self.blocks.last().map(|b| b.start).unwrap_or(to);
+            self.force_close_top(p);
+        }
+        let mut root = self.blocks.pop().unwrap();
+        let stmts = std::mem::take(&mut root.stmts);
+
+        self.blocks = saved_blocks;
+        self.stack = saved_stack;
+        self.skip_until = saved_skip;
+        self.cur_line = saved_line;
+        self.pending_stores = saved_stores;
+        stmts
+    }
+
+    /// Parse an out-of-line except-dispatch handler region (3.11+):
+    /// PUSH_EXC_INFO followed by `[pattern; CHECK_EXC_MATCH; PJIF next]*`
+    /// clause bodies, ending in RERAISE.
+    fn parse_except_dispatch(&mut self, from: usize) -> Vec<ExceptHandler> {
+        let mut handlers = Vec::new();
+        let end = self.handler_region_end(from);
+        let mut pc = match self.idx_of.get(&from) {
+            Some(&i) => i,
+            None => return handlers,
+        };
+        // expect PUSH_EXC_INFO
+        if self.instrs.get(pc).map(|i| i.op) != Some(Op::PUSH_EXC_INFO) {
+            return handlers;
+        }
+        pc += 1;
+        let mut pattern: Option<ExprRef> = None;
+        while pc < self.instrs.len() {
+            let inst = self.instrs[pc];
+            if inst.offset >= end && !handlers.is_empty() {
+                break;
+            }
+            match inst.op {
+                Op::CHECK_EXC_MATCH => {
+                    // stack: [exc, pattern] — pattern expression was built
+                    // by preceding loads; simulate them minimally
+                    pattern = self.sim_pattern(&mut pc, inst.offset);
+                    pc += 1;
+                    continue;
+                }
+                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE => {
+                    let next = inst.target.unwrap_or(end);
+                    pc += 1;
+                    // optional `as name` store
+                    let mut name = None;
+                    if let Some(ninst) = self.instrs.get(pc) {
+                        if matches!(
+                            ninst.op,
+                            Op::STORE_FAST | Op::STORE_NAME | Op::STORE_DEREF
+                        ) {
+                            name = Some(match ninst.op {
+                                Op::STORE_NAME => self.const_name(ninst.arg as usize),
+                                Op::STORE_DEREF => self
+                                    .code
+                                    .deref_name(ninst.arg as usize)
+                                    .unwrap_or("?")
+                                    .to_string(),
+                                _ => self.local_name(ninst.arg as usize),
+                            });
+                            pc += 1;
+                        }
+                    }
+                    let body = self.decompile_handler_body(&mut pc, next, end);
+                    handlers.push(ExceptHandler {
+                        type_: pattern.take(),
+                        name: name.map(|n| Rc::new(Expr::Name(n)) as ExprRef),
+                        body,
+                    });
+                    continue;
+                }
+                Op::RERAISE | Op::POP_EXCEPT => {
+                    pc += 1;
+                    continue;
+                }
+                _ => {
+                    pc += 1;
+                }
+            }
+        }
+        handlers
+    }
+
+    /// Build the pattern expression for an except clause: forward-simulate
+    /// the loads between the previous clause boundary and CHECK_EXC_MATCH.
+    fn sim_pattern(&self, _pc: &mut usize, check_offset: usize) -> Option<ExprRef> {
+        let ci = *self.idx_of.get(&check_offset)?;
+        // find clause start: previous boundary instruction
+        let mut start = ci;
+        while start > 0 {
+            let prev = &self.instrs[start - 1];
+            if matches!(
+                prev.op,
+                Op::PUSH_EXC_INFO
+                    | Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::RERAISE
+                    | Op::JUMP_FORWARD
+                    | Op::JUMP_BACKWARD
+                    | Op::JUMP_ABSOLUTE
+                    | Op::JUMP
+                    | Op::POP_EXCEPT
+                    | Op::CHECK_EXC_MATCH
+            ) {
+                break;
+            }
+            start -= 1;
+        }
+        let mut stack: Vec<ExprRef> = Vec::new();
+        for ins in &self.instrs[start..ci] {
+            match ins.op {
+                Op::LOAD_GLOBAL => {
+                    let idx = if self.version.at_least(3, 11) {
+                        (ins.arg >> 1) as usize
+                    } else {
+                        ins.arg as usize
+                    };
+                    stack.push(self.name_expr(self.const_name(idx)));
+                }
+                Op::LOAD_NAME | Op::LOAD_DEREF | Op::LOAD_FAST => {
+                    let n = match ins.op {
+                        Op::LOAD_NAME => self.const_name(ins.arg as usize),
+                        Op::LOAD_DEREF => self
+                            .code
+                            .deref_name(ins.arg as usize)
+                            .unwrap_or("?")
+                            .to_string(),
+                        _ => self.local_name(ins.arg as usize),
+                    };
+                    stack.push(self.name_expr(n));
+                }
+                Op::LOAD_CONST => {
+                    if let Some(o) = self.code.consts.get(ins.arg as usize) {
+                        stack.push(Rc::new(Expr::Const(o.clone())));
+                    }
+                }
+                Op::LOAD_ATTR => {
+                    let attr = self.const_name(ins.arg as usize);
+                    if let Some(v) = stack.pop() {
+                        stack.push(Rc::new(Expr::Attribute { value: v, attr }));
+                    }
+                }
+                Op::BUILD_TUPLE => {
+                    let n = ins.arg as usize;
+                    if stack.len() >= n {
+                        let items: Vec<ExprRef> =
+                            stack.split_off(stack.len() - n);
+                        stack.push(Rc::new(Expr::Tuple(items)));
+                    }
+                }
+                Op::DUP_TOP | Op::COPY => {
+                    if let Some(t) = stack.last().cloned() {
+                        stack.push(t);
+                    }
+                }
+                _ => {}
+            }
+        }
+        // CHECK_EXC_MATCH consumes [exc, pattern]; pattern is on top
+        stack.pop()
+    }
+
+    /// Decompile one except-clause body: instructions from the current pc
+    /// until POP_EXCEPT; then skip the implicit `name = None; del name`
+    /// cleanup and the closing jump. Advances `pc`.
+    fn decompile_handler_body(
+        &mut self,
+        pc: &mut usize,
+        next_clause: usize,
+        region_end: usize,
+    ) -> Vec<Stmt> {
+        let limit = next_clause.min(region_end);
+        let body_start = match self.instrs.get(*pc) {
+            Some(i) => i.offset,
+            None => return Vec::new(),
+        };
+        let mut body_end = limit;
+        let mut k = *pc;
+        while k < self.instrs.len() {
+            let ins = &self.instrs[k];
+            if ins.offset >= limit {
+                break;
+            }
+            if ins.op == Op::POP_EXCEPT {
+                body_end = ins.offset;
+                k += 1;
+                // skip cleanup: [LOAD_CONST None; STORE; DELETE], closing jump
+                while k < self.instrs.len() {
+                    let c = &self.instrs[k];
+                    match c.op {
+                        Op::LOAD_CONST | Op::STORE_FAST | Op::STORE_NAME
+                        | Op::DELETE_FAST | Op::DELETE_NAME | Op::STORE_DEREF
+                        | Op::DELETE_DEREF => {
+                            k += 1;
+                        }
+                        Op::JUMP_FORWARD
+                        | Op::JUMP_BACKWARD
+                        | Op::JUMP_ABSOLUTE
+                        | Op::JUMP
+                        | Op::JUMP_NO_INTERRUPT
+                        | Op::RERAISE => {
+                            k += 1;
+                            break;
+                        }
+                        _ => break,
+                    }
+                }
+                break;
+            }
+            k += 1;
+        }
+        *pc = k;
+        if body_end > body_start {
+            self.decompile_region(body_start, body_end)
+        } else {
+            Vec::new()
+        }
+    }
+
+    /// End of a handler region: the next PUSH_EXC_INFO handler start.
+    fn handler_region_end(&self, from: usize) -> usize {
+        let mut end = self.code.code.len();
+        for e in &self.exc_entries {
+            if e.target <= from || e.target >= end {
+                continue;
+            }
+            if let Some(&hi) = self.idx_of.get(&e.target) {
+                if self.instrs.get(hi).map(|i| i.op) == Some(Op::PUSH_EXC_INFO) {
+                    end = e.target;
+                }
+            }
+        }
+        end
+    }
+
+    /// Close every block whose `end == pos` (innermost first).
+    /// While blocks created for 3.8+ loops have end == start (the cond jump
+    /// offset) and must not auto-close there; they are closed by the back
+    /// edge.
+    fn close_blocks_at(&mut self, pos: usize) {
+        // A zero-size rotated-While on top blocks position-based closing;
+        // it is closed by its back edge instead.
+        if let Some(top) = self.blocks.last() {
+            if matches!(top.kind, BlockType::While) && top.start == top.end {
+                return;
+            }
+            if top.kind == BlockType::Main || top.end > pos {
+                return;
+            }
+        }
+        // close every non-Main block whose region has ended (possibly
+        // earlier than `pos` when control arrived here via a jump)
+        while self.blocks.len() > 1 {
+            let end = {
+                let top = self.blocks.last().unwrap();
+                if top.kind == BlockType::Main || top.end > pos {
+                    break;
+                }
+                if matches!(top.kind, BlockType::While) && top.start == top.end {
+                    break;
+                }
+                top.end
+            };
+            self.force_close_top(end);
+        }
+    }
+
+    /// Close the topmost block, converting it to statement(s).
+    fn force_close_top(&mut self, pos: usize) {
+        // stores that happened inside this block must land in it, not in
+        // whatever block is open after closing
+        self.flush_pending_stores();
+        let mut b = self.blocks.pop().unwrap();
+        match b.kind {
+            BlockType::Main => {
+                self.blocks.push(b);
+            }
+            BlockType::If => {
+                let cond = b.cond.take().unwrap_or_else(|| self.name_expr("???"));
+                // JUMP_IF_*_OR_POP short-circuit regions merge here into a
+                // BoolOp expression instead of an if statement
+                if let Some(or_form) = b.short_circuit {
+                    if b.stmts.is_empty() {
+                        if let Some(Sv::E(right)) = self.stack.last() {
+                            let right = right.clone();
+                            self.stack.pop();
+                            // chained comparison (`a < b < c` via JFOP)
+                            if let Some(merged) = merge_chain_compare(&cond, &right) {
+                                self.push(merged);
+                                if let Some(skip) = b.else_end {
+                                    self.skip_until = Some(skip);
+                                }
+                                return;
+                            }
+                            let kind = if or_form {
+                                BoolOpKind::Or
+                            } else {
+                                BoolOpKind::And
+                            };
+                            let mut values = Vec::new();
+                            flatten_boolop(cond, kind, &mut values);
+                            flatten_boolop(right, kind, &mut values);
+                            self.push(Rc::new(Expr::BoolOp { op: kind, values }));
+                            return;
+                        }
+                    }
+                }
+                let body = std::mem::take(&mut b.stmts);
+                // 3.14 `if c: break` shape: PJIT over a break block with a
+                // continue on the fall-through — normalize back
+                if body.len() == 1 && matches!(body[0], Stmt::Continue) {
+                    if let Expr::Unary {
+                        op: UnaryOp::Not,
+                        operand,
+                    } = &*cond
+                    {
+                        if let Some(&ti) = self.idx_of.get(&pos) {
+                            let ins = self.instrs[ti];
+                            if matches!(
+                                ins.op,
+                                Op::JUMP | Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE
+                            ) {
+                                if let Some(t) = ins.target {
+                                    if self.find_loop_exit(t).is_some() {
+                                        let c = operand.clone();
+                                        self.push_stmt(Stmt::If {
+                                            cond: c,
+                                            body: vec![Stmt::Break],
+                                            orelse: Vec::new(),
+                                        });
+                                        self.skip_until = Some(ins.end());
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if b.else_end.is_none()
+                    && body.is_empty()
+                    && b.value_merge.is_some()
+                    && !self.stack.is_empty()
+                {
+                    let kind = b.value_merge.unwrap();
+                    // value-flow merge: `a and b` / `a or b` chains
+                    let right = self.pop_expr();
+                    // restore the tested value's polarity (the block cond was
+                    // negated for jump-if-true fall-through modeling)
+                    let cond = if b.jump_if_true { simplify_not(cond) } else { cond };
+                    if let Some(merged) = merge_chain_compare(&cond, &right) {
+                        self.push(merged);
+                        return;
+                    }
+                    let mut values = Vec::new();
+                    flatten_boolop(cond, kind, &mut values);
+                    flatten_boolop(right, kind, &mut values);
+                    self.push(Rc::new(Expr::BoolOp { op: kind, values }));
+                    return;
+                }
+                if let Some(else_end) = b.else_end {
+                    // value-merge block (COPY+cond jump) with a forward jump:
+                    // both branches produce values — merge into chain compare
+                    // or ternary and skip the false-path instructions
+                    if let Some(_kind) = b.value_merge {
+                        if body.is_empty() {
+                            if let Some(Sv::E(v)) = self.stack.last() {
+                                let v = v.clone();
+                                if let Some(merged) = merge_chain_compare(&cond, &v) {
+                                    self.stack.pop();
+                                    self.push(merged);
+                                    self.skip_until = Some(else_end);
+                                    return;
+                                }
+                                if self.stack.len() >= 2 {
+                                    self.stack.pop();
+                                    let then_val = self.pop_expr();
+                                    self.push(Rc::new(Expr::Ternary {
+                                        cond,
+                                        then_expr: then_val,
+                                        else_expr: v,
+                                    }));
+                                    self.skip_until = Some(else_end);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    let is_elif = self.starts_with_cond_jump(pos, else_end);
+                    let real_end = if is_elif {
+                        else_end
+                    } else {
+                        self.next_boundary(pos, else_end)
+                    };
+                    let mut else_blk = Block::new(BlockType::Else, pos, real_end);
+                    else_blk.cond = Some(cond);
+                    else_blk.is_elif = is_elif;
+                    self.pending_then.push(body);
+                    self.blocks.push(else_blk);
+                } else {
+                    self.push_stmt(Stmt::If {
+                        cond,
+                        body,
+                        orelse: Vec::new(),
+                    });
+                }
+            }
+            BlockType::Else => {
+                let cond = b.cond.take().unwrap_or_else(|| self.name_expr("???"));
+                let orelse = std::mem::take(&mut b.stmts);
+                let body = self.pending_then.pop().unwrap_or_default();
+                if body.is_empty() && orelse.is_empty() {
+                    // chained comparison merge: one value on the stack that
+                    // shares an operand with the condition (`a < b < c`)
+                    if let Some(Sv::E(v)) = self.stack.last() {
+                        let v = v.clone();
+                        if let Some(merged) = merge_chain_compare(&cond, &v) {
+                            self.stack.pop();
+                            self.push(merged);
+                            return;
+                        }
+                    }
+                    // conditional expression: both branches are pure values
+                    if self.stack.len() >= 2 {
+                        let else_val = self.pop_expr();
+                        let then_val = self.pop_expr();
+                        self.push(Rc::new(Expr::Ternary {
+                            cond,
+                            then_expr: then_val,
+                            else_expr: else_val,
+                        }));
+                        return;
+                    }
+                }
+                // Nesting the else body preserves full fidelity; the
+                // codegen renders `else: <single if>` as `elif` anyway.
+                self.push_stmt(Stmt::If { cond, body, orelse });
+            }
+            BlockType::While => {
+                let cond = b.cond.take().unwrap_or_else(|| self.name_expr("True"));
+                let body = std::mem::take(&mut b.stmts);
+                if let Some(else_end) = b.loop_else_end {
+                    self.pending_loop.push((Some(cond), None, None, body, false));
+                    let else_blk = Block::new(BlockType::WhileElse, pos, else_end);
+                    self.blocks.push(else_blk);
+                } else {
+                    self.push_stmt(Stmt::While {
+                        cond,
+                        body,
+                        orelse: Vec::new(),
+                    });
+                }
+            }
+            BlockType::For => {
+                let target = b.target.take().unwrap_or_else(|| self.name_expr("_"));
+                let iter = b.iter.take().unwrap_or_else(|| self.name_expr("???"));
+                let body = std::mem::take(&mut b.stmts);
+                let is_async = b.is_async;
+                if let Some(else_end) = b.loop_else_end {
+                    self.pending_loop
+                        .push((None, Some(target), Some(iter), body, is_async));
+                    let else_blk = Block::new(BlockType::ForElse, pos, else_end);
+                    self.blocks.push(else_blk);
+                } else {
+                    self.push_stmt(Stmt::For {
+                        target,
+                        iter,
+                        body,
+                        orelse: Vec::new(),
+                        is_async,
+                    });
+                }
+            }
+            BlockType::WhileElse => {
+                let orelse = std::mem::take(&mut b.stmts);
+                let (cond, _, _, body, _) = self.pending_loop.pop().unwrap_or_default();
+                self.push_stmt(Stmt::While {
+                    cond: cond.unwrap_or_else(|| self.name_expr("True")),
+                    body,
+                    orelse,
+                });
+            }
+            BlockType::ForElse => {
+                let orelse = std::mem::take(&mut b.stmts);
+                let (_, target, iter, body, is_async) =
+                    self.pending_loop.pop().unwrap_or_default();
+                self.push_stmt(Stmt::For {
+                    target: target.unwrap_or_else(|| self.name_expr("_")),
+                    iter: iter.unwrap_or_else(|| self.name_expr("???")),
+                    body,
+                    orelse,
+                    is_async,
+                });
+            }
+            BlockType::Try => {
+                let body = std::mem::take(&mut b.stmts);
+                // 3.11+ exception-table-driven try: body done, handlers are
+                // parsed out-of-line; else/finally emission happens when the
+                // protected region ends (or immediately without finally)
+                if let Some(tc) = self.active_try.take() {
+                    self.pending_try_body.push(body);
+                    let cover = tc.region_end;
+                    if cover > pos {
+                        self.pending_try_ctx = Some(tc);
+                    } else {
+                        self.emit_try_tail(tc, pos);
+                    }
+                    return;
+                }
+                if let Some(finally_target) = b.finally_target {
+                    // Either except handlers follow (pushed by the closing
+                    // jump / exception-table flow) or this is try/finally.
+                    let handlers = std::mem::take(&mut self.pending_handlers);
+                    self.pending_try_body.push(body);
+                    self.pending_try_handlers.push(handlers);
+                    let mut fin = Block::new(BlockType::Finally, pos, usize::MAX);
+                    fin.finally_target = Some(finally_target);
+                    self.blocks.push(fin);
+                } else {
+                    // try/except whose handlers were collected inline
+                    let handlers = std::mem::take(&mut self.pending_handlers);
+                    self.push_stmt(Stmt::Try {
+                        body,
+                        handlers,
+                        orelse: Vec::new(),
+                        finalbody: Vec::new(),
+                    });
+                }
+            }
+            BlockType::TryElse => {
+                // try body finished; else clause runs until the finally
+                let orelse = std::mem::take(&mut b.stmts);
+                let body = self.pending_try_body.pop().unwrap_or_default();
+                let handlers = self.pending_try_handlers.pop().unwrap_or_default();
+                let mut fin = Block::new(BlockType::Finally, pos, usize::MAX);
+                fin.finally_target = b.finally_target;
+                self.pending_try_body.push(body);
+                self.pending_try_handlers.push(handlers);
+                self.pending_try_orelse.push(orelse);
+                self.blocks.push(fin);
+            }
+            BlockType::Except => {
+                let handler = ExceptHandler {
+                    type_: b.handler_type.take(),
+                    name: b.handler_name.take(),
+                    body: std::mem::take(&mut b.stmts),
+                };
+                self.pending_handlers.push(handler);
+            }
+            BlockType::Finally => {
+                let finalbody = std::mem::take(&mut b.stmts);
+                let body = self.pending_try_body.pop().unwrap_or_default();
+                let handlers = self.pending_try_handlers.pop().unwrap_or_default();
+                let orelse = self.pending_try_orelse.pop().unwrap_or_default();
+                if finalbody.iter().all(|s| matches!(s, Stmt::Pass)) && handlers.is_empty() {
+                    // bare container close — emit body directly
+                    self.push_stmt_all(body);
+                    self.push_stmt_all(orelse);
+                } else {
+                    self.push_stmt(Stmt::Try {
+                        body,
+                        handlers,
+                        orelse,
+                        finalbody,
+                    });
+                }
+            }
+            BlockType::With => {
+                let items = match b.with_item.take() {
+                    Some(item) => vec![item],
+                    None => self.pending_with.pop().unwrap_or_else(|| {
+                        vec![WithItem {
+                            ctx: self.name_expr("???"),
+                            target: None,
+                        }]
+                    }),
+                };
+                let stmt = Stmt::With {
+                    items,
+                    body: std::mem::take(&mut b.stmts),
+                    is_async: b.is_async,
+                };
+                self.push_stmt(stmt);
+            }
+            BlockType::Container => {
+                if !b.stmts.is_empty() {
+                    let stmts = std::mem::take(&mut b.stmts);
+                    self.push_stmt_all(stmts);
+                }
+            }
+        }
+    }
+
+    fn flush_stack(&mut self) {
+        // Leftover stack values at stream end are simulation artifacts
+        // (iterator bookkeeping, saved locals from inline comprehensions);
+        // only import markers still carry statement meaning.
+        while let Some(sv) = self.stack.pop() {
+            if let Sv::ImportModule { module, .. } = sv {
+                self.push_stmt(Stmt::Import { names: vec![(module, None)] });
+            }
+        }
+    }
+
+    // ----- stack helpers -----
+
+    fn push(&mut self, e: ExprRef) {
+        self.stack.push(Sv::E(e));
+    }
+
+    fn pop(&mut self) -> Option<Sv> {
+        self.stack.pop()
+    }
+
+    fn pop_expr(&mut self) -> ExprRef {
+        loop {
+            match self.stack.pop() {
+                Some(Sv::E(e)) => return e,
+                Some(Sv::Null) => continue,
+                Some(other) => {
+                    // keep import markers on the stack; anything else is
+                    // rendered as None so the output stays compilable
+                    if matches!(other, Sv::ImportModule { .. } | Sv::ImportFrom { .. }) {
+                        self.stack.push(other);
+                        self.clean = false;
+                        return Rc::new(Expr::Const(Rc::new(PyObject::None)));
+                    }
+                    self.clean = false;
+                    return Rc::new(Expr::Const(Rc::new(PyObject::None)));
+                }
+                None => {
+                    self.clean = false;
+                    return Rc::new(Expr::Const(Rc::new(PyObject::None)));
+                }
+            }
+        }
+    }
+
+    fn pop_expr_raw(&mut self) -> Option<Sv> {
+        self.stack.pop()
+    }
+
+    fn const_expr(&mut self, idx: usize) -> ExprRef {
+        match self.code.consts.get(idx) {
+            Some(o) => Rc::new(Expr::Const(o.clone())),
+            None => {
+                self.clean = false;
+                self.name_expr(format!("/*bad-const-{idx}*/"))
+            }
+        }
+    }
+
+    fn name_expr(&self, name: impl Into<String>) -> ExprRef {
+        Rc::new(Expr::Name(name.into()))
+    }
+
+    fn const_name(&self, idx: usize) -> String {
+        self.code
+            .names
+            .get(idx)
+            .and_then(|n| match &**n {
+                PyObject::Str(s) => Some(s.clone()),
+                PyObject::Bytes(b) => Some(String::from_utf8_lossy(b).into_owned()),
+                _ => None,
+            })
+            .unwrap_or_else(|| format!("/*bad-name-{idx}*/"))
+    }
+
+    fn local_name(&self, idx: usize) -> String {
+        self.code
+            .varnames
+            .get(idx)
+            .cloned()
+            .unwrap_or_else(|| format!("/*bad-local-{idx}*/"))
+    }
+
+    fn push_stmt(&mut self, stmt: Stmt) {
+        // any other statement flushes a pending same-line store group first
+        // to preserve source order
+        if !self.flushing && !self.pending_stores.is_empty() {
+            self.flushing = true;
+            self.flush_pending_stores();
+            self.flushing = false;
+        }
+        self.last_flush_offset = self.cur_offset;
+        if let Some(top) = self.blocks.last_mut() {
+            top.stmts.push(stmt);
+        }
+    }
+
+    fn push_stmt_all(&mut self, stmts: Vec<Stmt>) {
+        if let Some(top) = self.blocks.last_mut() {
+            top.stmts.extend(stmts);
+        }
+    }
+
+    fn pop_n_exprs(&mut self, n: usize) -> Vec<ExprRef> {
+        let mut out = Vec::with_capacity(n);
+        for _ in 0..n {
+            out.push(self.pop_expr());
+        }
+        out.reverse();
+        out
+    }
+
+    fn mark_unclean(&mut self) {
+        self.clean = false;
+    }
+
+    fn unimplemented(&mut self, inst: &Instruction, what: &str) {
+        self.clean = false;
+        let text = format!(
+            "/* {what}: {} {} @{} */",
+            self.table.name(inst.opcode),
+            if inst.has_arg {
+                inst.arg.to_string()
+            } else {
+                String::new()
+            },
+            inst.offset
+        );
+        self.push_stmt(Stmt::Unimplemented(text));
+    }
+}
+
+#[allow(dead_code)]
+fn short(sv: &Sv) -> String {
+    match sv {
+        Sv::Null => "null".into(),
+        Sv::ImportModule { module, .. } => format!("import:{module}"),
+        Sv::ImportFrom { module, name, .. } => format!("from:{module}:{name}"),
+        Sv::E(_) => "expr".into(),
+    }
+}
+
+// =====================  instruction dispatch  =====================
+
+use crate::opcode::Op;
+
+impl<'a> Ctx<'a> {
+    /// Execute one instruction. Returns false when the instruction stream
+    /// should stop being processed (unconditional exit).
+    fn exec(&mut self, inst: &Instruction) -> bool {
+        let arg = inst.arg;
+        let cont = match inst.op {
+            // ---------- no-ops / housekeeping ----------
+            Op::NOP
+            | Op::CACHE
+            | Op::RESUME
+            | Op::RESUME_CHECK
+            | Op::PRECALL
+            | Op::COPY_FREE_VARS
+            | Op::MAKE_CELL
+            | Op::SETUP_ANNOTATIONS
+            | Op::EXTENDED_ARG
+            | Op::GEN_START
+            | Op::ASYNC_GEN_WRAP
+            | Op::SET_LINENO
+            | Op::STOP_CODE
+            | Op::PUSH_EXC_INFO
+            | Op::ANNOTATIONS_PLACEHOLDER
+            | Op::JUMP_BACKWARD_NO_INTERRUPT
+            | Op::NOT_TAKEN
+            | Op::BEGIN_FINALLY => true,
+
+            // ---------- constants / names ----------
+            Op::LOAD_CONST => {
+                if let Some(PyObject::Code(c)) =
+                    self.code.consts.get(arg as usize).map(|o| &**o)
+                {
+                    self.recent_code_const = Some(c.clone());
+                }
+                let e = self.const_expr(arg as usize);
+                self.push(e);
+                true
+            }
+            Op::RETURN_CONST => {
+                let e = self.const_expr(arg as usize);
+                self.emit_return(Some(e));
+                !matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
+            }
+            Op::LOAD_NAME => {
+                let n = self.const_name(arg as usize);
+                self.push(self.name_expr(n));
+                true
+            }
+            Op::LOAD_FAST
+            | Op::LOAD_FAST_CHECK
+            | Op::LOAD_FAST_AND_CLEAR
+            | Op::LOAD_FAST_BORROW => {
+                let n = self.local_name(arg as usize);
+                self.push(self.name_expr(n));
+                true
+            }
+            Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW => {
+                // 3.14: loads two locals, (arg >> 4) first then (arg & 0xF)
+                let a = self.local_name(((arg >> 4) & 0xF) as usize);
+                let b = self.local_name((arg & 0xF) as usize);
+                self.push(self.name_expr(a));
+                self.push(self.name_expr(b));
+                true
+            }
+            Op::LOAD_FAST_LOAD_FAST => {
+                let a = self.local_name((arg >> 4) as usize);
+                let b = self.local_name((arg & 0xF) as usize);
+                self.push(self.name_expr(a));
+                self.push(self.name_expr(b));
+                true
+            }
+            Op::STORE_FAST | Op::STORE_FAST_MAYBE_NULL => {
+                let n = self.local_name(arg as usize);
+                let val = self.pop_store_value();
+                self.emit_store_sv(self.name_expr(n), val);
+                true
+            }
+            Op::STORE_FAST_LOAD_FAST => {
+                let store_idx = (arg >> 4) as usize;
+                let load_idx = (arg & 0xF) as usize;
+                let val = self.pop_store_value();
+                let n = self.local_name(store_idx);
+                self.emit_store_sv(self.name_expr(n.clone()), val);
+                let ln = self.local_name(load_idx);
+                self.push(self.name_expr(ln));
+                true
+            }
+            Op::STORE_FAST_STORE_FAST => {
+                // first store (arg >> 4) consumes the TOP of stack
+                let a = ((arg >> 4) & 0xF) as usize;
+                let b = (arg & 0xF) as usize;
+                let val_a = self.pop_store_value();
+                let val_b = self.pop_store_value();
+                let na = self.local_name(a);
+                self.emit_store_sv(self.name_expr(na), val_a);
+                let nb = self.local_name(b);
+                self.emit_store_sv(self.name_expr(nb), val_b);
+                true
+            }
+            Op::DELETE_FAST => {
+                let n = self.local_name(arg as usize);
+                self.emit_delete(self.name_expr(n));
+                true
+            }
+            Op::LOAD_GLOBAL => {
+                let idx = if self.version.at_least(3, 11) {
+                    (arg >> 1) as usize
+                } else {
+                    arg as usize
+                };
+                let n = self.const_name(idx);
+                if arg & 1 != 0 {
+                    if self.version.at_least(3, 14) {
+                        // 3.14 CALL slots: [callable, NULL, args] — value
+                        // first, NULL marker on top
+                        self.push(self.name_expr(n));
+                        self.stack.push(Sv::Null);
+                    } else {
+                        // 3.11-3.13: NULL below the value
+                        self.stack.push(Sv::Null);
+                        self.push(self.name_expr(n));
+                    }
+                } else {
+                    self.push(self.name_expr(n));
+                }
+                true
+            }
+            Op::STORE_GLOBAL => {
+                let n = self.const_name(arg as usize);
+                if !self.globals.contains(&n) {
+                    self.globals.push(n.clone());
+                }
+                let val = self.pop_store_value();
+                self.emit_store_sv(self.name_expr(n), val);
+                true
+            }
+            Op::DELETE_GLOBAL => {
+                let n = self.const_name(arg as usize);
+                if !self.globals.contains(&n) {
+                    self.globals.push(n.clone());
+                }
+                self.emit_delete(self.name_expr(n));
+                true
+            }
+            Op::STORE_NAME => {
+                let n = self.const_name(arg as usize);
+                let val = self.pop_store_value();
+                self.emit_store_sv(self.name_expr(n), val);
+                true
+            }
+            Op::DELETE_NAME => {
+                let n = self.const_name(arg as usize);
+                self.emit_delete(self.name_expr(n));
+                true
+            }
+            Op::LOAD_DEREF | Op::LOAD_CLOSURE | Op::LOAD_CLASSDEREF => {
+                let n = self
+                    .code
+                    .deref_name(arg as usize)
+                    .unwrap_or("/*bad-deref*/")
+                    .to_string();
+                self.push(self.name_expr(n));
+                true
+            }
+            Op::STORE_DEREF => {
+                let n = self
+                    .code
+                    .deref_name(arg as usize)
+                    .unwrap_or("/*bad-deref*/")
+                    .to_string();
+                // STORE_DEREF on a freevar (not cellvar) implies `nonlocal`
+                let idx = arg as usize;
+                let is_free = idx >= self.code.cellvars.len()
+                    && self.version.at_least(3, 0)
+                    && !self.code.freevars.is_empty()
+                    && self.code.name != "<module>";
+                if is_free && !self.nonlocals.contains(&n) {
+                    self.nonlocals.push(n.clone());
+                }
+                let val = self.pop_store_value();
+                self.emit_store_sv(self.name_expr(n), val);
+                true
+            }
+            Op::DELETE_DEREF => {
+                let n = self
+                    .code
+                    .deref_name(arg as usize)
+                    .unwrap_or("/*bad-deref*/")
+                    .to_string();
+                self.emit_delete(self.name_expr(n));
+                true
+            }
+            Op::LOAD_LOCALS => {
+                self.push(self.name_expr("locals()"));
+                true
+            }
+            Op::STORE_LOCALS => {
+                // py2 class body: locals() -> class dict
+                self.pop();
+                true
+            }
+            Op::LOAD_BUILD_CLASS => {
+                self.push(self.name_expr("__build_class__"));
+                true
+            }
+            Op::LOAD_ASSERTION_ERROR => {
+                self.push(self.name_expr("AssertionError"));
+                true
+            }
+            Op::LOAD_SMALL_INT => {
+                // 3.14+: pushes the small int `arg`
+                self.push(Rc::new(Expr::Const(Rc::new(PyObject::Int(arg as i32)))));
+                true
+            }
+            Op::LOAD_COMMON_CONSTANT => {
+                // 3.14+: 0 = None (other constants not emitted by compilers)
+                if arg == 0 {
+                    self.push(Rc::new(Expr::Const(Rc::new(PyObject::None))));
+                } else {
+                    self.mark_unclean();
+                    self.push(Rc::new(Expr::Const(Rc::new(PyObject::None))));
+                }
+                true
+            }
+
+            // ---------- attributes ----------
+            Op::LOAD_ATTR | Op::LOAD_METHOD => {
+                let (idx, is_method) = match inst.op {
+                    Op::LOAD_METHOD => (arg as usize, true),
+                    _ if self.version.at_least(3, 12) => {
+                        ((arg >> 1) as usize, arg & 1 != 0)
+                    }
+                    _ => (arg as usize, false),
+                };
+                let attr = self.const_name(idx);
+                let value = self.pop_expr();
+                let e: ExprRef = Rc::new(Expr::Attribute {
+                    value: value.clone(),
+                    attr,
+                });
+                if is_method {
+                    if self.version.at_least(3, 14) {
+                        // 3.14: [method, self_or_null] — marker on top
+                        self.push(e);
+                        self.push(value);
+                    } else if self.version.at_least(3, 11) {
+                        // 3.11-3.13: [self_or_null, method] — method on top
+                        self.push(value);
+                        self.push(e);
+                    } else {
+                        // 3.7-3.10: [method, self_or_null] — marker on top
+                        self.push(e);
+                        self.push(value);
+                    }
+                } else {
+                    self.push(e);
+                }
+                true
+            }
+            Op::LOAD_SUPER_ATTR => {
+                let idx = if self.version.at_least(3, 12) {
+                    (arg >> 2) as usize
+                } else {
+                    arg as usize
+                };
+                let attr = self.const_name(idx);
+                let _attr_name = self.pop_expr();
+                let _cls = self.pop_expr();
+                let _self_e = self.pop_expr();
+                let e: ExprRef = Rc::new(Expr::Attribute {
+                    value: self.name_expr("super()"),
+                    attr,
+                });
+                if self.version.at_least(3, 12) && arg & 1 != 0 {
+                    self.stack.push(Sv::Null);
+                }
+                self.push(e);
+                true
+            }
+            Op::LOAD_SPECIAL => {
+                let attr = self.const_name(arg as usize);
+                let value = self.pop_expr();
+                self.push(Rc::new(Expr::Attribute { value, attr }));
+                true
+            }
+            Op::STORE_ATTR => {
+                // STORE_ATTR uses the plain name index in all versions
+                let idx = arg as usize;
+                let attr = self.const_name(idx);
+                // 3.11+: [value, obj] (obj on top); earlier: [obj, value]
+                let (obj, val) = if self.version.at_least(3, 11) {
+                    (self.pop_expr(), self.pop_expr())
+                } else {
+                    let obj = self.pop_expr();
+                    let val = self.pop_expr();
+                    (val, obj)
+                };
+                let target: ExprRef = Rc::new(Expr::Attribute { value: obj, attr });
+                self.emit_store(target, val);
+                true
+            }
+            Op::DELETE_ATTR => {
+                let attr = self.const_name(arg as usize);
+                let obj = self.pop_expr();
+                let target: ExprRef = Rc::new(Expr::Attribute { value: obj, attr });
+                self.emit_delete(target);
+                true
+            }
+
+            // ---------- subscripts / slices ----------
+            Op::BINARY_SUBSCR => {
+                let idx = self.pop_expr();
+                let val = self.pop_expr();
+                // 3.14 builds extended slices via `slice(...)` calls or
+                // marshalled slice constants
+                let idx = normalize_slice_call(idx);
+                self.push(Rc::new(Expr::Subscript { value: val, index: idx }));
+                true
+            }
+            Op::BINARY_SLICE => {
+                let stop = self.pop_expr();
+                let start = self.pop_expr();
+                let val = self.pop_expr();
+                let slice = Rc::new(Expr::Slice(Box::new(SliceExpr {
+                    start: none_if_const_none(start),
+                    stop: none_if_const_none(stop),
+                    step: None,
+                })));
+                self.push(Rc::new(Expr::Subscript {
+                    value: val,
+                    index: slice,
+                }));
+                true
+            }
+            Op::STORE_SUBSCR => {
+                // All versions: obj and sub on top, value below.
+                // <=3.10: [value, obj, sub] (sub top); 3.11+: [sub, obj, value]
+                let (val, obj, idx) = if self.version.at_least(3, 11) {
+                    let idx = self.pop_expr();
+                    let obj = self.pop_expr();
+                    let val = self.pop_expr();
+                    (val, obj, idx)
+                } else {
+                    let idx = self.pop_expr();
+                    let obj = self.pop_expr();
+                    let val = self.pop_expr();
+                    (val, obj, idx)
+                };
+                let target = Rc::new(Expr::Subscript { value: obj, index: idx });
+                self.emit_store(target, val);
+                true
+            }
+            Op::DELETE_SUBSCR => {
+                let idx = self.pop_expr();
+                let obj = self.pop_expr();
+                let target = Rc::new(Expr::Subscript { value: obj, index: idx });
+                self.emit_delete(target);
+                true
+            }
+            Op::STORE_SLICE
+            | Op::STORE_SLICE_0
+            | Op::STORE_SLICE_1
+            | Op::STORE_SLICE_2
+            | Op::STORE_SLICE_3
+            | Op::DELETE_SLICE_0
+            | Op::DELETE_SLICE_1
+            | Op::DELETE_SLICE_2
+            | Op::DELETE_SLICE_3
+            | Op::SLICE_0
+            | Op::SLICE_1
+            | Op::SLICE_2
+            | Op::SLICE_3 => {
+                self.handle_slice_ops(inst);
+                true
+            }
+
+            // ---------- unary / binary ----------
+            Op::UNARY_NEGATIVE | Op::UNARY_POSITIVE | Op::UNARY_INVERT | Op::UNARY_NOT => {
+                let op = match inst.op {
+                    Op::UNARY_NEGATIVE => UnaryOp::Neg,
+                    Op::UNARY_POSITIVE => UnaryOp::Pos,
+                    Op::UNARY_INVERT => UnaryOp::Invert,
+                    _ => UnaryOp::Not,
+                };
+                let e = self.pop_expr();
+                self.push(Rc::new(Expr::Unary { op, operand: e }));
+                true
+            }
+            Op::UNARY_CONVERT => {
+                let e = self.pop_expr();
+                self.push(Rc::new(Expr::Backquote(e)));
+                true
+            }
+            Op::BINARY_OP => {
+                match binary_op_name(arg, self.version) {
+                    Some(name) => {
+                        if name.ends_with('=') {
+                            self.apply_inplace(name.trim_end_matches('='), arg);
+                        } else {
+                            self.apply_binary(name);
+                        }
+                    }
+                    None if self.version.at_least(3, 14) => {
+                        // 3.14 folded BINARY_SUBSCR into BINARY_OP 26 (`[]`)
+                        let idx = self.pop_expr();
+                        let val = self.pop_expr();
+                        let idx = normalize_slice_call(idx);
+                        self.push(Rc::new(Expr::Subscript { value: val, index: idx }));
+                    }
+                    None => {
+                        self.mark_unclean();
+                        self.apply_binary("+");
+                    }
+                }
+                true
+            }
+            Op::BINARY_ADD
+            | Op::BINARY_SUBTRACT
+            | Op::BINARY_MULTIPLY
+            | Op::BINARY_DIVIDE
+            | Op::BINARY_FLOOR_DIVIDE
+            | Op::BINARY_MODULO
+            | Op::BINARY_POWER
+            | Op::BINARY_LSHIFT
+            | Op::BINARY_RSHIFT
+            | Op::BINARY_OR
+            | Op::BINARY_XOR
+            | Op::BINARY_AND
+            | Op::BINARY_MATRIX_MULTIPLY
+            | Op::BINARY_TRUE_DIVIDE => {
+                let name = match inst.op {
+                    Op::BINARY_ADD => "+",
+                    Op::BINARY_SUBTRACT => "-",
+                    Op::BINARY_MULTIPLY => "*",
+                    Op::BINARY_DIVIDE | Op::BINARY_TRUE_DIVIDE => "/",
+                    Op::BINARY_FLOOR_DIVIDE => "//",
+                    Op::BINARY_MODULO => "%",
+                    Op::BINARY_POWER => "**",
+                    Op::BINARY_LSHIFT => "<<",
+                    Op::BINARY_RSHIFT => ">>",
+                    Op::BINARY_OR => "|",
+                    Op::BINARY_XOR => "^",
+                    Op::BINARY_AND => "&",
+                    Op::BINARY_MATRIX_MULTIPLY => "@",
+                    _ => unreachable!(),
+                };
+                self.apply_binary(name);
+                true
+            }
+            Op::INPLACE_ADD
+            | Op::INPLACE_SUBTRACT
+            | Op::INPLACE_MULTIPLY
+            | Op::INPLACE_DIVIDE
+            | Op::INPLACE_FLOOR_DIVIDE
+            | Op::INPLACE_MODULO
+            | Op::INPLACE_POWER
+            | Op::INPLACE_LSHIFT
+            | Op::INPLACE_RSHIFT
+            | Op::INPLACE_OR
+            | Op::INPLACE_XOR
+            | Op::INPLACE_AND
+            | Op::INPLACE_MATRIX_MULTIPLY
+            | Op::INPLACE_TRUE_DIVIDE => {
+                let name = match inst.op {
+                    Op::INPLACE_ADD => "+",
+                    Op::INPLACE_SUBTRACT => "-",
+                    Op::INPLACE_MULTIPLY => "*",
+                    Op::INPLACE_DIVIDE | Op::INPLACE_TRUE_DIVIDE => "/",
+                    Op::INPLACE_FLOOR_DIVIDE => "//",
+                    Op::INPLACE_MODULO => "%",
+                    Op::INPLACE_POWER => "**",
+                    Op::INPLACE_LSHIFT => "<<",
+                    Op::INPLACE_RSHIFT => ">>",
+                    Op::INPLACE_OR => "|",
+                    Op::INPLACE_XOR => "^",
+                    Op::INPLACE_AND => "&",
+                    Op::INPLACE_MATRIX_MULTIPLY => "@",
+                    _ => unreachable!(),
+                };
+                self.apply_inplace(name, u32::MAX);
+                true
+            }
+            Op::COMPARE_OP => {
+                let idx = compare_op_index(arg, self.version);
+                let op = cmp_from_index(idx);
+                let rhs = self.pop_expr();
+                let lhs = self.pop_expr();
+                self.push(Rc::new(Expr::Compare {
+                    operands: vec![lhs, rhs],
+                    ops: vec![op],
+                }));
+                true
+            }
+            Op::IS_OP => {
+                let rhs = self.pop_expr();
+                let lhs = self.pop_expr();
+                let op = if arg == 1 { CmpOp::IsNot } else { CmpOp::Is };
+                self.push(Rc::new(Expr::Compare {
+                    operands: vec![lhs, rhs],
+                    ops: vec![op],
+                }));
+                true
+            }
+            Op::CONTAINS_OP => {
+                let rhs = self.pop_expr();
+                let lhs = self.pop_expr();
+                let op = if arg == 1 { CmpOp::NotIn } else { CmpOp::In };
+                self.push(Rc::new(Expr::Compare {
+                    operands: vec![lhs, rhs],
+                    ops: vec![op],
+                }));
+                true
+            }
+            Op::TO_BOOL => true,
+
+            // ---------- container building ----------
+            Op::BUILD_TUPLE | Op::BUILD_LIST | Op::BUILD_SET => {
+                let items = self.pop_n_exprs(arg as usize);
+                // <=3.5 decorators: BUILD_TUPLE wrapping the function object
+                if inst.op == Op::BUILD_TUPLE && items.len() == 1 {
+                    if let Expr::Function(fd) = &*items[0] {
+                        let mut fd = (**fd).clone();
+                        fd.decorators.push(self.name_expr("__decorator__"));
+                        self.pending_decorators.push(self.name_expr("__decorator__"));
+                        self.push(Rc::new(Expr::Function(Rc::new(fd))));
+                        return true;
+                    }
+                }
+                let e = match inst.op {
+                    Op::BUILD_TUPLE => Expr::Tuple(items),
+                    Op::BUILD_LIST => Expr::List(items),
+                    _ => Expr::Set(items),
+                };
+                self.push(Rc::new(e));
+                true
+            }
+            Op::BUILD_MAP => {
+                if self.version.major == 2 {
+                    // py2: oparg is a size hint only; entries are added by
+                    // STORE_MAP from values pushed *below* the dict
+                    self.push(Rc::new(Expr::Dict(Vec::new())));
+                } else {
+                    let n = arg as usize;
+                    let flat = self.pop_n_exprs(2 * n);
+                    let mut entries = Vec::with_capacity(n);
+                    for chunk in flat.chunks(2) {
+                        if chunk.len() == 2 {
+                            entries.push((chunk[0].clone(), chunk[1].clone()));
+                        }
+                    }
+                    self.push(Rc::new(Expr::Dict(entries)));
+                }
+                true
+            }
+            Op::BUILD_CONST_KEY_MAP => {
+                let keys_e = self.pop_expr();
+                let values = self.pop_n_exprs(arg as usize);
+                let keys: Vec<ObjectRef> = match &*keys_e {
+                    Expr::Const(o) => match &**o {
+                        PyObject::Tuple(t) => t.clone(),
+                        _ => vec![],
+                    },
+                    _ => vec![],
+                };
+                let mut entries = Vec::with_capacity(values.len());
+                for (i, v) in values.into_iter().enumerate() {
+                    let k = keys
+                        .get(i)
+                        .cloned()
+                        .map(|o| Rc::new(Expr::Const(o)) as ExprRef)
+                        .unwrap_or_else(|| self.name_expr("/*key?*/"));
+                    entries.push((k, v));
+                }
+                self.push(Rc::new(Expr::Dict(entries)));
+                true
+            }
+            Op::STORE_MAP => {
+                // py2: [map, value, key] with key on top
+                let key = self.pop_expr();
+                let value = self.pop_expr();
+                let map = self.pop_expr();
+                let mut entries = match &*map {
+                    Expr::Dict(d) => d.clone(),
+                    _ => Vec::new(),
+                };
+                entries.push((key, value));
+                self.push(Rc::new(Expr::Dict(entries)));
+                true
+            }
+            Op::BUILD_STRING => {
+                let parts_e = self.pop_n_exprs(arg as usize);
+                let mut out_parts = Vec::new();
+                for p in parts_e {
+                    match &*p {
+                        Expr::Const(o) => match &**o {
+                            PyObject::Str(s) => {
+                                out_parts.push(FStringPart::Literal(s.clone()))
+                            }
+                            _ => out_parts.push(FStringPart::Value {
+                                value: p.clone(),
+                                conversion: None,
+                                format_spec: None,
+                            }),
+                        },
+                        Expr::FString(fs) => out_parts.extend(fs.parts.iter().cloned()),
+                        _ => out_parts.push(FStringPart::Value {
+                            value: p.clone(),
+                            conversion: None,
+                            format_spec: None,
+                        }),
+                    }
+                }
+                self.push(Rc::new(Expr::FString(Box::new(FString {
+                    parts: out_parts,
+                }))));
+                true
+            }
+            Op::BUILD_SLICE => {
+                let (start, stop, step) = if arg == 3 {
+                    let step = none_if_const_none(self.pop_expr());
+                    let stop = none_if_const_none(self.pop_expr());
+                    let start = none_if_const_none(self.pop_expr());
+                    (start, stop, step)
+                } else {
+                    let stop = none_if_const_none(self.pop_expr());
+                    let start = none_if_const_none(self.pop_expr());
+                    (start, stop, None)
+                };
+                self.push(Rc::new(Expr::Slice(Box::new(SliceExpr {
+                    start,
+                    stop,
+                    step,
+                }))));
+                true
+            }
+            Op::LIST_EXTEND | Op::SET_UPDATE | Op::DICT_UPDATE | Op::LIST_APPEND
+            | Op::SET_ADD | Op::MAP_ADD | Op::LIST_TO_TUPLE | Op::DICT_MERGE
+            | Op::COPY_DICT_WITHOUT_KEYS => {
+                if self.inline_comp.is_some()
+                    && matches!(inst.op, Op::LIST_APPEND | Op::SET_ADD | Op::MAP_ADD)
+                {
+                    self.comp_add_element(inst);
+                } else {
+                    self.handle_collection_op(inst, arg);
+                }
+                true
+            }
+            Op::BUILD_LIST_UNPACK
+            | Op::BUILD_TUPLE_UNPACK
+            | Op::BUILD_SET_UNPACK
+            | Op::BUILD_MAP_UNPACK
+            | Op::BUILD_MAP_UNPACK_WITH_CALL
+            | Op::BUILD_TUPLE_UNPACK_WITH_CALL => {
+                let items = self.pop_n_exprs(arg as usize);
+                let starred: Vec<ExprRef> =
+                    items.into_iter().map(|e| Rc::new(Expr::Starred(e)) as ExprRef).collect();
+                let e = match inst.op {
+                    Op::BUILD_LIST_UNPACK => Expr::List(starred),
+                    Op::BUILD_SET_UNPACK => Expr::Set(starred),
+                    _ => Expr::Tuple(starred),
+                };
+                self.push(Rc::new(e));
+                true
+            }
+            Op::UNPACK_SEQUENCE => {
+                // pops the iterable and pushes N items (bottom->top order)
+                let value = self.pop_expr();
+                let n = arg as usize;
+                self.unpack_frames.push((n, n, None, value.clone()));
+                self.unpack_targets.0.push(Vec::new());
+                for _ in 0..n {
+                    self.stack.push(Sv::E(value.clone()));
+                }
+                true
+            }
+            Op::UNPACK_EX => {
+                let before = (arg & 0xFF) as usize;
+                let after = ((arg >> 8) & 0xFF) as usize;
+                let value = self.pop_expr();
+                let n = before + after + 1;
+                self.unpack_frames.push((n, n, Some(before), value.clone()));
+                self.unpack_targets.0.push(Vec::new());
+                for _ in 0..n {
+                    self.stack.push(Sv::E(value.clone()));
+                }
+                true
+            }
+
+            // ---------- stack manipulation ----------
+            Op::POP_TOP => {
+                self.handle_pop_top();
+                true
+            }
+            Op::ROT_TWO => {
+                let n = self.stack.len();
+                if n >= 2 {
+                    self.stack.swap(n - 1, n - 2);
+                }
+                true
+            }
+            Op::ROT_THREE => {
+                let n = self.stack.len();
+                if n >= 3 {
+                    let v = self.stack.remove(n - 1);
+                    self.stack.insert(n - 3, v);
+                }
+                true
+            }
+            Op::ROT_FOUR => {
+                let n = self.stack.len();
+                if n >= 4 {
+                    let v = self.stack.remove(n - 1);
+                    self.stack.insert(n - 4, v);
+                }
+                true
+            }
+            Op::ROT_N => {
+                let n = arg as usize;
+                let len = self.stack.len();
+                if len >= n && n > 1 {
+                    let v = self.stack.remove(len - 1);
+                    self.stack.insert(len - n, v);
+                }
+                true
+            }
+            Op::SWAP => {
+                let i = arg as usize;
+                let len = self.stack.len();
+                if len >= i && i > 0 {
+                    self.stack.swap(len - 1, len - i);
+                }
+                true
+            }
+            Op::DUP_TOP => {
+                if let Some(sv) = self.stack.last().cloned() {
+                    self.stack.push(sv);
+                }
+                true
+            }
+            Op::DUP_TOP_TWO => {
+                let n = self.stack.len();
+                if n >= 2 {
+                    let a = self.stack[n - 2].clone();
+                    let b = self.stack[n - 1].clone();
+                    self.stack.push(a);
+                    self.stack.push(b);
+                }
+                true
+            }
+            Op::DUP_TOPX => {
+                let n = arg as usize;
+                let len = self.stack.len();
+                if len >= n && n > 0 {
+                    let dup: Vec<Sv> = self.stack[len - n..].to_vec();
+                    self.stack.extend(dup);
+                }
+                true
+            }
+            Op::COPY => {
+                let n = arg as usize;
+                let len = self.stack.len();
+                if len >= n && n > 0 {
+                    let v = self.stack[len - n].clone();
+                    self.stack.push(v);
+                }
+                true
+            }
+            Op::PUSH_NULL => {
+                self.stack.push(Sv::Null);
+                true
+            }
+
+            // ---------- calls ----------
+            Op::CALL_FUNCTION => {
+                self.call_function_py(arg as usize, None, false);
+                true
+            }
+            Op::CALL_FUNCTION_VAR => {
+                self.call_function_py2_var(arg as usize);
+                true
+            }
+            Op::CALL_FUNCTION_KW => {
+                if self.version.at_least(3, 6) {
+                    let names = self.pop_expr();
+                    self.call_function_py(arg as usize, Some(names), false);
+                } else {
+                    self.call_function_py(arg as usize, None, false);
+                }
+                true
+            }
+            Op::CALL_FUNCTION_VAR_KW => {
+                self.call_function_py2_varkw(arg as usize);
+                true
+            }
+            Op::CALL_METHOD => {
+                // 3.7-3.10 method call: [meth, self_or_null, args...]
+                self.call_function_py(arg as usize, None, true);
+                true
+            }
+            Op::CALL => {
+                self.call_311(arg as usize, false);
+                true
+            }
+            Op::CALL_KW => {
+                let names_e = self.pop_expr();
+                let names: Vec<Option<String>> = match &*names_e {
+                    Expr::Const(o) => match &**o {
+                        PyObject::Tuple(items) => items
+                            .iter()
+                            .map(|it| match &**it {
+                                PyObject::Str(s) => Some(s.clone()),
+                                _ => None,
+                            })
+                            .collect(),
+                        _ => Vec::new(),
+                    },
+                    _ => Vec::new(),
+                };
+                self.call_311(arg as usize, false);
+                // retrofit kw names onto the produced call
+                if let Some(Sv::E(e)) = self.stack.last_mut() {
+                    if let Expr::Call { args, keywords, .. } = Rc::make_mut(e) {
+                        let total = args.len() + keywords.len();
+                        if names.len() == total {
+                            let pos_count = total - names.iter().take_while(|n| n.is_none()).count();
+                            let mut pos = 0usize;
+                            let mut new_args = Vec::new();
+                            let mut new_kws = Vec::new();
+                            let all_vals: Vec<ExprRef> = args
+                                .drain(..)
+                                .chain(keywords.drain(..).map(|(_, v)| v))
+                                .collect();
+                            for (i, v) in all_vals.into_iter().enumerate() {
+                                match names.get(i).cloned().flatten() {
+                                    Some(kw) => new_kws.push((Some(kw), v)),
+                                    None if pos < pos_count => {
+                                        new_args.push(v);
+                                        pos += 1;
+                                    }
+                                    None => new_args.push(v),
+                                }
+                            }
+                            *args = new_args;
+                            *keywords = new_kws;
+                        }
+                    }
+                }
+                true
+            }
+            Op::CALL_FUNCTION_EX => {
+                if arg & 1 != 0 {
+                    let kwargs = self.pop_expr();
+                    let args = self.pop_expr();
+                    let func = self.pop_expr();
+                    if self.version.at_least(3, 11) {
+                        self.pop(); // NULL/self marker
+                    }
+                    self.push(Rc::new(Expr::Call {
+                        func,
+                        args: Vec::new(),
+                        keywords: Vec::new(),
+                        star_args: Some(args),
+                        star_kwargs: Some(kwargs),
+                    }));
+                } else {
+                    let args = self.pop_expr();
+                    let func = self.pop_expr();
+                    if self.version.at_least(3, 11) {
+                        self.pop(); // NULL/self marker
+                    }
+                    self.push(Rc::new(Expr::Call {
+                        func,
+                        args: Vec::new(),
+                        keywords: Vec::new(),
+                        star_args: Some(args),
+                        star_kwargs: None,
+                    }));
+                }
+                true
+            }
+            Op::KW_NAMES => {
+                let keys_e = self.const_expr(arg as usize);
+                self.last_kw_names = match &*keys_e {
+                    Expr::Const(o) => match &**o {
+                        PyObject::Tuple(items) => items
+                            .iter()
+                            .map(|it| match &**it {
+                                PyObject::Str(s) => Some(s.clone()),
+                                _ => None,
+                            })
+                            .collect(),
+                        _ => Vec::new(),
+                    },
+                    _ => Vec::new(),
+                };
+                true
+            }
+
+            // ---------- functions / classes ----------
+            Op::MAKE_FUNCTION | Op::MAKE_CLOSURE => {
+                self.make_function(inst, arg);
+                true
+            }
+            Op::SET_FUNCTION_ATTRIBUTE => {
+                self.set_function_attribute_313(arg);
+                true
+            }
+            Op::BUILD_CLASS => {
+                // py2: [methods_dict, bases_tuple, name] (name on top);
+                // the class object result is stored by the next STORE_NAME
+                let name = self.pop_expr();
+                let bases = self.pop_expr();
+                let methods = self.pop_expr();
+                self.pending_py2_class = Some((name, bases, methods));
+                self.push(self.name_expr("/*class-object*/"));
+                true
+            }
+
+            // ---------- imports ----------
+            Op::IMPORT_NAME => {
+                let fromlist = self.pop_expr();
+                let level_e = self.pop_expr();
+                let level = match &*level_e {
+                    Expr::Const(o) => o.as_int().unwrap_or(0).max(0) as u32,
+                    _ => 0,
+                };
+                let module = self.const_name(arg as usize);
+                let fromlist = match &*fromlist {
+                    Expr::Const(o) if matches!(&**o, PyObject::None) => None,
+                    other => Some(Rc::new(other.clone()) as ExprRef),
+                };
+                self.stack.push(Sv::ImportModule {
+                    level,
+                    module,
+                    fromlist,
+                });
+                true
+            }
+            Op::IMPORT_FROM => {
+                let name = self.const_name(arg as usize);
+                // 3.12+: IMPORT_FROM may copy from TOS (the module); the
+                // module marker stays below.
+                if let Some(Sv::ImportModule { level, module, .. }) = self.stack.last() {
+                    let (level, module) = (*level, module.clone());
+                    self.stack.push(Sv::ImportFrom {
+                        level,
+                        module,
+                        name: name.clone(),
+                    });
+                } else {
+                    self.mark_unclean();
+                    self.push(self.name_expr(name));
+                }
+                true
+            }
+            Op::IMPORT_STAR => {
+                if let Some(Sv::ImportModule { level, module, .. }) = self.pop() {
+                    self.push_stmt(Stmt::ImportFrom {
+                        module,
+                        level,
+                        names: vec![("*".to_string(), None)],
+                    });
+                } else {
+                    self.mark_unclean();
+                }
+                true
+            }
+
+            // ---------- returns / yields ----------
+            Op::RETURN_VALUE => {
+                let e = self.pop_expr();
+                self.emit_return(Some(e));
+                // at function top level a RETURN ends the meaningful stream;
+                // trailing bytes are exception-table cleanup paths
+                !matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
+            }
+            Op::YIELD_VALUE => {
+                if self.await_mode {
+                    // await expr: stack [coro, sent]; consume both
+                    self.await_mode = false;
+                    self.skip_end_send = true;
+                    self.pop(); // sent value
+                    let coro = self.pop_expr();
+                    match &*coro {
+                        // async with: awaiting __aenter__/__aexit__ results
+                        Expr::Name(n)
+                            if n == WITH_RESULT_PLACEHOLDER || n.contains("underflow") =>
+                        {
+                            if n == WITH_RESULT_PLACEHOLDER {
+                                self.push(coro);
+                            }
+                        }
+                        _ => self.push(Rc::new(Expr::Await(coro))),
+                    }
+                    return true;
+                }
+                let e = self.pop_expr();
+                if self.code.is_coroutine() || self.code.is_async_generator() {
+                    // inside async functions a bare yield keeps its form
+                    self.push(Rc::new(Expr::Yield(Some(e))));
+                } else if arg == 1 && self.version.at_least(3, 14) {
+                    self.push_stmt(Stmt::Expr(Rc::new(Expr::Yield(Some(e)))));
+                } else {
+                    self.push(Rc::new(Expr::Yield(Some(e))));
+                }
+                true
+            }
+            Op::YIELD_FROM => {
+                // stack: [iterable, sent_value]; the sent value is on top
+                self.pop();
+                let e = self.pop_expr();
+                self.await_mode = false;
+                // async with: the awaited value is the __aenter__ result
+                // placeholder — keep it bare for the `as` store
+                let is_placeholder = matches!(&*e, Expr::Name(n) if n == WITH_RESULT_PLACEHOLDER);
+                if !is_placeholder && (self.code.is_coroutine() || self.code.is_async_generator())
+                {
+                    self.push(Rc::new(Expr::Await(e)));
+                } else if is_placeholder {
+                    self.push(e);
+                } else {
+                    self.push(Rc::new(Expr::YieldFrom(e)));
+                }
+                true
+            }
+            Op::SEND => true,
+            Op::END_SEND => {
+                if self.skip_end_send {
+                    self.skip_end_send = false;
+                } else {
+                    self.pop();
+                }
+                true
+            }
+            Op::RETURN_GENERATOR => {
+                // generator expression: the code object is the last code
+                // constant referenced by a preceding LOAD_CONST
+                let code_const = self
+                    .recent_code_const
+                    .clone();
+                self.pending_gen_code = code_const;
+                self.push(self.name_expr("/*generator*/"));
+                true
+            }
+            Op::GET_AWAITABLE => {
+                // value-preserving; materializes as `await` at the next
+                // YIELD_VALUE (3.11+) or YIELD_FROM (<=3.10)
+                self.await_mode = true;
+                true
+            }
+            Op::GET_ITER | Op::GET_YIELD_FROM_ITER | Op::GET_AITER | Op::GET_ANEXT => true,
+            Op::END_ASYNC_FOR => {
+                self.pop();
+                true
+            }
+            Op::END_FOR => {
+                if let Some(end) = self.inline_comp.as_ref().map(|c| c.end) {
+                    // pop the exhausted iterator; on 3.14 a following
+                    // POP_ITER does it instead
+                    // 3.14 uses POP_ITER, 3.13 uses POP_TOP after END_FOR
+                    // to remove the exhausted iterator
+                    let popiter_follows = self
+                        .instrs
+                        .iter()
+                        .find(|i| i.start >= inst.end())
+                        .map(|i| matches!(i.op, Op::POP_ITER | Op::POP_TOP))
+                        .unwrap_or(false);
+                    if !popiter_follows {
+                        // the VM keeps the iterator under the result list
+                        // until END_FOR pops it
+                        self.pop();
+                    }
+                    if inst.offset < end {
+                        return true; // inner loop cleanup
+                    }
+                    self.finish_inline_comp();
+                    return true;
+                }
+                self.pop();
+                if self.version.at_most(3, 12) {
+                    self.pop();
+                }
+                true
+            }
+            Op::POP_ITER => {
+                // pops the exhausted iterator left by FOR_ITER (3.14+)
+                self.pop();
+                true
+            }
+
+            // ---------- control flow ----------
+            Op::JUMP_FORWARD => {
+                let target = inst.target.unwrap_or(inst.end());
+                if self.find_loop_exit(target).is_some() {
+                    self.push_stmt(Stmt::Break);
+                    self.close_inner_blocks_to_loop();
+                }
+                self.handle_jump_forward(target)
+            }
+            Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::CONTINUE_LOOP => {
+                let target = inst.target.unwrap_or(0);
+                if let Some(comp) = &self.inline_comp {
+                    if comp.for_iter_offsets.contains(&target) {
+                        return true; // comprehension loop back edge
+                    }
+                }
+                // <=3.9: `break` is JUMP_ABSOLUTE to the loop exit
+                if target > self.cur_offset {
+                    if self.find_loop_exit(target).is_some() {
+                        self.push_stmt(Stmt::Break);
+                        self.close_inner_blocks_to_loop();
+                        return true;
+                    }
+                }
+                if self.is_continue_jump(target) {
+                    // continue of an outer loop: emit first, then close the
+                    // inner blocks it jumps out of
+                    self.push_stmt(Stmt::Continue);
+                    self.close_inner_blocks_to_loop();
+                    return true;
+                }
+                if target > self.cur_offset {
+                    // forward absolute jump (<=3.7 else/exit jumps). Inside
+                    // an If/Else block it ends a then/else body; otherwise
+                    // it skips over cleanup-handler code.
+                    let in_branch = matches!(
+                        self.blocks.last().map(|b| b.kind),
+                        Some(BlockType::If) | Some(BlockType::Else) | Some(BlockType::Try)
+                    );
+                    if in_branch {
+                        return self.handle_jump_forward(target);
+                    }
+                    self.close_blocks_at(self.cur_offset);
+                    self.skip_until = Some(target);
+                    return true;
+                }
+                self.handle_jump_backward(target);
+                true
+            }
+            Op::JUMP | Op::JUMP_NO_INTERRUPT => {
+                if inst.is_backward {
+                    let target = inst.target.unwrap_or(0);
+                    self.handle_jump_backward(target);
+                } else {
+                    let target = inst.target.unwrap_or(inst.end());
+                    return self.handle_jump_forward(target);
+                }
+                true
+            }
+            Op::POP_JUMP_IF_FALSE
+            | Op::POP_JUMP_FORWARD_IF_FALSE
+            | Op::POP_JUMP_BACKWARD_IF_FALSE => {
+                let target = inst.target.unwrap_or(inst.end());
+                let cond = self.pop_expr();
+                self.handle_cond_jump(cond, false, target);
+                true
+            }
+            Op::POP_JUMP_IF_TRUE
+            | Op::POP_JUMP_FORWARD_IF_TRUE
+            | Op::POP_JUMP_BACKWARD_IF_TRUE => {
+                let target = inst.target.unwrap_or(inst.end());
+                let cond = self.pop_expr();
+                self.handle_cond_jump(cond, true, target);
+                true
+            }
+            Op::POP_JUMP_IF_NONE | Op::POP_JUMP_FORWARD_IF_NONE | Op::POP_JUMP_BACKWARD_IF_NONE => {
+                let target = inst.target.unwrap_or(inst.end());
+                let val = self.pop_expr();
+                let cond = Rc::new(Expr::Compare {
+                    operands: vec![val, Rc::new(Expr::Const(Rc::new(PyObject::None)))],
+                    ops: vec![CmpOp::Is],
+                });
+                self.handle_cond_jump(cond, false, target);
+                true
+            }
+            Op::POP_JUMP_IF_NOT_NONE
+            | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+            | Op::POP_JUMP_BACKWARD_IF_NOT_NONE => {
+                let target = inst.target.unwrap_or(inst.end());
+                let val = self.pop_expr();
+                let cond = Rc::new(Expr::Compare {
+                    operands: vec![val, Rc::new(Expr::Const(Rc::new(PyObject::None)))],
+                    ops: vec![CmpOp::IsNot],
+                });
+                self.handle_cond_jump(cond, false, target);
+                true
+            }
+            Op::JUMP_IF_TRUE_OR_POP => {
+                // `or`: if truthy jump keeping value, else pop and continue
+                let target = inst.target.unwrap_or(inst.end());
+                self.handle_short_circuit(true, target);
+                true
+            }
+            Op::JUMP_IF_FALSE_OR_POP => {
+                // `and`
+                let target = inst.target.unwrap_or(inst.end());
+                self.handle_short_circuit(false, target);
+                true
+            }
+            Op::FOR_ITER => {
+                if self.in_comp_region(inst.offset)
+                    && !self.has_build_prologue(inst.offset)
+                {
+                    // additional generator of the SAME comprehension
+                    // (`for x in A for y in B`)
+                    self.push_nested_comp_gen();
+                    return true;
+                }
+                if let Some(kind) = self.detect_inline_comp() {
+                    self.start_inline_comp(kind, inst);
+                    return true;
+                }
+                let target = inst.target.unwrap_or(inst.end());
+                // async for: the iterable expression is an Await, or we are
+                // inside an async def using GET_AITER
+                let is_async = matches!(
+                    self.stack.last(),
+                    Some(Sv::E(e)) if matches!(&**e, Expr::Await(_))
+                );
+                if is_async {
+                    if let Some(Sv::E(e)) = self.stack.last_mut() {
+                        if let Expr::Await(inner) = &**e {
+                            *e = inner.clone();
+                        }
+                    }
+                }
+                self.handle_for_iter(target, is_async);
+                true
+            }
+            Op::FOR_LOOP => {
+                if self.in_comp_region(inst.offset)
+                    && !self.has_build_prologue(inst.offset)
+                {
+                    self.push_nested_comp_gen();
+                    return true;
+                }
+                if let Some(kind) = self.detect_inline_comp() {
+                    self.start_inline_comp(kind, inst);
+                    return true;
+                }
+                // 3.14: FOR_LOOP with kind in low bits of arg
+                let target = inst.target.unwrap_or(inst.end());
+                self.handle_for_iter(target, false);
+                true
+            }
+            Op::BREAK_LOOP => {
+                self.push_stmt(Stmt::Break);
+                true
+            }
+
+            // ---------- block setup (<= 3.10 era) ----------
+            Op::SETUP_LOOP => {
+                let target = inst.target.unwrap_or(inst.end());
+                let mut blk = Block::new(BlockType::While, inst.end(), target);
+                blk.cond_set = false;
+                self.blocks.push(blk);
+                true
+            }
+            Op::SETUP_EXCEPT => {
+                let target = inst.target.unwrap_or(inst.end());
+                if let Some(top) = self.blocks.last_mut() {
+                    top.loop_else_end = Some(target);
+                }
+                self.blocks.push(Block::new(BlockType::Try, inst.end(), target));
+                true
+            }
+            Op::SETUP_FINALLY => {
+                let target = inst.target.unwrap_or(inst.end());
+                if self.version.at_least(3, 8) {
+                    // 3.8+: also used for except handlers; treat like SETUP_EXCEPT
+                    if let Some(top) = self.blocks.last_mut() {
+                        top.loop_else_end = Some(target);
+                    }
+                    let mut t = Block::new(BlockType::Try, inst.end(), target);
+                    t.finally_target = Some(target);
+                    self.blocks.push(t);
+                } else {
+                    let mut cont = Block::new(BlockType::Container, inst.end(), usize::MAX);
+                    cont.finally_target = Some(target);
+                    self.blocks.push(cont);
+                    let mut t = Block::new(BlockType::Try, inst.end(), target);
+                    t.finally_target = Some(target);
+                    self.blocks.push(t);
+                }
+                true
+            }
+            Op::SETUP_CLEANUP => {
+                let target = inst.target.unwrap_or(inst.end());
+                if let Some(top) = self.blocks.last_mut() {
+                    top.loop_else_end = Some(target);
+                }
+                let mut t = Block::new(BlockType::Try, inst.end(), target);
+                t.finally_target = Some(target);
+                self.blocks.push(t);
+                true
+            }
+            Op::SETUP_WITH => {
+                self.handle_with_setup(inst.target, false);
+                true
+            }
+            Op::SETUP_ASYNC_WITH => {
+                self.handle_with_setup(inst.target, true);
+                true
+            }
+            Op::BEFORE_ASYNC_WITH => {
+                if self.version.at_least(3, 11) {
+                    // 3.10+/3.11+: like BEFORE_WITH but awaits __aenter__
+                    let ctx_e = self.pop_expr();
+                    self.with_exits += 1;
+                    let item = WithItem {
+                        ctx: ctx_e,
+                        target: None,
+                    };
+                    let start = inst.end();
+                    let end = self
+                        .with_regions
+                        .get(&start)
+                        .copied()
+                        .unwrap_or(usize::MAX);
+                    let mut wb = Block::new(BlockType::With, start, end);
+                    wb.is_async = true;
+                    wb.with_item = Some(item);
+                    self.blocks.push(wb);
+                    self.push(self.name_expr(WITH_RESULT_PLACEHOLDER));
+                } else {
+                    // <=3.10: pushes the __aenter__ awaitable; the With block
+                    // is opened by the following SETUP_ASYNC_WITH using the
+                    // stashed context expression
+                    let ctx_e = self.pop_expr();
+                    self.pending_async_with_ctx = Some(ctx_e);
+                    self.push(self.name_expr(WITH_RESULT_PLACEHOLDER));
+                }
+                true
+            }
+            Op::BEFORE_WITH => {
+                // 3.11+: pushes __exit__ then result; block boundary comes
+                // from the exception table entry that starts right after.
+                let ctx_e = self.pop_expr();
+                let result = self.pop_expr();
+                self.with_exits += 1;
+                let _ = result;
+                let item = WithItem {
+                    ctx: ctx_e,
+                    target: None,
+                };
+                self.pending_with.push(vec![item]);
+                self.push(self.name_expr(WITH_RESULT_PLACEHOLDER));
+                // open a With block; its end is the exception-table handler
+                let start = inst.end();
+                let end = self
+                    .exc_entries
+                    .iter()
+                    .find(|e| e.start == start || e.start == inst.end())
+                    .map(|e| e.target)
+                    .unwrap_or(usize::MAX);
+                let mut wb = Block::new(BlockType::With, start, end);
+                wb.is_async = false;
+                self.blocks.push(wb);
+                true
+            }
+            Op::POP_BLOCK => {
+                self.handle_pop_block();
+                true
+            }
+            Op::POP_EXCEPT => {
+                if let Some(top) = self.blocks.last() {
+                    if top.kind == BlockType::Except {
+                        let pos = inst.offset;
+                        self.force_close_top(pos);
+                    }
+                }
+                self.pop();
+                true
+            }
+            Op::END_FINALLY => {
+                self.pop();
+                self.close_finally();
+                true
+            }
+            Op::WITH_CLEANUP => {
+                // py2 / <=3.4: pops exception state + 3 exits
+                self.pop();
+                self.with_exits = self.with_exits.saturating_sub(1);
+                self.handle_with_body_end();
+                true
+            }
+            Op::WITH_CLEANUP_START => {
+                self.with_exits = self.with_exits.saturating_sub(1);
+                true
+            }
+            Op::WITH_CLEANUP_FINISH => {
+                self.handle_with_body_end();
+                true
+            }
+            Op::WITH_EXCEPT_START => {
+                // 3.11+: result of __exit__ call on top; then POP_EXCEPT etc.
+                self.pop();
+                self.with_exits = self.with_exits.saturating_sub(1);
+                true
+            }
+            Op::CHECK_EXC_MATCH => {
+                let pattern = self.pop_expr();
+                let exc = self.pop_expr();
+                self.push(exc);
+                self.push(pattern);
+                true
+            }
+            Op::CHECK_EG_MATCH => {
+                self.pop();
+                self.pop();
+                true
+            }
+            Op::RERAISE => {
+                for _ in 0..=arg.min(2) {
+                    self.pop();
+                }
+                true
+            }
+            Op::PREP_RERAISE_STAR => {
+                self.pop();
+                self.pop();
+                true
+            }
+            Op::CLEANUP_THROW => {
+                self.pop();
+                self.pop();
+                true
+            }
+            Op::CALL_FINALLY => {
+                // 3.8 alpha era
+                let target = inst.target.unwrap_or(inst.end());
+                if let Some(top) = self.blocks.last_mut() {
+                    top.finally_target = Some(target);
+                }
+                self.stack.push(Sv::Null);
+                true
+            }
+            Op::POP_FINALLY => {
+                self.pop();
+                self.close_finally();
+                true
+            }
+            Op::JUMP_IF_NOT_EXC_MATCH => {
+                let target = inst.target.unwrap_or(inst.end());
+                let pattern = self.pop_expr();
+                let exc = self.pop_expr();
+                let cond = Rc::new(Expr::Compare {
+                    operands: vec![exc, pattern],
+                    ops: vec![CmpOp::ExceptionMatch],
+                });
+                self.handle_cond_jump(cond, true, target);
+                true
+            }
+            Op::RAISE_VARARGS => match arg {
+                0 => {
+                    self.push_stmt(Stmt::Raise {
+                        exc: None,
+                        cause: None,
+                    });
+                    true
+                }
+                1 => {
+                    let exc = self.pop_expr();
+                    self.push_stmt(Stmt::Raise {
+                        exc: Some(exc),
+                        cause: None,
+                    });
+                    true
+                }
+                _ => {
+                    let cause = self.pop_expr();
+                    let exc = self.pop_expr();
+                    self.push_stmt(Stmt::Raise {
+                        exc: Some(exc),
+                        cause: Some(cause),
+                    });
+                    true
+                }
+            },
+
+            // ---------- py2 print / exec ----------
+            Op::PRINT_ITEM => {
+                let v = self.pop_expr();
+                self.pending_print.push(v);
+                true
+            }
+            Op::PRINT_ITEM_TO => {
+                // [dest, item] with item on top? py2: PRINT_ITEM_TO pops item then leaves dest? 
+                let v = self.pop_expr();
+                self.pending_print.push(v);
+                true
+            }
+            Op::PRINT_NEWLINE => {
+                let values = std::mem::take(&mut self.pending_print);
+                let dest = self.pending_print_dest.take();
+                self.push_stmt(Stmt::Print {
+                    dest,
+                    values,
+                    newline: true,
+                });
+                true
+            }
+            Op::PRINT_NEWLINE_TO => {
+                let values = std::mem::take(&mut self.pending_print);
+                let dest = self.pop_expr();
+                self.push_stmt(Stmt::Print {
+                    dest: Some(dest),
+                    values,
+                    newline: true,
+                });
+                true
+            }
+            Op::PRINT_EXPR => {
+                // interactive-mode only; treat as expression statement
+                let e = self.pop_expr();
+                self.push_stmt(Stmt::Expr(e));
+                true
+            }
+            Op::EXEC_STMT => {
+                let locals = self.pop_expr();
+                let globals = self.pop_expr();
+                let code = self.pop_expr();
+                self.push_stmt(Stmt::Exec {
+                    code,
+                    globals: none_if_const_none(globals),
+                    locals: none_if_const_none(locals),
+                });
+                true
+            }
+
+            // ---------- f-strings ----------
+            Op::FORMAT_VALUE => {
+                // oparg: bits 0-1 conversion (1=str 2=repr 3=ascii),
+                // bit 2 = has format spec
+                let conversion = match arg & 0x3 {
+                    1 => Some('s'),
+                    2 => Some('r'),
+                    3 => Some('a'),
+                    _ => None,
+                };
+                let format_spec = if arg & 0x04 != 0 {
+                    Some(self.pop_expr())
+                } else {
+                    None
+                };
+                let value = self.pop_expr();
+                let part = FStringPart::Value {
+                    value,
+                    conversion,
+                    format_spec: format_spec.map(|f| Box::new(expr_to_fstring(f))),
+                };
+                self.push(Rc::new(Expr::FString(Box::new(FString {
+                    parts: vec![part],
+                }))));
+                true
+            }
+            Op::FORMAT_SIMPLE => {
+                let value = self.pop_expr();
+                // 3.13+: CONVERT_VALUE already produced a single-part
+                // f-string; reuse it instead of nesting
+                if let Expr::FString(f) = &*value {
+                    if f.parts.len() == 1 {
+                        self.push(value);
+                        return true;
+                    }
+                }
+                let part = FStringPart::Value {
+                    value,
+                    conversion: None,
+                    format_spec: None,
+                };
+                self.push(Rc::new(Expr::FString(Box::new(FString {
+                    parts: vec![part],
+                }))));
+                true
+            }
+            Op::FORMAT_WITH_SPEC => {
+                let spec = self.pop_expr();
+                let value = self.pop_expr();
+                // unwrap a CONVERT_VALUE single-part f-string, keeping its
+                // conversion flag
+                let (value, conversion) = match &*value {
+                    Expr::FString(f) if f.parts.len() == 1 => {
+                        match &f.parts[0] {
+                            FStringPart::Value {
+                                value: v,
+                                conversion: c,
+                                format_spec: None,
+                            } => (v.clone(), *c),
+                            _ => (value, None),
+                        }
+                    }
+                    _ => (value, None),
+                };
+                let part = FStringPart::Value {
+                    value,
+                    conversion,
+                    format_spec: Some(Box::new(expr_to_fstring(spec))),
+                };
+                self.push(Rc::new(Expr::FString(Box::new(FString {
+                    parts: vec![part],
+                }))));
+                true
+            }
+            Op::CONVERT_VALUE => {
+                let value = self.pop_expr();
+                let conversion = match arg {
+                    1 => Some('s'),
+                    2 => Some('r'),
+                    3 => Some('a'),
+                    _ => None,
+                };
+                let part = FStringPart::Value {
+                    value,
+                    conversion,
+                    format_spec: None,
+                };
+                self.push(Rc::new(Expr::FString(Box::new(FString {
+                    parts: vec![part],
+                }))));
+                true
+            }
+
+            // ---------- annotations ----------
+            Op::STORE_ANNOTATION => {
+                // 3.6.0 only: [value?, annotation] — CPython: TOS=ann, TOS1=name
+                let ann = self.pop_expr();
+                let target = self.pop_expr();
+                self.push_stmt(Stmt::AnnAssign {
+                    target,
+                    annotation: ann,
+                    value: None,
+                });
+                true
+            }
+
+            // ---------- match (3.10+) — not yet supported ----------
+            Op::GET_LEN
+            | Op::MATCH_KEYS
+            | Op::MATCH_MAPPING
+            | Op::MATCH_SEQUENCE
+            | Op::MATCH_CLASS => {
+                self.unimplemented(inst, "match/case");
+                true
+            }
+            Op::CALL_INTRINSIC_1 | Op::CALL_INTRINSIC_2 => {
+                // 3.11: {1: async_gen_wrap, 2: import_star, 3: stopiteration}
+                // 3.12+: {0: print_expr, 1: import_star, 2: async_gen_wrap}
+                let import_star = if self.version.at_least(3, 12) {
+                    arg == 1
+                } else {
+                    arg == 2
+                };
+                if import_star && inst.op == Op::CALL_INTRINSIC_1 {
+                    if let Some(Sv::ImportModule { level, module, .. }) = self.pop() {
+                        self.push_stmt(Stmt::ImportFrom {
+                            module,
+                            level,
+                            names: vec![("*".to_string(), None)],
+                        });
+                    }
+                }
+                // all other intrinsics are value-preserving pass-throughs
+                true
+            }
+
+            Op::Unknown => {
+                self.unimplemented(inst, "unknown opcode");
+                true
+            }
+            other => {
+                self.unimplemented(inst, "unsupported opcode");
+                let _ = other;
+                true
+            }
+        };
+        // statements flush any pending multi-store group; pure stack
+        // manipulation and further stores do not
+        if !is_stack_plumbing(inst.op) && !is_store_op(inst.op) {
+            self.flush_pending_stores();
+        }
+        cont
+    }
+
+    /// Flush a group of stores that share one source line as a simultaneous
+    /// assignment (`a, b = b, a + b`) or a chained assignment (`a = b = e`).
+    fn group_has_swap(&self) -> bool {
+        self.instrs
+            .iter()
+            .skip_while(|i| i.offset <= self.last_flush_offset)
+            .take_while(|i| i.offset <= self.cur_offset)
+            .any(|i| {
+                matches!(
+                    i.op,
+                    Op::SWAP | Op::ROT_TWO | Op::ROT_THREE | Op::ROT_FOUR | Op::ROT_N
+                )
+            })
+    }
+
+    fn flush_pending_stores(&mut self) {
+        if self.pending_stores.len() >= 2 {
+            let group = std::mem::take(&mut self.pending_stores);
+            self.last_store_line = None;
+            let all_same = group.windows(2).all(|w| expr_eq(&w[0].1, &w[1].1));
+            if all_same {
+                let value = group[0].1.clone();
+                let targets: Vec<ExprRef> = group.iter().map(|(t, _)| t.clone()).collect();
+                self.push_stmt(Stmt::Assign { targets, value });
+            } else {
+                // simultaneous assignment from consecutive stores. Store
+                // order is reversed relative to source when the compiler
+                // used the ROT/SWAP-free overlapping-values trick (3.12+);
+                // an explicit SWAP/ROT inside the group means the values
+                // were pre-arranged and stores follow source order.
+                let has_swap = self.group_has_swap();
+                let (targets, values): (Vec<ExprRef>, Vec<ExprRef>) = if has_swap {
+                    (
+                        group.iter().map(|(t, _)| t.clone()).collect(),
+                        group.iter().map(|(_, v)| v.clone()).collect(),
+                    )
+                } else {
+                    (
+                        group.iter().rev().map(|(t, _)| t.clone()).collect(),
+                        group.iter().rev().map(|(_, v)| v.clone()).collect(),
+                    )
+                };
+                self.push_stmt(Stmt::Assign {
+                    targets: vec![Rc::new(Expr::Tuple(targets))],
+                    value: Rc::new(Expr::Tuple(values)),
+                });
+            }
+        } else if self.pending_stores.len() == 1 {
+            let (t, v) = self.pending_stores.pop().unwrap();
+            self.last_store_line = None;
+            self.push_stmt(Stmt::Assign {
+                targets: vec![t],
+                value: v,
+            });
+        } else {
+            self.last_store_line = None;
+        }
+    }
+}
+
+/// Store opcodes participate in the pending group without flushing it.
+fn is_store_op(op: Op) -> bool {
+    matches!(
+        op,
+        Op::STORE_FAST
+            | Op::STORE_FAST_MAYBE_NULL
+            | Op::STORE_FAST_LOAD_FAST
+            | Op::STORE_FAST_STORE_FAST
+            | Op::STORE_NAME
+            | Op::STORE_GLOBAL
+            | Op::STORE_DEREF
+    )
+}
+
+/// Opcodes that only move values around and must not flush a pending
+/// multi-store group.
+fn is_stack_plumbing(op: Op) -> bool {
+    matches!(
+        op,
+        Op::POP_TOP
+            | Op::ROT_TWO
+            | Op::ROT_THREE
+            | Op::ROT_FOUR
+            | Op::ROT_N
+            | Op::SWAP
+            | Op::DUP_TOP
+            | Op::DUP_TOP_TWO
+            | Op::DUP_TOPX
+            | Op::COPY
+            | Op::PUSH_NULL
+            | Op::NOP
+            | Op::CACHE
+            | Op::RESUME
+            | Op::RESUME_CHECK
+            | Op::PRECALL
+            | Op::EXTENDED_ARG
+            | Op::TO_BOOL
+            | Op::UNPACK_SEQUENCE
+            | Op::UNPACK_EX
+    )
+}
+
+// =====================  control-flow handlers  =====================
+
+impl<'a> Ctx<'a> {
+    /// Conditional jump. `jump_if_true` = the branch taken when the
+    /// condition holds.
+    fn handle_cond_jump(&mut self, cond: ExprRef, jump_if_true: bool, target: usize) {
+        // inline comprehension filter: `... if cond`
+        if let Some(comp) = &mut self.inline_comp {
+            if self.cur_offset < comp.end {
+                let c = if jump_if_true {
+                    Rc::new(Expr::Unary {
+                        op: UnaryOp::Not,
+                        operand: cond,
+                    })
+                } else {
+                    cond
+                };
+                if let Some(cur) = &mut comp.cur {
+                    cur.ifs.push(simplify_not(c));
+                }
+                return;
+            }
+        }
+        // 0) a cond jump whose target is the end of an open Else block and
+        // which is NOT an elif condition closes the else body first. The
+        // elif test would create a nested If at the same target, so keep
+        // the Else open in that case.
+        if let Some(top) = self.blocks.last() {
+            if matches!(top.kind, BlockType::Else | BlockType::TryElse)
+                && top.end == target
+                && !top.is_elif
+                && self.cur_offset != top.start
+            {
+                self.close_blocks_at(target);
+            }
+        }
+
+        // 1) short-circuit merge: a JUMP_IF_*_OR_POP block ending here
+        if let Some(top) = self.blocks.last() {
+            if matches!(top.kind, BlockType::If) && top.short_circuit.is_some() && top.end == target
+            {
+                let or_form = top.short_circuit.unwrap();
+                let left = top.cond.clone().unwrap();
+                let mut b = self.blocks.pop().unwrap();
+                let _ = &mut b;
+                let right = self.pop_expr();
+                let kind = if or_form {
+                    BoolOpKind::Or
+                } else {
+                    BoolOpKind::And
+                };
+                let merged = Rc::new(Expr::BoolOp {
+                    op: kind,
+                    values: vec![left, right],
+                });
+                self.push(merged);
+                return;
+            }
+        }
+
+        // 2) rotated while: duplicated cond jump to the same exit — ignore.
+        // Only matches the loop cond's own polarity; an opposite-polarity
+        // jump to the loop exit is an `if c: break`.
+        if let Some(top) = self.blocks.last() {
+            if matches!(top.kind, BlockType::While)
+                && top.cond_set
+                && top.jump_if_true == jump_if_true
+                && top.end == target
+                && top.cond_end > 0
+                && top.cond_end < self.cur_offset
+            {
+                return;
+            }
+        }
+
+        // 3) BoolOp merge inside an open If whose end == target
+        if let Some(top) = self.blocks.last_mut() {
+            if matches!(top.kind, BlockType::If)
+                && top.end == target
+                && top.cond_set
+                && top.short_circuit.is_none()
+                && top.jump_if_true == jump_if_true
+            {
+                let prev = top.cond.take().unwrap();
+                let kind = if jump_if_true {
+                    BoolOpKind::Or
+                } else {
+                    BoolOpKind::And
+                };
+                let mut values = Vec::new();
+                flatten_boolop(prev, kind, &mut values);
+                flatten_boolop(cond, kind, &mut values);
+                top.cond = Some(Rc::new(Expr::BoolOp { op: kind, values }));
+                return;
+            }
+        }
+
+        // 3) uninitialized While block: this jump is the loop condition
+        if let Some(top) = self.blocks.last_mut() {
+            if matches!(top.kind, BlockType::While) && !top.cond_set {
+                let c = if jump_if_true {
+                    Rc::new(Expr::Unary {
+                        op: UnaryOp::Not,
+                        operand: cond,
+                    })
+                } else {
+                    cond
+                };
+                top.cond = Some(c);
+                top.cond_set = true;
+                top.jump_if_true = jump_if_true;
+                if target != top.end {
+                    // exit target differs from SETUP_LOOP end -> while/else
+                    top.loop_else_end = Some(target);
+                }
+                return;
+            }
+        }
+
+        // 4) except-block matching (3.10+ CHECK_EXC_MATCH style)
+        if let Expr::Compare { operands, ops } = &*cond {
+            if ops.len() == 1 && matches!(ops[0], CmpOp::ExceptionMatch) {
+                let pattern = operands[1].clone();
+                self.open_except_block(target, Some(pattern));
+                return;
+            }
+        }
+
+        // 5) assert detection: `if not cond: raise AssertionError`
+        if !jump_if_true && self.is_assert_target(target) {
+            let msg = self.try_extract_assert_msg(target);
+            self.push_stmt(Stmt::Assert {
+                test: cond,
+                msg,
+            });
+            return;
+        }
+
+        // 5.5) backward conditional jumps inside loops
+        if target < self.cur_offset {
+            let n = self.blocks.len();
+            for i in (0..n).rev() {
+                if matches!(self.blocks[i].kind, BlockType::While | BlockType::For) {
+                    let b = &self.blocks[i];
+                    let matches_loop = b.start == target
+                        || b.cond_end == target
+                        || (b.start <= target && target < b.cond_end);
+                    if !matches_loop {
+                        continue;
+                    }
+                    if jump_if_true {
+                        // 3.10+ rotated while back edge: closes the loop
+                        while self.blocks.len() > i {
+                            self.force_close_top(target);
+                        }
+                        return;
+                    }
+                    // backward PJIF to the loop top (`if c: break` shape):
+                    // the then-body runs until the real back edge
+                    if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
+                        for inst in self.instrs.iter().skip(ci + 1) {
+                            if inst.is_backward
+                                && matches!(
+                                    inst.op,
+                                    Op::JUMP_ABSOLUTE
+                                        | Op::JUMP_BACKWARD
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                )
+                            {
+                                let mut blk =
+                                    Block::new(BlockType::If, self.cur_next, inst.start);
+                                let c = cond.clone();
+                                blk.cond = Some(c);
+                                blk.cond_set = true;
+                                self.blocks.push(blk);
+                                return;
+                            }
+                            if matches!(inst.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                                break;
+                            }
+                        }
+                    }
+                    return;
+                }
+            }
+        }
+
+        // 6) while loop (3.8+): a backward jump inside the jump-target
+        // region that lands at the current instruction offset marks a loop.
+        let cur = self.cur_offset;
+        if let (Some(&ci), Some(&ti)) = (self.idx_of.get(&cur), self.idx_of.get(&target)) {
+            if ti > ci {
+                for inst in &self.instrs[ci..ti] {
+                    if let Some(t) = inst.target {
+                        // back edge to the cond jump itself or to the start
+                        // of the condition expression (rotated while loops:
+                        // the back edge skips the duplicated initial cond)
+                        if inst.is_backward
+                            && t < target
+                            && (t == cur
+                                || t == self.cur_next
+                                || (t < cur && self.is_cond_expr_top(t, cur)))
+                        {
+                            let cond_end = self.instrs[ci].end();
+                            let mut blk = Block::new(BlockType::While, t, target);
+                            blk.cond = Some(if jump_if_true {
+                                Rc::new(Expr::Unary {
+                                    op: UnaryOp::Not,
+                                    operand: cond,
+                                })
+                            } else {
+                                cond
+                            });
+                            blk.cond_set = true;
+                            blk.cond_end = cond_end;
+                            blk.jump_if_true = jump_if_true;
+                            self.blocks.push(blk);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3.14+: `if c: break` compiles to a conditional jump straight to
+        // the loop exit with the back edge as fall-through
+        if self.find_loop_exit(target).is_some() {
+            let c = if jump_if_true {
+                cond
+            } else {
+                Rc::new(Expr::Unary {
+                    op: UnaryOp::Not,
+                    operand: cond,
+                })
+            };
+            self.push_stmt(Stmt::If {
+                cond: c,
+                body: vec![Stmt::Break],
+                orelse: Vec::new(),
+            });
+            return;
+        }
+
+        // close inner blocks that end at the current instruction before
+        // opening the new one
+        self.close_blocks_at(self.cur_offset);
+
+        // 7) regular if statement: the fall-through region [next, target)
+        // is the then-body. With POP_JUMP_IF_TRUE the fall-through runs when
+        // the condition is false, so negate.
+        let c = if jump_if_true {
+            Rc::new(Expr::Unary {
+                op: UnaryOp::Not,
+                operand: cond,
+            })
+        } else {
+            cond
+        };
+        let mut blk = Block::new(BlockType::If, self.cur_next, target);
+        // COPY/TO_BOOL + cond jump = value-preserving branch (3.12+ and/or
+        // chains, chained comparisons); plain statements are guarded at
+        // close time by requiring an empty body and a live stack value
+        if matches!(self.prev_op_at_exec, Some(Op::COPY) | Some(Op::TO_BOOL)) {
+            blk.value_merge = Some(if jump_if_true {
+                BoolOpKind::Or
+            } else {
+                BoolOpKind::And
+            });
+        }
+        blk.cond = Some(c);
+        blk.cond_set = true;
+        blk.jump_if_true = jump_if_true;
+        blk.stack_depth = self.stack.len();
+        self.blocks.push(blk);
+    }
+
+    /// True when the code at `target` immediately raises AssertionError.
+    fn is_assert_target(&self, target: usize) -> bool {
+        let Some(&i) = self.idx_of.get(&target) else {
+            return false;
+        };
+        // 3.10+: [TO_BOOL?] LOAD_ASSERTION_ERROR RAISE_VARARGS 1
+        // <=3.9: LOAD_ASSERTION_ERROR RAISE_VARARGS 1
+        let instrs = &self.instrs;
+        let mut k = i;
+        // skip harmless prologue ops
+        while matches!(
+            instrs.get(k).map(|x| x.op),
+            Some(Op::TO_BOOL) | Some(Op::COPY) | Some(Op::POP_TOP)
+        ) {
+            k += 1;
+        }
+        if instrs.get(k).map(|x| x.op) != Some(Op::LOAD_ASSERTION_ERROR) {
+            return false;
+        }
+        k += 1;
+        // optional: message expression then RAISE_VARARGS 2
+        matches!(instrs.get(k).map(|x| (x.op, x.arg)), Some((Op::RAISE_VARARGS, 1)))
+            || self.scan_to_raise2(k)
+    }
+
+    fn scan_to_raise2(&self, from: usize) -> bool {
+        let mut k = from;
+        let mut steps = 0;
+        while let Some(inst) = self.instrs.get(k) {
+            match inst.op {
+                Op::RAISE_VARARGS => return inst.arg == 2,
+                Op::LOAD_ASSERTION_ERROR | Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_IF_TRUE => {
+                    return false
+                }
+                _ => {
+                    k += 1;
+                    steps += 1;
+                    if steps > 16 {
+                        return false;
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    /// Simulate the message expression between LOAD_ASSERTION_ERROR and
+    /// RAISE_VARARGS 2 (constant messages only, which is the common case).
+    fn try_extract_assert_msg(&self, target: usize) -> Option<ExprRef> {
+        let &i = self.idx_of.get(&target)?;
+        let instrs = &self.instrs;
+        let mut k = i;
+        while matches!(instrs.get(k).map(|x| x.op), Some(Op::TO_BOOL) | Some(Op::COPY)) {
+            k += 1;
+        }
+        if instrs.get(k).map(|x| x.op) != Some(Op::LOAD_ASSERTION_ERROR) {
+            return None;
+        }
+        k += 1;
+        // expect: LOAD_CONST <msg>; RAISE_VARARGS 2
+        if instrs.get(k).map(|x| x.op) == Some(Op::LOAD_CONST)
+            && instrs.get(k + 1).map(|x| (x.op, x.arg)) == Some((Op::RAISE_VARARGS, 2))
+        {
+            let idx = instrs[k].arg as usize;
+            return self.code.consts.get(idx).map(|o| Rc::new(Expr::Const(o.clone())));
+        }
+        None
+    }
+
+    fn open_except_block(&mut self, target: usize, pattern: Option<ExprRef>) {
+        // The Try block on the stack ends at the handler start (== where we
+        // are now). Open an Except block ending at `target` (the jump out of
+        // the handler).
+        let start = self.blocks.last().map(|b| b.end).unwrap_or(0);
+        let mut eb = Block::new(BlockType::Except, start, target);
+        eb.handler_type = pattern;
+        self.blocks.push(eb);
+    }
+
+    /// JUMP_IF_TRUE_OR_POP / JUMP_IF_FALSE_OR_POP: begin a short-circuit
+    /// region. The value stays on the stack; at the target we merge.
+    fn handle_short_circuit(&mut self, or_form: bool, target: usize) {
+        // pycdc-style: mark a pending merge by pushing an If block whose
+        // "cond" is the left operand; closing merges into BoolOp.
+        let left = self.pop_expr();
+        let mut blk = Block::new(BlockType::If, self.cur_next, target);
+        blk.cond = Some(left);
+        blk.cond_set = true;
+        blk.short_circuit = Some(or_form);
+        blk.stack_depth = self.stack.len();
+        self.blocks.push(blk);
+    }
+
+    fn handle_jump_forward(&mut self, target: usize) -> bool {
+        self.close_blocks_at(self.cur_offset);
+        if let Some(top) = self.blocks.last() {
+            match top.kind {
+                BlockType::If if top.else_end.is_none() && top.short_circuit.is_none() => {
+                    if target > top.end {
+                        // end of then-body jumping over the else branch
+                        if let Some(t) = self.blocks.last_mut() {
+                            t.else_end = Some(target);
+                        }
+                    }
+                    // target == block end: dead-code skip, no else clause
+                    return true;
+                }
+                BlockType::If if top.short_circuit.is_some() => {
+                    // value-merge region: remember where the false path ends
+                    if let Some(t) = self.blocks.last_mut() {
+                        t.else_end = Some(target);
+                    }
+                    return true;
+                }
+                BlockType::Else | BlockType::Except => {
+                    // jump out of an else/except body: close it now; when an
+                    // Else block was created from an elif region mark it so
+                    // the closer can rebuild the chain
+                    self.close_blocks_at(top.end);
+                    return true;
+                }
+                BlockType::While | BlockType::For if target > top.end => {
+                    // jump over the loop-else region: mark it now so the
+                    // upcoming close creates the Else block
+                    if let Some(t) = self.blocks.last_mut() {
+                        t.loop_else_end = Some(target);
+                    }
+                    return true;
+                }
+                BlockType::Try => {
+                    // try body finished; else clause runs to target, then finally
+                    let finally_target = top.finally_target;
+                    let end = top.end;
+                    if let Some(t) = self.blocks.last_mut() {
+                        t.loop_else_end = Some(target);
+                    }
+                    let _ = (finally_target, end);
+                    return true;
+                }
+                _ => {}
+            }
+        }
+        true
+    }
+
+    /// elif detection: `elif c:` and `else: if c:` compile identically, so
+    /// we canonicalize — if the first jump inside the else region is a
+    /// conditional jump, treat the region as an elif continuation.
+    fn starts_with_cond_jump(&self, pos: usize, limit: usize) -> bool {
+        for inst in self.instrs.iter() {
+            if inst.start < pos {
+                continue;
+            }
+            if inst.start >= limit {
+                return false;
+            }
+            if inst.op == Op::CACHE {
+                continue;
+            }
+            if inst.target.is_some() {
+                return matches!(
+                    inst.op,
+                    Op::POP_JUMP_IF_FALSE
+                        | Op::POP_JUMP_IF_TRUE
+                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                        | Op::POP_JUMP_BACKWARD_IF_FALSE
+                        | Op::POP_JUMP_BACKWARD_IF_TRUE
+                );
+            }
+            if matches!(inst.op, Op::RETURN_VALUE | Op::RETURN_CONST | Op::RAISE_VARARGS) {
+                return false;
+            }
+        }
+        false
+    }
+
+    /// The end of an else region is the earlier of its JUMP_FORWARD target
+    /// and the next jump-target boundary after `from` (the compiler may jump
+    /// out of the else body with a conditional jump instead).
+    fn next_boundary(&self, from: usize, limit: usize) -> usize {
+        let mut best = limit;
+        for &t in &self.targets {
+            if t > from && t < best {
+                best = t;
+            }
+        }
+        best
+    }
+
+    /// If `target` is an exit point of some enclosing loop (the offset
+    /// right after its back edge / a FOR_ITER exit), return its block index.
+    fn find_loop_exit(&self, target: usize) -> Option<usize> {
+        let te = self.effective_offset(target);
+        for (i, b) in self.blocks.iter().enumerate() {
+            if !matches!(b.kind, BlockType::While | BlockType::For) {
+                continue;
+            }
+            if let Some(exit) = self.loop_exit_offset(b) {
+                if self.effective_offset(exit) == te {
+                    return Some(i);
+                }
+            }
+        }
+        None
+    }
+
+    /// Skip NOP/NOT_TAKEN padding so jump targets that differ only by
+    /// padding compare equal.
+    fn effective_offset(&self, mut off: usize) -> usize {
+        loop {
+            let Some(&i) = self.idx_of.get(&off) else {
+                return off;
+            };
+            let ins = &self.instrs[i];
+            if ins.offset != off {
+                return off;
+            }
+            if matches!(ins.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE) {
+                off = ins.end();
+                continue;
+            }
+            return off;
+        }
+    }
+
+    fn loop_exit_offset(&self, b: &Block) -> Option<usize> {
+        match b.kind {
+            BlockType::For => Some(b.end),
+            BlockType::While => {
+                if b.cond_end > 0 && b.start < b.end {
+                    // rotated while: exit = target of the cond jump, i.e.
+                    // the instruction whose end == cond_end
+                    self.instrs
+                        .iter()
+                        .find(|i| i.end() == b.cond_end && i.target.is_some())?
+                        .target
+                } else {
+                    // SETUP_LOOP era: back edge jumps to b.start; the
+                    // following instruction offset is the exit
+                    self.back_edge_exit(b.start)
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn back_edge_exit(&self, loop_start: usize) -> Option<usize> {
+        for inst in self.instrs.iter() {
+            if inst.is_backward && inst.target == Some(loop_start) {
+                return self.instrs.iter().find(|i| i.start > inst.end()).map(|i| i.start);
+            }
+        }
+        None
+    }
+
+    /// True when [top, cur) contains only condition-evaluation instructions
+    /// (loads/constants/compares), meaning `top` is the start of the cond
+    /// expression of a rotated while loop.
+    fn is_cond_expr_top(&self, top: usize, cur: usize) -> bool {
+        if top == cur {
+            return true;
+        }
+        let Some(&ti) = self.idx_of.get(&top) else {
+            return false;
+        };
+        let Some(&ci) = self.idx_of.get(&cur) else {
+            return false;
+        };
+        if ti >= ci {
+            return false;
+        }
+        self.instrs[ti..ci].iter().all(|inst| {
+            inst.target.is_none()
+                && !matches!(
+                    inst.op,
+                    Op::STORE_FAST
+                        | Op::STORE_NAME
+                        | Op::STORE_GLOBAL
+                        | Op::STORE_DEREF
+                        | Op::STORE_SUBSCR
+                        | Op::STORE_ATTR
+                        | Op::POP_TOP
+                        | Op::RETURN_VALUE
+                        | Op::CALL
+                        | Op::CALL_FUNCTION
+                        | Op::CALL_METHOD
+                )
+        })
+    }
+
+    /// True when a backward jump targets an enclosing loop's top while
+    /// inner blocks (ifs or nested loops) are still open — a `continue`.
+    /// The final back edge of a loop arrives with the loop as the topmost
+    /// block and closes it instead.
+    fn is_continue_jump(&self, target: usize) -> bool {
+        let mut depth = 0usize;
+        for b in self.blocks.iter().rev() {
+            if matches!(b.kind, BlockType::Main) {
+                break;
+            }
+            if !matches!(b.kind, BlockType::While | BlockType::For) {
+                depth += 1;
+                continue;
+            }
+            if matches!(b.kind, BlockType::While | BlockType::For) {
+                if b.start == target
+                    || b.cond_end == target
+                    || (b.cond_end > 0 && b.start <= target && target < b.cond_end)
+                {
+                    return depth > 0;
+                }
+                if b.start < target && target < b.end {
+                    return depth > 0;
+                }
+                depth += 1;
+            }
+        }
+        false
+    }
+
+    fn close_inner_blocks_to_loop(&mut self) {
+        // find innermost enclosing loop and close everything above it
+        let n = self.blocks.len();
+        for i in (0..n).rev() {
+            if matches!(self.blocks[i].kind, BlockType::While | BlockType::For) {
+                while self.blocks.len() > i + 1 {
+                    let pos = self.blocks.last().map(|b| b.start).unwrap_or(0);
+                    self.force_close_top(pos);
+                }
+                return;
+            }
+        }
+    }
+
+    fn handle_jump_backward(&mut self, target: usize) {
+        self.close_blocks_at(self.cur_offset);
+        let n = self.blocks.len();
+        for i in (0..n).rev() {
+            if matches!(self.blocks[i].kind, BlockType::While | BlockType::For) {
+                let b = &self.blocks[i];
+                // rotated while back edge: jumps to the body top right after
+                // the cond evaluation — pure loop continuation, no-op
+                if b.cond_end != 0 && target == b.cond_end && b.start < target {
+                    return;
+                }
+                if b.start == target || b.end == target {
+                    while self.blocks.len() > i {
+                        self.force_close_top(target);
+                    }
+                    return;
+                }
+                if b.start < target && target < b.end {
+                    // back edge into the middle of this loop
+                    while self.blocks.len() > i + 1 {
+                        self.force_close_top(target);
+                    }
+                    self.push_stmt(Stmt::Continue);
+                    return;
+                }
+            }
+        }
+        // backward jump into an outer loop = continue
+        self.push_stmt(Stmt::Continue);
+    }
+
+    fn handle_for_iter(&mut self, target: usize, is_async: bool) {
+        let iter = self.pop_expr();
+        // FOR_ITER leaves the iterator and pushes the next item; the item is
+        // consumed by the following STORE (the loop target), so keep the
+        // iterator on the stack and let emit_store swallow it.
+        self.push(iter.clone());
+        self.awaiting_for_target = true;
+        // Reuse an open uninitialized While block (SETUP_LOOP era) or open
+        // a fresh For block (3.8+).
+        let mut convert = false;
+        if let Some(top) = self.blocks.last_mut() {
+            if matches!(top.kind, BlockType::While) && !top.cond_set {
+                convert = true;
+            }
+        }
+        if convert {
+            let top = self.blocks.last_mut().unwrap();
+            top.kind = BlockType::For;
+            top.start = self.cur_next;
+            top.iter = Some(iter);
+            top.target = None;
+            top.is_async = is_async;
+            top.cond_set = true;
+            // top.end stays the SETUP_LOOP target (loop end)
+            let _ = target; // FOR_ITER exit target == loop end usually
+        } else {
+            // start = FOR_ITER offset so the back edge matches it
+            let mut fb = Block::new(BlockType::For, self.cur_offset, target);
+            fb.cond_end = self.cur_next;
+            fb.iter = Some(iter);
+            fb.is_async = is_async;
+            fb.cond_set = true;
+            self.blocks.push(fb);
+        }
+    }
+
+    fn handle_pop_block(&mut self) {
+        // POP_BLOCK ends Try (no finally) or With or loop bodies (<=3.7).
+        if let Some(top) = self.blocks.last() {
+            match top.kind {
+                BlockType::Try => {
+                    let end = top.end;
+                    self.force_close_top(end);
+                }
+                BlockType::With => {
+                    let end = top.end;
+                    self.force_close_top(end);
+                }
+                BlockType::Container => {
+                    // try/finally container closed at END_FINALLY; ignore
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn handle_with_setup(&mut self, handler_target: Option<usize>, is_async: bool) {
+        let ctx_e = match self.pending_async_with_ctx.take() {
+            Some(c) => {
+                // <=3.10: consume the awaited __aenter__ placeholder left
+                // by BEFORE_ASYNC_WITH + YIELD_FROM
+                let _ = self.pop_expr();
+                c
+            }
+            None => self.pop_expr(),
+        };
+        // SETUP_WITH pushes the bound __exit__ (and 3.2+ two more dummies)
+        self.with_exits += 1;
+        let item = WithItem {
+            ctx: ctx_e,
+            target: None,
+        };
+        // the SETUP_WITH* jump target is the exception-time cleanup handler;
+        // the normal-exit POP_BLOCK usually sits right before it
+        let start = self.cur_next;
+        let end = self
+            .with_regions
+            .get(&start)
+            .copied()
+            .or(handler_target)
+            .unwrap_or(usize::MAX);
+        let mut wb = Block::new(BlockType::With, start, end);
+        wb.is_async = is_async;
+        wb.with_item = Some(item);
+        self.blocks.push(wb);
+        // The interpreter pushes __exit__ bound methods plus the __enter__
+        // result; model the result with a placeholder expression: the
+        // following STORE_* turns into the `as` target, POP_TOP discards it.
+        self.push(self.name_expr(WITH_RESULT_PLACEHOLDER));
+    }
+
+    fn handle_with_body_end(&mut self) {
+        // WITH_CLEANUP(_FINISH) / WITH_EXCEPT_START: close the With block
+        if let Some(top) = self.blocks.last() {
+            if top.kind == BlockType::With {
+                let pos = top.start.max(1);
+                self.force_close_top(pos);
+            }
+        }
+    }
+
+    fn close_finally(&mut self) {
+        // END_FINALLY / POP_FINALLY closes Finally (and Container) blocks
+        if let Some(top) = self.blocks.last() {
+            if top.kind == BlockType::Finally {
+                let pos = top.start;
+                self.force_close_top(pos);
+            }
+        }
+        if let Some(top) = self.blocks.last() {
+            if top.kind == BlockType::Container {
+                let pos = top.start;
+                self.force_close_top(pos);
+            }
+        }
+    }
+
+    fn handle_slice_ops(&mut self, inst: &Instruction) {
+        let mk = |start: Option<ExprRef>, stop: Option<ExprRef>| -> ExprRef {
+            Rc::new(Expr::Slice(Box::new(SliceExpr {
+                start,
+                stop,
+                step: None,
+            })))
+        };
+        match inst.op {
+            Op::SLICE_0 => {
+                let seq = self.pop_expr();
+                self.push(Rc::new(Expr::Subscript {
+                    value: seq,
+                    index: mk(None, None),
+                }));
+            }
+            Op::SLICE_1 => {
+                let start = self.pop_expr();
+                let seq = self.pop_expr();
+                self.push(Rc::new(Expr::Subscript {
+                    value: seq,
+                    index: mk(Some(start), None),
+                }));
+            }
+            Op::SLICE_2 => {
+                let stop = self.pop_expr();
+                let seq = self.pop_expr();
+                self.push(Rc::new(Expr::Subscript {
+                    value: seq,
+                    index: mk(None, Some(stop)),
+                }));
+            }
+            Op::SLICE_3 => {
+                let stop = self.pop_expr();
+                let start = self.pop_expr();
+                let seq = self.pop_expr();
+                self.push(Rc::new(Expr::Subscript {
+                    value: seq,
+                    index: mk(Some(start), Some(stop)),
+                }));
+            }
+            Op::STORE_SLICE_0 => {
+                let val = self.pop_expr();
+                let seq = self.pop_expr();
+                let target = Rc::new(Expr::Subscript {
+                    value: seq,
+                    index: mk(None, None),
+                });
+                self.emit_store(target, val);
+            }
+            Op::STORE_SLICE_1 => {
+                let start = self.pop_expr();
+                let val = self.pop_expr();
+                let seq = self.pop_expr();
+                let target = Rc::new(Expr::Subscript {
+                    value: seq,
+                    index: mk(Some(start), None),
+                });
+                self.emit_store(target, val);
+            }
+            Op::STORE_SLICE_2 => {
+                let stop = self.pop_expr();
+                let val = self.pop_expr();
+                let seq = self.pop_expr();
+                let target = Rc::new(Expr::Subscript {
+                    value: seq,
+                    index: mk(None, Some(stop)),
+                });
+                self.emit_store(target, val);
+            }
+            Op::STORE_SLICE_3 => {
+                let stop = self.pop_expr();
+                let start = self.pop_expr();
+                let val = self.pop_expr();
+                let seq = self.pop_expr();
+                let target = Rc::new(Expr::Subscript {
+                    value: seq,
+                    index: mk(Some(start), Some(stop)),
+                });
+                self.emit_store(target, val);
+            }
+            Op::STORE_SLICE => {
+                // 3.12+: [seq, start?, stop?, value]? CPython: value TOS,
+                // then stop, start, seq
+                let val = self.pop_expr();
+                let stop = self.pop_expr();
+                let start = self.pop_expr();
+                let seq = self.pop_expr();
+                let target = Rc::new(Expr::Subscript {
+                    value: seq,
+                    index: mk(none_if_const_none(start), none_if_const_none(stop)),
+                });
+                self.emit_store(target, val);
+            }
+            Op::DELETE_SLICE_0 => {
+                let seq = self.pop_expr();
+                let target = Rc::new(Expr::Subscript {
+                    value: seq,
+                    index: mk(None, None),
+                });
+                self.emit_delete(target);
+            }
+            Op::DELETE_SLICE_1 => {
+                let start = self.pop_expr();
+                let seq = self.pop_expr();
+                let target = Rc::new(Expr::Subscript {
+                    value: seq,
+                    index: mk(Some(start), None),
+                });
+                self.emit_delete(target);
+            }
+            Op::DELETE_SLICE_2 => {
+                let stop = self.pop_expr();
+                let seq = self.pop_expr();
+                let target = Rc::new(Expr::Subscript {
+                    value: seq,
+                    index: mk(None, Some(stop)),
+                });
+                self.emit_delete(target);
+            }
+            Op::DELETE_SLICE_3 => {
+                let stop = self.pop_expr();
+                let start = self.pop_expr();
+                let seq = self.pop_expr();
+                let target = Rc::new(Expr::Subscript {
+                    value: seq,
+                    index: mk(Some(start), Some(stop)),
+                });
+                self.emit_delete(target);
+            }
+            _ => self.mark_unclean(),
+        }
+    }
+}
+
+/// Merge `a op1 b` + `b op2 c` (sharing operand b) into a chained
+/// comparison `a op1 b op2 c`.
+fn merge_chain_compare(cond: &ExprRef, v: &ExprRef) -> Option<ExprRef> {
+    let Expr::Compare { operands, ops } = &**cond else {
+        return None;
+    };
+    if operands.len() != 2 || ops.len() != 1 {
+        return None;
+    }
+    let Expr::Compare { operands: o2, ops: ops2 } = &**v else {
+        return None;
+    };
+    if o2.len() != 2 || ops2.len() != 1 {
+        return None;
+    }
+    let shared = match (&*operands[1], &*o2[0]) {
+        (Expr::Name(a), Expr::Name(b)) => a == b,
+        (Expr::Const(o1), Expr::Const(o2)) => Rc::ptr_eq(o1, o2),
+        _ => false,
+    };
+    if !shared {
+        return None;
+    }
+    let mut merged_ops = ops.clone();
+    merged_ops.extend(ops2.iter().copied());
+    Some(Rc::new(Expr::Compare {
+        operands: vec![operands[0].clone(), operands[1].clone(), o2[1].clone()],
+        ops: merged_ops,
+    }))
+}
+
+fn keywords_empty(_args: &[ExprRef]) -> bool {
+    true
+}
+
+fn star_args_none(_args: &[ExprRef]) -> bool {
+    true
+}
+
+fn is_comp_callable(e: &ExprRef) -> bool {
+    match &**e {
+        Expr::Function(fd) => matches!(
+            fd.code.name.as_str(),
+            "<listcomp>" | "<setcomp>" | "<dictcomp>" | "<genexpr>"
+        ),
+        Expr::Name(n) => n == "/*generator*/",
+        _ => false,
+    }
+}
+
+fn flatten_boolop(e: ExprRef, kind: BoolOpKind, out: &mut Vec<ExprRef>) {
+    match &*e {
+        Expr::BoolOp { op, values } if *op == kind => {
+            for v in values {
+                flatten_boolop(v.clone(), kind, out);
+            }
+        }
+        _ => out.push(e),
+    }
+}
+
+const WITH_RESULT_PLACEHOLDER: &str = "/*with-result*/";
+
+/// Shallow structural equality used for augmented-assign target matching.
+fn expr_eq(a: &ExprRef, b: &ExprRef) -> bool {
+    match (&**a, &**b) {
+        (Expr::Name(x), Expr::Name(y)) => x == y,
+        (Expr::Attribute { value: v1, attr: a1 }, Expr::Attribute { value: v2, attr: a2 }) => {
+            a1 == a2 && expr_eq(v1, v2)
+        }
+        (Expr::Subscript { value: v1, index: i1 }, Expr::Subscript { value: v2, index: i2 }) => {
+            expr_eq(v1, v2) && expr_eq(i1, i2)
+        }
+        _ => Rc::ptr_eq(a, b),
+    }
+}
+
+fn simplify_not(e: ExprRef) -> ExprRef {
+    match &*e {
+        Expr::Unary {
+            op: UnaryOp::Not,
+            operand,
+        } => operand.clone(),
+        _ => e,
+    }
+}
+
+/// 3.14: extended slices arrive as `slice(a, b, c)` calls or marshalled
+/// slice constants; normalize both to Expr::Slice.
+fn normalize_slice_call(idx: ExprRef) -> ExprRef {
+    match &*idx {
+        Expr::Call { func, args, keywords, star_args: None, star_kwargs: None }
+            if keywords.is_empty()
+                && matches!(&**func, Expr::Name(n) if n == "slice")
+                && (2..=3).contains(&args.len()) =>
+        {
+            Rc::new(Expr::Slice(Box::new(SliceExpr {
+                start: none_if_const_none(args[0].clone()),
+                stop: none_if_const_none(args[1].clone()),
+                step: args.get(2).cloned().and_then(none_if_const_none),
+            })))
+        }
+        Expr::Const(o) => match &**o {
+            PyObject::Slice(a, b, c) => Rc::new(Expr::Slice(Box::new(SliceExpr {
+                start: none_if_const_const(a.clone()),
+                stop: none_if_const_const(b.clone()),
+                step: none_if_const_const(c.clone()),
+            }))),
+            _ => idx,
+        },
+        _ => idx,
+    }
+}
+
+fn none_if_const_const(o: ObjectRef) -> Option<ExprRef> {
+    if matches!(&*o, PyObject::None) {
+        None
+    } else {
+        Some(Rc::new(Expr::Const(o)))
+    }
+}
+
+fn none_if_const_none(e: ExprRef) -> Option<ExprRef> {
+    match &*e {
+        Expr::Const(o) if matches!(&**o, PyObject::None) => None,
+        _ => Some(e),
+    }
+}
+
+fn expr_to_fstring(e: ExprRef) -> FString {
+    match &*e {
+        Expr::FString(f) => f.as_ref().clone(),
+        // a plain constant spec string is literal spec text
+        Expr::Const(o) => match &**o {
+            PyObject::Str(s) => FString {
+                parts: vec![FStringPart::Literal(s.clone())],
+            },
+            PyObject::Bytes(b) => FString {
+                parts: vec![FStringPart::Literal(
+                    String::from_utf8_lossy(b).into_owned(),
+                )],
+            },
+            _ => FString {
+                parts: vec![FStringPart::Value {
+                    value: e,
+                    conversion: None,
+                    format_spec: None,
+                }],
+            },
+        },
+        other => FString {
+            parts: vec![FStringPart::Value {
+                value: Rc::new(other.clone()),
+                conversion: None,
+                format_spec: None,
+            }],
+        },
+    }
+}
+
+fn cmp_from_index(idx: usize) -> CmpOp {
+    match idx {
+        0 => CmpOp::Lt,
+        1 => CmpOp::LtE,
+        2 => CmpOp::Eq,
+        3 => CmpOp::NotEq,
+        4 => CmpOp::Gt,
+        5 => CmpOp::GtE,
+        6 => CmpOp::In,
+        7 => CmpOp::NotIn,
+        8 => CmpOp::Is,
+        9 => CmpOp::IsNot,
+        10 => CmpOp::ExceptionMatch,
+        _ => CmpOp::Eq,
+    }
+}
+
+// =====================  stack events, calls, functions, classes  =====================
+
+impl<'a> Ctx<'a> {
+    fn handle_pop_top(&mut self) {
+        // inside an inline comprehension, POP_TOP is iterator/cleanup
+        // bookkeeping (3.13 pairs END_FOR with POP_TOP), never a statement
+        if self.inline_comp.is_some() {
+            self.pop();
+            return;
+        }
+        // 3.12+ and/or chains: COPY duplicates the value before the cond
+        // jump; the POP_TOP right after the jump discards the original.
+        if matches!(
+            self.prev_op_at_exec,
+            Some(Op::POP_JUMP_IF_FALSE)
+                | Some(Op::POP_JUMP_IF_TRUE)
+                | Some(Op::POP_JUMP_FORWARD_IF_FALSE)
+                | Some(Op::POP_JUMP_FORWARD_IF_TRUE)
+                | Some(Op::POP_JUMP_BACKWARD_IF_FALSE)
+                | Some(Op::POP_JUMP_BACKWARD_IF_TRUE)
+                | Some(Op::JUMP_IF_FALSE_OR_POP)
+                | Some(Op::JUMP_IF_TRUE_OR_POP)
+                | Some(Op::TO_BOOL)
+                | Some(Op::END_FOR)
+        ) {
+            self.pop();
+            return;
+        }
+        // py2 chained imports end with POP_TOP of the module marker
+        if let Some(Sv::ImportModule { .. }) = self.stack.last() {
+            if self.finalize_from_import() {
+                return;
+            }
+        }
+        let sv = self.pop();
+        match sv {
+            Some(Sv::E(e)) => {
+                if let Expr::Yield(_) | Expr::YieldFrom(_) = &*e {
+                    self.push_stmt(Stmt::Expr(e));
+                    return;
+                }
+                // a with-result value discarded: `with ctx:` without as
+                if let Expr::Name(n) = &*e {
+                    if n == WITH_RESULT_PLACEHOLDER || n == "/*generator*/" {
+                        return;
+                    }
+                }
+                self.push_stmt(Stmt::Expr(e));
+            }
+            Some(Sv::ImportModule { module, .. }) => {
+                self.push_stmt(Stmt::Import {
+                    names: vec![(module, None)],
+                });
+            }
+            Some(Sv::ImportFrom { .. }) => {
+                // leftover single from-import name (import without store?)
+                self.finalize_from_import();
+            }
+            Some(Sv::Null) => {}
+            None => {}
+        }
+    }
+
+    /// Fold consecutive ImportFrom markers on the stack into one
+    /// `from module import a, b` statement. Returns true when handled.
+    fn finalize_from_import(&mut self) -> bool {
+        // count trailing ImportFrom markers with the same module
+        let n = self.stack.len();
+        let mut count = 0usize;
+        let mut module: Option<(u32, String)> = None;
+        while count < n {
+            match &self.stack[n - 1 - count] {
+                Sv::ImportFrom { level, module: m, .. } => {
+                    let key = (*level, m.clone());
+                    match &module {
+                        None => module = Some(key),
+                        Some(k) if *k == key => {}
+                        _ => break,
+                    }
+                    count += 1;
+                }
+                Sv::ImportModule { level, module: m, .. } if count > 0 => {
+                    let key = (*level, m.clone());
+                    if module.as_ref() == Some(&key) {
+                        // consume the module marker too
+                        count += 1;
+                        let drain = self.stack.split_off(n - count);
+                        let names: Vec<(String, Option<String>)> = drain
+                            .into_iter()
+                            .filter_map(|sv| match sv {
+                                Sv::ImportFrom { name, .. } => Some((name, None)),
+                                _ => None,
+                            })
+                            .collect();
+                        let (level, module) = module.unwrap();
+                        self.push_stmt(Stmt::ImportFrom {
+                            module,
+                            level,
+                            names,
+                        });
+                        return true;
+                    }
+                    break;
+                }
+                _ => break,
+            }
+        }
+        false
+    }
+
+    /// Pop a raw stack value for STORE_* instructions so that import
+    /// markers are handled without going through pop_expr.
+    fn pop_store_value(&mut self) -> Sv {
+        loop {
+            match self.stack.pop() {
+                Some(Sv::Null) => continue,
+                other => {
+                    return other.unwrap_or_else(|| {
+                        self.clean = false;
+                        Sv::E(Rc::new(Expr::Const(Rc::new(PyObject::None))))
+                    })
+                }
+            }
+        }
+    }
+
+    /// Store routing that understands import markers.
+    fn emit_store_sv(&mut self, target: ExprRef, sv: Sv) {
+        match sv {
+            Sv::E(val) => self.emit_store(target, val),
+            Sv::ImportFrom { level, module, name } => {
+                let asname = match &*target {
+                    Expr::Name(t) if *t != name => Some(t.clone()),
+                    _ => None,
+                };
+                self.import_names.push((name, asname));
+                match &self.import_module {
+                    Some((l, m)) if *l == level && *m == module => {}
+                    _ => self.import_module = Some((level, module)),
+                }
+                if !matches!(self.stack.last(), Some(Sv::ImportFrom { .. })) {
+                    self.flush_import();
+                }
+            }
+            Sv::ImportModule { module, fromlist, .. } => {
+                if let Some(fromlist_e) = fromlist {
+                    // from module import *  stored to a name? (py2 star)
+                    let names = match &*fromlist_e {
+                        Expr::Const(o) => match &**o {
+                            PyObject::Tuple(items) => items
+                                .iter()
+                                .filter_map(|it| match &**it {
+                                    PyObject::Str(s) => Some((s.clone(), None)),
+                                    _ => None,
+                                })
+                                .collect(),
+                            _ => Vec::new(),
+                        },
+                        _ => Vec::new(),
+                    };
+                    if names.len() == 1 {
+                        let asname = match &*target {
+                            Expr::Name(t) if *t != names[0].0 => Some(t.clone()),
+                            _ => None,
+                        };
+                        self.push_stmt(Stmt::ImportFrom {
+                            module,
+                            level: 0,
+                            names: vec![(names[0].0.clone(), asname)],
+                        });
+                        return;
+                    }
+                    self.push_stmt(Stmt::ImportFrom {
+                        module,
+                        level: 0,
+                        names,
+                    });
+                } else {
+                    let asname = match &*target {
+                        Expr::Name(t) if dotted_last(module.as_str()) != t.as_str() => {
+                            Some(t.clone())
+                        }
+                        _ => None,
+                    };
+                    self.push_stmt(Stmt::Import {
+                        names: vec![(module, asname)],
+                    });
+                }
+            }
+            Sv::Null => {
+                self.clean = false;
+            }
+        }
+    }
+
+    /// Common path for every store instruction: unpack bookkeeping,
+    /// import stores, function/class def detection, else plain assignment.
+    fn emit_store(&mut self, target: ExprRef, val: ExprRef) {
+        // post-comprehension restore of a cleared outer variable
+        if let Expr::Name(n) = &*target {
+            if let Some(pos) = self.pending_restore_vars.iter().position(|v| v == n) {
+                self.pending_restore_vars.remove(pos);
+                return;
+            }
+        }
+        // inline comprehension: the first store after each FOR_ITER is the
+        // loop target; later stores of cleared variables are the post-loop
+        // restores (not statements)
+        if let Some(comp) = &mut self.inline_comp {
+            if !comp.target_seen {
+                if let Some(cur) = &mut comp.cur {
+                    cur.target = Some(target);
+                }
+                comp.target_seen = true;
+                self.awaiting_for_target = false;
+                return;
+            }
+            if let Expr::Name(n) = &*target {
+                if comp.cleared_vars.contains(n) {
+                    return;
+                }
+            }
+        }
+        // FOR_ITER just executed: this store is the loop target (unless a
+        // tuple target is being unpacked, handled at frame completion)
+        if self.awaiting_for_target && self.unpack_frames.is_empty() {
+            self.awaiting_for_target = false;
+            if let Some(top) = self.blocks.last_mut() {
+                if matches!(top.kind, BlockType::For) {
+                    // value is the iterator expression itself (we pushed it
+                    // back in handle_for_iter); don't emit an assignment
+                    top.target = Some(target);
+                    return;
+                }
+            }
+        }
+        // `with ctx as target:` — the stored value is the __enter__ result
+        if let Expr::Name(n) = &*val {
+            if n == WITH_RESULT_PLACEHOLDER {
+                for blk in self.blocks.iter_mut().rev() {
+                    if blk.kind == BlockType::With {
+                        if let Some(item) = blk.with_item.as_mut() {
+                            item.target = Some(target);
+                            return;
+                        }
+                    }
+                }
+                if let Some(items) = self.pending_with.last_mut() {
+                    if let Some(item) = items.last_mut() {
+                        item.target = Some(target);
+                        return;
+                    }
+                }
+            }
+        }
+        // drop stale exhausted frames (stores rerouted elsewhere)
+        while matches!(self.unpack_frames.last(), Some((0, _, _, _))) {
+            self.unpack_frames.pop();
+            self.unpack_targets.0.pop();
+        }
+        if let Some(frame) = self.unpack_frames.last_mut() {
+            frame.0 -= 1;
+            let done = frame.0 == 0;
+            let (count, star_at) = (frame.1, frame.2);
+            let index = count - 1 - frame.0;
+            let starred = star_at == Some(index);
+            if let Some(targets) = self.unpack_targets.0.last_mut() {
+                targets.push((target, starred));
+            }
+            if done {
+                let (_, _, _, value) = self.unpack_frames.pop().unwrap();
+                let targets = self.unpack_targets.0.pop().unwrap();
+                let tuple: ExprRef = Rc::new(Expr::Tuple(
+                    targets
+                        .into_iter()
+                        .map(|(t, star)| {
+                            if star {
+                                Rc::new(Expr::Starred(t))
+                            } else {
+                                t
+                            }
+                        })
+                        .collect(),
+                ));
+                if self.unpack_frames.is_empty() {
+                    self.assign_or_for_target(tuple, value);
+                } else {
+                    // nested: the completed tuple is the parent's next target
+                    let parent = self.unpack_frames.last_mut().unwrap();
+                    parent.0 -= 1;
+                    let pdone = parent.0 == 0;
+                    let (pcount, pstar) = (parent.1, parent.2);
+                    let pindex = pcount - 1 - parent.0;
+                    let pstarred = pstar == Some(pindex);
+                    if let Some(targets) = self.unpack_targets.0.last_mut() {
+                        targets.push((tuple, pstarred));
+                    }
+                    if pdone {
+                        let (_, _, _, pvalue) = self.unpack_frames.pop().unwrap();
+                        let ptargets = self.unpack_targets.0.pop().unwrap();
+                        let ptuple: ExprRef = Rc::new(Expr::Tuple(
+                            ptargets
+                                .into_iter()
+                                .map(|(t, star)| {
+                                    if star {
+                                        Rc::new(Expr::Starred(t))
+                                    } else {
+                                        t
+                                    }
+                                })
+                                .collect(),
+                        ));
+                        self.assign_or_for_target(ptuple, pvalue);
+                    }
+                }
+            }
+            return;
+        }
+        self.emit_assign_single(target, val);
+    }
+
+    /// Route a completed (possibly tuple) store: either it is the target of
+    /// the for loop we just opened, or a normal assignment.
+    fn assign_or_for_target(&mut self, target: ExprRef, value: ExprRef) {
+        if self.awaiting_for_target {
+            self.awaiting_for_target = false;
+            if let Some(top) = self.blocks.last_mut() {
+                if matches!(top.kind, BlockType::For) {
+                    top.target = Some(target);
+                    return;
+                }
+            }
+        }
+        self.emit_assign_single(target, value);
+    }
+
+    fn emit_assign_single(&mut self, target: ExprRef, val: ExprRef) {
+        // py2 class creation: BUILD_CLASS result stored to a name
+        if self.pending_py2_class.is_some() {
+            if let (Some((name_e, bases_e, methods)), Expr::Name(cname)) =
+                (self.pending_py2_class.take(), &*target)
+            {
+                let _ = (name_e, methods);
+                let bases = match &*bases_e {
+                    Expr::Tuple(v) => v.clone(),
+                    other => vec![Rc::new(other.clone())],
+                };
+                let body = match &*val {
+                    Expr::Function(fd) => self
+                        .decompile_function(&fd.code)
+                        .unwrap_or_else(|| vec![Stmt::Pass]),
+                    _ => vec![Stmt::Pass],
+                };
+                let decorators = std::mem::take(&mut self.pending_class_decorators);
+                self.push_stmt(Stmt::ClassDef {
+                    name: cname.clone(),
+                    bases,
+                    keywords: Vec::new(),
+                    star_args: None,
+                    star_kwargs: None,
+                    decorators,
+                    body,
+                });
+                return;
+            }
+        }
+        // augmented assignment: `x += 1` compiled to a binary op whose LHS is
+        // the target, followed by a store back into the same target
+        if let Some((aug_target, op)) = self.pending_aug.take() {
+            if expr_eq(&aug_target, &target) {
+                if let Expr::Binary { right, .. } = &*val {
+                    self.push_stmt(Stmt::AugAssign {
+                        target,
+                        op,
+                        value: right.clone(),
+                    });
+                    return;
+                }
+            } else {
+                // stale marker
+                self.pending_aug = Some((aug_target, op));
+                self.pending_aug = None;
+            }
+        }
+        // function definition
+        if let Expr::Function(fd) = &*val {
+            if let Expr::Name(fname) = &*target {
+                let fd = fd;
+                let name = fname.clone();
+                let body = self
+                    .decompile_function(&fd.code)
+                    .unwrap_or_else(|| vec![Stmt::Pass]);
+                let mut fd2 = (**fd).clone();
+                fd2.name = name;
+                fd2.returns = fd2.params.returns_annotation.take();
+                fd2.is_async = fd2.code.is_coroutine() || fd2.code.is_async_generator();
+                let fdef = Rc::new(fd2);
+                self.push_stmt(Stmt::FuncDef(fdef, body));
+                return;
+            }
+        }
+        // class definition (py3): __build_class__ call result stored
+        if let Expr::Call { func, args, keywords, .. } = &*val {
+            if let Expr::Name(fn_name) = &**func {
+                if fn_name == "__build_class__" {
+                    if let Expr::Name(cname) = &*target {
+                        if args.len() >= 2 {
+                            let func_e = args[0].clone();
+                            let name_e = args[1].clone();
+                            let bases = args[2..].to_vec();
+                            let kws: Vec<(Option<String>, ExprRef)> =
+                                keywords.iter().cloned().collect();
+                            if let Expr::Function(fd) = &*func_e {
+                                let body = self
+                                    .decompile_function(&fd.code)
+                                    .unwrap_or_else(|| vec![Stmt::Pass]);
+                                let class_name = match &*name_e {
+                                    Expr::Const(o) => match &**o {
+                                        PyObject::Str(s) => s.clone(),
+                                        _ => cname.clone(),
+                                    },
+                                    _ => cname.clone(),
+                                };
+                                let mut star_args = None;
+                                let mut star_kwargs = None;
+                                let mut real_bases = Vec::new();
+                                let mut real_kws = Vec::new();
+                                for b in bases {
+                                    match &*b {
+                                        Expr::Starred(e) => {
+                                            if star_args.is_none() {
+                                                star_args = Some(e.clone());
+                                            } else {
+                                                star_kwargs = Some(e.clone());
+                                            }
+                                        }
+                                        other => real_bases.push(Rc::new(other.clone())),
+                                    }
+                                }
+                                for (k, v) in kws {
+                                    match k {
+                                        Some(kn) => real_kws.push((Some(kn), v)),
+                                        None => match &*v {
+                                            Expr::Starred(e) => star_kwargs = Some(e.clone()),
+                                            _ => real_kws.push((None, v)),
+                                        },
+                                    }
+                                }
+                                let decorators =
+                                    std::mem::take(&mut self.pending_class_decorators);
+                                self.push_stmt(Stmt::ClassDef {
+                                    name: class_name,
+                                    bases: real_bases,
+                                    keywords: real_kws,
+                                    star_args,
+                                    star_kwargs,
+                                    decorators,
+                                    body,
+                                });
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // plain assignment — may be part of a same-line store group
+        // (`a, b = b, a` or `a = b = expr`)
+        let same_group = self.last_store_line == self.cur_line && self.cur_line.is_some();
+        if !same_group {
+            self.flush_pending_stores();
+            self.group_start = self.cur_offset;
+        }
+        self.last_store_line = self.cur_line;
+        self.pending_stores.push((target, val));
+    }
+
+    fn flush_import(&mut self) {
+        let module = self.import_module.take();
+        if !self.import_names.is_empty() {
+            if let Some((level, module)) = module {
+                let names = std::mem::take(&mut self.import_names);
+                self.push_stmt(Stmt::ImportFrom { module, level, names });
+                return;
+            }
+        }
+        self.import_names.clear();
+    }
+
+    fn emit_delete(&mut self, target: ExprRef) {
+        // drop stale exhausted frames (stores rerouted elsewhere)
+        while matches!(self.unpack_frames.last(), Some((0, _, _, _))) {
+            self.unpack_frames.pop();
+            self.unpack_targets.0.pop();
+        }
+        if let Some(frame) = self.unpack_frames.last_mut() {
+            frame.0 -= 1;
+            let done = frame.0 == 0;
+            if let Some(targets) = self.unpack_targets.0.last_mut() {
+                targets.push((target, false));
+            }
+            if done {
+                self.unpack_frames.pop();
+                let targets = self.unpack_targets.0.pop().unwrap();
+                let list: Vec<ExprRef> = targets.into_iter().map(|(t, _)| t).collect();
+                self.push_stmt(Stmt::Delete(list));
+            }
+            return;
+        }
+        if let Some(last) = self.blocks.last_mut() {
+            if let Some(Stmt::Delete(v)) = last.stmts.last_mut() {
+                v.push(target);
+                return;
+            }
+        }
+        self.push_stmt(Stmt::Delete(vec![target]));
+    }
+
+    fn emit_return(&mut self, e: Option<ExprRef>) {
+        let value = match e {
+            Some(v) => match &*v {
+                Expr::Const(o) if matches!(&**o, PyObject::None) => None,
+                _ => Some(v),
+            },
+            None => None,
+        };
+        // module-level implicit `return None` is synthetic (3.12+ even emits
+        // RETURN_CONST None at the end of every top-level branch)
+        if value.is_none() && self.code.name == "<module>" {
+            // When it terminates an if-branch, it replaces the classic
+            // JUMP_FORWARD-over-else: mark the else region as running to
+            // the end of the module stream.
+            if let Some(top) = self.blocks.last_mut() {
+                if matches!(top.kind, BlockType::If) && top.else_end.is_none() {
+                    let code_end = self.instrs.last().map(|i| i.end()).unwrap_or(0);
+                    top.else_end = Some(code_end);
+                }
+            }
+            return;
+        }
+        self.push_stmt(Stmt::Return(value));
+    }
+
+    fn apply_binary(&mut self, op_text: &str) {
+        let rhs = self.pop_expr();
+        let lhs = self.pop_expr();
+        let op = binop_from_text(op_text);
+        self.push(Rc::new(Expr::Binary { op, left: lhs, right: rhs }));
+    }
+
+    /// In-place operators: CPython emits DUP + load target + value +
+    /// BINARY_OP(+arg>=13 in 3.11 BINARY_OP) + ROT + STORE. We detect the
+    /// pending augmented store and emit AugAssign directly.
+    fn apply_inplace(&mut self, op_text: &str, raw_arg: u32) {
+        let _ = raw_arg;
+        let rhs = self.pop_expr();
+        let lhs = self.pop_expr();
+        let op = binop_from_text(op_text);
+        // Look ahead: next instructions should store back into lhs.
+        let e: ExprRef = Rc::new(Expr::Binary {
+            op,
+            left: lhs.clone(),
+            right: rhs,
+        });
+        // The augmented-assign store is recognized in emit_store via the
+        // pending_aug flag when the target matches lhs.
+        self.pending_aug = Some((lhs, op));
+        self.push(e);
+    }
+
+    fn call_function_py(
+        &mut self,
+        argc: usize,
+        names_tuple: Option<ExprRef>,
+        is_method: bool,
+    ) {
+        // Python 2 / 3.0-3.5 CALL_FUNCTION: low byte = positional count,
+        // high byte = keyword count. 3.6+ CALL_FUNCTION_KW pushes a names
+        // tuple. py2 VAR/KW handled separately.
+        let (npos, nkw) = if self.version.at_least(3, 6) || names_tuple.is_some() {
+            (argc, 0)
+        } else {
+            ((argc & 0xFF) as usize, ((argc >> 8) & 0xFF) as usize)
+        };
+        let kw_names: Vec<Option<String>> = match &names_tuple {
+            Some(e) => match &**e {
+                Expr::Const(o) => match &**o {
+                    PyObject::Tuple(items) => items
+                        .iter()
+                        .map(|it| match &**it {
+                            PyObject::Str(s) => Some(s.clone()),
+                            _ => None,
+                        })
+                        .collect(),
+                    _ => Vec::new(),
+                },
+                _ => Vec::new(),
+            },
+            None => Vec::new(),
+        };
+        let nkw = nkw.max(kw_names.len());
+        let args = self.pop_n_exprs(npos);
+        let mut keywords = Vec::new();
+        for i in 0..nkw {
+            let v = self.pop_expr();
+            let k = kw_names.get(i).cloned().flatten();
+            keywords.push((k, v));
+        }
+        keywords.reverse();
+        // CALL_METHOD (3.7-3.10): LOAD_METHOD pushed a self/NULL marker
+        // above the method; pop it between the args and the callable.
+        let marker = if is_method { self.pop() } else { None };
+        let func = self.pop_callable();
+        // normal with exit (<=3.10): __exit__(None, None, None) where the
+        // exit callable is not modeled on our stack
+        if self.with_exits > 0
+            && keywords.is_empty()
+            && star_args_none(&args)
+            && args.iter().all(|a| matches!(&**a, Expr::Const(o) if matches!(&**o, PyObject::None)))
+            && matches!(&*func, Expr::Const(o) if matches!(&**o, PyObject::None))
+        {
+            self.with_exits -= 1;
+            return;
+        }
+        // decorator application via CALL_FUNCTION (<=3.10)
+        if args.len() == 1 && keywords.is_empty() {
+            if let Expr::Function(fd) = &*args[0] {
+                let mut fd = (**fd).clone();
+                fd.decorators.push(func.clone());
+                self.push(Rc::new(Expr::Function(Rc::new(fd))));
+                return;
+            }
+        }
+        let call_e: ExprRef = Rc::new(Expr::Call {
+            func,
+            args,
+            keywords,
+            star_args: None,
+            star_kwargs: None,
+        });
+        match self.try_make_comprehension(&call_e, marker) {
+            Some(comp) => self.push(comp),
+            None => self.push(call_e),
+        }
+    }
+
+    fn call_function_py2_var(&mut self, argc: usize) {
+        // py2: CALL_FUNCTION_VAR — starargs on top
+        let star = self.pop_expr();
+        let (npos, nkw) = (argc & 0xFF, (argc >> 8) & 0xFF);
+        let args = self.pop_n_exprs(npos as usize);
+        let mut keywords = Vec::new();
+        for _ in 0..nkw {
+            let v = self.pop_expr();
+            let k = self.pop_expr();
+            let ks = match &*k {
+                Expr::Const(o) => match &**o {
+                    PyObject::Str(s) => Some(s.clone()),
+                    PyObject::Bytes(b) => Some(String::from_utf8_lossy(b).into_owned()),
+                    _ => None,
+                },
+                _ => None,
+            };
+            keywords.push((ks, v));
+        }
+        keywords.reverse();
+        let func = self.pop_callable();
+        self.push(Rc::new(Expr::Call {
+            func,
+            args,
+            keywords,
+            star_args: Some(star),
+            star_kwargs: None,
+        }));
+    }
+
+    fn call_function_py2_varkw(&mut self, argc: usize) {
+        let kwargs = self.pop_expr();
+        let star = self.pop_expr();
+        let (npos, nkw) = (argc & 0xFF, (argc >> 8) & 0xFF);
+        let args = self.pop_n_exprs(npos as usize);
+        let mut keywords = Vec::new();
+        for _ in 0..nkw {
+            let v = self.pop_expr();
+            let k = self.pop_expr();
+            let ks = match &*k {
+                Expr::Const(o) => match &**o {
+                    PyObject::Str(s) => Some(s.clone()),
+                    PyObject::Bytes(b) => Some(String::from_utf8_lossy(b).into_owned()),
+                    _ => None,
+                },
+                _ => None,
+            };
+            keywords.push((ks, v));
+        }
+        keywords.reverse();
+        let func = self.pop_callable();
+        self.push(Rc::new(Expr::Call {
+            func,
+            args,
+            keywords,
+            star_args: Some(star),
+            star_kwargs: Some(kwargs),
+        }));
+    }
+
+    /// 3.11+ CALL (and 3.7-3.10 CALL_METHOD share the same pop order):
+    /// stack is `[marker, callable, args...]`, so pop args, then the
+    /// callable, then the self/NULL marker. The callable expression for a
+    /// method is already `Attribute { value: receiver }`, so the marker is
+    /// only validated, not consumed into the AST.
+    fn call_311(&mut self, argc: usize, _is_method: bool) {
+        let args = self.pop_n_exprs(argc);
+        // CALL slot layouts differ by callee kind:
+        // * plain call:            [NULL, callable, args...]  (PUSH_NULL)
+        // * method (LOAD_ATTR/METHOD): [self, callable, args...]
+        // * genexpr instantiation: [callable, iterable] with argc==0 —
+        //   the iterable sits ABOVE the function and becomes the marker
+        // Peek before popping to choose the right order.
+        let n = self.stack.len();
+        let genexpr_case = n >= 2
+            && matches!(&self.stack[n - 1], Sv::E(_))
+            && matches!(&self.stack[n - 2], Sv::E(f) if is_comp_callable(f));
+        let (callable, marker) = if self.version.at_least(3, 14) || genexpr_case {
+            // 3.14+: [callable, self_or_null, args...] — marker pops first.
+            // genexpr instantiation (<=3.13): [genfunc, iterable].
+            let marker = self.pop_expr_raw();
+            let callable = self.pop_expr();
+            (callable, marker)
+        } else {
+            let callable = self.pop_expr();
+            let marker = self.pop_expr_raw();
+            (callable, marker)
+        };
+
+        // The callable expression for a method is already
+        // Attribute { value: receiver }; the marker is only needed for
+        // comprehension detection.
+        let func = callable;
+
+        let kw_names = std::mem::take(&mut self.last_kw_names);
+        let (pos_args, keywords) = if !kw_names.is_empty() && kw_names.len() == args.len() {
+            // 3.11 KW_NAMES: tuple covers all args; positional ones are None
+            let mut pos = Vec::new();
+            let mut kws = Vec::new();
+            for (i, a) in args.into_iter().enumerate() {
+                match kw_names.get(i).cloned().flatten() {
+                    Some(k) => kws.push((Some(k), a)),
+                    None => pos.push(a),
+                }
+            }
+            (pos, kws)
+        } else {
+            (args, Vec::new())
+        };
+
+        // decorator application: calling with a Function object argument
+        // (3.12+ uses CALL 0 with the decorator *below* the function)
+        if pos_args.len() == 1 && keywords.is_empty() {
+            if let Expr::Function(fd) = &*pos_args[0] {
+                let mut fd = (**fd).clone();
+                fd.decorators.push(func.clone());
+                self.push(Rc::new(Expr::Function(Rc::new(fd))));
+                return;
+            }
+        }
+        // comprehension instantiation takes precedence over decorator shapes
+        let comp_callable = is_comp_callable(&func);
+        if !comp_callable {
+            if let Expr::Function(fd) = &*func {
+                if pos_args.is_empty() && keywords.is_empty() {
+                    if let Some(Sv::E(deco)) = marker.clone() {
+                        let mut fd = (**fd).clone();
+                        fd.decorators.push(deco);
+                        self.push(Rc::new(Expr::Function(Rc::new(fd))));
+                        return;
+                    }
+                }
+            }
+            // 3.14 decorator shape: marker slot holds the function, callable
+            // is the decorator (`deco(func)` via CALL 0)
+            if pos_args.is_empty() && keywords.is_empty() {
+                if let Some(Sv::E(m)) = &marker {
+                    if let Expr::Function(fd) = &**m {
+                        let mut fd = (**fd).clone();
+                        fd.decorators.push(func.clone());
+                        self.push(Rc::new(Expr::Function(Rc::new(fd))));
+                        return;
+                    }
+                }
+            }
+        }
+
+        // normal with exit: the compiler calls the stored __exit__ with
+        // (None, None, None); our model does not keep __exit__ on the stack,
+        // so recognize and swallow the call
+        if self.with_exits > 0
+            && keywords.is_empty()
+            && marker.is_none()
+            && pos_args.iter().all(|a| matches!(&**a, Expr::Const(o) if matches!(&**o, PyObject::None)))
+            && matches!(&*func, Expr::Const(o) if matches!(&**o, PyObject::None))
+                || (self.with_exits > 0
+                    && keywords.is_empty()
+                    && pos_args.iter().all(|a| matches!(&**a, Expr::Const(o) if matches!(&**o, PyObject::None)))
+                    && matches!(&*func, Expr::Name(n) if n.contains("underflow")))
+        {
+            self.with_exits -= 1;
+            return;
+        }
+
+        let call_e: ExprRef = Rc::new(Expr::Call {
+            func,
+            args: pos_args,
+            keywords,
+            star_args: None,
+            star_kwargs: None,
+        });
+        match self.try_make_comprehension(&call_e, marker) {
+            Some(comp) => self.push(comp),
+            None => self.push(call_e),
+        }
+    }
+
+    /// Pop the callable for py2-style CALL_FUNCTION, skipping a NULL marker.
+    fn pop_callable(&mut self) -> ExprRef {
+        self.pop_expr()
+    }
+
+    fn make_function(&mut self, inst: &Instruction, flags: u32) {
+        // Stack layout by era:
+        //  py2-3.5: [defaults..., code] (MAKE_CLOSURE inserts closure tuple
+        //           below code)
+        //  3.6-3.10: [..., code, qualname] — qualname on top
+        //  3.11+: qualname lives in the code object; code on top
+        let code_e = if self.version.at_least(3, 6) && !self.version.at_least(3, 11) {
+            let qualname = self.pop_expr();
+            let _ = qualname;
+            self.pop_expr()
+        } else {
+            self.pop_expr()
+        };
+        let code_obj = match &*code_e {
+            Expr::Const(o) => match &**o {
+                PyObject::Code(c) => c.clone(),
+                _ => {
+                    self.mark_unclean();
+                    return;
+                }
+            },
+            _ => {
+                self.mark_unclean();
+                return;
+            }
+        };
+
+        let params;
+        let returns: Option<ExprRef> = None;
+
+        if self.version.at_least(3, 6) {
+            // flags in argument order on stack: annotations(3.6-3.12),
+            // kwdefaults, defaults, closure — pushed as:
+            // stack bottom..top: [closure?, defaults?, kwdefaults?, annotations?, qualname, code]
+            // MAKE_FUNCTION pops code, qualname, then per flags.
+            let mut defaults_t: Option<ExprRef> = None;
+            let mut kwdefaults_d: Option<ExprRef> = None;
+            let mut ann: Option<ExprRef> = None;
+            let mut _closure: Option<ExprRef> = None;
+
+            let has_ann = if self.version.at_least(3, 13) {
+                false // annotations arrive via SET_FUNCTION_ATTRIBUTE
+            } else {
+                flags & 0x04 != 0
+            };
+            if flags & 0x08 != 0 {
+                _closure = Some(self.pop_expr());
+            }
+            if has_ann {
+                ann = Some(self.pop_expr());
+            }
+            if flags & 0x02 != 0 {
+                kwdefaults_d = Some(self.pop_expr());
+            }
+            if flags & 0x01 != 0 {
+                defaults_t = Some(self.pop_expr());
+            }
+
+            params = self.build_params(&code_obj, defaults_t, kwdefaults_d, ann);
+            if self.version.at_least(3, 13) && flags & 0x04 != 0 {
+                // 3.13: 0x04 = closure? no: 3.13 flags: 0x01 defaults,
+                // 0x02 kwdefaults, 0x04 annotations? handled above
+            }
+        } else {
+            // <= 3.5: defaults are individual stack values (argcount-
+            // defaults count of them); MAKE_CLOSURE adds a closure tuple
+            // below the code object (already popped).
+            // <=3.5: MAKE_FUNCTION arg = number of defaults on the stack
+            let ndefaults = flags as usize;
+            let mut defaults = Vec::new();
+            for _ in 0..ndefaults {
+                defaults.push(self.pop_expr());
+            }
+            defaults.reverse();
+            if inst.op == Op::MAKE_CLOSURE || (self.version.major == 2 && self.version.at_least(2, 1)) {
+                // closure tuple sits below the defaults when free variables
+                // are present (MAKE_CLOSURE 2.1+, or CO_NOFREE not set)
+                if !self.code.freevars.is_empty() && !self.code.cellvars.is_empty()
+                    || inst.op == Op::MAKE_CLOSURE
+                {
+                    let _closure = self.pop_expr();
+                }
+            }
+            params = self.build_params_legacy(&code_obj, defaults);
+        }
+
+        // decorators: 2.6-3.5 applied via MAKE_FUNCTION wrapper calls;
+        // 3.x modern: decorators are call wrappers around the function.
+        let decorators = std::mem::take(&mut self.pending_decorators);
+
+        let is_lambda = code_obj.name == "<lambda>";
+        let is_async = code_obj.is_coroutine() || code_obj.is_async_generator();
+        let fdef = Rc::new(FunctionDef {
+            name: code_obj.name.clone(),
+            code: code_obj,
+            params,
+            decorators,
+            returns,
+            is_async,
+        });
+        if is_lambda {
+            // body: single return expression — extract from the lambda code
+            let body = self.lambda_body(&fdef.code);
+            self.push(Rc::new(Expr::Lambda {
+                params: Box::new(fdef.params.clone()),
+                body,
+            }));
+        } else {
+            self.push(Rc::new(Expr::Function(fdef)));
+        }
+    }
+
+    fn build_params(
+        &mut self,
+        code: &Rc<CodeObject>,
+        defaults_t: Option<ExprRef>,
+        kwdefaults_d: Option<ExprRef>,
+        ann: Option<ExprRef>,
+    ) -> Parameters {
+        let argcount = code.arg_count as usize;
+        let posonly = code.posonly_arg_count as usize;
+        let kwonly = code.kwonly_arg_count as usize;
+        let varargs = code.has_varargs();
+        let varkw = code.has_varkeywords();
+
+        // localsplus/varnames: positional args first, then kwonly, then
+        // *args/**kwargs (3.11+ varnames already excludes non-LOCAL entries)
+        let all_names: Vec<String> = code.varnames.clone();
+
+        let defaults: Vec<ExprRef> = match &defaults_t {
+            Some(e) => match &**e {
+                Expr::Const(o) => match &**o {
+                    PyObject::Tuple(items) => items
+                        .iter()
+                        .map(|i| Rc::new(Expr::Const(i.clone())) as ExprRef)
+                        .collect(),
+                    _ => Vec::new(),
+                },
+                Expr::Tuple(items) => items.clone(),
+                other => vec![Rc::new(other.clone())],
+            },
+            None => Vec::new(),
+        };
+
+        // annotations (3.6-3.12): dict const or BUILD map on stack
+        let mut ann_map: HashMap<String, ExprRef> = HashMap::new();
+        let mut ret_ann: Option<ExprRef> = None;
+        if let Some(a) = ann {
+            match &*a {
+                Expr::Const(o) => match &**o {
+                    PyObject::Tuple(items)
+                        if items.len() >= 2
+                            && items.len() % 2 == 0
+                            && items.iter().step_by(2).all(|it| matches!(&**it, PyObject::Str(_)))
+                            && self.version.at_least(3, 12) =>
+                    {
+                        // 3.12+: flat (name, value, name, value, ...) pairs
+                        for pair in items.chunks(2) {
+                            if let PyObject::Str(name) = &*pair[0] {
+                                let v: ExprRef = Rc::new(Expr::Const(pair[1].clone()));
+                                if name == "return" {
+                                    ret_ann = Some(v);
+                                } else {
+                                    ann_map.insert(name.clone(), v);
+                                }
+                            }
+                        }
+                    }
+                    PyObject::Tuple(items) if items.len() == 2 => {
+                        // 3.10+: (names_tuple, values_tuple)
+                        let names: Vec<String> = match &*items[0] {
+                            PyObject::Tuple(ns) => ns
+                                .iter()
+                                .filter_map(|n| match &**n {
+                                    PyObject::Str(s) => Some(s.clone()),
+                                    _ => None,
+                                })
+                                .collect(),
+                            _ => Vec::new(),
+                        };
+                        let values: Vec<ExprRef> = match &*items[1] {
+                            PyObject::Tuple(vs) => vs
+                                .iter()
+                                .map(|v| Rc::new(Expr::Const(v.clone())) as ExprRef)
+                                .collect(),
+                            _ => Vec::new(),
+                        };
+                        for (n, v) in names.into_iter().zip(values) {
+                            if n == "return" {
+                                ret_ann = Some(v);
+                            } else {
+                                ann_map.insert(n, v);
+                            }
+                        }
+                    }
+                    PyObject::Dict(entries) => {
+                        for (k, v) in entries {
+                            if let PyObject::Str(ks) = &**k {
+                                if ks == "return" {
+                                    ret_ann = Some(Rc::new(Expr::Const(v.clone())));
+                                } else {
+                                    ann_map
+                                        .insert(ks.clone(), Rc::new(Expr::Const(v.clone())));
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                },
+                Expr::Dict(entries) => {
+                    for (k, v) in entries {
+                        if let Expr::Const(o) = &**k {
+                            if let PyObject::Str(ks) = &**o {
+                                if ks == "return" {
+                                    ret_ann = Some(v.clone());
+                                } else {
+                                    ann_map.insert(ks.clone(), v.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+                Expr::Tuple(items)
+                    if items.len() >= 2
+                        && items.len() % 2 == 0
+                        && items
+                            .iter()
+                            .step_by(2)
+                            .all(|it| matches!(&**it, Expr::Const(o) if matches!(&**o, PyObject::Str(_)))) =>
+                {
+                    // runtime-built flat (name, value, ...) pairs (3.10+)
+                    for pair in items.chunks(2) {
+                        if let Expr::Const(o) = &*pair[0] {
+                            if let PyObject::Str(name) = &**o {
+                                if name == "return" {
+                                    ret_ann = Some(pair[1].clone());
+                                } else {
+                                    ann_map.insert(name.clone(), pair[1].clone());
+                                }
+                            }
+                        }
+                    }
+                }
+                Expr::Tuple(items) if items.len() == 2 => {
+                    // 3.10 style (names_tuple_const, values_tuple_const)
+                    let names: Vec<String> = match &*items[0] {
+                        Expr::Const(o) => match &**o {
+                            PyObject::Tuple(ns) => ns
+                                .iter()
+                                .filter_map(|n| match &**n {
+                                    PyObject::Str(s) => Some(s.clone()),
+                                    _ => None,
+                                })
+                                .collect(),
+                            _ => Vec::new(),
+                        },
+                        _ => Vec::new(),
+                    };
+                    let values: Vec<ExprRef> = match &*items[1] {
+                        Expr::Const(o) => match &**o {
+                            PyObject::Tuple(vs) => vs
+                                .iter()
+                                .map(|v| Rc::new(Expr::Const(v.clone())) as ExprRef)
+                                .collect(),
+                            _ => Vec::new(),
+                        },
+                        _ => Vec::new(),
+                    };
+                    for (n, v) in names.into_iter().zip(values) {
+                        if n == "return" {
+                            ret_ann = Some(v);
+                        } else {
+                            ann_map.insert(n, v);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let kw_defaults_map: HashMap<String, ExprRef> = match &kwdefaults_d {
+            Some(e) => match &**e {
+                Expr::Const(o) => match &**o {
+                    PyObject::Dict(entries) => entries
+                        .iter()
+                        .filter_map(|(k, v)| match &**k {
+                            PyObject::Str(ks) => Some((ks.clone(), Rc::new(Expr::Const(v.clone())) as ExprRef)),
+                            _ => None,
+                        })
+                        .collect(),
+                    _ => HashMap::new(),
+                },
+                Expr::Dict(entries) => entries
+                    .iter()
+                    .filter_map(|(k, v)| match &**k {
+                        Expr::Const(o) => match &**o {
+                            PyObject::Str(ks) => Some((ks.clone(), v.clone())),
+                            _ => None,
+                        },
+                        _ => None,
+                    })
+                    .collect(),
+                _ => HashMap::new(),
+            },
+            None => HashMap::new(),
+        };
+
+        let mk_param = |name: &str| Param {
+            name: name.to_string(),
+            annotation: ann_map.get(name).cloned(),
+        };
+
+        let mut params = Parameters::empty();
+        params.posonly_count = posonly;
+        for n in all_names.iter().take(argcount) {
+            params.args.push(mk_param(n));
+        }
+        let mut idx = argcount;
+        for n in all_names.iter().skip(argcount).take(kwonly) {
+            let p = Param {
+                name: n.clone(),
+                annotation: ann_map.get(n).cloned(),
+            };
+            let d = kw_defaults_map.get(n).cloned();
+            params.kwonly.push(p);
+            params.kw_defaults.push(d);
+            idx += 1;
+        }
+        if varargs {
+            if let Some(n) = all_names.get(idx) {
+                params.vararg = Some(mk_param(n));
+                idx += 1;
+            }
+        }
+        if varkw {
+            if let Some(n) = all_names.get(idx) {
+                params.kwarg = Some(mk_param(n));
+            }
+        }
+        params.defaults = defaults;
+        params.returns_annotation = ret_ann;
+        params
+    }
+
+    fn build_params_legacy(&mut self, code: &Rc<CodeObject>, defaults: Vec<ExprRef>) -> Parameters {
+        let argcount = code.arg_count as usize;
+        let kwonly = code.kwonly_arg_count as usize;
+        let varargs = code.has_varargs();
+        let varkw = code.has_varkeywords();
+        let mut params = Parameters::empty();
+        for n in code.varnames.iter().take(argcount) {
+            params.args.push(Param {
+                name: n.clone(),
+                annotation: None,
+            });
+        }
+        let mut idx = argcount;
+        for n in code.varnames.iter().skip(argcount).take(kwonly) {
+            params.kwonly.push(Param {
+                name: n.clone(),
+                annotation: None,
+            });
+            params.kw_defaults.push(None);
+            idx += 1;
+        }
+        if varargs {
+            if let Some(n) = code.varnames.get(idx) {
+                params.vararg = Some(Param {
+                    name: n.clone(),
+                    annotation: None,
+                });
+                idx += 1;
+            }
+        }
+        if varkw {
+            if let Some(n) = code.varnames.get(idx) {
+                params.kwarg = Some(Param {
+                    name: n.clone(),
+                    annotation: None,
+                });
+            }
+        }
+        params.defaults = defaults;
+        params
+    }
+
+    fn set_function_attribute_313(&mut self, flags: u32) {
+        // 3.13+: SET_FUNCTION_ATTRIBUTE (func, attr -- func): the function
+        // is on TOP, the attribute value below it
+        let func_e = self.pop_expr();
+        let value = self.pop_expr();
+        let mut params_opt: Option<Parameters> = None;
+        let mut returns_opt: Option<ExprRef> = None;
+        let mut params = match &*func_e {
+            Expr::Function(fd) => fd.params.clone(),
+            Expr::Lambda { params, .. } => (**params).clone(),
+            _ => {
+                // not a function we track; restore stack best-effort
+                self.push(value);
+                self.push(func_e);
+                return;
+            }
+        };
+        if flags & 0x10 != 0 {
+            // 3.14 PEP 649: value is the __annotate__ function whose body
+            // returns the annotations dict
+            if let Expr::Function(afd) = &*value {
+                if afd.code.name == "__annotate__" {
+                    if let Ok(d) = decompile(&afd.code, self.version) {
+                        for stmt in &d.body {
+                            if let Stmt::Return(Some(e)) = stmt {
+                                apply_annotations_313_dictexpr(&mut params, e);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        match flags {
+            0x01 => params.defaults = tuple_items(&value),
+            0x02 => {
+                let map = dict_items(&value);
+                params.kw_defaults = params
+                    .kwonly
+                    .iter()
+                    .map(|p| map.iter().find(|(k, _)| k == &p.name).map(|(_, v)| v.clone()))
+                    .collect();
+            }
+            0x04 => apply_annotations_313(&mut params, &value),
+            0x08 => returns_opt = Some(value.clone()),
+            _ => {}
+        }
+        let _ = &mut params_opt;
+        let out = match &*func_e {
+            Expr::Function(fd) => {
+                let mut fd = (**fd).clone();
+                fd.params = params;
+                if let Some(r) = returns_opt {
+                    fd.returns = Some(r);
+                }
+                Rc::new(Expr::Function(Rc::new(fd))) as ExprRef
+            }
+            Expr::Lambda { body, .. } => Rc::new(Expr::Lambda {
+                params: Box::new(params),
+                body: body.clone(),
+            }),
+            _ => func_e.clone(),
+        };
+        self.push(out);
+    }
+
+    fn lambda_body(&mut self, code: &CodeObject) -> ExprRef {
+        // lambda code: build expression from the (short) instruction stream
+        let inner = decompile(code, self.version);
+        match inner {
+            Ok(d) => {
+                for stmt in &d.body {
+                    if let Stmt::Return(Some(e)) = stmt {
+                        return e.clone();
+                    }
+                    if let Stmt::Expr(e) = stmt {
+                        return e.clone();
+                    }
+                }
+                // yield lambdas etc.
+                for stmt in &d.body {
+                    if let Stmt::Return(None) = stmt {
+                        return Rc::new(Expr::Const(Rc::new(PyObject::None)));
+                    }
+                }
+                self.mark_unclean();
+                self.name_expr("/*lambda?*/")
+            }
+            Err(_) => {
+                self.mark_unclean();
+                self.name_expr("/*lambda?*/")
+            }
+        }
+    }
+
+    fn decompile_function(&mut self, code: &Rc<CodeObject>) -> Option<Vec<Stmt>> {
+        match decompile(code, self.version) {
+            Ok(d) => {
+                if !d.clean {
+                    self.mark_unclean();
+                }
+                Some(postprocess_body(d.body, code))
+            }
+            Err(_) => {
+                self.mark_unclean();
+                None
+            }
+        }
+    }
+}
+
+impl<'a> Ctx<'a> {
+    fn handle_collection_op(&mut self, inst: &Instruction, arg: u32) {
+        match inst.op {
+            Op::LIST_EXTEND | Op::SET_UPDATE => {
+                let iter = self.pop_expr();
+                let coll = self.pop_expr();
+                let items = match &*coll {
+                    Expr::List(v) => v.clone(),
+                    Expr::Set(v) => v.clone(),
+                    Expr::Tuple(v) => v.to_vec(),
+                    other => vec![Rc::new(other.clone())],
+                };
+                let mut all = items;
+                match &*iter {
+                    Expr::Const(o) => match &**o {
+                        PyObject::Tuple(t) | PyObject::List(t) | PyObject::FrozenSet(t) => {
+                            all.extend(t.iter().map(|c| Rc::new(Expr::Const(c.clone())) as ExprRef));
+                        }
+                        _ => all.push(iter),
+                    },
+                    other => all.push(Rc::new(Expr::Starred(Rc::new(other.clone())))),
+                }
+                let e = match inst.op {
+                    Op::LIST_EXTEND => Expr::List(all),
+                    _ => Expr::Set(all),
+                };
+                self.push(Rc::new(e));
+            }
+            Op::DICT_UPDATE | Op::DICT_MERGE => {
+                let other = self.pop_expr();
+                let dict = self.pop_expr();
+                let mut entries = match &*dict {
+                    Expr::Dict(d) => d.clone(),
+                    _ => Vec::new(),
+                };
+                match &*other {
+                    Expr::Dict(d) => entries.extend(d.iter().cloned()),
+                    o => entries.push((
+                        Rc::new(Expr::Starred(Rc::new(o.clone()))),
+                        self.name_expr(""),
+                    )),
+                }
+                self.push(Rc::new(Expr::Dict(entries)));
+            }
+            Op::LIST_APPEND | Op::SET_ADD => {
+                let item = self.pop_expr();
+                let len = self.stack.len();
+                let idx = len.saturating_sub(arg as usize);
+                let coll = self
+                    .stack
+                    .get(idx)
+                    .and_then(|sv| match sv {
+                        Sv::E(e) => Some(e.clone()),
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| Rc::new(Expr::List(vec![])));
+                let mut items = match &*coll {
+                    Expr::List(v) => v.clone(),
+                    Expr::Set(v) => v.clone(),
+                    _ => vec![],
+                };
+                items.push(item);
+                let e = match inst.op {
+                    Op::LIST_APPEND => Expr::List(items),
+                    _ => Expr::Set(items),
+                };
+                let new: ExprRef = Rc::new(e);
+                if let Some(Sv::E(slot)) = self.stack.get_mut(idx) {
+                    *slot = new;
+                }
+            }
+            Op::MAP_ADD => {
+                // 3.x: value then key (key on top? CPython: MAP_ADD i:
+                // key = second, value = top for >=3.8; reversed for 3.0-3.7)
+                let (key, value) = if self.version.at_least(3, 8) || self.version.major == 2 {
+                    let value = self.pop_expr();
+                    let key = self.pop_expr();
+                    (key, value)
+                } else {
+                    let key = self.pop_expr();
+                    let value = self.pop_expr();
+                    (value, key)
+                };
+                let len = self.stack.len();
+                let idx = len.saturating_sub(arg as usize);
+                let coll = self
+                    .stack
+                    .get(idx)
+                    .and_then(|sv| match sv {
+                        Sv::E(e) => Some(e.clone()),
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| Rc::new(Expr::Dict(vec![])));
+                let mut entries = match &*coll {
+                    Expr::Dict(d) => d.clone(),
+                    _ => vec![],
+                };
+                entries.push((key, value));
+                let new: ExprRef = Rc::new(Expr::Dict(entries));
+                if let Some(Sv::E(slot)) = self.stack.get_mut(idx) {
+                    *slot = new;
+                }
+            }
+            Op::LIST_TO_TUPLE => {
+                let e = self.pop_expr();
+                let items = match &*e {
+                    Expr::List(v) => v.clone(),
+                    other => vec![Rc::new(other.clone())],
+                };
+                self.push(Rc::new(Expr::Tuple(items)));
+            }
+            Op::COPY_DICT_WITHOUT_KEYS => {
+                // match/case dict rest binding — not supported yet
+                self.mark_unclean();
+            }
+            _ => self.mark_unclean(),
+        }
+    }
+}
+
+fn tuple_items(e: &ExprRef) -> Vec<ExprRef> {
+    match &**e {
+        Expr::Const(o) => match &**o {
+            PyObject::Tuple(items) => items
+                .iter()
+                .map(|i| Rc::new(Expr::Const(i.clone())) as ExprRef)
+                .collect(),
+            _ => Vec::new(),
+        },
+        Expr::Tuple(items) => items.clone(),
+        _ => Vec::new(),
+    }
+}
+
+fn dict_items(e: &ExprRef) -> Vec<(String, ExprRef)> {
+    let mut out = Vec::new();
+    match &**e {
+        Expr::Const(o) => match &**o {
+            PyObject::Dict(entries) => {
+                for (k, v) in entries {
+                    if let PyObject::Str(ks) = &**k {
+                        out.push((ks.clone(), Rc::new(Expr::Const(v.clone())) as ExprRef));
+                    }
+                }
+            }
+            _ => {}
+        },
+        Expr::Dict(entries) => {
+            for (k, v) in entries {
+                if let Expr::Const(o) = &**k {
+                    if let PyObject::Str(ks) = &**o {
+                        out.push((ks.clone(), v.clone()));
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+    out
+}
+
+/// Apply annotations from a runtime Dict expression (PEP 649 __annotate__).
+fn apply_annotations_313_dictexpr(params: &mut Parameters, value: &ExprRef) {
+    let Expr::Dict(entries) = &**value else { return };
+    for (k, v) in entries {
+        let Expr::Const(o) = &**k else { continue };
+        let PyObject::Str(name) = &**o else { continue };
+        if name == "return" {
+            params.returns_annotation = Some(v.clone());
+            continue;
+        }
+        for p in params.args.iter_mut() {
+            if p.name == *name {
+                p.annotation = Some(v.clone());
+            }
+        }
+        for p in params.kwonly.iter_mut() {
+            if p.name == *name {
+                p.annotation = Some(v.clone());
+            }
+        }
+        if let Some(p) = params.vararg.as_mut() {
+            if p.name == *name {
+                p.annotation = Some(v.clone());
+            }
+        }
+        if let Some(p) = params.kwarg.as_mut() {
+            if p.name == *name {
+                p.annotation = Some(v.clone());
+            }
+        }
+    }
+}
+
+fn apply_annotations_313(params: &mut Parameters, value: &ExprRef) {
+    // 3.13+: annotations as a flat runtime tuple (name, value, ...) —
+    // including the "return" entry
+    if let Expr::Tuple(items) = &**value {
+        if items.len() >= 2 && items.len() % 2 == 0 {
+            let mut handled = true;
+            for pair in items.chunks(2) {
+                let Expr::Const(o) = &*pair[0] else {
+                    handled = false;
+                    break;
+                };
+                let PyObject::Str(name) = &**o else {
+                    handled = false;
+                    break;
+                };
+                if name == "return" {
+                    params.returns_annotation = Some(pair[1].clone());
+                    continue;
+                }
+                let mut done = false;
+                for p in params.args.iter_mut() {
+                    if p.name == *name {
+                        p.annotation = Some(pair[1].clone());
+                        done = true;
+                    }
+                }
+                for p in params.kwonly.iter_mut() {
+                    if p.name == *name {
+                        p.annotation = Some(pair[1].clone());
+                        done = true;
+                    }
+                }
+                if let Some(p) = params.vararg.as_mut() {
+                    if p.name == *name {
+                        p.annotation = Some(pair[1].clone());
+                        done = true;
+                    }
+                }
+                if let Some(p) = params.kwarg.as_mut() {
+                    if p.name == *name {
+                        p.annotation = Some(pair[1].clone());
+                        done = true;
+                    }
+                }
+                let _ = done;
+            }
+            if handled {
+                return;
+            }
+        }
+    }
+    // fallback: dict form
+    for (name, ann) in dict_items(value) {
+        if name == "return" {
+            params.returns_annotation = Some(ann);
+            continue;
+        }
+        let mut found = false;
+        for p in params.args.iter_mut() {
+            if p.name == name {
+                p.annotation = Some(ann.clone());
+                found = true;
+            }
+        }
+        for p in params.kwonly.iter_mut() {
+            if p.name == name {
+                p.annotation = Some(ann.clone());
+                found = true;
+            }
+        }
+        if let Some(p) = params.vararg.as_mut() {
+            if p.name == name {
+                p.annotation = Some(ann.clone());
+                found = true;
+            }
+        }
+        if let Some(p) = params.kwarg.as_mut() {
+            if p.name == name {
+                p.annotation = Some(ann.clone());
+                found = true;
+            }
+        }
+        let _ = found;
+    }
+    // tuple form
+    if let Expr::Const(o) = &**value {
+        if let PyObject::Tuple(items) = &**o {
+            if items.len() == 2 {
+                if let (PyObject::Tuple(ns), PyObject::Tuple(vs)) = (&*items[0], &*items[1]) {
+                    for (n, v) in ns.iter().zip(vs.iter()) {
+                        if let PyObject::Str(name) = &**n {
+                            let ann: ExprRef = Rc::new(Expr::Const(v.clone()));
+                            if name == "return" {
+                                params.returns_annotation = Some(ann);
+                                continue;
+                            }
+                            for p in params.args.iter_mut() {
+                                if p.name == *name {
+                                    p.annotation = Some(ann.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn binop_from_text(op_text: &str) -> BinaryOp {
+    match op_text {
+        "+" => BinaryOp::Add,
+        "-" => BinaryOp::Sub,
+        "*" => BinaryOp::Mult,
+        "/" => BinaryOp::Div,
+        "//" => BinaryOp::FloorDiv,
+        "%" => BinaryOp::Mod,
+        "**" => BinaryOp::Pow,
+        "<<" => BinaryOp::LShift,
+        ">>" => BinaryOp::RShift,
+        "|" => BinaryOp::BitOr,
+        "^" => BinaryOp::BitXor,
+        "&" => BinaryOp::BitAnd,
+        "@" => BinaryOp::MatMult,
+        _ => BinaryOp::Add,
+    }
+}
+
+fn dotted_last(module: &str) -> &str {
+    module.rsplit('.').next().unwrap_or(module)
+}
+
+/// Cleanup applied to a decompiled function/module body:
+/// * drop synthetic `__qualname__` / `__module__` assignments (class bodies)
+/// * convert leading `__doc__ = 'x'` assignments into docstring statements
+/// * drop a trailing `return None` in function bodies
+fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
+    // __module__ / __qualname__ / __doc__ handling for class bodies
+    let mut idx = 0;
+    while idx < body.len() {
+        let mut remove = false;
+        if let Stmt::Assign { targets, value } = &body[idx] {
+            if targets.len() == 1 {
+                if let Expr::Name(n) = &*targets[0] {
+                    if n == "__module__" {
+                        if let Expr::Name(_) | Expr::Const(_) = &**value {
+                            remove = true;
+                        }
+                    } else if n == "__qualname__" {
+                        if let Expr::Const(_) = &**value {
+                            remove = true;
+                        }
+                    } else if n == "__classcell__"
+                        || n == "__classdictcell__"
+                        || n == "__classdict__"
+                        || n == "__firstlineno__"
+                        || n == "__static_attributes__"
+                    {
+                        remove = true;
+                    } else if n == "__doc__" {
+                        if let Expr::Const(o) = &**value {
+                            if matches!(&**o, PyObject::Str(_) | PyObject::Bytes(_) | PyObject::None) {
+                                // rewrite as docstring const expr
+                                body[idx] = Stmt::Expr(Rc::new(Expr::Const(o.clone())));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if remove {
+            body.remove(idx);
+        } else {
+            idx += 1;
+        }
+    }
+    // trailing `return None`
+    if code.name != "<module>" && code.name != "<lambda>" {
+        if let Some(Stmt::Return(None)) = body.last() {
+            body.pop();
+        }
+    }
+    // class bodies using zero-arg super() end with `return __class__`
+    // (3.13+: an unnamed cell local shows up as a bad-local marker)
+    if let Some(Stmt::Return(Some(e))) = body.last() {
+        if let Expr::Name(n) = &**e {
+            if n == "__class__" || n.contains("bad-local") || n.contains("__class") {
+                body.pop();
+            }
+        }
+    }
+    body
+}
+
+// =====================  comprehensions  =====================
+
+impl<'a> Ctx<'a> {
+    /// Try to turn a completed call into a comprehension. The callee is a
+    /// Function whose code object is named `<listcomp>` etc. The iterable is
+    /// passed either as a normal argument (3.12+, 2.7 listcomp) or via the
+    /// self/marker slot (3.7-3.11 LOAD_METHOD convention).
+    fn try_make_comprehension(
+        &mut self,
+        call_e: &ExprRef,
+        marker: Option<Sv>,
+    ) -> Option<ExprRef> {
+        let Expr::Call { func, args, .. } = &**call_e else {
+            return None;
+        };
+        let fd = match &**func {
+            Expr::Function(fd) => fd.clone(),
+            Expr::Name(n) if n == "/*generator*/" => {
+                // genexpr passed as a call argument: code object remembered
+                // at RETURN_GENERATOR
+                let code = self.pending_gen_code.take()?;
+                Rc::new(FunctionDef {
+                    name: code.name.clone(),
+                    code,
+                    params: Parameters::empty(),
+                    decorators: Vec::new(),
+                    returns: None,
+                    is_async: false,
+                })
+            }
+            _ => return None,
+        };
+        let kind = match fd.code.name.as_str() {
+            "<listcomp>" => CompKind::List,
+            "<setcomp>" => CompKind::Set,
+            "<dictcomp>" => CompKind::Dict,
+            "<genexpr>" | "<async_generator>" => CompKind::Generator,
+            _ => return None,
+        };
+
+        // locate the iterable argument
+        let iter: ExprRef = if let Some(Sv::E(e)) = marker {
+            e
+        } else if !args.is_empty()
+            && !matches!(&*args[0], Expr::Name(n) if n == "/*generator*/")
+        {
+            args[0].clone()
+        } else {
+            return None;
+        };
+
+        let outer = iter.clone();
+        match self.build_comprehension(&fd.code, kind, iter) {
+            Some((elt, key, gens)) => {
+                let mut generators = gens;
+                if generators.is_empty() {
+                    return None;
+                }
+                // the first generator's iterator is the passed-in iterable
+                generators[0].iter = outer;
+                Some(Rc::new(Expr::Comprehension {
+                    kind,
+                    elt,
+                    key,
+                    generators,
+                }))
+            }
+            None => None,
+        }
+    }
+
+    /// Decode a comprehension code object into (elt, key, generators).
+    /// The implicit `.0` parameter holds the outermost iterator (replaced
+    /// by the caller with the real iterable expression).
+    fn build_comprehension(
+        &mut self,
+        code: &CodeObject,
+        _kind: CompKind,
+        outer_iter: ExprRef,
+    ) -> Option<(ExprRef, Option<ExprRef>, Vec<Comprehension>)> {
+        let table = table_for(self.version).ok()?;
+        let instrs = crate::bytecode::decode_instructions(code, table, self.version);
+
+        struct PartialGen {
+            target: Option<ExprRef>,
+            iter: ExprRef,
+            ifs: Vec<ExprRef>,
+            is_async: bool,
+        }
+
+        let mut partials: Vec<PartialGen> = Vec::new();
+        let mut elt: Option<ExprRef> = None;
+        let mut key: Option<ExprRef> = None;
+
+        let mut stack: Vec<ExprRef> = Vec::new();
+        let iter0 = outer_iter;
+        let mut pending_async = false;
+
+        let name_of_arg = |code: &CodeObject, idx: usize| -> String {
+            code.names
+                .get(idx)
+                .and_then(|o| match &**o {
+                    PyObject::Str(s) => Some(s.clone()),
+                    PyObject::Bytes(b) => Some(String::from_utf8_lossy(b).into_owned()),
+                    _ => None,
+                })
+                .unwrap_or_else(|| "?".into())
+        };
+
+        for inst in &instrs {
+            match inst.op {
+                Op::RESUME
+                | Op::NOP
+                | Op::CACHE
+                | Op::RETURN_VALUE
+                | Op::RETURN_CONST
+                | Op::END_FOR
+                | Op::POP_ITER
+                | Op::NOT_TAKEN
+                | Op::POP_TOP
+                | Op::JUMP_BACKWARD
+                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                | Op::JUMP_ABSOLUTE
+                | Op::JUMP_FORWARD
+                | Op::JUMP
+                | Op::GET_ANEXT
+                | Op::END_ASYNC_FOR
+                | Op::GET_YIELD_FROM_ITER
+                | Op::PRECALL
+                | Op::EXTENDED_ARG => {}
+                Op::GET_ITER => {}
+                Op::GET_AITER => {
+                    pending_async = true;
+                }
+                Op::LOAD_FAST | Op::LOAD_FAST_CHECK | Op::LOAD_FAST_BORROW | Op::LOAD_FAST_AND_CLEAR => {
+                    let name = code.varnames.get(inst.arg as usize).cloned();
+                    match name {
+                        Some(n) if n == ".0" => {
+                            stack.push(iter0.clone());
+                        }
+                        Some(n) => stack.push(Rc::new(Expr::Name(n))),
+                        None => stack.push(Rc::new(Expr::Name(format!(".{}", inst.arg)))),
+                    }
+                }
+                Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW | Op::LOAD_FAST_LOAD_FAST => {
+                    for idx in [(inst.arg >> 4) as usize, (inst.arg & 0xF) as usize] {
+                        match code.varnames.get(idx).cloned() {
+                            Some(n) if n == ".0" => stack.push(iter0.clone()),
+                            Some(n) => stack.push(Rc::new(Expr::Name(n))),
+                            None => stack.push(Rc::new(Expr::Name(format!(".{idx}")))),
+                        }
+                    }
+                }
+                Op::LOAD_SMALL_INT => {
+                    stack.push(Rc::new(Expr::Const(Rc::new(PyObject::Int(inst.arg as i32)))));
+                }
+                Op::LOAD_DEREF | Op::LOAD_CLOSURE | Op::LOAD_CLASSDEREF => {
+                    let n = code
+                        .deref_name(inst.arg as usize)
+                        .unwrap_or("?")
+                        .to_string();
+                    stack.push(Rc::new(Expr::Name(n)));
+                }
+                Op::LOAD_CONST => {
+                    if let Some(o) = code.consts.get(inst.arg as usize) {
+                        stack.push(Rc::new(Expr::Const(o.clone())));
+                    }
+                }
+                Op::LOAD_NAME => {
+                    let n = name_of_arg(code, inst.arg as usize);
+                    stack.push(Rc::new(Expr::Name(n)));
+                }
+                Op::LOAD_GLOBAL => {
+                    let idx = if self.version.at_least(3, 11) {
+                        (inst.arg >> 1) as usize
+                    } else {
+                        inst.arg as usize
+                    };
+                    let n = name_of_arg(code, idx);
+                    stack.push(Rc::new(Expr::Name(n)));
+                }
+                Op::LOAD_ATTR | Op::LOAD_METHOD => {
+                    let idx = if inst.op == Op::LOAD_ATTR && self.version.at_least(3, 12) {
+                        (inst.arg >> 1) as usize
+                    } else {
+                        inst.arg as usize
+                    };
+                    let attr = name_of_arg(code, idx);
+                    if let Some(v) = stack.pop() {
+                        let e: ExprRef = Rc::new(Expr::Attribute { value: v.clone(), attr });
+                        if inst.op == Op::LOAD_METHOD {
+                            stack.push(e);
+                            stack.push(v);
+                        } else {
+                            stack.push(e);
+                        }
+                    }
+                }
+                Op::FOR_ITER => {
+                    let it = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                    partials.push(PartialGen {
+                        target: None,
+                        iter: it,
+                        ifs: Vec::new(),
+                        is_async: std::mem::take(&mut pending_async),
+                    });
+                }
+                Op::STORE_FAST_LOAD_FAST => {
+                    let idx = ((inst.arg >> 4) & 0xF) as usize;
+                    let name = code.varnames.get(idx).cloned().unwrap_or_default();
+                    if let Some(last) = partials.last_mut() {
+                        if last.target.is_none() {
+                            last.target = Some(Rc::new(Expr::Name(name.clone())));
+                        }
+                    }
+                    // the LOAD half pushes the value back
+                    match code.varnames.get((inst.arg & 0xF) as usize).cloned() {
+                        Some(n) if n == ".0" => stack.push(iter0.clone()),
+                        Some(n) => stack.push(Rc::new(Expr::Name(n))),
+                        None => stack.push(Rc::new(Expr::Name("?".to_string()))),
+                    }
+                }
+                Op::STORE_FAST | Op::STORE_DEREF => {
+                    let name = if inst.op == Op::STORE_FAST {
+                        code.varnames
+                            .get(inst.arg as usize)
+                            .cloned()
+                            .unwrap_or_default()
+                    } else {
+                        code.deref_name(inst.arg as usize)
+                            .unwrap_or("?")
+                            .to_string()
+                    };
+                    if let Some(last) = partials.last_mut() {
+                        if last.target.is_none() {
+                            last.target = Some(Rc::new(Expr::Name(name)));
+                            continue;
+                        }
+                    }
+                    // tuple targets or other stores: pop value
+                    let v = stack.pop();
+                    if name.starts_with('.') {
+                        // tuple unpack of loop target
+                        if let Some(last) = partials.last_mut() {
+                            last.target = Some(v.unwrap_or_else(|| Rc::new(Expr::Name(name))));
+                        }
+                    }
+                }
+                Op::UNPACK_SEQUENCE => {
+                    // keep the iterable; subsequent stores form a tuple target
+                    // (simplified: rare in comprehensions)
+                }
+                Op::POP_JUMP_IF_FALSE
+                | Op::POP_JUMP_IF_TRUE
+                | Op::POP_JUMP_FORWARD_IF_FALSE
+                | Op::POP_JUMP_FORWARD_IF_TRUE
+                | Op::POP_JUMP_BACKWARD_IF_FALSE
+                | Op::POP_JUMP_BACKWARD_IF_TRUE
+                | Op::JUMP_IF_FALSE_OR_POP
+                | Op::JUMP_IF_TRUE_OR_POP => {
+                    if let Some(c) = stack.pop() {
+                        if let Some(last) = partials.last_mut() {
+                            last.ifs.push(c);
+                        }
+                    }
+                }
+                Op::LIST_APPEND | Op::SET_ADD => {
+                    let item = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                    elt.get_or_insert(item);
+                }
+                Op::MAP_ADD => {
+                    let (k, v) = if self.version.at_least(3, 8) || self.version.major == 2 {
+                        let v = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                        let k = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                        (k, v)
+                    } else {
+                        let k = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                        let v = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                        (v, k)
+                    };
+                    key.get_or_insert(k);
+                    elt.get_or_insert(v);
+                }
+                Op::YIELD_VALUE => {
+                    let item = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                    elt.get_or_insert(item);
+                }
+                Op::BINARY_OP => {
+                    let rhs = stack.pop();
+                    let lhs = stack.pop();
+                    if let (Some(l), Some(r)) = (lhs, rhs) {
+                        let name = crate::bytecode::binary_op_name(inst.arg, self.version)
+                            .unwrap_or("+");
+                        let op = binop_from_text(name);
+                        stack.push(Rc::new(Expr::Binary {
+                            op,
+                            left: l,
+                            right: r,
+                        }));
+                    }
+                }
+                Op::BINARY_ADD
+                | Op::BINARY_SUBTRACT
+                | Op::BINARY_MULTIPLY
+                | Op::BINARY_TRUE_DIVIDE
+                | Op::BINARY_FLOOR_DIVIDE
+                | Op::BINARY_MODULO
+                | Op::BINARY_POWER
+                | Op::BINARY_SUBSCR => {
+                    let rhs = stack.pop();
+                    let lhs = stack.pop();
+                    if let (Some(l), Some(r)) = (lhs, rhs) {
+                        if inst.op == Op::BINARY_SUBSCR {
+                            stack.push(Rc::new(Expr::Subscript { value: l, index: r }));
+                        } else {
+                            let name = match inst.op {
+                                Op::BINARY_ADD => "+",
+                                Op::BINARY_SUBTRACT => "-",
+                                Op::BINARY_MULTIPLY => "*",
+                                Op::BINARY_TRUE_DIVIDE => "/",
+                                Op::BINARY_FLOOR_DIVIDE => "//",
+                                Op::BINARY_MODULO => "%",
+                                Op::BINARY_POWER => "**",
+                                _ => "+",
+                            };
+                            stack.push(Rc::new(Expr::Binary {
+                                op: binop_from_text(name),
+                                left: l,
+                                right: r,
+                            }));
+                        }
+                    }
+                }
+                Op::COMPARE_OP | Op::IS_OP | Op::CONTAINS_OP => {
+                    let rhs = stack.pop();
+                    let lhs = stack.pop();
+                    if let (Some(l), Some(r)) = (lhs, rhs) {
+                        let idx = if inst.op == Op::COMPARE_OP {
+                            compare_op_index(inst.arg, self.version)
+                        } else if inst.op == Op::IS_OP {
+                            if inst.arg == 1 { 9 } else { 8 }
+                        } else if inst.arg == 1 {
+                            7
+                        } else {
+                            6
+                        };
+                        stack.push(Rc::new(Expr::Compare {
+                            operands: vec![l, r],
+                            ops: vec![cmp_from_index(idx)],
+                        }));
+                    }
+                }
+                Op::UNARY_NOT => {
+                    if let Some(v) = stack.pop() {
+                        stack.push(Rc::new(Expr::Unary {
+                            op: UnaryOp::Not,
+                            operand: v,
+                        }));
+                    }
+                }
+                Op::MAKE_FUNCTION | Op::MAKE_CLOSURE => {
+                    // mini-sim: turn the code constant into a Function value
+                    let mut popped = stack.pop();
+                    // 3.6-3.10: qualname sits above the code constant
+                    if self.version.at_least(3, 6) && !self.version.at_least(3, 11) {
+                        let is_code = matches!(&popped, Some(e) if matches!(&**e, Expr::Const(o) if matches!(&**o, PyObject::Code(_))));
+                        if !is_code {
+                            popped = stack.pop();
+                        }
+                    }
+                    let mut handled = false;
+                    if let Some(e) = popped {
+                        if let Expr::Const(o) = &*e {
+                            if let PyObject::Code(c) = &**o {
+                                stack.push(Rc::new(Expr::Function(Rc::new(FunctionDef {
+                                    name: c.name.clone(),
+                                    code: c.clone(),
+                                    params: Parameters::empty(),
+                                    decorators: Vec::new(),
+                                    returns: None,
+                                    is_async: false,
+                                }))));
+                                handled = true;
+                            }
+                        }
+                        if !handled {
+                            stack.push(e);
+                        }
+                    }
+                }
+                Op::CALL_FUNCTION | Op::CALL | Op::CALL_METHOD => {
+                    let n = if inst.op == Op::CALL_FUNCTION && !self.version.at_least(3, 6) {
+                        (inst.arg & 0xFF) as usize
+                    } else {
+                        inst.arg as usize
+                    };
+                    let mut args = Vec::new();
+                    for _ in 0..n {
+                        if let Some(a) = stack.pop() {
+                            args.push(a);
+                        }
+                    }
+                    args.reverse();
+                    // comprehension instantiation: [genfunc, iterable]
+                    let sn = stack.len();
+                    if sn >= 2 && n == 0 {
+                        let comp_fn = matches!(&*stack[sn - 2], Expr::Function(fd)
+                            if matches!(fd.code.name.as_str(),
+                                "<listcomp>" | "<setcomp>" | "<dictcomp>" | "<genexpr>"));
+                        if comp_fn {
+                            let iter = stack.pop().unwrap();
+                            let func = stack.pop().unwrap();
+                            if let Expr::Function(fd) = &*func {
+                                let kind = match fd.code.name.as_str() {
+                                    "<listcomp>" => CompKind::List,
+                                    "<setcomp>" => CompKind::Set,
+                                    "<dictcomp>" => CompKind::Dict,
+                                    _ => CompKind::Generator,
+                                };
+                                if let Some((elt, key, gens)) =
+                                    self.build_comprehension(&fd.code, kind, iter)
+                                {
+                                    stack.push(Rc::new(Expr::Comprehension {
+                                        kind,
+                                        elt,
+                                        key,
+                                        generators: gens,
+                                    }));
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                    if inst.op != Op::CALL_FUNCTION && self.version.at_least(3, 7) {
+                        stack.pop(); // marker/self slot
+                    }
+                    let func = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                    // comprehension instantiation with the iterator passed
+                    // as the single argument (<=3.11 listcomp/genexpr)
+                    if args.len() == 1 && keywords_empty(&args) {
+                        if let Expr::Function(fd) = &*func {
+                            let kind = match fd.code.name.as_str() {
+                                "<listcomp>" => Some(CompKind::List),
+                                "<setcomp>" => Some(CompKind::Set),
+                                "<dictcomp>" => Some(CompKind::Dict),
+                                "<genexpr>" => Some(CompKind::Generator),
+                                _ => None,
+                            };
+                            if let Some(kind) = kind {
+                                if let Some((elt, key, gens)) = self.build_comprehension(
+                                    &fd.code,
+                                    kind,
+                                    args[0].clone(),
+                                ) {
+                                    stack.push(Rc::new(Expr::Comprehension {
+                                        kind,
+                                        elt,
+                                        key,
+                                        generators: gens,
+                                    }));
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                    stack.push(Rc::new(Expr::Call {
+                        func,
+                        args,
+                        keywords: Vec::new(),
+                        star_args: None,
+                        star_kwargs: None,
+                    }));
+                }
+                Op::BUILD_TUPLE | Op::BUILD_LIST | Op::BUILD_SET => {
+                    let n = inst.arg as usize;
+                    let mut items = Vec::new();
+                    for _ in 0..n {
+                        if let Some(v) = stack.pop() {
+                            items.push(v);
+                        }
+                    }
+                    items.reverse();
+                    let e = match inst.op {
+                        Op::BUILD_TUPLE => Expr::Tuple(items),
+                        Op::BUILD_LIST => Expr::List(items),
+                        _ => Expr::Set(items),
+                    };
+                    stack.push(Rc::new(e));
+                }
+                Op::TO_BOOL => {}
+                _ => {}
+            }
+        }
+
+        let elt = elt?;
+        if partials.is_empty() {
+            return None;
+        }
+        let gens: Vec<Comprehension> = partials
+            .into_iter()
+            .map(|p| Comprehension {
+                target: p.target.unwrap_or_else(|| Rc::new(Expr::Name("_".to_string()))),
+                iter: p.iter,
+                ifs: p.ifs,
+                is_async: p.is_async,
+            })
+            .collect();
+        Some((elt, key, gens))
+    }
+}
+
+// =====================  PEP 709 inline comprehensions (3.12+)  =====================
+
+impl<'a> Ctx<'a> {
+    /// Look backwards from the current FOR_ITER for the comprehension
+    /// prologue: `GET_ITER; [LOAD_FAST_AND_CLEAR/SWAP...]; BUILD_{LIST,SET,
+    /// MAP} 0; [SWAP...]`. Returns the comprehension kind when matched.
+    fn detect_inline_comp(&self) -> Option<CompKind> {
+        // PEP 709 inline comprehensions (3.12+) and py2.7 module-level
+        // list/set/dict comprehensions share the same shape
+        let inline_era = self.version.at_least(3, 12)
+            || (self.version.major == 2 && self.version.at_least(2, 7));
+        if !inline_era {
+            return None;
+        }
+        let cur = self.cur_offset;
+        let ci = *self.idx_of.get(&cur)?;
+        // walk back to the FOR_ITER
+        let mut i = ci;
+        while self.instrs.get(i).map(|x| x.offset) != Some(cur) && i > 0 {
+            i -= 1;
+        }
+        // scan backwards: skip SWAPs, find BUILD_x 0, then GET_ITER before it
+        let mut j = i;
+        let mut kind = None;
+        let mut steps = 0;
+        while j > 0 && steps < 14 {
+            j -= 1;
+            steps += 1;
+            let inst = &self.instrs[j];
+            match inst.op {
+                // 3.13 places GET_ITER right before FOR_ITER; 3.12 places it
+                // before the LOAD_FAST_AND_CLEAR prologue; py2.7 has
+                // BUILD_x 0; <iter expr>; GET_ITER; FOR_ITER
+                Op::SWAP
+                | Op::GET_ITER
+                | Op::GET_AITER
+                | Op::NOP
+                | Op::LOAD_NAME
+                | Op::LOAD_FAST
+                | Op::LOAD_CONST
+                | Op::LOAD_GLOBAL
+                | Op::LOAD_DEREF
+                | Op::LOAD_METHOD
+                | Op::LOAD_ATTR
+                | Op::CALL
+                | Op::CALL_FUNCTION
+                | Op::CALL_METHOD
+                | Op::BUILD_TUPLE
+                | Op::BUILD_LIST
+                | Op::DUP_TOP
+                | Op::COPY => {
+                    if matches!(inst.op, Op::BUILD_LIST | Op::BUILD_TUPLE) && inst.arg == 0 {
+                        // empty collection build = comprehension accumulator
+                        kind = Some(CompKind::List);
+                        break;
+                    }
+                    continue;
+                }
+                Op::BUILD_SET if inst.arg == 0 => {
+                    kind = Some(CompKind::Set);
+                    break;
+                }
+                Op::BUILD_MAP if inst.arg == 0 => {
+                    kind = Some(CompKind::Dict);
+                    break;
+                }
+                _ => return None,
+            }
+        }
+        let kind = kind?;
+        if self.version.major == 2 {
+            // py2: BUILD_x 0; <iter expr>; GET_ITER; FOR_ITER — verify a
+            // GET_ITER sits between the build and the loop
+            let ok = self.instrs[j..i]
+                .iter()
+                .any(|x| matches!(x.op, Op::GET_ITER | Op::GET_AITER));
+            return if ok { Some(kind) } else { None };
+        }
+        // before the BUILD: LOAD_FAST_AND_CLEAR*/SWAP/... then GET_ITER
+        let mut k = j;
+        let mut steps = 0;
+        while k > 0 && steps < 8 {
+            k -= 1;
+            steps += 1;
+            let inst = &self.instrs[k];
+            match inst.op {
+                Op::GET_ITER | Op::GET_AITER => return Some(kind),
+                Op::SWAP | Op::LOAD_FAST_AND_CLEAR => continue,
+                _ => return None,
+            }
+        }
+        None
+    }
+
+    fn start_inline_comp(&mut self, kind: CompKind, inst: &Instruction) {
+        // the iterable is on top (GET_ITER kept it); consume it into the
+        // generator model
+        let iter = self.pop_expr();
+        // cleared variables from the prologue: collect LOAD_FAST_AND_CLEAR
+        // across SWAP/BUILD/GET_ITER until a non-prologue instruction
+        let mut cleared = Vec::new();
+        let cur = self.cur_offset;
+        if let Some(&ci) = self.idx_of.get(&cur) {
+            for back in (0..ci).rev().take(12) {
+                let ins = &self.instrs[back];
+                match ins.op {
+                    Op::LOAD_FAST_AND_CLEAR => {
+                        cleared.push(self.local_name(ins.arg as usize));
+                    }
+                    Op::SWAP
+                    | Op::GET_ITER
+                    | Op::GET_AITER
+                    | Op::NOP
+                    | Op::BUILD_LIST
+                    | Op::BUILD_SET
+                    | Op::BUILD_MAP
+                    | Op::COPY => continue,
+                    _ => break,
+                }
+            }
+        }
+        // pre-scan: collect every FOR_ITER offset and the region end
+        let ci = *self.idx_of.get(&cur).unwrap_or(&0);
+        let mut for_offsets = vec![inst.offset];
+        let mut depth = 1usize;
+        let mut end_off = usize::MAX;
+        if self.version.major == 2 {
+            // py2: no END_FOR; the outermost FOR_ITER exit ends the region
+            end_off = inst.target.unwrap_or(usize::MAX);
+            for ins in self.instrs.iter().skip(ci + 1) {
+                if ins.offset >= end_off {
+                    break;
+                }
+                if matches!(ins.op, Op::FOR_ITER) {
+                    for_offsets.push(ins.offset);
+                }
+            }
+        } else {
+            for ins in self.instrs.iter().skip(ci + 1) {
+                match ins.op {
+                    Op::FOR_ITER | Op::FOR_LOOP => {
+                        depth += 1;
+                        for_offsets.push(ins.offset);
+                    }
+                    Op::END_FOR => {
+                        depth -= 1;
+                        if depth == 0 {
+                            end_off = ins.offset;
+                            break;
+                        }
+                    }
+                    Op::RETURN_VALUE | Op::RETURN_CONST => break,
+                    _ => {}
+                }
+            }
+        }
+        // an active comprehension becomes the parent of this nested one
+        if let Some(parent) = self.inline_comp.take() {
+            self.inline_comp_stack.push(parent);
+        }
+        // keep the iterator on the stack like the VM does; the loop-target
+        // store will consume it
+        self.push(iter.clone());
+        let cleared_all = cleared;
+        self.inline_comp = Some(InlineComp {
+            kind,
+            iter: iter.clone(),
+            end: end_off,
+            for_iter_offsets: for_offsets,
+            gens: Vec::new(),
+            cur: Some(PartialGen {
+                target: None,
+                iter,
+                ifs: Vec::new(),
+            }),
+            elt: None,
+            key: None,
+            cleared_vars: cleared_all,
+            target_seen: false,
+        });
+        self.comp_target_store = true;
+    }
+
+    fn comp_add_element(&mut self, inst: &Instruction) {
+        let (value, key) = if inst.op == Op::MAP_ADD {
+            // 3.8+: value on top, key below
+            let value = self.pop_expr();
+            let key = self.pop_expr();
+            (value, Some(key))
+        } else {
+            (self.pop_expr(), None)
+        };
+        if let Some(comp) = &mut self.inline_comp {
+            if let Some(k) = key {
+                comp.key.get_or_insert(k);
+            }
+            comp.elt.get_or_insert(value);
+        }
+    }
+
+    /// True when the offset lies inside the active comprehension region.
+    fn in_comp_region(&self, offset: usize) -> bool {
+        self.inline_comp
+            .as_ref()
+            .map_or(false, |c| offset > c.for_iter_offsets[0] && offset < c.end)
+    }
+
+    /// True when the instructions immediately before `offset` contain a
+    /// BUILD_{LIST,SET,MAP} 0 — the marker of a NEW (nested) comprehension
+    /// level rather than an extra generator of the current one.
+    fn has_build_prologue(&self, offset: usize) -> bool {
+        let Some(&ci) = self.idx_of.get(&offset) else {
+            return false;
+        };
+        for back in (0..ci).rev().take(6) {
+            let ins = &self.instrs[back];
+            match ins.op {
+                Op::SWAP | Op::LOAD_FAST_AND_CLEAR | Op::LOAD_FAST | Op::GET_ITER
+                | Op::GET_AITER | Op::NOP | Op::LOAD_NAME | Op::LOAD_DEREF
+                | Op::LOAD_CONST | Op::COPY => continue,
+                Op::BUILD_LIST | Op::BUILD_SET | Op::BUILD_MAP => {
+                    return ins.arg == 0;
+                }
+                _ => return false,
+            }
+        }
+        false
+    }
+
+    /// Nested FOR_ITER inside an inline comprehension: complete the current
+    /// generator and start a new one with the popped iterable.
+    fn push_nested_comp_gen(&mut self) {
+        // additional generator of the same comprehension: the iterator stays
+        // on the stack (POP_ITER removes it at the loop end)
+        let iter = self
+            .stack
+            .last()
+            .and_then(|sv| match sv {
+                Sv::E(e) => Some(e.clone()),
+                _ => None,
+            })
+            .unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+        if let Some(comp) = &mut self.inline_comp {
+            if let Some(done) = comp.cur.take() {
+                comp.gens.push(Comprehension {
+                    target: done
+                        .target
+                        .unwrap_or_else(|| Rc::new(Expr::Name("_".to_string()))),
+                    iter: done.iter,
+                    ifs: done.ifs,
+                    is_async: false,
+                });
+            }
+            comp.cur = Some(PartialGen {
+                target: None,
+                iter,
+                ifs: Vec::new(),
+            });
+            comp.target_seen = false;
+        }
+        self.comp_target_store = true;
+    }
+
+    /// Called at the outermost END_FOR: build the comprehension expression.
+    /// For a nested comprehension the result becomes the parent's element.
+    fn finish_inline_comp(&mut self) {
+        let Some(mut comp) = self.inline_comp.take() else {
+            return;
+        };
+        if let Some(done) = comp.cur.take() {
+            comp.gens.push(Comprehension {
+                target: done
+                    .target
+                    .unwrap_or_else(|| Rc::new(Expr::Name("_".to_string()))),
+                iter: done.iter,
+                ifs: done.ifs,
+                is_async: false,
+            });
+        }
+        let elt = comp
+            .elt
+            .take()
+            .unwrap_or_else(|| Rc::new(Expr::Name("_".to_string())));
+        let expr: ExprRef = Rc::new(Expr::Comprehension {
+            kind: comp.kind,
+            elt,
+            key: comp.key.take(),
+            generators: std::mem::take(&mut comp.gens),
+        });
+        // the BUILD_LIST/SET/MAP placeholder on the stack is replaced by the
+        // comprehension expression (it may sit below a leftover iterator)
+        let mut replaced = false;
+        let n = self.stack.len();
+        for i in (0..n).rev().take(3) {
+            if let Sv::E(e) = &self.stack[i] {
+                if matches!(&**e, Expr::List(_) | Expr::Set(_) | Expr::Dict(_)) {
+                    self.stack[i] = Sv::E(expr.clone());
+                    replaced = true;
+                    break;
+                }
+            }
+        }
+        if let Some(mut parent) = self.inline_comp_stack.pop() {
+            // nested comprehension: parent resumes; its LIST_APPEND will
+            // pop this expression as the parent's element
+            for v in comp.cleared_vars {
+                if !parent.cleared_vars.contains(&v) {
+                    parent.cleared_vars.push(v);
+                }
+            }
+            self.inline_comp = Some(parent);
+            if !replaced {
+                self.push(expr);
+            }
+        } else {
+            for v in comp.cleared_vars.drain(..) {
+                if !self.pending_restore_vars.contains(&v) {
+                    self.pending_restore_vars.push(v);
+                }
+            }
+            if !replaced {
+                self.push(expr);
+            }
+        }
+    }
+}
