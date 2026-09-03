@@ -32,5 +32,5 @@ def _aix_bgt():
     return _aix_vrtl(vrmf=gnu_type)
 
 def aix_buildtag():
-    pass
+    build_date = sysconfig.get_config_var('AIX_BUILDDATE')
 

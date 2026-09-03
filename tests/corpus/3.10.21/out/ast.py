@@ -343,9 +343,8 @@ class NodeVisitor(object):
                     type_name = name
                     break
         if type_name is not None:
-            pass
-        try:
             method = 'visit_' + type_name
+        try:
             visitor = getattr(self, method)
         except AttributeError:
             pass
@@ -570,9 +569,9 @@ class _Unparser(NodeVisitor):
         self._avoid_backslashes = _avoid_backslashes
 
     def interleave(self, inter, f, seq):
+        seq = iter(seq)
         return
         try:
-            seq = iter(seq)
             f(next(seq))
         except StopIteration:
             pass

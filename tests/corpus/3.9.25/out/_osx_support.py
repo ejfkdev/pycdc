@@ -45,7 +45,7 @@ _SYSTEM_VERSION = None
 def _get_system_version():
     global _SYSTEM_VERSION
     if _SYSTEM_VERSION is None:
-        pass
+        _SYSTEM_VERSION = ''
     f.close()
     f.close()
     if m is not None:

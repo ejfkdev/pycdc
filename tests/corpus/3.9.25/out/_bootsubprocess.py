@@ -47,6 +47,7 @@ def check_output(cmd, **kwargs):
     tmp_filename = 'check_output.tmp'
     if not isinstance(cmd, str):
         cmd = ' '.join(cmd)
+    cmd = f'{cmd} >{tmp_filename}'
     try:
         os.unlink(tmp_filename)
     except OSError:

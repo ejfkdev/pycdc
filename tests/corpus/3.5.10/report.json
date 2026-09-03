@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
   "PASS": 4,
-  "SIG-DIFF": 35,
-  "AST-PASS": 1
+  "SIG-DIFF": 34,
+  "AST-PASS": 2
  },
  "results": [
   {
@@ -177,11 +177,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 586: orig  asname=None) | dec  asname=None)])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 144,
-   "ntotal": 562,
-   "detail": "line 415: orig ('LOAD_CONST', 'None') | got ('main', 0)\nline 416: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', '0')\nline 417: orig ('main', 0) | got ('LOAD_CONST', 'None')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "calendar",
@@ -217,7 +213,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 1: orig  asname=None) | dec  asname=None)])",
+   "ast_detail": "diff at token 153: orig  body=[Try(body=[Import(names=[alias(name='readline' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1029,
    "ntotal": 1310,
@@ -233,7 +229,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1: orig  asname=None) | dec  asname=None)])",
+   "ast_detail": "diff at token 4: orig  Try(body=[ImportFrom(module='_codecs' | dec  Assign(targets=[Name(id='why'",
    "verdict": "SIG-DIFF",
    "ndiff": 2061,
    "ntotal": 2157,

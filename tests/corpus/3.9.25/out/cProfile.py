@@ -134,11 +134,11 @@ def main():
                 code = compile(fp.read(), progname, 'exec')
         if not None:
             pass
+        globs = {'__file__': progname, '__name__': '__main__', '__package__': None, '__cached__': None}
         exc = None
         del exc, exc
         exc = None
         try:
-            globs = {'__file__': progname, '__name__': '__main__', '__package__': None, '__cached__': None}
             runctx(code, globs, None, options.outfile, options.sort)
         except BrokenPipeError as exc:
             sys.stdout = None

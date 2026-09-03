@@ -22,10 +22,10 @@ def start_new_thread(function, args, kwargs={}):
         raise TypeError('2nd arg must be a tuple')
     if type(kwargs) != type(dict()):
         raise TypeError('3rd arg must be a dict')
+    _main = False
     import traceback
     traceback.print_exc()
     try:
-        _main = False
         function(args, **kwargs)
     except SystemExit:
         pass

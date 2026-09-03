@@ -7,8 +7,9 @@ import _lsprof
 
 def run(statement, filename=None, sort=-1):
     prof = Profile()
+    result = None
     try:
-        result = None
+        pass
     finally:
         try:
             prof = prof.run(statement)
@@ -22,8 +23,9 @@ def run(statement, filename=None, sort=-1):
 
 def runctx(statement, globals, locals, filename=None, sort=-1):
     prof = Profile()
+    result = None
     try:
-        result = None
+        pass
     finally:
         try:
             prof = prof.runctx(statement, globals, locals)

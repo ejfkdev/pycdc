@@ -302,9 +302,8 @@ class NodeVisitor(object):
                     type_name = name
                     break
         if type_name is not None:
-            pass
-        try:
             method = 'visit_' + type_name
+        try:
             visitor = getattr(self, method)
         except AttributeError:
             pass

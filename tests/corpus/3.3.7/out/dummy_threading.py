@@ -11,8 +11,8 @@ from sys import modules as sys_modules
 import _dummy_thread
 holding_thread = False
 holding_threading = False
+holding__threading_local = False
 try:
-    holding__threading_local = False
     if '_thread' in sys_modules:
         held_thread = sys_modules['_thread']
         holding_thread = True

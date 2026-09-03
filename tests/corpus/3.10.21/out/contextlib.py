@@ -131,7 +131,6 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
         exc = None
         del exc
         try:
-            exc = None
             if exc is value:
                 exc = None
                 del exc
@@ -183,7 +182,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         exc = None
         del exc
         try:
-            exc = None
             if exc is value:
                 exc = None
                 del exc
@@ -349,6 +347,7 @@ class _BaseExitStack:
         return new_stack
 
     def push(self, exit):
+        _cb_type = type(exit)
         return exit
 
     def enter_context(self, cm):
@@ -447,6 +446,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         return result
 
     def push_async_exit(self, exit):
+        _cb_type = type(exit)
         return exit
 
     def push_async_callback(self, callback, /, *args, **kwds):

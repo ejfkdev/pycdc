@@ -766,8 +766,8 @@ if __name__ == '__main__':
     if not sys.argv[1:]:
         sys.argv.append('/usr/demos/data/audio/bach.aiff')
     fn = sys.argv[1]
+    f = open(fn, 'r')
     try:
-        f = open(fn, 'r')
         print('Reading', fn)
         print('nchannels =', f.getnchannels())
         print('nframes   =', f.getnframes())
@@ -778,8 +778,8 @@ if __name__ == '__main__':
         if sys.argv[2:]:
             gn = sys.argv[2]
             print('Writing', gn)
+            g = open(gn, 'w')
             try:
-                g = open(gn, 'w')
                 g.setparams(f.getparams())
                 while True:
                     data = f.readframes(1024)

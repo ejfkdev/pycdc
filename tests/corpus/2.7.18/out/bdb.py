@@ -369,8 +369,9 @@ class Bdb:
     def runcall(self, func, *args, **kwds):
         self.reset()
         sys.settrace(self.trace_dispatch)
+        res = None
         try:
-            res = None
+            pass
         finally:
             try:
                 res = func(*args, **kwds)

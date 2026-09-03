@@ -217,7 +217,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 1: orig  asname=None) | dec  asname=None)])",
+   "ast_detail": "diff at token 153: orig  body=[Try(body=[Import(names=[alias(name='readline' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1006,
    "ntotal": 1316,
@@ -233,7 +233,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1: orig  asname=None) | dec  asname=None)])",
+   "ast_detail": "diff at token 4: orig  Try(body=[ImportFrom(module='_codecs' | dec  Assign(targets=[Name(id='why'",
    "verdict": "SIG-DIFF",
    "ndiff": 2060,
    "ntotal": 2163,

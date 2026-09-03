@@ -232,6 +232,7 @@ class Hook:
         if self.format == 'html':
             pass
         formatter = html or text
+        plain = False
         self.file.write
         doc = ''.join(traceback.format_exception(info))
         plain = True
@@ -244,6 +245,7 @@ class Hook:
             self.file.write('<p>A problem occurred in a Python script.\n')
         if self.logdir is not None:
             suffix = ['.txt', '.html'][self.format == 'html']
+            fd, path = tempfile.mkstemp(suffix=suffix, dir=self.logdir)
             msg = 'Tried to save traceback to %s, but failed.' % path
             if self.format == 'html':
                 pass

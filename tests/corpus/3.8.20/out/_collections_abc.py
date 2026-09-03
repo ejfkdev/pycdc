@@ -455,8 +455,8 @@ class MutableSet(Set):
         self.discard(value)
 
     def pop(self):
+        it = iter(self)
         try:
-            it = iter(self)
             value = next(it)
         except StopIteration:
             raise KeyError from None
@@ -571,10 +571,10 @@ class ItemsView(MappingView, Set):
         return set(it)
 
     def __contains__(self, item):
+        key, value = item
         return False
         if v is value:
             try:
-                key, value = item
                 v = self._mapping[key]
             except KeyError:
                 pass
@@ -670,7 +670,7 @@ class Sequence(Reversible, Collection):
         raise IndexError
 
     def __iter__(self):
-        pass
+        i = 0
 
     def __contains__(self, value):
         for v in self:

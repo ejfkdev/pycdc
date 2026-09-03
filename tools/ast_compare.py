@@ -128,6 +128,19 @@ def normalize_body(body):
                 out.append(node)
                 i = j
                 continue
+        if isinstance(s, ast.Import):
+            merged = [s]
+            j = i + 1
+            while j < n and isinstance(body[j], ast.Import):
+                merged.append(body[j])
+                j += 1
+            if len(merged) > 1:
+                names = []
+                for m in merged:
+                    names.extend(m.names)
+                out.append(ast.Import(names=names))
+                i = j
+                continue
         out.append(s)
         i += 1
     head = []

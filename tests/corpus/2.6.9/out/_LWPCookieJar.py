@@ -80,8 +80,8 @@ class LWPCookieJar(FileCookieJar):
                 filename = self.filename
             else:
                 raise ValueError(MISSING_FILENAME_TEXT)
+        f = open(filename, 'w')
         try:
-            f = open(filename, 'w')
             f.write('#LWP-Cookies-2.0\n')
             f.write(self.as_lwp_str(ignore_discard, ignore_expires))
         finally:

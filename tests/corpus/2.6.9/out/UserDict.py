@@ -39,8 +39,8 @@ class UserDict:
         if self.__class__ is UserDict:
             return UserDict(self.data.copy())
         import copy
+        data = self.data
         try:
-            data = self.data
             self.data = {}
             c = copy.copy(self)
         finally:

@@ -39,8 +39,8 @@ from errno import EPIPE
 from errno import EAGAIN
 from errno import errorcode
 warnings.warn('The asyncore module is deprecated and will be removed in Python 3.12. The recommended replacement is asyncio', DeprecationWarning, stacklevel=2)
+_DISCONNECTED = frozenset({ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE, EBADF})
 try:
-    _DISCONNECTED = frozenset({ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE, EBADF})
     socket_map
 except NameError as socket_map:
     pass
@@ -410,6 +410,7 @@ class dispatcher:
         self.handle_expt()
 
     def handle_error(self):
+        nil, t, v, tbinfo = compact_traceback()
         self_repr = '<__repr__(self) failed for object at %0x>' % id(self)
 
     def handle_expt(self):

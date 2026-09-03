@@ -3530,6 +3530,12 @@ impl<'a> Ctx<'a> {
                 if self.legacy_handler.is_some() {
                     return true;
                 }
+                // stores before the try belong to the enclosing block
+                if !self.pending_stores.is_empty() {
+                    self.flushing = true;
+                    self.flush_pending_stores();
+                    self.flushing = false;
+                }
                 let target = inst.target.unwrap_or(inst.end());
                 if self.version.at_least(3, 8) {
                     // 3.8+: also used for except handlers; the legacy chain

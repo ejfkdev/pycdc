@@ -138,7 +138,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         except StopAsyncIteration as exc:
             pass
         try:
-            exc = None
             if exc is value:
                 return False
             if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
@@ -271,8 +270,8 @@ class _BaseExitStack:
         return new_stack
 
     def push(self, exit):
+        _cb_type = type(exit)
         try:
-            _cb_type = type(exit)
             exit_method = _cb_type.__exit__
         except AttributeError:
             self._push_exit_callback(exit)
@@ -396,8 +395,8 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         return result
 
     def push_async_exit(self, exit):
+        _cb_type = type(exit)
         try:
-            _cb_type = type(exit)
             exit_method = _cb_type.__aexit__
         except AttributeError:
             self._push_exit_callback(exit, False)
@@ -450,6 +449,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         suppressed_exc = False
         pending_raise = False
         while self._exit_callbacks:
+            is_sync, cb = self._exit_callbacks.pop()
             new_exc_details = sys.exc_info()
             _fix_exception_context(new_exc_details[1], exc_details[1])
             pending_raise = True

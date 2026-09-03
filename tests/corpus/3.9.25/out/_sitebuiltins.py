@@ -55,6 +55,7 @@ class _Printer(object):
     def __call__(self):
         self.__setup()
         prompt = 'Hit Return for more, or q (and Return) to quit: '
+        lineno = 0
 
 
 class _Helper(object):

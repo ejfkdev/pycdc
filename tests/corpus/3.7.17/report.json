@@ -224,7 +224,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 1: orig  asname=None) | dec  asname=None)])",
+   "ast_detail": "diff at token 153: orig  body=[Try(body=[Import(names=[alias(name='readline' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1052,
    "ntotal": 1315,

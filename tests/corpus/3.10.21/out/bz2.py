@@ -192,13 +192,13 @@ def compress(data, compresslevel=9):
 def decompress(data):
     results = []
     while data:
+        decomp = BZ2Decompressor()
         if results:
             pass
         else:
             raise
         if not decomp.eof:
             try:
-                decomp = BZ2Decompressor()
                 res = decomp.decompress(data)
             except OSError:
                 pass

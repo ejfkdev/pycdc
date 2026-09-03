@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 5,
-  "SIG-DIFF": 35
+  "PASS": 6,
+  "SIG-DIFF": 34
  },
  "results": [
   {
@@ -14,9 +14,9 @@
    "module": "_aix_support",
    "ast_detail": "diff at token 23: orig  comparators=[BinOp(left=BinOp(left=Constant(value=2) | dec  comparators=[Constant(value=2147483647)])",
    "verdict": "SIG-DIFF",
-   "ndiff": 34,
+   "ndiff": 29,
    "ntotal": 205,
-   "detail": "line 171: orig ('LOAD_GLOBAL', 'sysconfig') | got ('LOAD_CONST', 'None')\nline 172: orig ('LOAD_METHOD', 'get_config_var') | got ('RETURN_VALUE', '')\nline 173: orig ('LOAD_CONST', \"'AIX_BUILDDATE'\") | got <missing>"
+   "detail": "line 176: orig ('SETUP_FINALLY', 'to 24') | got ('LOAD_CONST', 'None')\nline 177: orig ('LOAD_GLOBAL', 'int') | got ('RETURN_VALUE', '')\nline 178: orig ('LOAD_FAST', 'build_date') | got <missing>"
   },
   {
    "module": "_bootsubprocess",
@@ -30,17 +30,13 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 275: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 3618,
+   "ndiff": 3609,
    "ntotal": 3676,
    "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "_compat_pickle",
-   "ast_detail": "diff at token 286: orig  Assign(targets=[Name(id='PYTHON2_EXCEPTIONS' | dec  Try(body=[Assign(targets=[Name(id='PYTHON2_EXCEPTIONS'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 3,
-   "ntotal": 433,
-   "detail": "line 221: orig ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro | got ('SETUP_FINALLY', 'to 454')\nline 222: orig ('STORE_NAME', 'PYTHON2_EXCEPTIONS') | got ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro\nline 223: orig ('SETUP_FINALLY', 'to 454') | got ('STORE_NAME', 'PYTHON2_EXCEPTIONS')"
+   "verdict": "PASS"
   },
   {
    "module": "_compression",
@@ -62,7 +58,7 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 135: orig  body=[Return(value=Name(id='f' | dec  body=[Expr(value=Name(id='f'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1209,
+   "ndiff": 1218,
    "ntotal": 1420,
    "detail": "line 153: orig ('POP_JUMP_IF_TRUE', 'to 132') | got ('POP_JUMP_IF_TRUE', 'to 134')\nline 156: orig ('FOR_ITER', 'to 128') | got ('FOR_ITER', 'to 130')\nline 170: orig ('POP_JUMP_IF_FALSE', 'to 126') | got ('POP_JUMP_IF_FALSE', 'to 128')"
   },
@@ -94,7 +90,7 @@
    "module": "_threading_local",
    "ast_detail": "diff at token 126: orig  ctx=Del())])] | dec  ctx=Del())])",
    "verdict": "SIG-DIFF",
-   "ndiff": 403,
+   "ndiff": 404,
    "ntotal": 463,
    "detail": "line 39: orig ('LOAD_CONST', \"('current_thread', 'RLock')\") | got ('LOAD_CONST', \"('current_thread',)\")\nline 43: orig ('IMPORT_FROM', 'RLock') | got ('POP_TOP', '')\nline 44: orig ('STORE_NAME', 'RLock') | got ('LOAD_CONST', '0')"
   },
@@ -102,9 +98,9 @@
    "module": "_weakrefset",
    "ast_detail": "diff at token 103: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 579,
+   "ndiff": 575,
    "ntotal": 922,
-   "detail": "line 323: orig ('LOAD_FAST', 'self') | got ('LOAD_CONST', 'None')\nline 324: orig ('LOAD_ATTR', 'data') | got ('RETURN_VALUE', '')\nline 325: orig ('LOAD_ATTR', 'discard') | got ('__iter__', 1)"
+   "detail": "line 327: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 328: orig ('SETUP_FINALLY', 'to 30') | got ('RETURN_VALUE', '')\nline 329: orig ('LOAD_FAST', 'pop') | got ('__iter__', 1)"
   },
   {
    "module": "abc",
@@ -118,7 +114,7 @@
    "module": "aifc",
    "ast_detail": "diff at token 23: orig  body=[Try(body=[Return(value=Subscript(value=Call(func=Attribute(value=Name(id='struct' | dec  body=[Return(value=Subscript(value=Call(func=Attribute(value=Name(id='struct'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2773,
+   "ndiff": 2754,
    "ntotal": 3104,
    "detail": "line 143: orig ('POP_JUMP_IF_FALSE', 'to 624') | got ('POP_JUMP_IF_FALSE', 'to 636')\nline 170: orig ('SETUP_WITH', 'to 602') | got ('SETUP_WITH', 'to 610')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to 586') | got ('POP_JUMP_IF_FALSE', 'to 584')"
   },
@@ -126,7 +122,7 @@
    "module": "ast",
    "ast_detail": "diff at token 129: orig  If(test=NamedExpr(target=Name(id='lno' | dec  If(test=Call(func=Name(id='getattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 7556,
+   "ndiff": 7562,
    "ntotal": 7851,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
@@ -134,15 +130,15 @@
    "module": "asynchat",
    "ast_detail": "diff at token 210: orig  body=[Try(body=[Assign(targets=[Name(id='data' | dec  body=[Return()",
    "verdict": "SIG-DIFF",
-   "ndiff": 570,
+   "ndiff": 572,
    "ntotal": 808,
    "detail": "line 228: orig ('SETUP_FINALLY', 'to 18') | got ('LOAD_CONST', 'None')\nline 229: orig ('LOAD_FAST', 'self') | got ('RETURN_VALUE', '')\nline 230: orig ('LOAD_METHOD', 'recv') | got ('handle_write', 1)"
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 30: orig  Assign(targets=[Name(id='_DISCONNECTED' | dec  Try(body=[Assign(targets=[Name(id='_DISCONNECTED'",
+   "ast_detail": "diff at token 51: orig  body=[Assign(targets=[Name(id='socket_map' | dec  name='socket_map'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2128,
+   "ndiff": 2134,
    "ntotal": 2191,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
@@ -150,7 +146,7 @@
    "module": "base64",
    "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1666,
+   "ndiff": 1659,
    "ntotal": 1933,
    "detail": "line 76: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 78: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 246: orig ('POP_JUMP_IF_FALSE', 'to 46') | got ('POP_JUMP_IF_FALSE', 'to 20')"
   },
@@ -158,7 +154,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 291: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2344,
+   "ndiff": 2335,
    "ntotal": 2441,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -186,7 +182,7 @@
    "module": "cProfile",
    "ast_detail": "diff at token 301: orig  body=[Try(body=[Assign(targets=[Name(id='callers' | dec  body=[If(test=Compare(left=Name(id='func'",
    "verdict": "SIG-DIFF",
-   "ndiff": 335,
+   "ndiff": 333,
    "ntotal": 678,
    "detail": "line 277: orig ('SETUP_FINALLY', 'to 158') | got ('LOAD_FAST', 'func')\nline 278: orig ('LOAD_FAST', 'callersdicts') | got ('LOAD_FAST', 'callers')\nline 279: orig ('LOAD_GLOBAL', 'id') | got ('CONTAINS_OP', '')"
   },
@@ -210,7 +206,7 @@
    "module": "cgitb",
    "ast_detail": "diff at token 111: orig  If(test=Compare(left=Constant(value='__builtins__') | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1086,
+   "ndiff": 1085,
    "ntotal": 1432,
    "detail": "line 161: orig ('LOAD_FAST', 'frame') | got ('LOAD_GLOBAL', 'hasattr')\nline 162: orig ('LOAD_ATTR', 'f_globals') | got ('LOAD_FAST', 'builtins')\nline 163: orig ('LOAD_CONST', \"'__builtins__'\") | got ('LOAD_FAST', 'name')"
   },
@@ -224,7 +220,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 0: orig Module(body=[Import(names=[alias(name='string') | dec Module(body=[Import(names=[alias(name='string')])",
+   "ast_detail": "diff at token 142: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1127,
    "ntotal": 1324,
@@ -270,25 +266,25 @@
    "module": "configparser",
    "ast_detail": "diff at token 624: orig  If(test=BoolOp(op=And() | dec  If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2933,
+   "ndiff": 2924,
    "ntotal": 4289,
-   "detail": "line 670: orig ('POP_JUMP_IF_TRUE', 'to 32') | got ('POP_JUMP_IF_FALSE', 'to 24')\nline 672: orig ('POP_JUMP_IF_TRUE', 'to 32') | got ('POP_JUMP_IF_FALSE', 'to 32')\nline 1013: orig ('LOAD_FAST', 'rest') | got ('LOAD_CONST', \"'%'\")"
+   "detail": "line 670: orig ('POP_JUMP_IF_TRUE', 'to 32') | got ('POP_JUMP_IF_FALSE', 'to 24')\nline 672: orig ('POP_JUMP_IF_TRUE', 'to 32') | got ('POP_JUMP_IF_FALSE', 'to 32')\nline 1021: orig ('SETUP_FINALLY', 'to 246') | got ('LOAD_CONST', \"'%'\")"
   },
   {
    "module": "contextlib",
    "ast_detail": "diff at token 60: orig  body=[Return(value=Constant(value=None))] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1821,
+   "ndiff": 1824,
    "ntotal": 1876,
    "detail": "line 28: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 32: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 11: orig  Assign(targets=[Name(id='error' | dec  Try(body=[Assign(targets=[Name(id='error'",
+   "ast_detail": "diff at token 20: orig  body=[Assign(targets=[Name(id='PyStringMap' | dec  name='PyStringMap'",
    "verdict": "SIG-DIFF",
-   "ndiff": 865,
+   "ndiff": 862,
    "ntotal": 913,
-   "detail": "line 25: orig ('LOAD_NAME', 'Error') | got ('SETUP_FINALLY', 'to 70')\nline 26: orig ('STORE_NAME', 'error') | got ('LOAD_NAME', 'Error')\nline 27: orig ('SETUP_FINALLY', 'to 70') | got ('STORE_NAME', 'error')"
+   "detail": "line 35: orig ('JUMP_FORWARD', 'to 92') | got ('JUMP_FORWARD', 'to 106')\nline 38: orig ('JUMP_IF_NOT_EXC_MATCH', 'to 90') | got ('JUMP_IF_NOT_EXC_MATCH', 'to 104')\nline 40: orig ('POP_TOP', '') | got ('STORE_NAME', 'PyStringMap')"
   },
   {
    "module": "copyreg",

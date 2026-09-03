@@ -380,9 +380,9 @@ class BasicInterpolation(Interpolation):
                 if m is None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
                 var = parser.optionxform(m.group(1))
+                rest = rest[m.end():]
                 if '%' in v:
                     try:
-                        rest = rest[m.end():]
                         v = map[var]
                     except KeyError:
                         raise InterpolationMissingOptionError(option, section, rawval, var) from None
@@ -434,9 +434,9 @@ class ExtendedInterpolation(Interpolation):
                 path = m.group(1).split(':')
                 rest = rest[m.end():]
                 sect = section
+                opt = option
                 if '$' in v:
                     try:
-                        opt = option
                         if len(path) == 1:
                             opt = parser.optionxform(path[0])
                             v = map[opt]
@@ -465,7 +465,6 @@ class LegacyInterpolation(Interpolation):
         rawval = value
         depth = MAX_INTERPOLATION_DEPTH
         try:
-            value = self._KEYCRE.sub(replace, value)
             value = value % vars
         except KeyError as e:
             raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
@@ -474,6 +473,7 @@ class LegacyInterpolation(Interpolation):
                 depth -= 1
                 if value and '%(' in value:
                     replace = functools.partial(self._interpolation_replace, parser=parser)
+                    value = self._KEYCRE.sub(replace, value)
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -588,10 +588,10 @@ class RawConfigParser(MutableMapping):
     def read_dict(self, dictionary, source='<dict>'):
         elements_added = set()
         for section, keys in dictionary.items():
+            section = str(section)
             if self._strict and section in elements_added:
                 raise
             try:
-                section = str(section)
                 self.add_section(section)
             except (DuplicateSectionError, ValueError):
                 pass
@@ -646,10 +646,10 @@ class RawConfigParser(MutableMapping):
     def items(self, section=_UNSET, raw=False, vars=None):
         if section is _UNSET:
             return super().items()
+        d = self._defaults.copy()
         if section != self.default_section:
             raise NoSectionError(section)
         try:
-            d = self._defaults.copy()
             d.update(self._sections[section])
         except KeyError:
             pass
@@ -868,10 +868,10 @@ class RawConfigParser(MutableMapping):
         return exc
 
     def _unify_values(self, section, vars):
+        sectiondict = {}
         if section != self.default_section:
             raise NoSectionError(section) from None
         try:
-            sectiondict = {}
             sectiondict = self._sections[section]
         except KeyError:
             pass

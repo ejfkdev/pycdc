@@ -68,9 +68,9 @@ def _reduce_ex(self, proto):
         if base is cls:
             raise TypeError(f'cannot pickle {cls.__name__!r} object')
         state = base(self)
+    args = cls, base, state
     dict = getstate()
     try:
-        args = cls, base, state
         getstate = self.__getstate__
     except AttributeError as dict:
         pass

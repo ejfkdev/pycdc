@@ -263,12 +263,12 @@ def main():
             invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:
         invalidation_mode = None
+    success = True
     return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
     if args.quiet < 2:
         print('\n[interrupted]')
     return False
     try:
-        success = True
         if compile_dests:
             for dest in compile_dests:
                 if os.path.isfile(dest):

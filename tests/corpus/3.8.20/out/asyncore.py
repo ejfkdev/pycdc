@@ -38,8 +38,8 @@ from errno import ECONNABORTED
 from errno import EPIPE
 from errno import EAGAIN
 from errno import errorcode
+_DISCONNECTED = frozenset({ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE, EBADF})
 try:
-    _DISCONNECTED = frozenset({ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE, EBADF})
     socket_map
 except NameError as socket_map:
     pass
@@ -379,6 +379,7 @@ class dispatcher:
             self.handle_expt()
 
     def handle_error(self):
+        nil, t, v, tbinfo = compact_traceback()
         self_repr = '<__repr__(self) failed for object at %0x>' % id(self)
 
     def handle_expt(self):

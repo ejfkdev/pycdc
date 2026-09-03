@@ -112,8 +112,8 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
     b32rev = _b32rev[alphabet]
     for i in range(0, len(s), 8):
         quanta = s[i:i + 8]
+        acc = 0
         try:
-            acc = 0
             for c in quanta:
                 acc = (acc << 5) + b32rev[c]
         except KeyError:
@@ -271,6 +271,7 @@ def b85decode(b):
     packI = struct.Struct('!I').pack
     for i in range(0, len(b), 5):
         chunk = b[i:i + 5]
+        acc = 0
         try:
             pass
         except struct.error:

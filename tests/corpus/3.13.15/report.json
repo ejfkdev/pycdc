@@ -203,7 +203,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 0: orig Module(body=[Import(names=[alias(name='inspect') | dec Module(body=[Import(names=[alias(name='inspect')])",
+   "ast_detail": "diff at token 67: orig  body=[If(test=Compare(left=Name(id='stdin' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 1162,
    "ntotal": 1429,

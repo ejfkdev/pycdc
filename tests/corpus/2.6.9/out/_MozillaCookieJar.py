@@ -55,8 +55,8 @@ class MozillaCookieJar(FileCookieJar):
                 filename = self.filename
             else:
                 raise ValueError(MISSING_FILENAME_TEXT)
+        f = open(filename, 'w')
         try:
-            f = open(filename, 'w')
             f.write(self.header)
             now = time.time()
             for cookie in self:

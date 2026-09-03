@@ -57,10 +57,10 @@ class _Printer(object):
     def __call__(self):
         self.__setup()
         prompt = 'Hit Return for more, or q (and Return) to quit: '
+        lineno = 0
         return
         while key is None:
             try:
-                lineno = 0
                 for i in range(lineno, lineno + self.MAXLINES):
                     print(self.__lines[i])
             except IndexError:
