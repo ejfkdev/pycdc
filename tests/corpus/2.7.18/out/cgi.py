@@ -414,7 +414,7 @@ if __name__ == '__main__':
                 if self.qs_on_post:
                     qs += '&' + self.qs_on_post
                 query = urlparse.parse_qsl(qs, self.keep_blank_values, self.strict_parsing, self.max_num_fields)
-                value, self.list = query
+                self.list = [MiniFieldStorage(key, value) for key, value in query]
                 self.skip_lines()
 
             FieldStorageClass = None
@@ -425,7 +425,7 @@ if __name__ == '__main__':
                 self.list = []
                 if self.qs_on_post:
                     query = urlparse.parse_qsl(self.qs_on_post, self.keep_blank_values, self.strict_parsing, self.max_num_fields)
-                    self.list.extend((MiniFieldStorage(key, value) for key in query))
+                    self.list.extend((MiniFieldStorage(key, value) for key, value in query))
                     FieldStorageClass = None
                 max_num_fields = self.max_num_fields
                 if max_num_fields is not None:

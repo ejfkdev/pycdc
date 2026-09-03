@@ -38,7 +38,7 @@
    "module": "_compat_pickle",
    "ast_detail": "diff at token 286: orig  Assign(targets=[Name(id='PYTHON2_EXCEPTIONS' | dec  Try(body=[Assign(targets=[Name(id='PYTHON2_EXCEPTIONS'",
    "verdict": "SIG-DIFF",
-   "ndiff": 32,
+   "ndiff": 5,
    "ntotal": 433,
    "detail": "line 221: orig ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro | got ('SETUP_FINALLY', 'to 454')\nline 222: orig ('STORE_NAME', 'PYTHON2_EXCEPTIONS') | got ('LOAD_CONST', \"('ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BufferErro\nline 223: orig ('SETUP_FINALLY', 'to 454') | got ('STORE_NAME', 'PYTHON2_EXCEPTIONS')"
   },
@@ -62,17 +62,17 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 135: orig  body=[Return(value=Name(id='f' | dec  body=[Expr(value=Name(id='f'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1211,
+   "ndiff": 1209,
    "ntotal": 1420,
    "detail": "line 153: orig ('POP_JUMP_IF_TRUE', 'to 132') | got ('POP_JUMP_IF_TRUE', 'to 134')\nline 156: orig ('FOR_ITER', 'to 128') | got ('FOR_ITER', 'to 130')\nline 170: orig ('POP_JUMP_IF_FALSE', 'to 126') | got ('POP_JUMP_IF_FALSE', 'to 128')"
   },
   {
    "module": "_py_abc",
-   "ast_detail": "diff at token 53: orig  generators=[comprehension(target=Tuple(elts=[Name(id='name' | dec  generators=[comprehension(target=Name(id='name'",
+   "ast_detail": "diff at token 501: orig  body=[Assert(test=Call(func=Name(id='isinstance' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 72,
+   "ndiff": 1,
    "ntotal": 491,
-   "detail": "line 83: orig ('LOAD_CONST', '<code <setcomp>>') | got ('LOAD_CLOSURE', 'value')\nline 84: orig ('LOAD_CONST', \"'ABCMeta.__new__.<locals>.<setcomp>'\") | got ('BUILD_TUPLE', '')\nline 85: orig ('MAKE_FUNCTION', '') | got ('LOAD_CONST', '<code <setcomp>>')"
+   "detail": "line 406: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')"
   },
   {
    "module": "_sitebuiltins",
@@ -154,7 +154,7 @@
    "module": "base64",
    "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1665,
+   "ndiff": 1666,
    "ntotal": 1933,
    "detail": "line 76: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 78: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 246: orig ('POP_JUMP_IF_FALSE', 'to 46') | got ('POP_JUMP_IF_FALSE', 'to 20')"
   },
@@ -198,7 +198,7 @@
    "module": "calendar",
    "ast_detail": "diff at token 219: orig  orelse=[Return(value=Call(func=Name(id='funcs' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2427,
+   "ndiff": 2419,
    "ntotal": 3039,
    "detail": "line 554: orig ('DUP_TOP', '') | got ('COMPARE_OP', '<=')\nline 555: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', 'to 32')\nline 556: orig ('COMPARE_OP', '<=') | got ('LOAD_FAST', 'year')"
   },
@@ -206,7 +206,7 @@
    "module": "cgi",
    "ast_detail": "diff at token 53: orig  'logfile' | dec  'logfp'])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2812,
+   "ndiff": 2829,
    "ntotal": 2915,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },

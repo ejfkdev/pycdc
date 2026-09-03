@@ -30,8 +30,8 @@
    "module": "_compat_pickle",
    "ast_detail": "diff at token 362: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
-   "ndiff": 186,
-   "ntotal": 302,
+   "ndiff": 190,
+   "ntotal": 306,
    "detail": "line 103: orig ('SETUP_LOOP', 'to 234') | got ('SETUP_LOOP', 'to 236')\nline 106: orig ('FOR_ITER', 'to 232') | got ('FOR_ITER', 'to 234')\nline 117: orig ('POP_BLOCK', '') | got ('JUMP_ABSOLUTE', '')"
   },
   {
@@ -62,17 +62,17 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 141: orig  body=[Return(value=Name(id='f' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 989,
-   "ntotal": 1276,
+   "ndiff": 992,
+   "ntotal": 1282,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 128') | got ('SETUP_LOOP', 'to 126')\nline 142: orig ('FOR_ITER', 'to 126') | got ('FOR_ITER', 'to 124')\nline 159: orig ('JUMP_ABSOLUTE', '') | got ('POP_BLOCK', '')"
   },
   {
    "module": "_py_abc",
-   "ast_detail": "diff at token 62: orig  generators=[comprehension(target=Tuple(elts=[Name(id='name' | dec  generators=[comprehension(target=Name(id='name'",
+   "ast_detail": "diff at token 114: orig  body=[Expr(value=Call(func=Attribute(value=Name(id='abstracts' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 405,
+   "ndiff": 376,
    "ntotal": 496,
-   "detail": "line 81: orig ('LOAD_CONST', '<code <setcomp>>') | got ('LOAD_CLOSURE', 'value')\nline 82: orig ('LOAD_CONST', \"'ABCMeta.__new__.<locals>.<setcomp>'\") | got ('BUILD_TUPLE', '')\nline 83: orig ('MAKE_FUNCTION', '') | got ('LOAD_CONST', '<code <setcomp>>')"
+   "detail": "line 90: orig ('SETUP_LOOP', 'to 112') | got ('SETUP_LOOP', 'to 116')\nline 93: orig ('FOR_ITER', 'to 110') | got ('FOR_ITER', 'to 114')\nline 95: orig ('SETUP_LOOP', 'to 108') | got ('SETUP_LOOP', 'to 110')"
   },
   {
    "module": "_sitebuiltins",
@@ -154,8 +154,8 @@
    "module": "base64",
    "ast_detail": "diff at token 49: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1337,
-   "ntotal": 1950,
+   "ndiff": 1404,
+   "ntotal": 1952,
    "detail": "line 330: orig ('LOAD_METHOD', 'translate') | got ('LOAD_GLOBAL', 'bytes')\nline 331: orig ('LOAD_GLOBAL', 'bytes') | got ('LOAD_METHOD', 'maketrans')\nline 332: orig ('LOAD_METHOD', 'maketrans') | got ('LOAD_FAST', 'altchars')"
   },
   {
@@ -198,7 +198,7 @@
    "module": "calendar",
    "ast_detail": "diff at token 238: orig  orelse=[Return(value=Call(func=Name(id='funcs' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2579,
+   "ndiff": 2584,
    "ntotal": 3072,
    "detail": "line 424: orig ('LOAD_CONST', 'None') | got ('<listcomp>', 1)\nline 425: orig ('RETURN_VALUE', '') | got ('BUILD_LIST', '')\nline 426: orig ('<listcomp>', 1) | got ('LOAD_FAST', '.0')"
   },
@@ -206,7 +206,7 @@
    "module": "cgi",
    "ast_detail": "diff at token 72: orig  'logfile' | dec  'logfp'])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2866,
+   "ndiff": 2901,
    "ntotal": 3011,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },

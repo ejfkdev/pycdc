@@ -91,7 +91,7 @@ def b32encode(s):
 def b32decode(s, casefold=False, map01=None):
     global _b32rev
     if _b32rev is None:
-        _b32rev = {k: v for k in enumerate(_b32alphabet)}
+        _b32rev = {k: v for k, v in enumerate(_b32alphabet)}
     s = _bytes_from_decode_data(s)
     if len(s) % 8:
         raise binascii.Error('Incorrect padding')

@@ -95,7 +95,6 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
     if len(s) % 8:
         raise binascii.Error('Incorrect padding')
     if not map01 is None:
-        map01 = _bytes_from_decode_data(map01)
         if not len(map01) == 1:
             raise None()
         s = s.translate(bytes.maketrans(b'01', b'O' + map01))

@@ -92,16 +92,16 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1570,
-   "ntotal": 1770,
+   "ndiff": 1573,
+   "ntotal": 1772,
    "detail": "line 161: orig ('SWAP', '') | got ('POP_TOP', '')\nline 163: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', 'None')\nline 164: orig ('END_FOR', '') | got ('RETURN_VALUE', '')"
   },
   {
    "module": "_py_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 550,
-   "ntotal": 586,
+   "ndiff": 539,
+   "ntotal": 582,
    "detail": "line 27: orig ('MAKE_CELL', '__class__') | got ('MAKE_CELL', '__classdict__')\nline 28: orig ('MAKE_CELL', '__classdict__') | got ('RESUME', '')\nline 29: orig ('RESUME', '') | got ('LOAD_NAME', '__name__')"
   },
   {

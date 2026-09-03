@@ -92,15 +92,15 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 40: orig  body=[If(test=Compare(left=Name(id='path' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1340,
+   "ndiff": 1339,
    "ntotal": 1534,
    "detail": "line 155: orig ('SWAP', '') | got ('POP_TOP', '')\nline 157: orig ('RETURN_VALUE', '') | got ('RETURN_CONST', 'None')\nline 169: orig ('NOP', '') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "_py_abc",
-   "ast_detail": "diff at token 37: orig  Assign(targets=[Name(id='abstracts' | dec  For(target=Name(id='_'",
+   "ast_detail": "diff at token 37: orig  Assign(targets=[Name(id='abstracts' | dec  For(target=Tuple(elts=[Name(id='abstracts'",
    "verdict": "SIG-DIFF",
-   "ndiff": 431,
+   "ndiff": 424,
    "ntotal": 517,
    "detail": "line 82: orig ('LOAD_FAST', 'namespace') | got ('LOAD_FAST', 'bases')\nline 83: orig ('LOAD_ATTR', 'items + NULL|self') | got ('GET_ITER', '')\nline 84: orig ('CALL', '') | got ('FOR_ITER', 'to L5')"
   },
@@ -275,8 +275,8 @@
    "module": "csv",
    "ast_detail": "diff at token 111: orig  cause=Constant(value=None))])])])]) | dec  cause=Constant(value=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1628,
-   "ntotal": 1656,
+   "ndiff": 1610,
+   "ntotal": 1645,
    "detail": "line 13: orig ('LOAD_CONST', \"('Error', 'writer', 'reader', 'register_dialect', 'unregister_dialect', 'get_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 17: orig ('IMPORT_FROM', 'writer') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'writer') | got ('LOAD_CONST', '0')"
   },
   {

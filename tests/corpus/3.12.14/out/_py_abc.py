@@ -21,8 +21,7 @@ class ABCMeta(type):
     def __new__(mcls, name, bases, namespace, /, **kwargs):
         cls = super().__new__(mcls, name, bases, namespace, **kwargs)
         for abstracts, base in bases:
-            for name in getattr(base, '__abstractmethods__', set()):
-                value = getattr(cls, name, None)
+            for value in getattr(base, '__abstractmethods__', set()):
                 if not getattr(value, '__isabstractmethod__', False):
                     continue
                 abstracts.add(name)

@@ -35,7 +35,7 @@
    "module": "_compat_pickle",
    "ast_detail": "diff at token 341: orig  orelse=[AugAssign(target=Name(id='PYTHON2_EXCEPTIONS' | dec  orelse=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 38,
+   "ndiff": 3,
    "ntotal": 448,
    "detail": "line 282: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_NAME', 'AssertionError')\nline 305: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_NAME', 'AssertionError')\nline 403: orig ('JUMP_BACKWARD', 'to 462') | got ('JUMP_BACKWARD', 'to 452')"
   },
@@ -61,9 +61,9 @@
    "module": "_py_abc",
    "ast_detail": "diff at token 50: orig  Assign(targets=[Name(id='abstracts' | dec  For(target=Tuple(elts=[Name(id='abstracts'",
    "verdict": "SIG-DIFF",
-   "ndiff": 415,
+   "ndiff": 409,
    "ntotal": 503,
-   "detail": "line 81: orig ('LOAD_FAST', 'namespace') | got ('LOAD_FAST', 'bases')\nline 82: orig ('LOAD_ATTR', 'NULL|self + items') | got ('GET_ITER', '')\nline 83: orig ('CALL', '') | got ('FOR_ITER', 'to 200')"
+   "detail": "line 81: orig ('LOAD_FAST', 'namespace') | got ('LOAD_FAST', 'bases')\nline 82: orig ('LOAD_ATTR', 'NULL|self + items') | got ('GET_ITER', '')\nline 83: orig ('CALL', '') | got ('FOR_ITER', 'to 174')"
   },
   {
    "module": "_pylong",
@@ -163,7 +163,7 @@
    "module": "calendar",
    "ast_detail": "diff at token 167: orig  ctx=Load())] | dec  ctx=Load())",
    "verdict": "SIG-DIFF",
-   "ndiff": 3277,
+   "ndiff": 3269,
    "ntotal": 3395,
    "detail": "line 13: orig ('LOAD_CONST', \"('IntEnum', 'global_enum')\") | got ('LOAD_CONST', \"('IntEnum',)\")\nline 17: orig ('IMPORT_FROM', 'global_enum') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'global_enum') | got ('LOAD_CONST', '0')"
   },
@@ -171,7 +171,7 @@
    "module": "cgi",
    "ast_detail": "diff at token 44: orig  ctx=Load())] | dec  ctx=Load())",
    "verdict": "SIG-DIFF",
-   "ndiff": 2262,
+   "ndiff": 2264,
    "ntotal": 2886,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
@@ -270,8 +270,8 @@
    "module": "csv",
    "ast_detail": "diff at token 129: orig  keywords=[]))])] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1627,
-   "ntotal": 1678,
+   "ndiff": 1608,
+   "ntotal": 1662,
    "detail": "line 13: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 17: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {

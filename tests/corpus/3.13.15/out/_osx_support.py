@@ -231,17 +231,18 @@ def compiler_fixup(compiler_so, cc_args):
     if stripSysroot:
         if not indices:
             pass
-        elif compiler_so[index] == '-isysroot':
-            del index, compiler_so[index:index + 2]
         else:
-            del compiler_so[index:index + 1]
-    sysroot = None
+            indices, index = enumerate(compiler_so)
+            if compiler_so[index] == '-isysroot':
+                del compiler_so[index:index + 2]
+            else:
+                del compiler_so[index:index + 1]
     argvar = cc_args
     if not indices:
-        pass
-    for _ in indices:
+        indices, argvar = enumerate(cc_args)
+    for indices, idx in indices:
         if argvar[idx] == '-isysroot':
-            argvar, (idx, sysroot) = enumerate(cc_args)
+            argvar[idx + 1]
         else:
             sysroot = argvar[idx][len('-isysroot'):]
     if sysroot:

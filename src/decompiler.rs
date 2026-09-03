@@ -637,6 +637,7 @@ impl<'a> Ctx<'a> {
 
             // comprehension loop-target stores consume no stack value
             if self.comp_target_store
+                && self.unpack_frames.is_empty()
                 && matches!(
                     inst.op,
                     Op::STORE_FAST
@@ -5680,7 +5681,7 @@ impl<'a> Ctx<'a> {
         // loop target; later stores of cleared variables are the post-loop
         // restores (not statements)
         if let Some(comp) = &mut self.inline_comp {
-            if !comp.target_seen {
+            if !comp.target_seen && self.unpack_frames.is_empty() {
                 if let Some(cur) = &mut comp.cur {
                     cur.target = Some(target);
                 }
@@ -5802,6 +5803,16 @@ impl<'a> Ctx<'a> {
                     top.target = Some(target);
                     return;
                 }
+            }
+        }
+        // inline comprehension whose loop target was an unpacked tuple
+        if let Some(comp) = &mut self.inline_comp {
+            if !comp.target_seen {
+                if let Some(cur) = &mut comp.cur {
+                    cur.target = Some(target);
+                }
+                comp.target_seen = true;
+                return;
             }
         }
         self.emit_assign_single(target, value);
@@ -7405,6 +7416,10 @@ impl<'a> Ctx<'a> {
         let mut partials: Vec<PartialGen> = Vec::new();
         let mut elt: Option<ExprRef> = None;
         let mut key: Option<ExprRef> = None;
+        // UNPACK_SEQUENCE loop targets: collect the following stores into a
+        // tuple target
+        let mut unpack_remaining = 0usize;
+        let mut unpack_names: Vec<ExprRef> = Vec::new();
 
         let mut stack: Vec<ExprRef> = Vec::new();
         let iter0 = outer_iter;
@@ -7557,6 +7572,19 @@ impl<'a> Ctx<'a> {
                             .unwrap_or("?")
                             .to_string()
                     };
+                    if unpack_remaining > 0 {
+                        unpack_names.push(Rc::new(Expr::Name(name)));
+                        unpack_remaining -= 1;
+                        if unpack_remaining == 0 {
+                            let tuple = Rc::new(Expr::Tuple(std::mem::take(
+                                &mut unpack_names,
+                            )));
+                            if let Some(last) = partials.last_mut() {
+                                last.target = Some(tuple);
+                            }
+                        }
+                        continue;
+                    }
                     if let Some(last) = partials.last_mut() {
                         if last.target.is_none() {
                             last.target = Some(Rc::new(Expr::Name(name)));
@@ -7573,8 +7601,10 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 Op::UNPACK_SEQUENCE => {
-                    // keep the iterable; subsequent stores form a tuple target
-                    // (simplified: rare in comprehensions)
+                    // the iterable stays for the element expression; the
+                    // next `arg` stores form the tuple loop target
+                    unpack_remaining = inst.arg as usize;
+                    unpack_names.clear();
                 }
                 Op::POP_JUMP_IF_FALSE
                 | Op::POP_JUMP_IF_TRUE

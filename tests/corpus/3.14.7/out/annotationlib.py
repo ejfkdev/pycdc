@@ -173,7 +173,7 @@ Constructor arguments:
 
     def __hash__(self):
         if self.__extra_names__:
-            return None((None, hash, self.__forward_arg__, self.__forward_module__ if isinstance(self.__cell__, dict) else id(self.__globals__)(tuple(name)), (id,), self.__owner__, tuple(sorted(self.__extra_names__.items()))))
+            return None((None, hash, self.__forward_arg__, self.__forward_module__ if isinstance(self.__cell__, dict) else id(self.__globals__)(tuple(sorted)), (id,), self.__owner__, tuple(sorted(self.__extra_names__.items()))))
         return None((None, None, None, None, None, None, None))
 
     def __or__(self, other):
@@ -625,7 +625,7 @@ def type_repr(value):
     return repr(value)
 
 def annotations_to_string(annotations):
-    return n
+    return {t: type_repr(t) for _ in annotations.items() if isinstance(t, str)}
 
 def _rewrite_star_unpack(arg):
     if arg.lstrip().startswith('*'):

@@ -403,7 +403,7 @@ class FieldStorage:
         self.list = []
         if self.qs_on_post:
             query = urllib.parse.parse_qsl(self.qs_on_post, self.keep_blank_values, self.strict_parsing, self.encoding, self.errors, self.max_num_fields, self.separator)
-            self.list.extend((MiniFieldStorage(key, value) for key in query))
+            self.list.extend((MiniFieldStorage(key, value) for key, value in query))
         klass = self.FieldStorageClass or self.__class__
         first_line = self.fp.readline()
         if not isinstance(first_line, bytes):

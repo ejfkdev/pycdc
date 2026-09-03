@@ -175,7 +175,7 @@ class DictMixin:
             continue
 
     def values(self):
-        return [v for _ in self.iteritems()]
+        return [v for _, v in self.iteritems()]
 
     def items(self):
         return list(self.iteritems())

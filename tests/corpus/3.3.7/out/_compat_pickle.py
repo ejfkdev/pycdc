@@ -5,6 +5,6 @@ for excname in PYTHON2_EXCEPTIONS:
     NAME_MAPPING['exceptions', excname] = 'builtins', excname
     continue
 NAME_MAPPING[('exceptions', 'StandardError')] = ('builtins', 'Exception')
-REVERSE_IMPORT_MAPPING = dict(((v, k) for k in IMPORT_MAPPING.items()))
-REVERSE_NAME_MAPPING = dict(((v, k) for k in NAME_MAPPING.items()))
+REVERSE_IMPORT_MAPPING = dict(((v, k) for k, v in IMPORT_MAPPING.items()))
+REVERSE_NAME_MAPPING = dict(((v, k) for k, v in NAME_MAPPING.items()))
 # WARNING: Decompyle incomplete

@@ -72,11 +72,11 @@
   },
   {
    "module": "_py_abc",
-   "ast_detail": "diff at token 53: orig  generators=[comprehension(target=Tuple(elts=[Name(id='name' | dec  generators=[comprehension(target=Name(id='name'",
+   "ast_detail": "diff at token 239: orig  conversion=-1)])] | dec  conversion=-1)])",
    "verdict": "SIG-DIFF",
-   "ndiff": 442,
+   "ndiff": 312,
    "ntotal": 550,
-   "detail": "line 68: orig ('RESUME', '') | got ('MAKE_CELL', 'value')\nline 69: orig ('PUSH_NULL', '') | got ('RESUME', '')\nline 70: orig ('LOAD_GLOBAL', 'NULL + super') | got ('PUSH_NULL', '')"
+   "detail": "line 238: orig ('KW_NAMES', '') | got ('PRECALL', '')\nline 239: orig ('PRECALL', '') | got ('CALL', '')\nline 240: orig ('CALL', '') | got ('POP_TOP', '')"
   },
   {
    "module": "_sitebuiltins",
@@ -150,7 +150,7 @@
    "module": "base64",
    "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Try(body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1834,
+   "ndiff": 1851,
    "ntotal": 2117,
    "detail": "line 72: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 74: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 230: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 146') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 148')"
   },
@@ -190,7 +190,7 @@
    "module": "calendar",
    "ast_detail": "diff at token 219: orig  orelse=[Return(value=Call(func=Name(id='funcs' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2802,
+   "ndiff": 2787,
    "ntotal": 3519,
    "detail": "line 605: orig ('SWAP', '') | got ('COMPARE_OP', '<=')\nline 606: orig ('COPY', '') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 82')\nline 607: orig ('COMPARE_OP', '<=') | got ('LOAD_FAST', 'year')"
   },
@@ -198,7 +198,7 @@
    "module": "cgi",
    "ast_detail": "diff at token 44: orig  ctx=Load())] | dec  ctx=Load())",
    "verdict": "SIG-DIFF",
-   "ndiff": 3055,
+   "ndiff": 3058,
    "ntotal": 3160,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },

@@ -305,7 +305,7 @@ class Sniffer:
                 skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
                 return d, skipinitialspace
                 continue
-        items = [(v, k) for k in delims.items()]
+        items = [(v, k) for k, v in delims.items()]
         items.sort()
         delim = items[-1][1]
         skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)

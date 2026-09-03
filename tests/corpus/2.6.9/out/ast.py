@@ -47,7 +47,7 @@ def literal_eval(node_or_string):
         if isinstance(node, List):
             return list(map(_convert, node.elts))
         if isinstance(node, Dict):
-            return dict(((_convert(k), _convert(v)) for k in zip(node.keys, node.values)))
+            return dict(((_convert(k), _convert(v)) for k, v in zip(node.keys, node.values)))
         if isinstance(node, Name):
             if node.id in _safe_names:
                 return _safe_names[node.id]
@@ -63,7 +63,7 @@ def dump(node, annotate_fields=True, include_attributes=False):
                 pass
             del _[1]
             fields = _[1]
-            rv = '%s(%s' % (node.__class__.__name__, ', '.join(('%s=%s' % field for field in fields) if annotate_fields else (b for a in fields)))
+            rv = '%s(%s' % (node.__class__.__name__, ', '.join(('%s=%s' % field for field in fields) if annotate_fields else (b for a, b in fields)))
             if include_attributes and node._attributes:
                 if fields:
                     pass

@@ -207,7 +207,7 @@ class TextCalendar(Calendar):
         return s.center(width)
 
     def formatweek(self, theweek, width):
-        return ' '.join((self.formatday(d, wd, width) for d in theweek))
+        return ' '.join((self.formatday(d, wd, width) for d, wd in theweek))
 
     def formatweekday(self, day, width):
         if width >= 9:
@@ -298,7 +298,7 @@ class HTMLCalendar(Calendar):
         return '<td class="%s">%d</td>' % (self.cssclasses[weekday], day)
 
     def formatweek(self, theweek):
-        s = ''.join((self.formatday(d, wd) for d in theweek))
+        s = ''.join((self.formatday(d, wd) for d, wd in theweek))
         return '<tr>%s</tr>' % s
 
     def formatweekday(self, day):
