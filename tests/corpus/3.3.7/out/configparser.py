@@ -542,7 +542,7 @@ class RawConfigParser(MutableMapping):
                 with open(filename, encoding=encoding) as fp:
                     self._read(fp, filename)
             except IOError:
-                pass
+                continue
             read_ok.append(filename)
         return read_ok
 

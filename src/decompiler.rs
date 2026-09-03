@@ -5006,6 +5006,25 @@ impl<'a> Ctx<'a> {
                     && l.else_start.is_none()
                     && self.cur_offset < l.handler_start)
         }) {
+            if self.legacy_handler.is_some() && !self.in_handler_prelude {
+                // handler still open (past its prelude): an explicit
+                // `continue` in the handler body — the implicit post-handler
+                // back edge comes after POP_EXCEPT/END_FINALLY folded it.
+                // py2 emits dead duplicate back edges after the continue;
+                // only the first is real.
+                let already = self
+                    .legacy_handler
+                    .as_ref()
+                    .map_or(false, |h| matches!(h.body.last(), Some(Stmt::Continue)));
+                if !already
+                    && self
+                        .blocks
+                        .iter()
+                        .any(|b| matches!(b.kind, BlockType::While | BlockType::For) && b.start == target)
+                {
+                    self.push_stmt(Stmt::Continue);
+                }
+            }
             return;
         }
         self.close_blocks_at(self.cur_offset);

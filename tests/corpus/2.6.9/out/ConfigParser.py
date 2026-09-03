@@ -233,7 +233,7 @@ class RawConfigParser:
             try:
                 fp = open(filename)
             except IOError:
-                pass
+                continue
             else:
                 self._read(fp, filename)
                 fp.close()

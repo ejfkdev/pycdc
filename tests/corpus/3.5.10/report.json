@@ -143,7 +143,7 @@
    "module": "base64",
    "ast_detail": "diff at token 49: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1809,
+   "ndiff": 1805,
    "ntotal": 1970,
    "detail": "line 122: orig ('LOAD_CONST', \"'foldspaces'\") | got ('LOAD_CONST', 'None')\nline 123: orig ('LOAD_CONST', 'False') | got ('LOAD_CONST', '<code a85encode>')\nline 124: orig ('LOAD_CONST', \"'wrapcol'\") | got ('LOAD_CONST', \"'a85encode'\")"
   },
@@ -177,11 +177,11 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 343: orig  body=[Continue()])] | dec  body=[Pass()])]",
+   "ast_detail": "diff at token 562: orig  orelse=[Return(value=Tuple(elts=[Attribute(value=Name(id='code' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 290,
+   "ndiff": 144,
    "ntotal": 562,
-   "detail": "line 240: orig ('SETUP_LOOP', 'to 400') | got ('SETUP_LOOP', 'to 397')\nline 243: orig ('FOR_ITER', 'to 399') | got ('FOR_ITER', 'to 396')\nline 253: orig ('SETUP_LOOP', 'to 396') | got ('SETUP_LOOP', 'to 393')"
+   "detail": "line 415: orig ('LOAD_CONST', 'None') | got ('main', 0)\nline 416: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', '0')\nline 417: orig ('main', 0) | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "calendar",
@@ -263,7 +263,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1231: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
-   "ndiff": 4189,
+   "ndiff": 4185,
    "ntotal": 4295,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },
@@ -303,8 +303,8 @@
    "module": "csv",
    "ast_detail": "diff at token 128: orig  body=[Try(body=[Expr(value=Call(func=Name(id='_Dialect' | dec  body=[Assign(targets=[Name(id='e'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1626,
-   "ntotal": 1654,
+   "ndiff": 1623,
+   "ntotal": 1656,
    "detail": "line 8: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 12: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 13: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   }
  ]

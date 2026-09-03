@@ -150,7 +150,7 @@
    "module": "base64",
    "ast_detail": "diff at token 49: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1572,
+   "ndiff": 1579,
    "ntotal": 1946,
    "detail": "line 330: orig ('LOAD_METHOD', 'translate') | got ('LOAD_GLOBAL', 'bytes')\nline 331: orig ('LOAD_GLOBAL', 'bytes') | got ('LOAD_METHOD', 'maketrans')\nline 332: orig ('LOAD_METHOD', 'maketrans') | got ('LOAD_FAST', 'altchars')"
   },
@@ -184,11 +184,11 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 343: orig  body=[Continue()])] | dec  body=[Pass()])]",
+   "ast_detail": "diff at token 581: orig  args=[Starred(value=Name(id='args' | dec  args=[Name(id='args'",
    "verdict": "SIG-DIFF",
-   "ndiff": 332,
+   "ndiff": 205,
    "ntotal": 633,
-   "detail": "line 238: orig ('SETUP_LOOP', 'to 306') | got ('SETUP_LOOP', 'to 304')\nline 241: orig ('FOR_ITER', 'to 304') | got ('FOR_ITER', 'to 302')\nline 251: orig ('SETUP_LOOP', 'to 302') | got ('SETUP_LOOP', 'to 300')"
+   "detail": "line 423: orig ('SETUP_FINALLY', 'to 106') | got ('SETUP_FINALLY', 'to 108')\nline 426: orig ('LOAD_FAST', 'kw') | got ('BUILD_TUPLE', '')\nline 427: orig ('CALL_FUNCTION_EX', '') | got ('LOAD_FAST', 'kw')"
   },
   {
    "module": "calendar",
@@ -270,7 +270,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 682: orig  orelse=[If(test=BoolOp(op=And() | dec  orelse=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
-   "ndiff": 3906,
+   "ndiff": 3747,
    "ntotal": 4369,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },

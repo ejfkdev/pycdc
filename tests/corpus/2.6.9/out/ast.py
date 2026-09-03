@@ -118,7 +118,7 @@ def iter_fields(node):
         try:
             yield (field, getattr(node, field))
         except AttributeError:
-            pass
+            continue
 
 def iter_child_nodes(node):
     for name, field in iter_fields(node):

@@ -222,6 +222,7 @@ if __name__ == '__main__':
                     except Fault:
                         fault = None
                         results.append({'faultCode': fault.faultCode, 'faultString': fault.faultString})
+                        continue
                 return results
 
             def _dispatch(self, method, params):

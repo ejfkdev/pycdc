@@ -44,7 +44,7 @@ for _name in _names:
         try:
             _mod = __import__(_name)
         except ImportError:
-            pass
+            continue
         else:
             _defaultmod = _mod
     _errors.append(_mod.error)

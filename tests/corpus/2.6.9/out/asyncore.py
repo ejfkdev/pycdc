@@ -410,8 +410,10 @@ if os.name == 'posix':
                     if not ignore_all:
                         raise
                         continue
+                    continue
                 except _reraised_exceptions:
                     raise
+                    continue
             map.clear()
 
         import fcntl
