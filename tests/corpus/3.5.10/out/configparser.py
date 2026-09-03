@@ -460,21 +460,18 @@ class LegacyInterpolation(Interpolation):
     def before_get(self, parser, section, option, value, vars):
         rawval = value
         depth = MAX_INTERPOLATION_DEPTH
-        while True:
-            while depth:
-                depth -= 1
-                if value and '%(' in value:
-                    replace = functools.partial(self._interpolation_replace, parser=parser)
-                    value = self._KEYCRE.sub(replace, value)
-                    continue
-                e = None
-                del e
-                try:
-                    value = value % vars
-                except KeyError as e:
-                    raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
+        while depth:
+            depth -= 1
+            if value and '%(' in value:
+                replace = functools.partial(self._interpolation_replace, parser=parser)
+                value = self._KEYCRE.sub(replace, value)
                 continue
-            break
+            e = None
+            del e
+            try:
+                value = value % vars
+            except KeyError as e:
+                raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -790,13 +787,12 @@ class RawConfigParser(MutableMapping):
                     for prefix, index in inline_prefixes.items():
                         index = line.find(prefix, index + 1)
                         if index == -1:
-                            pass
-                        else:
-                            next_prefixes[prefix] = index
-                            if not index == 0:
-                                if index > 0:
-                                    if line[index - 1].isspace():
-                                        comment_start = min(comment_start, index)
+                            continue
+                        next_prefixes[prefix] = index
+                        if not index == 0:
+                            if index > 0:
+                                if line[index - 1].isspace():
+                                    comment_start = min(comment_start, index)
                     inline_prefixes = next_prefixes
                 else:
                     for prefix in self._comment_prefixes:
@@ -812,46 +808,48 @@ class RawConfigParser(MutableMapping):
                                 cursect[optname].append('')
                                 continue
             indent_level = sys.maxsize
-        else:
+            continue
             first_nonspace = self.NONSPACECRE.search(line)
             cur_indent_level = first_nonspace.start() if first_nonspace else 0
             if cursect is not None and optname and cur_indent_level > indent_level:
                 cursect[optname].append(value)
-            indent_level = cur_indent_level
-            mo = self.SECTCRE.match(value)
-            if mo:
-                sectname = mo.group('header')
-                if sectname in self._sections:
-                    if self._strict and sectname in elements_added:
-                        raise DuplicateSectionError(sectname, fpname, lineno)
-                    cursect = self._sections[sectname]
-                    elements_added.add(sectname)
-                elif sectname == self.default_section:
-                    cursect = self._defaults
-                else:
-                    cursect = self._dict()
-                    self._sections[sectname] = cursect
-                    self._proxies[sectname] = SectionProxy(self, sectname)
-                    elements_added.add(sectname)
-                optname = None
-            if cursect is None:
-                raise MissingSectionHeaderError(fpname, lineno, line)
-            mo = self._optcre.match(value)
-            if mo:
-                optname, vi, optval = mo.group('option', 'vi', 'value')
-                if not optname:
-                    e = self._handle_error(e, fpname, lineno, line)
-                optname = self.optionxform(optname.rstrip())
-                if self._strict and (sectname, optname) in elements_added:
-                    raise DuplicateOptionError(sectname, optname, fpname, lineno)
-                elements_added.add((sectname, optname))
-                if optval is not None:
-                    optval = optval.strip()
-                    cursect[optname] = [optval]
-                else:
-                    cursect[optname] = None
             else:
-                e = self._handle_error(e, fpname, lineno, line)
+                indent_level = cur_indent_level
+                mo = self.SECTCRE.match(value)
+                if mo:
+                    sectname = mo.group('header')
+                    if sectname in self._sections:
+                        if self._strict and sectname in elements_added:
+                            raise DuplicateSectionError(sectname, fpname, lineno)
+                        cursect = self._sections[sectname]
+                        elements_added.add(sectname)
+                    elif sectname == self.default_section:
+                        cursect = self._defaults
+                    else:
+                        cursect = self._dict()
+                        self._sections[sectname] = cursect
+                        self._proxies[sectname] = SectionProxy(self, sectname)
+                        elements_added.add(sectname)
+                    optname = None
+                elif cursect is None:
+                    raise MissingSectionHeaderError(fpname, lineno, line)
+                else:
+                    mo = self._optcre.match(value)
+                    if mo:
+                        optname, vi, optval = mo.group('option', 'vi', 'value')
+                        if not optname:
+                            e = self._handle_error(e, fpname, lineno, line)
+                        optname = self.optionxform(optname.rstrip())
+                        if self._strict and (sectname, optname) in elements_added:
+                            raise DuplicateOptionError(sectname, optname, fpname, lineno)
+                        elements_added.add((sectname, optname))
+                        if optval is not None:
+                            optval = optval.strip()
+                            cursect[optname] = [optval]
+                        else:
+                            cursect[optname] = None
+                    else:
+                        e = self._handle_error(e, fpname, lineno, line)
         self._join_multiline_values()
         if e:
             raise e
@@ -1028,6 +1026,7 @@ class ConverterMapping(MutableMapping):
                 delattr(inst, k)
             except AttributeError:
                 continue
+            continue
 
     def __iter__(self):
         return iter(self._data)

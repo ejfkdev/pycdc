@@ -96,10 +96,10 @@ class Error(Exception):
     '''Base class for ConfigParser exceptions.'''
 
     def _get_message(self):
-        return self._Error__message
+        return self.__message
 
     def _set_message(self, value):
-        self._Error__message = value
+        self.__message = value
 
     message = property(_get_message, _set_message)
     def __init__(self, msg=''):
@@ -349,21 +349,21 @@ class RawConfigParser:
         lineno = 0
         e = None
         while True:
-            while True:
-                line = fp.readline()
-                if not line:
-                    break
-                lineno = lineno + 1
-                if not line.strip() == '':
-                    if line[0] in '#;':
-                        continue
-                if line.split(None, 1)[0].lower() == 'rem' and line[0] in 'rR':
+            line = fp.readline()
+            if not line:
+                break
+            lineno = lineno + 1
+            if not line.strip() == '':
+                if line[0] in '#;':
                     continue
-                if line[0].isspace() and cursect is not None and optname:
-                    value = line.strip()
-                    if value:
-                        cursect[optname] = '%s\n%s' % (cursect[optname], value)
-                        continue
+            if line.split(None, 1)[0].lower() == 'rem' and line[0] in 'rR':
+                continue
+            if line[0].isspace() and cursect is not None and optname:
+                value = line.strip()
+                if value:
+                    cursect[optname] = '%s\n%s' % (cursect[optname], value)
+                    continue
+            continue
             mo = self.SECTCRE.match(line)
             if mo:
                 sectname = mo.group('header')
@@ -393,9 +393,11 @@ class RawConfigParser:
                 optval = ''
             optname = self.optionxform(optname.rstrip())
             cursect[optname] = optval
+            continue
             if not e:
                 e = ParsingError(fpname)
             e.append(lineno, repr(line))
+            continue
         if e:
             raise e
 
@@ -449,19 +451,11 @@ class ConfigParser(RawConfigParser):
     def _interpolate(self, section, option, rawval, vars):
         value = rawval
         depth = MAX_INTERPOLATION_DEPTH
-        while True:
-            while depth:
-                depth -= 1
-                if '%(' in value:
-                    value = self._KEYCRE.sub(self._interpolation_replace, value)
-                    continue
-                break
-                try:
-                    value = value % vars
-                except KeyError:
-                    e = None
-                    raise InterpolationMissingOptionError(option, section, rawval, e.args[0])
-                    continue
+        while depth:
+            depth -= 1
+            if '%(' in value:
+                value = self._KEYCRE.sub(self._interpolation_replace, value)
+                continue
         if '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -512,8 +506,9 @@ class SafeConfigParser(ConfigParser):
                         self._interpolate_some(option, accum, v, section, map, depth + 1)
                     continue
             accum.append(v)
-        else:
+            continue
             raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
+            continue
 
     def set(self, section, option, value):
         if not isinstance(value, basestring):

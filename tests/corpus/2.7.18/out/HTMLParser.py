@@ -75,9 +75,9 @@ class HTMLParser(markupbase.ParserBase):
     def error(self, message):
         raise HTMLParseError(message, self.getpos())
 
-    _HTMLParser__starttag_text = None
+    __starttag_text = None
     def get_starttag_text(self):
-        return self._HTMLParser__starttag_text
+        return self.__starttag_text
 
     def set_cdata_mode(self, elem):
         self.cdata_elem = elem.lower()
@@ -91,49 +91,49 @@ class HTMLParser(markupbase.ParserBase):
         rawdata = self.rawdata
         i = 0
         n = len(rawdata)
-        while True:
-            while i < n:
-                match = self.interesting.search(rawdata, i)
-                if match:
-                    j = match.start()
-                else:
-                    if self.cdata_elem:
-                        break
-                    j = n
-                if i < j:
-                    self.handle_data(rawdata[i:j])
-                i = self.updatepos(i, j)
-                if i == n:
+        while i < n:
+            match = self.interesting.search(rawdata, i)
+            if match:
+                j = match.start()
+            else:
+                if self.cdata_elem:
                     break
-                startswith = rawdata.startswith
-                if startswith('<', i):
-                    if starttagopen.match(rawdata, i):
-                        k = self.parse_starttag(i)
-                    elif startswith('</', i):
-                        k = self.parse_endtag(i)
-                    elif startswith('<!--', i):
-                        k = self.parse_comment(i)
-                    elif startswith('<?', i):
-                        k = self.parse_pi(i)
-                    elif startswith('<!', i):
-                        k = self.parse_html_declaration(i)
-                    elif i + 1 < n:
-                        self.handle_data('<')
-                        k = i + 1
-                    else:
+                j = n
+            if i < j:
+                self.handle_data(rawdata[i:j])
+            i = self.updatepos(i, j)
+            if i == n:
+                break
+            startswith = rawdata.startswith
+            if startswith('<', i):
+                if starttagopen.match(rawdata, i):
+                    k = self.parse_starttag(i)
+                elif startswith('</', i):
+                    k = self.parse_endtag(i)
+                elif startswith('<!--', i):
+                    k = self.parse_comment(i)
+                elif startswith('<?', i):
+                    k = self.parse_pi(i)
+                elif startswith('<!', i):
+                    k = self.parse_html_declaration(i)
+                elif i + 1 < n:
+                    self.handle_data('<')
+                    k = i + 1
+                else:
+                    break
+                if k < 0:
+                    if not end:
                         break
+                    k = rawdata.find('>', i + 1)
                     if k < 0:
-                        if not end:
-                            break
-                        k = rawdata.find('>', i + 1)
+                        k = rawdata.find('<', i + 1)
                         if k < 0:
-                            k = rawdata.find('<', i + 1)
-                            if k < 0:
-                                k = i + 1
-                                continue
-                k += 1
-                self.handle_data(rawdata[i:k])
-                i = self.updatepos(i, k)
+                            k = i + 1
+                            continue
+            k += 1
+            self.handle_data(rawdata[i:k])
+            i = self.updatepos(i, k)
+            continue
             if startswith('&#', i):
                 match = charref.match(rawdata, i)
                 if match:
@@ -144,33 +144,6 @@ class HTMLParser(markupbase.ParserBase):
                         k = k - 1
                     i = self.updatepos(i, k)
                     continue
-            continue
-            if ';' in rawdata[i:]:
-                self.handle_data(rawdata[i:i + 2])
-                i = self.updatepos(i, i + 2)
-            break
-            if startswith('&', i):
-                match = entityref.match(rawdata, i)
-                if match:
-                    name = match.group(1)
-                    self.handle_entityref(name)
-                    k = match.end()
-                    if not startswith(';', k - 1):
-                        k = k - 1
-                    i = self.updatepos(i, k)
-                    continue
-            match = incomplete.match(rawdata, i)
-            if match:
-                if end and match.group() == rawdata[i:]:
-                    self.error('EOF in middle of entity or char ref')
-                break
-            elif i + 1 < n:
-                self.handle_data('&')
-                i = self.updatepos(i, i + 1)
-            else:
-                break
-            if not 0:
-                raise AssertionError('interesting.search() lied')
         if end and i < n and not self.cdata_elem:
             self.handle_data(rawdata[i:n])
             i = self.updatepos(i, n)
@@ -215,41 +188,40 @@ class HTMLParser(markupbase.ParserBase):
         return j
 
     def parse_starttag(self, i):
-        self._HTMLParser__starttag_text = None
+        self.__starttag_text = None
         endpos = self.check_for_whole_start_tag(i)
         if endpos < 0:
             return endpos
         rawdata = self.rawdata
-        self._HTMLParser__starttag_text = rawdata[i:endpos]
+        self.__starttag_text = rawdata[i:endpos]
         attrs = []
         match = tagfind.match(rawdata, i + 1)
         assert match, 'unexpected call to parse_starttag()'
         k = match.end()
         self.lasttag = match.group(1).lower()
         tag = match.group(1).lower()
-        while True:
-            while k < endpos:
-                m = attrfind.match(rawdata, k)
-                if not m:
-                    break
-                attrname, rest, attrvalue = m.group(1, 2, 3)
-                if not rest:
-                    attrvalue = None
-                if not attrvalue[:1] == "'" == attrvalue[-1:]:
-                    if attrvalue[:1] == '"' == attrvalue[-1:]:
-                        attrvalue = attrvalue[1:-1]
-                if attrvalue:
-                    attrvalue = self.unescape(attrvalue)
-                attrs.append((attrname.lower(), attrvalue))
-                k = m.end()
+        while k < endpos:
+            m = attrfind.match(rawdata, k)
+            if not m:
+                break
+            attrname, rest, attrvalue = m.group(1, 2, 3)
+            if not rest:
+                attrvalue = None
+            if not attrvalue[:1] == "'" == attrvalue[-1:]:
+                if attrvalue[:1] == '"' == attrvalue[-1:]:
+                    attrvalue = attrvalue[1:-1]
+            if attrvalue:
+                attrvalue = self.unescape(attrvalue)
+            attrs.append((attrname.lower(), attrvalue))
+            k = m.end()
         end = rawdata[k:endpos].strip()
         if end not in ('>', '/>'):
             lineno, offset = self.getpos()
-            if '\n' in self._HTMLParser__starttag_text:
-                lineno = lineno + self._HTMLParser__starttag_text.count('\n')
-                offset = len(self._HTMLParser__starttag_text) - self._HTMLParser__starttag_text.rfind('\n')
+            if '\n' in self.__starttag_text:
+                lineno = lineno + self.__starttag_text.count('\n')
+                offset = len(self.__starttag_text) - self.__starttag_text.rfind('\n')
             else:
-                offset = offset + len(self._HTMLParser__starttag_text)
+                offset = offset + len(self.__starttag_text)
             self.handle_data(rawdata[i:endpos])
             return endpos
         if end.endswith('/>'):

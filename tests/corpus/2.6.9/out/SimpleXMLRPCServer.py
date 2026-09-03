@@ -223,6 +223,7 @@ if __name__ == '__main__':
                         fault = None
                         results.append({'faultCode': fault.faultCode, 'faultString': fault.faultString})
                         continue
+                    continue
                 return results
 
             def _dispatch(self, method, params):
@@ -258,14 +259,14 @@ if __name__ == '__main__':
                     max_chunk_size = 10485760
                     size_remaining = int(self.headers['content-length'])
                     L = []
-                    while True:
-                        while size_remaining:
-                            chunk_size = min(size_remaining, max_chunk_size)
-                            chunk = self.rfile.read(chunk_size)
-                            if not chunk:
-                                break
-                            L.append(chunk)
-                            size_remaining -= len(L[-1])
+                    while size_remaining:
+                        chunk_size = min(size_remaining, max_chunk_size)
+                        chunk = self.rfile.read(chunk_size)
+                        if not chunk:
+                            break
+                        L.append(chunk)
+                        size_remaining -= len(L[-1])
+                        continue
                     data = ''.join(L)
                     response = self.server._marshaled_dispatch(data, getattr(self, '_dispatch', None))
                 except Exception:

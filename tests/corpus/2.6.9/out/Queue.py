@@ -37,6 +37,7 @@ class Queue:
         try:
             while self.unfinished_tasks:
                 self.all_tasks_done.wait()
+                continue
         finally:
             self.all_tasks_done.release()
 
@@ -67,10 +68,9 @@ class Queue:
                     if self._qsize() == self.maxsize:
                         raise Full
                 elif timeout is None:
-                    while True:
-                        if self._qsize() == self.maxsize:
-                            self.not_full.wait()
-                            continue
+                    while self._qsize() == self.maxsize:
+                        self.not_full.wait()
+                        continue
             self._put(item)
             self.unfinished_tasks += 1
             self.not_empty.notify()
@@ -87,10 +87,9 @@ class Queue:
                 if not self._qsize():
                     raise Empty
             elif timeout is None:
-                while True:
-                    if not self._qsize():
-                        self.not_empty.wait()
-                        continue
+                while not self._qsize():
+                    self.not_empty.wait()
+                    continue
                     break
                     if timeout < 0:
                         raise ValueError("'timeout' must be a positive number")
@@ -101,6 +100,7 @@ class Queue:
                         if remaining <= 0.0:
                             raise Empty
                         self.not_empty.wait(remaining)
+                        continue
             item = self._get()
             self.not_full.notify()
             return item

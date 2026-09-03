@@ -105,62 +105,65 @@ if __name__ == '__main__':
             lastpart = '--' + boundary + '--'
             partdict = {}
             terminator = ''
-            while True:
-                while terminator != lastpart:
-                    bytes = -1
-                    data = None
-                    if terminator:
-                        headers = mimetools.Message(fp)
-                        clength = headers.getheader('content-length')
-                        if clength:
-                            continue
-                    if bytes > 0:
-                        if maxlen and bytes > maxlen:
-                            try:
-                                bytes = int(clength)
-                            except ValueError:
-                                pass
-                            else:
-                                raise ValueError # WARNING: raise cause dropped (py2)
-                        data = fp.read(bytes)
+            while terminator != lastpart:
+                bytes = -1
+                data = None
+                if terminator:
+                    headers = mimetools.Message(fp)
+                    clength = headers.getheader('content-length')
+                    if clength:
                         continue
-                    data = ''
-                    lines = []
-                    while True:
-                        line = fp.readline()
-                        if not line:
-                            terminator = lastpart
-                            break
-                        if line[:2] == '--':
-                            terminator = line.strip()
-                            if terminator in (nextpart, lastpart):
-                                break
-                                continue
-                        lines.append(line)
-                    if data is None:
-                        continue
-                    if bytes < 0:
-                        if lines:
-                            line = lines[-1]
-                            if line[-2:] == '\r\n':
-                                line = line[:-2]
-                            elif line[-1:] == '\n':
-                                line = line[:-1]
-                            lines[-1] = line
-                            data = ''.join(lines)
-                            continue
-                    line = headers['content-disposition']
+                if bytes > 0:
+                    if maxlen and bytes > maxlen:
+                        try:
+                            bytes = int(clength)
+                        except ValueError:
+                            pass
+                        else:
+                            raise ValueError # WARNING: raise cause dropped (py2)
+                    data = fp.read(bytes)
+                    continue
+                data = ''
+                lines = []
+                while True:
+                    line = fp.readline()
                     if not line:
+                        terminator = lastpart
+                        break
+                    if line[:2] == '--':
+                        terminator = line.strip()
+                        if terminator in (nextpart, lastpart):
+                            break
+                            continue
+                    lines.append(line)
+                    continue
+                if data is None:
+                    continue
+                if bytes < 0:
+                    if lines:
+                        line = lines[-1]
+                        if line[-2:] == '\r\n':
+                            line = line[:-2]
+                        elif line[-1:] == '\n':
+                            line = line[:-1]
+                        lines[-1] = line
+                        data = ''.join(lines)
                         continue
-                    key, params = parse_header(line)
-                    if key != 'form-data':
-                        continue
-                    if 'name' in params:
-                        name = params['name']
-                    if name in partdict:
-                        partdict[name].append(data)
-                        continue
-                    partdict[name] = [data]
+                line = headers['content-disposition']
+                if not line:
+                    continue
+                key, params = parse_header(line)
+                if key != 'form-data':
+                    continue
+                if 'name' in params:
+                    name = params['name']
+                else:
+                    continue
+                if name in partdict:
+                    partdict[name].append(data)
+                    continue
+                partdict[name] = [data]
+                continue
             return partdict
 
         def _parseparam(s):
@@ -176,6 +179,7 @@ if __name__ == '__main__':
                 f = s[:end]
                 yield f.strip()
                 s = s[end:]
+                continue
 
         def parse_header(line):
             parts = _parseparam(';' + line)
@@ -436,6 +440,7 @@ if __name__ == '__main__':
                     headers = rfc822.Message(self.fp)
                     part = klass(self.fp, headers, ib, environ, keep_blank_values, strict_parsing)
                     self.list.append(part)
+                    continue
                 self.skip_lines()
 
             def read_single(self):
@@ -451,30 +456,30 @@ if __name__ == '__main__':
                 self.file = self.make_file('b')
                 todo = self.length
                 if todo >= 0:
-                    while True:
-                        while todo > 0:
-                            data = self.fp.read(min(todo, self.bufsize))
-                            if not data:
-                                self.done = -1
-                                break
-                            self.file.write(data)
-                            todo = todo - len(data)
+                    while todo > 0:
+                        data = self.fp.read(min(todo, self.bufsize))
+                        if not data:
+                            self.done = -1
+                            break
+                        self.file.write(data)
+                        todo = todo - len(data)
+                        continue
                         break
 
             def read_lines(self):
                 self.file = StringIO()
-                self._FieldStorage__file = StringIO()
+                self.__file = StringIO()
                 if self.outerboundary:
                     self.read_lines_to_outerboundary()
                 else:
                     self.read_lines_to_eof()
 
-            def _FieldStorage__write(self, line):
-                if self._FieldStorage__file is not None:
-                    if self._FieldStorage__file.tell() + len(line) > 1000:
+            def __write(self, line):
+                if self.__file is not None:
+                    if self.__file.tell() + len(line) > 1000:
                         self.file = self.make_file('')
-                        self.file.write(self._FieldStorage__file.getvalue())
-                        self._FieldStorage__file = None
+                        self.file.write(self.__file.getvalue())
+                        self.__file = None
                 self.file.write(line)
 
             def read_lines_to_eof(self):
@@ -483,7 +488,8 @@ if __name__ == '__main__':
                     if not line:
                         self.done = -1
                         break
-                    self._FieldStorage__write(line)
+                    self.__write(line)
+                    continue
 
             def read_lines_to_outerboundary(self):
                 next = '--' + self.outerboundary
@@ -515,7 +521,8 @@ if __name__ == '__main__':
                     else:
                         delim = ''
                         last_line_lfend = False
-                    self._FieldStorage__write(odelim + line)
+                    self.__write(odelim + line)
+                    continue
 
             def skip_lines(self):
                 if not not self.outerboundary:
@@ -538,6 +545,7 @@ if __name__ == '__main__':
                             break
                             continue
                     last_line_lfend = line.endswith('\n')
+                    continue
 
             def make_file(self, binary=None):
                 import tempfile

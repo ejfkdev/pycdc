@@ -471,36 +471,35 @@ class FieldStorage:
         self.file = self.make_file()
         todo = self.length
         if todo >= 0:
-            while True:
-                while todo > 0:
-                    data = self.fp(min(todo, self.bufsize))
-                    if not isinstance(data, bytes):
-                        raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))
-                    self.bytes_read += len(data)
-                    if not data:
-                        self.done = -1
-                        break
-                    self.file.write(data)
-                    todo = todo - len(data)
+            while todo > 0:
+                data = self.fp(min(todo, self.bufsize))
+                if not isinstance(data, bytes):
+                    raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))
+                self.bytes_read += len(data)
+                if not data:
+                    self.done = -1
+                    break
+                self.file.write(data)
+                todo = todo - len(data)
 
     def read_lines(self):
         if self._binary_file:
             self.file = BytesIO()
-            self._FieldStorage__file = BytesIO()
+            self.__file = BytesIO()
         else:
             self.file = StringIO()
-            self._FieldStorage__file = StringIO()
+            self.__file = StringIO()
         if self.outerboundary:
             self.read_lines_to_outerboundary()
         else:
             self.read_lines_to_eof()
 
-    def _FieldStorage__write(self, line):
-        if self._FieldStorage__file is not None and self._FieldStorage__file.tell() + len(line) > 1000:
+    def __write(self, line):
+        if self.__file is not None and self.__file.tell() + len(line) > 1000:
             self.file = self.make_file()
-            data = self._FieldStorage__file.getvalue()
+            data = self.__file.getvalue()
             self.file.write(data)
-            self._FieldStorage__file = None
+            self.__file = None
         if self._binary_file:
             self.file.write(line)
         else:
@@ -513,7 +512,7 @@ class FieldStorage:
             if not line:
                 self.done = -1
                 break
-            self._FieldStorage__write(line)
+            self.__write(line)
 
     def read_lines_to_outerboundary(self):
         next_boundary = b'--' + self.outerboundary
@@ -558,7 +557,7 @@ class FieldStorage:
             else:
                 delim = b''
                 last_line_lfend = False
-            self._FieldStorage__write(odelim + line)
+            self.__write(odelim + line)
 
     def skip_lines(self):
         if self.outerboundary:

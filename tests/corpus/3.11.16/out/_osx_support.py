@@ -22,7 +22,8 @@ def _find_executable(executable, path=None):
                 f
                 return
         return
-    return executable
+    else:
+        return executable
 
 def _read_output(commandstring, capture_stderr=False):
     import contextlib

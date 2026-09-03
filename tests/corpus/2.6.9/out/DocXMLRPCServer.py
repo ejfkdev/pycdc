@@ -50,6 +50,7 @@ class ServerHTMLDoc(pydoc.HTMLDoc):
             else:
                 results.append(self.namelink(name, classes))
             here = end
+            continue
         results.append(escape(text[here:]))
         return ''.join(results)
 

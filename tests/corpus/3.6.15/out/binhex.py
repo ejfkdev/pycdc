@@ -223,27 +223,26 @@ class _Hqxdecoderengine:
     def read(self, totalwtd):
         decdata = b''
         wtd = totalwtd
-        while True:
-            while wtd > 0:
-                if self.eof:
-                    return decdata
-                wtd = (wtd + 2) // 3 * 4
-                data = self.ifp.read(wtd)
-                while True:
-                    try:
-                        decdatacur, self.eof = binascii.a2b_hqx(data)
-                        break
-                    except binascii.Incomplete:
-                        pass
-                    newdata = self.ifp.read(1)
-                    if not newdata:
-                        raise Error('Premature EOF on binhex file')
-                    data = data + newdata
-                decdata = decdata + decdatacur
-                wtd = totalwtd - len(decdata)
-                if not decdata:
-                    if not self.eof:
-                        raise Error('Premature EOF on binhex file')
+        while wtd > 0:
+            if self.eof:
+                return decdata
+            wtd = (wtd + 2) // 3 * 4
+            data = self.ifp.read(wtd)
+            while True:
+                try:
+                    decdatacur, self.eof = binascii.a2b_hqx(data)
+                    break
+                except binascii.Incomplete:
+                    pass
+                newdata = self.ifp.read(1)
+                if not newdata:
+                    raise Error('Premature EOF on binhex file')
+                data = data + newdata
+            decdata = decdata + decdatacur
+            wtd = totalwtd - len(decdata)
+            if not decdata:
+                if not self.eof:
+                    raise Error('Premature EOF on binhex file')
         return decdata
 
     def close(self):
@@ -298,14 +297,14 @@ class HexBin:
             ch = ifp.read(1)
             if not ch:
                 raise Error('No binhex data found')
+            if ch == b'\r':
+                continue
             if ch == b':':
                 break
-            else:
-                hqxifp = _Hqxdecoderengine(ifp)
-                self.ifp = _Rledecoderengine(hqxifp)
-                self.crc = 0
-                self._readheader()
-                return
+        hqxifp = _Hqxdecoderengine(ifp)
+        self.ifp = _Rledecoderengine(hqxifp)
+        self.crc = 0
+        self._readheader()
 
     def _read(self, len):
         data = self.ifp.read(len)

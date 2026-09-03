@@ -274,15 +274,16 @@ class Sniffer:
                                         if k in delimiters:
                                             delims[k] = v
                                             continue
-                    else:
                         continue
-                consistency -= 0.01
-            if len(delims) == 1:
-                delim = list(delims.keys())[0]
-                skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
-                return delim, skipinitialspace
-            start = end
-            end += chunkLength
+                    consistency -= 0.01
+                else:
+                    if len(delims) == 1:
+                        delim = list(delims.keys())[0]
+                        skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
+                        return delim, skipinitialspace
+                    start = end
+                    end += chunkLength
+                    continue
         if not delims:
             return ('', 0)
         if len(delims) > 1:
@@ -316,9 +317,9 @@ class Sniffer:
                         break
                     except (ValueError, OverflowError):
                         pass
-                else:
                     continue
-                thisType = len(row[col])
+                else:
+                    thisType = len(row[col])
                 if thisType != columnTypes[col]:
                     if columnTypes[col] is None:
                         columnTypes[col] = thisType

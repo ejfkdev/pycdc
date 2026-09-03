@@ -31,6 +31,7 @@ class Iterable:
     def __iter__(self):
         while False:
             yield None
+            continue
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -345,8 +346,8 @@ class MutableMapping(Mapping):
     def __delitem__(self, key):
         raise KeyError
 
-    _MutableMapping__marker = object()
-    def pop(self, key, default=_MutableMapping__marker):
+    __marker = object()
+    def pop(self, key, default=__marker):
         pass
 
     def popitem(self):

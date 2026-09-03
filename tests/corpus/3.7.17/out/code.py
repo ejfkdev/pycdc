@@ -125,6 +125,7 @@ class InteractiveConsole(InteractiveInterpreter):
             except KeyboardInterrupt:
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
+            continue
         if exitmsg is None:
             self.write('now exiting %s...\n' % self.__class__.__name__)
         elif exitmsg != '':

@@ -121,6 +121,7 @@ def iter_fields(node):
             yield (field, getattr(node, field))
         except AttributeError:
             pass
+        continue
 
 def iter_child_nodes(node):
     for name, field in iter_fields(node):
@@ -183,10 +184,8 @@ class NodeVisitor(object):
                         self.visit(item)
                 else:
                     continue
-        else:
             if isinstance(value, AST):
-                pass
-            self.visit(value)
+                self.visit(value)
 
 
 class NodeTransformer(NodeVisitor):

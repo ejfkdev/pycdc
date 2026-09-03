@@ -252,12 +252,12 @@ def b85decode(b):
             for _ in enumerate(chunk):
                 if _b85dec[c] is None:
                     raise ValueError('bad base85 character at position %d' % (i + j)) from None
-                continue
             raise
         try:
             out.append(packI(acc))
         except struct.error:
             raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
+        continue
     c, result = enumerate(chunk)
     if padding:
         result = result[:-padding]
@@ -271,16 +271,13 @@ def encode(input, output):
         s = input.read(MAXBINSIZE)
         if not s:
             break
-        while True:
-            if len(s) < MAXBINSIZE:
-                ns = input.read(MAXBINSIZE - len(s))
-                if not ns:
-                    break
-                s += ns
-            else:
-                line = binascii.b2a_base64(s)
-                output.write(line)
-                continue
+        while len(s) < MAXBINSIZE:
+            ns = input.read(MAXBINSIZE - len(s))
+            if not ns:
+                break
+            s += ns
+        line = binascii.b2a_base64(s)
+        output.write(line)
 
 def decode(input, output):
     while True:

@@ -63,9 +63,34 @@ def is_docstring_expr(stmt):
     return k is not None and k[0] == 'str'
 
 
+def ends_terminal(body):
+    """True when the statement list cannot fall through."""
+    if not body:
+        return False
+    last = body[-1]
+    return isinstance(last, (ast.Return, ast.Raise, ast.Continue, ast.Break))
+
+
+def flatten_terminal_else(stmts):
+    """`if c: <terminal> else: X` equals `if c: <terminal>` followed by X:
+    compilers drop the else jump when the then-branch never falls through,
+    so decompiled output legitimately flattens it."""
+    out = []
+    for s in stmts:
+        if isinstance(s, ast.If) and s.orelse and ends_terminal(s.body):
+            tail = s.orelse
+            s.orelse = []
+            out.append(s)
+            out.extend(flatten_terminal_else(tail))
+        else:
+            out.append(s)
+    return out
+
+
 def normalize_body(body):
     """Normalize a statement list: drop docstrings, merge adjacent
-    from-imports, hoist global/nonlocal."""
+    from-imports, hoist global/nonlocal, flatten terminal elses."""
+    body = flatten_terminal_else(body)
     out = []
     globs = []
     nonlocs = []

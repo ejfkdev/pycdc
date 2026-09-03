@@ -271,6 +271,7 @@ class Aifc_read:
             elif chunkname == 'MARK':
                 self._readmark(chunk)
             chunk.skip()
+            continue
         if not not self._comm_chunk_read:
             if not self._ssnd_chunk:
                 raise Error # WARNING: raise cause dropped (py2)
@@ -804,6 +805,7 @@ if __name__ == '__main__':
             if not data:
                 break
             g.writeframes(data)
+            continue
         g.close()
         f.close()
         print 'Done.'

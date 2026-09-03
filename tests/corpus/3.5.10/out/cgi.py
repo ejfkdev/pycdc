@@ -113,57 +113,58 @@ def parse_multipart(fp, pdict):
     lastpart = b'--' + boundary + b'--'
     partdict = {}
     terminator = b''
-    while True:
-        while terminator != lastpart:
-            bytes = -1
-            data = None
-            if terminator:
-                headers = http.client.parse_headers(fp)
-                clength = headers.get('content-length')
-                if clength:
-                    pass
-                try:
-                    bytes = int(clength)
-                except ValueError:
-                    pass
-                if bytes > 0:
-                    if maxlen and bytes > maxlen:
-                        raise ValueError('Maximum content length exceeded')
-                    data = fp.read(bytes)
-                else:
-                    data = b''
-            lines = []
-            while True:
-                line = fp.readline()
-                if not line:
-                    terminator = lastpart
-                    break
-                if line.startswith(b'--') and terminator in (nextpart, lastpart):
-                    terminator = line.rstrip()
-                    break
-                lines.append(line)
-            if data is None:
+    while terminator != lastpart:
+        bytes = -1
+        data = None
+        if terminator:
+            headers = http.client.parse_headers(fp)
+            clength = headers.get('content-length')
+            if clength:
                 pass
+            try:
+                bytes = int(clength)
+            except ValueError:
+                pass
+            if bytes > 0:
+                if maxlen and bytes > maxlen:
+                    raise ValueError('Maximum content length exceeded')
+                data = fp.read(bytes)
             else:
-                if bytes < 0 and lines:
-                    line = lines[-1]
-                    if line[-2:] == b'\r\n':
-                        line = line[:-2]
-                    elif line[-1:] == b'\n':
-                        line = line[:-1]
-                    lines[-1] = line
-                    data = b''.join(lines)
-                line = headers['content-disposition']
-                if not line:
-                    pass
-                else:
-                    key, params = parse_header(line)
-                    if 'name' in params:
-                        name = params['name']
-                    elif name in partdict:
-                        partdict[name].append(data)
-                    else:
-                        partdict[name] = [data]
+                data = b''
+        lines = []
+        while True:
+            line = fp.readline()
+            if not line:
+                terminator = lastpart
+                break
+            if line.startswith(b'--') and terminator in (nextpart, lastpart):
+                terminator = line.rstrip()
+                break
+            lines.append(line)
+        if data is None:
+            continue
+        if bytes < 0 and lines:
+            line = lines[-1]
+            if line[-2:] == b'\r\n':
+                line = line[:-2]
+            elif line[-1:] == b'\n':
+                line = line[:-1]
+            lines[-1] = line
+            data = b''.join(lines)
+        line = headers['content-disposition']
+        if not line:
+            continue
+        key, params = parse_header(line)
+        if key != 'form-data':
+            continue
+        if 'name' in params:
+            name = params['name']
+        else:
+            continue
+        if name in partdict:
+            partdict[name].append(data)
+        else:
+            partdict[name] = [data]
     return partdict
 
 def _parseparam(s):
@@ -507,36 +508,35 @@ class FieldStorage:
         self.file = self.make_file()
         todo = self.length
         if todo >= 0:
-            while True:
-                while todo > 0:
-                    data = self.fp.read(min(todo, self.bufsize))
-                    if not isinstance(data, bytes):
-                        raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))
-                    self.bytes_read += len(data)
-                    if not data:
-                        self.done = -1
-                        break
-                    self.file.write(data)
-                    todo = todo - len(data)
+            while todo > 0:
+                data = self.fp.read(min(todo, self.bufsize))
+                if not isinstance(data, bytes):
+                    raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))
+                self.bytes_read += len(data)
+                if not data:
+                    self.done = -1
+                    break
+                self.file.write(data)
+                todo = todo - len(data)
 
     def read_lines(self):
         if self._binary_file:
             self.file = BytesIO()
-            self._FieldStorage__file = BytesIO()
+            self.__file = BytesIO()
         else:
             self.file = StringIO()
-            self._FieldStorage__file = StringIO()
+            self.__file = StringIO()
         if self.outerboundary:
             self.read_lines_to_outerboundary()
         else:
             self.read_lines_to_eof()
 
-    def _FieldStorage__write(self, line):
-        if self._FieldStorage__file is not None and self._FieldStorage__file.tell() + len(line) > 1000:
+    def __write(self, line):
+        if self.__file is not None and self.__file.tell() + len(line) > 1000:
             self.file = self.make_file()
-            data = self._FieldStorage__file.getvalue()
+            data = self.__file.getvalue()
             self.file.write(data)
-            self._FieldStorage__file = None
+            self.__file = None
         if self._binary_file:
             self.file.write(line)
         else:
@@ -549,7 +549,7 @@ class FieldStorage:
             if not line:
                 self.done = -1
                 break
-            self._FieldStorage__write(line)
+            self.__write(line)
 
     def read_lines_to_outerboundary(self):
         next_boundary = b'--' + self.outerboundary
@@ -591,7 +591,7 @@ class FieldStorage:
             else:
                 delim = b''
                 last_line_lfend = False
-            self._FieldStorage__write(odelim + line)
+            self.__write(odelim + line)
 
     def skip_lines(self):
         if not not self.outerboundary:

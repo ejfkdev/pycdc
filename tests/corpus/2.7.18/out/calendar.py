@@ -112,16 +112,15 @@ class Calendar(object):
         date -= datetime.timedelta(days=days)
         oneday = datetime.timedelta(days=1)
         while True:
-            while True:
-                yield date
-                if date.month != month:
-                    if date.weekday() == self.firstweekday:
-                        try:
-                            date += oneday
-                        except OverflowError:
-                            break
-                        else:
-                            break
+            yield date
+            if date.month != month:
+                if date.weekday() == self.firstweekday:
+                    try:
+                        date += oneday
+                    except OverflowError:
+                        break
+                    else:
+                        break
 
     def itermonthdays2(self, year, month):
         for i, d in enumerate(self.itermonthdays(year, month), self.firstweekday):

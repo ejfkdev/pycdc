@@ -414,7 +414,6 @@ For example:
                     _fix_exception_context(new_exc, exc)
                     pending_raise = True
                     exc = new_exc
-                continue
         if pending_raise:
             try:
                 fixed_ctx = exc.__context__
@@ -532,7 +531,6 @@ For example:
                         _fix_exception_context(new_exc, exc)
                         pending_raise = True
                         exc = new_exc
-                    continue
         if pending_raise:
             try:
                 fixed_ctx = exc.__context__

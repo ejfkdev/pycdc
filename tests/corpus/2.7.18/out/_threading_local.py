@@ -199,10 +199,6 @@ class local(_localbase):
         for thread in threads:
             if key in __dict__:
                 continue
-            try:
-                pass
-            except KeyError:
-                continue
 
 
 from threading import current_thread

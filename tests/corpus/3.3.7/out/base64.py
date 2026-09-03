@@ -148,16 +148,14 @@ def encode(input, output):
         s = input.read(MAXBINSIZE)
         if not s:
             break
-        while True:
-            if len(s) < MAXBINSIZE:
-                ns = input.read(MAXBINSIZE - len(s))
-                if not ns:
-                    break
-                s += ns
-            else:
-                line = binascii.b2a_base64(s)
-                output.write(line)
-                continue
+        while len(s) < MAXBINSIZE:
+            ns = input.read(MAXBINSIZE - len(s))
+            if not ns:
+                break
+            s += ns
+        line = binascii.b2a_base64(s)
+        output.write(line)
+        continue
 
 def decode(input, output):
     while True:
@@ -166,6 +164,7 @@ def decode(input, output):
             break
         s = binascii.a2b_base64(line)
         output.write(s)
+        continue
 
 def encodebytes(s):
     if not isinstance(s, bytes_types):

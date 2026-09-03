@@ -461,19 +461,16 @@ class LegacyInterpolation(Interpolation):
     def before_get(self, parser, section, option, value, vars):
         rawval = value
         depth = MAX_INTERPOLATION_DEPTH
-        while True:
-            while depth:
-                depth -= 1
-                if value and '%(' in value:
-                    replace = functools.partial(self._interpolation_replace, parser=parser)
-                    value = self._KEYCRE.sub(replace, value)
-                    continue
+        while depth:
+            depth -= 1
+            if value and '%(' in value:
+                replace = functools.partial(self._interpolation_replace, parser=parser)
+                value = self._KEYCRE.sub(replace, value)
                 continue
-                try:
-                    value = value % vars
-                except KeyError as e:
-                    raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
-            break
+            try:
+                value = value % vars
+            except KeyError as e:
+                raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -791,13 +788,12 @@ class RawConfigParser(MutableMapping):
                     for prefix, index in inline_prefixes.items():
                         index = line.find(prefix, index + 1)
                         if index == -1:
-                            pass
-                        else:
-                            next_prefixes[prefix] = index
-                            if not index == 0:
-                                if index > 0:
-                                    if line[index - 1].isspace():
-                                        comment_start = min(comment_start, index)
+                            continue
+                        next_prefixes[prefix] = index
+                        if not index == 0:
+                            if index > 0:
+                                if line[index - 1].isspace():
+                                    comment_start = min(comment_start, index)
                     inline_prefixes = next_prefixes
                 else:
                     for prefix in self._comment_prefixes:
@@ -1016,7 +1012,8 @@ class ConverterMapping(MutableMapping):
             m = self.GETTERCRE.match(getter)
             if m:
                 if not callable(getattr(self._parser, getter)):
-                    pass
+                    continue
+            self._data[m.group('name')] = None
 
     def __getitem__(self, key):
         return self._data[key]
@@ -1047,6 +1044,7 @@ class ConverterMapping(MutableMapping):
                 delattr(inst, k)
             except AttributeError:
                 continue
+            continue
 
     def __iter__(self):
         return iter(self._data)

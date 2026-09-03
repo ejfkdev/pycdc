@@ -136,6 +136,8 @@ def poll(timeout=0.0, map=None):
             if obj is None:
                 continue
             _exception(obj)
+    else:
+        return
 
 def poll2(timeout=0.0, map=None):
     if map is None:
@@ -161,6 +163,8 @@ def poll2(timeout=0.0, map=None):
             if obj is None:
                 continue
             readwrite(obj, flags)
+    else:
+        return
 
 poll3 = poll2
 
@@ -172,16 +176,15 @@ def loop(timeout=30.0, use_poll=False, map=None, count=None):
     else:
         poll_fun = poll
     if count is None:
-        while True:
-            while map:
+        while map:
+            poll_fun(timeout, map)
+    else:
+        while map:
+            if count > 0:
                 poll_fun(timeout, map)
-            break
-            while map:
-                if count > 0:
-                    poll_fun(timeout, map)
-                    count = count - 1
-                else:
-                    return
+                count = count - 1
+            else:
+                return
 
 class dispatcher:
     debug = False
@@ -469,9 +472,11 @@ def close_all(map=None, ignore_all=False):
                 pass
             elif not ignore_all:
                 raise
-    else:
+        continue
+        continue
         if not ignore_all:
             raise
+        continue
     map.clear()
 
 if os.name == 'posix':

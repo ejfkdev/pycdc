@@ -329,7 +329,7 @@ class _CallableGenericAlias(GenericAlias):
 
     __slots__ = ()
     def __new__(cls, origin, args):
-        return cls._CallableGenericAlias__create_ga(origin, args)
+        return cls.__create_ga(origin, args)
         exc = None
         del exc
         return
@@ -342,7 +342,7 @@ class _CallableGenericAlias(GenericAlias):
             warnings.warn(f'{str(exc)} (This will raise a TypeError in Python 3.10.)', DeprecationWarning)
 
     @classmethod
-    def _CallableGenericAlias__create_ga(cls, origin, args):
+    def __create_ga(cls, origin, args):
         if isinstance(args, tuple):
             if len(args) != 2:
                 raise TypeError('Callable must be used as Callable[[arg, ...], result].')
@@ -699,8 +699,8 @@ class MutableMapping(Mapping):
     def __delitem__(self, key):
         raise KeyError
 
-    _MutableMapping__marker = object()
-    def pop(self, key, default=_MutableMapping__marker):
+    __marker = object()
+    def pop(self, key, default=__marker):
         pass
 
     def popitem(self):

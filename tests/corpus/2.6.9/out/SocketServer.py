@@ -179,27 +179,28 @@ class BaseServer:
     def __init__(self, server_address, RequestHandlerClass):
         self.server_address = server_address
         self.RequestHandlerClass = RequestHandlerClass
-        self._BaseServer__is_shut_down = threading.Event()
-        self._BaseServer__shutdown_request = False
+        self.__is_shut_down = threading.Event()
+        self.__shutdown_request = False
 
     def server_activate(self):
         pass
 
     def serve_forever(self, poll_interval=0.5):
-        self._BaseServer__is_shut_down.clear()
+        self.__is_shut_down.clear()
         try:
-            while not self._BaseServer__shutdown_request:
+            while not self.__shutdown_request:
                 r, w, e = select.select([self], [], [], poll_interval)
                 if self in r:
                     self._handle_request_noblock()
                     continue
+                continue
         finally:
-            self._BaseServer__shutdown_request = False
-            self._BaseServer__is_shut_down.set()
+            self.__shutdown_request = False
+            self.__is_shut_down.set()
 
     def shutdown(self):
-        self._BaseServer__shutdown_request = True
-        self._BaseServer__is_shut_down.wait()
+        self.__shutdown_request = True
+        self.__is_shut_down.wait()
 
     def handle_request(self):
         timeout = self.socket.gettimeout()
@@ -358,6 +359,7 @@ class ForkingMixIn:
                     pid = None
                 continue
             self.active_children.remove(pid)
+            continue
         for child in self.active_children:
             if not pid:
                 try:

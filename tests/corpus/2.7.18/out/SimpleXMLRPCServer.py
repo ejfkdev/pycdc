@@ -221,6 +221,7 @@ if __name__ == '__main__':
                         fault = None
                         results.append({'faultCode': fault.faultCode, 'faultString': fault.faultString})
                         continue
+                    continue
                 return results
 
             def _dispatch(self, method, params):
@@ -270,6 +271,11 @@ if __name__ == '__main__':
                 if not self.is_rpc_path_valid():
                     self.report_404()
                     return
+                data = ''.join(L)
+                data = self.decode_request_content(data)
+                if data is None:
+                    return
+                response = self.server._marshaled_dispatch(data, getattr(self, '_dispatch', None), self.path)
                 if self.encode_threshold is not None and len(response) > self.encode_threshold:
                     if q:
                         pass

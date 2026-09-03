@@ -214,7 +214,7 @@ class _Stringifier:
         self.__stringifier_dict__ = stringifier_dict
         self.__resolved_str_cache__ = None
 
-    def _Stringifier__convert_to_ast(self, other):
+    def __convert_to_ast(self, other):
         if isinstance(other, _Stringifier):
             if isinstance(other.__ast_node__, str):
                 return ast.Name(id=other.__ast_node__), other.__extra_names__
@@ -229,11 +229,11 @@ class _Stringifier:
             keys = []
             values = []
             for key, value in other.items():
-                new_key, new_extra_names = self._Stringifier__convert_to_ast(key)
+                new_key, new_extra_names = self.__convert_to_ast(key)
                 if not new_extra_names is None:
                     extra_names.update(new_extra_names)
                 keys.append(new_key)
-                new_value, new_extra_names = self._Stringifier__convert_to_ast(value)
+                new_value, new_extra_names = self.__convert_to_ast(value)
                 if not new_extra_names is None:
                     extra_names.update(new_extra_names)
                 values.append(new_value)
@@ -242,7 +242,7 @@ class _Stringifier:
             extra_names = {}
             elts = []
             for elt in other:
-                new_elt, new_extra_names = self._Stringifier__convert_to_ast(elt)
+                new_elt, new_extra_names = self.__convert_to_ast(elt)
                 if not new_extra_names is None:
                     extra_names.update(new_extra_names)
                 elts.append(new_elt)
@@ -251,27 +251,27 @@ class _Stringifier:
         name = self.__stringifier_dict__.create_unique_name()
         return ast.Name(id=name), {name: other}
 
-    def _Stringifier__convert_to_ast_getitem(self, other):
+    def __convert_to_ast_getitem(self, other):
         if isinstance(other, slice):
             extra_names = {}
             def conv(obj):
                 if not obj is not None:
                     return
-                new_obj, new_extra_names = self._Stringifier__convert_to_ast(obj)
+                new_obj, new_extra_names = self.__convert_to_ast(obj)
                 if not new_extra_names is None:
                     extra_names.update(new_extra_names)
                 return new_obj
 
             return ast.Slice(lower=conv(other.start), upper=conv(other.stop), step=conv(other.step)), extra_names
-        return self._Stringifier__convert_to_ast(other)
+        return self.__convert_to_ast(other)
 
-    def _Stringifier__get_ast(self):
+    def __get_ast(self):
         node = self.__ast_node__
         if isinstance(node, str):
             return ast.Name(id=node)
         return node
 
-    def _Stringifier__make_new(self, node, extra_names=None):
+    def __make_new(self, node, extra_names=None):
         new_extra_names = {}
         if not self.__extra_names__ is None:
             new_extra_names.update(self.__extra_names__)
@@ -291,38 +291,38 @@ class _Stringifier:
             extra_names = {}
             elts = []
             for elt in other:
-                new_elt, new_extra_names = self._Stringifier__convert_to_ast_getitem(elt)
+                new_elt, new_extra_names = self.__convert_to_ast_getitem(elt)
                 if not new_extra_names is None:
                     extra_names.update(new_extra_names)
                 elts.append(new_elt)
             other = ast.Tuple(elts)
         else:
-            other, extra_names = self._Stringifier__convert_to_ast_getitem(other)
+            other, extra_names = self.__convert_to_ast_getitem(other)
         if not isinstance(other, ast.AST):
             raise None()
-        return self._Stringifier__make_new(ast.Subscript(self._Stringifier__get_ast(), other), extra_names)
+        return self.__make_new(ast.Subscript(self.__get_ast(), other), extra_names)
 
     def __getattr__(self, attr):
-        return self._Stringifier__make_new(ast.Attribute(self._Stringifier__get_ast(), attr))
+        return self.__make_new(ast.Attribute(self.__get_ast(), attr))
 
     def __call__(self, *args, **kwargs):
         extra_names = {}
         ast_args = []
         for arg in args:
-            new_arg, new_extra_names = self._Stringifier__convert_to_ast(arg)
+            new_arg, new_extra_names = self.__convert_to_ast(arg)
             if not new_extra_names is None:
                 extra_names.update(new_extra_names)
             ast_args.append(new_arg)
         ast_kwargs = []
         for key, value in kwargs.items():
-            new_value, new_extra_names = self._Stringifier__convert_to_ast(value)
+            new_value, new_extra_names = self.__convert_to_ast(value)
             if not new_extra_names is None:
                 extra_names.update(new_extra_names)
             ast_kwargs.append(ast.keyword(key, new_value))
-        return self._Stringifier__make_new(ast.Call(self._Stringifier__get_ast(), ast_args, ast_kwargs), extra_names)
+        return self.__make_new(ast.Call(self.__get_ast(), ast_args, ast_kwargs), extra_names)
 
     def __iter__(self):
-        yield self._Stringifier__make_new(ast.Starred(self._Stringifier__get_ast()))
+        yield self.__make_new(ast.Starred(self.__get_ast()))
 
     def __repr__(self):
         if isinstance(self.__ast_node__, str):
@@ -334,8 +334,8 @@ class _Stringifier:
 
     def _make_binop(op: __classdict__.AST):
         def binop(self, other):
-            rhs, extra_names = self._Stringifier__convert_to_ast(other)
-            return self._Stringifier__make_new(ast.BinOp(self._Stringifier__get_ast(), op, rhs), extra_names)
+            rhs, extra_names = self.__convert_to_ast(other)
+            return self.__make_new(ast.BinOp(self.__get_ast(), op, rhs), extra_names)
 
         return binop
 
@@ -355,8 +355,8 @@ class _Stringifier:
     del _make_binop
     def _make_rbinop(op: __classdict__.AST):
         def rbinop(self, other):
-            new_other, extra_names = self._Stringifier__convert_to_ast(other)
-            return self._Stringifier__make_new(ast.BinOp(new_other, op, self._Stringifier__get_ast()), extra_names)
+            new_other, extra_names = self.__convert_to_ast(other)
+            return self.__make_new(ast.BinOp(new_other, op, self.__get_ast()), extra_names)
 
         return rbinop
 
@@ -376,8 +376,8 @@ class _Stringifier:
     del _make_rbinop
     def _make_compare(op):
         def compare(self, other):
-            rhs, extra_names = self._Stringifier__convert_to_ast(other)
-            return self._Stringifier__make_new(ast.Compare(left=self._Stringifier__get_ast(), ops=[op], comparators=[rhs]), extra_names)
+            rhs, extra_names = self.__convert_to_ast(other)
+            return self.__make_new(ast.Compare(left=self.__get_ast(), ops=[op], comparators=[rhs]), extra_names)
 
         return compare
 
@@ -390,7 +390,7 @@ class _Stringifier:
     del _make_compare
     def _make_unary_op(op):
         def unary_op(self):
-            return self._Stringifier__make_new(ast.UnaryOp(op, self._Stringifier__get_ast()))
+            return self.__make_new(ast.UnaryOp(op, self.__get_ast()))
 
         return unary_op
 

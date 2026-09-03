@@ -47,6 +47,7 @@ class Play_Audio_sgi:
         import time
         while self.port.getfilled() > 0:
             time.sleep(0.1)
+            continue
         self.stop()
 
     def stop(self):
@@ -212,6 +213,7 @@ def test(fn=None):
             break
         print len(data)
         p.writeframes(data)
+        continue
     p.wait()
 
 if __name__ == '__main__':

@@ -44,6 +44,8 @@ def _maybe_compile(compiler, source, filename, symbol):
         line = line.strip()
         if line and line[0] != '#':
             pass
+        else:
+            continue
     if symbol != 'eval':
         source = 'pass'
     with warnings.catch_warnings():

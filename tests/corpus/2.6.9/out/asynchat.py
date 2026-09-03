@@ -59,7 +59,7 @@ class async_chat(asyncore.dispatcher):
         return self.terminator
 
     def handle_read(self):
-        while True:
+        while self.ac_in_buffer:
             try:
                 data = self.recv(self.ac_in_buffer_size)
             except socket.error:
@@ -68,25 +68,25 @@ class async_chat(asyncore.dispatcher):
                 return
             else:
                 self.ac_in_buffer = self.ac_in_buffer + data
-            while self.ac_in_buffer:
-                lb = len(self.ac_in_buffer)
-                terminator = self.get_terminator()
-                if not terminator:
-                    self.collect_incoming_data(self.ac_in_buffer)
-                    self.ac_in_buffer = ''
-                    continue
-                if not isinstance(terminator, int):
-                    if isinstance(terminator, long):
-                        n = terminator
-                        if lb < n:
-                            self.collect_incoming_data(self.ac_in_buffer)
-                            self.ac_in_buffer = ''
-                            self.terminator = self.terminator - lb
-                            continue
-                self.collect_incoming_data(self.ac_in_buffer[:n])
-                self.ac_in_buffer = self.ac_in_buffer[n:]
-                self.terminator = 0
-                self.found_terminator()
+            lb = len(self.ac_in_buffer)
+            terminator = self.get_terminator()
+            if not terminator:
+                self.collect_incoming_data(self.ac_in_buffer)
+                self.ac_in_buffer = ''
+                continue
+            if not isinstance(terminator, int):
+                if isinstance(terminator, long):
+                    n = terminator
+                    if lb < n:
+                        self.collect_incoming_data(self.ac_in_buffer)
+                        self.ac_in_buffer = ''
+                        self.terminator = self.terminator - lb
+                        continue
+            self.collect_incoming_data(self.ac_in_buffer[:n])
+            self.ac_in_buffer = self.ac_in_buffer[n:]
+            self.terminator = 0
+            self.found_terminator()
+            continue
             terminator_len = len(terminator)
             index = self.ac_in_buffer.find(terminator)
             if index != -1:
@@ -104,6 +104,7 @@ class async_chat(asyncore.dispatcher):
                 continue
             self.collect_incoming_data(self.ac_in_buffer)
             self.ac_in_buffer = ''
+            continue
 
     def handle_write(self):
         self.initiate_send()

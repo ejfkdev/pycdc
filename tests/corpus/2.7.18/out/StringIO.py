@@ -131,13 +131,12 @@ if __name__ == '__main__':
                 total = 0
                 lines = []
                 line = self.readline()
-                while True:
-                    while line:
-                        lines.append(line)
-                        total += len(line)
-                        if 0 < sizehint <= total:
-                            break
-                        line = self.readline()
+                while line:
+                    lines.append(line)
+                    total += len(line)
+                    if 0 < sizehint <= total:
+                        break
+                    line = self.readline()
                 return lines
 
             def truncate(self, size=None):

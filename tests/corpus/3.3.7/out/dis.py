@@ -67,6 +67,7 @@ def pretty_flags(flags):
             if not flags:
                 break
                 continue
+        continue
     else:
         names.append(hex(flags))
     return ', '.join(names)
@@ -227,7 +228,6 @@ def findlabels(code):
                 if label not in labels:
                     labels.append(label)
                     continue
-        continue
     return labels
 
 def findlinestarts(code):

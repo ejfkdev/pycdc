@@ -96,6 +96,7 @@ def dump(node, annotate_fields=True, include_attributes=False):
                         args.append('%s=%s' % (a, _format(getattr(node, a))))
                     except AttributeError:
                         pass
+                    continue
             return '%s(%s)' % (node.__class__.__name__, ', '.join(args))
         else:
             if isinstance(node, list):
@@ -144,6 +145,7 @@ def iter_fields(node):
             yield (field, getattr(node, field))
         except AttributeError:
             pass
+        continue
 
 def iter_child_nodes(node):
     for name, field in iter_fields(node):
@@ -264,8 +266,8 @@ class NodeTransformer(NodeVisitor):
                             continue
                     if not isinstance(value, AST):
                         new_values.extend(value)
-                    else:
-                        new_values.append(value)
+                        continue
+                    new_values.append(value)
                 old_value[:] = new_values
             else:
                 if isinstance(old_value, AST):

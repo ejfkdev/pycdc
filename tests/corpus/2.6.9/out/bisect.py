@@ -11,6 +11,7 @@ def insort_right(a, x, lo=0, hi=None):
             hi = mid
             continue
         lo = mid + 1
+        continue
     a.insert(lo, x)
 
 insort = insort_right
@@ -26,6 +27,7 @@ def bisect_right(a, x, lo=0, hi=None):
             hi = mid
             continue
         lo = mid + 1
+        continue
     return lo
 
 bisect = bisect_right
@@ -41,6 +43,7 @@ def insort_left(a, x, lo=0, hi=None):
             lo = mid + 1
             continue
         hi = mid
+        continue
     a.insert(lo, x)
 
 def bisect_left(a, x, lo=0, hi=None):
@@ -54,6 +57,7 @@ def bisect_left(a, x, lo=0, hi=None):
             lo = mid + 1
             continue
         hi = mid
+        continue
     return lo
 
 # WARNING: Decompyle incomplete

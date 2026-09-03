@@ -212,6 +212,7 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
         self.handle_one_request()
         while not self.close_connection:
             self.handle_one_request()
+            continue
 
     def send_error(self, code, message=None):
         if message is None:

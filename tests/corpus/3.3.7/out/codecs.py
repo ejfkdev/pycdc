@@ -270,6 +270,7 @@ class StreamReader(Codec):
             self.charbuffer += newchars
             if not newdata:
                 break
+            continue
         if chars < 0:
             result = self.charbuffer
             self.charbuffer = self._empty_charbuffer
@@ -327,6 +328,7 @@ class StreamReader(Codec):
                     break
             if readsize < 8000:
                 readsize *= 2
+            continue
         return line
 
     def readlines(self, sizehint=None, keepends=True):

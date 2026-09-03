@@ -290,6 +290,7 @@ class Aifc_read:
             elif chunkname == b'MARK':
                 self._readmark(chunk)
             chunk.skip()
+            continue
         if not not self._comm_chunk_read:
             if not self._ssnd_chunk:
                 raise Error('COMM chunk and/or SSND chunk missing')

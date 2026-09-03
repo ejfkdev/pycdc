@@ -144,18 +144,18 @@ class ParserBase:
                 if rawdata[j:j + 4] == '<!--':
                     j = self.parse_comment(j, report=0)
                     return j
-                else:
-                    name, j = self._scan_name(j + 2, declstartpos)
-                    if j == -1:
-                        return -1
-                    if name not in frozenset({'entity', 'notation', 'element', 'attlist'}):
-                        self.updatepos(declstartpos, j + 2)
-                        self.error('unknown declaration %r in internal subset' % name)
-                    meth = getattr(self, '_parse_doctype_' + name)
-                    j = meth(j, declstartpos)
-                    if j < 0:
-                        return j
-                        continue
+                    continue
+            name, j = self._scan_name(j + 2, declstartpos)
+            if j == -1:
+                return -1
+            if name not in frozenset({'entity', 'notation', 'element', 'attlist'}):
+                self.updatepos(declstartpos, j + 2)
+                self.error('unknown declaration %r in internal subset' % name)
+            meth = getattr(self, '_parse_doctype_' + name)
+            j = meth(j, declstartpos)
+            if j < 0:
+                return j
+                continue
             if c == '%':
                 if j + 1 == n:
                     return -1

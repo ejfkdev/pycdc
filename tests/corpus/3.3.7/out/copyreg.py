@@ -82,11 +82,13 @@ def _slotnames(cls):
                 for name in slots:
                     if name in ('__dict__', '__weakref__'):
                         continue
-                else:
+                    continue
                     if name.startswith('__') and not name.endswith('__'):
                         names.append('_%s%s' % (c.__name__, name))
-                        continue
-            names.append(name)
+                    else:
+                        names.append(name)
+                else:
+                    continue
 
 _extension_registry = {}
 _inverted_registry = {}

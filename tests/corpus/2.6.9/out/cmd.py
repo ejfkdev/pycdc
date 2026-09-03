@@ -119,8 +119,9 @@ class Cmd:
                     line = self.precmd(line)
                     stop = self.onecmd(line)
                     stop = self.postcmd(stop, line)
-        finally:
+                continue
             self.postloop()
+        finally:
             if self.use_rawinput and self.completekey:
                 pass
             try:
@@ -218,6 +219,7 @@ class Cmd:
             if aclass.__bases__:
                 classes = classes + list(aclass.__bases__)
             names = names + dir(aclass)
+            continue
         return names
 
     def complete_help(self, *args):
@@ -258,6 +260,7 @@ class Cmd:
                 cmds_doc.append(cmd)
                 continue
             cmds_undoc.append(cmd)
+            continue
         self.stdout.write('%s\n' % str(self.doc_leader))
         self.print_topics(self.doc_header, cmds_doc, 15, 80)
         self.print_topics(self.misc_header, help.keys(), 15, 80)

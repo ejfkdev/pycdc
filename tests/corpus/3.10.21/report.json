@@ -80,7 +80,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 62: orig  attr='__calc_weekday' | dec  attr='_LocaleTime__calc_weekday'",
+   "ast_detail": "diff at token 104: orig  If(test=BoolOp(op=Or() | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 2034,
    "ntotal": 2141,
@@ -192,7 +192,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 219: orig  orelse=[Return(value=Call(func=Name(id='funcs' | dec  orelse=[])",
+   "ast_detail": "diff at token 454: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=Compare(left=Attribute(value=Name(id='datetime'",
    "verdict": "SIG-DIFF",
    "ndiff": 2419,
    "ntotal": 3039,
@@ -208,7 +208,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 36: orig  orelse=[Return(value=Constant(value=''))])] | dec  orelse=[])",
+   "ast_detail": "diff at token 111: orig  If(test=Compare(left=Constant(value='__builtins__') | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 1086,
    "ntotal": 1432,
@@ -268,7 +268,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 623: orig  orelse=[If(test=BoolOp(op=And() | dec  orelse=[])",
+   "ast_detail": "diff at token 624: orig  If(test=BoolOp(op=And() | dec  If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
    "ndiff": 2933,
    "ntotal": 4289,

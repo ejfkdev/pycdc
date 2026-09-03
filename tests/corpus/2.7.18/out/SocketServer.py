@@ -192,29 +192,28 @@ class BaseServer:
     def __init__(self, server_address, RequestHandlerClass):
         self.server_address = server_address
         self.RequestHandlerClass = RequestHandlerClass
-        self._BaseServer__is_shut_down = threading.Event()
-        self._BaseServer__shutdown_request = False
+        self.__is_shut_down = threading.Event()
+        self.__shutdown_request = False
 
     def server_activate(self):
         pass
 
     def serve_forever(self, poll_interval=0.5):
-        self._BaseServer__is_shut_down.clear()
+        self.__is_shut_down.clear()
         try:
-            while True:
-                while not self._BaseServer__shutdown_request:
-                    r, w, e = _eintr_retry(select.select, [self], [], [], poll_interval)
-                    if self._BaseServer__shutdown_request:
-                        break
-                    if self in r:
-                        self._handle_request_noblock()
+            while not self.__shutdown_request:
+                r, w, e = _eintr_retry(select.select, [self], [], [], poll_interval)
+                if self.__shutdown_request:
+                    break
+                if self in r:
+                    self._handle_request_noblock()
         finally:
-            self._BaseServer__shutdown_request = False
-            self._BaseServer__is_shut_down.set()
+            self.__shutdown_request = False
+            self.__is_shut_down.set()
 
     def shutdown(self):
-        self._BaseServer__shutdown_request = True
-        self._BaseServer__is_shut_down.wait()
+        self.__shutdown_request = True
+        self.__is_shut_down.wait()
 
     def handle_request(self):
         timeout = self.socket.gettimeout()
@@ -373,9 +372,7 @@ class ForkingMixIn:
     def collect_children(self):
         if self.active_children is None:
             return
-        while True:
-            if len(self.active_children) >= self.max_children:
-                continue
+        while len(self.active_children) >= self.max_children:
             try:
                 pid, _ = os.waitpid(-1, 0)
                 self.active_children.discard(pid)

@@ -302,12 +302,11 @@ class Bdb:
         stack = []
         if t and t.tb_frame is f:
             t = t.tb_next
-        while True:
-            while f is not None:
-                stack.append((f, f.f_lineno))
-                if f is self.botframe:
-                    break
-                f = f.f_back
+        while f is not None:
+            stack.append((f, f.f_lineno))
+            if f is self.botframe:
+                break
+            f = f.f_back
         stack.reverse()
         i = max(0, len(stack) - 1)
         while t is not None:
@@ -496,18 +495,15 @@ def checkfuncname(b, frame):
 def effective(file, line, frame):
     possibles = Breakpoint.bplist[file, line]
     for b in possibles:
+        if not b.enabled:
+            continue
         if not checkfuncname(b, frame):
-            pass
-        else:
-            b.hits += 1
-            if not b.cond:
-                if b.ignore > 0:
-                    b.ignore -= 1
-                    continue
-        continue
-        return b, True
-    else:
-        return b, False
+            continue
+        b.hits += 1
+        if not b.cond:
+            if b.ignore > 0:
+                b.ignore -= 1
+                continue
     return (None, None)
 
 class Tdb(Bdb):

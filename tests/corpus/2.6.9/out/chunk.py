@@ -148,6 +148,7 @@ class Chunk:
                 except IOError:
                     pass
                 continue
+            continue
 
 
 # WARNING: Decompyle incomplete

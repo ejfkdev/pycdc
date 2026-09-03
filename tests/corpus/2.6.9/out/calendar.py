@@ -129,12 +129,12 @@ class Calendar(object):
         date -= datetime.timedelta(days=days)
         oneday = datetime.timedelta(days=1)
         while True:
-            while True:
-                yield date
-                date += oneday
-                if date.month != month and date.weekday() == self.firstweekday:
-                    break
-                    continue
+            yield date
+            date += oneday
+            if date.month != month and date.weekday() == self.firstweekday:
+                break
+                continue
+            continue
 
     def itermonthdays2(self, year, month):
         for date in self.itermonthdates(year, month):

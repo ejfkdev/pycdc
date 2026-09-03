@@ -242,17 +242,16 @@ class Cmd:
         for name in names:
             if name[:3] == 'do_':
                 if name == prevname:
-                    pass
-                else:
-                    prevname = name
-                    cmd = name[3:]
-                    if cmd in help:
-                        cmds_doc.append(cmd)
-                        del help[cmd]
-                    elif getattr(self, name).__doc__:
-                        cmds_doc.append(cmd)
-                    else:
-                        cmds_undoc.append(cmd)
+                    continue
+            prevname = name
+            cmd = name[3:]
+            if cmd in help:
+                cmds_doc.append(cmd)
+                del help[cmd]
+            elif getattr(self, name).__doc__:
+                cmds_doc.append(cmd)
+            else:
+                cmds_undoc.append(cmd)
         self.stdout.write('%s\n' % str(self.doc_leader))
         self.print_topics(self.doc_header, cmds_doc, 15, 80)
         self.print_topics(self.misc_header, list(help.keys()), 15, 80)

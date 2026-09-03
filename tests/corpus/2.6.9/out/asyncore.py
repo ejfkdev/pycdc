@@ -174,9 +174,9 @@ if os.name == 'posix':
             else:
                 poll_fun = poll
             if count is None:
-                while True:
-                    while map:
-                        poll_fun(timeout, map)
+                while map:
+                    poll_fun(timeout, map)
+                    continue
                     break
                     while map:
                         if count > 0:
@@ -385,6 +385,7 @@ if os.name == 'posix':
             while tb:
                 tbinfo.append((tb.tb_frame.f_code.co_filename, tb.tb_frame.f_code.co_name, str(tb.tb_lineno)))
                 tb = tb.tb_next
+                continue
             del tb
             file, function, line = tbinfo[-1]
             _[1] = []
@@ -414,6 +415,7 @@ if os.name == 'posix':
                 except _reraised_exceptions:
                     raise
                     continue
+                continue
             map.clear()
 
         import fcntl

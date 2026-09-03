@@ -110,6 +110,7 @@ if __name__ == '__main__':
                     self.ofp.write(self.hqxdata[first:last] + '\n')
                     self.linelen = LINELEN
                     first = last
+                    continue
                 self.hqxdata = self.hqxdata[first:]
                 if force:
                     self.ofp.write(self.hqxdata + ':\n')
@@ -231,6 +232,7 @@ if __name__ == '__main__':
                 if not d:
                     break
                 ofp.write(d)
+                continue
             ofp.close_data()
             ifp.close()
             ifp = openrsrc(inp, 'rb')
@@ -239,6 +241,7 @@ if __name__ == '__main__':
                 if not d:
                     break
                 ofp.write_rsrc(d)
+                continue
             ofp.close()
             ifp.close()
 
@@ -252,28 +255,29 @@ if __name__ == '__main__':
             def read(self, totalwtd):
                 decdata = ''
                 wtd = totalwtd
-                while True:
-                    while wtd > 0:
-                        if self.eof:
-                            return decdata
-                        wtd = (wtd + 2) // 3 * 4
-                        data = self.ifp.read(wtd)
-                        while True:
-                            if not newdata:
-                                try:
-                                    decdatacur, self.eof = binascii.a2b_hqx(data)
-                                    break
-                                except binascii.Incomplete:
-                                    pass
-                                else:
-                                    newdata = self.ifp.read(1)
-                                    raise Error # WARNING: raise cause dropped (py2)
-                            data = data + newdata
-                        decdata = decdata + decdatacur
-                        wtd = totalwtd - len(decdata)
-                        if not decdata and not self.eof:
-                            raise Error # WARNING: raise cause dropped (py2)
-                            continue
+                while wtd > 0:
+                    if self.eof:
+                        return decdata
+                    wtd = (wtd + 2) // 3 * 4
+                    data = self.ifp.read(wtd)
+                    while True:
+                        if not newdata:
+                            try:
+                                decdatacur, self.eof = binascii.a2b_hqx(data)
+                                break
+                            except binascii.Incomplete:
+                                pass
+                            else:
+                                newdata = self.ifp.read(1)
+                                raise Error # WARNING: raise cause dropped (py2)
+                        data = data + newdata
+                        continue
+                    decdata = decdata + decdatacur
+                    wtd = totalwtd - len(decdata)
+                    if not decdata and not self.eof:
+                        raise Error # WARNING: raise cause dropped (py2)
+                        continue
+                    continue
                 return decdata
 
             def close(self):
@@ -335,6 +339,7 @@ if __name__ == '__main__':
                     if ch != '\n':
                         dummy = ifp.readline()
                         continue
+                    continue
                 hqxifp = _Hqxdecoderengine(ifp)
                 self.ifp = _Rledecoderengine(hqxifp)
                 self.crc = 0
@@ -380,6 +385,7 @@ if __name__ == '__main__':
                 rv = ''
                 while len(rv) < n:
                     rv = rv + self._read(n - len(rv))
+                    continue
                 self.dlen = self.dlen - n
                 return rv
 
@@ -426,6 +432,7 @@ if __name__ == '__main__':
                 if not d:
                     break
                 ofp.write(d)
+                continue
             ofp.close()
             ifp.close_data()
             d = ifp.read_rsrc(128000)
@@ -437,6 +444,7 @@ if __name__ == '__main__':
                     if not d:
                         break
                     ofp.write(d)
+                    continue
                 ofp.close()
             if os.name == 'mac':
                 nfinfo = ofss.GetFInfo()

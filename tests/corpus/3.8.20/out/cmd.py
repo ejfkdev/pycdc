@@ -273,6 +273,8 @@ class Cmd:
                     break
             if totwidth <= displaywidth:
                 pass
+            else:
+                continue
         nrows = len(list)
         ncols = 1
         colwidths = [0]

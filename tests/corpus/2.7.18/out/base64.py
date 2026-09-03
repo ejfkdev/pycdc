@@ -122,29 +122,24 @@ MAXBINSIZE = MAXLINESIZE // 4 * 3
 
 def encode(input, output):
     while True:
-        while True:
-            s = input.read(MAXBINSIZE)
-            if not s:
+        s = input.read(MAXBINSIZE)
+        if not s:
+            break
+        while len(s) < MAXBINSIZE:
+            ns = input.read(MAXBINSIZE - len(s))
+            if not ns:
                 break
-            while True:
-                if len(s) < MAXBINSIZE:
-                    ns = input.read(MAXBINSIZE - len(s))
-                    if not ns:
-                        break
-                    s += ns
-                else:
-                    line = binascii.b2a_base64(s)
-                    output.write(line)
-                    continue
+            s += ns
+        line = binascii.b2a_base64(s)
+        output.write(line)
 
 def decode(input, output):
     while True:
-        while True:
-            line = input.readline()
-            if not line:
-                break
-            s = binascii.a2b_base64(line)
-            output.write(s)
+        line = input.readline()
+        if not line:
+            break
+        s = binascii.a2b_base64(line)
+        output.write(s)
 
 def encodestring(s):
     pieces = []

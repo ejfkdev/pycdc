@@ -176,10 +176,8 @@ class NodeVisitor(object):
                         self.visit(item)
                 else:
                     continue
-        else:
             if isinstance(value, AST):
-                pass
-            self.visit(value)
+                self.visit(value)
 
 
 class NodeTransformer(NodeVisitor):

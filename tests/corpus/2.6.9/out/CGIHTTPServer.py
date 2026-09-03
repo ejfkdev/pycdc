@@ -74,16 +74,16 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         path = self.path
         dir, rest = self.cgi_info
         i = path.find('/', len(dir) + 1)
-        while True:
-            while i >= 0:
-                nextdir = path[:i]
-                nextrest = path[i + 1:]
-                scriptdir = self.translate_path(nextdir)
-                if os.path.isdir(scriptdir):
-                    dir, rest = nextdir, nextrest
-                    i = path.find('/', len(dir) + 1)
-                    continue
-                break
+        while i >= 0:
+            nextdir = path[:i]
+            nextrest = path[i + 1:]
+            scriptdir = self.translate_path(nextdir)
+            if os.path.isdir(scriptdir):
+                dir, rest = nextdir, nextrest
+                i = path.find('/', len(dir) + 1)
+                continue
+            break
+            continue
         i = rest.rfind('?')
         if i >= 0:
             rest, query = rest[:i], rest[i + 1:]
@@ -180,11 +180,11 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             pid = os.fork()
             if pid != 0:
                 pid, sts = os.waitpid(pid, 0)
-                while True:
-                    if select.select([self.rfile], [], [], 0)[0]:
-                        if not self.rfile.read(1):
-                            break
-                            continue
+                while select.select([self.rfile], [], [], 0)[0]:
+                    if not self.rfile.read(1):
+                        break
+                        continue
+                    continue
                 if sts:
                     self.log_error('CGI script exit status %#x', sts)
                 return
@@ -211,11 +211,11 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 data = self.rfile.read(nbytes)
         else:
             data = None
-        while True:
-            if select.select([self.rfile._sock], [], [], 0)[0]:
-                if not self.rfile._sock.recv(1):
-                    break
-                    continue
+        while select.select([self.rfile._sock], [], [], 0)[0]:
+            if not self.rfile._sock.recv(1):
+                break
+                continue
+            continue
         stdout, stderr = p.communicate(data)
         self.wfile.write(stdout)
         if stderr:

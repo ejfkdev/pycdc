@@ -282,12 +282,11 @@ class Bdb:
         stack = []
         if t and t.tb_frame is f:
             t = t.tb_next
-        while True:
-            while f is not None:
-                stack.append((f, f.f_lineno))
-                if f is self.botframe:
-                    break
-                f = f.f_back
+        while f is not None:
+            stack.append((f, f.f_lineno))
+            if f is self.botframe:
+                break
+            f = f.f_back
         stack.reverse()
         i = max(0, len(stack) - 1)
         while t is not None:
@@ -483,10 +482,6 @@ def effective(file, line, frame):
             if b.ignore > 0:
                 b.ignore = b.ignore - 1
                 continue
-        continue
-        return b, 1
-    else:
-        return b, 0
     return (None, None)
 
 class Tdb(Bdb):

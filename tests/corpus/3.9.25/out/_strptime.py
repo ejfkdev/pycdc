@@ -47,37 +47,37 @@ class LocaleTime(object):
 
     def __init__(self):
         self.lang = _getlang()
-        self._LocaleTime__calc_weekday()
-        self._LocaleTime__calc_month()
-        self._LocaleTime__calc_am_pm()
-        self._LocaleTime__calc_timezone()
-        self._LocaleTime__calc_date_time()
+        self.__calc_weekday()
+        self.__calc_month()
+        self.__calc_am_pm()
+        self.__calc_timezone()
+        self.__calc_date_time()
         if _getlang() != self.lang:
             raise ValueError('locale changed during initialization')
         if not time.tzname != self.tzname:
             if time.daylight != self.daylight:
                 raise ValueError('timezone changed during initialization')
 
-    def _LocaleTime__calc_weekday(self):
+    def __calc_weekday(self):
         a_weekday = [calendar.day_abbr[i].lower() for i in range(7)]
         f_weekday = [calendar.day_name[i].lower() for i in range(7)]
         self.a_weekday = a_weekday
         self.f_weekday = f_weekday
 
-    def _LocaleTime__calc_month(self):
+    def __calc_month(self):
         a_month = [calendar.month_abbr[i].lower() for i in range(13)]
         f_month = [calendar.month_name[i].lower() for i in range(13)]
         self.a_month = a_month
         self.f_month = f_month
 
-    def _LocaleTime__calc_am_pm(self):
+    def __calc_am_pm(self):
         am_pm = []
         for hour in (1, 22):
             time_tuple = time.struct_time((1999, 3, 17, hour, 44, 55, 2, 76, 0))
             am_pm.append(time.strftime('%p', time_tuple).lower())
         self.am_pm = am_pm
 
-    def _LocaleTime__calc_date_time(self):
+    def __calc_date_time(self):
         time_tuple = time.struct_time((1999, 3, 17, 22, 44, 55, 2, 76, 0))
         date_time = [None, None, None]
         date_time[0] = time.strftime('%c', time_tuple).lower()
@@ -100,7 +100,7 @@ class LocaleTime(object):
         self.LC_date = date_time[1]
         self.LC_time = date_time[2]
 
-    def _LocaleTime__calc_timezone(self):
+    def __calc_timezone(self):
         try:
             time.tzset()
         except AttributeError:
@@ -124,17 +124,19 @@ class TimeRE(dict):
         else:
             self.locale_time = LocaleTime()
         base = super()
-        base.__init__({'d': '(?P<d>3[0-1]|[1-2]\\d|0[1-9]|[1-9]| [1-9])', 'f': '(?P<f>[0-9]{1,6})', 'H': '(?P<H>2[0-3]|[0-1]\\d|\\d)', 'I': '(?P<I>1[0-2]|0[1-9]|[1-9])', 'G': '(?P<G>\\d\\d\\d\\d)', 'j': '(?P<j>36[0-6]|3[0-5]\\d|[1-2]\\d\\d|0[1-9]\\d|00[1-9]|[1-9]\\d|0[1-9]|[1-9])', 'm': '(?P<m>1[0-2]|0[1-9]|[1-9])', 'M': '(?P<M>[0-5]\\d|\\d)', 'S': '(?P<S>6[0-1]|[0-5]\\d|\\d)', 'U': '(?P<U>5[0-3]|[0-4]\\d|\\d)', 'w': '(?P<w>[0-6])', 'u': '(?P<u>[1-7])', 'V': '(?P<V>5[0-3]|0[1-9]|[1-4]\\d|\\d)', 'y': '(?P<y>\\d\\d)', 'Y': '(?P<Y>\\d\\d\\d\\d)', 'z': '(?P<z>[+-]\\d\\d:?[0-5]\\d(:?[0-5]\\d(\\.\\d{1,6})?)?|(?-i:Z))', 'A': self._TimeRE__seqToRE(self.locale_time.f_weekday, 'A'), 'a': self._TimeRE__seqToRE(self.locale_time.a_weekday, 'a'), 'B': self._TimeRE__seqToRE(self.locale_time.f_month[1:], 'B'), 'b': self._TimeRE__seqToRE(self.locale_time.a_month[1:], 'b'), 'p': self._TimeRE__seqToRE(self.locale_time.am_pm, 'p'), 'Z': self._TimeRE__seqToRE((tz for tz_names in self.locale_time.timezone for tz in tz_names), 'Z'), '%': '%'})
+        base.__init__({'d': '(?P<d>3[0-1]|[1-2]\\d|0[1-9]|[1-9]| [1-9])', 'f': '(?P<f>[0-9]{1,6})', 'H': '(?P<H>2[0-3]|[0-1]\\d|\\d)', 'I': '(?P<I>1[0-2]|0[1-9]|[1-9])', 'G': '(?P<G>\\d\\d\\d\\d)', 'j': '(?P<j>36[0-6]|3[0-5]\\d|[1-2]\\d\\d|0[1-9]\\d|00[1-9]|[1-9]\\d|0[1-9]|[1-9])', 'm': '(?P<m>1[0-2]|0[1-9]|[1-9])', 'M': '(?P<M>[0-5]\\d|\\d)', 'S': '(?P<S>6[0-1]|[0-5]\\d|\\d)', 'U': '(?P<U>5[0-3]|[0-4]\\d|\\d)', 'w': '(?P<w>[0-6])', 'u': '(?P<u>[1-7])', 'V': '(?P<V>5[0-3]|0[1-9]|[1-4]\\d|\\d)', 'y': '(?P<y>\\d\\d)', 'Y': '(?P<Y>\\d\\d\\d\\d)', 'z': '(?P<z>[+-]\\d\\d:?[0-5]\\d(:?[0-5]\\d(\\.\\d{1,6})?)?|(?-i:Z))', 'A': self.__seqToRE(self.locale_time.f_weekday, 'A'), 'a': self.__seqToRE(self.locale_time.a_weekday, 'a'), 'B': self.__seqToRE(self.locale_time.f_month[1:], 'B'), 'b': self.__seqToRE(self.locale_time.a_month[1:], 'b'), 'p': self.__seqToRE(self.locale_time.am_pm, 'p'), 'Z': self.__seqToRE((tz for tz_names in self.locale_time.timezone for tz in tz_names), 'Z'), '%': '%'})
         base.__setitem__('W', base.__getitem__('U').replace('U', 'W'))
         base.__setitem__('c', self.pattern(self.locale_time.LC_date_time))
         base.__setitem__('x', self.pattern(self.locale_time.LC_date))
         base.__setitem__('X', self.pattern(self.locale_time.LC_time))
 
-    def _TimeRE__seqToRE(self, to_convert, directive):
+    def __seqToRE(self, to_convert, directive):
         to_convert = sorted(to_convert, key=len, reverse=True)
         for value in to_convert:
             if value != '':
                 pass
+            else:
+                continue
         return ''
 
     def pattern(self, format):

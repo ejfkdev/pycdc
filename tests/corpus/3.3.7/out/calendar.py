@@ -120,6 +120,7 @@ class Calendar(object):
             if date.month != month:
                 if date.weekday() == self.firstweekday:
                     break
+            continue
 
     def itermonthdays2(self, year, month):
         for date in self.itermonthdates(year, month):

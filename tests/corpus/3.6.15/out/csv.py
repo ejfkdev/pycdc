@@ -255,45 +255,47 @@ class Sniffer:
                     charFrequency[char] = metaFrequency
             for char in charFrequency.keys():
                 items = list(charFrequency[char].items())
+                if len(items) == 1 and items[0][0] == 0:
+                    continue
                 if len(items) > 1:
                     modes[char] = max(items, key=(lambda x: x[1]))
                     items.remove(modes[char])
                     modes[char] = modes[char][0], modes[char][1] - sum((item[1] for item in items))
                 else:
                     modes[char] = items[0]
-                    modeList = modes.items()
-                    total = float(chunkLength * iteration)
-                    consistency = 1.0
-                    threshold = 0.9
-                    while len(delims) == 0:
-                        if consistency >= threshold:
-                            for k, v in modeList:
-                                if v[0] > 0:
-                                    if v[1] > 0:
-                                        if v[1] / total >= consistency:
-                                            if not delimiters is None:
-                                                if k in delimiters:
-                                                    delims[k] = v
-                            consistency -= 0.01
-                        else:
-                            if len(delims) == 1:
-                                delim = list(delims.keys())[0]
-                                skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
-                                return delim, skipinitialspace
-                            start = end
-                            end += chunkLength
-                            continue
-                    if not delims:
-                        return ('', 0)
-                    if len(delims) > 1:
-                        for d in self.preferred:
-                            skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
-                            return d, skipinitialspace
-                    items = [(v, k) for k, v in delims.items()]
-                    items.sort()
-                    delim = items[-1][1]
-                    skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
-                    return delim, skipinitialspace
+            modeList = modes.items()
+            total = float(chunkLength * iteration)
+            consistency = 1.0
+            threshold = 0.9
+            while len(delims) == 0:
+                if consistency >= threshold:
+                    for k, v in modeList:
+                        if v[0] > 0:
+                            if v[1] > 0:
+                                if v[1] / total >= consistency:
+                                    if not delimiters is None:
+                                        if k in delimiters:
+                                            delims[k] = v
+                    consistency -= 0.01
+                else:
+                    if len(delims) == 1:
+                        delim = list(delims.keys())[0]
+                        skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
+                        return delim, skipinitialspace
+                    start = end
+                    end += chunkLength
+                    continue
+        if not delims:
+            return ('', 0)
+        if len(delims) > 1:
+            for d in self.preferred:
+                skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
+                return d, skipinitialspace
+        items = [(v, k) for k, v in delims.items()]
+        items.sort()
+        delim = items[-1][1]
+        skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
+        return delim, skipinitialspace
 
     def has_header(self, sample):
         rdr = reader(StringIO(sample), self.sniff(sample))
@@ -308,7 +310,22 @@ class Sniffer:
                 break
             checked += 1
             if len(row) != columns:
-                pass
+                continue
+            for col in list(columnTypes.keys()):
+                for thisType in [int, float, complex]:
+                    try:
+                        thisType(row[col])
+                        break
+                    except (ValueError, OverflowError):
+                        pass
+                    continue
+                else:
+                    thisType = len(row[col])
+                if thisType != columnTypes[col]:
+                    if columnTypes[col] is None:
+                        columnTypes[col] = thisType
+                    else:
+                        del columnTypes[col]
         hasHeader = 0
         for col, colType in columnTypes.items():
             if type(colType) == type(0):

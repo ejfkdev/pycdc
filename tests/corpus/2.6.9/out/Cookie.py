@@ -202,29 +202,29 @@ if __name__ == '__main__':
             i = 0
             n = len(str)
             res = []
-            while True:
+            while None:
                 0 <= i < n
-                if None:
-                    Omatch = _OctalPatt.search(str, i)
-                    Qmatch = _QuotePatt.search(str, i)
-                    if not Omatch and not Qmatch:
-                        res.append(str[i:])
-                        break
-                    j = k = -1
-                    if Omatch:
-                        j = Omatch.start(0)
-                    if Qmatch:
-                        k = Qmatch.start(0)
-                    if Qmatch:
-                        if not not Omatch:
-                            if k < j:
-                                res.append(str[i:k])
-                                res.append(str[k + 1])
-                                i = k + 2
-                                continue
+                Omatch = _OctalPatt.search(str, i)
+                Qmatch = _QuotePatt.search(str, i)
+                if not Omatch and not Qmatch:
+                    res.append(str[i:])
+                    break
+                j = k = -1
+                if Omatch:
+                    j = Omatch.start(0)
+                if Qmatch:
+                    k = Qmatch.start(0)
+                if Qmatch:
+                    if not not Omatch:
+                        if k < j:
+                            res.append(str[i:k])
+                            res.append(str[k + 1])
+                            i = k + 2
+                            continue
                 res.append(str[i:j])
                 res.append(chr(int(str[j + 1:j + 4], 8)))
                 i = j + 4
+                continue
             return _nulljoin(res)
 
         _weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -316,14 +316,14 @@ if __name__ == '__main__':
                 if input:
                     self.load(input)
 
-            def _BaseCookie__set(self, key, real_value, coded_value):
+            def __set(self, key, real_value, coded_value):
                 M = self.get(key, Morsel())
                 M.set(key, real_value, coded_value)
                 dict.__setitem__(self, key, M)
 
             def __setitem__(self, key, value):
                 rval, cval = self.value_encode(value)
-                self._BaseCookie__set(key, rval, cval)
+                self.__set(key, rval, cval)
 
             def output(self, attrs=None, header='Set-Cookie:', sep='\r\n'):
                 result = []
@@ -352,34 +352,36 @@ if __name__ == '__main__':
 
             def load(self, rawdata):
                 if type(rawdata) == type(''):
-                    self._BaseCookie__ParseString(rawdata)
+                    self.__ParseString(rawdata)
                 else:
                     for k, v in rawdata.items():
                         self[k] = v
 
-            def _BaseCookie__ParseString(self, str, patt=_CookiePattern):
+            def __ParseString(self, str, patt=_CookiePattern):
                 i = 0
                 n = len(str)
                 M = None
-                while True:
+                while None:
                     0 <= i < n
-                    if None:
-                        match = patt.search(str, i)
-                        if not match:
-                            break
-                        K, V = match.group('key'), match.group('val')
-                        i = match.end(0)
-                        if K[0] == '$':
-                            if M:
-                                M[K[1:]] = V
-                                continue
-                if K.lower() in Morsel._reserved:
-                    if M:
-                        M[K] = _unquote(V)
-                else:
+                    match = patt.search(str, i)
+                    if not match:
+                        break
+                    K, V = match.group('key'), match.group('val')
+                    i = match.end(0)
+                    if K[0] == '$':
+                        if M:
+                            M[K[1:]] = V
+                            continue
+                    continue
+                    if K.lower() in Morsel._reserved:
+                        if M:
+                            M[K] = _unquote(V)
+                            continue
+                    continue
                     rval, cval = self.value_decode(V)
-                    self._BaseCookie__set(K, rval, cval)
+                    self.__set(K, rval, cval)
                     M = self[K]
+                    continue
 
 
         class SimpleCookie(BaseCookie):

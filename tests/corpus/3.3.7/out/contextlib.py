@@ -166,6 +166,7 @@ class ExitStack(object):
                     if exc_context is frame_exc:
                         break
                 new_exc = exc_context
+                continue
             new_exc.__context__ = old_exc
 
         suppressed_exc = False

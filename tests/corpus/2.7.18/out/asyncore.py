@@ -137,6 +137,8 @@ if os.name == 'posix':
                     if obj is None:
                         continue
                     _exception(obj)
+            else:
+                return
 
         def poll2(timeout=0.0, map=None):
             if map is None:
@@ -166,6 +168,8 @@ if os.name == 'posix':
                     if obj is None:
                         continue
                     readwrite(obj, flags)
+            else:
+                return
 
         poll3 = poll2
         def loop(timeout=30.0, use_poll=False, map=None, count=None):
@@ -176,16 +180,15 @@ if os.name == 'posix':
             else:
                 poll_fun = poll
             if count is None:
-                while True:
-                    while map:
+                while map:
+                    poll_fun(timeout, map)
+            else:
+                while map:
+                    if count > 0:
                         poll_fun(timeout, map)
-                    break
-                    while map:
-                        if count > 0:
-                            poll_fun(timeout, map)
-                            count = count - 1
-                        else:
-                            return
+                        count = count - 1
+                    else:
+                        return
 
         class dispatcher:
             debug = False
@@ -429,6 +432,8 @@ if os.name == 'posix':
                     x.close()
                 except OSError:
                     x = None
+                    if x.args[0] == EBADF:
+                        continue
                     if not ignore_all:
                         raise
                         continue
@@ -436,6 +441,7 @@ if os.name == 'posix':
                 except _reraised_exceptions:
                     raise
                     continue
+                continue
             map.clear()
 
         import fcntl

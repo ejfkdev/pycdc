@@ -164,6 +164,7 @@ class Bdb:
             frame.f_trace = self.trace_dispatch
             self.botframe = frame
             frame = frame.f_back
+            continue
         self.set_step()
         sys.settrace(self.trace_dispatch)
 
@@ -264,17 +265,18 @@ class Bdb:
         stack = []
         if t and t.tb_frame is f:
             t = t.tb_next
-        while True:
-            while f is not None:
-                stack.append((f, f.f_lineno))
-                if f is self.botframe:
-                    break
-                f = f.f_back
+        while f is not None:
+            stack.append((f, f.f_lineno))
+            if f is self.botframe:
+                break
+            f = f.f_back
+            continue
         stack.reverse()
         i = max(0, len(stack) - 1)
         while t is not None:
             stack.append((t.tb_frame, t.tb_lineno))
             t = t.tb_next
+            continue
         if f is None:
             i = max(0, len(stack) - 1)
         return stack, i
@@ -465,10 +467,6 @@ def effective(file, line, frame):
             if b.ignore > 0:
                 b.ignore = b.ignore - 1
                 continue
-        continue
-        return b, 1
-    else:
-        return b, 0
     return (None, None)
 
 class Tdb(Bdb):

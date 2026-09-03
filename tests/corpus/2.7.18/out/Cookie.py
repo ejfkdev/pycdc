@@ -202,30 +202,29 @@ if __name__ == '__main__':
             i = 0
             n = len(str)
             res = []
-            while True:
-                if 0 <= i < n:
-                    Omatch = _OctalPatt.search(str, i)
-                    Qmatch = _QuotePatt.search(str, i)
-                    if not Omatch and not Qmatch:
-                        res.append(str[i:])
-                        break
-                    j = k = -1
-                    if Omatch:
-                        j = Omatch.start(0)
-                    if Qmatch:
-                        k = Qmatch.start(0)
-                    if Qmatch:
-                        if not not Omatch:
-                            if k < j:
-                                res.append(str[i:k])
-                                res.append(str[k + 1])
-                                i = k + 2
-                            else:
-                                res.append(str[i:j])
-                                res.append(chr(int(str[j + 1:j + 4], 8)))
-                                i = j + 4
-                    else:
-                        return _nulljoin(res)
+            while 0 <= i < n:
+                Omatch = _OctalPatt.search(str, i)
+                Qmatch = _QuotePatt.search(str, i)
+                if not Omatch and not Qmatch:
+                    res.append(str[i:])
+                    break
+                j = k = -1
+                if Omatch:
+                    j = Omatch.start(0)
+                if Qmatch:
+                    k = Qmatch.start(0)
+                if Qmatch:
+                    if not not Omatch:
+                        if k < j:
+                            res.append(str[i:k])
+                            res.append(str[k + 1])
+                            i = k + 2
+                        else:
+                            res.append(str[i:j])
+                            res.append(chr(int(str[j + 1:j + 4], 8)))
+                            i = j + 4
+                else:
+                    return _nulljoin(res)
 
         _weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
         _monthname = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -315,7 +314,7 @@ if __name__ == '__main__':
                 if input:
                     self.load(input)
 
-            def _BaseCookie__set(self, key, real_value, coded_value):
+            def __set(self, key, real_value, coded_value):
                 M = self.get(key, Morsel())
                 M.set(key, real_value, coded_value)
                 dict.__setitem__(self, key, M)
@@ -325,7 +324,7 @@ if __name__ == '__main__':
                     dict.__setitem__(self, key, value)
                 else:
                     rval, cval = self.value_encode(value)
-                    self._BaseCookie__set(key, rval, cval)
+                    self.__set(key, rval, cval)
 
             def output(self, attrs=None, header='Set-Cookie:', sep='\r\n'):
                 result = []
@@ -354,36 +353,32 @@ if __name__ == '__main__':
 
             def load(self, rawdata):
                 if type(rawdata) == type(''):
-                    self._BaseCookie__ParseString(rawdata)
+                    self.__ParseString(rawdata)
                 else:
                     for k, v in rawdata.items():
                         self[k] = v
 
-            def _BaseCookie__ParseString(self, str, patt=_CookiePattern):
+            def __ParseString(self, str, patt=_CookiePattern):
                 i = 0
                 n = len(str)
                 M = None
-                while True:
-                    if 0 <= i < n:
-                        match = patt.match(str, i)
-                        if not match:
-                            break
-                        K, V = match.group('key'), match.group('val')
-                        i = match.end(0)
-                        if K[0] == '$' and M or K.lower() in Morsel._reserved:
-                            if M:
-                                if V is None:
-                                    if K.lower() in Morsel._flags:
-                                        M[K] = True
-                                        continue
+                while 0 <= i < n:
+                    match = patt.match(str, i)
+                    if not match:
+                        break
+                    K, V = match.group('key'), match.group('val')
+                    i = match.end(0)
+                    if K[0] == '$' and M or K.lower() in Morsel._reserved:
+                        if M:
+                            if V is None:
+                                if K.lower() in Morsel._flags:
+                                    M[K] = True
+                                    continue
                     continue
-                    M[K] = _unquote(V)
-                    continue
-                if V is not None:
-                    pass
-                rval, cval = self.value_decode(V)
-                self._BaseCookie__set(K, rval, cval)
-                M = self[K]
+                    if V is not None:
+                        rval, cval = self.value_decode(V)
+                        self.__set(K, rval, cval)
+                        M = self[K]
 
 
         class SimpleCookie(BaseCookie):

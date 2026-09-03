@@ -282,8 +282,6 @@ class Cmd:
                 totwidth += colwidth + 2
                 if totwidth > displaywidth:
                     break
-            else:
-                continue
             if totwidth <= displaywidth:
                 break
         else:

@@ -26,16 +26,16 @@ contributors and the copyright notice.'''
     MAXLINES = 23
     def __init__(self, name, data, files=(), dirs=()):
         import os
-        self._Printer__name = name
-        self._Printer__data = data
-        self._Printer__lines = []
-        self._Printer__filenames = [os.path.join(dir, filename) for dir in dirs for filename in files]
+        self.__name = name
+        self.__data = data
+        self.__lines = []
+        self.__filenames = [os.path.join(dir, filename) for dir in dirs for filename in files]
 
-    def _Printer__setup(self):
-        if self._Printer__lines:
+    def __setup(self):
+        if self.__lines:
             return
         data = None
-        for filename in self._Printer__filenames:
+        for filename in self.__filenames:
             with open(filename, 'utf-8') as fp:
                 data = fp.read()
                 try:
@@ -43,23 +43,23 @@ contributors and the copyright notice.'''
                 except OSError:
                     pass
                 if not data:
-                    data = self._Printer__data
-                self._Printer__lines = data.split('\n')
-                self._Printer__linecnt = len(self._Printer__lines)
+                    data = self.__data
+                self.__lines = data.split('\n')
+                self.__linecnt = len(self.__lines)
                 return
 
     def __repr__(self):
-        self._Printer__setup()
-        if len(self._Printer__lines) <= self.MAXLINES:
-            return '\n'.join(self._Printer__lines)
-        return 'Type %s() to see the full %s text' % ((self._Printer__name,) * 2)
+        self.__setup()
+        if len(self.__lines) <= self.MAXLINES:
+            return '\n'.join(self.__lines)
+        return 'Type %s() to see the full %s text' % ((self.__name,) * 2)
 
     def __call__(self):
         from _pyrepl.pager import get_pager
-        self._Printer__setup()
+        self.__setup()
         pager = get_pager()
-        text = '\n'.join(self._Printer__lines)
-        pager(text, self._Printer__name)
+        text = '\n'.join(self.__lines)
+        pager(text, self.__name)
 
 
 class _Helper(object):

@@ -303,6 +303,8 @@ struct Ctx<'a> {
     /// loop tops whose loop already closed via their back edge: later dead
     /// back edges to the same top are padding, not `continue`
     closed_loop_tops: Vec<usize>,
+    /// enclosing class names for private-name (PEP 8 mangling) restoration
+    class_scope: Vec<String>,
     /// PEP 709 inline comprehension state (3.12+ listcomp/setcomp/dictcomp)
     inline_comp: Option<InlineComp>,
     inline_comp_stack: Vec<InlineComp>,
@@ -326,6 +328,16 @@ struct Ctx<'a> {
 }
 
 pub fn decompile(code: &CodeObject, version: PythonVersion) -> crate::Result<Decompiled> {
+    decompile_in_scope(code, version, &[])
+}
+
+/// Decompile with an explicit enclosing-class scope stack (for private
+/// name unmangling).
+pub fn decompile_in_scope(
+    code: &CodeObject,
+    version: PythonVersion,
+    class_scope: &[String],
+) -> crate::Result<Decompiled> {
     let table = table_for(version)?;
     let instrs = crate::bytecode::decode_instructions(code, table, version);
     let mut idx_of = HashMap::new();
@@ -465,6 +477,7 @@ pub fn decompile(code: &CodeObject, version: PythonVersion) -> crate::Result<Dec
         broken_loop_top: None,
         py2_else_pop_at: None,
         closed_loop_tops: Vec::new(),
+        class_scope: class_scope.to_vec(),
         inline_comp: None,
         inline_comp_stack: Vec::new(),
         pending_restore_vars: Vec::new(),
@@ -645,8 +658,21 @@ impl<'a> Ctx<'a> {
             // 3.11+: open try blocks driven by the exception table
             self.open_exception_blocks(pos);
 
-            // Close finished blocks before handling this instruction.
-            self.close_blocks_at(pos);
+            // Close finished blocks before handling this instruction —
+            // except when a backward jump lands exactly at an open If/Else
+            // boundary: that jump is either a fused elif-chain exit or a
+            // trailing `continue`, and the exec-time folded machinery must
+            // see the branch block still open.
+            let defer_close = matches!(
+                inst.op,
+                Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP_BACKWARD_NO_INTERRUPT
+            ) && inst.target.map_or(false, |t| t < inst.offset)
+                && self.blocks.last().map_or(false, |b| {
+                    matches!(b.kind, BlockType::If | BlockType::Else) && b.end == pos
+                });
+            if !defer_close {
+                self.close_blocks_at(pos);
+            }
 
             // comprehension loop-target stores consume no stack value
             if self.comp_target_store
@@ -1791,6 +1817,25 @@ impl<'a> Ctx<'a> {
         self.stack.pop()
     }
 
+    /// Restore PEP 8 private names: inside class C the compiler rewrites
+    /// `__x` to `_C__x`. The decompiler walks class bodies with the class
+    /// name on `class_scope`, so reverse it here.
+    fn unmangle(&self, name: &str) -> String {
+        if name.starts_with('_') && !name.ends_with("__") {
+            for cls in self.class_scope.iter().rev() {
+                let ident = cls.trim_start_matches('_');
+                if ident.is_empty() {
+                    continue;
+                }
+                let prefix = format!("_{}__", ident);
+                if name.starts_with(&prefix) && name.len() > prefix.len() {
+                    return format!("__{}", &name[prefix.len()..]);
+                }
+            }
+        }
+        name.to_string()
+    }
+
     /// Like `pop_expr`, but reports whether a NULL marker was skipped on
     /// the way to the expression (3.13 pushes NULL above the callable).
     fn pop_expr_skipped(&mut self) -> (ExprRef, bool) {
@@ -1834,7 +1879,8 @@ impl<'a> Ctx<'a> {
     }
 
     fn const_name(&self, idx: usize) -> String {
-        self.code
+        let n = self
+            .code
             .names
             .get(idx)
             .and_then(|n| match &**n {
@@ -1842,7 +1888,8 @@ impl<'a> Ctx<'a> {
                 PyObject::Bytes(b) => Some(String::from_utf8_lossy(b).into_owned()),
                 _ => None,
             })
-            .unwrap_or_else(|| format!("/*bad-name-{idx}*/"))
+            .unwrap_or_else(|| format!("/*bad-name-{idx}*/"));
+        self.unmangle(&n)
     }
 
     fn local_name(&self, idx: usize) -> String {
@@ -2166,7 +2213,7 @@ impl<'a> Ctx<'a> {
                     }
                     _ => (arg as usize, false),
                 };
-                let attr = self.const_name(idx);
+                let attr = self.unmangle(&self.const_name(idx));
                 let value = self.pop_expr();
                 let e: ExprRef = Rc::new(Expr::Attribute {
                     value: value.clone(),
@@ -2197,7 +2244,7 @@ impl<'a> Ctx<'a> {
                 } else {
                     arg as usize
                 };
-                let attr = self.const_name(idx);
+                let attr = self.unmangle(&self.const_name(idx));
                 let _attr_name = self.pop_expr();
                 let _cls = self.pop_expr();
                 let _self_e = self.pop_expr();
@@ -2220,7 +2267,7 @@ impl<'a> Ctx<'a> {
             Op::STORE_ATTR => {
                 // STORE_ATTR uses the plain name index in all versions
                 let idx = arg as usize;
-                let attr = self.const_name(idx);
+                let attr = self.unmangle(&self.const_name(idx));
                 // all CPython versions push value first, owner on top
                 let obj = self.pop_expr();
                 let val = self.pop_expr();
@@ -2229,7 +2276,7 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::DELETE_ATTR => {
-                let attr = self.const_name(arg as usize);
+                let attr = self.unmangle(&self.const_name(arg as usize));
                 let obj = self.pop_expr();
                 let target: ExprRef = Rc::new(Expr::Attribute { value: obj, attr });
                 self.emit_delete(target);
@@ -3061,7 +3108,9 @@ impl<'a> Ctx<'a> {
                         return true; // comprehension loop back edge
                     }
                 }
-                // <=3.9: `break` is JUMP_ABSOLUTE to the loop exit
+                // <=3.9: `break` is JUMP_ABSOLUTE to the loop exit — but a
+                // folded chain exit (jump inside an open If/Else region at
+                // its boundary) must go through the folded machinery first
                 if target > self.cur_offset {
                     if self.find_loop_exit(target).is_some() {
                         self.push_stmt(Stmt::Break);
@@ -3125,17 +3174,36 @@ impl<'a> Ctx<'a> {
                             // branch cond jump's line in the common
                             // single-line-branch case. Empirical heuristic;
                             // <=3.7 has the distinct CONTINUE_LOOP opcode.
-                            let line_ok = !self.version.at_least(3, 8)
-                                || t.folded_exit
-                                || self
-                                    .instrs
-                                    .iter()
-                                    .find(|i| i.end() == t.start && i.target.is_some())
-                                    .map_or(true, |cj| {
-                                        cj.line.is_none()
-                                            || inst.line.is_none()
-                                            || cj.line == inst.line
-                                    });
+                            // line-based disambiguation of a fused chain
+                            // exit from a real trailing `continue`:
+                            // - 3.8+: a real continue carries its own line
+                            //   (or the loop header's), a fused exit carries
+                            //   the branch cond's line
+                            // - py2/<=3.7: a fused exit shares the line of
+                            //   the last statement in the branch; a real
+                            //   continue starts a fresh line
+                            let line_ok = t.folded_exit
+                                || if self.version.at_least(3, 8) {
+                                    self.instrs
+                                        .iter()
+                                        .find(|i| i.end() == t.start && i.target.is_some())
+                                        .map_or(true, |cj| {
+                                            cj.line.is_none()
+                                                || inst.line.is_none()
+                                                || cj.line == inst.line
+                                        })
+                                } else {
+                                    self.idx_of
+                                        .get(&self.cur_offset)
+                                        .and_then(|&ci| {
+                                            (ci > 0).then(|| &self.instrs[ci - 1])
+                                        })
+                                        .map_or(true, |prev| {
+                                            prev.line.is_none()
+                                                || inst.line.is_none()
+                                                || prev.line == inst.line
+                                        })
+                                };
                             (at_end || hops_tail)
                                 && line_ok
                                 && (lands_on_back_edge
@@ -3206,11 +3274,17 @@ impl<'a> Ctx<'a> {
                         }
                         return true;
                     }
-                    // continue of an outer loop: emit first, then close the
-                    // inner blocks it jumps out of
-                    self.push_stmt(Stmt::Continue);
-                    self.close_inner_blocks_to_loop();
-                    return true;
+                    // not folded: run the deferred block close, then decide
+                    // again — the branch block that ended at this jump may
+                    // have been the only thing making this a nested continue
+                    self.close_blocks_at(self.cur_offset);
+                    if self.is_continue_jump(target) {
+                        // continue of an outer loop: emit first, then close
+                        // the inner blocks it jumps out of
+                        self.push_stmt(Stmt::Continue);
+                        self.close_inner_blocks_to_loop();
+                        return true;
+                    }
                 }
                 if target > self.cur_offset {
                     // forward absolute jump (<=3.7 else/exit jumps). Inside
@@ -4441,8 +4515,11 @@ impl<'a> Ctx<'a> {
                 let back = region.iter().any(|i| i.is_backward);
                 if !back {
                     false
-                } else if Some(target) == while_end {
-                    // PJIF straight to the loop exit: canonical `while c:`
+                } else if Some(target) == while_end
+                    || while_end.map_or(false, |we| self.is_pop_block_before(target, we))
+                {
+                    // PJIF straight to the loop exit (or its POP_BLOCK, the
+                    // SETUP_LOOP-era exit shape): canonical `while c:`
                     true
                 } else if wei > ti {
                     // while/else candidate: the else region [target, loop
@@ -4459,6 +4536,10 @@ impl<'a> Ctx<'a> {
             }
             _ => false,
         };
+        let pop_block_equiv = self
+            .blocks
+            .last()
+            .map_or(false, |b| self.is_pop_block_before(target, b.end));
         if let Some(top) = self.blocks.last_mut() {
             if matches!(top.kind, BlockType::While) && !top.cond_set && cond_like {
                 let c = if jump_if_true {
@@ -4472,7 +4553,7 @@ impl<'a> Ctx<'a> {
                 top.cond = Some(c);
                 top.cond_set = true;
                 top.jump_if_true = jump_if_true;
-                if target != top.end {
+                if target != top.end && !pop_block_equiv {
                     // exit target differs from SETUP_LOOP end -> while/else
                     top.loop_else_end = Some(target);
                 }
@@ -5078,6 +5159,16 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    /// True when `off` is a POP_BLOCK whose end reaches `end` (the
+    /// SETUP_LOOP-era cond jump targets the loop's POP_BLOCK, one byte
+    /// before the block end).
+    fn is_pop_block_before(&self, off: usize, end: usize) -> bool {
+        self.idx_of
+            .get(&off)
+            .and_then(|&i| self.instrs.get(i))
+            .map_or(false, |x| x.op == Op::POP_BLOCK && x.end() <= end)
+    }
+
     fn back_edge_exit(&self, loop_start: usize) -> Option<usize> {
         for inst in self.instrs.iter() {
             if inst.is_backward && inst.target == Some(loop_start) {
@@ -5131,6 +5222,13 @@ impl<'a> Ctx<'a> {
         for b in self.blocks.iter().rev() {
             if matches!(b.kind, BlockType::Main) {
                 break;
+            }
+            if matches!(b.kind, BlockType::While | BlockType::For)
+                && b.end != usize::MAX
+                && b.end <= self.cur_offset
+            {
+                // layout-exhausted loop awaiting its close: transparent
+                continue;
             }
             if !matches!(b.kind, BlockType::While | BlockType::For) {
                 depth += 1;
@@ -5250,6 +5348,23 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 if b.start == target || b.end == target {
+                    // SETUP_LOOP-era while: every continue and the final
+                    // back edge target the loop top; the loop closes only
+                    // when its POP_BLOCK follows this jump
+                    let is_setup_era = b.cond_end == 0
+                        && b.end < usize::MAX
+                        && self.idx_of.contains_key(&b.end);
+                    if is_setup_era {
+                        let next_is_pop_block = self
+                            .idx_of
+                            .get(&self.cur_offset)
+                            .and_then(|&ci| self.instrs.get(ci + 1))
+                            .map_or(false, |x| x.op == Op::POP_BLOCK);
+                        if !next_is_pop_block {
+                            self.push_stmt(Stmt::Continue);
+                            return;
+                        }
+                    }
                     self.closed_loop_tops.push(b.start);
                     // close everything above the loop, then the loop itself
                     // exactly once — its close may push a continuation block
@@ -6246,7 +6361,7 @@ impl<'a> Ctx<'a> {
                 let body_src = extract_code(&methods).or_else(|| extract_code(&val));
                 let mut body = match body_src {
                     Some(code) => self
-                        .decompile_function(&code)
+                        .decompile_class_body(&code, cname)
                         .unwrap_or_else(|| vec![Stmt::Pass]),
                     None => vec![Stmt::Pass],
                 };
@@ -6349,9 +6464,6 @@ impl<'a> Ctx<'a> {
                             let kws: Vec<(Option<String>, ExprRef)> =
                                 keywords.iter().cloned().collect();
                             if let Expr::Function(fd) = &*func_e {
-                                let body = self
-                                    .decompile_function(&fd.code)
-                                    .unwrap_or_else(|| vec![Stmt::Pass]);
                                 let class_name = match &*name_e {
                                     Expr::Const(o) => match &**o {
                                         PyObject::Str(s) => s.clone(),
@@ -6359,6 +6471,9 @@ impl<'a> Ctx<'a> {
                                     },
                                     _ => cname.clone(),
                                 };
+                                let body = self
+                                    .decompile_class_body(&fd.code, &class_name)
+                                    .unwrap_or_else(|| vec![Stmt::Pass]);
                                 let mut star_args = None;
                                 let mut star_kwargs = None;
                                 let mut real_bases = Vec::new();
@@ -7308,7 +7423,27 @@ impl<'a> Ctx<'a> {
     }
 
     fn decompile_function(&mut self, code: &Rc<CodeObject>) -> Option<Vec<Stmt>> {
-        match decompile(code, self.version) {
+        self.decompile_scoped(code, false)
+    }
+
+    /// Decompile a class body: pushes the class name onto the scope so
+    /// methods can unmangle `_Class__attr` back to `__attr`.
+    fn decompile_class_body(&mut self, code: &Rc<CodeObject>, name: &str) -> Option<Vec<Stmt>> {
+        self.class_scope.push(name.to_string());
+        let r = self.decompile_scoped(code, true);
+        self.class_scope.pop();
+        r
+    }
+
+    fn decompile_scoped(&mut self, code: &Rc<CodeObject>, scope_self: bool) -> Option<Vec<Stmt>> {
+        let scope: Vec<String> = if scope_self {
+            let mut v = self.class_scope.clone();
+            v.push(code.name.clone());
+            v
+        } else {
+            self.class_scope.clone()
+        };
+        match decompile_in_scope(code, self.version, &scope) {
             Ok(d) => {
                 if !d.clean {
                     self.mark_unclean();

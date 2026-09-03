@@ -58,8 +58,6 @@ def _check_methods(C, *methods):
                 if not B.__dict__[method] is not None:
                     NotImplemented
                     return
-            else:
-                continue
         NotImplemented
         return
     return True
@@ -716,12 +714,12 @@ class MutableMapping(Mapping):
     def __delitem__(self, key):
         raise KeyError
 
-    _MutableMapping__marker = object()
-    def pop(self, key, default=_MutableMapping__marker):
+    __marker = object()
+    def pop(self, key, default=__marker):
         try:
             value = self[key]
         except KeyError:
-            if default is self._MutableMapping__marker:
+            if default is self.__marker:
                 raise
         del self[key]
         return value

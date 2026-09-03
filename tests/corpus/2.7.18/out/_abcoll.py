@@ -30,6 +30,7 @@ class Hashable:
                     if B.__dict__['__hash__']:
                         return True
                     break
+                    continue
             except AttributeError:
                 pass
         return NotImplemented
@@ -404,8 +405,8 @@ class MutableMapping(Mapping):
     def __delitem__(self, key):
         raise KeyError
 
-    _MutableMapping__marker = object()
-    def pop(self, key, default=_MutableMapping__marker):
+    __marker = object()
+    def pop(self, key, default=__marker):
         pass
 
     def popitem(self):

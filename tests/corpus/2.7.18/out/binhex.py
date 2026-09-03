@@ -254,28 +254,27 @@ if __name__ == '__main__':
             def read(self, totalwtd):
                 decdata = ''
                 wtd = totalwtd
-                while True:
-                    while wtd > 0:
-                        if self.eof:
-                            return decdata
-                        wtd = (wtd + 2) // 3 * 4
-                        data = self.ifp.read(wtd)
-                        while True:
-                            if not newdata:
-                                try:
-                                    decdatacur, self.eof = binascii.a2b_hqx(data)
-                                    break
-                                except binascii.Incomplete:
-                                    pass
-                                else:
-                                    newdata = self.ifp.read(1)
-                                    raise Error # WARNING: raise cause dropped (py2)
-                            data = data + newdata
-                        decdata = decdata + decdatacur
-                        wtd = totalwtd - len(decdata)
-                        if not decdata:
-                            if not self.eof:
+                while wtd > 0:
+                    if self.eof:
+                        return decdata
+                    wtd = (wtd + 2) // 3 * 4
+                    data = self.ifp.read(wtd)
+                    while True:
+                        if not newdata:
+                            try:
+                                decdatacur, self.eof = binascii.a2b_hqx(data)
+                                break
+                            except binascii.Incomplete:
+                                pass
+                            else:
+                                newdata = self.ifp.read(1)
                                 raise Error # WARNING: raise cause dropped (py2)
+                        data = data + newdata
+                    decdata = decdata + decdatacur
+                    wtd = totalwtd - len(decdata)
+                    if not decdata:
+                        if not self.eof:
+                            raise Error # WARNING: raise cause dropped (py2)
                 return decdata
 
             def close(self):

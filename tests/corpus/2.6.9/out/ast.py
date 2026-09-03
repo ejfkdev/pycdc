@@ -149,6 +149,7 @@ def walk(node):
         node = todo.popleft()
         todo.extend(iter_child_nodes(node))
         yield node
+        continue
 
 class NodeVisitor(object):
     """
@@ -244,6 +245,7 @@ class NodeTransformer(NodeVisitor):
                     delattr(node, field)
                     continue
             setattr(node, field, new_node)
+            continue
         return node
 
 

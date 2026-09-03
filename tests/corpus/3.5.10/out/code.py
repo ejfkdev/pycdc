@@ -125,6 +125,7 @@ class InteractiveConsole(InteractiveInterpreter):
             except KeyboardInterrupt:
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
+            continue
 
     def push(self, line):
         self.buffer.append(line)

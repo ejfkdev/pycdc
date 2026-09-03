@@ -17,30 +17,30 @@ class UserList(collections.MutableSequence):
         return repr(self.data)
 
     def __lt__(self, other):
-        return self.data < self._UserList__cast(other)
+        return self.data < self.__cast(other)
 
     def __le__(self, other):
-        return self.data <= self._UserList__cast(other)
+        return self.data <= self.__cast(other)
 
     def __eq__(self, other):
-        return self.data == self._UserList__cast(other)
+        return self.data == self.__cast(other)
 
     def __ne__(self, other):
-        return self.data != self._UserList__cast(other)
+        return self.data != self.__cast(other)
 
     def __gt__(self, other):
-        return self.data > self._UserList__cast(other)
+        return self.data > self.__cast(other)
 
     def __ge__(self, other):
-        return self.data >= self._UserList__cast(other)
+        return self.data >= self.__cast(other)
 
-    def _UserList__cast(self, other):
+    def __cast(self, other):
         if isinstance(other, UserList):
             return other.data
         return other
 
     def __cmp__(self, other):
-        return cmp(self.data, self._UserList__cast(other))
+        return cmp(self.data, self.__cast(other))
 
     __hash__ = None
     def __contains__(self, item):
