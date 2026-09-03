@@ -607,7 +607,7 @@ class RawConfigParser(MutableMapping):
         if fallback is _UNSET:
             raise
         else:
-            return
+            return fallback
         try:
             d = self._unify_values(section, vars)
         except NoSectionError:
@@ -616,7 +616,7 @@ class RawConfigParser(MutableMapping):
         if fallback is _UNSET:
             raise NoOptionError(option, section)
         else:
-            return
+            return fallback
         try:
             value = d[option]
         except KeyError:
@@ -630,12 +630,12 @@ class RawConfigParser(MutableMapping):
 
     def _get_conv(self, section, option, conv, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
         return self._get(section, conv, option, **(*{'raw': raw, 'vars': vars}, *kwargs))
-        return
         try:
             pass
         except (NoSectionError, NoOptionError):
             if fallback is _UNSET:
                 raise
+            return fallback
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
         return self._get_conv(section, option, int, **(*{'raw': raw, 'vars': vars, 'fallback': fallback}, *kwargs))

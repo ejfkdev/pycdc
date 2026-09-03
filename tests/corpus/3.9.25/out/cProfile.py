@@ -135,8 +135,6 @@ def main():
         if not None:
             pass
         globs = {'__file__': progname, '__name__': '__main__', '__package__': None, '__cached__': None}
-        exc = None
-        del exc
         try:
             runctx(code, globs, None, options.outfile, options.sort)
         except BrokenPipeError as exc:

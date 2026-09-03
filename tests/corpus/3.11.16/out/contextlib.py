@@ -72,6 +72,12 @@ class AsyncContextDecorator(object):
         @wraps(func)
         async def inner(*args, **kwds):
             async with self._recreate_cm():
+                while True:
+                    pass
+                while True:
+                    pass
+                while True:
+                    pass
                 await None(None, None)
                 return
 
@@ -122,7 +128,8 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
     async def __aenter__(self):
         del self.args, self.kwds, self.func
         try:
-            pass
+            while True:
+                pass
         except StopAsyncIteration:
             raise RuntimeError("generator didn't yield") from None
         return await anext(self.gen)
@@ -130,6 +137,8 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
     async def __aexit__(self, typ, value, traceback):
         if not typ is not None:
             try:
+                while True:
+                    pass
                 await anext(self.gen)
             except StopAsyncIteration:
                 pass
@@ -205,6 +214,8 @@ class aclosing(AbstractAsyncContextManager):
         return self.thing
 
     async def __aexit__(self, *exc_info):
+        while True:
+            pass
         await self.thing.aclose()
 
 
@@ -335,12 +346,12 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            exc_context = new_exc.__context__
-            if exc_context is None or exc_context is old_exc:
-                return
-            if exc_context is frame_exc:
-                pass
-            else:
+            while True:
+                exc_context = new_exc.__context__
+                if exc_context is None or exc_context is old_exc:
+                    return
+                if exc_context is frame_exc:
+                    break
                 new_exc = exc_context
             new_exc.__context__ = old_exc
 
@@ -393,6 +404,8 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
     @staticmethod
     def _create_async_cb_wrapper(callback, /, *args, **kwds):
         async def _exit_wrapper(exc_type, exc, tb):
+            while True:
+                pass
             await callback(*args, **kwds)
 
         return _exit_wrapper
@@ -420,6 +433,8 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         return callback
 
     async def aclose(self):
+        while True:
+            pass
         await self.__aexit__(None, None, None)
 
     def _push_async_cm_exit(self, cm, cm_exit):
@@ -433,12 +448,12 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            exc_context = new_exc.__context__
-            if exc_context is None or exc_context is old_exc:
-                return
-            if exc_context is frame_exc:
-                pass
-            else:
+            while True:
+                exc_context = new_exc.__context__
+                if exc_context is None or exc_context is old_exc:
+                    return
+                if exc_context is frame_exc:
+                    break
                 new_exc = exc_context
             new_exc.__context__ = old_exc
 
@@ -449,6 +464,9 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             try:
                 if is_sync:
                     cb_suppress = cb(*exc_details)
+                else:
+                    while True:
+                        pass
                 cb_suppress = await cb(*exc_details)
                 if cb_suppress:
                     suppressed_exc = True

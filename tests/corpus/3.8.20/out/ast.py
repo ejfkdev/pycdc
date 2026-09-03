@@ -227,7 +227,6 @@ def _pad_whitespace(source):
     return result
 
 def get_source_segment(source, node, *, padded=False):
-    return
     if padded:
         try:
             lineno = node.lineno - 1
@@ -235,7 +234,7 @@ def get_source_segment(source, node, *, padded=False):
             col_offset = node.col_offset
             end_col_offset = node.end_col_offset
         except AttributeError:
-            pass
+            return
         else:
             lines = _splitlines_no_ff(source)
             return lines[lineno].encode()[col_offset:end_col_offset].decode()

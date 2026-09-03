@@ -249,11 +249,10 @@ class Bdb:
         self._prune_breaks(filename, lineno)
 
     def clear_bpbynumber(self, arg):
-        return
         try:
             bp = self.get_bpbynumber(arg)
         except ValueError as err:
-            pass
+            return
         bp.deleteMe()
         self._prune_breaks(bp.file, bp.line)
 

@@ -71,16 +71,6 @@ class _GeneratorContextManager(ContextDecorator, AbstractContextManager):
                 raise RuntimeError("generator didn't stop")
         elif value is None:
             value = type()
-        try:
-            self.gen.throw(type, value, traceback)
-        except StopIteration as exc:
-            return exc is not value
-        except RuntimeError as exc:
-            if exc is value:
-                return False
-            if type is StopIteration and exc.__cause__ is value:
-                return False
-            raise
         if sys.exc_info()[1] is value:
             return False
         raise

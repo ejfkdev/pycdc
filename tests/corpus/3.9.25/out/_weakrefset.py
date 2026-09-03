@@ -41,13 +41,13 @@ class WeakSet:
     def _commit_removals(self):
         pop = self._pending_removals.pop
         discard = self.data.discard
-        return
-        try:
-            item = pop()
-        except IndexError:
-            pass
-        else:
-            discard(item)
+        while True:
+            try:
+                item = pop()
+            except IndexError:
+                return
+            else:
+                discard(item)
 
     def __iter__(self):
         with _IterationGuard(self):
@@ -62,7 +62,7 @@ class WeakSet:
         return len(self.data) - len(self._pending_removals)
 
     def __contains__(self, item):
-        return False
+        pass
 
     def __reduce__(self):
         return self.__class__, (list(self),), getattr(self, '__dict__', None)
@@ -83,14 +83,13 @@ class WeakSet:
     def pop(self):
         if self._pending_removals:
             self._commit_removals()
-        try:
-            itemref = self.data.pop()
-        except KeyError:
-            raise KeyError('pop from empty WeakSet') from None
-        item = itemref()
-        if item is not None:
-            pass
-        return item
+            while True:
+                try:
+                    itemref = self.data.pop()
+                except KeyError:
+                    raise KeyError('pop from empty WeakSet') from None
+                item = itemref()
+                return item
 
     def remove(self, item):
         if self._pending_removals:

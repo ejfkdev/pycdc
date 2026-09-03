@@ -183,11 +183,10 @@ class Cmd:
             compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
         return self.completion_matches[state]
-        return
         try:
             pass
         except IndexError:
-            pass
+            return
 
     def get_names(self):
         return dir(self.__class__)
@@ -299,4 +298,3 @@ class Cmd:
             self.stdout.write('%s\n' % str('  '.join(texts)))
 
 
-# WARNING: Decompyle incomplete

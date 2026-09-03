@@ -194,8 +194,10 @@ is disregarded.'''
         self.delimit('(', ')').interleave()
         self.interleave((lambda: self.write(', ')), self.traverse, node.argtypes)
         None(None, None, None)
-        self.write(' -> ')
-        self.traverse(node.returns)
+        while True:
+            self.write(' -> ')
+            self.traverse(node.returns)
+            return
 
     def visit_Expr(self, node):
         self.fill()
@@ -245,11 +247,13 @@ is disregarded.'''
         self.delimit_if('(', ')', not node.simple and isinstance(node.target, Name)).delimit_if()
         self.traverse(node.target)
         None(None, None, None)
-        self.write(': ')
-        self.traverse(node.annotation)
-        if node.value:
-            self.write(' = ')
-            self.traverse(node.value)
+        while True:
+            self.write(': ')
+            self.traverse(node.annotation)
+            if node.value:
+                self.write(' = ')
+                self.traverse(node.value)
+                return
             return
 
     def visit_Return(self, node):
@@ -333,18 +337,20 @@ is disregarded.'''
         self.block().block()
         self.traverse(node.body)
         None(None, None, None)
-        for ex in node.handlers:
-            self.traverse(ex)
-        if node.orelse:
-            self.fill('else', False)
-            self.block().block()
-            self.traverse(node.orelse)
-            None(None, None, None)
-        if node.finalbody:
-            self.fill('finally', False)
-            self.block().block()
-            self.traverse(node.finalbody)
-            None(None, None, None)
+        while True:
+            for ex in node.handlers:
+                self.traverse(ex)
+            if node.orelse:
+                self.fill('else', False)
+                self.block().block()
+                self.traverse(node.orelse)
+                None(None, None, None)
+            if node.finalbody:
+                self.fill('finally', False)
+                self.block().block()
+                self.traverse(node.finalbody)
+                None(None, None, None)
+                return
             return
 
     def visit_Try(self, node):
@@ -400,9 +406,11 @@ is disregarded.'''
                 comma = True
             self.traverse(e)
         None(None, None, None)
-        self.block().decorator_list()
-        self._write_docstring_and_traverse_body(node)
-        None(None, None, None)
+        while True:
+            self.block().decorator_list()
+            self._write_docstring_and_traverse_body(node)
+            None(None, None, None)
+            return
 
     def visit_FunctionDef(self, node):
         self._function_helper(node, 'def')
@@ -422,12 +430,14 @@ is disregarded.'''
         self.delimit('(', ')').decorator_list()
         self.traverse(node.args)
         None(None, None, None)
-        if node.returns:
-            self.write(' -> ')
-            self.traverse(node.returns)
-        self.block(extra=self.get_type_comment(node)).decorator_list()
-        self._write_docstring_and_traverse_body(node)
-        None(None, None, None)
+        while True:
+            if node.returns:
+                self.write(' -> ')
+                self.traverse(node.returns)
+            self.block(extra=self.get_type_comment(node)).decorator_list()
+            self._write_docstring_and_traverse_body(node)
+            None(None, None, None)
+            return
 
     def _type_params_helper(self, type_params):
         if not type_params is None:
@@ -484,11 +494,13 @@ is disregarded.'''
         self.block(extra=self.get_type_comment(node)).set_precedence()
         self.traverse(node.body)
         None(None, None, None)
-        if node.orelse:
-            self.fill('else', False)
-            self.block().set_precedence()
-            self.traverse(node.orelse)
-            None(None, None, None)
+        while True:
+            if node.orelse:
+                self.fill('else', False)
+                self.block().set_precedence()
+                self.traverse(node.orelse)
+                None(None, None, None)
+                return
             return
 
     def visit_If(self, node):
@@ -517,11 +529,13 @@ is disregarded.'''
         self.block().traverse()
         self.traverse(node.body)
         None(None, None, None)
-        if node.orelse:
-            self.fill('else', False)
-            self.block().traverse()
-            self.traverse(node.orelse)
-            None(None, None, None)
+        while True:
+            if node.orelse:
+                self.fill('else', False)
+                self.block().traverse()
+                self.traverse(node.orelse)
+                None(None, None, None)
+                return
             return
 
     def visit_With(self, node):
@@ -992,12 +1006,14 @@ is disregarded.'''
         buffer = self.buffered()._Precedence()
         self.traverse(node.args)
         None(None, None, None)
-        if buffer:
-            self.write(*[' ', *buffer])
-        self.write(': ')
-        self.set_precedence(_Precedence.TEST, node.body)
-        self.traverse(node.body)
-        None(None, None, None)
+        while True:
+            if buffer:
+                self.write(*[' ', *buffer])
+            self.write(': ')
+            self.set_precedence(_Precedence.TEST, node.body)
+            self.traverse(node.body)
+            None(None, None, None)
+            return
 
     def visit_alias(self, node):
         self.write(node.name)

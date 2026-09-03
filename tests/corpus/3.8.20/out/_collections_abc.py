@@ -465,7 +465,8 @@ class MutableSet(Set):
 
     def clear(self):
         try:
-            self.pop()
+            while True:
+                self.pop()
         except KeyError:
             pass
 
@@ -510,14 +511,13 @@ class Mapping(Collection):
 
     def get(self, key, default=None):
         return self[key]
-        return
         try:
             pass
         except KeyError:
-            pass
+            return default
 
     def __contains__(self, key):
-        return False
+        pass
 
     def keys(self):
         return KeysView(self)
@@ -572,7 +572,6 @@ class ItemsView(MappingView, Set):
 
     def __contains__(self, item):
         key, value = item
-        return False
 
     def __iter__(self):
         for key in self._mapping:
@@ -623,7 +622,8 @@ class MutableMapping(Mapping):
 
     def clear(self):
         try:
-            self.popitem()
+            while True:
+                self.popitem()
         except KeyError:
             pass
 
@@ -734,7 +734,8 @@ class MutableSequence(Sequence):
 
     def clear(self):
         try:
-            self.pop()
+            while True:
+                self.pop()
         except IndexError:
             pass
 

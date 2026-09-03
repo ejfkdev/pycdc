@@ -50,17 +50,16 @@ def _maybe_compile(compiler, source, filename, symbol):
         source = 'pass'
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
-    return
-    if 'incomplete input' in str(e):
-        None(None, None, None)
-        return
+        if 'incomplete input' in str(e):
+            None(None, None, None)
+            return
     e = None
-    del e, e
-    e = None
+    del e
     try:
         compiler(source, filename, symbol)
     except SyntaxError:
         compiler(source + '\n', filename, symbol)
+        return
     except SyntaxError as e:
         pass
     None(None, None, None)

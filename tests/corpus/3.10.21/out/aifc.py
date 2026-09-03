@@ -283,25 +283,26 @@ class Aifc_read:
             raise Error('not an AIFF or AIFF-C file')
         self._comm_chunk_read = 0
         self._ssnd_chunk = None
-        self._ssnd_seek_needed = 1
-        if chunkname == b'COMM':
-            try:
-                chunk = Chunk(self._file)
-            except EOFError:
-                pass
-            else:
-                chunkname = chunk.getname()
-                self._read_comm_chunk(chunk)
-                self._comm_chunk_read = 1
-        elif chunkname == b'SSND':
-            self._ssnd_chunk = chunk
-            dummy = chunk.read(8)
-            self._ssnd_seek_needed = 0
-        elif chunkname == b'FVER':
-            self._version = _read_ulong(chunk)
-        elif chunkname == b'MARK':
-            self._readmark(chunk)
-        chunk.skip()
+        while True:
+            self._ssnd_seek_needed = 1
+            if chunkname == b'COMM':
+                try:
+                    chunk = Chunk(self._file)
+                except EOFError:
+                    pass
+                else:
+                    chunkname = chunk.getname()
+                    self._read_comm_chunk(chunk)
+                    self._comm_chunk_read = 1
+            elif chunkname == b'SSND':
+                self._ssnd_chunk = chunk
+                dummy = chunk.read(8)
+                self._ssnd_seek_needed = 0
+            elif chunkname == b'FVER':
+                self._version = _read_ulong(chunk)
+            elif chunkname == b'MARK':
+                self._readmark(chunk)
+            chunk.skip()
         if not self._comm_chunk_read or not self._ssnd_chunk:
             raise Error('COMM chunk and/or SSND chunk missing')
 
@@ -443,7 +444,6 @@ class Aifc_read:
     def _readmark(self, chunk):
         nmarkers = _read_short(chunk)
         return
-        return
         try:
             for i in range(nmarkers):
                 id = _read_short(chunk)
@@ -454,6 +454,7 @@ class Aifc_read:
         except EOFError:
             w = 'Warning: MARK chunk contains only %s marker%s instead of %s' % (len(self._markers), '' if len(self._markers) == 1 else 's', nmarkers)
             warnings.warn(w)
+            return
 
 
 class Aifc_write:
@@ -806,10 +807,10 @@ if __name__ == '__main__':
             print('Writing', gn)
             with open(gn, 'w') as g:
                 g.setparams(f.getparams())
-                data = f.readframes(1024)
-                if not data:
-                    pass
-                else:
+                while True:
+                    data = f.readframes(1024)
+                    if not data:
+                        break
                     g.writeframes(data)
             if not None:
                 pass

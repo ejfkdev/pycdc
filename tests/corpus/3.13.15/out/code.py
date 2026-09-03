@@ -134,46 +134,24 @@ using the familiar sys.ps1 and sys.ps2, and input buffering.
             if hasattr(builtins, 'quit'):
                 _quit = builtins.quit
                 builtins.quit = Quitter('quit')
-        try:
-            pass
-        finally:
-            if more:
-                prompt = sys.ps2
-            else:
-                prompt = sys.ps1
-            line = self.raw_input(prompt)
-            more = self.push(line)
-            if AttributeError:
-                None
-                sys.ps1 = '>>> '
-            if AttributeError:
-                None
-                sys.ps2 = '... '
-            if EOFError:
-                None
+        while True:
+            try:
+                if more:
+                    prompt = sys.ps2
+                else:
+                    prompt = sys.ps1
+            except KeyboardInterrupt:
+                self.write('\nKeyboardInterrupt\n')
+                self.resetbuffer()
+                more = 0
+            except SystemExit as e:
+                if self.local_exit:
+                    self.write('\n')
+            try:
+                line = self.raw_input(prompt)
+            except EOFError:
                 self.write('\n')
-            else:
-                if KeyboardInterrupt:
-                    None
-                    self.write('\nKeyboardInterrupt\n')
-                    self.resetbuffer()
-                    more = 0
-                if SystemExit:
-                    e = None
-                    if self.local_exit:
-                        self.write('\n')
-                        e = None
-                        del e
-                    else:
-                        raise e
-                        e = None
-                        del e
-            if not _exit is None:
-                builtins.exit = _exit
-            if not _quit is None:
-                builtins.quit = _quit
-            if not exitmsg is not None:
-                self.write('now exiting %s...\n' % self.__class__.__name__)
+            more = self.push(line)
 
     def push(self, line, filename=None, _symbol='single'):
         self.buffer.append(line)
@@ -225,4 +203,3 @@ if __name__ == '__main__':
     else:
         banner = None
     interact(banner)
-# WARNING: Decompyle incomplete

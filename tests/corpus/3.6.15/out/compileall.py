@@ -86,31 +86,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         mo = rx.search(fullname)
         if mo:
             return success
-    if os.path.isfile(fullname):
-        if legacy:
-            cfile = fullname + 'c'
-        else:
-            if optimize >= 0:
-                opt = optimize if optimize >= 1 else ''
-                cfile = importlib.util.cache_from_source(fullname, optimization=opt)
-            else:
-                cfile = importlib.util.cache_from_source(fullname)
-            cache_dir = os.path.dirname(cfile)
-        head, tail = name[:-3], name[-3:]
-        if tail == '.py':
-            if not force:
-                pass
-            try:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sl', importlib.util.MAGIC_NUMBER, mtime)
-                with open(cfile, 'rb') as chandle:
-                    actual = chandle.read(8)
-                if expect == actual:
-                    return success
-            except OSError:
-                pass
-            if not quiet:
-                print('Compiling {!r}...'.format(fullname))
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1):
     success = True

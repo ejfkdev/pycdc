@@ -63,16 +63,15 @@ class async_chat(asyncore.dispatcher):
         return self.terminator
 
     def handle_read(self):
-        return
-        return
         while self.ac_in_buffer:
             if not terminator:
                 try:
                     data = self.recv(self.ac_in_buffer_size)
                 except BlockingIOError:
-                    pass
+                    return
                 except OSError:
                     self.handle_error()
+                    return
                 else:
                     data = bytes(str, self.encoding)
                     if isinstance(data, str) and self.use_encoding:

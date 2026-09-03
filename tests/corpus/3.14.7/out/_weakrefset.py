@@ -45,13 +45,14 @@ class WeakSet:
         return self.__class__(self)
 
     def pop(self):
-        try:
-            itemref = self.data.pop()
-        except KeyError:
-            raise KeyError('pop from empty WeakSet') from None
-        item = itemref()
-        if not item is not None:
-            pass
+        while True:
+            try:
+                itemref = self.data.pop()
+            except KeyError:
+                raise KeyError('pop from empty WeakSet') from None
+            item = itemref()
+            if item is not None:
+                break
         return item
 
     def remove(self, item):
@@ -142,4 +143,3 @@ class WeakSet:
 
     __class_getitem__ = classmethod(GenericAlias)
 
-# WARNING: Decompyle incomplete

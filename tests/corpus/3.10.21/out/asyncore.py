@@ -48,8 +48,8 @@ except NameError:
 def _strerror(err):
     return os.strerror(err)
     if err in errorcode:
-        return
-    return
+        return errorcode[err]
+    return 'Unknown error %s' % err
     try:
         pass
     except (ValueError, OverflowError, NameError):
@@ -79,8 +79,6 @@ def readwrite(obj, flags):
     else:
         obj.handle_close()
         return
-    e = None
-    del e
     return
     e = None
     del e
@@ -202,9 +200,6 @@ class dispatcher:
             self.set_socket(sock, map)
             self.connected = True
             return
-            return
-            err = None
-            del err
             try:
                 self.addr = sock.getpeername()
             except OSError as err:
@@ -213,6 +208,7 @@ class dispatcher:
                 else:
                     self.del_channel(map)
                     raise
+                return
         self.socket = None
 
     def __repr__(self):
@@ -255,11 +251,10 @@ class dispatcher:
 
     def set_reuse_addr(self):
         return
-        return
         try:
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR) | 1)
         except OSError:
-            pass
+            return
 
     def readable(self):
         return True
@@ -293,16 +288,13 @@ class dispatcher:
 
     def accept(self):
         return conn, addr
-        return
         if why.errno in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
             return
         raise
-        why = None
-        del why
         try:
             conn, addr = self.socket.accept()
         except TypeError:
-            pass
+            return
         except OSError as why:
             pass
 
@@ -312,8 +304,6 @@ class dispatcher:
             return 0
         if why.errno in _DISCONNECTED:
             self.handle_close()
-            why = None
-            del why
             return 0
         raise
         why = None
@@ -329,8 +319,6 @@ class dispatcher:
             self.handle_close()
             return b''
         raise
-        why = None
-        del why
         try:
             data = self.socket.recv(buffer_size)
             if not data:
@@ -346,14 +334,12 @@ class dispatcher:
         self.del_channel()
         if self.socket is not None:
             return
-            return
-            why = None
-            del why
             try:
                 self.socket.close()
             except OSError as why:
                 if why.errno not in (ENOTCONN, EBADF):
                     raise
+                return
 
     def log(self, message):
         sys.stderr.write('log: %s\n' % str(message))
@@ -469,6 +455,8 @@ def close_all(map=None, ignore_all=False):
     if map is None:
         map = socket_map
     for x in list(map.values()):
+        if not ignore_all:
+            raise
         try:
             x.close()
         except OSError as x:
@@ -476,10 +464,9 @@ def close_all(map=None, ignore_all=False):
                 pass
             elif not ignore_all:
                 raise
-    x = None
-    del x
-    if not ignore_all:
-        raise
+            continue
+        except _reraised_exceptions:
+            raise
     map.clear()
 
 if os.name == 'posix':
@@ -534,4 +521,3 @@ if os.name == 'posix':
             self.add_channel()
 
 
-# WARNING: Decompyle incomplete

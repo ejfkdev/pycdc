@@ -57,11 +57,10 @@ def check_output(cmd, **kwargs):
         cmd = ' '.join(cmd)
     cmd = f'{cmd} >{tmp_filename}'
     return stdout
-    return stdout
     try:
         os.unlink(tmp_filename)
     except OSError:
-        pass
+        return stdout
     try:
         os.unlink(tmp_filename)
     except OSError:

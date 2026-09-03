@@ -24,7 +24,7 @@ class InteractiveInterpreter:
         self.compile = CommandCompiler()
 
     def runsource(self, source, filename='<input>', symbol='single'):
-        return False
+        pass
 
     def runcode(self, code):
         return
@@ -92,7 +92,22 @@ class InteractiveConsole(InteractiveInterpreter):
         elif banner:
             self.write('%s\n' % str(banner))
         more = 0
-        more = self.push(line)
+        while True:
+            try:
+                if more:
+                    prompt = sys.ps2
+                else:
+                    prompt = sys.ps1
+            except KeyboardInterrupt:
+                self.write('\nKeyboardInterrupt\n')
+                self.resetbuffer()
+                more = 0
+        if exitmsg is None:
+            self.write('now exiting %s...\n' % self.__class__.__name__)
+            return
+        if exitmsg != '':
+            self.write('%s\n' % exitmsg)
+            return
 
     def push(self, line):
         self.buffer.append(line)

@@ -391,15 +391,16 @@ class FieldStorage:
         max_num_fields = self.max_num_fields
         if not max_num_fields is None:
             max_num_fields -= len(self.list)
-        parser = FeedParser()
-        hdr_text = b''
-        data = self.fp.readline()
-        hdr_text += data
-        if not data.strip():
-            pass
-        if not hdr_text:
-            pass
-        else:
+        while True:
+            parser = FeedParser()
+            hdr_text = b''
+            while True:
+                data = self.fp.readline()
+                hdr_text += data
+                if not data.strip():
+                    break
+            if not hdr_text:
+                break
             self.bytes_read += len(hdr_text)
             parser.feed(hdr_text.decode(self.encoding, self.errors))
             headers = parser.close()
@@ -419,6 +420,8 @@ class FieldStorage:
                 if self.bytes_read >= self.length:
                     if self.length > 0:
                         pass
+            else:
+                break
         self.skip_lines()
 
     def read_single(self):
@@ -471,12 +474,13 @@ class FieldStorage:
         self.file.write(line.decode(self.encoding, self.errors))
 
     def read_lines_to_eof(self):
-        line = self.fp.readline(65536)
-        self.bytes_read += len(line)
-        if not line:
-            self.done = -1
-            return
-        self.__write(line)
+        while True:
+            line = self.fp.readline(65536)
+            self.bytes_read += len(line)
+            if not line:
+                self.done = -1
+                return
+            self.__write(line)
 
     def read_lines_to_outerboundary(self):
         next_boundary = b'--' + self.outerboundary
@@ -484,44 +488,45 @@ class FieldStorage:
         delim = b''
         last_line_lfend = True
         _read = 0
-        if not self.limit is None:
-            if 0 <= self.limit:
-                if self.limit <= _read:
-                    pass
-            return
-        line = self.fp.readline(65536)
-        self.bytes_read += len(line)
-        _read += len(line)
-        if not line:
-            self.done = -1
-            return
-        if delim == b'\r':
-            line = delim + line
-            delim = b''
-        if line.startswith(b'--') and last_line_lfend:
-            strippedline = line.rstrip()
-            if strippedline == next_boundary:
+        while True:
+            if not self.limit is None:
+                if 0 <= self.limit:
+                    if self.limit <= _read:
+                        pass
                 return
-            if strippedline == last_boundary:
-                self.done = 1
+            line = self.fp.readline(65536)
+            self.bytes_read += len(line)
+            _read += len(line)
+            if not line:
+                self.done = -1
                 return
-        odelim = delim
-        if line.endswith(b'\r\n'):
-            delim = b'\r\n'
-            line = line[:-2]
-            last_line_lfend = True
-        elif line.endswith(b'\n'):
-            delim = b'\n'
-            line = line[:-1]
-            last_line_lfend = True
-        elif line.endswith(b'\r'):
-            delim = b'\r'
-            line = line[:-1]
-            last_line_lfend = False
-        else:
-            delim = b''
-            last_line_lfend = False
-        self.__write(odelim + line)
+            if delim == b'\r':
+                line = delim + line
+                delim = b''
+            if line.startswith(b'--') and last_line_lfend:
+                strippedline = line.rstrip()
+                if strippedline == next_boundary:
+                    return
+                if strippedline == last_boundary:
+                    self.done = 1
+                    return
+            odelim = delim
+            if line.endswith(b'\r\n'):
+                delim = b'\r\n'
+                line = line[:-2]
+                last_line_lfend = True
+            elif line.endswith(b'\n'):
+                delim = b'\n'
+                line = line[:-1]
+                last_line_lfend = True
+            elif line.endswith(b'\r'):
+                delim = b'\r'
+                line = line[:-1]
+                last_line_lfend = False
+            else:
+                delim = b''
+                last_line_lfend = False
+            self.__write(odelim + line)
 
     def skip_lines(self):
         if not self.outerboundary or self.done:
@@ -529,19 +534,20 @@ class FieldStorage:
         next_boundary = b'--' + self.outerboundary
         last_boundary = next_boundary + b'--'
         last_line_lfend = True
-        line = self.fp.readline(65536)
-        self.bytes_read += len(line)
-        if not line:
-            self.done = -1
-            return
-        if line.endswith(b'--') and last_line_lfend:
-            strippedline = line.strip()
-            if strippedline == next_boundary:
+        while True:
+            line = self.fp.readline(65536)
+            self.bytes_read += len(line)
+            if not line:
+                self.done = -1
                 return
-            if strippedline == last_boundary:
-                self.done = 1
-                return
-        last_line_lfend = line.endswith(b'\n')
+            if line.endswith(b'--') and last_line_lfend:
+                strippedline = line.strip()
+                if strippedline == next_boundary:
+                    return
+                if strippedline == last_boundary:
+                    self.done = 1
+                    return
+            last_line_lfend = line.endswith(b'\n')
 
     def make_file(self):
         if self._binary_file:
@@ -643,4 +649,3 @@ def valid_boundary(s):
 
 if __name__ == '__main__':
     test()
-# WARNING: Decompyle incomplete

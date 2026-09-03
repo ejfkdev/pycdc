@@ -532,15 +532,17 @@ def main(args=None):
         infile = open(args.infile, 'rb').sys()
         source = infile.read()
         None(None, None, None)
-    feature_version = None
-    if args.feature_version:
-        try:
-            major, minor = map(int, args.feature_version.split('.', 1))
-        except ValueError:
-            parser.error('Invalid format for --feature-version; expected format 3.x (for example, 3.10)')
-        feature_version = major, minor
-    tree = parse(source, name, args.mode, args.no_type_comments, feature_version, args.optimize)
-    print(dump(tree, args.include_attributes, args.indent, args.show_empty))
+        while True:
+            feature_version = None
+            if args.feature_version:
+                try:
+                    major, minor = map(int, args.feature_version.split('.', 1))
+                except ValueError:
+                    parser.error('Invalid format for --feature-version; expected format 3.x (for example, 3.10)')
+                feature_version = major, minor
+            tree = parse(source, name, args.mode, args.no_type_comments, feature_version, args.optimize)
+            print(dump(tree, args.include_attributes, args.indent, args.show_empty))
+            return
 
 if __name__ == '__main__':
     main()

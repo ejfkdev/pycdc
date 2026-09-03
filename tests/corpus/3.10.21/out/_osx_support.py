@@ -54,11 +54,11 @@ def _get_system_version_tuple():
         osx_version = _get_system_version()
         if osx_version:
             return _SYSTEM_VERSION_TUPLE
-            return _SYSTEM_VERSION_TUPLE
             try:
                 _SYSTEM_VERSION_TUPLE = tuple((int(i) for i in osx_version.split('.')))
             except ValueError:
                 _SYSTEM_VERSION_TUPLE = ()
+                return _SYSTEM_VERSION_TUPLE
     return _SYSTEM_VERSION_TUPLE
 
 def _remove_original_values(_config_vars):
@@ -186,11 +186,12 @@ def compiler_fixup(compiler_so, cc_args):
         stripArch = '-arch' in cc_args
         stripSysroot = any((arg for arg in cc_args if arg.startswith('-isysroot')))
     if stripArch or 'ARCHFLAGS' in os.environ:
-        try:
-            index = compiler_so.index('-arch')
-            del compiler_so[index:index + 2]
-        except ValueError:
-            pass
+        while True:
+            try:
+                index = compiler_so.index('-arch')
+                del compiler_so[index:index + 2]
+            except ValueError:
+                pass
     elif not _supports_arm64_builds():
         for idx in reversed(range(len(compiler_so))):
             if compiler_so[idx] == '-arch':
@@ -200,10 +201,10 @@ def compiler_fixup(compiler_so, cc_args):
         if not stripArch:
             compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
     if stripSysroot:
-        indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
-        if not indices:
-            pass
-        else:
+        while True:
+            indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
+            if not indices:
+                break
             index = indices[0]
             if compiler_so[index] == '-isysroot':
                 del compiler_so[index:index + 2]

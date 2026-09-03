@@ -72,8 +72,14 @@ class AsyncContextDecorator(object):
         @wraps(func)
         async def inner(*args, **kwds):
             async with self._recreate_cm():
-                await None(None, None)
-                return
+                while True:
+                    while True:
+                        while True:
+                            pass
+                        while True:
+                            pass
+                        await None(None, None)
+                        return
 
         return inner
 
@@ -131,45 +137,37 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
 
     async def __aenter__(self):
         del self.args, self.kwds, self.func
-        try:
-            pass
-        except StopAsyncIteration:
-            raise RuntimeError("generator didn't yield") from None
-        try:
-            pass
-        except StopAsyncIteration:
-            raise RuntimeError("generator didn't yield") from None
-        return await anext(self.gen)
+        while True:
+            while True:
+                return await anext(self.gen)
+                try:
+                    pass
+                except StopAsyncIteration:
+                    raise RuntimeError("generator didn't yield") from None
 
     async def __aexit__(self, typ, value, traceback):
         if not typ is not None:
-            try:
-                pass
-            except StopAsyncIteration:
-                pass
-            try:
-                await anext(self.gen)
-            except StopAsyncIteration:
-                pass
-            # WARNING: unrecovered try/except structure
-            raise RuntimeError("generator didn't stop")
-        if not value is not None:
-            value = typ()
-        try:
-            pass
-        except StopAsyncIteration as exc:
-            pass
-        try:
-            await self.gen.athrow(value)
-        except StopAsyncIteration as exc:
-            pass
-        try:
-            raise RuntimeError("generator didn't stop after athrow()")
-        except StopAsyncIteration:
-            pass
-        finally:
-            if StopAsyncIteration:
-                None
+            while True:
+                while True:
+                    await anext(self.gen)
+                    # WARNING: unrecovered try/except structure
+                    raise RuntimeError("generator didn't stop")
+                    if not value is not None:
+                        value = typ()
+                    try:
+                        while True:
+                            try:
+                                await self.gen.athrow(value)
+                            except StopAsyncIteration as exc:
+                                pass
+                    finally:
+                        try:
+                            raise RuntimeError("generator didn't stop after athrow()")
+                        except StopAsyncIteration:
+                            pass
+                        finally:
+                            if StopAsyncIteration:
+                                None
 
 
 def contextmanager(func):
@@ -240,7 +238,10 @@ class aclosing(AbstractAsyncContextManager):
         return self.thing
 
     async def __aexit__(self, *exc_info):
-        await self.thing.aclose()
+        while True:
+            while True:
+                await self.thing.aclose()
+                return
 
 
 class _RedirectStream(AbstractContextManager):
@@ -383,13 +384,14 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            exc_context = new_exc.__context__
-            if exc_context is None or exc_context is old_exc:
-                return
-            if exc_context is frame_exc:
-                new_exc.__context__ = old_exc
-                return
-            new_exc = exc_context
+            while True:
+                exc_context = new_exc.__context__
+                if exc_context is None or exc_context is old_exc:
+                    return
+                if exc_context is frame_exc:
+                    new_exc.__context__ = old_exc
+                    return
+                new_exc = exc_context
 
         suppressed_exc = False
         pending_raise = False
@@ -434,7 +436,10 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
     @staticmethod
     def _create_async_cb_wrapper(callback, /, *args, **kwds):
         async def _exit_wrapper(exc_type, exc, tb):
-            await callback(*args, **kwds)
+            while True:
+                while True:
+                    await callback(*args, **kwds)
+                    return
 
         return _exit_wrapper
 
@@ -445,9 +450,11 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             _exit = cls.__aexit__
         except AttributeError:
             raise TypeError(f"'{cls.__module__}.{cls.__qualname__}' object does not support the asynchronous context manager protocol") from None
-        result = await _enter(cm)
-        self._push_async_cm_exit(cm, _exit)
-        return result
+        while True:
+            while True:
+                result = await _enter(cm)
+                self._push_async_cm_exit(cm, _exit)
+                return result
 
     def push_async_exit(self, exit):
         _cb_type = type(exit)
@@ -465,7 +472,10 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         return callback
 
     async def aclose(self):
-        await self.__aexit__(None, None, None)
+        while True:
+            while True:
+                await self.__aexit__(None, None, None)
+                return
 
     def _push_async_cm_exit(self, cm, cm_exit):
         _exit_wrapper = self._create_async_exit_wrapper(cm, cm_exit)
@@ -478,27 +488,34 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            exc_context = new_exc.__context__
-            if exc_context is None or exc_context is old_exc:
-                return
-            if exc_context is frame_exc:
-                new_exc.__context__ = old_exc
-                return
-            new_exc = exc_context
+            while True:
+                exc_context = new_exc.__context__
+                if exc_context is None or exc_context is old_exc:
+                    return
+                if exc_context is frame_exc:
+                    new_exc.__context__ = old_exc
+                    return
+                new_exc = exc_context
 
         suppressed_exc = False
         pending_raise = False
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
-            # WARNING: unrecovered try/except structure
-            if is_sync:
-                cb_suppress = cb(*exc_details)
-            # WARNING: unrecovered try/except structure
-            cb_suppress = await cb(*exc_details)
-            if cb_suppress:
-                suppressed_exc = True
-                pending_raise = False
-                exc_details = (None, None, None)
+            try:
+                if is_sync:
+                    cb_suppress = cb(*exc_details)
+                else:
+                    while True:
+                        # WARNING: unrecovered try/except structure
+                        cb_suppress = await cb(*exc_details)
+                        if cb_suppress:
+                            suppressed_exc = True
+                            pending_raise = False
+                            exc_details = (None, None, None)
+            finally:
+                if not self._exit_callbacks:
+                    break
+                continue
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__

@@ -619,12 +619,12 @@ class RawConfigParser(MutableMapping):
 
     def _get_conv(self, section, option, conv, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
         return self._get(section, conv, option, **kwargs)
-        return
         try:
             pass
         except (NoSectionError, NoOptionError):
             if fallback is _UNSET:
                 raise
+            return fallback
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
         return self._get_conv(section, option, int, **kwargs)

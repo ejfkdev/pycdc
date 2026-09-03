@@ -54,7 +54,8 @@ class DecompressReader(io.RawIOBase):
             with view.cast('B') as byte_view:
                 data = self.read(len(byte_view))
                 data[byte_view:] = len(data)
-                return len(data)
+                while True:
+                    return len(data)
 
     def read(self, size=-1):
         if size < 0:
@@ -62,16 +63,16 @@ class DecompressReader(io.RawIOBase):
         if not size or self._eof:
             return b''
         data = None
-        if self._decompressor.eof:
-            rawblock = self._decompressor.unused_data or self._fp.read(BUFFER_SIZE)
-            if not rawblock:
+        while True:
+            if self._decompressor.eof:
+                rawblock = self._decompressor.unused_data or self._fp.read(BUFFER_SIZE)
+                if not rawblock:
+                    break
+            self._decompressor = self._decomp_factory(*(), **self._decomp_args)
+            try:
+                data = self._decompressor.decompress(rawblock, size)
+            except self./*bad-name-22*/:
                 pass
-            else:
-                self._decompressor = self._decomp_factory(*(), **self._decomp_args)
-                try:
-                    data = self._decompressor.decompress(rawblock, size)
-                except self./*bad-name-22*/:
-                    pass
         if self._decompressor.needs_input:
             rawblock = self._fp.read(BUFFER_SIZE)
             if not rawblock:

@@ -261,7 +261,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "",
+   "ast_detail": "diff at token 61: orig  body=[Return(value=NameConstant(value=None))] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1441,
    "ntotal": 1809,

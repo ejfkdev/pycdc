@@ -154,6 +154,8 @@ class AsyncIterator(AsyncIterable):
 class AsyncGenerator(AsyncIterator):
     __slots__ = ()
     async def __anext__(self):
+        while True:
+            pass
         return await self.asend(None)
 
     @abstractmethod
@@ -172,6 +174,8 @@ class AsyncGenerator(AsyncIterator):
 
     async def aclose(self):
         try:
+            while True:
+                pass
             await self.athrow(GeneratorExit)
         except (GeneratorExit, StopAsyncIteration):
             pass
@@ -549,7 +553,8 @@ class MutableSet(Set):
 
     def clear(self):
         try:
-            self.pop()
+            while True:
+                self.pop()
         except KeyError:
             pass
 
@@ -655,6 +660,8 @@ class KeysView(MappingView, Set):
         return key in self._mapping
 
     def __iter__(self):
+        while True:
+            pass
         yield None
 
 
@@ -733,7 +740,8 @@ class MutableMapping(Mapping):
 
     def clear(self):
         try:
-            self.popitem()
+            while True:
+                self.popitem()
         except KeyError:
             pass
 
@@ -776,9 +784,10 @@ class Sequence(Reversible, Collection):
     def __iter__(self):
         i = 0
         try:
-            v = self[i]
-            yield v
-            i += 1
+            while True:
+                v = self[i]
+                yield v
+                i += 1
         except IndexError:
             pass
 
@@ -851,7 +860,8 @@ class MutableSequence(Sequence):
 
     def clear(self):
         try:
-            self.pop()
+            while True:
+                self.pop()
         except IndexError:
             pass
 

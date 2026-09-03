@@ -70,8 +70,6 @@ else:
         if e.errno in {errno.EINVAL, errno.EPERM, errno.ENOSYS}:
             return False
         raise
-        e = None
-        del e
 
     _add_method('SHA512', '6', 16, 106)
     _add_method('SHA256', '5', 16, 63)

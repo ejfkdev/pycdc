@@ -75,7 +75,7 @@
    "module": "_strptime",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1967,
+   "ndiff": 1978,
    "ntotal": 2090,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -131,8 +131,8 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2121,
-   "ntotal": 2216,
+   "ndiff": 2154,
+   "ntotal": 2236,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -243,7 +243,7 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 819,
+   "ndiff": 823,
    "ntotal": 1030,
    "detail": "line 135: orig ('SETUP_LOOP', 'to 284') | got ('SETUP_LOOP', 'to 282')\nline 138: orig ('FOR_ITER', 'to 282') | got ('FOR_ITER', 'to 280')\nline 201: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },
@@ -257,9 +257,9 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "",
+   "ast_detail": "diff at token 57: orig  body=[Return(value=NameConstant(value=None))] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 665,
+   "ndiff": 671,
    "ntotal": 934,
    "detail": "line 246: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')\nline 247: orig ('LOAD_FAST', 'kwds') | got ('STORE_ATTR', 'func')\nline 248: orig ('ROT_THREE', '') | got ('LOAD_FAST', 'args')"
   },

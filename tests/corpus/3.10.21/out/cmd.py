@@ -98,12 +98,11 @@ class Cmd:
         if self.use_rawinput:
             if self.completekey:
                 return
-                return
                 try:
                     import readline
                     readline.set_completer(self.old_completer)
                 except ImportError:
-                    pass
+                    return
                 return
 
     def precmd(self, line):
@@ -150,11 +149,10 @@ class Cmd:
         if cmd == '':
             return self.default(line)
         return func(arg)
-        return
         try:
             func = getattr(self, 'do_' + cmd)
         except AttributeError:
-            pass
+            return self.default(line)
 
     def emptyline(self):
         if self.lastcmd:
@@ -189,11 +187,10 @@ class Cmd:
             compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
         return self.completion_matches[state]
-        return
         try:
             pass
         except IndexError:
-            pass
+            return
 
     def get_names(self):
         return dir(self.__class__)
@@ -309,4 +306,3 @@ class Cmd:
             self.stdout.write('%s\n' % str('  '.join(texts)))
 
 
-# WARNING: Decompyle incomplete

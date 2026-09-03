@@ -244,23 +244,25 @@ MAXLINESIZE = 76
 MAXBINSIZE = MAXLINESIZE // 4 * 3
 
 def encode(input, output):
-    s = input.read(MAXBINSIZE)
-    if not s:
-        return
-    while len(s) < MAXBINSIZE:
-        ns = input.read(MAXBINSIZE - len(s))
-        if not ns:
-            break
-        s += ns
-    line = binascii.b2a_base64(s)
-    output.write(line)
+    while True:
+        s = input.read(MAXBINSIZE)
+        if not s:
+            return
+        while len(s) < MAXBINSIZE:
+            ns = input.read(MAXBINSIZE - len(s))
+            if not ns:
+                break
+            s += ns
+        line = binascii.b2a_base64(s)
+        output.write(line)
 
 def decode(input, output):
-    line = input.readline()
-    if not line:
-        return
-    s = binascii.a2b_base64(line)
-    output.write(s)
+    while True:
+        line = input.readline()
+        if not line:
+            return
+        s = binascii.a2b_base64(line)
+        output.write(s)
 
 def _input_type_check(s):
     try:
@@ -306,4 +308,3 @@ def test():
 
 if __name__ == '__main__':
     main()
-# WARNING: Decompyle incomplete

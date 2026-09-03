@@ -131,9 +131,15 @@ class Calendar(object):
     def itermonthdays(self, year, month):
         day1, ndays = monthrange(year, month)
         days_before = (day1 - self.firstweekday) % 7
+        while True:
+            pass
         yield None
+        while True:
+            pass
         yield None
         days_after = (self.firstweekday - day1 - ndays) % 7
+        while True:
+            pass
         yield None
 
     def itermonthdays2(self, year, month):

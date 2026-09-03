@@ -47,8 +47,8 @@ except NameError:
 def _strerror(err):
     return os.strerror(err)
     if err in errorcode:
-        return
-    return
+        return errorcode[err]
+    return 'Unknown error %s' % err
     try:
         pass
     except (ValueError, OverflowError, NameError):
@@ -280,14 +280,13 @@ class dispatcher:
             raise OSError(err, errorcode[err])
 
     def accept(self):
-        return
         if why.args[0] in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
             return
         raise
         try:
             conn, addr = self.socket.accept()
         except TypeError:
-            pass
+            return
         except OSError as why:
             pass
         else:

@@ -214,11 +214,11 @@ del d
 
 def _keep_alive(x, memo):
     return
-    return
     try:
         memo[id(memo)].append(x)
     except KeyError:
         memo[id(memo)] = [x]
+        return
 
 def _reconstruct(x, memo, func, args, state=None, listiter=None, dictiter=None, *, deepcopy=deepcopy):
     deep = memo is not None

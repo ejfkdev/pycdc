@@ -120,20 +120,21 @@ class InteractiveConsole(InteractiveInterpreter):
         elif banner:
             self.write('%s\n' % str(banner))
         more = 0
-        try:
-            if more:
-                prompt = sys.ps2
-            else:
-                prompt = sys.ps1
-        except KeyboardInterrupt:
-            self.write('\nKeyboardInterrupt\n')
-            self.resetbuffer()
-            more = 0
-        try:
-            line = self.raw_input(prompt)
-        except EOFError:
-            self.write('\n')
-        more = self.push(line)
+        while True:
+            try:
+                if more:
+                    prompt = sys.ps2
+                else:
+                    prompt = sys.ps1
+            except KeyboardInterrupt:
+                self.write('\nKeyboardInterrupt\n')
+                self.resetbuffer()
+                more = 0
+            try:
+                line = self.raw_input(prompt)
+            except EOFError:
+                self.write('\n')
+            more = self.push(line)
 
     def push(self, line):
         self.buffer.append(line)
@@ -168,4 +169,3 @@ if __name__ == '__main__':
     else:
         banner = None
     interact(banner)
-# WARNING: Decompyle incomplete

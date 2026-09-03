@@ -157,7 +157,9 @@ class AsyncIterator(AsyncIterable):
 class AsyncGenerator(AsyncIterator):
     __slots__ = ()
     async def __anext__(self):
-        return await self.asend(None)
+        while True:
+            while True:
+                return await self.asend(None)
 
     @abstractmethod
     async def asend(self, value):
@@ -174,19 +176,14 @@ class AsyncGenerator(AsyncIterator):
         raise val
 
     async def aclose(self):
-        try:
-            pass
-        except (GeneratorExit, StopAsyncIteration):
-            pass
-        try:
-            await self.athrow(GeneratorExit)
-        except (GeneratorExit, StopAsyncIteration):
-            pass
-        raise RuntimeError('asynchronous generator ignored GeneratorExit')
-        try:
-            pass
-        except (GeneratorExit, StopAsyncIteration):
-            pass
+        while True:
+            while True:
+                await self.athrow(GeneratorExit)
+                raise RuntimeError('asynchronous generator ignored GeneratorExit')
+                try:
+                    pass
+                except (GeneratorExit, StopAsyncIteration):
+                    pass
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -572,7 +569,8 @@ class MutableSet(Set):
 
     def clear(self):
         try:
-            self.pop()
+            while True:
+                self.pop()
         except KeyError:
             pass
 
@@ -679,7 +677,10 @@ class KeysView(MappingView, Set):
         return key in self._mapping
 
     def __iter__(self):
-        self._mapping
+        while True:
+            while True:
+                self._mapping
+                return
 
 
 KeysView.register(dict_keys)
@@ -762,7 +763,8 @@ class MutableMapping(Mapping):
 
     def clear(self):
         try:
-            self.popitem()
+            while True:
+                self.popitem()
         except KeyError:
             pass
 
@@ -805,9 +807,10 @@ class Sequence(Reversible, Collection):
     def __iter__(self):
         i = 0
         try:
-            v = self[i]
-            yield v
-            i += 1
+            while True:
+                v = self[i]
+                yield v
+                i += 1
         except IndexError:
             pass
 
@@ -903,7 +906,8 @@ class MutableSequence(Sequence):
 
     def clear(self):
         try:
-            self.pop()
+            while True:
+                self.pop()
         except IndexError:
             pass
 

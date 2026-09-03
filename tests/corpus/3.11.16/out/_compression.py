@@ -61,16 +61,16 @@ class DecompressReader(io.RawIOBase):
         if not size or self._eof:
             return b''
         data = None
-        if self._decompressor.eof:
-            rawblock = self._decompressor.unused_data or self._fp.read(BUFFER_SIZE)
-            if not rawblock:
+        while True:
+            if self._decompressor.eof:
+                rawblock = self._decompressor.unused_data or self._fp.read(BUFFER_SIZE)
+                if not rawblock:
+                    break
+            self._decompressor = self._decomp_factory(*(), **self._decomp_args)
+            try:
+                data = self._decompressor.decompress(rawblock, size)
+            except self._trailing_error:
                 pass
-            else:
-                self._decompressor = self._decomp_factory(*(), **self._decomp_args)
-                try:
-                    data = self._decompressor.decompress(rawblock, size)
-                except self._trailing_error:
-                    pass
 
     def readall(self):
         chunks = []

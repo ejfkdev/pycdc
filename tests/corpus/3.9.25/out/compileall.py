@@ -157,8 +157,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             encoding = sys.stdout.encoding or sys.getdefaultencoding()
             msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
             print(msg)
-            err = None
-            del err
         err = None
         del err
         if quiet >= 2:
@@ -168,8 +166,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         else:
             print('*** ', end='')
         print(e.__class__.__name__ + ':', e)
-        e = None
-        del e
     e = None
     del e
 
@@ -223,9 +219,6 @@ def main():
             parser.error('-d cannot be used in combination with -s or -p')
     if args.flist:
         pass
-    if args.quiet < 2:
-        print('Error reading file list {}'.format(args.flist))
-    return False
     if args.invalidation_mode:
         try:
             with sys.stdin if args.flist == '-' else open(args.flist) as f:
@@ -234,7 +227,9 @@ def main():
             if not None:
                 pass
         except OSError:
-            pass
+            if args.quiet < 2:
+                print('Error reading file list {}'.format(args.flist))
+            return False
         else:
             ivl_mode = args.invalidation_mode.replace('-', '_').upper()
             invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
@@ -242,9 +237,6 @@ def main():
         invalidation_mode = None
     success = True
     return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
-    if args.quiet < 2:
-        print('\n[interrupted]')
-    return False
 
 if __name__ == '__main__':
     exit_status = int(not main())

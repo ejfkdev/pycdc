@@ -241,28 +241,29 @@ class Hook:
         formatter = self.format == 'html' and html or text
         plain = False
         doc = formatter(info, self.context)
-        if self.display:
-            if plain:
-                doc = pydoc.html.escape(doc)
-                self.file.write('<pre>' + doc + '</pre>\n')
+        while True:
+            if self.display:
+                if plain:
+                    doc = pydoc.html.escape(doc)
+                    self.file.write('<pre>' + doc + '</pre>\n')
+                else:
+                    self.file.write(doc + '\n')
             else:
-                self.file.write(doc + '\n')
-        else:
-            self.file.write('<p>A problem occurred in a Python script.\n')
-        if not self.logdir is None:
-            suffix = ['.txt', '.html'][self.format == 'html']
-            fd, path = tempfile.mkstemp(suffix=suffix, dir=self.logdir)
-            with os.fdopen(fd, 'w') as file:
-                file.write(doc)
-                try:
-                    msg = '%s contains the description of this error.' % path
-                finally:
-                    if self.format == 'html':
-                        self.file.write('<p>%s</p>\n' % msg)
-                    else:
-                        self.file.write(msg + '\n')
-                    self.file.flush()
-                return
+                self.file.write('<p>A problem occurred in a Python script.\n')
+            if not self.logdir is None:
+                suffix = ['.txt', '.html'][self.format == 'html']
+                fd, path = tempfile.mkstemp(suffix=suffix, dir=self.logdir)
+                with os.fdopen(fd, 'w') as file:
+                    file.write(doc)
+                    try:
+                        msg = '%s contains the description of this error.' % path
+                    finally:
+                        if self.format == 'html':
+                            self.file.write('<p>%s</p>\n' % msg)
+                        else:
+                            self.file.write(msg + '\n')
+                        self.file.flush()
+                    return
 
 
 handler = Hook().handle

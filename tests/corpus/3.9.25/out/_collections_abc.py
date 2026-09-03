@@ -330,14 +330,12 @@ class _CallableGenericAlias(GenericAlias):
     __slots__ = ()
     def __new__(cls, origin, args):
         return cls.__create_ga(origin, args)
-        return
-        exc = None
-        del exc
         try:
             pass
         except TypeError as exc:
             import warnings
             warnings.warn(f'{str(exc)} (This will raise a TypeError in Python 3.10.)', DeprecationWarning)
+            return
 
     @classmethod
     def __create_ga(cls, origin, args):
@@ -545,7 +543,8 @@ class MutableSet(Set):
 
     def clear(self):
         try:
-            self.pop()
+            while True:
+                self.pop()
         except KeyError:
             pass
 
@@ -590,14 +589,13 @@ class Mapping(Collection):
 
     def get(self, key, default=None):
         return self[key]
-        return
         try:
             pass
         except KeyError:
-            pass
+            return default
 
     def __contains__(self, key):
-        return False
+        pass
 
     def keys(self):
         return KeysView(self)
@@ -653,7 +651,6 @@ class ItemsView(MappingView, Set):
 
     def __contains__(self, item):
         key, value = item
-        return False
 
     def __iter__(self):
         for key in self._mapping:
@@ -704,7 +701,8 @@ class MutableMapping(Mapping):
 
     def clear(self):
         try:
-            self.popitem()
+            while True:
+                self.popitem()
         except KeyError:
             pass
 
@@ -815,7 +813,8 @@ class MutableSequence(Sequence):
 
     def clear(self):
         try:
-            self.pop()
+            while True:
+                self.pop()
         except IndexError:
             pass
 

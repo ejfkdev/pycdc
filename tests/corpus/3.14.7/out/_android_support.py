@@ -45,7 +45,8 @@ class TextLogStream(io.TextIOWrapper):
                 self._write_chunk(chunk)
                 continue
         None(None, None, None)
-        return len(s)
+        while True:
+            return len(s)
 
     def _write_chunk(self, s):
         b = s.encode(self.encoding, self.errors)

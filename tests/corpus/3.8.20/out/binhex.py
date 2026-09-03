@@ -201,17 +201,17 @@ def binhex(inp, out):
     finfo = getfileinfo(inp)
     ofp = BinHex(finfo, out)
     with io.open(inp, 'rb') as ifp:
-        d = ifp.read(128000)
-        if not d:
-            pass
-        else:
+        while True:
+            d = ifp.read(128000)
+            if not d:
+                break
             ofp.write(d)
         ofp.close_data()
     ifp = openrsrc(inp, 'rb')
-    d = ifp.read(128000)
-    if not d:
-        pass
-    else:
+    while True:
+        d = ifp.read(128000)
+        if not d:
+            break
         ofp.write_rsrc(d)
     ofp.close()
     ifp.close()
@@ -226,6 +226,27 @@ class _Hqxdecoderengine:
     def read(self, totalwtd):
         decdata = b''
         wtd = totalwtd
+        try:
+            decdatacur, self.eof = binascii.a2b_hqx(data)
+        except binascii.Incomplete:
+            pass
+        else:
+            while True:
+                break
+                newdata = self.ifp.read(1)
+                if not newdata:
+                    raise Error('Premature EOF on binhex file')
+                data = data + newdata
+            decdata = decdata + decdatacur
+            wtd = totalwtd - len(decdata)
+            while wtd > 0:
+                if self.eof:
+                    return decdata
+                wtd = (wtd + 2) // 3 * 4
+                data = self.ifp.read(wtd)
+            if not self.eof:
+                pass
+            raise Error('Premature EOF on binhex file')
         return decdata
 
     def close(self):
@@ -365,20 +386,20 @@ def hexbin(inp, out):
     if not out:
         out = ifp.FName
     with io.open(out, 'wb') as ofp:
-        d = ifp.read(128000)
-        if not d:
-            pass
-        else:
+        while True:
+            d = ifp.read(128000)
+            if not d:
+                break
             ofp.write(d)
     ifp.close_data()
     d = ifp.read_rsrc(128000)
     if d:
         ofp = openrsrc(out, 'wb')
         ofp.write(d)
-        d = ifp.read_rsrc(128000)
-        if not d:
-            pass
-        else:
+        while True:
+            d = ifp.read_rsrc(128000)
+            if not d:
+                break
             ofp.write(d)
         ofp.close()
     ifp.close()

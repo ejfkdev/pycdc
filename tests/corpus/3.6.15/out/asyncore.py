@@ -79,6 +79,7 @@ def _exception(obj):
         raise
 
 def readwrite(obj, flags):
+    obj.handle_error()
     try:
         if flags & select.POLLIN:
             obj.handle_read_event()
@@ -93,7 +94,8 @@ def readwrite(obj, flags):
             obj.handle_error()
         else:
             obj.handle_close()
-    obj.handle_error()
+    except _reraised_exceptions:
+        raise
 
 def poll(timeout=0.0, map=None):
     if map is None:
@@ -449,7 +451,9 @@ def close_all(map=None, ignore_all=False):
                 pass
             elif not ignore_all:
                 raise
-        continue
+            continue
+        except _reraised_exceptions:
+            raise
         continue
         if not ignore_all:
             raise

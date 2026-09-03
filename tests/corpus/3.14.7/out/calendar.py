@@ -167,10 +167,15 @@ provides data to subclasses.
     def itermonthdays(self, year, month):
         day1, ndays = monthrange(year, month)
         days_before = (day1 - self.firstweekday) % 7
-        yield None
-        yield None
-        days_after = (self.firstweekday - day1 - ndays) % 7
-        yield None
+        while True:
+            yield None
+            while True:
+                while True:
+                    yield None
+                days_after = (self.firstweekday - day1 - ndays) % 7
+                while True:
+                    yield None
+                return
 
     def itermonthdays2(self, year, month):
         for i, d in enumerate(self.itermonthdays(year, month), self.firstweekday):

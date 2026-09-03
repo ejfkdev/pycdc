@@ -420,10 +420,12 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
     else:
         raise RuntimeError(f'Unrecognized action ({action!r}) in warnings.filters:\n {item!s}')
     None(None, None, None)
-    import linecache
-    linecache.getlines(filename, module_globals)
-    msg = _wm.WarningMessage(message, category, filename, lineno, source)
-    _wm._showwarnmsg(msg)
+    while True:
+        import linecache
+        linecache.getlines(filename, module_globals)
+        msg = _wm.WarningMessage(message, category, filename, lineno, source)
+        _wm._showwarnmsg(msg)
+        return
 
 class WarningMessage(object):
     _WARNING_DETAILS = ('message', 'category', 'filename', 'lineno', 'file', 'line', 'source')
@@ -509,9 +511,10 @@ context.
         else:
             log = None
         None(None, None, None)
-        if not self._filter is None:
-            self._module.simplefilter(*self._filter)
-        return log
+        while True:
+            if not self._filter is None:
+                self._module.simplefilter(*self._filter)
+            return log
 
     def __exit__(self, *exc_info):
         if not self._entered:

@@ -42,6 +42,11 @@ def _walk_dir(dir, maxlevels, quiet=0):
             continue
         if os.path.islink(fullname):
             pass
+        else:
+            while True:
+                pass
+            _walk_dir(fullname, maxlevels - 1, quiet)
+            return
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     ProcessPoolExecutor = None
@@ -234,41 +239,31 @@ def main():
         with sys.stdin if args.flist == '-' else open(args.flist, 'utf-8') as f:
             for line in f:
                 compile_dests.append(line.strip())
-            try:
-                pass
-            except OSError:
-                if args.quiet < 2:
-                    print('Error reading file list {}'.format(args.flist))
-            if args.invalidation_mode:
-                ivl_mode = args.invalidation_mode.replace('-', '_').upper()
-                invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
-            else:
-                invalidation_mode = None
-            success = True
-            try:
-                if compile_dests:
-                    for dest in compile_dests:
-                        if os.path.isfile(dest):
-                            if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode, args.stripdir, args.prependdir, args.opt_levels, args.limit_sl_dest, args.hardlink_dupes):
-                                success = False
-                                continue
+            while True:
+                if args.invalidation_mode:
+                    ivl_mode = args.invalidation_mode.replace('-', '_').upper()
+                    invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
+                else:
+                    invalidation_mode = None
+                success = True
+                try:
+                    if compile_dests:
+                        for dest in compile_dests:
+                            if os.path.isfile(dest):
+                                if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode, args.stripdir, args.prependdir, args.opt_levels, args.limit_sl_dest, args.hardlink_dupes):
+                                    success = False
+                                    continue
                             continue
-                        if compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, args.workers, invalidation_mode, args.stripdir, args.prependdir, args.opt_levels, args.limit_sl_dest, args.hardlink_dupes):
-                            continue
-                            try:
-                                success = False
+                            if compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, args.workers, invalidation_mode, args.stripdir, args.prependdir, args.opt_levels, args.limit_sl_dest, args.hardlink_dupes):
                                 continue
-                            except KeyboardInterrupt:
-                                if args.quiet < 2:
-                                    print('\n[interrupted]')
-                    return success
-                    try:
-                        pass
-                    except KeyboardInterrupt:
-                        if args.quiet < 2:
-                            print('\n[interrupted]')
-            finally:
-                return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
+                        return success
+                        try:
+                            pass
+                        except KeyboardInterrupt:
+                            if args.quiet < 2:
+                                print('\n[interrupted]')
+                finally:
+                    return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
 
 if __name__ == '__main__':
     exit_status = int(not main())

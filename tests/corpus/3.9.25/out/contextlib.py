@@ -91,23 +91,17 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
 
     def __exit__(self, typ, value, traceback):
         if typ is None:
-            return False
             try:
                 next(self.gen)
             except StopIteration:
-                pass
+                return False
             else:
                 raise RuntimeError("generator didn't stop")
         elif value is None:
             value = typ()
-        return
-        exc = None
-        del exc
         if exc is value:
             return False
         if isinstance(value, StopIteration) and exc.__cause__ is value:
-            exc = None
-            del exc
             return False
         raise
         exc = None
@@ -115,7 +109,7 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
         try:
             self.gen.throw(typ, value, traceback)
         except StopIteration as exc:
-            pass
+            return
         except RuntimeError as exc:
             pass
         exc = None
@@ -140,23 +134,17 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
 
     async def __aexit__(self, typ, value, traceback):
         if typ is None:
-            return False
             try:
                 await self.gen.__anext__()
             except StopAsyncIteration:
-                pass
+                return False
             else:
                 raise RuntimeError("generator didn't stop")
         elif value is None:
             value = typ()
-        return
-        exc = None
-        del exc
         if exc is value:
             return False
         if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
-            exc = None
-            del exc
             return False
         raise
         exc = None
@@ -164,7 +152,7 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         try:
             await self.gen.athrow(typ, value, traceback)
         except StopAsyncIteration as exc:
-            pass
+            return
         except RuntimeError as exc:
             pass
         exc = None
@@ -346,12 +334,12 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            exc_context = new_exc.__context__
-            if exc_context is None or exc_context is old_exc:
-                return
-            if exc_context is frame_exc:
-                pass
-            else:
+            while True:
+                exc_context = new_exc.__context__
+                if exc_context is None or exc_context is old_exc:
+                    return
+                if exc_context is frame_exc:
+                    break
                 new_exc = exc_context
             new_exc.__context__ = old_exc
 
@@ -445,12 +433,12 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            exc_context = new_exc.__context__
-            if exc_context is None or exc_context is old_exc:
-                return
-            if exc_context is frame_exc:
-                pass
-            else:
+            while True:
+                exc_context = new_exc.__context__
+                if exc_context is None or exc_context is old_exc:
+                    return
+                if exc_context is frame_exc:
+                    break
                 new_exc = exc_context
             new_exc.__context__ = old_exc
 

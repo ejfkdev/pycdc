@@ -287,7 +287,28 @@ class Aifc_read:
             raise Error('not an AIFF or AIFF-C file')
         self._comm_chunk_read = 0
         self._ssnd_chunk = None
-        self._ssnd_seek_needed = 1
+        while True:
+            self._ssnd_seek_needed = 1
+            break
+            try:
+                chunk = Chunk(self._file)
+            except EOFError:
+                pass
+            chunkname = chunk.getname()
+            if chunkname == b'COMM':
+                self._read_comm_chunk(chunk)
+                self._comm_chunk_read = 1
+            elif chunkname == b'SSND':
+                self._ssnd_chunk = chunk
+                dummy = chunk.read(8)
+                self._ssnd_seek_needed = 0
+            elif chunkname == b'FVER':
+                self._version = _read_ulong(chunk)
+            elif chunkname == b'MARK':
+                self._readmark(chunk)
+            chunk.skip()
+        if not self._comm_chunk_read or not self._ssnd_chunk:
+            raise Error('COMM chunk and/or SSND chunk missing')
 
     def __init__(self, f):
         if isinstance(f, str):
@@ -796,10 +817,10 @@ if __name__ == '__main__':
             print('Writing', gn)
             with open(gn, 'w') as g:
                 g.setparams(f.getparams())
-                data = f.readframes(1024)
-                if not data:
-                    pass
-                else:
+                while True:
+                    data = f.readframes(1024)
+                    if not data:
+                        break
                     g.writeframes(data)
             if not None:
                 pass

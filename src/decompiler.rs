@@ -112,7 +112,7 @@ impl Block {
             finally_target: None,
             with_item: None,
             cond_set: true,
-            cond_end: 0,
+            cond_end: usize::MAX,
             stack_depth: 0,
             value_merge: None,
             for_setup_end: None,
@@ -191,6 +191,9 @@ struct LegacyHandler {
     /// block-stack depth when the handler opened; statements only collect
     /// into `body` when no handler-internal block (If/While/...) is open
     block_depth: usize,
+    /// 3.9 puts POP_EXCEPT before a terminating handler body; the fold is
+    /// deferred until the body's RETURN/jump-out
+    pop_seen: bool,
 }
 
 /// Reconstructed try-statement region (3.11+ exception-table driven).
@@ -303,6 +306,9 @@ struct Ctx<'a> {
     /// loop tops whose loop already closed via their back edge: later dead
     /// back edges to the same top are padding, not `continue`
     closed_loop_tops: Vec<usize>,
+    /// 3.8+ unconditional `while True` loops found by the back-edge
+    /// prescan: loop top -> back-edge instruction end (loop region end)
+    while_true_loops: Vec<(usize, usize)>,
     /// `except E as name` cleanup (`name = None; del name`) that follows a
     /// folded handler: the None-store is held until the matching delete
     /// confirms it (a real `x = None` statement must not be swallowed)
@@ -482,6 +488,7 @@ pub fn decompile_in_scope(
         broken_loop_top: None,
         py2_else_pop_at: None,
         closed_loop_tops: Vec::new(),
+        while_true_loops: Vec::new(),
         pending_as_cleanup: None,
         held_cleanup_store: None,
         class_scope: class_scope.to_vec(),
@@ -578,6 +585,7 @@ pub fn decompile_in_scope(
 
 impl<'a> Ctx<'a> {
     fn run(&mut self) {
+        self.prescan_while_true();
         let mut pc = 0usize;
         while pc < self.instrs.len() {
             let inst = self.instrs[pc];
@@ -615,11 +623,6 @@ impl<'a> Ctx<'a> {
             }
 
             // pre-3.11 handler-chain bookkeeping
-            if std::env::var("PYCDC_N").is_ok() {
-                eprintln!("T @{} {:?} tgt={:?} | {}", inst.offset, inst.op, inst.target,
-                    self.blocks.iter().map(|b| format!("{:?}@{}-{}{}", b.kind, b.start, b.end,
-                        if b.short_circuit.is_some() {"S"} else if b.value_merge.is_some() {"V"} else {""})).collect::<Vec<_>>().join(","));
-            }
             self.legacy_chain_step(&inst);
             // an if/else branch may have closed exactly at this offset
             // while the chain step ran (the fused or-continue chain skips
@@ -678,6 +681,30 @@ impl<'a> Ctx<'a> {
 
             // 3.11+: open try blocks driven by the exception table
             self.open_exception_blocks(pos);
+
+            // a prescanned unconditional `while True` loop starts here
+            if self.while_true_loops.iter().any(|(t, _)| *t == pos)
+                && !self.blocks.iter().any(|b| {
+                    matches!(b.kind, BlockType::While | BlockType::For) && b.start == pos
+                })
+            {
+                let end = self
+                    .while_true_loops
+                    .iter()
+                    .find(|(t, _)| *t == pos)
+                    .map(|(_, e)| *e)
+                    .unwrap_or(usize::MAX);
+                // statements before the loop top must not flow into it
+                if !self.pending_stores.is_empty() {
+                    self.flushing = true;
+                    self.flush_pending_stores();
+                    self.flushing = false;
+                }
+                let mut blk = Block::new(BlockType::While, pos, end);
+                blk.cond = Some(self.name_expr("True"));
+                blk.cond_set = true;
+                self.blocks.push(blk);
+            }
 
             // Close finished blocks before handling this instruction —
             // except when a backward jump lands exactly at an open If/Else
@@ -1149,6 +1176,7 @@ impl<'a> Ctx<'a> {
                 name: None,
                 body: Vec::new(),
                 block_depth: self.blocks.len(),
+                pop_seen: false,
             });
             self.legacy_handler_end = Some(hend);
             self.in_handler_prelude = true;
@@ -1235,24 +1263,48 @@ impl<'a> Ctx<'a> {
             // end of a handler body
             Op::POP_EXCEPT => {
                 self.in_handler_prelude = false;
-                if self.legacy_handler.is_some() {
-                    self.flush_pending_stores();
-                }
-                if let Some(h) = self.legacy_handler.take() {
-                    if let Some(he) = &h.name {
-                        if let Expr::Name(n) = &**he {
-                            self.pending_as_cleanup = Some(n.clone());
+                // 3.9 terminating handlers run POP_EXCEPT BEFORE the body
+                // (`except E: return`): defer the fold to the body's end
+                let next_is_body = self
+                    .idx_of
+                    .get(&pos)
+                    .and_then(|&pi| self.instrs.get(pi + 1))
+                    .map_or(false, |nx| {
+                        !matches!(
+                            nx.op,
+                            Op::RERAISE
+                                | Op::END_FINALLY
+                                | Op::JUMP_FORWARD
+                                | Op::JUMP_ABSOLUTE
+                                | Op::JUMP
+                        ) && self
+                            .legacy_handler_end
+                            .map_or(true, |e| nx.offset < e)
+                    });
+                if next_is_body {
+                    if let Some(h) = self.legacy_handler.as_mut() {
+                        h.pop_seen = true;
+                    }
+                } else {
+                    if self.legacy_handler.is_some() {
+                        self.flush_pending_stores();
+                    }
+                    if let Some(h) = self.legacy_handler.take() {
+                        if let Some(he) = &h.name {
+                            if let Expr::Name(n) = &**he {
+                                self.pending_as_cleanup = Some(n.clone());
+                            }
+                        }
+                        if let Some(l) = self.legacy_try.as_mut() {
+                            l.handlers.push(ExceptHandler {
+                                type_: h.type_,
+                                name: h.name,
+                                body: h.body,
+                            });
                         }
                     }
-                    if let Some(l) = self.legacy_try.as_mut() {
-                        l.handlers.push(ExceptHandler {
-                            type_: h.type_,
-                            name: h.name,
-                            body: h.body,
-                        });
-                    }
+                    self.legacy_handler_end = None;
                 }
-                self.legacy_handler_end = None;
             }
             // RERAISE ends the current handler; a mismatch-path RERAISE with
             // no open handler ends the whole chain
@@ -1387,7 +1439,7 @@ impl<'a> Ctx<'a> {
                                         self.blocks.iter().any(|b| {
                                             matches!(b.kind, BlockType::While | BlockType::For)
                                                 && (b.start == t
-                                                    || (b.cond_end > 0 && b.cond_end == t))
+                                                    || (b.cond_end != usize::MAX && b.cond_end == t))
                                         })
                                     })
                             });
@@ -2027,11 +2079,6 @@ impl<'a> Ctx<'a> {
     }
 
     fn push_stmt(&mut self, stmt: Stmt) {
-        if std::env::var("PYCDC_N").is_ok() {
-            let name = format!("{:?}", stmt);
-            let dest = self.blocks.last().map(|b| format!("{:?}@{}", b.kind, b.start)).unwrap_or("?".into());
-            eprintln!("S @{} push {} -> {}", self.cur_offset, &name[..name.len().min(60)], dest);
-        }
         // any other statement flushes a pending same-line store group first
         // to preserve source order
         if !self.flushing && !self.pending_stores.is_empty() {
@@ -3114,8 +3161,32 @@ impl<'a> Ctx<'a> {
 
             // ---------- returns / yields ----------
             Op::RETURN_VALUE => {
+                // a deferred-fold handler (3.9 POP_EXCEPT-first) ends here:
+                // the return belongs to its body, so emit first, fold after
+                let defer_fold = self
+                    .legacy_handler
+                    .as_ref()
+                    .map_or(false, |h| h.pop_seen);
                 let e = self.pop_expr();
                 self.emit_return(Some(e));
+                if defer_fold {
+                    self.flush_pending_stores();
+                    if let Some(h) = self.legacy_handler.take() {
+                        if let Some(he) = &h.name {
+                            if let Expr::Name(n) = &**he {
+                                self.pending_as_cleanup = Some(n.clone());
+                            }
+                        }
+                        if let Some(l) = self.legacy_try.as_mut() {
+                            l.handlers.push(ExceptHandler {
+                                type_: h.type_,
+                                name: h.name,
+                                body: h.body,
+                            });
+                        }
+                    }
+                    self.legacy_handler_end = None;
+                }
                 // at function top level a RETURN ends the meaningful stream;
                 // trailing bytes are exception-table cleanup paths — unless
                 // a pre-3.11 handler chain still needs to run
@@ -3812,7 +3883,19 @@ impl<'a> Ctx<'a> {
                         self.force_close_top(pos);
                     }
                 }
-                self.pop();
+                // 3.9 terminating handlers: POP_EXCEPT clears the (unmodeled)
+                // exception state right before RETURN — the stack top is the
+                // return value, not exception state
+                let next_returns = self
+                    .idx_of
+                    .get(&inst.offset)
+                    .and_then(|&pi| self.instrs.get(pi + 1))
+                    .map_or(false, |nx| {
+                        matches!(nx.op, Op::RETURN_VALUE | Op::RETURN_CONST)
+                    });
+                if !next_returns {
+                    self.pop();
+                }
                 true
             }
             Op::END_FINALLY => {
@@ -4948,7 +5031,8 @@ impl<'a> Ctx<'a> {
         // uninitialized loop's condition (SETUP_LOOP era) or a rotated-while
         // back-edge candidate.
         let while_top = self.blocks.last().map_or(false, |b| {
-            matches!(b.kind, BlockType::While) && (!b.cond_set || b.cond_end > 0)
+            matches!(b.kind, BlockType::While)
+                && (!b.cond_set || b.cond_end != usize::MAX)
         });
         if !while_top {
             // `if a or b:` (and mixed-polarity and-chains): this cond jump
@@ -5043,7 +5127,7 @@ impl<'a> Ctx<'a> {
                 && top.cond_set
                 && top.jump_if_true == jump_if_true
                 && top.end == target
-                && top.cond_end > 0
+                && top.cond_end != usize::MAX
                 && top.cond_end < self.cur_offset
             {
                 return;
@@ -5586,6 +5670,7 @@ impl<'a> Ctx<'a> {
                 name: None,
                 body: Vec::new(),
                 block_depth: self.blocks.len(),
+                pop_seen: false,
             });
             // a previous handler's unconfirmed cleanup marker must not
             // swallow this handler's `as` name store
@@ -5803,7 +5888,7 @@ impl<'a> Ctx<'a> {
         match b.kind {
             BlockType::For => Some(b.end),
             BlockType::While => {
-                if b.cond_end > 0 && b.start < b.end {
+                if b.cond_end != usize::MAX && b.start < b.end {
                     // rotated while: exit = target of the cond jump, i.e.
                     // the instruction whose end == cond_end
                     self.instrs
@@ -5935,8 +6020,9 @@ impl<'a> Ctx<'a> {
             }
             if matches!(b.kind, BlockType::While | BlockType::For) {
                 if b.start == target
-                    || b.cond_end == target
-                    || (b.cond_end > 0 && b.start <= target && target < b.cond_end)
+                    || (b.cond_end != usize::MAX
+                        && (b.cond_end == target
+                            || (b.start <= target && target < b.cond_end)))
                 {
                     return depth > 0;
                 }
@@ -5961,6 +6047,119 @@ impl<'a> Ctx<'a> {
                 return;
             }
         }
+    }
+
+    /// 3.8+ has no SETUP_LOOP: a `while True:` body ends with an
+    /// unconditional backward jump and has no cond jump at its top.
+    /// Register those loops so the block opens when execution reaches the
+    /// top and closes at the back edge.
+    fn prescan_while_true(&mut self) {
+        if !self.version.at_least(3, 8) || self.inline_comp.is_some() {
+            return;
+        }
+        let is_back_jump = |i: &Instruction| {
+            i.is_backward
+                && matches!(
+                    i.op,
+                    Op::JUMP_ABSOLUTE
+                        | Op::JUMP_BACKWARD
+                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                )
+        };
+        let is_cond_jump = |o: Op| {
+            matches!(
+                o,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                    | Op::JUMP_IF_FALSE_OR_POP
+                    | Op::JUMP_IF_TRUE_OR_POP
+            )
+        };
+        // loop tops claimed by rotated-while cond jumps (section 6 handles
+        // those), by FOR_ITER loops, and by SETUP_* blocks
+        let mut claimed: Vec<usize> = Vec::new();
+        for (ci, cj) in self.instrs.iter().enumerate() {
+            if !is_cond_jump(cj.op) {
+                continue;
+            }
+            let Some(t) = cj.target else { continue };
+            if t <= cj.offset {
+                continue;
+            }
+            let Some(&ti) = self.idx_of.get(&t) else {
+                continue;
+            };
+            for ins in &self.instrs[ci..ti] {
+                if let Some(bt) = ins.target {
+                    if ins.is_backward && bt <= cj.offset {
+                        claimed.push(bt);
+                    }
+                }
+            }
+        }
+        for ins in &self.instrs {
+            if matches!(
+                ins.op,
+                Op::FOR_ITER | Op::FOR_LOOP | Op::SETUP_LOOP | Op::SETUP_FINALLY | Op::SETUP_EXCEPT
+            ) {
+                if let Some(t) = ins.target {
+                    claimed.push(t);
+                }
+                if matches!(ins.op, Op::FOR_ITER | Op::FOR_LOOP) {
+                    claimed.push(ins.offset);
+                }
+            }
+        }
+        let mut found: Vec<(usize, usize)> = Vec::new();
+        for (bi, bj) in self.instrs.iter().enumerate() {
+            if !is_back_jump(bj) {
+                continue;
+            }
+            let Some(t) = bj.target else { continue };
+            if claimed.contains(&t) || found.iter().any(|(ft, _)| *ft == t) {
+                continue;
+            }
+            // the region [t, bj) must be straight-line loop body: every
+            // jump inside stays within the region (or is a dead duplicate
+            // back edge); breaks out of it disqualify the shape
+            let Some(&ti) = self.idx_of.get(&t) else {
+                continue;
+            };
+            if ti > bi {
+                continue;
+            }
+            let mut breaks: Vec<usize> = Vec::new();
+            let clean = self.instrs[ti..bi].iter().all(|ins| {
+                ins.target.map_or(true, |it| {
+                    if (it >= t && it <= bj.offset) || (ins.is_backward && it == t) {
+                        true
+                    } else if !ins.is_backward && it > bj.offset {
+                        // a `break` flying to the loop exit
+                        breaks.push(it);
+                        true
+                    } else {
+                        false
+                    }
+                })
+            });
+            if !clean {
+                continue;
+            }
+            let uniform_exit = breaks.first().copied().and_then(|e| {
+                if breaks.iter().all(|b| *b == e) {
+                    Some(e)
+                } else {
+                    None
+                }
+            });
+            match uniform_exit {
+                Some(e) => found.push((t, e)),
+                None => found.push((t, bj.end())),
+            }
+        }
+        self.while_true_loops = found;
     }
 
     fn handle_jump_backward(&mut self, target: usize) {
@@ -6011,7 +6210,7 @@ impl<'a> Ctx<'a> {
                 let b = &self.blocks[i];
                 // rotated while back edge: jumps to the body top right after
                 // the cond evaluation — pure loop continuation, no-op
-                if b.cond_end != 0 && target == b.cond_end && b.start < target {
+                if b.cond_end != usize::MAX && target == b.cond_end && b.start < target {
                     return;
                 }
                 // 3.12+: the then-branch of an if/else inside a loop can
@@ -6050,7 +6249,8 @@ impl<'a> Ctx<'a> {
                     // SETUP_LOOP-era while: every continue and the final
                     // back edge target the loop top; the loop closes only
                     // when its POP_BLOCK follows this jump
-                    let is_setup_era = b.cond_end == 0
+                    let is_setup_era = !self.version.at_least(3, 8)
+                        && b.cond_end == usize::MAX
                         && b.end < usize::MAX
                         && self.idx_of.contains_key(&b.end);
                     if is_setup_era {

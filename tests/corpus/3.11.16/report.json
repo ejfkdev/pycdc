@@ -34,7 +34,7 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3662,
+   "ndiff": 3658,
    "ntotal": 3887,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -50,7 +50,7 @@
    "module": "_compression",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 308,
+   "ndiff": 309,
    "ntotal": 614,
    "detail": "line 295: orig ('JUMP_FORWARD', 'to 278') | got ('LOAD_CONST', 'None')\nline 296: orig ('PUSH_EXC_INFO', '') | got ('RETURN_VALUE', '')\nline 297: orig ('WITH_EXCEPT_START', '') | got ('PUSH_EXC_INFO', '')"
   },
@@ -58,7 +58,7 @@
    "module": "_markupbase",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1081,
+   "ndiff": 1093,
    "ntotal": 1447,
    "detail": "line 213: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 74') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 58')\nline 215: orig ('LOAD_CONST', \"'unexpected call to parse_declaration'\") | got ('RAISE_VARARGS', '')\nline 216: orig ('PRECALL', '') | got ('LOAD_FAST', 'rawdata')"
   },
@@ -82,7 +82,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 32: orig  body=[Return(value=BinOp(left=Constant(value='Use %s() or %s to exit') | dec  body=[Return(value=JoinedStr(values=[Constant(value='Use ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 304,
+   "ndiff": 302,
    "ntotal": 399,
    "detail": "line 87: orig ('JUMP_FORWARD', 'to 80') | got ('LOAD_GLOBAL', 'NULL + SystemExit')\nline 88: orig ('PUSH_EXC_INFO', '') | got ('LOAD_FAST', 'code')\nline 89: orig ('POP_TOP', '') | got ('PRECALL', '')"
   },
@@ -110,9 +110,9 @@
    "module": "_weakrefset",
    "ast_detail": "diff at token 44: orig  If(test=Compare(left=Name(id='w' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 676,
+   "ndiff": 683,
    "ntotal": 1027,
-   "detail": "line 312: orig ('NOP', '') | got ('PUSH_NULL', '')\nline 313: orig ('PUSH_NULL', '') | got ('LOAD_FAST', 'pop')\nline 314: orig ('LOAD_FAST', 'pop') | got ('PRECALL', '')"
+   "detail": "line 318: orig ('JUMP_FORWARD', 'to 110') | got ('JUMP_FORWARD', 'to 108')\nline 322: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 102') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 100')\nline 325: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 108')"
   },
   {
    "module": "abc",
@@ -150,7 +150,7 @@
    "module": "base64",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1852,
+   "ndiff": 1853,
    "ntotal": 2117,
    "detail": "line 72: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 74: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 230: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 146') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 148')"
   },
@@ -190,7 +190,7 @@
    "module": "calendar",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2787,
+   "ndiff": 2808,
    "ntotal": 3519,
    "detail": "line 605: orig ('SWAP', '') | got ('COMPARE_OP', '<=')\nline 606: orig ('COPY', '') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 82')\nline 607: orig ('COMPARE_OP', '<=') | got ('LOAD_FAST', 'year')"
   },
@@ -198,7 +198,7 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3060,
+   "ndiff": 3051,
    "ntotal": 3160,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
@@ -274,7 +274,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 62: orig  body=[Return(value=Constant(value=None))] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2203,
+   "ndiff": 2210,
    "ntotal": 2283,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },

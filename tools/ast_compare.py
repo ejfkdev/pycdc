@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: ascii -*-
 """Compare two Python sources for semantic equivalence at the AST level.
 
 Run WITH the same interpreter version as the sources target.
@@ -87,10 +88,34 @@ def flatten_terminal_else(stmts):
     return out
 
 
+TRY_TYPES = tuple(
+    c for c in (getattr(ast, 'Try', None), getattr(ast, 'TryExcept', None)) if c
+)
+
+
+def flatten_try_else(stmts):
+    """When every handler ends terminally (return/raise/break/continue),
+    `try: B else: O` followed by S is the same as `try: B` with O and S
+    sequential - compilers pick either layout."""
+    out = []
+    for s in stmts:
+        if TRY_TYPES and isinstance(s, TRY_TYPES):
+            handlers = getattr(s, 'handlers', [])
+            orelse = getattr(s, 'orelse', [])
+            if orelse and handlers and all(ends_terminal(h.body) for h in handlers):
+                s.orelse = []
+                out.append(s)
+                out.extend(flatten_try_else(orelse))
+                continue
+        out.append(s)
+    return out
+
+
 def normalize_body(body):
     """Normalize a statement list: drop docstrings, merge adjacent
     from-imports, hoist global/nonlocal, flatten terminal elses."""
     body = flatten_terminal_else(body)
+    body = flatten_try_else(body)
     out = []
     globs = []
     nonlocs = []

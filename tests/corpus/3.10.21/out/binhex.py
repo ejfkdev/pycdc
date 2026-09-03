@@ -215,19 +215,19 @@ def binhex(inp, out):
     finfo = getfileinfo(inp)
     ofp = BinHex(finfo, out)
     with io.open(inp, 'rb') as ifp:
-        d = ifp.read(128000)
-        if not d:
-            pass
-        else:
+        while True:
+            d = ifp.read(128000)
+            if not d:
+                break
             ofp.write(d)
         ofp.close_data()
     if not None:
         pass
     ifp = openrsrc(inp, 'rb')
-    d = ifp.read(128000)
-    if not d:
-        pass
-    else:
+    while True:
+        d = ifp.read(128000)
+        if not d:
+            break
         ofp.write_rsrc(d)
     ofp.close()
     ifp.close()
@@ -389,10 +389,10 @@ def hexbin(inp, out):
     if not out:
         out = ifp.FName
     with io.open(out, 'wb') as ofp:
-        d = ifp.read(128000)
-        if not d:
-            pass
-        else:
+        while True:
+            d = ifp.read(128000)
+            if not d:
+                break
             ofp.write(d)
     if not None:
         pass
@@ -401,10 +401,10 @@ def hexbin(inp, out):
     if d:
         ofp = openrsrc(out, 'wb')
         ofp.write(d)
-        d = ifp.read_rsrc(128000)
-        if not d:
-            pass
-        else:
+        while True:
+            d = ifp.read_rsrc(128000)
+            if not d:
+                break
             ofp.write(d)
         ofp.close()
     ifp.close()

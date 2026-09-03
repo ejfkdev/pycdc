@@ -108,24 +108,17 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
     def __exit__(self, typ, value, traceback):
         if typ is None:
             raise RuntimeError("generator didn't stop")
-            return False
             try:
                 next(self.gen)
             except StopIteration:
-                pass
+                return False
         if value is None:
             value = typ()
         raise RuntimeError("generator didn't stop after throw()")
-        return
-        exc = None
-        del exc
         try:
             self.gen.throw(typ, value, traceback)
         except StopIteration as exc:
-            pass
-        return False
-        exc = None
-        del exc
+            return
         try:
             if exc is value:
                 exc = None
@@ -139,6 +132,7 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
         except BaseException as exc:
             if exc is not value:
                 raise
+            return False
 
 
 class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncContextManager, AsyncContextDecorator):
@@ -155,24 +149,17 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
     async def __aexit__(self, typ, value, traceback):
         if typ is None:
             raise RuntimeError("generator didn't stop")
-            return False
             try:
                 await anext(self.gen)
             except StopAsyncIteration:
-                pass
+                return False
         if value is None:
             value = typ()
         raise RuntimeError("generator didn't stop after athrow()")
-        return
-        exc = None
-        del exc
         try:
             await self.gen.athrow(typ, value, traceback)
         except StopAsyncIteration as exc:
-            pass
-        return False
-        exc = None
-        del exc
+            return
         try:
             if exc is value:
                 exc = None
@@ -186,6 +173,7 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         except BaseException as exc:
             if exc is not value:
                 raise
+            return False
 
 
 def contextmanager(func):
@@ -340,7 +328,6 @@ class _BaseExitStack:
 
     def push(self, exit):
         _cb_type = type(exit)
-        return exit
 
     def enter_context(self, cm):
         _cm_type = type(cm)
@@ -381,12 +368,12 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            exc_context = new_exc.__context__
-            if exc_context is None or exc_context is old_exc:
-                return
-            if exc_context is frame_exc:
-                pass
-            else:
+            while True:
+                exc_context = new_exc.__context__
+                if exc_context is None or exc_context is old_exc:
+                    return
+                if exc_context is frame_exc:
+                    break
                 new_exc = exc_context
             new_exc.__context__ = old_exc
 
@@ -441,7 +428,6 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
 
     def push_async_exit(self, exit):
         _cb_type = type(exit)
-        return exit
 
     def push_async_callback(self, callback, /, *args, **kwds):
         _exit_wrapper = self._create_async_cb_wrapper(callback, *args, **kwds)
@@ -463,12 +449,12 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            exc_context = new_exc.__context__
-            if exc_context is None or exc_context is old_exc:
-                return
-            if exc_context is frame_exc:
-                pass
-            else:
+            while True:
+                exc_context = new_exc.__context__
+                if exc_context is None or exc_context is old_exc:
+                    return
+                if exc_context is frame_exc:
+                    break
                 new_exc = exc_context
             new_exc.__context__ = old_exc
 

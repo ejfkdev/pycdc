@@ -237,8 +237,9 @@ class Bdb:
                 self.botframe = frame
                 frame = frame.f_back
             self.set_step()
-            sys.settrace(self.trace_dispatch)
-            return
+            while True:
+                sys.settrace(self.trace_dispatch)
+                return
 
     def set_continue(self):
         self._set_stopinfo(self.botframe, None, -1)

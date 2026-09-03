@@ -280,8 +280,9 @@ is determined by the __name__ in the frame globals.
                 frame.f_trace_lines = True
                 frame = frame.f_back
             self.set_stepinstr()
-            sys.settrace(self.trace_dispatch)
-            return
+            while True:
+                sys.settrace(self.trace_dispatch)
+                return
 
     def set_continue(self):
         self._set_stopinfo(self.botframe, None, -1)

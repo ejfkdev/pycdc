@@ -109,11 +109,10 @@ class Coroutine(Awaitable):
 
     def close(self):
         raise RuntimeError('coroutine ignored GeneratorExit')
-        return
         try:
             self(GeneratorExit)
         except (GeneratorExit, StopIteration):
-            pass
+            return
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -175,11 +174,10 @@ class AsyncGenerator(AsyncIterator):
 
     async def aclose(self):
         raise RuntimeError('asynchronous generator ignored GeneratorExit')
-        return
         try:
             await self(GeneratorExit)
         except (GeneratorExit, StopAsyncIteration):
-            pass
+            return
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -268,11 +266,10 @@ class Generator(Iterator):
 
     def close(self):
         raise RuntimeError('generator ignored GeneratorExit')
-        return
         try:
             self(GeneratorExit)
         except (GeneratorExit, StopIteration):
-            pass
+            return
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -592,11 +589,11 @@ class MutableSet(Set):
         it = iter(self)
 
     def clear(self):
-        return
         try:
-            self.pop()
+            while True:
+                self.pop()
         except KeyError:
-            pass
+            return
 
     def __ior__(self, it):
         for value in it:
@@ -648,19 +645,17 @@ class Mapping(Collection):
 
     def get(self, key, default=None):
         return self[key]
-        return
         try:
             pass
         except KeyError:
-            pass
+            return default
 
     def __contains__(self, key):
         return True
-        return False
         try:
             self[key]
         except KeyError:
-            pass
+            return False
 
     def keys(self):
         return KeysView(self)
@@ -716,7 +711,6 @@ class ItemsView(MappingView, Set):
 
     def __contains__(self, item):
         key, value = item
-        return False
 
     def __iter__(self):
         for key in self._mapping:
@@ -767,11 +761,11 @@ class MutableMapping(Mapping):
         pass
 
     def clear(self):
-        return
         try:
-            self.popitem()
+            while True:
+                self.popitem()
         except KeyError:
-            pass
+            return
 
     def update(self, other=(), /, **kwds):
         if isinstance(other, Mapping):
@@ -788,11 +782,11 @@ class MutableMapping(Mapping):
 
     def setdefault(self, key, default=None):
         return self[key]
-        return default
         try:
             pass
         except KeyError:
             self[key] = default
+            return default
 
 
 MutableMapping.register(dict)
@@ -812,13 +806,13 @@ class Sequence(Reversible, Collection):
 
     def __iter__(self):
         i = 0
-        return
         try:
-            v = self[i]
-            yield v
-            i += 1
+            while True:
+                v = self[i]
+                yield v
+                i += 1
         except IndexError:
-            pass
+            return
 
     def __contains__(self, value):
         for v in self:
@@ -837,14 +831,13 @@ class Sequence(Reversible, Collection):
             stop += len(self)
         i = start
         if stop is None or i < stop:
-            raise ValueError
             if not i < stop:
                 try:
                     v = self[i]
                     if v is value or v == value:
                         return i
                 except IndexError:
-                    pass
+                    raise ValueError
                 else:
                     i += 1
                     if not stop is None:
@@ -895,11 +888,11 @@ class MutableSequence(Sequence):
         self(len(self), value)
 
     def clear(self):
-        return
         try:
-            self.pop()
+            while True:
+                self.pop()
         except IndexError:
-            pass
+            return
 
     def reverse(self):
         n = len(self)

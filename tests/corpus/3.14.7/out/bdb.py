@@ -158,14 +158,15 @@ class _MonitoringTracer:
             return
         if not frame is not None:
             frame = sys._getframe().f_back
-        while not frame is None:
-            if not frame.f_trace is None:
-                if frame.f_trace_opcodes:
-                    events = self.LOCAL_EVENTS | E.INSTRUCTION
-                else:
-                    events = self.LOCAL_EVENTS
-                sys.monitoring.set_local_events(self._tool_id, frame.f_code, events)
-            frame = frame.f_back
+            while True:
+                while not frame is None:
+                    if not frame.f_trace is None:
+                        if frame.f_trace_opcodes:
+                            events = self.LOCAL_EVENTS | E.INSTRUCTION
+                        else:
+                            events = self.LOCAL_EVENTS
+                        sys.monitoring.set_local_events(self._tool_id, frame.f_code, events)
+                    frame = frame.f_back
 
     def _get_lineno(self, code, offset):
         import dis
@@ -438,11 +439,12 @@ is determined by the __name__ in the frame globals.
         if trace_opcodes != self.trace_opcodes:
             self.trace_opcodes = trace_opcodes
             frame = self.enterframe
-            while not frame is None:
-                frame.f_trace_opcodes = trace_opcodes
-                if frame is self.botframe:
-                    break
-                frame = frame.f_back
+            while True:
+                while not frame is None:
+                    frame.f_trace_opcodes = trace_opcodes
+                    if frame is self.botframe:
+                        break
+                    frame = frame.f_back
             if self.monitoring_tracer:
                 self.monitoring_tracer.update_local_events()
                 return
@@ -502,7 +504,9 @@ is determined by the __name__ in the frame globals.
         self.set_stepinstr()
         self.enterframe = None
         None(None, None, None)
-        self.start_trace()
+        while True:
+            self.start_trace()
+            return
 
     def set_continue(self):
         self._set_stopinfo(self.botframe, None, -1)
@@ -630,16 +634,18 @@ is determined by the __name__ in the frame globals.
         if t:
             if t.tb_frame is f:
                 t = t.tb_next
-        while not f is None:
-            stack.append((f, f.f_lineno))
-            if f is self.botframe:
-                break
-            f = f.f_back
+                while True:
+                    while not f is None:
+                        stack.append((f, f.f_lineno))
+                        if f is self.botframe:
+                            break
+                        f = f.f_back
         stack.reverse()
         i = max(0, len(stack) - 1)
-        while not t is None:
-            stack.append((t.tb_frame, t.tb_lineno))
-            t = t.tb_next
+        while True:
+            while not t is None:
+                stack.append((t.tb_frame, t.tb_lineno))
+                t = t.tb_next
         if not f is not None:
             i = max(0, len(stack) - 1)
         return stack, i

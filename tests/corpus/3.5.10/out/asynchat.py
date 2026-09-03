@@ -61,51 +61,7 @@ class async_chat(asyncore.dispatcher):
         return self.terminator
 
     def handle_read(self):
-        try:
-            data = self.recv(self.ac_in_buffer_size)
-        except BlockingIOError:
-            return
-        except OSError as why:
-            self.handle_error()
-            return
-        if isinstance(data, str) and self.use_encoding:
-            data = bytes(str, self.encoding)
-        self.ac_in_buffer = self.ac_in_buffer + data
-        while self.ac_in_buffer:
-            lb = len(self.ac_in_buffer)
-            terminator = self.get_terminator()
-            if not terminator:
-                self.collect_incoming_data(self.ac_in_buffer)
-                self.ac_in_buffer = b''
-            elif isinstance(terminator, int):
-                n = terminator
-                if lb < n:
-                    self.collect_incoming_data(self.ac_in_buffer)
-                    self.ac_in_buffer = b''
-                    self.terminator = self.terminator - lb
-                else:
-                    self.collect_incoming_data(self.ac_in_buffer[:n])
-                    self.ac_in_buffer = self.ac_in_buffer[n:]
-                    self.terminator = 0
-                    self.found_terminator()
-            else:
-                terminator_len = len(terminator)
-                index = self.ac_in_buffer.find(terminator)
-                if index != -1:
-                    if index > 0:
-                        self.collect_incoming_data(self.ac_in_buffer[:index])
-                    self.ac_in_buffer = self.ac_in_buffer[index + terminator_len:]
-                    self.found_terminator()
-                else:
-                    index = find_prefix_at_end(self.ac_in_buffer, terminator)
-                    if index:
-                        if index != lb:
-                            self.collect_incoming_data(self.ac_in_buffer[:-index])
-                            self.ac_in_buffer = self.ac_in_buffer[-index:]
-                        break
-                    else:
-                        self.collect_incoming_data(self.ac_in_buffer)
-                        self.ac_in_buffer = b''
+        pass
 
     def handle_write(self):
         self.initiate_send()
