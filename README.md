@@ -63,7 +63,8 @@ cargo build                                                 # 重新嵌入
 | comprehensions（列表/集合/字典/生成器/嵌套/多生成器） | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | functions（默认值/kwonly/注解/lambda/装饰器/global/yield） | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | fstrings（转换符/格式规格/嵌套） | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| classes / hello | 部分 | 部分 | ✅ | ✅ | ✅ | ✅ |
+| classes | 部分 | 部分 | ✅ | ✅ | ✅ | 部分 |
+| hello | 部分 | 部分 | ✅ | ✅ | ✅ | ✅ |
 | exceptions / with / async | 可编译输出，结构部分还原 | | | | | |
 
 在 pycdc 官方测试集（166 个 2.x/3.x `.pyc`）上：**0 个加载/反编译错误**，约 78% 输出无 incomplete 警告。
