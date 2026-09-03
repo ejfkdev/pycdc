@@ -79,6 +79,10 @@ struct Block {
     /// block opened by COPY + cond jump: closing merges stack values into
     /// BoolOp (and/or chains) or chained comparisons
     value_merge: Option<BoolOpKind>,
+    /// SETUP_LOOP-era For with for-else: the original SETUP_LOOP target
+    /// (loop pop). The block end is lowered to the FOR_ITER exhaustion
+    /// exit so the else region [exit, setup_end) collects separately.
+    for_setup_end: Option<usize>,
     /// this Else block is an elif continuation
     is_elif: bool,
     /// conditional jump polarity that opened this If block
@@ -108,6 +112,7 @@ impl Block {
             cond_end: 0,
             stack_depth: 0,
             value_merge: None,
+            for_setup_end: None,
             is_elif: false,
             jump_if_true: false,
             short_circuit: None,
@@ -1554,6 +1559,13 @@ impl<'a> Ctx<'a> {
                     self.pending_loop
                         .push((None, Some(target), Some(iter), body, is_async));
                     let else_blk = Block::new(BlockType::ForElse, pos, else_end);
+                    self.blocks.push(else_blk);
+                } else if let Some(se) = b.for_setup_end.filter(|se| *se > b.end) {
+                    // SETUP_LOOP-era for-else: the exhaustion exit (b.end)
+                    // closed the body; the else region runs to the loop pop
+                    self.pending_loop
+                        .push((None, Some(target), Some(iter), body, is_async));
+                    let else_blk = Block::new(BlockType::ForElse, b.end, se);
                     self.blocks.push(else_blk);
                 } else {
                     self.push_stmt(Stmt::For {
@@ -5071,9 +5083,14 @@ impl<'a> Ctx<'a> {
                 }
                 if b.start == target || b.end == target {
                     self.closed_loop_tops.push(b.start);
-                    while self.blocks.len() > i {
-                        self.force_close_top(target);
+                    // close everything above the loop, then the loop itself
+                    // exactly once — its close may push a continuation block
+                    // (ForElse) that must stay open for the following region
+                    while self.blocks.len() > i + 1 {
+                        let p = self.blocks.last().map(|x| x.start).unwrap_or(target);
+                        self.force_close_top(p);
                     }
+                    self.force_close_top(target);
                     return;
                 }
                 if b.start < target && target < b.end {
@@ -5137,8 +5154,13 @@ impl<'a> Ctx<'a> {
             top.target = None;
             top.is_async = is_async;
             top.cond_set = true;
-            // top.end stays the SETUP_LOOP target (loop end)
-            let _ = target; // FOR_ITER exit target == loop end usually
+            // the FOR_ITER exhaustion exit differs from the SETUP_LOOP
+            // target exactly when a for-else region sits between the two:
+            // lower the block end to the exit and remember the loop pop
+            if target < top.end {
+                top.for_setup_end = Some(top.end);
+                top.end = target;
+            }
         } else {
             // start = FOR_ITER offset so the back edge matches it
             let mut fb = Block::new(BlockType::For, self.cur_offset, target);

@@ -178,10 +178,11 @@ class ParserBase:
                     self.error('unexpected char after internal subset')
                     continue
             return -1
-        if c.isspace():
-            j = j + 1
-        self.updatepos(declstartpos, j)
-        self.error('unexpected char %r in internal subset' % c)
+        else:
+            if c.isspace():
+                j = j + 1
+            self.updatepos(declstartpos, j)
+            self.error('unexpected char %r in internal subset' % c)
         return -1
 
     def _parse_doctype_element(self, i, declstartpos):

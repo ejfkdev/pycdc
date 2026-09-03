@@ -195,12 +195,13 @@ class DictMixin:
         elif hasattr(other, 'iteritems'):
             for k, v in other.iteritems():
                 self[k] = v
-        elif hasattr(other, 'keys'):
-            for k in other.keys():
-                self[k] = other[k]
-        else:
-            for k, v in other:
-                self[k] = v
+            else:
+                if hasattr(other, 'keys'):
+                    for k in other.keys():
+                        self[k] = other[k]
+                    else:
+                        for k, v in other:
+                            self[k] = v
         if kwargs:
             self.update(kwargs)
 

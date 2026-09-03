@@ -99,7 +99,8 @@ class Coroutine(Awaitable):
                 for base in mro:
                     if method in base.__dict__:
                         break
-                return NotImplemented
+                else:
+                    return NotImplemented
             return True
         return NotImplemented
 
@@ -213,7 +214,8 @@ class Generator(Iterator):
                 for base in mro:
                     if method in base.__dict__:
                         break
-                return NotImplemented
+                else:
+                    return NotImplemented
             return True
         return NotImplemented
 
@@ -594,12 +596,13 @@ class MutableMapping(Mapping):
             if isinstance(other, Mapping):
                 for key in other:
                     self[key] = other[key]
-            elif hasattr(other, 'keys'):
-                for key in other.keys():
-                    self[key] = other[key]
-            else:
-                for key, value in other:
-                    self[key] = value
+                else:
+                    if hasattr(other, 'keys'):
+                        for key in other.keys():
+                            self[key] = other[key]
+                        else:
+                            for key, value in other:
+                                self[key] = value
         for key, value in kwds.items():
             self[key] = value
 

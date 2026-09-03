@@ -208,7 +208,8 @@ def _deepcopy_tuple(x, memo):
         if x[i] is not y[i]:
             y = tuple(y)
             break
-    y = x
+    else:
+        y = x
     return y
 
 d[tuple] = _deepcopy_tuple

@@ -84,12 +84,13 @@ def _slotnames(cls):
                 for name in slots:
                     if name in ('__dict__', '__weakref__'):
                         continue
-                if name.startswith('__'):
-                    if not name.endswith('__'):
-                        stripped = c.__name__.lstrip('_')
-                        if stripped:
-                            names.append('_%s%s' % (stripped, name))
-                            continue
+                else:
+                    if name.startswith('__'):
+                        if not name.endswith('__'):
+                            stripped = c.__name__.lstrip('_')
+                            if stripped:
+                                names.append('_%s%s' % (stripped, name))
+                                continue
             names.append(name)
             names.append(name)
 

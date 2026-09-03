@@ -458,8 +458,9 @@ def close_all(map=None, ignore_all=False):
                 pass
             elif not ignore_all:
                 raise
-    if not ignore_all:
-        raise
+    else:
+        if not ignore_all:
+            raise
     map.clear()
 
 if os.name == 'posix':

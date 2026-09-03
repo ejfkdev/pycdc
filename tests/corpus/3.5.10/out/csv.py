@@ -316,6 +316,8 @@ class Sniffer:
                         break
                     except (ValueError, OverflowError):
                         pass
+                else:
+                    continue
                 thisType = len(row[col])
                 if thisType != columnTypes[col]:
                     if columnTypes[col] is None:
@@ -329,12 +331,13 @@ class Sniffer:
                     hasHeader += 1
                     continue
             hasHeader -= 1
-        try:
-            colType(header[col])
-        except (ValueError, TypeError) as hasHeader:
-            pass
         else:
-            hasHeader -= 1
+            try:
+                colType(header[col])
+            except (ValueError, TypeError) as hasHeader:
+                pass
+            else:
+                hasHeader -= 1
         return hasHeader > 0
 
 

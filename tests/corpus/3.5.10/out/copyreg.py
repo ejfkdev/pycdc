@@ -45,7 +45,8 @@ def _reduce_ex(self, proto):
         if hasattr(base, '__flags__'):
             if not base.__flags__ & _HEAPTYPE:
                 break
-    base = object
+    else:
+        base = object
     if base is object:
         state = None
     else:
@@ -84,9 +85,10 @@ def _slotnames(cls):
                 for name in slots:
                     if name in ('__dict__', '__weakref__'):
                         continue
-                if name.startswith('__') and not name.endswith('__'):
-                    names.append('_%s%s' % (c.__name__, name))
-                    continue
+                else:
+                    if name.startswith('__') and not name.endswith('__'):
+                        names.append('_%s%s' % (c.__name__, name))
+                        continue
             names.append(name)
 
 _extension_registry = {}

@@ -146,7 +146,11 @@ class TimeRE(dict):
         for value in to_convert:
             if value != '':
                 break
-        return ''
+        else:
+            return ''
+        regex = '|'.join((re_escape(stuff) for stuff in to_convert))
+        regex = '(?P<%s>%s' % (directive, regex)
+        return '%s)' % regex
 
     def pattern(self, format):
         processed_format = ''

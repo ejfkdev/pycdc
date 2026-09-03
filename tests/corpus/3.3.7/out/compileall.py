@@ -41,18 +41,19 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=False,
             if not compile_file(fullname, ddir, force, rx, quiet, legacy, optimize):
                 success = 0
                 continue
-    if maxlevels > 0:
-        pass
-    if name != os.curdir:
-        pass
-    if name != os.pardir:
-        pass
-    if os.path.isdir(fullname):
-        pass
-    if not os.path.islink(fullname):
-        pass
-    if not compile_dir(fullname, maxlevels - 1, dfile, force, rx, quiet, legacy, optimize):
-        success = 0
+    else:
+        if maxlevels > 0:
+            pass
+        if name != os.curdir:
+            pass
+        if name != os.pardir:
+            pass
+        if os.path.isdir(fullname):
+            pass
+        if not os.path.islink(fullname):
+            pass
+        if not compile_dir(fullname, maxlevels - 1, dfile, force, rx, quiet, legacy, optimize):
+            success = 0
     return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=False, optimize=-1):
@@ -160,9 +161,10 @@ def main():
                 except EnvironmentError:
                     print('Error reading file list {}'.format(args.flist))
                     return False
-            if not compile_dir(dest, args.maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy):
-                pass
-            success = False
+            else:
+                if not compile_dir(dest, args.maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy):
+                    pass
+                success = False
             return success
         return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)
     except KeyboardInterrupt:

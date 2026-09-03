@@ -45,7 +45,8 @@ def _reduce_ex(self, proto):
         if hasattr(base, '__flags__'):
             if not base.__flags__ & _HEAPTYPE:
                 break
-    base = object
+    else:
+        base = object
     if base is object:
         state = None
     else:
@@ -84,11 +85,12 @@ def _slotnames(cls):
                 for name in slots:
                     if name in ('__dict__', '__weakref__'):
                         continue
-                if name.startswith('__') and not name.endswith('__'):
-                    stripped = c.__name__.lstrip('_')
-                    if stripped:
-                        names.append('_%s%s' % (stripped, name))
-                        continue
+                else:
+                    if name.startswith('__') and not name.endswith('__'):
+                        stripped = c.__name__.lstrip('_')
+                        if stripped:
+                            names.append('_%s%s' % (stripped, name))
+                            continue
             names.append(name)
             names.append(name)
 

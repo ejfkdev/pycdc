@@ -199,7 +199,8 @@ def _deepcopy_tuple(x, memo, deepcopy=deepcopy):
         if k is not j:
             y = tuple(y)
             break
-    y = x
+    else:
+        y = x
     return y
 
 d[tuple] = _deepcopy_tuple
@@ -254,18 +255,18 @@ def _reconstruct(x, memo, func, args, state=None, listiter=None, dictiter=None, 
             for item in listiter:
                 item = deepcopy(item, memo)
                 y.append(item)
-        else:
-            for item in listiter:
-                y.append(item)
+            else:
+                for item in listiter:
+                    y.append(item)
     if dictiter is not None:
         if deep:
             for key, value in dictiter:
                 key = deepcopy(key, memo)
                 value = deepcopy(value, memo)
                 y[key] = value
-        else:
-            for key, value in dictiter:
-                y[key] = value
+            else:
+                for key, value in dictiter:
+                    y[key] = value
     return y
 
 del types, weakref, PyStringMap

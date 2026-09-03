@@ -131,7 +131,8 @@ def iter_child_nodes(node):
             for item in field:
                 if isinstance(item, AST):
                     yield item
-            continue
+            else:
+                continue
 
 def get_docstring(node, clean=True):
     if not isinstance(node, (FunctionDef, ClassDef, Module)):
@@ -181,10 +182,12 @@ class NodeVisitor(object):
                 for item in value:
                     if isinstance(item, AST):
                         self.visit(item)
-                continue
-        if isinstance(value, AST):
-            pass
-        self.visit(value)
+                else:
+                    continue
+        else:
+            if isinstance(value, AST):
+                pass
+            self.visit(value)
 
 
 class NodeTransformer(NodeVisitor):

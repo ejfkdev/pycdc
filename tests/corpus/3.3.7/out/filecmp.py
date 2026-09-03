@@ -140,7 +140,8 @@ class dircmp:
                 self.common_files.append(x)
                 continue
             self.common_funny.append(x)
-        self.common_funny.append(x)
+        else:
+            self.common_funny.append(x)
 
     def phase3(self):
         xx = cmpfiles(self.left, self.right, self.common_files)

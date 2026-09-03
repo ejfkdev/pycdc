@@ -60,7 +60,8 @@ if __name__ == '__main__':
                             path = index
                             break
                             continue
-                    return self.list_directory(path)
+                    else:
+                        return self.list_directory(path)
                 ctype = self.guess_type(path)
 
             def list_directory(self, path):

@@ -274,7 +274,8 @@ class Sniffer:
                                         if k in delimiters:
                                             delims[k] = v
                                             continue
-                    continue
+                    else:
+                        continue
                 consistency -= 0.01
             if len(delims) == 1:
                 delim = list(delims.keys())[0]
@@ -315,12 +316,16 @@ class Sniffer:
                         break
                     except (ValueError, OverflowError):
                         pass
+                else:
+                    continue
                 thisType = len(row[col])
                 if thisType != columnTypes[col]:
                     if columnTypes[col] is None:
                         columnTypes[col] = thisType
                         continue
                 del columnTypes[col]
+            else:
+                continue
         hasHeader = 0
         for col, colType in columnTypes.items():
             if type(colType) == type(0):
@@ -328,12 +333,13 @@ class Sniffer:
                     hasHeader += 1
                     continue
             hasHeader -= 1
-        try:
-            colType(header[col])
-        except (ValueError, TypeError) as hasHeader:
-            pass
         else:
-            hasHeader -= 1
+            try:
+                colType(header[col])
+            except (ValueError, TypeError) as hasHeader:
+                pass
+            else:
+                hasHeader -= 1
         return hasHeader > 0
 
 

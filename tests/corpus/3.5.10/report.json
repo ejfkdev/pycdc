@@ -23,7 +23,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 142: orig  args=[BinOp(left=Num(n=1) | dec  args=[Num(n=10715086071862673209484250490600018105614048117055336074437503883703510511249",
    "verdict": "SIG-DIFF",
-   "ndiff": 3053,
+   "ndiff": 3027,
    "ntotal": 3095,
    "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -75,7 +75,7 @@
    "module": "_strptime",
    "ast_detail": "diff at token 79: orig  attr='__calc_weekday' | dec  attr='_LocaleTime__calc_weekday'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1762,
+   "ndiff": 1750,
    "ntotal": 1848,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -127,8 +127,8 @@
    "module": "asynchat",
    "ast_detail": "diff at token 235: orig  body=[Try(body=[Assign(targets=[Name(id='data' | dec  body=[Assign(targets=[Name(id='why'",
    "verdict": "SIG-DIFF",
-   "ndiff": 662,
-   "ntotal": 920,
+   "ndiff": 668,
+   "ntotal": 919,
    "detail": "line 227: orig ('SETUP_EXCEPT', 'to 25') | got ('LOAD_CONST', 'None')\nline 228: orig ('LOAD_FAST', 'self') | got ('STORE_FAST', 'why')\nline 229: orig ('LOAD_ATTR', 'recv') | got ('DELETE_FAST', 'why')"
   },
   {
@@ -243,9 +243,9 @@
    "module": "codeop",
    "ast_detail": "diff at token 57: orig  If(test=BoolOp(op=And() | dec  If(test=Name(id='line'",
    "verdict": "SIG-DIFF",
-   "ndiff": 216,
+   "ndiff": 215,
    "ntotal": 327,
-   "detail": "line 65: orig ('SETUP_LOOP', 'to 79') | got ('SETUP_LOOP', 'to 61')\nline 106: orig ('SETUP_EXCEPT', 'to 132') | got ('LOAD_CONST', 'None')\nline 107: orig ('LOAD_FAST', 'compiler') | got ('STORE_FAST', 'err')"
+   "detail": "line 106: orig ('SETUP_EXCEPT', 'to 132') | got ('LOAD_CONST', 'None')\nline 107: orig ('LOAD_FAST', 'compiler') | got ('STORE_FAST', 'err')\nline 108: orig ('LOAD_FAST', 'source') | got ('DELETE_FAST', 'err')"
   },
   {
    "module": "colorsys",
@@ -289,7 +289,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 333,
    "ntotal": 525,
-   "detail": "line 169: orig ('SETUP_LOOP', 'to 77') | got ('SETUP_LOOP', 'to 70')\nline 174: orig ('FOR_ITER', 'to 70') | got ('FOR_ITER', 'to 69')\nline 185: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
+   "detail": "line 169: orig ('SETUP_LOOP', 'to 77') | got ('SETUP_LOOP', 'to 76')\nline 174: orig ('FOR_ITER', 'to 70') | got ('FOR_ITER', 'to 69')\nline 185: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },
   {
    "module": "crypt",
@@ -303,8 +303,8 @@
    "module": "csv",
    "ast_detail": "diff at token 128: orig  body=[Try(body=[Expr(value=Call(func=Name(id='_Dialect' | dec  body=[Assign(targets=[Name(id='e'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1623,
-   "ntotal": 1656,
+   "ndiff": 1625,
+   "ntotal": 1657,
    "detail": "line 8: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 12: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 13: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   }
  ]

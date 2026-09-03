@@ -292,9 +292,10 @@ class Cmd:
                     break
             if totwidth <= displaywidth:
                 break
-        nrows = len(list)
-        ncols = 1
-        colwidths = [0]
+        else:
+            nrows = len(list)
+            ncols = 1
+            colwidths = [0]
         for row in range(nrows):
             texts = []
             for col in range(ncols):

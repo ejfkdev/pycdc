@@ -35,14 +35,15 @@ def dis(x=None):
                 except TypeError as msg:
                     print('Sorry:', msg)
                 print()
-    elif hasattr(x, 'co_code'):
-        disassemble(x)
-    elif isinstance(x, (bytes, bytearray)):
-        _disassemble_bytes(x)
-    elif isinstance(x, str):
-        _disassemble_str(x)
-    else:
-        raise TypeError("don't know how to disassemble %s objects" % type(x).__name__)
+        else:
+            if hasattr(x, 'co_code'):
+                disassemble(x)
+            elif isinstance(x, (bytes, bytearray)):
+                _disassemble_bytes(x)
+            elif isinstance(x, str):
+                _disassemble_str(x)
+            else:
+                raise TypeError("don't know how to disassemble %s objects" % type(x).__name__)
 
 def distb(tb=None):
     if tb is None:
@@ -66,7 +67,8 @@ def pretty_flags(flags):
             if not flags:
                 break
                 continue
-    names.append(hex(flags))
+    else:
+        names.append(hex(flags))
     return ', '.join(names)
 
 def code_info(x):

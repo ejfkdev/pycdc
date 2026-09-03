@@ -501,7 +501,8 @@ class SafeConfigParser(ConfigParser):
                         self._interpolate_some(option, accum, v, section, map, depth + 1)
                     continue
             accum.append(v)
-        raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
+        else:
+            raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
 
     def set(self, section, option, value):
         if not isinstance(value, basestring):

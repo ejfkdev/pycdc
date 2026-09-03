@@ -68,8 +68,9 @@ def _maybe_compile(compiler, source, filename, symbol):
         if line:
             if line[0] != '#':
                 break
-    if symbol != 'eval':
-        source = 'pass'
+    else:
+        if symbol != 'eval':
+            source = 'pass'
     err = err1 = err2 = None
     code = code1 = code2 = None
     try:

@@ -65,7 +65,8 @@ if __name__ == '__main__':
                         if os.path.exists(index):
                             path = index
                             break
-                    return self.list_directory(path)
+                    else:
+                        return self.list_directory(path)
                 ctype = self.guess_type(path)
                 f.close()
                 raise

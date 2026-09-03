@@ -211,7 +211,8 @@ class NodeVisitor(object):
                 for item in value:
                     if isinstance(item, AST):
                         self.visit(item)
-                continue
+                else:
+                    continue
             if isinstance(value, AST):
                 self.visit(value)
 

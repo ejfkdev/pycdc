@@ -196,6 +196,10 @@ class local(_localbase):
     def __del__(self):
         import threading
         key = object.__getattribute__(self, '_local__key')
+        return
+        for thread in threads:
+            if key in __dict__:
+                continue
 
 
 from threading import current_thread
