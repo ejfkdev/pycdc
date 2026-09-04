@@ -388,11 +388,6 @@ class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if not self.is_rpc_path_valid():
             self.report_404()
             return
-        data = ''.join(L)
-        data = self.decode_request_content(data)
-        if data is None:
-            return
-        response = self.server._marshaled_dispatch(data, getattr(self, '_dispatch', None), self.path)
         if self.encode_threshold is not None and len(response) > self.encode_threshold:
             if q:
                 try:

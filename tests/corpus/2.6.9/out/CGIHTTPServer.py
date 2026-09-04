@@ -110,7 +110,6 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 i = path.find('/', len(dir) + 1)
                 continue
             break
-            continue
         i = rest.rfind('?')
         if i >= 0:
             rest, query = rest[:i], rest[i + 1:]

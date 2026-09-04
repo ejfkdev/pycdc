@@ -207,7 +207,6 @@ def walk(node):
         node = todo.popleft()
         todo.extend(iter_child_nodes(node))
         yield node
-        continue
 
 class NodeVisitor(object):
     """

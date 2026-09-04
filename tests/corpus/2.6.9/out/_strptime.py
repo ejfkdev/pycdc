@@ -220,7 +220,6 @@ class TimeRE(dict):
             directive_index = format.index('%') + 1
             processed_format = '%s%s%s' % (processed_format, format[:directive_index - 1], self[format[directive_index]])
             format = format[directive_index + 1:]
-            continue
         return '%s%s' % (processed_format, format)
 
     def compile(self, format):

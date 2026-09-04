@@ -221,7 +221,6 @@ def _unquote(str):
         res.append(str[i:j])
         res.append(chr(int(str[j + 1:j + 4], 8)))
         i = j + 4
-        continue
     return _nulljoin(res)
 
 _weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -400,7 +399,6 @@ class BaseCookie(dict):
             rval, cval = self.value_decode(V)
             self.__set(K, rval, cval)
             M = self[K]
-            continue
 
 
 class SimpleCookie(BaseCookie):

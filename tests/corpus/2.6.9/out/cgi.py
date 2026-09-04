@@ -224,7 +224,6 @@ def parse_multipart(fp, pdict):
             partdict[name].append(data)
             continue
         partdict[name] = [data]
-        continue
     return partdict
 
 def _parseparam(s):
@@ -240,7 +239,6 @@ def _parseparam(s):
         f = s[:end]
         yield f.strip()
         s = s[end:]
-        continue
 
 def parse_header(line):
     '''Parse a Content-type like header.
@@ -557,7 +555,6 @@ class FieldStorage:
             headers = rfc822.Message(self.fp)
             part = klass(self.fp, headers, ib, environ, keep_blank_values, strict_parsing)
             self.list.append(part)
-            continue
         self.skip_lines()
 
     def read_single(self):
@@ -584,8 +581,6 @@ class FieldStorage:
                     break
                 self.file.write(data)
                 todo = todo - len(data)
-                continue
-                break
 
     def read_lines(self):
         '''Internal: read lines until EOF or outerboundary.'''

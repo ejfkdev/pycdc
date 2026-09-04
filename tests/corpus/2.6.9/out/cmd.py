@@ -120,9 +120,8 @@ class Cmd:
                     line = raw_input(self.prompt)
                 except EOFError:
                     line = 'EOF'
-                continue
-            self.postloop()
         finally:
+            self.postloop()
             if self.use_rawinput and self.completekey:
                 pass
             try:
@@ -171,7 +170,6 @@ class Cmd:
         i, n = len(line), 0
         while i < n and line[i] in self.identchars:
             i = i + 1
-            continue
         cmd, arg = line[:i], line[i:].strip()
         return cmd, arg, line
 
@@ -271,7 +269,6 @@ class Cmd:
             if aclass.__bases__:
                 classes = classes + list(aclass.__bases__)
             names = names + dir(aclass)
-            continue
         return names
 
     def complete_help(self, *args):
@@ -386,7 +383,6 @@ class Cmd:
                 texts.append(x)
             while texts and not texts[-1]:
                 del texts[-1]
-                continue
             for col in range(len(texts)):
                 texts[col] = texts[col].ljust(colwidths[col])
             self.stdout.write('%s\n' % str('  '.join(texts)))

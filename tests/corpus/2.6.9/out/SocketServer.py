@@ -198,7 +198,6 @@ class BaseServer:
                 if self in r:
                     self._handle_request_noblock()
                     continue
-                continue
         finally:
             self.__shutdown_request = False
             self.__is_shut_down.set()
@@ -425,7 +424,6 @@ class ForkingMixIn:
             if pid not in self.active_children:
                 continue
             self.active_children.remove(pid)
-            continue
         for child in self.active_children:
             try:
                 pid, status = os.waitpid(child, os.WNOHANG)

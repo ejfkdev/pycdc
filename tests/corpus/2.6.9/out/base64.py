@@ -224,10 +224,8 @@ def encode(input, output):
             if not ns:
                 break
             s += ns
-            continue
         line = binascii.b2a_base64(s)
         output.write(line)
-        continue
 
 def decode(input, output):
     '''Decode a file.'''
@@ -238,7 +236,6 @@ def decode(input, output):
             break
         s = binascii.a2b_base64(line)
         output.write(s)
-        continue
 
 def encodestring(s):
     '''Encode a string into multiple lines of base-64 data.'''

@@ -141,7 +141,6 @@ class HTMLParser(markupbase.ParserBase):
                         k = k - 1
                     i = self.updatepos(i, k)
                     continue
-            continue
         if end and i < n:
             self.handle_data(rawdata[i:n])
             i = self.updatepos(i, n)
@@ -186,7 +185,6 @@ class HTMLParser(markupbase.ParserBase):
                     attrvalue = self.unescape(attrvalue)
             attrs.append((attrname.lower(), attrvalue))
             k = m.end()
-            continue
         end = rawdata[k:endpos].strip()
         if end not in ('>', '/>'):
             lineno, offset = self.getpos()

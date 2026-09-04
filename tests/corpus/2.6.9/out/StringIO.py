@@ -147,7 +147,6 @@ class StringIO:
             if 0 < sizehint <= total:
                 break
             line = self.readline()
-            continue
         return lines
 
     def truncate(self, size=None):

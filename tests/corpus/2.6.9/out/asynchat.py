@@ -102,7 +102,6 @@ class async_chat(asyncore.dispatcher):
             continue
             self.collect_incoming_data(self.ac_in_buffer)
             self.ac_in_buffer = ''
-            continue
 
     def handle_write(self):
         self.initiate_send()

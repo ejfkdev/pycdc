@@ -106,7 +106,6 @@ class _Hqxcoderengine:
             self.ofp.write(self.hqxdata[first:last] + '\n')
             self.linelen = LINELEN
             first = last
-            continue
         self.hqxdata = self.hqxdata[first:]
         if force:
             self.ofp.write(self.hqxdata + ':\n')
@@ -276,7 +275,6 @@ class _Hqxdecoderengine:
             if not decdata and not self.eof:
                 raise Error('Premature EOF on binhex file')
                 continue
-            continue
         return decdata
 
     def close(self):
@@ -384,7 +382,6 @@ class HexBin:
         rv = ''
         while len(rv) < n:
             rv = rv + self._read(n - len(rv))
-            continue
         self.dlen = self.dlen - n
         return rv
 

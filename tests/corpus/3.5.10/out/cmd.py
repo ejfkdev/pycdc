@@ -124,8 +124,8 @@ class Cmd:
                     line = input(self.prompt)
                 except EOFError:
                     line = 'EOF'
-        finally:
             self.postloop()
+        finally:
             if self.use_rawinput and self.completekey:
                 pass
             try:

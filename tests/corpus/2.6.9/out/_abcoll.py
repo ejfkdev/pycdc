@@ -44,7 +44,6 @@ class Iterable:
     def __iter__(self):
         while False:
             yield None
-            continue
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -266,7 +265,6 @@ class MutableSet(Set):
         try:
             while True:
                 self.pop()
-                continue
         except KeyError:
             pass
 
@@ -433,7 +431,6 @@ class MutableMapping(Mapping):
         try:
             while True:
                 self.popitem()
-                continue
         except KeyError:
             pass
 
@@ -479,7 +476,6 @@ class Sequence(Sized, Iterable, Container):
                 v = self[i]
                 yield v
                 i += 1
-                continue
         except IndexError:
             return
 

@@ -177,12 +177,10 @@ def loop(timeout=30.0, use_poll=False, map=None, count=None):
     if count is None:
         while map:
             poll_fun(timeout, map)
-            continue
-            break
+        else:
             while map and count > 0:
                 poll_fun(timeout, map)
                 count = count - 1
-                continue
 
 class dispatcher:
     debug = False
@@ -431,7 +429,6 @@ def compact_traceback():
     while tb:
         tbinfo.append((tb.tb_frame.f_code.co_filename, tb.tb_frame.f_code.co_name, str(tb.tb_lineno)))
         tb = tb.tb_next
-        continue
     del tb
     file, function, line = tbinfo[-1]
     _[1] = []

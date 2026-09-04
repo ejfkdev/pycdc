@@ -7723,6 +7723,16 @@ impl<'a> Ctx<'a> {
                 if target != top.end && !pop_block_equiv {
                     // exit target differs from SETUP_LOOP end -> while/else
                     top.loop_else_end = Some(target);
+                } else if pop_block_equiv && target < top.end {
+                    // py2.6/2.7 while-else: the exit target IS the
+                    // POP_BLOCK; code between it and the SETUP_LOOP target
+                    // is the else body. End the loop at the POP_BLOCK so
+                    // its close separates the else region.
+                    if let Some(&pi) = self.idx_of.get(&target) {
+                        let pb_end = self.instrs[pi].end();
+                        top.loop_else_end = Some(top.end);
+                        top.end = pb_end;
+                    }
                 }
                 return;
             }
@@ -9101,11 +9111,24 @@ impl<'a> Ctx<'a> {
                         && b.end < usize::MAX
                         && self.idx_of.contains_key(&b.end);
                     if is_setup_era {
-                        let next_is_pop_block = self
-                            .idx_of
-                            .get(&self.cur_offset)
-                            .and_then(|&ci| self.instrs.get(ci + 1))
-                            .map_or(false, |x| x.op == Op::POP_BLOCK);
+                        // py2.7+ exits straight into POP_BLOCK; py2.6's
+                        // peek-jump condition retains its value, so the
+                        // exit is `POP_TOP; POP_BLOCK` — the loop-end back
+                        // edge must not be mistaken for a `continue`.
+                        let next_is_pop_block =
+                            match self.idx_of.get(&self.cur_offset) {
+                                Some(&ci) => match self.instrs.get(ci + 1) {
+                                    Some(x) if x.op == Op::POP_BLOCK => true,
+                                    Some(x) if x.op == Op::POP_TOP => self
+                                        .instrs
+                                        .get(ci + 2)
+                                        .map_or(false, |y| {
+                                            y.op == Op::POP_BLOCK
+                                        }),
+                                    _ => false,
+                                },
+                                None => false,
+                            };
                         if !next_is_pop_block {
                             self.push_stmt(Stmt::Continue);
                             return;
@@ -9242,6 +9265,15 @@ impl<'a> Ctx<'a> {
                 }
                 BlockType::Container => {
                     // try/finally container closed at END_FINALLY; ignore
+                }
+                BlockType::While | BlockType::For
+                    if top.end == self.cur_next && top.cond_set =>
+                {
+                    // SETUP_LOOP-era loop whose end is exactly this
+                    // POP_BLOCK: close here so a following else region
+                    // (loop_else_end) opens as WhileElse/ForElse
+                    let end = top.end;
+                    self.force_close_top(end);
                 }
                 _ => {}
             }

@@ -160,7 +160,6 @@ class Bdb:
             frame.f_trace = self.trace_dispatch
             self.botframe = frame
             frame = frame.f_back
-            continue
         self.set_step()
         sys.settrace(self.trace_dispatch)
 
@@ -172,8 +171,6 @@ class Bdb:
             while frame and frame is not self.botframe:
                 del frame.f_trace
                 frame = frame.f_back
-                continue
-                break
 
     def set_quit(self):
         self.stopframe = self.botframe
@@ -269,13 +266,11 @@ class Bdb:
             if f is self.botframe:
                 break
             f = f.f_back
-            continue
         stack.reverse()
         i = max(0, len(stack) - 1)
         while t is not None:
             stack.append((t.tb_frame, t.tb_lineno))
             t = t.tb_next
-            continue
         if f is None:
             i = max(0, len(stack) - 1)
         return stack, i

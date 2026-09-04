@@ -127,7 +127,7 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2120,
+   "ndiff": 2112,
    "ntotal": 2207,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
@@ -207,9 +207,9 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1002,
+   "ndiff": 1003,
    "ntotal": 1315,
-   "detail": "line 219: orig ('SETUP_FINALLY', 'to 324') | got ('SETUP_FINALLY', 'to 314')\nline 231: orig ('LOAD_ATTR', 'stdout') | got ('LOAD_METHOD', 'stdout')\nline 232: orig ('LOAD_METHOD', 'write') | got ('LOAD_GLOBAL', 'str')"
+   "detail": "line 219: orig ('SETUP_FINALLY', 'to 324') | got ('SETUP_FINALLY', 'to 322')\nline 231: orig ('LOAD_ATTR', 'stdout') | got ('LOAD_METHOD', 'stdout')\nline 232: orig ('LOAD_METHOD', 'write') | got ('LOAD_GLOBAL', 'str')"
   },
   {
    "module": "code",

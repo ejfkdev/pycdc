@@ -461,7 +461,6 @@ class RawConfigParser:
             if not e:
                 e = ParsingError(fpname)
             e.append(lineno, repr(line))
-            continue
         if e:
             raise e
 
@@ -548,7 +547,6 @@ class ConfigParser(RawConfigParser):
                     raise InterpolationMissingOptionError(option, section, rawval, e.args[0])
                 continue
             break
-            continue
         if '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
@@ -600,7 +598,6 @@ class SafeConfigParser(ConfigParser):
                     accum.append(v)
             else:
                 raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
-            continue
 
     def set(self, section, option, value):
         '''Set an option.  Extend ConfigParser.set: check for string values.'''

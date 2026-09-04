@@ -384,7 +384,6 @@ class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     break
                 L.append(chunk)
                 size_remaining -= len(L[-1])
-                continue
             data = ''.join(L)
             response = self.server._marshaled_dispatch(data, getattr(self, '_dispatch', None))
         except Exception, e:
