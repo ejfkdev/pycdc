@@ -10005,6 +10005,16 @@ impl<'a> Ctx<'a> {
                 self.push(Rc::new(Expr::Function(Rc::new(fd))));
                 return;
             }
+            // py2 decorated class: the decorator call wraps the BUILD_CLASS
+            // marker — record it for the pending class and pass the marker
+            // through to the store
+            if self.pending_py2_class.is_some()
+                && matches!(&*args[0], Expr::Name(n) if n == "/*class-object*/")
+            {
+                self.pending_class_decorators.insert(0, func.clone());
+                self.push(args.into_iter().next().unwrap());
+                return;
+            }
         }
         let call_e: ExprRef = Rc::new(Expr::Call {
             func,
