@@ -15519,6 +15519,26 @@ impl<'a> Ctx<'a> {
         None
     }
 
+    /// The literal operand of the `CMP ==` right before instruction `i`
+    /// (a value sub-pattern check inside a class pattern).
+    fn match_prev_value_const(&self, i: usize) -> Option<ExprRef> {
+        let cj = self.match_prev_real(i)?;
+        if self.instrs[cj].op != Op::COMPARE_OP {
+            return None;
+        }
+        let li = self.match_prev_real(cj)?;
+        let ins = &self.instrs[li];
+        match ins.op {
+            Op::LOAD_CONST => Some(Rc::new(Expr::Const(
+                self.code.consts.get(ins.arg as usize)?.clone(),
+            ))),
+            Op::LOAD_SMALL_INT => Some(Rc::new(Expr::Const(Rc::new(PyObject::Int(
+                ins.arg as i32,
+            ))))),
+            _ => None,
+        }
+    }
+
     /// Advance past compiler padding.
     fn match_skip_pad(&self, i: &mut usize) {
         while matches!(
@@ -15728,6 +15748,12 @@ impl<'a> Ctx<'a> {
         let mut items: Vec<Pattern> = Vec::new();
         let mut star_pat: Option<(Pattern, usize)> = None;
         match self.instrs.get(i).map(|x| x.op) {
+            Some(Op::POP_TOP) if min_len == 0 => {
+                // empty sequence pattern `case []:` — no unpack; one
+                // POP_TOP drops the sequence, the subject dup pops at
+                // the case boundary like every other case
+                i += 1;
+            }
             Some(Op::UNPACK_SEQUENCE) => {
                 let n = self.instrs[i].arg as usize;
                 i += 1;
@@ -15972,6 +15998,10 @@ impl<'a> Ctx<'a> {
         // scan forward: collect capture stores until the subject POP_TOP
         // that precedes the body; everything else is extraction boilerplate
         let mut caps: Vec<String> = Vec::new();
+        // key-slot events in scan order: literal value sub-patterns
+        // (`{'kind': 'circle'}`) interleave with capture stores
+        let mut values: Vec<(usize, ExprRef)> = Vec::new();
+        let mut seen = 0usize;
         let mut scan = 0;
         let mut saw_dict_without = false;
         let body_start;
@@ -15984,22 +16014,34 @@ impl<'a> Ctx<'a> {
             match ins.op {
                 Op::STORE_FAST | Op::STORE_FAST_MAYBE_NULL => {
                     caps.push(self.local_name(ins.arg as usize));
+                    seen += 1;
                     i += 1;
                 }
                 Op::STORE_NAME => {
                     caps.push(self.const_name(ins.arg as usize));
+                    seen += 1;
                     i += 1;
                 }
                 Op::STORE_FAST_STORE_FAST => {
                     caps.push(self.local_name(((ins.arg >> 4) & 0xF) as usize));
                     caps.push(self.local_name((ins.arg & 0xF) as usize));
+                    seen += 2;
                     i += 1;
                 }
                 Op::STORE_FAST_LOAD_FAST => {
                     caps.push(self.local_name(((ins.arg >> 4) & 0xF) as usize));
+                    seen += 1;
                     i += 1;
                 }
-                Op::POP_TOP if !caps.is_empty() => {
+                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE => {
+                    // a value sub-pattern check consumes a key slot
+                    if let Some(lit) = self.match_prev_value_const(i) {
+                        values.push((seen, lit));
+                        seen += 1;
+                    }
+                    i += 1;
+                }
+                Op::POP_TOP if seen > 0 => {
                     while matches!(self.instrs.get(i).map(|x| x.op), Some(Op::POP_TOP)) {
                         i += 1;
                     }
@@ -16016,37 +16058,55 @@ impl<'a> Ctx<'a> {
                 _ => i += 1,
             }
         }
-        // first nkeys captures are the key values (source order); an extra
-        // one is the **rest binding (it precedes them in 3.12+ stores)
+        // captures fill the key slots not consumed by literal value
+        // sub-patterns; an extra one is the **rest binding (it precedes
+        // them in 3.11+ stores, follows in the 3.10 COPY_DICT_WITHOUT_KEYS
+        // extraction)
+        let needed = nkeys.saturating_sub(values.len());
         let rest;
         let value_caps;
-        if caps.len() == nkeys {
+        if caps.len() == needed {
             rest = None;
             value_caps = caps;
-        } else if caps.len() == nkeys + 1 {
+        } else if caps.len() == needed + 1 {
             if saw_dict_without {
-                // 3.10: per-key SUBSCR extraction stores the key values
-                // first and the **rest dict last
                 rest = caps.pop();
             } else {
-                // 3.11+: dict-shuffle stores the **rest first
                 rest = Some(caps.remove(0));
             }
             value_caps = caps;
         } else {
             return None;
         }
-        let mut items: Vec<(ExprRef, Pattern)> = Vec::new();
-        for (k, name) in keys.into_iter().zip(value_caps) {
-            items.push((
-                k,
-                if name == "_" {
+        if !(seen == nkeys || (rest.is_some() && seen == nkeys + 1)) {
+            return None;
+        }
+        // merge: value sub-patterns occupy their scanned slot positions,
+        // captures fill the rest in order
+        let mut slot_pat: Vec<Option<Pattern>> = vec![None; nkeys];
+        for (pos, lit) in values {
+            if pos < nkeys {
+                slot_pat[pos] = Some(Pattern::Value(lit));
+            }
+        }
+        let mut cap_iter = value_caps.into_iter();
+        for s in slot_pat.iter_mut() {
+            if s.is_none() {
+                let Some(name) = cap_iter.next() else {
+                    return None;
+                };
+                *s = Some(if name == "_" {
                     Pattern::Wildcard
                 } else {
                     Pattern::Capture(name)
-                },
-            ));
+                });
+            }
         }
+        let items: Vec<(ExprRef, Pattern)> = keys
+            .into_iter()
+            .zip(slot_pat.into_iter())
+            .map(|(k, p)| (k, p.unwrap_or(Pattern::Wildcard)))
+            .collect();
         let rest = rest.map(|r| if r == "_" { "_".to_string() } else { r });
         let pat = Pattern::Mapping { items, rest };
         // 3.11+ or-arm: success jumps to the shared body block
@@ -16119,35 +16179,145 @@ impl<'a> Ctx<'a> {
             _ => return None,
         }
         self.match_skip_pad(&mut i);
+        // one slot per extracted attribute: a capture name, or a literal
+        // value sub-pattern checked inline (`case Point(0, y=1)`)
+        let cap = |n: String| {
+            if n == "_" {
+                Pattern::Wildcard
+            } else {
+                Pattern::Capture(n)
+            }
+        };
+        let mut slots: Vec<Option<Pattern>> = vec![None; nattr_total];
         let mut captures: Vec<String> = Vec::new();
         if self.instrs.get(i).map(|x| x.op) == Some(Op::UNPACK_SEQUENCE) {
             if self.instrs[i].arg as usize != nattr_total {
                 return None;
             }
             i += 1;
-            while captures.len() < nattr_total {
+            // UNPACK_SEQUENCE leaves attribute 0 on TOP of the simulated
+            // slot stack; SWAP/ROT reach deeper slots, CMP consumes one,
+            // stores capture one
+            let mut stack: Vec<usize> = (0..nattr_total).rev().collect();
+            let mut filled = 0usize;
+            while filled < nattr_total {
                 self.match_skip_pad(&mut i);
                 let ins = self.instrs.get(i).copied()?;
                 match ins.op {
                     Op::STORE_FAST | Op::STORE_FAST_MAYBE_NULL => {
-                        captures.push(self.local_name(ins.arg as usize));
+                        let s = stack.pop()?;
+                        if slots[s].is_none() {
+                            slots[s] = Some(cap(self.local_name(ins.arg as usize)));
+                            filled += 1;
+                        }
                         i += 1;
                     }
                     Op::STORE_NAME => {
-                        captures.push(self.const_name(ins.arg as usize));
+                        let s = stack.pop()?;
+                        if slots[s].is_none() {
+                            slots[s] = Some(cap(self.const_name(ins.arg as usize)));
+                            filled += 1;
+                        }
                         i += 1;
                     }
                     Op::STORE_FAST_STORE_FAST => {
-                        captures.push(self.local_name(((ins.arg >> 4) & 0xF) as usize));
-                        captures.push(self.local_name((ins.arg & 0xF) as usize));
+                        let a = stack.pop()?;
+                        let b = stack.pop()?;
+                        if slots[a].is_none() {
+                            slots[a] = Some(cap(self.local_name(((ins.arg >> 4) & 0xF) as usize)));
+                            filled += 1;
+                        }
+                        if slots[b].is_none() {
+                            slots[b] = Some(cap(self.local_name((ins.arg & 0xF) as usize)));
+                            filled += 1;
+                        }
                         i += 1;
                     }
                     Op::STORE_FAST_LOAD_FAST => {
-                        captures.push(self.local_name(((ins.arg >> 4) & 0xF) as usize));
+                        let a = stack.pop()?;
+                        if slots[a].is_none() {
+                            slots[a] = Some(cap(self.local_name(((ins.arg >> 4) & 0xF) as usize)));
+                            filled += 1;
+                        }
                         i += 1;
+                    }
+                    Op::SWAP => {
+                        let n = ins.arg as usize;
+                        if n < 2 || n > stack.len() {
+                            return None;
+                        }
+                        let l = stack.len();
+                        stack.swap(l - n, l - 1);
+                        i += 1;
+                    }
+                    Op::ROT_TWO => {
+                        let l = stack.len();
+                        if l < 2 {
+                            return None;
+                        }
+                        stack.swap(l - 1, l - 2);
+                        i += 1;
+                    }
+                    Op::ROT_THREE => {
+                        let l = stack.len();
+                        if l < 3 {
+                            return None;
+                        }
+                        let v = stack.remove(l - 3);
+                        stack.push(v);
+                        i += 1;
+                    }
+                    Op::COPY | Op::DUP_TOP => {
+                        let t = *stack.last()?;
+                        stack.push(t);
+                        i += 1;
+                    }
+                    Op::LOAD_CONST | Op::LOAD_SMALL_INT | Op::LOAD_GLOBAL
+                    | Op::LOAD_NAME | Op::LOAD_ATTR | Op::LOAD_FAST
+                    | Op::LOAD_DEREF | Op::BUILD_TUPLE | Op::PUSH_NULL
+                    | Op::LOAD_METHOD | Op::CALL | Op::CALL_FUNCTION
+                    | Op::BINARY_OP | Op::COMPARE_OP => {
+                        // part of an inline value sub-pattern check — the
+                        // operands never touch the attribute slot stack
+                        i += 1;
+                    }
+                    Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE => {
+                        // `CMP == <lit>; PJIF fail` consumed the top slot
+                        // as a literal value pattern: recover the literal
+                        // from the comparison's other operand. The first
+                        // check jumps to the fail POP_TOP; later checks
+                        // jump PAST it (the list pop already happened)
+                        let fail_ok = ins.target.map_or(false, |t| {
+                            t == fail
+                                || self
+                                    .idx_of
+                                    .get(&fail)
+                                    .map_or(false, |&fi| {
+                                        self.instrs[fi].end() == t
+                                            || t > fail && t <= self.instrs[fi].end() + 2
+                                    })
+                        });
+                        if !fail_ok {
+                            return None;
+                        }
+                        let lit = self.match_prev_value_const(i)?;
+                        let s = stack.pop()?;
+                        if slots[s].is_none() {
+                            slots[s] = Some(Pattern::Value(lit));
+                            filled += 1;
+                        }
+                        i += 1;
+                    }
+                    Op::POP_TOP => {
+                        // discard the MATCH_CLASS result list
+                        i += 1;
+                        break;
                     }
                     _ => return None,
                 }
+            }
+            if filled != nattr_total {
+                return None;
             }
         } else if nattr_total > 0 && !self.version.at_least(3, 12) {
             // 3.10/3.11 per-attribute extraction:
@@ -16184,21 +16354,25 @@ impl<'a> Ctx<'a> {
         } else {
             return None;
         }
-        if captures.len() != nattr_total {
+        if captures.len() == nattr_total && slots.iter().all(|s| s.is_none()) {
+            // the per-attribute extraction path filled captures in slot
+            // order (positional first, then keyword)
+            for (s, n) in slots.iter_mut().zip(captures.into_iter()) {
+                *s = Some(cap(n));
+            }
+        }
+        if slots.iter().any(|s| s.is_none()) {
             return None;
         }
-        let cap = |n: String| {
-            if n == "_" {
-                Pattern::Wildcard
-            } else {
-                Pattern::Capture(n)
-            }
-        };
-        let patterns: Vec<Pattern> = captures.iter().take(npos).cloned().map(cap).collect();
+        let patterns: Vec<Pattern> = slots
+            .iter()
+            .take(npos)
+            .map(|s| s.clone().unwrap_or(Pattern::Wildcard))
+            .collect();
         let keywords: Vec<(String, Pattern)> = kw_names
             .into_iter()
-            .zip(captures.into_iter().skip(npos))
-            .map(|(k, v)| (k, cap(v)))
+            .zip(slots.into_iter().skip(npos))
+            .map(|(k, v)| (k, v.unwrap_or(Pattern::Wildcard)))
             .collect();
         let pat = Pattern::Class { cls, patterns, keywords };
         // 3.11+ or-arm: success jumps to the shared body block

@@ -698,7 +698,14 @@ impl Printer {
                 self.indent -= 1;
             }
             Stmt::Unimplemented(text) => {
-                self.write_line(text);
+                // source validity: the C-style marker would be a syntax
+                // error in Python — render as a comment plus `pass`
+                let cleaned = text
+                    .trim_start_matches("/*")
+                    .trim_end_matches("*/")
+                    .trim();
+                self.write_line(&format!("# UNIMPLEMENTED: {cleaned}"));
+                self.write_line("pass");
             }
         }
     }
