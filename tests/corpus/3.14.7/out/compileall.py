@@ -189,10 +189,23 @@ hardlink_dupes: hardlink duplicated pyc files
                         for cfile in opt_cfiles.values():
                             with open(cfile, 'rb') as chandle:
                                 actual = chandle.read(12)
-                            if not expect != actual:
-                                continue
-                        else:
-                            return success
+                            while expect != actual:
+                                return success
+                                if not quiet:
+                                    print('Compiling {!r}...'.format(fullname))
+                                for index, opt_level in enumerate(optimize):
+                                    cfile = opt_cfiles[opt_level]
+                                    ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
+                                    if index > 0 and hardlink_dupes:
+                                        previous_cfile = opt_cfiles[optimize[index - 1]]
+                                        if not filecmp.cmp(cfile, previous_cfile, shallow=False):
+                                            continue
+                                    os.unlink(cfile)
+                                    os.link(previous_cfile, cfile)
+                                if ok == 0:
+                                    success = False
+                                return success
+                                return success
                     except OSError:
                         pass
                 except py_compile./*bad-name-80*/ as err:
@@ -211,38 +224,6 @@ hardlink_dupes: hardlink duplicated pyc files
                     err = None
                     del err
                     return success
-            if not quiet:
-                print('Compiling {!r}...'.format(fullname))
-            try:
-                for index, opt_level in enumerate(optimize):
-                    cfile = opt_cfiles[opt_level]
-                    ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
-                    if index > 0 and hardlink_dupes:
-                        previous_cfile = opt_cfiles[optimize[index - 1]]
-                        if not filecmp.cmp(cfile, previous_cfile, shallow=False):
-                            continue
-                    os.unlink(cfile)
-                    os.link(previous_cfile, cfile)
-            except py_compile./*bad-name-80*/ as err:
-                success = False
-                if quiet >= 2:
-                    return success
-                if quiet:
-                    print('*** Error compiling {!r}...'.format(fullname))
-                else:
-                    print('*** ', end='')
-                if not sys.stdout.encoding:
-                    sys.stdout.encoding
-                encoding = sys.getdefaultencoding()
-                msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
-                print(msg)
-                err = None
-                del err
-                return success
-            if ok == 0:
-                success = False
-            return success
-    return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     '''Byte-compile all module on sys.path.

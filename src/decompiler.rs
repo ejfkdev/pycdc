@@ -368,6 +368,9 @@ struct Ctx<'a> {
     /// 3.5: BUILD_MAP_UNPACK_WITH_CALL set the with-call flag — the next
     /// CALL_FUNCTION_KW 0 pops the merged dict as **kwargs
     pending_star_kw_call: bool,
+    /// offsets of jumps recognized as a nested loop's threaded `break`
+    /// (jump onto the enclosing loop's back edge)
+    threaded_break_at: HashSet<usize>,
     /// loop tops whose loop already closed via their back edge: later dead
     /// back edges to the same top are padding, not `continue`
     closed_loop_tops: Vec<usize>,
@@ -587,6 +590,7 @@ pub fn decompile_in_scope(
         broken_loop_top: None,
         py2_else_pop_at: None,
         pending_star_kw_call: false,
+        threaded_break_at: HashSet::new(),
         closed_loop_tops: Vec::new(),
         while_true_loops: Vec::new(),
         pending_as_cleanup: None,
@@ -5015,6 +5019,20 @@ impl<'a> Ctx<'a> {
                         return true;
                     }
                 }
+                // a BACKWARD jump onto an enclosing loop's top that is not
+                // a continue (no inner block open above it): the compiler
+                // threaded a nested loop's `break` onto the enclosing back
+                // edge — emit the break
+                // a nested loop's `break` that the compiler threaded onto
+                // the enclosing loop's back edge (recorded when the nested
+                // While was opened): emit the break and close to the
+                // enclosing loop
+                if self.threaded_break_at.contains(&self.cur_offset) {
+                    self.close_blocks_at(self.cur_offset);
+                    self.push_stmt(Stmt::Break);
+                    self.close_inner_blocks_to_loop();
+                    return true;
+                }
                 // jump-threaded folded exit: a FORWARD jump landing on the
                 // loop's own back-edge instruction (the compiler threads
                 // branch exits that flow into the iteration end)
@@ -5041,6 +5059,14 @@ impl<'a> Ctx<'a> {
                                         })
                                         .map(|l| l.start)
                         });
+                // a jump onto a nested rotated-while's exit trampoline is
+                // a `break` of that loop
+                if self.threaded_break_at.contains(&target) {
+                    self.close_blocks_at(self.cur_offset);
+                    self.push_stmt(Stmt::Break);
+                    self.close_inner_blocks_to_loop();
+                    return true;
+                }
                 // degenerate `if c: break` fusion (3.12): the back edge is
                 // the ENTIRE then-region of a just-opened If — let the
                 // fused-continue machinery below record the Continue and
@@ -8120,6 +8146,170 @@ impl<'a> Ctx<'a> {
         Some((merged, bs, body_end))
     }
 
+    /// 3.8-3.11 statement-level chained comparison as an if condition:
+    /// `<l>; <m>; DUP; ROT_THREE; CMP; PJIF Lelse; <r>; CMP; PJIF Lelse;
+    /// JF Lbody; Lelse: POP_TOP; ...` — every link exits to the same else
+    /// label; success hops into the body. Returns (merged Compare,
+    /// body_start).
+    fn try_stmt_chain_compare(
+        &self,
+        cond: &ExprRef,
+        target: usize,
+    ) -> Option<(ExprRef, usize, usize)> {
+        let scc_dbg = std::env::var("PYCDC_SCC_DBG").is_ok();
+        let Expr::Compare { operands, ops } = &**cond else {
+            if scc_dbg { eprintln!("SCC: bail not-compare"); }
+            return None;
+        };
+        if operands.len() != 2 || ops.len() != 1 {
+            if scc_dbg { eprintln!("SCC: bail operands {}", operands.len()); }
+            return None;
+        }
+        let is_link_jump = |o: Op| {
+            matches!(
+                o,
+                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+            )
+        };
+        let ci = *self.idx_of.get(&self.cur_offset)?;
+        // walk the remaining links: pure value region ending in a PJIF to
+        // the SAME else label
+        let mut acc_ops = ops.clone();
+        let mut acc_operands = operands.clone();
+        let mut k = ci + 1;
+        let mut body_start = None;
+        let mut links = 0usize;
+        let mut link_targets: Vec<usize> = vec![target];
+        loop {
+            let mut region_start = k;
+            let mut jk = None;
+            let mut steps = 0;
+            while let Some(ins) = self.instrs.get(k) {
+                if is_link_jump(ins.op) {
+                    jk = Some(k);
+                    break;
+                }
+                if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP)
+                    && !ins.is_backward
+                {
+                    // chain fully matched: success hop into the body —
+                    // only after at least one additional link (a bare JF
+                    // here is a break/exit hop, not a chain)
+                    if links >= 1 {
+                        body_start = ins.target;
+                    }
+                    break;
+                }
+                if !is_pure_value_op(ins.op) {
+                    if scc_dbg { eprintln!("SCC: bail impure {:?} off={}", ins.op, ins.offset); }
+                    return None;
+                }
+                k += 1;
+                steps += 1;
+                if steps > 32 {
+                    return None;
+                }
+            }
+            if let Some(bs) = body_start {
+                let _ = region_start;
+                // scan the body for its terminator: a RETURN/RAISE ends it
+                // outright; a forward jump that nothing inside the body
+                // targets internally is the else-skip hop
+                let Some(&bi) = self.idx_of.get(&bs) else {
+                    if scc_dbg { eprintln!("SCC: bail body idx"); }
+                    return None;
+                };
+                let mut body_end = None;
+                let mut k2 = bi;
+                while let Some(ins) = self.instrs.get(k2) {
+                    if matches!(ins.op, Op::RETURN_VALUE | Op::RETURN_CONST | Op::RAISE_VARARGS) {
+                        body_end = Some(ins.end());
+                        break;
+                    }
+                    if let Some(t) = ins.target {
+                        if !ins.is_backward
+                            && t > ins.offset
+                            && matches!(
+                                ins.op,
+                                Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+                            )
+                        {
+                            let internal = self.instrs[bi..k2]
+                                .iter()
+                                .any(|x| x.target == Some(t));
+                            if !internal {
+                                body_end = Some(ins.end());
+                                break;
+                            }
+                        }
+                    }
+                    k2 += 1;
+                    if k2 - bi > 400 {
+                        return None;
+                    }
+                }
+                let Some(be) = body_end else {
+                    if scc_dbg { eprintln!("SCC: bail body_end"); }
+                    return None;
+                };
+                // no link may exit INTO the body
+                if link_targets.iter().any(|&t| t >= bs && t < be) {
+                    if scc_dbg { eprintln!("SCC: bail link-into-body"); }
+                    return None;
+                }
+                return Some((
+                    Rc::new(Expr::Compare {
+                        operands: acc_operands,
+                        ops: acc_ops,
+                    }),
+                    bs,
+                    be,
+                ));
+            }
+            let jk = match jk {
+                Some(x) => x,
+                None => {
+                    if scc_dbg { eprintln!("SCC: bail no jk"); }
+                    return None;
+                }
+            };
+            // each link exits to its own cleanup/continue label (the last
+            // link often jumps straight to the loop top) — record and
+            // validate against the body span afterwards
+            let Some(lt) = self.instrs[jk].target else {
+                return None;
+            };
+            link_targets.push(lt);
+            // the region must end with the link's COMPARE_OP; the link's
+            // rhs operand is the region BEFORE it (stack order)
+            let cmp_idx = match self.match_prev_real(jk) {
+                Some(x) if x >= region_start => x,
+                _ => {
+                    if scc_dbg { eprintln!("SCC: bail prev_real"); }
+                    return None;
+                }
+            };
+            if self.instrs[cmp_idx].op != Op::COMPARE_OP {
+                if scc_dbg { eprintln!("SCC: bail not-cmp {:?}", self.instrs[cmp_idx].op); }
+                return None;
+            }
+            let rhs = match self.sim_value_region(region_start, cmp_idx) {
+                Some(r) => r,
+                None => {
+                    if scc_dbg { eprintln!("SCC: bail sim"); }
+                    return None;
+                }
+            };
+            acc_ops.push(cmp_from_index(compare_op_index(
+                self.instrs[cmp_idx].arg as u32,
+                self.version,
+            )));
+            acc_operands.push(rhs);
+            links += 1;
+            k = jk + 1;
+        }
+    }
+
     fn try_guard_chain(&self, cond: &ExprRef, jump_if_true: bool, target: usize)
         -> Option<(ExprRef, usize, usize)>
     {
@@ -8207,6 +8397,33 @@ impl<'a> Ctx<'a> {
                     steps += 1;
                 }
             });
+        // a backward jump landing on the pass-jump's target — or the
+        // fall-through trampoline serving as a LOOP BACK EDGE (its target
+        // is a pure cond-expr top strictly before this jump) — means this
+        // is a rotated-while cond whose exit was threaded onto an
+        // enclosing loop, not a guard chain
+        let target_is_loop_top = self
+            .instrs
+            .iter()
+            .any(|ins| ins.is_backward && ins.target == Some(target));
+        // rotated-while signature: a backward jump in the chain span
+        // loops onto a pure cond-expr top strictly before this jump —
+        // these jumps belong to a loop structure, not a guard chain
+        let rotated_back_edge = self
+            .instrs
+            .iter()
+            .skip(ci)
+            .take(300)
+            .any(|ins| {
+                ins.is_backward
+                    && ins.target.map_or(false, |bt| {
+                        bt < self.cur_offset
+                            && self.is_cond_expr_top(bt, self.cur_offset)
+                    })
+            });
+        if target_is_loop_top || rotated_back_edge {
+            return None;
+        }
         let first = if chain_continues {
             if jump_if_true {
                 cond.clone()
@@ -8386,6 +8603,28 @@ impl<'a> Ctx<'a> {
         // padding is mandatory: pre-3.14 `if c: continue` shapes have a
         // bare back jump after the operand jump and belong to the
         // historical machinery.
+        // 3.8-3.11: statement-level chained-comparison if condition
+        if !jump_if_true && self.version.major >= 3 && !self.version.at_least(3, 12) {
+            let scc = self.try_stmt_chain_compare(&cond, target);
+            if std::env::var("PYCDC_SCC_DBG").is_ok() {
+                eprintln!("SCCDBG: off={} target={} -> {:?}", self.cur_offset, target,
+                    scc.as_ref().map(|(m, bs, be)| (format!("{m:?}").chars().take(60).collect::<String>(), *bs, *be)));
+            }
+            if let Some((merged, body_start, body_end)) = scc {
+                // open the if directly over the body; the links and the
+                // success hop are skipped. The else arm (at `target`)
+                // sits BEFORE the body in layout and is only ever
+                // reached by the link jumps — no Else region is walked.
+                let mut blk = Block::new(BlockType::If, body_start, body_end);
+                blk.cond = Some(merged);
+                blk.cond_set = true;
+                blk.jump_if_true = false;
+                blk.stack_depth = self.stack.len();
+                self.blocks.push(blk);
+                self.skip_until = Some(body_start);
+                return;
+            }
+        }
         if self.version.at_least(3, 11) {
             if let Some((merged, body_start, body_end)) =
                 self.try_guard_chain(&cond, jump_if_true, target)
@@ -8491,6 +8730,61 @@ impl<'a> Ctx<'a> {
                 // the operand regions were consumed by the scratch sim
                 self.skip_until = Some(then_start);
                 return;
+            }
+        }
+        // 3.12+ rotated while with a THREADED exit: `<cond>; PJIT body;
+        // NOT_TAKEN; JUMP_BACKWARD <enclosing loop top / exit>` and a body
+        // back edge looping onto the cond top. Neither section 6 (the back
+        // edge lies past the jump target) nor the prescan (the top is not
+        // free) claims this loop — open it here.
+        if jump_if_true && self.version.at_least(3, 12) {
+            let ci_cur = self.cur_offset;
+            // the body back edge: a backward jump onto a pure cond-expr
+            // top ending at this jump
+            let back_edge = self.instrs.iter().find(|ins| {
+                ins.is_backward
+                    && ins.offset > ci_cur
+                    && matches!(
+                        ins.op,
+                        Op::JUMP_BACKWARD
+                            | Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    )
+                    && ins.target.map_or(false, |bt| {
+                        bt < ci_cur && self.is_cond_expr_top(bt, ci_cur)
+                    })
+            });
+            // the exit trampoline right after this jump
+            let exit_jump = self
+                .idx_of
+                .get(&ci_cur)
+                .and_then(|&cj| self.instrs.get(cj + 1))
+                .filter(|x| matches!(x.op, Op::NOT_TAKEN | Op::NOP))
+                .and_then(|_| {
+                    self.idx_of.get(&ci_cur).and_then(|&cj| self.instrs.get(cj + 2))
+                })
+                .filter(|x| {
+                    x.is_backward
+                        && matches!(
+                            x.op,
+                            Op::JUMP_BACKWARD
+                                | Op::JUMP_ABSOLUTE
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                        )
+                });
+            if let (Some(be), Some(xj)) = (back_edge, exit_jump) {
+                if let Some(ct) = be.target {
+                    let mut blk = Block::new(BlockType::While, ct, be.end());
+                    blk.cond = Some(cond);
+                    blk.cond_set = true;
+                    blk.cond_end = self.cur_next;
+                    self.blocks.push(blk);
+                    // the trampoline is this loop's exhaustion exit: any
+                    // jump onto it from inside the body is a `break`
+                    self.threaded_break_at.insert(xj.offset);
+                    self.skip_until = Some(target);
+                    return;
+                }
             }
         }
         // inline comprehension filter: `... if cond`
@@ -8729,6 +9023,68 @@ impl<'a> Ctx<'a> {
                     if !matches_loop {
                         continue;
                     }
+                    // a nested `while c2:` whose exhaustion exit was
+                    // threaded by the compiler onto the ENCLOSING loop's
+                    // top: the fall-through region holds a backward
+                    // unconditional jump to this condition's own expression
+                    // top. Open the nested While BEFORE the or-continue
+                    // chain machinery (the threading looks exactly like a
+                    // fused continue head otherwise).
+                    if !jump_if_true {
+                        if let Some(&ci0) = self.idx_of.get(&self.cur_offset) {
+                            let enclosing_top = self.blocks[i].start;
+                            let is_ujump = |o: Op| {
+                                matches!(
+                                    o,
+                                    Op::JUMP_ABSOLUTE
+                                        | Op::JUMP_BACKWARD
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                )
+                            };
+                            let mut wtop = None;
+                            let mut wend = None;
+                            for ins in self.instrs.iter().skip(ci0 + 1) {
+                                if matches!(ins.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                                    break;
+                                }
+                                if let Some(t) = ins.target {
+                                    if ins.is_backward && is_ujump(ins.op) {
+                                        if wtop.is_none()
+                                            && t < self.cur_offset
+                                            && self.is_cond_expr_top(t, self.cur_offset)
+                                        {
+                                            wtop = Some(t);
+                                            continue;
+                                        }
+                                        if wtop.is_some() && t == enclosing_top
+                                        {
+                                            // enclosing-top back jump AFTER
+                                            // the nested back edge: either
+                                            // the nested `break` (body
+                                            // continues after it) or the
+                                            // exhaustion exit threading
+                                            // (last one bounds the body) —
+                                            // keep the LAST candidate (its
+                                            // END, so the jump itself stays
+                                            // inside the body for break
+                                            // emission)
+                                            wend = Some(ins.end());
+                                        }
+                                    }
+                                }
+                            }
+                            if let (Some(wt), Some(we)) = (wtop, wend) {
+                                let cond_end = self.instrs[ci0].end();
+                                let mut blk = Block::new(BlockType::While, wt, we);
+                                blk.cond = Some(cond);
+                                blk.cond_set = true;
+                                blk.cond_end = cond_end;
+                                self.threaded_break_at.insert(we);
+                                self.blocks.push(blk);
+                                return;
+                            }
+                        }
+                    }
                     // fused `if a or b: continue` chain: this jump carries
                     // the first operand straight to the loop top; the
                     // remaining operands and the continue body follow
@@ -8804,6 +9160,9 @@ impl<'a> Ctx<'a> {
         // 6) while loop (3.8+): a backward jump inside the jump-target
         // region that lands at the current instruction offset marks a loop.
         let cur = self.cur_offset;
+        if std::env::var("PYCDC_S6_DBG").is_ok() {
+            eprintln!("S6DBG: off={cur} target={target}");
+        }
         if let (Some(&ci), Some(&ti)) = (self.idx_of.get(&cur), self.idx_of.get(&target)) {
             if ti > ci {
                 for inst in &self.instrs[ci..ti] {
@@ -8811,6 +9170,18 @@ impl<'a> Ctx<'a> {
                         // back edge to the cond jump itself or to the start
                         // of the condition expression (rotated while loops:
                         // the back edge skips the duplicated initial cond)
+                        if std::env::var("PYCDC_S6_DBG").is_ok()
+                            && inst.is_backward
+                        {
+                            eprintln!(
+                                "S6DBG: back off={} t={t} cur={cur} next={} eq_cur={} eq_next={} cexpr={}",
+                                inst.offset,
+                                self.cur_next,
+                                t == cur,
+                                t == self.cur_next,
+                                if t < cur { self.is_cond_expr_top(t, cur) } else { false }
+                            );
+                        }
                         if inst.is_backward
                             && t < target
                             && (t == cur

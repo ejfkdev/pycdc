@@ -118,9 +118,9 @@
    "module": "aifc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2971,
+   "ndiff": 2097,
    "ntotal": 3700,
-   "detail": "line 571: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 572: orig ('COPY', '') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 160')\nline 573: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
+   "detail": "line 571: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 572: orig ('COPY', '') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 266')\nline 573: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },
   {
    "module": "asynchat",
@@ -134,15 +134,15 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2208,
-   "ntotal": 2305,
+   "ndiff": 2275,
+   "ntotal": 2375,
    "detail": "line 29: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 33: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "base64",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1832,
+   "ndiff": 1833,
    "ntotal": 2117,
    "detail": "line 72: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 74: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 230: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 146') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 86')"
   },
@@ -186,8 +186,8 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3068,
-   "ntotal": 3232,
+   "ndiff": 3073,
+   "ntotal": 3235,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {

@@ -103,7 +103,7 @@
    "module": "aifc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2472,
+   "ndiff": 2456,
    "ntotal": 3095,
    "detail": "line 474: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 475: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 476: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },
@@ -127,15 +127,15 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2112,
-   "ntotal": 2207,
+   "ndiff": 2145,
+   "ntotal": 2223,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "base64",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1574,
+   "ndiff": 1571,
    "ntotal": 1946,
    "detail": "line 330: orig ('LOAD_METHOD', 'translate') | got ('LOAD_GLOBAL', 'bytes')\nline 331: orig ('LOAD_GLOBAL', 'bytes') | got ('LOAD_METHOD', 'maketrans')\nline 332: orig ('LOAD_METHOD', 'maketrans') | got ('LOAD_FAST', 'altchars')"
   },
@@ -183,8 +183,8 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2875,
-   "ntotal": 3012,
+   "ndiff": 2877,
+   "ntotal": 3016,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
   {

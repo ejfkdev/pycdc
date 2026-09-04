@@ -115,7 +115,7 @@
    "module": "aifc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2440,
+   "ndiff": 2501,
    "ntotal": 3098,
    "detail": "line 489: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 490: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 491: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },
@@ -123,8 +123,8 @@
    "module": "ast",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 6710,
-   "ntotal": 7129,
+   "ndiff": 6460,
+   "ntotal": 7132,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
   {
@@ -139,15 +139,15 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2107,
-   "ntotal": 2212,
+   "ndiff": 2132,
+   "ntotal": 2218,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "base64",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1563,
+   "ndiff": 1556,
    "ntotal": 1868,
    "detail": "line 270: orig ('LOAD_METHOD', 'translate') | got ('LOAD_GLOBAL', 'bytes')\nline 271: orig ('LOAD_GLOBAL', 'bytes') | got ('LOAD_METHOD', 'maketrans')\nline 272: orig ('LOAD_METHOD', 'maketrans') | got ('LOAD_CONST', \"b'+/'\")"
   },
@@ -199,7 +199,7 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2765,
+   "ndiff": 2762,
    "ntotal": 2887,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },

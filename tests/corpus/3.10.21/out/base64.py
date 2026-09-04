@@ -312,20 +312,18 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
     curr_append = curr.append
     curr_clear = curr.clear
     for x in b + b'uuuu':
-        if 33 <= x:
-            if x <= 117:
-                pass
-        curr_append(x)
-        if len(curr) == 5:
-            acc = 0
-            for x in curr:
-                acc = 85 * acc + (x - 33)
-            try:
-                decoded_append(packI(acc))
-            except struct.error:
-                raise ValueError('Ascii85 overflow') from None
-            else:
-                curr_clear()
+        if 33 <= x <= 117:
+            curr_append(x)
+            if len(curr) == 5:
+                acc = 0
+                for x in curr:
+                    acc = 85 * acc + (x - 33)
+                try:
+                    decoded_append(packI(acc))
+                except struct.error:
+                    raise ValueError('Ascii85 overflow') from None
+                else:
+                    curr_clear()
     if x == 122:
         if curr:
             raise ValueError('z inside Ascii85 5-tuple')

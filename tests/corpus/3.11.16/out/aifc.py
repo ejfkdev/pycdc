@@ -190,15 +190,13 @@ def _read_float(f):
     himant = _read_ulong(f)
     lomant = _read_ulong(f)
     if expon == himant:
-        if himant == lomant:
-            if lomant == 0:
-                pass
-    f = 0.0
-    if expon == 32767:
-        f = _HUGE_VAL
-    else:
-        expon = expon - 16383
-        f = (himant * 4294967296 + lomant) * pow(2.0, expon - 63)
+        if himant == lomant == 0:
+            f = 0.0
+        elif expon == 32767:
+            f = _HUGE_VAL
+        else:
+            expon = expon - 16383
+            f = (himant * 4294967296 + lomant) * pow(2.0, expon - 63)
     return sign * f
 
 def _write_short(f, x):

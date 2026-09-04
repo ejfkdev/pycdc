@@ -570,11 +570,8 @@ class FieldStorage:
             self.bytes_read += part.bytes_read
             self.list.append(part)
             if not part.done:
-                if self.bytes_read >= self.length:
-                    if self.length > 0:
-                        pass
-            else:
-                break
+                if self.bytes_read >= self.length > 0:
+                    break
         self.skip_lines()
 
     def read_single(self):
@@ -656,10 +653,8 @@ class FieldStorage:
         _read = 0
         while True:
             if not self.limit is None:
-                if 0 <= self.limit:
-                    if self.limit <= _read:
-                        pass
-                return
+                if 0 <= self.limit <= _read:
+                    return
             line = self.fp.readline(65536)
             self.bytes_read += len(line)
             _read += len(line)

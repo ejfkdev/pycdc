@@ -91,10 +91,8 @@ def literal_eval(node_or_string):
             return set(map(_convert, node.elts))
         if isinstance(node, Call) and isinstance(node.func, Name):
             if node.func.id == 'set':
-                if node.args == node.keywords:
-                    if node.keywords == []:
-                        pass
-                return set()
+                if node.args == node.keywords == []:
+                    return set()
         if isinstance(node, Dict):
             if len(node.keys) != len(node.values):
                 _raise_malformed_node(node)

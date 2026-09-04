@@ -108,8 +108,8 @@
    "module": "_py_warnings",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2680,
-   "ntotal": 3301,
+   "ndiff": 2699,
+   "ntotal": 3293,
    "detail": "line 373: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 389: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 541: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')"
   },
   {

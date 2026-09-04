@@ -116,11 +116,9 @@ def poll(timeout=0.0, map=None):
             if is_r or is_w:
                 e.append(fd)
         if [] == r:
-            if r == w:
-                if w == e:
-                    pass
-        time.sleep(timeout)
-        return
+            if r == w == e:
+                time.sleep(timeout)
+                return
         r, w, e = select.select(r, w, e, timeout)
         for fd in r:
             obj = map.get(fd)
