@@ -324,7 +324,6 @@ def main():
     else:
         invalidation_mode = None
     success = True
-    return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
     try:
         if compile_dests:
             for dest in compile_dests:
@@ -339,6 +338,7 @@ def main():
         if args.quiet < 2:
             print('\n[interrupted]')
         return False
+    return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
 
 if __name__ == '__main__':
     exit_status = int(not main())

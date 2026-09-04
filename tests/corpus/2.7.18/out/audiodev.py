@@ -194,6 +194,8 @@ def AudioDev():
     try:
         import al
     except ImportError:
+        return Play_Audio_sgi()
+        return
         try:
             import sunaudiodev
             return Play_Audio_sun()

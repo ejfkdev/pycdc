@@ -740,18 +740,18 @@ class Mapping(Collection):
     def get(self, key, default=None):
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
 
-        return self[key]
         try:
             pass
         except KeyError:
             return default
+        return self[key]
 
     def __contains__(self, key):
-        return True
         try:
             self[key]
         except KeyError:
             return False
+        return True
 
     def keys(self):
         """D.keys() -> a set-like object providing a view on D's keys"""
@@ -922,12 +922,12 @@ class MutableMapping(Mapping):
     def setdefault(self, key, default=None):
         '''D.setdefault(k[,d]) -> D.get(k,d), also set D[k]=d if k not in D'''
 
-        return self[key]
         try:
             pass
         except KeyError:
             self[key] = default
             return default
+        return self[key]
 
 
 MutableMapping.register(dict)

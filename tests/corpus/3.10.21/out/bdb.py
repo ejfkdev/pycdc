@@ -584,14 +584,12 @@ class Bdb:
             locals = globals
         self.reset()
         sys.settrace(self.trace_dispatch)
-        return eval(expr, globals, locals)
         try:
-            pass
-        except BdbQuit:
             pass
         finally:
             self.quitting = True
             sys.settrace(None)
+        return eval(expr, globals, locals)
 
     def runctx(self, cmd, globals, locals):
         self.run(cmd, globals, locals)
@@ -600,17 +598,12 @@ class Bdb:
         self.reset()
         sys.settrace(self.trace_dispatch)
         res = None
-        return res
-        self.quitting = True
-        sys.settrace(None)
-        return res
-        self.quitting = True
-        sys.settrace(None)
         try:
             pass
         finally:
             self.quitting = True
             sys.settrace(None)
+        return res
 
 
 def set_trace():

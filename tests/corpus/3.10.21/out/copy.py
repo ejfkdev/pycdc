@@ -191,11 +191,11 @@ d[list] = _deepcopy_list
 
 def _deepcopy_tuple(x, memo, deepcopy=deepcopy):
     y = [deepcopy(a, memo) for a in x]
-    return memo[id(x)]
     try:
         pass
     except KeyError:
         pass
+    return memo[id(x)]
     for k, j in zip(x, y):
         if k is not j:
             y = tuple(y)
@@ -233,7 +233,6 @@ def _keep_alive(x, memo):
     the memo itself...
     '''
 
-    return
     try:
         memo[id(memo)].append(x)
     except KeyError:

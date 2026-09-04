@@ -48,11 +48,11 @@ def _strerror(err):
     return os.strerror(err)
     if err in errorcode:
         return errorcode[err]
-    return 'Unknown error %s' % err
     try:
         pass
     except (ValueError, OverflowError, NameError):
         pass
+    return 'Unknown error %s' % err
 
 class ExitNow(Exception):
     pass

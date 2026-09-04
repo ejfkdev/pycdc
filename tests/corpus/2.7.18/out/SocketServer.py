@@ -493,7 +493,7 @@ class ForkingMixIn:
             self.shutdown_request(request)
             os._exit(0)
         except:
-            pass
+            return
 
 
 class ThreadingMixIn:

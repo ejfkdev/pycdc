@@ -244,11 +244,11 @@ class Cmd:
                 compfunc = self.completedefault
             compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
-        return self.completion_matches[state]
         try:
             pass
         except IndexError:
             return
+        return self.completion_matches[state]
 
     def get_names(self):
         return dir(self.__class__)
@@ -262,17 +262,18 @@ class Cmd:
         '''List available commands with "help" or detailed help with "help cmd".'''
 
         if arg:
-            if doc:
-                self.stdout.write('%s\n' % str(doc))
-                return
-            self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
-            return
             try:
                 func = getattr(self, 'help_' + arg)
             except AttributeError:
-                doc = getattr(self, 'do_' + arg).__doc__
-            except AttributeError:
-                pass
+                try:
+                    doc = getattr(self, 'do_' + arg).__doc__
+                    if doc:
+                        self.stdout.write('%s\n' % str(doc))
+                        return
+                except AttributeError:
+                    pass
+                self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
+                return
             else:
                 func()
         else:

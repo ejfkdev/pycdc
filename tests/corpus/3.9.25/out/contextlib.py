@@ -97,11 +97,11 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
 
     def __enter__(self):
         del self.args, self.kwds, self.func
-        return next(self.gen)
         try:
             pass
         except StopIteration:
             raise RuntimeError("generator didn't yield") from None
+        return next(self.gen)
 
     def __exit__(self, typ, value, traceback):
         if typ is None:
@@ -128,15 +128,12 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             pass
         exc = None
         del exc, exc
-        return False
-        exc = None
-        del exc
-        raise RuntimeError("generator didn't stop after throw()")
         try:
             if exc is not value:
                 raise
         finally:
             exc = None
+        return False
 
 
 class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncContextManager):
@@ -144,11 +141,11 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
 
     async def __aenter__(self):
         del self.args, self.kwds, self.func
-        return await self.gen.__anext__()
         try:
             pass
         except StopAsyncIteration:
             raise RuntimeError("generator didn't yield") from None
+        return await self.gen.__anext__()
 
     async def __aexit__(self, typ, value, traceback):
         if typ is None:
@@ -175,15 +172,12 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             pass
         exc = None
         del exc, exc
-        return False
-        exc = None
-        del exc
-        raise RuntimeError("generator didn't stop after athrow()")
         try:
             if exc is not value:
                 raise
         finally:
             exc = None
+        return False
 
 
 def contextmanager(func):

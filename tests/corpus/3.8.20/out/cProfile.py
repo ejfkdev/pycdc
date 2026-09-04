@@ -99,9 +99,8 @@ class Profile(_lsprof.Profiler):
         else:
             raise TypeError('runcall expected at least 1 positional argument, got %d' % (len(args) - 1))
         self.enable()
-        return func(*args, **kw)
-        self.disable()
         # WARNING: unrecovered try/except structure
+        return func(*args, **kw)
 
     runcall.__text_signature__ = '($self, func, /, *args, **kw)'
     def __enter__(self):

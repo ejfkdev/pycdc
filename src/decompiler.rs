@@ -2305,12 +2305,7 @@ impl<'a> Ctx<'a> {
                     } else {
                         let l = self.legacy_try.take().unwrap();
                         self.restore_legacy_nest();
-                        self.push_stmt(Stmt::Try {
-                            body: l.body,
-                            handlers: l.handlers,
-                            orelse: l.orelse,
-                            finalbody: l.finalbody,
-                        });
+                        self.push_legacy_try(l);
                     }
                 }
             }
@@ -2348,12 +2343,7 @@ impl<'a> Ctx<'a> {
                     if l.has_finally {
                         let l = self.legacy_try.take().unwrap();
                         self.restore_legacy_nest();
-                        self.push_stmt(Stmt::Try {
-                            body: l.body,
-                            handlers: l.handlers,
-                            orelse: l.orelse,
-                            finalbody: l.finalbody,
-                        });
+                        self.push_legacy_try(l);
                     }
                 }
             }
@@ -2382,12 +2372,7 @@ impl<'a> Ctx<'a> {
                             self.flush_pending_stores();
                             let l = self.legacy_try.take().unwrap();
                             self.restore_legacy_nest();
-                            self.push_stmt(Stmt::Try {
-                                body: l.body,
-                                handlers: l.handlers,
-                                orelse: l.orelse,
-                                finalbody: l.finalbody,
-                            });
+                            self.push_legacy_try(l);
                             self.skip_until = Some(target);
                             return;
                         }
@@ -2461,12 +2446,7 @@ impl<'a> Ctx<'a> {
                             self.flush_pending_stores();
                             let l = self.legacy_try.take().unwrap();
                             self.restore_legacy_nest();
-                            self.push_stmt(Stmt::Try {
-                                body: l.body,
-                                handlers: l.handlers,
-                                orelse: l.orelse,
-                                finalbody: l.finalbody,
-                            });
+                            self.push_legacy_try(l);
                         }
                     }
                 }
@@ -3180,6 +3160,18 @@ impl<'a> Ctx<'a> {
             }
             // a block (If/While/...) opened inside the handler collects the
             // statement; it lands in the handler body when the block closes
+        }
+        // statements emitted while a NESTED chain is being parsed (the
+        // outer handler state is stashed) still belong to the outermost
+        // stashed handler's body — e.g. the success-path fall-through
+        // after a nested try inside an except body
+        if self.legacy_handler.is_none() && !self.legacy_nest.is_empty() {
+            if let Some(h) = self.legacy_nest[0].outer_handler.as_mut() {
+                if self.blocks.len() <= h.block_depth {
+                    h.body.push(stmt);
+                    return;
+                }
+            }
         }
         // statements executed inside a collected try-else region belong to
         // the Try's orelse, not to the enclosing block; a 3.8-3.10 inline
@@ -5598,7 +5590,50 @@ impl<'a> Ctx<'a> {
                                     Some(Op::END_FINALLY)
                                 )
                         });
-                    if !self.version.at_least(3, 8) && !as_cleanup {
+                    // 3.8-3.10 `except ... as n:` cleanup wrappers end in
+                    // RERAISE 1 instead of END_FINALLY — recognize both so
+                    // a genuine nested try is not mistaken for a wrapper
+                    let as_cleanup_reraise = self
+                        .idx_of
+                        .get(&inst.target.unwrap_or(usize::MAX))
+                        .map_or(false, |&ti| {
+                            matches!(self.instrs[ti].op, Op::LOAD_CONST)
+                                && self
+                                    .code
+                                    .consts
+                                    .get(self.instrs[ti].arg as usize)
+                                    .map_or(false, |c| matches!(&**c, PyObject::None))
+                                && matches!(
+                                    self.instrs.get(ti + 1).map(|x| x.op),
+                                    Some(Op::STORE_FAST) | Some(Op::STORE_NAME) | Some(Op::STORE_DEREF)
+                                )
+                                && matches!(
+                                    self.instrs.get(ti + 2).map(|x| x.op),
+                                    Some(Op::DELETE_FAST) | Some(Op::DELETE_NAME) | Some(Op::DELETE_DEREF)
+                                )
+                                && matches!(self.instrs.get(ti + 3).map(|x| x.op), Some(Op::RERAISE))
+                        });
+                    let as_cleanup_reraise = self
+                        .idx_of
+                        .get(&inst.target.unwrap_or(usize::MAX))
+                        .map_or(false, |&ti| {
+                            matches!(self.instrs[ti].op, Op::LOAD_CONST)
+                                && self
+                                    .code
+                                    .consts
+                                    .get(self.instrs[ti].arg as usize)
+                                    .map_or(false, |c| matches!(&**c, PyObject::None))
+                                && matches!(
+                                    self.instrs.get(ti + 1).map(|x| x.op),
+                                    Some(Op::STORE_FAST) | Some(Op::STORE_NAME) | Some(Op::STORE_DEREF)
+                                )
+                                && matches!(
+                                    self.instrs.get(ti + 2).map(|x| x.op),
+                                    Some(Op::DELETE_FAST) | Some(Op::DELETE_NAME) | Some(Op::DELETE_DEREF)
+                                )
+                                && matches!(self.instrs.get(ti + 3).map(|x| x.op), Some(Op::RERAISE))
+                        });
+                    if !as_cleanup && !as_cleanup_reraise {
                         self.begin_legacy_nest();
                     } else {
                         if as_cleanup {
@@ -6310,6 +6345,37 @@ impl<'a> Ctx<'a> {
         }
         let _ = is_all;
         Some(slow)
+    }
+
+    /// Flush a completed legacy (<=3.10) try chain into the enclosing
+    /// block. Success-path statements emitted after POP_BLOCK (typically
+    /// the function's trailing `return`) chronologically FOLLOW the try
+    /// statement in the source, so insert before any trailing returns.
+    fn push_legacy_try(&mut self, l: LegacyTry) {
+        let try_stmt = Stmt::Try {
+            body: l.body,
+            handlers: l.handlers,
+            orelse: l.orelse,
+            finalbody: l.finalbody,
+        };
+        // a nested chain flushed inside a restored outer handler belongs to
+        // that handler's body, not to the enclosing block
+        if let Some(h) = self.legacy_handler.as_mut() {
+            if self.blocks.len() <= h.block_depth {
+                let mut at = h.body.len();
+                while at > 0 && matches!(h.body[at - 1], Stmt::Return(_)) {
+                    at -= 1;
+                }
+                h.body.insert(at, try_stmt);
+                return;
+            }
+        }
+        let top = self.blocks.last_mut().unwrap();
+        let mut at = top.stmts.len();
+        while at > 0 && matches!(top.stmts[at - 1], Stmt::Return(_)) {
+            at -= 1;
+        }
+        top.stmts.insert(at, try_stmt);
     }
 
     /// py2.6 statement boolop chain fold. Every link compiles to
@@ -10604,13 +10670,35 @@ impl<'a> Ctx<'a> {
             let l = self.legacy_try.take().unwrap();
             self.flush_pending_stores();
             self.restore_legacy_nest();
-            self.push_stmt(Stmt::Try {
-                body: l.body,
-                handlers: l.handlers,
-                orelse: l.orelse,
-                finalbody: l.finalbody,
-            });
+            self.push_legacy_try(l);
             self.skip_until = Some(usize::MAX);
+            return;
+        }
+        // 3.8-3.10 function-tail try/finally whose inline finally body
+        // ends with a VALUE return (`...; finally: ...; return v`): the
+        // success-path statements were redirected into finalbody; flush
+        // the try so it lands BEFORE the return, skip the out-of-line
+        // finally copy, and emit the return after it.
+        if self.legacy_handler.is_none()
+            && self.legacy_try.as_ref().map_or(false, |l| {
+                l.has_finally
+                    && l.else_start
+                        .map_or(false, |es| self.cur_offset >= es && self.cur_offset <= l.else_stop)
+            })
+        {
+            let l = self.legacy_try.take().unwrap();
+            self.flush_pending_stores();
+            self.restore_legacy_nest();
+            self.push_legacy_try(l);
+            self.skip_until = Some(usize::MAX);
+            let value = match e {
+                Some(v) => match &*v {
+                    Expr::Const(o) if matches!(&**o, PyObject::None) => None,
+                    _ => Some(v),
+                },
+                None => None,
+            };
+            self.push_stmt(Stmt::Return(value));
             return;
         }
         let value = match e {

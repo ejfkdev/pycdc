@@ -411,7 +411,6 @@ class FieldStorage:
         self.read_single()
 
     def __del__(self):
-        return
         try:
             self.file.close()
         except AttributeError:

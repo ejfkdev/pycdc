@@ -49,11 +49,11 @@ def _strerror(err):
     return os.strerror(err)
     if err in errorcode:
         return errorcode[err]
-    return 'Unknown error %s' % err
     try:
         pass
     except (ValueError, OverflowError, NameError):
         pass
+    return 'Unknown error %s' % err
 
 class ExitNow(Exception):
     pass
@@ -211,7 +211,6 @@ class dispatcher:
             sock.setblocking(False)
             self.set_socket(sock, map)
             self.connected = True
-            return
             try:
                 self.addr = sock.getpeername()
             except OSError as err:
@@ -221,6 +220,7 @@ class dispatcher:
                     self.del_channel(map)
                     raise
                 return
+            return
         self.socket = None
 
     def __repr__(self):
@@ -262,7 +262,6 @@ class dispatcher:
         self.add_channel(map)
 
     def set_reuse_addr(self):
-        return
         try:
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR) | 1)
         except OSError:
@@ -345,13 +344,13 @@ class dispatcher:
         self.connecting = False
         self.del_channel()
         if self.socket is not None:
-            return
             try:
                 self.socket.close()
             except OSError as why:
                 if why.errno not in (ENOTCONN, EBADF):
                     raise
                 return
+            return
 
     def log(self, message):
         sys.stderr.write('log: %s\n' % str(message))

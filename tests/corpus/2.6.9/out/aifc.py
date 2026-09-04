@@ -411,11 +411,11 @@ class Aifc_read:
                 self._convert = self._adpcm2lin
                 self._framesize = self._framesize // 4
                 return
-            if self._comptype == 'ULAW':
-                pass
             try:
                 import cl
             except ImportError:
+                if self._comptype == 'ULAW':
+                    pass
                 try:
                     import audioop
                     self._convert = self._ulaw2lin
@@ -667,12 +667,12 @@ class Aifc_write:
             self._convert = self._lin2adpcm
             return
         if self._comptype == 'ULAW':
-            pass
-        raise Error('cannot write compressed AIFF-C files')
-        if self._comptype == 'ULAW':
             try:
                 import cl
             except ImportError:
+                if self._comptype == 'ULAW':
+                    pass
+                raise Error('cannot write compressed AIFF-C files')
                 try:
                     import audioop
                     self._convert = self._lin2ulaw
