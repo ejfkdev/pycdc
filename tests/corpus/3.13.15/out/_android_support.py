@@ -45,8 +45,7 @@ class TextLogStream(io.TextIOWrapper):
                 if line:
                     pass
                 continue
-            while True:
-                return len(s)
+        return len(s)
 
     def _write_chunk(self, s):
         b = s.encode(self.encoding, self.errors)
@@ -63,7 +62,6 @@ class TextLogStream(io.TextIOWrapper):
             self.buffer.write(b''.join(self._pending_bytes))
             self._pending_bytes.clear()
             self._pending_bytes_count = 0
-            return
 
     @property
     def line_buffering(self):
@@ -122,7 +120,6 @@ class Logcat:
             if self._bucket_level < 0:
                 sleep(-self._bucket_level / MAX_BYTES_PER_SECOND)
             self.android_log_write(prio, tag, message)
-            return
 
 
 # WARNING: Decompyle incomplete

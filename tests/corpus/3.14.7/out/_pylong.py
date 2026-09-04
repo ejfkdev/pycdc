@@ -217,8 +217,7 @@ def _dec_str_to_int_inner(s, *, GUARD=8):
     ctx.prec = decimal.MAX_PREC
     inner(D(s), w)
     None(None, None, None)
-    while True:
-        return int.from_bytes(result)
+    return int.from_bytes(result)
 
 def int_from_string(s):
     """Asymptotically fast version of PyLong_FromString(), conversion

@@ -59,7 +59,6 @@ class WeakSet:
                 if not item is not None:
                     continue
                 yield item
-            return
 
     def __len__(self):
         return len(self.data) - len(self._pending_removals)

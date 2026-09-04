@@ -36,7 +36,6 @@ class Profile(_lsprof.Profiler):
         with open(file, 'wb') as f:
             self.create_stats()
             marshal.dump(self.stats, f)
-            return
 
     def create_stats(self):
         self.disable()
@@ -138,20 +137,17 @@ def main():
             sys.path.insert(0, os.path.dirname(progname))
             with io.open_code(progname) as fp:
                 code = compile(fp.read(), progname, 'exec')
-                while True:
-                    spec = importlib.machinery.ModuleSpec(name='__main__', loader=None, origin=progname)
-                    globs = {'__spec__': spec, '__file__': spec.origin, '__name__': spec.name, '__package__': None, '__cached__': None}
-                    try:
-                        runctx(code, globs, None, options.outfile, options.sort)
-                    except BrokenPipeError as exc:
-                        sys.stdout = None
-                        sys.exit(exc.errno)
-                        return parser
-                    return parser
-                    parser.print_usage()
-                    return parser
-    exc = None
-    del exc
+        spec = importlib.machinery.ModuleSpec(name='__main__', loader=None, origin=progname)
+        globs = {'__spec__': spec, '__file__': spec.origin, '__name__': spec.name, '__package__': None, '__cached__': None}
+        try:
+            runctx(code, globs, None, options.outfile, options.sort)
+        except BrokenPipeError as exc:
+            sys.stdout = None
+            sys.exit(exc.errno)
+            return parser
+        return parser
+    parser.print_usage()
+    return parser
 
 if __name__ == '__main__':
     main()

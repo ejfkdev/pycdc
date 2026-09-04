@@ -553,8 +553,7 @@ def _get_default_locale():
     if locale == 'C':
         with different_locale(''):
             locale = _locale.setlocale(_locale.LC_TIME, None)
-            return locale
-            return locale
+        return locale
     return locale
 
 class LocaleTextCalendar(TextCalendar):
@@ -571,13 +570,13 @@ class LocaleTextCalendar(TextCalendar):
 
     def formatweekday(self, day, width):
         with different_locale(self.locale):
-            None(None, None)
-            return
+            pass
+        None(None, None)
 
     def formatmonthname(self, theyear, themonth, width, withyear=True):
         with different_locale(self.locale):
-            None(None, None)
-            return
+            pass
+        None(None, None)
 
 
 class LocaleHTMLCalendar(HTMLCalendar):
@@ -594,13 +593,13 @@ class LocaleHTMLCalendar(HTMLCalendar):
 
     def formatweekday(self, day):
         with different_locale(self.locale):
-            None(None, None)
-            return
+            pass
+        None(None, None)
 
     def formatmonthname(self, theyear, themonth, withyear=True):
         with different_locale(self.locale):
-            None(None, None)
-            return
+            pass
+        None(None, None)
 
 
 c = TextCalendar()

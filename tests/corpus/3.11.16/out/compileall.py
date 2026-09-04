@@ -297,37 +297,40 @@ def main():
             with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
                 for line in f:
                     compile_dests.append(line.strip())
-                try:
-                    pass
-                except OSError:
-                    if args.quiet < 2:
-                        print('Error reading file list {}'.format(args.flist))
-                    return False
-        finally:
-            if args.invalidation_mode:
-                ivl_mode = args.invalidation_mode.replace('-', '_').upper()
-                invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
-            else:
-                invalidation_mode = None
-            success = True
+        except OSError:
+            if args.quiet < 2:
+                print('Error reading file list {}'.format(args.flist))
+            return False
+        try:
+            pass
+        except OSError:
+            if args.quiet < 2:
+                print('Error reading file list {}'.format(args.flist))
+            return False
+    if args.invalidation_mode:
+        ivl_mode = args.invalidation_mode.replace('-', '_').upper()
+        invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
+    else:
+        invalidation_mode = None
+    success = True
+    try:
+        if compile_dests:
+            for dest in compile_dests:
+                if os.path.isfile(dest):
+                    if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
+                        success = False
+                    continue
+                if not compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
+                    success = False
+            return success
             try:
-                if compile_dests:
-                    for dest in compile_dests:
-                        if os.path.isfile(dest):
-                            if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
-                                success = False
-                            continue
-                        if not compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
-                            success = False
-                    return success
-                    try:
-                        pass
-                    except KeyboardInterrupt:
-                        if args.quiet < 2:
-                            print('\n[interrupted]')
-                        return False
-            finally:
-                return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
+                pass
+            except KeyboardInterrupt:
+                if args.quiet < 2:
+                    print('\n[interrupted]')
+                return False
+    finally:
+        return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
 
 if __name__ == '__main__':
     exit_status = int(not main())

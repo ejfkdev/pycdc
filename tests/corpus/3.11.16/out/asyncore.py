@@ -333,9 +333,6 @@ class dispatcher:
                     del why
         finally:
             return data
-            raise
-            why = None
-            del why
 
     def close(self):
         self.connected = False
@@ -350,8 +347,6 @@ class dispatcher:
                     raise
                 return
             return
-            why = None
-            del why
 
     def log(self, message):
         sys.stderr.write('log: %s\n' % str(message))

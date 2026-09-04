@@ -563,9 +563,7 @@ reached or when returning from current frame.'''
         self.set_stepinstr()
         self.enterframe = None
         None(None, None, None)
-        while True:
-            self.start_trace()
-            return
+        self.start_trace()
 
     def set_continue(self):
         self._set_stopinfo(self.botframe, None, -1)

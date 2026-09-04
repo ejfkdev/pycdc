@@ -95,30 +95,29 @@ class Bdb:
         with self.set_enterframe(frame):
             if self.quitting:
                 return
-            if event == 'line':
-                None(None, None)
-                return
-            if event == 'call':
-                None(None, None)
-                return
-            if event == 'return':
-                None(None, None)
-                return
-            if event == 'exception':
-                None(None, None)
-                return
-            if event == 'c_call':
-                None(None, None)
-                return
-            if event == 'c_exception':
-                None(None, None)
-                return
-            if event == 'c_return':
-                None(None, None)
-                return
-            print('bdb.Bdb.dispatch: unknown debugging event:', repr(event))
+        if event == 'line':
             None(None, None)
             return
+        if event == 'call':
+            None(None, None)
+            return
+        if event == 'return':
+            None(None, None)
+            return
+        if event == 'exception':
+            None(None, None)
+            return
+        if event == 'c_call':
+            None(None, None)
+            return
+        if event == 'c_exception':
+            None(None, None)
+            return
+        if event == 'c_return':
+            None(None, None)
+            return
+        print('bdb.Bdb.dispatch: unknown debugging event:', repr(event))
+        None(None, None)
 
     def dispatch_line(self, frame):
         '''Invoke user function and return trace function for line event.
@@ -327,10 +326,8 @@ class Bdb:
                 frame.f_trace = self.trace_dispatch
                 self.botframe = frame
                 frame = frame.f_back
-            self.set_step()
-            while True:
-                sys.settrace(self.trace_dispatch)
-                return
+        self.set_step()
+        sys.settrace(self.trace_dispatch)
 
     def set_continue(self):
         self._set_stopinfo(self.botframe, None, -1)

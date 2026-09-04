@@ -219,6 +219,8 @@ a default message is printed.
                 del sys.ps2
             if not exitmsg is not None:
                 self.write('now exiting %s...\n' % self.__class__.__name__)
+            if exitmsg != '':
+                self.write('%s\n' % exitmsg)
         try:
             try:
                 _ps2 = sys.ps2
@@ -240,6 +242,8 @@ a default message is printed.
                 del sys.ps2
             if not exitmsg is not None:
                 self.write('now exiting %s...\n' % self.__class__.__name__)
+            if exitmsg != '':
+                self.write('%s\n' % exitmsg)
         cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
         if not banner is not None:
             self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
@@ -288,6 +292,8 @@ a default message is printed.
                         del sys.ps2
                     if not exitmsg is not None:
                         self.write('now exiting %s...\n' % self.__class__.__name__)
+                    if exitmsg != '':
+                        self.write('%s\n' % exitmsg)
                 more = self.push(line)
                 try:
                     pass

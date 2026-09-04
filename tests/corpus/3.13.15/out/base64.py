@@ -506,15 +506,14 @@ def main():
     if args and args[0] != '-':
         with open(args[0], 'rb') as f:
             func(f, sys.stdout.buffer)
-            return
-            if sys.stdin.isatty():
-                import io
-                data = sys.stdin.buffer.read()
-                buffer = io.BytesIO(data)
-            else:
-                buffer = sys.stdin.buffer
-            func(buffer, sys.stdout.buffer)
-            return
+        return
+    if sys.stdin.isatty():
+        import io
+        data = sys.stdin.buffer.read()
+        buffer = io.BytesIO(data)
+    else:
+        buffer = sys.stdin.buffer
+    func(buffer, sys.stdout.buffer)
 
 if __name__ == '__main__':
     main()

@@ -44,8 +44,7 @@ def _read_output(commandstring, capture_stderr=False):
             cmd = f'{commandstring!s} >\'{fp.name!s}\' 2>&1'
         else:
             cmd = f'{commandstring!s} 2>/dev/null >\'{fp.name!s}\''
-        None(None, None)
-        return
+    None(None, None)
 
 def _find_build_tool(toolname):
     '''Find a build tool on current path or using xcrun'''
@@ -240,12 +239,11 @@ def compiler_fixup(compiler_so, cc_args):
         stripArch = '-arch' in cc_args
         stripSysroot = any((arg for arg in cc_args if arg.startswith('-isysroot')))
     if stripArch or 'ARCHFLAGS' in os.environ:
-        while True:
-            try:
-                index = compiler_so.index('-arch')
-                del compiler_so[index:index + 2]
-            except ValueError:
-                pass
+        try:
+            index = compiler_so.index('-arch')
+            del compiler_so[index:index + 2]
+        except ValueError:
+            pass
     elif not _supports_arm64_builds():
         for idx in reversed(range(len(compiler_so))):
             if compiler_so[idx] == '-arch' and compiler_so[idx + 1] == 'arm64':

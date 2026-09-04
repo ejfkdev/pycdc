@@ -114,22 +114,19 @@ sys.stdin and sys.stdout are used.
             except EOFError:
                 line = 'EOF'
                 try:
-                    try:
-                        pass
-                    except:
-                        if self.completekey:
+                    pass
+                except:
+                    if self.completekey:
+                        try:
                             try:
-                                try:
-                                    import readline
-                                    readline.set_completer(self.old_completer)
-                                except ImportError:
-                                    pass
+                                import readline
+                                readline.set_completer(self.old_completer)
                             except ImportError:
                                 pass
-                            if ImportError:
-                                None
-                except ImportError:
-                    pass
+                        except ImportError:
+                            pass
+                        if ImportError:
+                            None
         try:
             if not intro is None:
                 self.intro = intro
@@ -145,19 +142,16 @@ sys.stdin and sys.stdout are used.
                     except EOFError:
                         line = 'EOF'
                         try:
-                            try:
-                                pass
-                            except:
-                                if self.completekey:
-                                    try:
-                                        import readline
-                                        readline.set_completer(self.old_completer)
-                                    except ImportError:
-                                        pass
-                                    if ImportError:
-                                        None
-                        except ImportError:
                             pass
+                        except:
+                            if self.completekey:
+                                try:
+                                    import readline
+                                    readline.set_completer(self.old_completer)
+                                except ImportError:
+                                    pass
+                                if ImportError:
+                                    None
         finally:
             self.stdout.write(self.prompt)
             self.stdout.flush()
@@ -171,19 +165,16 @@ sys.stdin and sys.stdout are used.
             stop = self.postcmd(stop, line)
             if not stop:
                 try:
-                    try:
-                        self.postloop()
-                    except:
-                        if self.completekey:
-                            try:
-                                import readline
-                                readline.set_completer(self.old_completer)
-                            except ImportError:
-                                pass
-                            if ImportError:
-                                None
-                except ImportError:
-                    pass
+                    self.postloop()
+                except:
+                    if self.completekey:
+                        try:
+                            import readline
+                            readline.set_completer(self.old_completer)
+                        except ImportError:
+                            pass
+                        if ImportError:
+                            None
             if self.use_rawinput:
                 if self.completekey:
                     try:
@@ -195,19 +186,16 @@ sys.stdin and sys.stdout are used.
                 return
             return
             try:
-                try:
-                    pass
-                except:
-                    if self.completekey:
-                        try:
-                            import readline
-                            readline.set_completer(self.old_completer)
-                        except ImportError:
-                            pass
-                        if ImportError:
-                            None
-            except ImportError:
                 pass
+            except:
+                if self.completekey:
+                    try:
+                        import readline
+                        readline.set_completer(self.old_completer)
+                    except ImportError:
+                        pass
+                    if ImportError:
+                        None
 
     def precmd(self, line):
         '''Hook method executed just before the command line is

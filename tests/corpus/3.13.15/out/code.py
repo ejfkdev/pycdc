@@ -212,6 +212,8 @@ a default message is printed.
                 builtins.quit = _quit
             if not exitmsg is not None:
                 self.write('now exiting %s...\n' % self.__class__.__name__)
+            if exitmsg != '':
+                self.write('%s\n' % exitmsg)
         try:
             try:
                 sys.ps2
@@ -228,6 +230,8 @@ a default message is printed.
                 builtins.quit = _quit
             if not exitmsg is not None:
                 self.write('now exiting %s...\n' % self.__class__.__name__)
+            if exitmsg != '':
+                self.write('%s\n' % exitmsg)
         cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
         if not banner is not None:
             self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
@@ -274,6 +278,8 @@ a default message is printed.
                             builtins.quit = _quit
                         if not exitmsg is not None:
                             self.write('now exiting %s...\n' % self.__class__.__name__)
+                        if exitmsg != '':
+                            self.write('%s\n' % exitmsg)
                     more = self.push(line)
             finally:
                 if not _exit is None:
@@ -298,8 +304,6 @@ a default message is printed.
                 self.write('%s\n' % exitmsg)
                 return
             return
-            if exitmsg != '':
-                self.write('%s\n' % exitmsg)
 
     def push(self, line, filename=None, _symbol='single'):
         self.buffer.append(line)

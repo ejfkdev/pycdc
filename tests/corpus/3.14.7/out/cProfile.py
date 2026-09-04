@@ -143,26 +143,23 @@ def main():
             fp = io.open_code(progname).sys()
             code = compile(fp.read(), progname, 'exec')
             None(None, None, None)
-            while True:
-                spec = importlib.machinery.ModuleSpec(name='__main__', loader=None, origin=progname)
-                module = importlib.util.module_from_spec(spec)
-                sys.modules['__main__'] = module
-                globs = module.__dict__
-                globs.update({'__spec__': spec, '__file__': spec.origin, '__name__': spec.name, '__package__': None, '__cached__': None})
-                try:
-                    runctx(code, globs, None, options.outfile, options.sort)
-                except BrokenPipeError:
-                    exc = None
-                    sys.stdout = None
-                    sys.exit(exc.errno)
-                    exc = None
-                    del exc
-                    return parser
-                return parser
-                parser.print_usage()
-                return parser
-    exc = None
-    del exc
+        spec = importlib.machinery.ModuleSpec(name='__main__', loader=None, origin=progname)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules['__main__'] = module
+        globs = module.__dict__
+        globs.update({'__spec__': spec, '__file__': spec.origin, '__name__': spec.name, '__package__': None, '__cached__': None})
+        try:
+            runctx(code, globs, None, options.outfile, options.sort)
+        except BrokenPipeError:
+            exc = None
+            sys.stdout = None
+            sys.exit(exc.errno)
+            exc = None
+            del exc
+            return parser
+        return parser
+    parser.print_usage()
+    return parser
 
 if __name__ == '__main__':
     main()

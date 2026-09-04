@@ -58,7 +58,6 @@ def _patch(self):
     with impl.locallock:
         object.__setattr__(self, '__dict__', dct)
         yield None
-        return
 
 class local:
     __slots__ = ('_local__impl', '__dict__')
@@ -75,22 +74,22 @@ class local:
 
     def __getattribute__(self, name):
         with _patch(self):
-            None(None, None)
-            return
+            pass
+        None(None, None)
 
     def __setattr__(self, name, value):
         if name == '__dict__':
             raise AttributeError("%r object attribute '__dict__' is read-only" % self.__class__.__name__)
         with _patch(self):
-            None(None, None)
-            return
+            pass
+        None(None, None)
 
     def __delattr__(self, name):
         if name == '__dict__':
             raise AttributeError("%r object attribute '__dict__' is read-only" % self.__class__.__name__)
         with _patch(self):
-            None(None, None)
-            return
+            pass
+        None(None, None)
 
 
 from threading import current_thread

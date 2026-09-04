@@ -135,19 +135,16 @@ class Cmd:
             stop = self.postcmd(stop, line)
             if not stop:
                 try:
-                    try:
-                        self.postloop()
-                    except:
-                        if self.completekey:
-                            try:
-                                import readline
-                                readline.set_completer(self.old_completer)
-                            except ImportError:
-                                pass
-                            if ImportError:
-                                None
-                except ImportError:
-                    pass
+                    self.postloop()
+                except:
+                    if self.completekey:
+                        try:
+                            import readline
+                            readline.set_completer(self.old_completer)
+                        except ImportError:
+                            pass
+                        if ImportError:
+                            None
             if self.use_rawinput:
                 if self.completekey:
                     try:
@@ -159,19 +156,16 @@ class Cmd:
                 return
             return
             try:
-                try:
-                    pass
-                except:
-                    if self.completekey:
-                        try:
-                            import readline
-                            readline.set_completer(self.old_completer)
-                        except ImportError:
-                            pass
-                        if ImportError:
-                            None
-            except ImportError:
                 pass
+            except:
+                if self.completekey:
+                    try:
+                        import readline
+                        readline.set_completer(self.old_completer)
+                    except ImportError:
+                        pass
+                    if ImportError:
+                        None
 
     def precmd(self, line):
         '''Hook method executed just before the command line is

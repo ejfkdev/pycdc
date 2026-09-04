@@ -70,8 +70,8 @@ class ContextDecorator(object):
         @wraps(func)
         def inner(*args, **kwds):
             with self._recreate_cm():
-                None(None, None)
-                return
+                pass
+            None(None, None)
 
         return inner
 

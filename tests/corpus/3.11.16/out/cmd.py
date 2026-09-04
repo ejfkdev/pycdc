@@ -120,29 +120,26 @@ class Cmd:
                     except EOFError:
                         line = 'EOF'
                     try:
-                        try:
-                            self.stdout.write(self.prompt)
-                            self.stdout.flush()
-                            line = self.stdin.readline()
-                            if not len(line):
-                                line = 'EOF'
-                            else:
-                                line = line.rstrip('\r\n')
-                            line = self.precmd(line)
-                            stop = self.onecmd(line)
-                            stop = self.postcmd(stop, line)
-                            self.postloop()
-                        except:
-                            if self.completekey:
-                                try:
-                                    import readline
-                                    readline.set_completer(self.old_completer)
-                                except ImportError:
-                                    pass
-                                if ImportError:
-                                    None
-                    except ImportError:
-                        pass
+                        self.stdout.write(self.prompt)
+                        self.stdout.flush()
+                        line = self.stdin.readline()
+                        if not len(line):
+                            line = 'EOF'
+                        else:
+                            line = line.rstrip('\r\n')
+                        line = self.precmd(line)
+                        stop = self.onecmd(line)
+                        stop = self.postcmd(stop, line)
+                        self.postloop()
+                    except:
+                        if self.completekey:
+                            try:
+                                import readline
+                                readline.set_completer(self.old_completer)
+                            except ImportError:
+                                pass
+                            if ImportError:
+                                None
         finally:
             if self.use_rawinput:
                 if self.completekey:

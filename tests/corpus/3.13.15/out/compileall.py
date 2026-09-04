@@ -112,12 +112,11 @@ hardlink_dupes: hardlink duplicated pyc files
             with ProcessPoolExecutor(max_workers=workers, mp_context=mp_context) as executor:
                 results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes), files, chunksize=4)
                 success = min(results, default=True)
-                return success
-                for file in files:
-                    if compile_file(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes):
-                        continue
-                    success = False
-                return success
+            return success
+    for file in files:
+        if compile_file(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes):
+            continue
+        success = False
     return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
@@ -336,37 +335,6 @@ hardlink_dupes: hardlink duplicated pyc files
                             success = False
                         return success
                         return success
-                        if quiet:
-                            print('*** Error compiling {!r}...'.format(fullname))
-                        else:
-                            print('*** ', end='')
-                        if not sys.stdout.encoding:
-                            pass
-                        encoding = sys.getdefaultencoding()
-                        msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
-                        print(msg)
-                        err = None
-                        del err
-                        return success
-                        err = None
-                        del err
-                        if SyntaxError, UnicodeError, OSError:
-                            e = None
-                            success = False
-                            if quiet >= 2:
-                                e = None
-                                del e
-                                return success
-                            if quiet:
-                                print('*** Error compiling {!r}...'.format(fullname))
-                            else:
-                                print('*** ', end='')
-                            print(e.__class__.__name__ + ':', e)
-                            e = None
-                            del e
-                            return success
-                            e = None
-                            del e
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     '''Byte-compile all module on sys.path.
@@ -435,42 +403,49 @@ def main():
             if not args.prependdir is None:
                 parser.error('-d cannot be used in combination with -s or -p')
     if args.flist:
-        with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
-            for line in f:
-                compile_dests.append(line.strip())
-            while True:
-                if args.invalidation_mode:
-                    ivl_mode = args.invalidation_mode.replace('-', '_').upper()
-                    invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
-                else:
-                    invalidation_mode = None
-                success = True
+        try:
+            with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
+                for line in f:
+                    compile_dests.append(line.strip())
                 try:
-                    if compile_dests:
-                        for dest in compile_dests:
-                            if os.path.isfile(dest):
-                                if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
-                                    success = False
-                                    continue
-                            continue
-                            if compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
+                    pass
+                except OSError:
+                    if args.quiet < 2:
+                        print('Error reading file list {}'.format(args.flist))
+                    return False
+        finally:
+            if args.invalidation_mode:
+                ivl_mode = args.invalidation_mode.replace('-', '_').upper()
+                invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
+            else:
+                invalidation_mode = None
+            success = True
+            try:
+                if compile_dests:
+                    for dest in compile_dests:
+                        if os.path.isfile(dest):
+                            if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
+                                success = False
                                 continue
-                        return success
-                        try:
-                            success = False
                             continue
-                        except KeyboardInterrupt:
-                            if args.quiet < 2:
-                                print('\n[interrupted]')
-                            return False
+                        if compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
+                            continue
                             try:
-                                pass
+                                success = False
+                                continue
                             except KeyboardInterrupt:
                                 if args.quiet < 2:
                                     print('\n[interrupted]')
                                 return False
-                finally:
-                    return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
+                    return success
+                    try:
+                        pass
+                    except KeyboardInterrupt:
+                        if args.quiet < 2:
+                            print('\n[interrupted]')
+                        return False
+            finally:
+                return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
 
 if __name__ == '__main__':
     exit_status = int(not main())

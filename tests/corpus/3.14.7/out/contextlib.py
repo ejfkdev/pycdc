@@ -194,13 +194,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                         finally:
                             if StopAsyncIteration:
                                 None
-                        try:
-                            pass
-                        except StopAsyncIteration:
-                            exc = None
-                            exc = None
-                            del exc
-                            return exc is not value
 
 
 def contextmanager(func):
@@ -588,10 +581,10 @@ returns the result of the __aenter__ method.
         except AttributeError:
             raise TypeError(f"'{cls.__module__}.{cls.__qualname__}' object does not support the asynchronous context manager protocol") from None
         while True:
-            while True:
-                result = await _enter(cm)
-                self._push_async_cm_exit(cm, _exit)
-                return result
+            pass
+        result = await _enter(cm)
+        self._push_async_cm_exit(cm, _exit)
+        return result
 
     def push_async_exit(self, exit):
         '''Registers a coroutine function with the standard __aexit__ method
@@ -669,21 +662,17 @@ method.'''
                     cb_suppress = await cb(*exc_details)
                     if cb_suppress:
                         try:
-                            try:
-                                suppressed_exc = True
-                                pending_raise = False
-                                exc = None
-                            except BaseException:
-                                new_exc = None
-                                _fix_exception_context(new_exc, exc)
-                                pending_raise = True
-                                exc = new_exc
-                                new_exc = None
-                                del new_exc, new_exc
-                                new_exc = None
+                            suppressed_exc = True
+                            pending_raise = False
+                            exc = None
                         except BaseException:
-                            exc.__context__ = fixed_ctx
-                            raise
+                            new_exc = None
+                            _fix_exception_context(new_exc, exc)
+                            pending_raise = True
+                            exc = new_exc
+                            new_exc = None
+                            del new_exc, new_exc
+                            new_exc = None
         if pending_raise:
             try:
                 fixed_ctx = exc.__context__

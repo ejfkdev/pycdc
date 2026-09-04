@@ -657,12 +657,14 @@ Return list of successfully read files.
         encoding = io.text_encoding(encoding)
         read_ok = []
         for filename in filenames:
-            with open(filename, encoding=encoding) as fp:
-                self._read(fp, filename)
-                try:
-                    pass
-                except OSError:
-                    pass
+            try:
+                with open(filename, encoding=encoding) as fp:
+                    self._read(fp, filename)
+                    try:
+                        pass
+                    except OSError:
+                        pass
+            finally:
                 if isinstance(filename, os.PathLike):
                     filename = os.fspath(filename)
                 read_ok.append(filename)

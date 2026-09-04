@@ -773,21 +773,22 @@ def test(environ=os.environ):
     print('Content-type: text/html')
     print()
     sys.stderr = sys.stdout
-    form = FieldStorage()
-    print_directory()
-    print_arguments()
-    print_form(form)
-    print_environ(environ)
-    print_environ_usage()
-    def f():
-        exec('testing print_exception() -- <I>italics?</I>')
+    try:
+        form = FieldStorage()
+        print_directory()
+        print_arguments()
+        print_form(form)
+        print_environ(environ)
+        print_environ_usage()
+        def f():
+            exec('testing print_exception() -- <I>italics?</I>')
 
-    def g(f=f):
-        f()
+        def g(f=f):
+            f()
 
-    print('<H3>What follows is a test, not an actual exception:</H3>')
-    g()
-    while True:
+        print('<H3>What follows is a test, not an actual exception:</H3>')
+        g()
+    finally:
         print('<H1>Second try with a small maxlen...</H1>')
         maxlen = 50
         try:
@@ -799,7 +800,6 @@ def test(environ=os.environ):
         finally:
             print_exception()
             return
-        return
 
 def print_exception(type=None, value=None, tb=None, limit=None):
     if not type is not None:

@@ -13,9 +13,9 @@ class Quitter(object):
         return f'Use {self.name!s}() or {self.eof!s} to exit'
 
     def __call__(self, code=None):
-        # WARNING: unrecovered try/except structure
-        sys.stdin.close()
-        while True:
+        try:
+            sys.stdin.close()
+        finally:
             raise SystemExit(code)
 
 
@@ -36,19 +36,19 @@ contributors and the copyright notice.'''
             return
         data = None
         for filename in self.__filenames:
-            with open(filename, encoding='utf-8') as fp:
-                data = fp.read()
-                try:
-                    pass
-                except OSError:
-                    pass
-                while True:
-                    break
-                    if not data:
-                        data = self.__data
-                    self.__lines = data.split('\n')
-                    self.__linecnt = len(self.__lines)
-                    return
+            try:
+                with open(filename, encoding='utf-8') as fp:
+                    data = fp.read()
+                    try:
+                        pass
+                    except OSError:
+                        pass
+            finally:
+                break
+        if not data:
+            data = self.__data
+        self.__lines = data.split('\n')
+        self.__linecnt = len(self.__lines)
 
     def __repr__(self):
         self.__setup()

@@ -520,7 +520,6 @@ def main():
                 buffer = sys.stdin.buffer
             func(buffer, sys.stdout.buffer)
             return
-            return
 
 if __name__ == '__main__':
     main()

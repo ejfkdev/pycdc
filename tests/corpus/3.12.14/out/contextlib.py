@@ -70,8 +70,8 @@ class ContextDecorator(object):
         @wraps(func)
         def inner(*args, **kwds):
             with self._recreate_cm():
-                None(None, None)
-                return
+                pass
+            None(None, None)
 
         return inner
 
@@ -187,11 +187,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                         finally:
                             if StopAsyncIteration:
                                 None
-                        try:
-                            pass
-                        except StopAsyncIteration as exc:
-                            return exc is not value
-                    continue
 
 
 def contextmanager(func):
@@ -562,10 +557,10 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         except AttributeError:
             raise TypeError(f"'{cls.__module__}.{cls.__qualname__}' object does not support the asynchronous context manager protocol") from None
         while True:
-            while True:
-                result = await _enter(cm)
-                self._push_async_cm_exit(cm, _exit)
-                return result
+            pass
+        result = await _enter(cm)
+        self._push_async_cm_exit(cm, _exit)
+        return result
 
     def push_async_exit(self, exit):
         '''Registers a coroutine function with the standard __aexit__ method
@@ -636,16 +631,12 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
                     cb_suppress = cb(*exc_details)
                 else:
                     while True:
-                        try:
-                            # WARNING: unrecovered try/except structure
-                            cb_suppress = await cb(*exc_details)
-                            if cb_suppress:
-                                suppressed_exc = True
-                                pending_raise = False
-                                exc_details = (None, None, None)
-                        except BaseException:
-                            exc_details[1].__context__ = fixed_ctx
-                            raise
+                        # WARNING: unrecovered try/except structure
+                        cb_suppress = await cb(*exc_details)
+                        if cb_suppress:
+                            suppressed_exc = True
+                            pending_raise = False
+                            exc_details = (None, None, None)
             finally:
                 if not self._exit_callbacks:
                     break

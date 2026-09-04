@@ -92,7 +92,6 @@ def int_to_decimal(n):
         result = inner(n, nbits)
         if negate:
             result = -result
-        return result
     return result
 
 def int_to_decimal_string(n):

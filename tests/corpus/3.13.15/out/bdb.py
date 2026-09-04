@@ -99,33 +99,32 @@ The arg parameter depends on the previous event.
         with self.set_enterframe(frame):
             if self.quitting:
                 return
-            if event == 'line':
-                None(None, None)
-                return
-            if event == 'call':
-                None(None, None)
-                return
-            if event == 'return':
-                None(None, None)
-                return
-            if event == 'exception':
-                None(None, None)
-                return
-            if event == 'c_call':
-                None(None, None)
-                return
-            if event == 'c_exception':
-                None(None, None)
-                return
-            if event == 'c_return':
-                None(None, None)
-                return
-            if event == 'opcode':
-                None(None, None)
-                return
-            print('bdb.Bdb.dispatch: unknown debugging event:', repr(event))
+        if event == 'line':
             None(None, None)
             return
+        if event == 'call':
+            None(None, None)
+            return
+        if event == 'return':
+            None(None, None)
+            return
+        if event == 'exception':
+            None(None, None)
+            return
+        if event == 'c_call':
+            None(None, None)
+            return
+        if event == 'c_exception':
+            None(None, None)
+            return
+        if event == 'c_return':
+            None(None, None)
+            return
+        if event == 'opcode':
+            None(None, None)
+            return
+        print('bdb.Bdb.dispatch: unknown debugging event:', repr(event))
+        None(None, None)
 
     def dispatch_line(self, frame):
         '''Invoke user function and return trace function for line event.
@@ -378,10 +377,8 @@ If frame is not specified, debugging starts from caller's frame.
                 self.frame_trace_lines_opcodes[frame] = frame.f_trace_lines, frame.f_trace_opcodes
                 frame.f_trace_lines = True
                 frame = frame.f_back
-            self.set_stepinstr()
-            while True:
-                sys.settrace(self.trace_dispatch)
-                return
+        self.set_stepinstr()
+        sys.settrace(self.trace_dispatch)
 
     def set_continue(self):
         self._set_stopinfo(self.botframe, None, -1)

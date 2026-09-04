@@ -218,10 +218,8 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.delimit('(', ')').interleave()
         self.interleave((lambda: self.write(', ')), self.traverse, node.argtypes)
         None(None, None, None)
-        while True:
-            self.write(' -> ')
-            self.traverse(node.returns)
-            return
+        self.write(' -> ')
+        self.traverse(node.returns)
 
     def visit_Expr(self, node):
         self.fill()
@@ -274,13 +272,11 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.delimit_if('(', ')', isinstance(node.target, Name)).delimit_if()
         self.traverse(node.target)
         None(None, None, None)
-        while True:
-            self.write(': ')
-            self.traverse(node.annotation)
-            if node.value:
-                self.write(' = ')
-                self.traverse(node.value)
-                return
+        self.write(': ')
+        self.traverse(node.annotation)
+        if node.value:
+            self.write(' = ')
+            self.traverse(node.value)
             return
 
     def visit_Return(self, node):
@@ -364,20 +360,18 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.block().block()
         self.traverse(node.body)
         None(None, None, None)
-        while True:
-            for ex in node.handlers:
-                self.traverse(ex)
-            if node.orelse:
-                self.fill('else', allow_semicolon=False)
-                self.block().block()
-                self.traverse(node.orelse)
-                None(None, None, None)
-            if node.finalbody:
-                self.fill('finally', allow_semicolon=False)
-                self.block().block()
-                self.traverse(node.finalbody)
-                None(None, None, None)
-                return
+        for ex in node.handlers:
+            self.traverse(ex)
+        if node.orelse:
+            self.fill('else', allow_semicolon=False)
+            self.block().block()
+            self.traverse(node.orelse)
+            None(None, None, None)
+        if node.finalbody:
+            self.fill('finally', allow_semicolon=False)
+            self.block().block()
+            self.traverse(node.finalbody)
+            None(None, None, None)
             return
 
     def visit_Try(self, node):
@@ -435,11 +429,9 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
                 comma = True
             self.traverse(e)
         None(None, None, None)
-        while True:
-            self.block().decorator_list()
-            self._write_docstring_and_traverse_body(node)
-            None(None, None, None)
-            return
+        self.block().decorator_list()
+        self._write_docstring_and_traverse_body(node)
+        None(None, None, None)
 
     def visit_FunctionDef(self, node):
         self._function_helper(node, 'def')
@@ -459,14 +451,12 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.delimit('(', ')').decorator_list()
         self.traverse(node.args)
         None(None, None, None)
-        while True:
-            if node.returns:
-                self.write(' -> ')
-                self.traverse(node.returns)
-            self.block(extra=self.get_type_comment(node)).decorator_list()
-            self._write_docstring_and_traverse_body(node)
-            None(None, None, None)
-            return
+        if node.returns:
+            self.write(' -> ')
+            self.traverse(node.returns)
+        self.block(extra=self.get_type_comment(node)).decorator_list()
+        self._write_docstring_and_traverse_body(node)
+        None(None, None, None)
 
     def _type_params_helper(self, type_params):
         if not type_params is None:
@@ -523,13 +513,11 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.block(extra=self.get_type_comment(node)).set_precedence()
         self.traverse(node.body)
         None(None, None, None)
-        while True:
-            if node.orelse:
-                self.fill('else', allow_semicolon=False)
-                self.block().set_precedence()
-                self.traverse(node.orelse)
-                None(None, None, None)
-                return
+        if node.orelse:
+            self.fill('else', allow_semicolon=False)
+            self.block().set_precedence()
+            self.traverse(node.orelse)
+            None(None, None, None)
             return
 
     def visit_If(self, node):
@@ -558,13 +546,11 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.block().traverse()
         self.traverse(node.body)
         None(None, None, None)
-        while True:
-            if node.orelse:
-                self.fill('else', allow_semicolon=False)
-                self.block().traverse()
-                self.traverse(node.orelse)
-                None(None, None, None)
-                return
+        if node.orelse:
+            self.fill('else', allow_semicolon=False)
+            self.block().traverse()
+            self.traverse(node.orelse)
+            None(None, None, None)
             return
 
     def visit_With(self, node):
@@ -1041,14 +1027,12 @@ Returns the tuple (string literal to write, possible quote types).
         buffer = self.buffered()._Precedence()
         self.traverse(node.args)
         None(None, None, None)
-        while True:
-            if buffer:
-                self.write(*[' ', *buffer])
-            self.write(': ')
-            self.set_precedence(_Precedence.TEST, node.body)
-            self.traverse(node.body)
-            None(None, None, None)
-            return
+        if buffer:
+            self.write(*[' ', *buffer])
+        self.write(': ')
+        self.set_precedence(_Precedence.TEST, node.body)
+        self.traverse(node.body)
+        None(None, None, None)
 
     def visit_alias(self, node):
         self.write(node.name)

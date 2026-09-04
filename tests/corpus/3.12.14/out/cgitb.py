@@ -248,18 +248,18 @@ class Hook:
         formatter = self.format == 'html' and html or text
         plain = False
         doc = formatter(info, self.context)
-        while True:
-            if self.display:
-                if plain:
-                    doc = pydoc.html.escape(doc)
-                    self.file.write('<pre>' + doc + '</pre>\n')
-                else:
-                    self.file.write(doc + '\n')
+        if self.display:
+            if plain:
+                doc = pydoc.html.escape(doc)
+                self.file.write('<pre>' + doc + '</pre>\n')
             else:
-                self.file.write('<p>A problem occurred in a Python script.\n')
-            if not self.logdir is None:
-                suffix = ['.txt', '.html'][self.format == 'html']
-                fd, path = tempfile.mkstemp(suffix=suffix, dir=self.logdir)
+                self.file.write(doc + '\n')
+        else:
+            self.file.write('<p>A problem occurred in a Python script.\n')
+        if not self.logdir is None:
+            suffix = ['.txt', '.html'][self.format == 'html']
+            fd, path = tempfile.mkstemp(suffix=suffix, dir=self.logdir)
+            try:
                 with os.fdopen(fd, 'w') as file:
                     file.write(doc)
                     try:
@@ -273,7 +273,8 @@ class Hook:
                             self.file.flush()
                         finally:
                             return
-                    return
+            finally:
+                return
 
 
 handler = Hook().handle

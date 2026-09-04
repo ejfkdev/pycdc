@@ -14,8 +14,7 @@ def _read_cmd_output(commandstring, capture_stderr=False):
             cmd = f"{commandstring!s} >'{fp.name!s}' 2>&1"
         else:
             cmd = f"{commandstring!s} 2>/dev/null >'{fp.name!s}'"
-        None(None, None)
-        return
+    None(None, None)
 
 def _aix_tag(vrtl, bd):
     _sz = 32 if sys.maxsize == 2147483647 else 64

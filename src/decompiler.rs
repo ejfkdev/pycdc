@@ -256,6 +256,9 @@ struct Ctx<'a> {
     globals: Vec<String>,
     nonlocals: Vec<String>,
     exc_entries: Vec<crate::code::ExceptionEntry>,
+    /// pre-retain exception table: chain-extent closure needs entries the
+    /// cleanup filter dropped (chain-internal redirects)
+    raw_exc_entries: Vec<crate::code::ExceptionEntry>,
     /// reconstructed try regions keyed by body start offset (3.11+)
     try_ctxs: HashMap<usize, TryCtx>,
     /// first offset of out-of-line handler code (main pass stops here)
@@ -371,6 +374,7 @@ pub fn decompile_in_scope(
         }
     }
     let mut exc_entries = code.exception_entries().to_vec();
+    let raw_exc_entries = exc_entries.clone();
     // Filter out entries whose handler is pure interpreter cleanup
     // (generators, inline comprehensions, with statements): these do not
     // correspond to a source-level try/finally.
@@ -478,6 +482,7 @@ pub fn decompile_in_scope(
         globals: Vec::new(),
         nonlocals: Vec::new(),
         exc_entries: exc_entries.clone(),
+        raw_exc_entries,
         try_ctxs: HashMap::new(),
         handler_zone,
         chain_heads,
@@ -1508,7 +1513,7 @@ impl<'a> Ctx<'a> {
         let mut table_end = from;
         loop {
             let mut grew = false;
-            for e in &self.exc_entries {
+            for e in &self.raw_exc_entries {
                 let seed = e.start == from
                     || (e.target == from && e.start < from);
                 let inside = e.start >= from
@@ -4439,13 +4444,22 @@ impl<'a> Ctx<'a> {
                 };
                 self.pending_with.push(vec![item]);
                 self.push(self.name_expr(WITH_RESULT_PLACEHOLDER));
-                // open a With block; its end is the exception-table handler
+                // open a With block spanning the PROTECTED BODY: it ends
+                // where the body ends (the inline __exit__ call and the
+                // out-of-line cleanup handler follow). Using the handler
+                // target here swallows sequential following statements
+                // into the with body.
                 let start = inst.end();
                 let end = self
-                    .exc_entries
-                    .iter()
-                    .find(|e| e.start == start || e.start == inst.end())
-                    .map(|e| e.target)
+                    .with_regions
+                    .get(&start)
+                    .copied()
+                    .or_else(|| {
+                        self.exc_entries
+                            .iter()
+                            .find(|e| e.start == start || e.start == inst.end())
+                            .map(|e| e.end)
+                    })
                     .unwrap_or(usize::MAX);
                 let mut wb = Block::new(BlockType::With, start, end);
                 wb.is_async = false;
@@ -6915,6 +6929,34 @@ impl<'a> Ctx<'a> {
                 continue;
             };
             if ti > bi {
+                continue;
+            }
+            // reject back edges that belong to an out-of-line handler
+            // cleanup: scanning back from the jump, a PUSH_EXC_INFO comes
+            // before any inner back edge (a real loop body would show its
+            // nested loops' back edges first). Such jumps are suppressed
+            // -exception continuations (with/try), not `while True` edges.
+            let mut handler_origin = false;
+            for k in (ti..bi).rev() {
+                let ins = &self.instrs[k];
+                if ins.op == Op::PUSH_EXC_INFO {
+                    handler_origin = true;
+                    break;
+                }
+                if ins.is_backward
+                    && matches!(
+                        ins.op,
+                        Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                            | Op::FOR_ITER
+                            | Op::FOR_LOOP
+                    )
+                {
+                    break;
+                }
+            }
+            if handler_origin {
                 continue;
             }
             let mut breaks: Vec<usize> = Vec::new();
