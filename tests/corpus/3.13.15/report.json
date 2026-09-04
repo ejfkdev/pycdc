@@ -28,7 +28,7 @@
    "ast_detail": "diff at token 186: orig  body=[While(test=Name(id='line' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 591,
-   "ntotal": 631,
+   "ntotal": 632,
    "detail": "line 17: orig ('LOAD_CONST', \"('sleep', 'time')\") | got ('LOAD_CONST', \"('sleep',)\")\nline 21: orig ('IMPORT_FROM', 'time') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'time') | got ('LOAD_CONST', '0')"
   },
   {
@@ -76,8 +76,8 @@
    "module": "_markupbase",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 862,
-   "ntotal": 1243,
+   "ndiff": 876,
+   "ntotal": 1254,
    "detail": "line 272: orig ('POP_JUMP_IF_FALSE', 'to L20') | got ('POP_JUMP_IF_FALSE', 'to L19')\nline 324: orig ('JUMP_FORWARD', 'to L18') | got ('JUMP_FORWARD', 'to L17')\nline 335: orig ('JUMP_FORWARD', 'to L18') | got ('JUMP_FORWARD', 'to L17')"
   },
   {
@@ -153,7 +153,7 @@
    "module": "bdb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2620,
+   "ndiff": 2639,
    "ntotal": 2733,
    "detail": "line 23: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 27: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 28: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -266,8 +266,8 @@
    "module": "csv",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1680,
-   "ntotal": 1717,
+   "ndiff": 1685,
+   "ntotal": 1726,
    "detail": "line 13: orig ('LOAD_CONST', \"('Error', 'writer', 'reader', 'register_dialect', 'unregister_dialect', 'get_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 17: orig ('IMPORT_FROM', 'writer') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'writer') | got ('LOAD_CONST', '0')"
   },
   {

@@ -253,12 +253,14 @@ class ParserBase:
         if j < 0:
             return j
         rawdata = self.rawdata
-        c = rawdata[j:j + 1]
-        if not c:
-            return -1
-        if c == '>':
-            return j + 1
-        if c in '\'"':
+        while True:
+            c = rawdata[j:j + 1]
+            if not c:
+                return -1
+            if c == '>':
+                return j + 1
+            if not c in '\'"':
+                break
             m = _declstringlit_match(rawdata, j)
             if not m:
                 return -1
@@ -272,32 +274,36 @@ class ParserBase:
         rawdata = self.rawdata
         if rawdata[i:i + 1] == '%':
             j = i + 1
-            c = rawdata[j:j + 1]
-            if not c:
-                return -1
-            if c.isspace():
+            while True:
+                c = rawdata[j:j + 1]
+                if not c:
+                    return -1
+                if not c.isspace():
+                    break
                 j = j + 1
         else:
             j = i
         name, j = self._scan_name(j, declstartpos)
         if j < 0:
             return j
-        c = self.rawdata[j:j + 1]
-        if not c:
-            return -1
-        if c in '\'"':
-            m = _declstringlit_match(rawdata, j)
-            if m:
-                j = m.end()
-            else:
+            while True:
+                c = self.rawdata[j:j + 1]
+                if not c:
+                    return -1
+                if not c in '\'"':
+                    break
+                m = _declstringlit_match(rawdata, j)
+                if m:
+                    j = m.end()
+                    break
                 return -1
-        else:
-            if c == '>':
-                return j + 1
-            name, j = self._scan_name(j, declstartpos)
-            if j < 0:
-                pass
-            return j
+            else:
+                if c == '>':
+                    return j + 1
+                name, j = self._scan_name(j, declstartpos)
+                if j < 0:
+                    pass
+                return j
 
     def _scan_name(self, i, declstartpos):
         rawdata = self.rawdata
@@ -318,4 +324,3 @@ class ParserBase:
         pass
 
 
-# WARNING: Decompyle incomplete

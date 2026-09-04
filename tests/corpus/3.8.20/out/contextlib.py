@@ -412,14 +412,15 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            exc_context = new_exc.__context__
-            if exc_context is old_exc:
-                return
-            if not exc_context is None:
+            while True:
+                exc_context = new_exc.__context__
+                if exc_context is old_exc:
+                    return
+                if exc_context is None:
+                    break
                 if exc_context is frame_exc:
-                    pass
-                else:
-                    new_exc = exc_context
+                    break
+                new_exc = exc_context
             new_exc.__context__ = old_exc
 
         suppressed_exc = False
@@ -546,14 +547,15 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         received_exc = exc_details[0] is not None
         frame_exc = sys.exc_info()[1]
         def _fix_exception_context(new_exc, old_exc):
-            exc_context = new_exc.__context__
-            if exc_context is old_exc:
-                return
-            if not exc_context is None:
+            while True:
+                exc_context = new_exc.__context__
+                if exc_context is old_exc:
+                    return
+                if exc_context is None:
+                    break
                 if exc_context is frame_exc:
-                    pass
-                else:
-                    new_exc = exc_context
+                    break
+                new_exc = exc_context
             new_exc.__context__ = old_exc
 
         suppressed_exc = False

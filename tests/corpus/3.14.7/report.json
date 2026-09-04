@@ -51,7 +51,7 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3376,
+   "ndiff": 3385,
    "ntotal": 4049,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_SMALL_INT', '')"
   },
@@ -80,7 +80,7 @@
    "module": "_markupbase",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 938,
+   "ndiff": 952,
    "ntotal": 1352,
    "detail": "line 212: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 213: orig ('LOAD_CONST', \"'unexpected call to parse_declaration'\") | got ('PUSH_NULL', '')\nline 293: orig ('POP_JUMP_IF_FALSE', 'to L19') | got ('POP_JUMP_IF_FALSE', 'to L18')"
   },
@@ -92,8 +92,8 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1654,
-   "ntotal": 1866,
+   "ndiff": 1646,
+   "ntotal": 1868,
    "detail": "line 168: orig ('LOAD_FAST_BORROW', 'executable') | got ('LOAD_CONST', 'None')\nline 176: orig ('NOP', '') | got ('LOAD_SMALL_INT', '')\nline 177: orig ('LOAD_SMALL_INT', '') | got ('LOAD_CONST', 'None')"
   },
   {
@@ -108,7 +108,7 @@
    "module": "_py_warnings",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2766,
+   "ndiff": 2780,
    "ntotal": 3167,
    "detail": "line 322: orig ('LOAD_GLOBAL', '_wm') | got ('NOP', '')\nline 323: orig ('LOAD_ATTR', 'filters') | got ('LOAD_GLOBAL', '_wm')\nline 324: orig ('RETURN_VALUE', '') | got ('LOAD_ATTR', 'filters')"
   },
@@ -234,15 +234,15 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4008,
-   "ntotal": 4061,
+   "ndiff": 2042,
+   "ntotal": 2087,
    "detail": "line 17: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 21: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'compile_command') | got ('LOAD_SMALL_INT', '')"
   },
   {
    "module": "codecs",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2288,
+   "ndiff": 2297,
    "ntotal": 2373,
    "detail": "line 18: orig ('BUILD_LIST', '') | got ('NOP', '')\nline 19: orig ('LOAD_CONST', \"'register'\") | got ('BUILD_LIST', '')\nline 20: orig ('LIST_APPEND', '') | got ('LOAD_CONST', \"'register'\")"
   },

@@ -386,10 +386,13 @@ If frame is not specified, debugging starts from caller's frame.
             sys.settrace(None)
             frame = sys._getframe().f_back
             if frame and frame is not self.botframe:
-                del frame.f_trace
-                frame = frame.f_back
-                if frame and frame is not self.botframe:
-                    pass
+                while True:
+                    del frame.f_trace
+                    frame = frame.f_back
+                    if not frame:
+                        break
+                    if not frame is not self.botframe:
+                        break
             for frame, (trace_lines, trace_opcodes) in self.frame_trace_lines_opcodes.items():
                 frame.f_trace_lines = trace_lines
                 frame.f_trace_opcodes = trace_opcodes

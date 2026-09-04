@@ -159,7 +159,7 @@
    "module": "binhex",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1810,
+   "ndiff": 1807,
    "ntotal": 2054,
    "detail": "line 212: orig ('LOAD_GLOBAL', 'os') | got ('NOP', '')\nline 213: orig ('LOAD_ATTR', 'path') | got ('NOP', '')\nline 214: orig ('LOAD_METHOD', 'split') | got ('LOAD_GLOBAL', 'os')"
   },

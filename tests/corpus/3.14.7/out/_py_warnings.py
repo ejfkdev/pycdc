@@ -367,11 +367,12 @@ def _next_external_frame(frame, skip_file_prefixes):
     """Find the next frame that doesn't involve Python or user internals."""
 
     frame = frame.f_back
-    while not frame is None:
-        if not _is_internal_filename((filename := frame.f_code.co_filename)):
-            if not _is_filename_to_skip(filename, skip_file_prefixes):
-                break
-        frame = frame.f_back
+    while True:
+        while not frame is None:
+            if not _is_internal_filename((filename := frame.f_code.co_filename)):
+                if not _is_filename_to_skip(filename, skip_file_prefixes):
+                    break
+            frame = frame.f_back
     return frame
 
 def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixes=()):

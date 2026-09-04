@@ -377,24 +377,30 @@ additional chunks as necessary.
             consistency = 1.0
             threshold = 0.9
             if len(delims) == 0 and consistency >= threshold:
-                for k, v in modeList:
-                    if not v[0] > 0:
-                        continue
-                    if not v[1] > 0:
-                        continue
-                    if not v[1] / total >= consistency:
-                        continue
-                    if not delimiters is None and not k in delimiters:
-                        pass
-                consistency -= 0.01
-                if len(delims) == 0 and consistency >= threshold:
-                    continue
-            if len(delims) == 1:
-                delim = list(delims.keys())[0]
-                skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
-                return delim, skipinitialspace
-            start = end
-            end += chunkLength
+                while True:
+                    for k, v in modeList:
+                        if not v[0] > 0:
+                            continue
+                        if not v[1] > 0:
+                            continue
+                        if not v[1] / total >= consistency:
+                            continue
+                        if not delimiters is None and not k in delimiters:
+                            pass
+                    consistency -= 0.01
+                    if not len(delims) == 0:
+                        break
+                    if not consistency >= threshold:
+                        break
+            else:
+                if len(delims) == 1:
+                    delim = list(delims.keys())[0]
+                    skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
+                    return delim, skipinitialspace
+                start = end
+                end += chunkLength
+                if not start < len(data):
+                    break
         if not delims:
             return ('', 0)
         if len(delims) > 1:

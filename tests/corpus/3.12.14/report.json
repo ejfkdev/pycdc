@@ -170,8 +170,8 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2795,
-   "ntotal": 2930,
+   "ndiff": 2791,
+   "ntotal": 2936,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {
@@ -191,8 +191,8 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1282,
-   "ntotal": 1480,
+   "ndiff": 1310,
+   "ntotal": 1483,
    "detail": "line 158: orig ('POP_JUMP_IF_FALSE', 'to 248') | got ('POP_JUMP_IF_FALSE', 'to 250')\nline 161: orig ('POP_JUMP_IF_FALSE', 'to 248') | got ('POP_JUMP_IF_FALSE', 'to 250')\nline 163: orig ('LOAD_CONST', '0') | got ('NOP', '')"
   },
   {
@@ -235,8 +235,8 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3197,
-   "ntotal": 4477,
+   "ndiff": 3395,
+   "ntotal": 4482,
    "detail": "line 850: orig ('POP_JUMP_IF_FALSE', 'to 654') | got ('POP_JUMP_IF_FALSE', 'to 662')\nline 977: orig ('POP_JUMP_IF_FALSE', 'to 652') | got ('POP_JUMP_IF_FALSE', 'to 650')\nline 978: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 652')"
   },
   {
@@ -275,8 +275,8 @@
    "module": "csv",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1688,
-   "ntotal": 1737,
+   "ndiff": 1710,
+   "ntotal": 1746,
    "detail": "line 13: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 17: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {

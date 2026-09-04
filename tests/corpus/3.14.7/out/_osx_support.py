@@ -284,16 +284,18 @@ barf if multiple '-isysroot' arguments are present.
                     if not stripArch:
                         compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
                 if stripSysroot:
-                    indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
-                    if not indices:
-                        pass
-                    else:
-                        index = indices[0]
-                        if compiler_so[index] == '-isysroot':
+                    while True:
+                        indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
+                        if not indices:
+                            pass
+                        else:
+                            index = indices[0]
+                            if not compiler_so[index] == '-isysroot':
+                                break
                             del compiler_so[index:index + 2]
                             continue
-                        del compiler_so[index:index + 1]
-                        continue
+                    del compiler_so[index:index + 1]
+                    continue
                 sysroot = None
                 argvar = cc_args
                 indices = [i for i, x in enumerate(cc_args) if x.startswith('-isysroot')]

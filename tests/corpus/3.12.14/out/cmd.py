@@ -207,9 +207,12 @@ class Cmd:
                 return None, None, line
         i, n = 0, len(line)
         if i < n and line[i] in self.identchars:
-            i = i + 1
-            if i < n and line[i] in self.identchars:
-                pass
+            while True:
+                i = i + 1
+                if not i < n:
+                    break
+                if not line[i] in self.identchars:
+                    break
         cmd, arg = line[:i], line[i:].strip()
         return cmd, arg, line
 

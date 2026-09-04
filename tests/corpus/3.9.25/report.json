@@ -35,7 +35,7 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2129,
+   "ndiff": 2135,
    "ntotal": 3420,
    "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -55,7 +55,7 @@
    "module": "_markupbase",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 886,
+   "ndiff": 955,
    "ntotal": 1391,
    "detail": "line 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 385: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')"
   },
@@ -163,7 +163,7 @@
    "module": "binhex",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1138,
+   "ndiff": 1135,
    "ntotal": 2036,
    "detail": "line 886: orig ('LOAD_ATTR', 'ofp') | got ('LOAD_METHOD', 'ofp')\nline 887: orig ('LOAD_METHOD', 'write') | got ('LOAD_GLOBAL', 'struct')\nline 888: orig ('LOAD_GLOBAL', 'struct') | got ('LOAD_METHOD', 'pack')"
   },
@@ -237,10 +237,10 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "",
+   "ast_detail": "diff at token 749: orig  body=[Pass()] | dec  body=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1120,
-   "ntotal": 2146,
+   "ndiff": 1160,
+   "ntotal": 2150,
    "detail": "line 950: orig ('POP_JUMP_IF_FALSE', '') | got ('EXTENDED_ARG', '')\nline 951: orig ('LOAD_FAST', 'size') | got ('POP_JUMP_IF_FALSE', '')\nline 952: orig ('STORE_FAST', 'chars') | got ('LOAD_FAST', 'size')"
   },
   {

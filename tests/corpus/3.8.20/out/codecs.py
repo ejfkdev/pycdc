@@ -455,41 +455,46 @@ class StreamReader(Codec):
             return line
         readsize = size or 72
         line = self._empty_charbuffer
-        data = self.read(readsize, firstline=True)
-        if data:
-            if not isinstance(data, str) or not data.endswith('\r'):
-                if isinstance(data, bytes) and data.endswith(b'\r'):
-                    data += self.read(size=1, chars=1)
-        line += data
-        lines = line.splitlines(keepends=True)
-        if lines:
-            if len(lines) > 1:
-                line = lines[0]
-                del lines[0]
+        while True:
+            data = self.read(readsize, firstline=True)
+            if data:
+                if not isinstance(data, str) or not data.endswith('\r'):
+                    if isinstance(data, bytes) and data.endswith(b'\r'):
+                        data += self.read(size=1, chars=1)
+            line += data
+            lines = line.splitlines(keepends=True)
+            if lines:
                 if len(lines) > 1:
-                    lines[-1] += self.charbuffer
-                    self.linebuffer = lines
-                    self.charbuffer = None
-                else:
-                    self.charbuffer = lines[0] + self.charbuffer
-                if not keepends:
-                    line = line.splitlines(keepends=False)[0]
-            else:
-                line0withend = lines[0]
-                line0withoutend = lines[0].splitlines(keepends=False)[0]
-                if line0withend != line0withoutend:
-                    self.charbuffer = self._empty_charbuffer.join(lines[1:]) + self.charbuffer
-                    if keepends:
-                        line = line0withend
+                    line = lines[0]
+                    del lines[0]
+                    if len(lines) > 1:
+                        lines[-1] += self.charbuffer
+                        self.linebuffer = lines
+                        self.charbuffer = None
                     else:
-                        line = line0withoutend
-                elif not data or size is not None:
-                    if line:
-                        if not keepends:
-                            line = line.splitlines(keepends=False)[0]
-                        if readsize < 8000:
-                            pass
-                        readsize *= 2
+                        self.charbuffer = lines[0] + self.charbuffer
+                    if keepends:
+                        break
+                    line = line.splitlines(keepends=False)[0]
+                    break
+            line0withend = lines[0]
+            line0withoutend = lines[0].splitlines(keepends=False)[0]
+            if line0withend != line0withoutend:
+                self.charbuffer = self._empty_charbuffer.join(lines[1:]) + self.charbuffer
+                if keepends:
+                    line = line0withend
+                else:
+                    line = line0withoutend
+                break
+            if not data or size is not None:
+                if not line:
+                    break
+                if keepends:
+                    break
+                line = line.splitlines(keepends=False)[0]
+                break
+            if readsize < 8000:
+                readsize *= 2
         return line
 
     def readlines(self, sizehint=None, keepends=True):
@@ -961,4 +966,3 @@ if _false:
 if __name__ == '__main__':
     sys.stdout = EncodedFile(sys.stdout, 'latin-1', 'utf-8')
     sys.stdin = EncodedFile(sys.stdin, 'utf-8', 'latin-1')
-# WARNING: Decompyle incomplete

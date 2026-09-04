@@ -5277,7 +5277,15 @@ impl<'a> Ctx<'a> {
                 Some(t) if t > target && self.idx_of.contains_key(&t) => {
                     // final operand: its jump skips the body (if exit) and
                     // must be the last instruction before the body starts
-                    if jk + 1 != ti {
+                    // (3.14 pads the body head with NOT_TAKEN)
+                    let mut nj = jk + 1;
+                    while matches!(
+                        self.instrs.get(nj).map(|x| x.op),
+                        Some(Op::NOT_TAKEN) | Some(Op::NOP)
+                    ) {
+                        nj += 1;
+                    }
+                    if nj != ti {
                         return None;
                     }
                     parts.push(if jt {
@@ -6995,6 +7003,14 @@ impl<'a> Ctx<'a> {
         // loop tops claimed by rotated-while cond jumps (section 6 handles
         // those), by FOR_ITER loops, and by SETUP_* blocks
         let mut claimed: Vec<usize> = Vec::new();
+        let back_ops = |o: Op| {
+            matches!(
+                o,
+                Op::JUMP_ABSOLUTE
+                    | Op::JUMP_BACKWARD
+                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+            )
+        };
         for (ci, cj) in self.instrs.iter().enumerate() {
             if !is_cond_jump(cj.op) {
                 continue;
@@ -7006,6 +7022,25 @@ impl<'a> Ctx<'a> {
             let Some(&ti) = self.idx_of.get(&t) else {
                 continue;
             };
+            // back edges between this cond jump and its target:
+            // * target starts a pure cond-expr region ending at this jump
+            //   -> rotated while, claim its top (block while-True synthesis)
+            // * otherwise this is a 3.14-style `if c: break` flying over
+            //   the ENCLOSING loop's own back edge — that loop's top must
+            //   stay unclaimed, and this region claims nothing
+            let straddle: Vec<usize> = self.instrs[ci..ti]
+                .iter()
+                .filter(|ins| ins.is_backward && back_ops(ins.op))
+                .filter_map(|ins| ins.target)
+                .collect();
+            if !straddle.is_empty() {
+                for bt in straddle {
+                    if self.is_cond_expr_top(bt, cj.offset) {
+                        claimed.push(bt);
+                    }
+                }
+                continue;
+            }
             for ins in &self.instrs[ci..ti] {
                 if let Some(bt) = ins.target {
                     if ins.is_backward && bt <= cj.offset {

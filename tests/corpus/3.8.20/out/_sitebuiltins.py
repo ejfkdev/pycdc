@@ -49,6 +49,8 @@ class _Printer(object):
         self.__setup()
         prompt = 'Hit Return for more, or q (and Return) to quit: '
         lineno = 0
+        while True:
+            pass
 
 
 class _Helper(object):

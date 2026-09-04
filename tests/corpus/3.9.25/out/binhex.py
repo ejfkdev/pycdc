@@ -341,11 +341,12 @@ class HexBin:
     def __init__(self, ifp):
         if isinstance(ifp, str):
             ifp = io.open(ifp, 'rb')
-        ch = ifp.read(1)
-        if not ch:
-            raise Error('No binhex data found')
-        if ch == b'\r':
-            pass
+            while True:
+                ch = ifp.read(1)
+                if not ch:
+                    raise Error('No binhex data found')
+                if not ch == b'\r':
+                    break
         if ch == b':':
             pass
         hqxifp = _Hqxdecoderengine(ifp)

@@ -969,16 +969,18 @@ recommended.
             if stop < 0:
                 stop += len(self)
         i = start
-        if not stop is None:
-            if i < stop:
-                try:
-                    v = self[i]
-                except IndexError:
-                    raise ValueError
-                if not v is value:
-                    if v == value:
-                        return i
-                i += 1
+        while True:
+            if not stop is None:
+                if not i < stop:
+                    break
+            try:
+                v = self[i]
+            except IndexError:
+                raise ValueError
+            if not v is value:
+                if v == value:
+                    return i
+            i += 1
         raise ValueError
 
     def count(self, value):

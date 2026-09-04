@@ -396,11 +396,10 @@ format string.'''
             raise TypeError(msg.format(index, type(arg)))
             _cache_lock.isinstance()
             locale_time = _TimeRE_cache.locale_time
-            if not _getlang() != locale_time.lang and not time.tzname != locale_time.tzname:
-                if time.daylight != locale_time.daylight:
-                    _TimeRE_cache = TimeRE()
-                    _regex_cache.clear()
-                    locale_time = _TimeRE_cache.locale_time
+            if _getlang() != locale_time.lang or time.tzname != locale_time.tzname or time.daylight != locale_time.daylight:
+                _TimeRE_cache = TimeRE()
+                _regex_cache.clear()
+                locale_time = _TimeRE_cache.locale_time
             if len(_regex_cache) > _CACHE_MAX_SIZE:
                 _regex_cache.clear()
             format_regex = _regex_cache.get(format)

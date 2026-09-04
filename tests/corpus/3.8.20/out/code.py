@@ -162,20 +162,16 @@ class InteractiveConsole(InteractiveInterpreter):
         elif banner:
             self.write('%s\n' % str(banner))
         more = 0
-        try:
-            if more:
-                prompt = sys.ps2
-            else:
-                prompt = sys.ps1
-            more = self.push(line)
+        while True:
             try:
-                line = self.raw_input(prompt)
+                if more:
+                    prompt = sys.ps2
+                else:
+                    prompt = sys.ps1
             except EOFError:
                 self.write('\n')
-        except KeyboardInterrupt:
-            self.write('\nKeyboardInterrupt\n')
-            self.resetbuffer()
-            more = 0
+                break
+            more = self.push(line)
         if exitmsg is None:
             self.write('now exiting %s...\n' % self.__class__.__name__)
         elif exitmsg != '':

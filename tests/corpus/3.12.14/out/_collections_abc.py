@@ -953,18 +953,18 @@ class Sequence(Reversible, Collection):
             if stop < 0:
                 stop += len(self)
         i = start
-        if stop is None or i < stop:
-            try:
-                v = self[i]
-            except IndexError:
-                raise ValueError
-            if v is value or v == value:
-                return i
-            i += 1
-            if not stop is not None:
-                pass
-            if i < stop:
-                pass
+        if not stop is None:
+            while i < stop:
+                try:
+                    v = self[i]
+                except IndexError:
+                    raise ValueError
+                if not v is value:
+                    if v == value:
+                        return i
+                i += 1
+                if not stop is not None:
+                    continue
         raise ValueError
 
     def count(self, value):

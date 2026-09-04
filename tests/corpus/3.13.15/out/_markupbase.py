@@ -163,23 +163,27 @@ by the SGML/HTML and XHTML parsers.'''
                     return j
                 if rawdata[j] == ';':
                     j = j + 1
-            elif c == ']':
-                j = j + 1
-                if j < n and rawdata[j].isspace():
+            else:
+                if c == ']':
                     j = j + 1
                     if j < n and rawdata[j].isspace():
-                        continue
-            if j < n:
-                if rawdata[j] == '>':
-                    return j
-                self.updatepos(declstartpos, j)
-                raise AssertionError('unexpected char after internal subset')
-            return -1
-            if c.isspace():
-                j = j + 1
-            else:
-                self.updatepos(declstartpos, j)
-                raise AssertionError('unexpected char %r in internal subset' % c)
+                        while True:
+                            j = j + 1
+                            if not j < n:
+                                break
+                            if not rawdata[j].isspace():
+                                break
+                    if j < n:
+                        if rawdata[j] == '>':
+                            return j
+                        self.updatepos(declstartpos, j)
+                        raise AssertionError('unexpected char after internal subset')
+                    return -1
+                if c.isspace():
+                    j = j + 1
+                else:
+                    self.updatepos(declstartpos, j)
+                    raise AssertionError('unexpected char %r in internal subset' % c)
         return -1
 
     def _parse_doctype_element(self, i, declstartpos):

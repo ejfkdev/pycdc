@@ -419,17 +419,16 @@ on the stream, these should be read too.
             self.linebuffer = None
         if chars < 0:
             chars = size
-        if chars >= 0 and len(self.charbuffer) >= chars:
-            pass
-        else:
-            if size < 0:
-                newdata = self.stream.read()
-            else:
-                newdata = self.stream.read(size)
-            data = self.bytebuffer + newdata
-            if not data:
-                pass
-            else:
+            while True:
+                if chars >= 0 and len(self.charbuffer) >= chars:
+                    break
+                if size < 0:
+                    newdata = self.stream.read()
+                else:
+                    newdata = self.stream.read(size)
+                data = self.bytebuffer + newdata
+                if not data:
+                    break
                 try:
                     newchars, decodedbytes = self.decode(data, self.errors)
                 except UnicodeDecodeError as exc:
@@ -443,8 +442,8 @@ on the stream, these should be read too.
                     del exc
                 self.bytebuffer = data[decodedbytes:]
                 self.charbuffer += newchars
-                if newdata:
-                    pass
+                if not newdata:
+                    break
         if chars < 0:
             result = self.charbuffer
             self.charbuffer = self._empty_charbuffer
@@ -475,44 +474,45 @@ read() method.
             pass
         readsize = 72
         line = self._empty_charbuffer
-        data = self.read(readsize, firstline=True)
-        if data:
-            if isinstance(data, str):
-                if not data.endswith('\r'):
-                    if isinstance(data, bytes) and data.endswith(b'\r'):
-                        data += self.read(size=1, chars=1)
-        line += data
-        lines = line.splitlines(keepends=True)
-        if lines:
-            if len(lines) > 1:
-                line = lines[0]
-                del lines[0]
+        while True:
+            data = self.read(readsize, firstline=True)
+            if data:
+                if isinstance(data, str):
+                    if not data.endswith('\r'):
+                        if isinstance(data, bytes) and data.endswith(b'\r'):
+                            data += self.read(size=1, chars=1)
+            line += data
+            lines = line.splitlines(keepends=True)
+            if lines:
                 if len(lines) > 1:
-                    lines[-1] += self.charbuffer
-                    self.linebuffer = lines
-                    self.charbuffer = None
-                else:
-                    self.charbuffer = lines[0] + self.charbuffer
-                if not keepends:
-                    line = line.splitlines(keepends=False)[0]
-                return line
-            line0withend = lines[0]
-            line0withoutend = lines[0].splitlines(keepends=False)[0]
-            if line0withend != line0withoutend:
-                self.charbuffer = self._empty_charbuffer.join(lines[1:]) + self.charbuffer
-                if keepends:
-                    line = line0withend
-                    return line
-                line = line0withoutend
-                return line
-        if data:
-            if not size is None:
-                if line:
+                    line = lines[0]
+                    del lines[0]
+                    if len(lines) > 1:
+                        lines[-1] += self.charbuffer
+                        self.linebuffer = lines
+                        self.charbuffer = None
+                    else:
+                        self.charbuffer = lines[0] + self.charbuffer
                     if not keepends:
                         line = line.splitlines(keepends=False)[0]
-                return line
-        if not readsize < 8000:
-            pass
+                    return line
+                line0withend = lines[0]
+                line0withoutend = lines[0].splitlines(keepends=False)[0]
+                if line0withend != line0withoutend:
+                    self.charbuffer = self._empty_charbuffer.join(lines[1:]) + self.charbuffer
+                    if keepends:
+                        line = line0withend
+                        return line
+                    line = line0withoutend
+                    return line
+            if data:
+                if not size is None:
+                    if line:
+                        if not keepends:
+                            line = line.splitlines(keepends=False)[0]
+                    return line
+            if readsize < 8000:
+                break
         readsize *= 2
 
     def readlines(self, sizehint=None, keepends=True):
@@ -990,4 +990,3 @@ namereplace_errors = lookup_error('namereplace')
 _false = 0
 if _false:
     import encodings
-# WARNING: Decompyle incomplete

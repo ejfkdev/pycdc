@@ -200,46 +200,47 @@ by the SGML/HTML and XHTML parsers.'''
             return -1
         if c == '>':
             return j + 1
-        name, j = self._scan_name(j, declstartpos)
-        if j < 0:
-            return j
-        c = rawdata[j:j + 1]
-        if c == '':
-            return -1
-        if c == '(':
-            if ')' in rawdata[j:]:
-                j = rawdata.find(')', j) + 1
-            else:
-                return -1
-            while rawdata[j:j + 1].isspace():
-                j = j + 1
-            if not rawdata[j:]:
-                return -1
-        else:
-            name, j = self._scan_name(j, declstartpos)
-        c = rawdata[j:j + 1]
-        if not c:
-            return -1
-        if c in '\'"':
-            m = _declstringlit_match(rawdata, j)
-            if m:
-                j = m.end()
-            else:
-                return -1
-            c = rawdata[j:j + 1]
-            if not c:
-                return -1
-        if c == '#':
-            if rawdata[j:] == '#':
-                return -1
-            name, j = self._scan_name(j + 1, declstartpos)
-            if j < 0:
-                return j
-            c = rawdata[j:j + 1]
-            if not c:
-                return -1
-        if not c == '>':
-            pass
+            while True:
+                name, j = self._scan_name(j, declstartpos)
+                if j < 0:
+                    return j
+                c = rawdata[j:j + 1]
+                if c == '':
+                    return -1
+                if c == '(':
+                    if ')' in rawdata[j:]:
+                        j = rawdata.find(')', j) + 1
+                    else:
+                        return -1
+                    while rawdata[j:j + 1].isspace():
+                        j = j + 1
+                    if not rawdata[j:]:
+                        return -1
+                else:
+                    name, j = self._scan_name(j, declstartpos)
+                c = rawdata[j:j + 1]
+                if not c:
+                    return -1
+                if c in '\'"':
+                    m = _declstringlit_match(rawdata, j)
+                    if m:
+                        j = m.end()
+                    else:
+                        return -1
+                    c = rawdata[j:j + 1]
+                    if not c:
+                        return -1
+                if c == '#':
+                    if rawdata[j:] == '#':
+                        return -1
+                    name, j = self._scan_name(j + 1, declstartpos)
+                    if j < 0:
+                        return j
+                    c = rawdata[j:j + 1]
+                    if not c:
+                        return -1
+                if c == '>':
+                    break
         return j + 1
 
     def _parse_doctype_notation(self, i, declstartpos):
@@ -247,12 +248,14 @@ by the SGML/HTML and XHTML parsers.'''
         if j < 0:
             return j
         rawdata = self.rawdata
-        c = rawdata[j:j + 1]
-        if not c:
-            return -1
-        if c == '>':
-            return j + 1
-        if c in '\'"':
+        while True:
+            c = rawdata[j:j + 1]
+            if not c:
+                return -1
+            if c == '>':
+                return j + 1
+            if not c in '\'"':
+                break
             m = _declstringlit_match(rawdata, j)
             if not m:
                 return -1
@@ -266,30 +269,29 @@ by the SGML/HTML and XHTML parsers.'''
         rawdata = self.rawdata
         if rawdata[i:i + 1] == '%':
             j = i + 1
-            c = rawdata[j:j + 1]
-            if not c:
-                return -1
-            if c.isspace():
+            while True:
+                c = rawdata[j:j + 1]
+                if not c:
+                    return -1
+                if not c.isspace():
+                    break
                 j = j + 1
         else:
             j = i
         name, j = self._scan_name(j, declstartpos)
         if j < 0:
             return j
-        c = self.rawdata[j:j + 1]
-        if not c:
-            return -1
-        if c in '\'"':
-            m = _declstringlit_match(rawdata, j)
-            if m:
-                j = m.end()
-            return -1
-        if c == '>':
-            return j + 1
-        name, j = self._scan_name(j, declstartpos)
-        if not j < 0:
-            pass
-        return j
+            while True:
+                c = self.rawdata[j:j + 1]
+                if not c:
+                    return -1
+                if c in '\'"':
+                    m = _declstringlit_match(rawdata, j)
+                    if not m:
+                        break
+                    j = m.end()
+                    continue
+        return -1
 
     def _scan_name(self, i, declstartpos):
         rawdata = self.rawdata
@@ -310,4 +312,3 @@ by the SGML/HTML and XHTML parsers.'''
         pass
 
 
-# WARNING: Decompyle incomplete
