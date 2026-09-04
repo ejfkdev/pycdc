@@ -31,7 +31,7 @@ def b64encode(s, altchars=None):
 
     encoded = binascii.b2a_base64(s, newline=False)
     if not altchars is None:
-        assert len(altchars) == 2
+        assert len(altchars) == 2, repr(altchars)
         return encoded.translate(bytes.maketrans(b'+/', altchars))
     return encoded
 
@@ -57,7 +57,7 @@ def b64decode(s, altchars=None, validate=False):
     s = _bytes_from_decode_data(s)
     if not altchars is None:
         altchars = _bytes_from_decode_data(altchars)
-        assert len(altchars) == 2
+        assert len(altchars) == 2, repr(altchars)
         s = s.translate(bytes.maketrans(altchars, b'+/'))
     return binascii.a2b_base64(s, strict_mode=validate)
 
@@ -151,7 +151,7 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
         raise binascii.Error('Incorrect padding')
     if not map01 is None:
         map01 = _bytes_from_decode_data(map01)
-        assert len(map01) == 1
+        assert len(map01) == 1, repr(map01)
         s = s.translate(bytes.maketrans(b'01', b'O' + map01))
     if casefold:
         s = s.upper()
@@ -270,9 +270,8 @@ def a85encode(b, *, foldspaces=False, wrapcol=0, pad=False, adobe=False):
     if wrapcol:
         wrapcol = max(2 if adobe else 1, wrapcol)
         chunks = [i[i + wrapcol] for i in range(0, len(result), wrapcol)]
-        if adobe:
-            if len(chunks[-1]) + 2 > wrapcol:
-                chunks.append(b'')
+        if adobe and len(chunks[-1]) + 2 > wrapcol:
+            chunks.append(b'')
         result = b'\n'.join(chunks)
     if adobe:
         result += _A85END

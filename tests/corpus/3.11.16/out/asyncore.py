@@ -167,11 +167,10 @@ poll3 = poll2
 def loop(timeout=30.0, use_poll=False, map=None, count=None):
     if not map is not None:
         map = socket_map
-    if use_poll:
-        if hasattr(select, 'poll'):
-            poll_fun = poll2
-        else:
-            poll_fun = poll
+    if use_poll and hasattr(select, 'poll'):
+        poll_fun = poll2
+    else:
+        poll_fun = poll
     if not count is not None:
         while map:
             poll_fun(timeout, map)
@@ -460,7 +459,7 @@ class dispatcher_with_send(dispatcher):
 def compact_traceback():
     t, v, tb = sys.exc_info()
     tbinfo = []
-    assert tb
+    assert tb, 'traceback does not exist'
     while tb:
         tbinfo.append((tb.tb_frame.f_code.co_filename, tb.tb_frame.f_code.co_name, str(tb.tb_lineno)))
         tb = tb.tb_next

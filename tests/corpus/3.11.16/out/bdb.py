@@ -111,11 +111,10 @@ class Bdb:
         Return self.trace_dispatch to continue tracing in this scope.
         '''
 
-        if not self.stop_here(frame):
-            if self.break_here(frame):
-                self.user_line(frame)
-                if self.quitting:
-                    raise BdbQuit
+        if self.stop_here(frame) or self.break_here(frame):
+            self.user_line(frame)
+            if self.quitting:
+                raise BdbQuit
         return self.trace_dispatch
 
     def dispatch_call(self, frame, arg):
@@ -129,9 +128,8 @@ class Bdb:
         if not self.botframe is not None:
             self.botframe = frame.f_back
             return self.trace_dispatch
-        if not self.stop_here(frame):
-            if not self.break_anywhere(frame):
-                return
+        if not self.stop_here(frame) and not self.break_anywhere(frame):
+            return
         if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
             return self.trace_dispatch
         self.user_call(frame, arg)
@@ -200,9 +198,8 @@ class Bdb:
     def stop_here(self, frame):
         '''Return True if frame is below the starting frame in the stack.'''
 
-        if self.skip:
-            if self.is_skipped_module(frame.f_globals.get('__name__')):
-                return False
+        if self.skip and self.is_skipped_module(frame.f_globals.get('__name__')):
+            return False
         if frame is self.stopframe:
             if self.stoplineno == -1:
                 return False

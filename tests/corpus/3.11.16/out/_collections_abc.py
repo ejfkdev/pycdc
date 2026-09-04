@@ -374,9 +374,8 @@ class _CallableGenericAlias(GenericAlias):
 
     __slots__ = ()
     def __new__(cls, origin, args):
-        if isinstance(args, tuple):
-            if not len(args) == 2:
-                raise TypeError('Callable must be used as Callable[[arg, ...], result].')
+        if not isinstance(args, tuple) or not len(args) == 2:
+            raise TypeError('Callable must be used as Callable[[arg, ...], result].')
         t_args, t_result = args
         if isinstance(t_args, (tuple, list)):
             args = *t_args, t_result
@@ -385,23 +384,21 @@ class _CallableGenericAlias(GenericAlias):
         return super().__new__(cls, origin, args)
 
     def __repr__(self):
-        if len(self.__args__) == 2:
-            if _is_param_expr(self.__args__[0]):
-                return super().__repr__()
+        if len(self.__args__) == 2 and _is_param_expr(self.__args__[0]):
+            return super().__repr__()
         return f'collections.abc.Callable[[{", ".join([_type_repr(a) for a in self.__args__[:-1]])}], {_type_repr(self.__args__[-1])}]'
 
     def __reduce__(self):
         args = self.__args__
-        if len(args) == 2:
-            if not _is_param_expr(args[0]):
-                args = list(args[:-1]), args[-1]
+        if not len(args) == 2 or not _is_param_expr(args[0]):
+            args = list(args[:-1]), args[-1]
         return _CallableGenericAlias, (Callable, args)
 
     def __getitem__(self, item):
         if not isinstance(item, tuple):
             item = (item,)
-        if len(self.__parameters__) == 1:
-            if _is_param_expr(self.__parameters__[0]) and item:
+        if len(self.__parameters__) == 1 and _is_param_expr(self.__parameters__[0]):
+            if item:
                 if not _is_param_expr(item[0]):
                     item = (item,)
         new_args = super().__getitem__(item).__args__

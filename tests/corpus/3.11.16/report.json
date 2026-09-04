@@ -46,7 +46,7 @@
    "module": "_compression",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3,
+   "ndiff": 11,
    "ntotal": 614,
    "detail": "line 336: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 334') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 198')\nline 371: orig ('JUMP_FORWARD', 'to 514') | got ('JUMP_FORWARD', 'to 334')\nline 379: orig ('JUMP_FORWARD', 'to 522') | got ('JUMP_FORWARD', 'to 334')"
   },
@@ -54,9 +54,9 @@
    "module": "_markupbase",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1092,
-   "ntotal": 1447,
-   "detail": "line 213: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 74') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 58')\nline 215: orig ('LOAD_CONST', \"'unexpected call to parse_declaration'\") | got ('RAISE_VARARGS', '')\nline 216: orig ('PRECALL', '') | got ('LOAD_FAST', 'rawdata')"
+   "ndiff": 1023,
+   "ntotal": 1456,
+   "detail": "line 304: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1000') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 982')\nline 361: orig ('JUMP_FORWARD', 'to 970') | got ('JUMP_FORWARD', 'to 952')\nline 375: orig ('JUMP_FORWARD', 'to 970') | got ('JUMP_FORWARD', 'to 952')"
   },
   {
    "module": "_osx_support",
@@ -130,7 +130,7 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2192,
+   "ndiff": 2189,
    "ntotal": 2305,
    "detail": "line 29: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 33: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
@@ -138,7 +138,7 @@
    "module": "base64",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1832,
+   "ndiff": 1824,
    "ntotal": 2117,
    "detail": "line 72: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 74: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 230: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 146') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 148')"
   },
@@ -182,8 +182,8 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3090,
-   "ntotal": 3221,
+   "ndiff": 3093,
+   "ntotal": 3226,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {
@@ -250,8 +250,8 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2393,
-   "ntotal": 4777,
+   "ndiff": 2385,
+   "ntotal": 4775,
    "detail": "line 2303: orig ('FOR_ITER', 'to 436') | got ('FOR_ITER', 'to 586')\nline 2321: orig ('LOAD_CONST', 'None') | got ('NOP', '')\nline 2322: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 256')"
   },
   {

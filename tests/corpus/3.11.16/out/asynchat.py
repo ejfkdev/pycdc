@@ -171,11 +171,10 @@ class async_chat(asyncore.dispatcher):
                     self.handle_error()
                     return
                 if num_sent:
-                    if not num_sent < len(data):
-                        if obs < len(first):
-                            self.producer_fifo[0] = first[num_sent:]
-                        else:
-                            del self.producer_fifo[0]
+                    if num_sent < len(data) or obs < len(first):
+                        self.producer_fifo[0] = first[num_sent:]
+                    else:
+                        del self.producer_fifo[0]
                 return
                 return
 

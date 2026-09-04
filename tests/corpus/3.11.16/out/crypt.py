@@ -33,9 +33,8 @@ def mksalt(method=None, *, rounds=None):
 
     if not method is not None:
         method = methods[0]
-    if not rounds is None:
-        if not isinstance(rounds, int):
-            raise TypeError(f'{rounds.__class__.__name__} object cannot be interpreted as an integer')
+    if not rounds is None and not isinstance(rounds, int):
+        raise TypeError(f'{rounds.__class__.__name__} object cannot be interpreted as an integer')
     if not method.ident:
         s = ''
     else:
@@ -73,9 +72,8 @@ def crypt(word, salt=None):
 
     '''
 
-    if not salt is None:
-        if isinstance(salt, _Method):
-            salt = mksalt(salt)
+    if salt is None or isinstance(salt, _Method):
+        salt = mksalt(salt)
     return _crypt.crypt(word, salt)
 
 methods = []
@@ -93,10 +91,9 @@ def _add_method(name, *args, rounds=None):
         raise
         e = None
         del e
-    if result:
-        if len(result) == method.total_size:
-            methods.append(method)
-            return True
+    if result and len(result) == method.total_size:
+        methods.append(method)
+        return True
     return False
 
 _add_method('SHA512', '6', 16, 106)

@@ -170,9 +170,11 @@ def _parseparam(s):
     while s[:1] == ';':
         s = s[1:]
         end = s.find(';')
-        if end > 0:
-            while (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
-                end = s.find(';', end + 1)
+        if end > 0 and (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
+            end = s.find(';', end + 1)
+            if end > 0:
+                if not (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
+                    pass
         if end < 0:
             end = len(s)
         f = s[:end]
@@ -351,9 +353,8 @@ class FieldStorage:
         elif isinstance(fp, TextIOWrapper):
             self.fp = fp.buffer
         else:
-            if hasattr(fp, 'read'):
-                if not hasattr(fp, 'readline'):
-                    raise TypeError('fp must be file pointer')
+            if not hasattr(fp, 'read') or not hasattr(fp, 'readline'):
+                raise TypeError('fp must be file pointer')
             self.fp = fp
         self.encoding = encoding
         self.errors = errors

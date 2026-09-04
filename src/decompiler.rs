@@ -5573,7 +5573,13 @@ impl<'a> Ctx<'a> {
                         star_kwargs: None,
                     }));
                 }
-                Op::TO_BOOL | Op::NOP | Op::NOT_TAKEN | Op::COPY => {}
+                Op::TO_BOOL
+                | Op::NOP
+                | Op::NOT_TAKEN
+                | Op::COPY
+                | Op::PUSH_NULL
+                | Op::PRECALL
+                | Op::RESUME => {}
                 _ => return None,
             }
         }
@@ -7528,7 +7534,9 @@ impl<'a> Ctx<'a> {
 fn is_pure_value_op(op: Op) -> bool {
     matches!(
         op,
-        Op::LOAD_FAST
+        Op::PUSH_NULL
+            | Op::PRECALL
+            | Op::LOAD_FAST
             | Op::LOAD_FAST_CHECK
             | Op::LOAD_FAST_BORROW
             | Op::LOAD_FAST_LOAD_FAST

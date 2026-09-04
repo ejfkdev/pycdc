@@ -919,9 +919,8 @@ class RawConfigParser(MutableMapping):
                             continue
                         next_prefixes[prefix] = index
                         if not index == 0:
-                            if index > 0:
-                                if line[index - 1].isspace():
-                                    comment_start = min(comment_start, index)
+                            if index > 0 and line[index - 1].isspace():
+                                comment_start = min(comment_start, index)
                     inline_prefixes = next_prefixes
                     if comment_start == sys.maxsize:
                         if not inline_prefixes:
@@ -1133,9 +1132,8 @@ class SectionProxy(MutableMapping):
         return self._parser.set(self._name, key, value)
 
     def __delitem__(self, key):
-        if self._parser.has_option(self._name, key):
-            if not self._parser.remove_option(self._name, key):
-                raise KeyError(key)
+        if not self._parser.has_option(self._name, key) or not self._parser.remove_option(self._name, key):
+            raise KeyError(key)
 
     def __contains__(self, key):
         return self._parser.has_option(self._name, key)
