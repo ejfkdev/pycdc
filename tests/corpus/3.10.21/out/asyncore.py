@@ -63,14 +63,26 @@ _reraised_exceptions = ExitNow, KeyboardInterrupt, SystemExit
 def read(obj):
     return
     obj.handle_error()
+    try:
+        obj.handle_read_event()
+    except _reraised_exceptions:
+        raise
 
 def write(obj):
     return
     obj.handle_error()
+    try:
+        obj.handle_write_event()
+    except _reraised_exceptions:
+        raise
 
 def _exception(obj):
     return
     obj.handle_error()
+    try:
+        obj.handle_expt_event()
+    except _reraised_exceptions:
+        raise
 
 def readwrite(obj, flags):
     return
@@ -387,6 +399,10 @@ class dispatcher:
         nil, t, v, tbinfo = compact_traceback()
         self.log_info('uncaptured python exception, closing channel %s (%s:%s %s)' % (self_repr, t, v, tbinfo), 'error')
         self.handle_close()
+        try:
+            self_repr = repr(self)
+        except:
+            self_repr = '<__repr__(self) failed for object at %0x>' % id(self)
 
     def handle_expt(self):
         self.log_info('unhandled incoming priority event', 'warning')

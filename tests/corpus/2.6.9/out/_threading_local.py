@@ -208,6 +208,10 @@ class local(_localbase):
                 continue
             if key in __dict__:
                 pass
+        try:
+            del __dict__[key]
+        except KeyError:
+            pass
 
 
 from threading import current_thread

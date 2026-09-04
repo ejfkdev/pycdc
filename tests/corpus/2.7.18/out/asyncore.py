@@ -46,7 +46,12 @@ except NameError:
     socket_map = {}
 
 def _strerror(err):
-    pass
+    try:
+        return os.strerror(err)
+    except (ValueError, OverflowError, NameError):
+        if err in errorcode:
+            return errorcode[err]
+        return 'Unknown error %s' % err
 
 class ExitNow(Exception):
     pass
@@ -223,6 +228,10 @@ class dispatcher:
             status.append('connected')
         if self.addr is not None:
             pass
+        try:
+            status.append('%s:%d' % self.addr)
+        except TypeError:
+            status.append(repr(self.addr))
         return '<%s at %#x>' % (' '.join(status), id(self))
 
     __str__ = __repr__

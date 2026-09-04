@@ -393,6 +393,14 @@ class Bdb:
         If arg is invalid, return an error message.
         '''
 
+        try:
+            bp = self.get_bpbynumber(arg)
+        except ValueError as err:
+            return str(err)
+        else:
+            bp.deleteMe()
+            self._prune_breaks(bp.file, bp.line)
+
     def clear_all_file_breaks(self, filename):
         '''Delete all breakpoints in filename.
 
@@ -430,6 +438,15 @@ class Bdb:
 
         if not arg:
             raise ValueError('Breakpoint number expected')
+        try:
+            pass
+        except IndexError:
+            raise ValueError('Breakpoint number %d out of range' % number) from None
+        else:
+            raise ValueError('Breakpoint %d already deleted' % number)
+            if bp is None:
+                pass
+            return bp
 
     def get_break(self, filename, lineno):
         '''Return True if there is a breakpoint for filename:lineno.'''
@@ -750,6 +767,15 @@ def effective(file, line, frame):
         return b, True
         b, False
         return
+    try:
+        val = eval(b.cond, frame.f_globals, frame.f_locals)
+        if val:
+            if b.ignore > 0:
+                b.ignore -= 1
+            else:
+                return b, True
+    except:
+        pass
     return (None, None)
 
 class Tdb(Bdb):

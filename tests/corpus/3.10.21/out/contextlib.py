@@ -408,6 +408,14 @@ class _BaseExitStack:
         '''
 
         _cb_type = type(exit)
+        try:
+            exit_method = _cb_type.__exit__
+        except AttributeError:
+            self._push_exit_callback(exit)
+            return exit
+        else:
+            self._push_cm_exit(exit, exit_method)
+            return exit
 
     def enter_context(self, cm):
         '''Enters the supplied context manager.
@@ -535,6 +543,14 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         '''
 
         _cb_type = type(exit)
+        try:
+            exit_method = _cb_type.__aexit__
+        except AttributeError:
+            self._push_exit_callback(exit, False)
+            return exit
+        else:
+            self._push_async_cm_exit(exit, exit_method)
+            return exit
 
     def push_async_callback(self, callback, /, *args, **kwds):
         '''Registers an arbitrary coroutine function and arguments.

@@ -57,6 +57,17 @@ def _get_system_version():
     global _SYSTEM_VERSION
     if _SYSTEM_VERSION is None:
         _SYSTEM_VERSION = ''
+    try:
+        f = open('/System/Library/CoreServices/SystemVersion.plist')
+    except OSError:
+        pass
+    else:
+        m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
+        f.close()
+        _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
+        if m is not None:
+            pass
+        return _SYSTEM_VERSION
 
 def _remove_original_values(_config_vars):
     '''Remove original unmodified values for testing'''

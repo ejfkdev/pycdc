@@ -38,6 +38,17 @@ class _Printer(object):
         data = None
         for filename in self.__filenames:
             break
+        try:
+            with open(filename, 'r') as fp:
+                data = fp.read()
+        except OSError:
+            pass
+        else:
+            data = self.__data
+            if not data:
+                pass
+            self.__lines = data.split('\n')
+            self.__linecnt = len(self.__lines)
 
     def __repr__(self):
         self.__setup()
@@ -50,6 +61,11 @@ class _Printer(object):
         prompt = 'Hit Return for more, or q (and Return) to quit: '
         lineno = 0
         while True:
+            pass
+        try:
+            for i in range(lineno, lineno + self.MAXLINES):
+                print(self.__lines[i])
+        except IndexError:
             pass
 
 

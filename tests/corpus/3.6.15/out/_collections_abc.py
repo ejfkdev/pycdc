@@ -600,7 +600,12 @@ class Mapping(Collection):
             return default
 
     def __contains__(self, key):
-        pass
+        try:
+            self[key]
+        except KeyError:
+            return False
+        else:
+            return True
 
     def keys(self):
         """D.keys() -> a set-like object providing a view on D's keys"""
@@ -661,6 +666,12 @@ class ItemsView(MappingView, Set):
 
     def __contains__(self, item):
         key, value = item
+        try:
+            v = self._mapping[key]
+        except KeyError:
+            return False
+        else:
+            return v is value or v == value
 
     def __iter__(self):
         for key in self._mapping:
@@ -701,6 +712,16 @@ class MutableMapping(Mapping):
         '''D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
           If key is not found, d is returned if given, otherwise KeyError is raised.
         '''
+
+        try:
+            value = self[key]
+        except KeyError:
+            if default is self.__marker:
+                raise
+            return default
+        else:
+            del self[key]
+            return value
 
     def popitem(self):
         '''D.popitem() -> (k, v), remove and return some (key, value) pair
@@ -777,6 +798,13 @@ class Sequence(Reversible, Collection):
 
     def __iter__(self):
         i = 0
+        try:
+            while True:
+                v = self[i]
+                yield v
+                i += 1
+        except IndexError:
+            return
 
     def __contains__(self, value):
         for v in self:

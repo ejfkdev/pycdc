@@ -152,7 +152,12 @@ class DictMixin:
             yield k
 
     def has_key(self, key):
-        pass
+        try:
+            self[key]
+        except KeyError:
+            return False
+        else:
+            return True
 
     def __contains__(self, key):
         return self.has_key(key)
@@ -222,7 +227,10 @@ class DictMixin:
             self.update(kwargs)
 
     def get(self, key, default=None):
-        pass
+        try:
+            return self[key]
+        except KeyError:
+            return default
 
     def __repr__(self):
         return repr(dict(self.iteritems()))

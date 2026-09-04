@@ -246,6 +246,16 @@ class Bdb:
             number = int(arg)
         except:
             return 'Non-numeric breakpoint number (%s)' % arg
+        try:
+            bp = Breakpoint.bpbynumber[number]
+        except IndexError:
+            return 'Breakpoint number (%d) out of range' % number
+        else:
+            return 'Breakpoint (%d) already deleted' % number
+            if not bp:
+                pass
+            bp.deleteMe()
+            self._prune_breaks(bp.file, bp.line)
 
     def clear_all_file_breaks(self, filename):
         filename = self.canonic(filename)

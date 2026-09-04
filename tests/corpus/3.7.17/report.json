@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
   "PASS": 7,
-  "SIG-DIFF": 30,
-  "AST-PASS": 3
+  "SIG-DIFF": 29,
+  "AST-PASS": 4
  },
  "results": [
   {
@@ -23,7 +23,7 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3085,
+   "ndiff": 2995,
    "ntotal": 3134,
    "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -59,7 +59,7 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1084,
+   "ndiff": 823,
    "ntotal": 1272,
    "detail": "line 165: orig ('LOAD_CONST', 'None') | got ('_read_output', 1)\nline 166: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', '0')\nline 167: orig ('_read_output', 1) | got ('LOAD_CONST', 'None')"
   },
@@ -93,11 +93,7 @@
   },
   {
    "module": "_weakrefset",
-   "ast_detail": "diff at token 330: orig  body=[Try(body=[Assign(targets=[Name(id='wr' | dec  body=[Pass()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 486,
-   "ntotal": 872,
-   "detail": "line 359: orig ('SETUP_EXCEPT', 'to 14') | got ('LOAD_CONST', 'None')\nline 360: orig ('LOAD_GLOBAL', 'ref') | got ('RETURN_VALUE', '')\nline 361: orig ('LOAD_FAST', 'item') | got ('__reduce__', 1)"
+   "verdict": "AST-PASS"
   },
   {
    "module": "abc",
@@ -211,7 +207,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1057,
+   "ndiff": 1002,
    "ntotal": 1315,
    "detail": "line 219: orig ('SETUP_FINALLY', 'to 324') | got ('SETUP_FINALLY', 'to 314')\nline 231: orig ('LOAD_ATTR', 'stdout') | got ('LOAD_METHOD', 'stdout')\nline 232: orig ('LOAD_METHOD', 'write') | got ('LOAD_GLOBAL', 'str')"
   },
@@ -219,7 +215,7 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 634,
+   "ndiff": 628,
    "ntotal": 669,
    "detail": "line 12: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 16: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
@@ -243,7 +239,7 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 903,
+   "ndiff": 897,
    "ntotal": 1112,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 286') | got ('SETUP_LOOP', 'to 248')\nline 142: orig ('FOR_ITER', 'to 284') | got ('FOR_ITER', 'to 246')\nline 202: orig ('LOAD_GLOBAL', 'os') | got ('JUMP_ABSOLUTE', '')"
   },
@@ -259,7 +255,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 61: orig  body=[Return(value=NameConstant(value=None))] | dec  body=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1441,
+   "ndiff": 1428,
    "ntotal": 1809,
    "detail": "line 339: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')\nline 340: orig ('LOAD_FAST', 'kwds') | got ('STORE_ATTR', 'func')\nline 341: orig ('ROT_THREE', '') | got ('LOAD_FAST', 'args')"
   },
@@ -275,7 +271,7 @@
    "module": "copyreg",
    "ast_detail": "diff at token 201: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 356,
+   "ndiff": 346,
    "ntotal": 540,
    "detail": "line 169: orig ('SETUP_LOOP', 'to 56') | got ('SETUP_LOOP', 'to 40')\nline 174: orig ('FOR_ITER', 'to 50') | got ('FOR_ITER', 'to 38')\nline 181: orig ('LOAD_FAST', 'base') | got ('JUMP_ABSOLUTE', '')"
   },

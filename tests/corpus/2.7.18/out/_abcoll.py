@@ -11,7 +11,10 @@ import sys
 __all__ = ['Hashable', 'Iterable', 'Iterator', 'Sized', 'Container', 'Callable', 'Set', 'MutableSet', 'Mapping', 'MutableMapping', 'MappingView', 'KeysView', 'ItemsView', 'ValuesView', 'Sequence', 'MutableSequence']
 
 def _hasattr(C, attr):
-    pass
+    try:
+        return any((attr in B.__dict__ for B in C.__mro__))
+    except AttributeError:
+        return hasattr(C, attr)
 
 class Hashable:
     __metaclass__ = ABCMeta
@@ -350,8 +353,18 @@ class Mapping(Sized, Iterable, Container):
     def get(self, key, default=None):
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
 
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
     def __contains__(self, key):
-        pass
+        try:
+            self[key]
+        except KeyError:
+            return False
+        else:
+            return True
 
     def iterkeys(self):
         '''D.iterkeys() -> an iterator over the keys of D'''
@@ -428,6 +441,12 @@ class ItemsView(MappingView, Set):
 
     def __contains__(self, item):
         key, value = item
+        try:
+            v = self._mapping[key]
+        except KeyError:
+            return False
+        else:
+            return v == value
 
     def __iter__(self):
         for key in self._mapping:
@@ -473,6 +492,16 @@ class MutableMapping(Mapping):
         '''D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
           If key is not found, d is returned if given, otherwise KeyError is raised.
         '''
+
+        try:
+            value = self[key]
+        except KeyError:
+            if default is self.__marker:
+                raise
+            return default
+        else:
+            del self[key]
+            return value
 
     def popitem(self):
         '''D.popitem() -> (k, v), remove and return some (key, value) pair
@@ -542,6 +571,13 @@ class Sequence(Sized, Iterable, Container):
 
     def __iter__(self):
         i = 0
+        try:
+            while True:
+                v = self[i]
+                yield v
+                i += 1
+        except IndexError:
+            return
 
     def __contains__(self, value):
         for v in self:

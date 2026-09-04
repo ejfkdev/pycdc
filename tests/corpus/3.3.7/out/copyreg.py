@@ -59,7 +59,12 @@ def _reduce_ex(self, proto):
     try:
         getstate = self.__getstate__
     except AttributeError:
-        dict = None
+        if getattr(self, '__slots__', None):
+            raise TypeError('a class that defines __slots__ without defining __getstate__ cannot be pickled')
+        try:
+            dict = self.__dict__
+        except AttributeError:
+            dict = None
     if dict:
         return _reconstructor, args, dict
     return _reconstructor, args

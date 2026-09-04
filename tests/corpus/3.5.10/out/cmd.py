@@ -276,12 +276,18 @@ class Cmd:
         '''List available commands with "help" or detailed help with "help cmd".'''
 
         if arg:
-            self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
-            return
             try:
                 func = getattr(self, 'help_' + arg)
             except AttributeError:
-                pass
+                try:
+                    doc = getattr(self, 'do_' + arg).__doc__
+                    if doc:
+                        self.stdout.write('%s\n' % str(doc))
+                        return
+                except AttributeError:
+                    pass
+                self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
+                return
             func()
         else:
             names = self.get_names()

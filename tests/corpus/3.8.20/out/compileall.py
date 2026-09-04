@@ -163,6 +163,17 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         else:
             print('*** ', end='')
         print(e.__class__.__name__ + ':', e)
+    try:
+        ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize, invalidation_mode=invalidation_mode)
+    except py_compile.PyCompileError as err:
+        success = False
+    except (SyntaxError, UnicodeError, OSError) as e:
+        success = False
+    else:
+        success = False
+        if ok == 0:
+            pass
+        return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     '''Byte-compile all module on sys.path.
@@ -230,6 +241,20 @@ def main():
     else:
         invalidation_mode = None
     success = True
+    try:
+        if compile_dests:
+            for dest in compile_dests:
+                if os.path.isfile(dest):
+                    if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode=invalidation_mode):
+                        success = False
+            success = False
+            return success
+    except KeyboardInterrupt:
+        if args.quiet < 2:
+            print('\n[interrupted]')
+        return False
+    else:
+        return True
     return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
 
 if __name__ == '__main__':

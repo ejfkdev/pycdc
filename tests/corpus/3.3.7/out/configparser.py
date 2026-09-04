@@ -583,6 +583,10 @@ class RawConfigParser(MutableMapping):
         if source is None:
             pass
         self._read(f, source)
+        try:
+            source = f.name
+        except AttributeError:
+            source = '<???>'
 
     def read_string(self, string, source='<string>'):
         '''Read configuration from a given string.'''

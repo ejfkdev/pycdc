@@ -260,6 +260,10 @@ class Hook:
                 self.file.write('<p>%s</p>\n' % msg)
             else:
                 self.file.write(msg + '\n')
+        try:
+            self.file.flush()
+        except:
+            pass
 
 
 handler = Hook().handle

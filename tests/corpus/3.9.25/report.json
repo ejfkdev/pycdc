@@ -35,7 +35,7 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2135,
+   "ndiff": 1400,
    "ntotal": 3420,
    "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -75,7 +75,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 156: orig  body=[Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  body=[Break()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 193,
+   "ndiff": 183,
    "ntotal": 372,
    "detail": "line 177: orig ('FOR_ITER', 'to 106') | got ('FOR_ITER', 'to 30')\nline 179: orig ('SETUP_FINALLY', 'to 86') | got ('POP_TOP', '')\nline 180: orig ('LOAD_GLOBAL', 'open') | got ('JUMP_ABSOLUTE', '')"
   },
@@ -101,11 +101,11 @@
   },
   {
    "module": "_weakrefset",
-   "ast_detail": "diff at token 307: orig  body=[Try(body=[Assign(targets=[Name(id='wr' | dec  body=[Pass()]",
+   "ast_detail": "diff at token 442: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 488,
-   "ntotal": 906,
-   "detail": "line 392: orig ('SETUP_FINALLY', 'to 14') | got ('LOAD_CONST', 'None')\nline 393: orig ('LOAD_GLOBAL', 'ref') | got ('RETURN_VALUE', '')\nline 394: orig ('LOAD_FAST', 'item') | got ('__reduce__', 1)"
+   "ndiff": 492,
+   "ntotal": 908,
+   "detail": "line 414: orig ('__reduce__', 1) | got ('LOAD_CONST', 'None')\nline 415: orig ('LOAD_FAST', 'self') | got ('RETURN_VALUE', '')\nline 416: orig ('LOAD_ATTR', '__class__') | got ('__reduce__', 1)"
   },
   {
    "module": "abc",
@@ -123,8 +123,8 @@
    "module": "ast",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 6851,
-   "ntotal": 7116,
+   "ndiff": 6799,
+   "ntotal": 7126,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
   {
@@ -155,7 +155,7 @@
    "module": "bdb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2246,
+   "ndiff": 2244,
    "ntotal": 2340,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -223,7 +223,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1093,
+   "ndiff": 1091,
    "ntotal": 1329,
    "detail": "line 218: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'self')\nline 219: orig ('SETUP_FINALLY', 'to 380') | got ('LOAD_ATTR', 'use_rawinput')\nline 220: orig ('LOAD_FAST', 'intro') | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -231,7 +231,7 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 633,
+   "ndiff": 628,
    "ntotal": 665,
    "detail": "line 12: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 16: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
@@ -259,7 +259,7 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1287,
+   "ndiff": 1284,
    "ntotal": 1513,
    "detail": "line 157: orig ('FOR_ITER', 'to 246') | got ('FOR_ITER', 'to 210')\nline 201: orig ('LOAD_GLOBAL', 'os') | got ('JUMP_ABSOLUTE', '')\nline 202: orig ('LOAD_ATTR', 'path') | got ('LOAD_GLOBAL', '_walk_dir')"
   },

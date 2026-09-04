@@ -54,6 +54,10 @@ def initlog(*allargs):
     else:
         log = dolog
     log(*allargs)
+    try:
+        logfp = open(logfile, 'a')
+    except IOError:
+        pass
 
 def dolog(fmt, *args):
     logfp.write(fmt % args + '\n')

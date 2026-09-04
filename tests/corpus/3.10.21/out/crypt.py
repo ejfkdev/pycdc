@@ -86,6 +86,16 @@ else:
         if e.errno in {errno.EINVAL, errno.EPERM, errno.ENOSYS}:
             return False
         raise
+        try:
+            result = crypt('', salt)
+        except OSError as e:
+            pass
+        else:
+            methods.append(method)
+            return True
+            if result and len(result) == method.total_size:
+                pass
+            return False
 
     _add_method('SHA512', '6', 16, 106)
     _add_method('SHA256', '5', 16, 63)

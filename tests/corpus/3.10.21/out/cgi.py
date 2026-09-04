@@ -770,6 +770,14 @@ def test(environ=os.environ):
     sys.stderr = sys.stdout
     print('<H1>Second try with a small maxlen...</H1>')
     maxlen = 50
+    try:
+        form = FieldStorage()
+        print_directory()
+        print_arguments()
+        print_form(form)
+        print_environ(environ)
+    except:
+        print_exception()
 
 def print_exception(type=None, value=None, tb=None, limit=None):
     if type is None:

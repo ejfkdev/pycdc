@@ -220,6 +220,27 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         del e
     e = None
     del e
+    try:
+        for index, opt_level in enumerate(optimize):
+            cfile = opt_cfiles[opt_level]
+            ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
+            if index > 0:
+                if hardlink_dupes:
+                    previous_cfile = opt_cfiles[optimize[index - 1]]
+                    if filecmp.cmp(cfile, previous_cfile, shallow=False):
+                        os.unlink(cfile)
+                        os.link(previous_cfile, cfile)
+    except py_compile.PyCompileError:
+        err = None
+        success = False
+    except (SyntaxError, UnicodeError, OSError):
+        e = None
+        success = False
+    else:
+        success = False
+        if ok == 0:
+            pass
+        return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     '''Byte-compile all module on sys.path.
@@ -301,6 +322,20 @@ def main():
     else:
         invalidation_mode = None
     success = True
+    try:
+        if compile_dests:
+            for dest in compile_dests:
+                if os.path.isfile(dest):
+                    if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
+                        success = False
+            success = False
+            return success
+    except KeyboardInterrupt:
+        if args.quiet < 2:
+            print('\n[interrupted]')
+        return False
+    else:
+        return True
     return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
 
 if __name__ == '__main__':

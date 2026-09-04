@@ -366,6 +366,12 @@ class TCPServer(BaseServer):
         self.socket = socket.socket(self.address_family, self.socket_type)
         if bind_and_activate:
             pass
+        try:
+            self.server_bind()
+            self.server_activate()
+        except:
+            self.server_close()
+            raise
 
     def server_bind(self):
         '''Called by constructor to bind the socket.
@@ -478,13 +484,16 @@ class ForkingMixIn:
             self.close_request(request)
             return
         try:
+            self.handle_error(request, client_address)
+            self.shutdown_request(request)
+        finally:
+            os._exit(1)
+        try:
             self.finish_request(request, client_address)
             self.shutdown_request(request)
             os._exit(0)
         except:
-            self.handle_error(request, client_address)
-            self.shutdown_request(request)
-            os._exit(1)
+            pass
 
 
 class ThreadingMixIn:
@@ -596,6 +605,10 @@ class StreamRequestHandler(BaseRequestHandler):
             pass
         self.wfile.close()
         self.rfile.close()
+        try:
+            self.wfile.flush()
+        except socket.error:
+            pass
 
 
 class DatagramRequestHandler(BaseRequestHandler):

@@ -567,6 +567,14 @@ class RawConfigParser(MutableMapping):
     def options(self, section):
         '''Return a list of option names for the given section name.'''
 
+        try:
+            opts = self._sections[section].copy()
+        except KeyError:
+            raise NoSectionError(section) from None
+        else:
+            opts.update(self._defaults)
+            return list(opts.keys())
+
     def read(self, filenames, encoding=None):
         """Read and parse a filename or an iterable of filenames.
 
@@ -673,6 +681,18 @@ class RawConfigParser(MutableMapping):
         The section DEFAULT is special.
         '''
 
+        try:
+            pass
+        except KeyError:
+            if fallback is _UNSET:
+                raise NoOptionError(option, section)
+            return fallback
+        else:
+            return value
+            if raw or value is None:
+                pass
+            return self._interpolation.before_get(self, section, option, value, d)
+
     def _get(self, section, conv, option, **kwargs):
         return conv(self.get(section, option, **kwargs))
 
@@ -761,6 +781,12 @@ class RawConfigParser(MutableMapping):
             value = self._interpolation.before_set(self, section, option, value)
         if not section or section == self.default_section:
             sectdict = self._defaults
+        try:
+            sectdict = self._sections[section]
+        except KeyError:
+            raise NoSectionError(section) from None
+        else:
+            sectdict[self.optionxform(option)] = value
 
     def write(self, fp, space_around_delimiters=True):
         '''Write an .ini-format representation of the configuration state.
@@ -797,6 +823,17 @@ class RawConfigParser(MutableMapping):
 
         if not section or section == self.default_section:
             sectdict = self._defaults
+        try:
+            sectdict = self._sections[section]
+        except KeyError:
+            raise NoSectionError(section) from None
+        else:
+            option = self.optionxform(option)
+            existed = option in sectdict
+            del sectdict[option]
+            if existed:
+                pass
+            return existed
 
     def remove_section(self, section):
         '''Remove a file section.'''

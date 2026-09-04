@@ -54,7 +54,12 @@ class WeakSet:
         return len(self.data) - len(self._pending_removals)
 
     def __contains__(self, item):
-        pass
+        try:
+            wr = ref(item)
+        except TypeError:
+            return False
+        else:
+            return wr in self.data
 
     def __reduce__(self):
         return self.__class__, (list(self),), getattr(self, '__dict__', None)

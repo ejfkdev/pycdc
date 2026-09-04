@@ -60,4 +60,10 @@ def aix_buildtag():
     '''
 
     build_date = sysconfig.get_config_var('AIX_BUILDDATE')
+    try:
+        build_date = int(build_date)
+    except (ValueError, TypeError):
+        raise ValueError(f'AIX_BUILDDATE is not defined or invalid: {build_date!r}')
+    else:
+        return _aix_tag(_aix_bgt(), build_date)
 

@@ -281,6 +281,13 @@ def nobody_uid():
 def executable(path):
     '''Test for executable file.'''
 
+    try:
+        st = os.stat(path)
+    except os.error:
+        return False
+    else:
+        return st.st_mode & 73 != 0
+
 def test(HandlerClass=CGIHTTPRequestHandler, ServerClass=BaseHTTPServer.HTTPServer):
     SimpleHTTPServer.test(HandlerClass, ServerClass)
 

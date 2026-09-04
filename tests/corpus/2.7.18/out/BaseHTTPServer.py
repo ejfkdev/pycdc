@@ -221,6 +221,31 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
 
         """
 
+        try:
+            self.raw_requestline = self.rfile.readline(65537)
+            if len(self.raw_requestline) > 65536:
+                self.requestline = ''
+                self.request_version = ''
+                self.command = ''
+                self.send_error(414)
+                return
+            if not self.raw_requestline:
+                self.close_connection = 1
+                return
+            if not self.parse_request():
+                return
+            mname = 'do_' + self.command
+            if not hasattr(self, mname):
+                self.send_error(501, 'Unsupported method (%r)' % self.command)
+                return
+            method = getattr(self, mname)
+            method()
+            self.wfile.flush()
+        except socket.timeout, e:
+            self.log_error('Request timed out: %r', e)
+            self.close_connection = 1
+            return
+
     def handle(self):
         '''Handle multiple requests if necessary.'''
 

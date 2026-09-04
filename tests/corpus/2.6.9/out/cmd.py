@@ -203,6 +203,12 @@ class Cmd:
         self.lastcmd = line
         if cmd == '':
             return self.default(line)
+        try:
+            func = getattr(self, 'do_' + cmd)
+        except AttributeError:
+            return self.default(line)
+        else:
+            return func(arg)
 
     def emptyline(self):
         '''Called when an empty line is entered in response to the prompt.
@@ -261,6 +267,10 @@ class Cmd:
                 compfunc = self.completedefault
             compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
+        try:
+            return self.completion_matches[state]
+        except IndexError:
+            return
 
     def get_names(self):
         names = []
@@ -278,12 +288,18 @@ class Cmd:
 
     def do_help(self, arg):
         if arg:
-            self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
-            return
             try:
                 func = getattr(self, 'help_' + arg)
             except AttributeError:
-                pass
+                try:
+                    doc = getattr(self, 'do_' + arg).__doc__
+                    if doc:
+                        self.stdout.write('%s\n' % str(doc))
+                        return
+                except AttributeError:
+                    pass
+                self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
+                return
             else:
                 func()
         else:

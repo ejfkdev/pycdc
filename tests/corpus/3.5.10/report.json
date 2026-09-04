@@ -59,7 +59,7 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 973,
+   "ndiff": 967,
    "ntotal": 1157,
    "detail": "line 165: orig ('LOAD_CONST', 'None') | got ('_read_output', 1)\nline 166: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', '0')\nline 167: orig ('_read_output', 1) | got ('LOAD_CONST', 'None')"
   },
@@ -111,9 +111,9 @@
    "module": "asynchat",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 673,
+   "ndiff": 390,
    "ntotal": 916,
-   "detail": "line 227: orig ('SETUP_EXCEPT', 'to 25') | got ('LOAD_CONST', 'None')\nline 228: orig ('LOAD_FAST', 'self') | got ('RETURN_VALUE', '')\nline 229: orig ('LOAD_ATTR', 'recv') | got ('handle_write', 1)"
+   "detail": "line 497: orig ('SETUP_LOOP', 'to 156') | got ('SETUP_LOOP', 'to 153')\nline 522: orig ('JUMP_FORWARD', 'to 156') | got ('LOAD_FAST', 'self')\nline 523: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'producer_fifo')"
   },
   {
    "module": "asyncore",
@@ -199,7 +199,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1031,
+   "ndiff": 1021,
    "ntotal": 1310,
    "detail": "line 221: orig ('SETUP_FINALLY', 'to 430') | got ('SETUP_FINALLY', 'to 337')\nline 245: orig ('SETUP_LOOP', 'to 416') | got ('SETUP_LOOP', 'to 333')\nline 257: orig ('JUMP_FORWARD', 'to 364') | got ('JUMP_FORWARD', 'to 235')"
   },
@@ -231,7 +231,7 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 799,
+   "ndiff": 789,
    "ntotal": 1026,
    "detail": "line 160: orig ('SETUP_LOOP', 'to 349') | got ('SETUP_LOOP', 'to 348')\nline 163: orig ('FOR_ITER', 'to 348') | got ('FOR_ITER', 'to 347')\nline 226: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },
@@ -247,7 +247,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 111: orig  Assign(targets=[Tuple(elts=[Attribute(value=Name(id='self' | dec  Assign(targets=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 684,
+   "ndiff": 678,
    "ntotal": 881,
    "detail": "line 181: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')\nline 182: orig ('LOAD_FAST', 'kwds') | got ('STORE_ATTR', 'func')\nline 183: orig ('ROT_THREE', '') | got ('LOAD_FAST', 'args')"
   },
@@ -263,7 +263,7 @@
    "module": "copyreg",
    "ast_detail": "diff at token 266: orig  Try(body=[Assign(targets=[Name(id='getstate' | dec  Assign(targets=[Name(id='dict'",
    "verdict": "SIG-DIFF",
-   "ndiff": 333,
+   "ndiff": 337,
    "ntotal": 525,
    "detail": "line 169: orig ('SETUP_LOOP', 'to 77') | got ('SETUP_LOOP', 'to 76')\nline 174: orig ('FOR_ITER', 'to 70') | got ('FOR_ITER', 'to 69')\nline 185: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },

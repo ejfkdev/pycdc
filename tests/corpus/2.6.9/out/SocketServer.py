@@ -241,6 +241,11 @@ class BaseServer:
 
         if self.verify_request(request, client_address):
             pass
+        try:
+            pass
+        except:
+            self.handle_error(request, client_address)
+            self.close_request(request)
 
     def handle_timeout(self):
         '''Called if no new request arrives within self.timeout.
@@ -447,11 +452,14 @@ class ForkingMixIn:
             self.close_request(request)
             return
         try:
+            self.handle_error(request, client_address)
+        finally:
+            os._exit(1)
+        try:
             self.finish_request(request, client_address)
             os._exit(0)
         except:
-            self.handle_error(request, client_address)
-            os._exit(1)
+            pass
 
 
 class ThreadingMixIn:

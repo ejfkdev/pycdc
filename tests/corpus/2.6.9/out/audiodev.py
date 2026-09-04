@@ -191,7 +191,18 @@ class Play_Audio_sun:
 
 
 def AudioDev():
-    pass
+    import sys
+    try:
+        import al
+    except ImportError:
+        try:
+            import sunaudiodev
+            return Play_Audio_sun()
+        except ImportError:
+            try:
+                import Audio_mac
+            except ImportError:
+                raise error('no audio device')
 
 def test(fn=None):
     import sys

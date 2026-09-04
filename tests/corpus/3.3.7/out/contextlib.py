@@ -245,6 +245,12 @@ class ExitStack(object):
             continue
         if pending_raise:
             pass
+        try:
+            fixed_ctx = exc_details[1].__context__
+            raise exc_details[1]
+        except BaseException:
+            exc_details[1].__context__ = fixed_ctx
+            raise
         return received_exc and suppressed_exc
 
 

@@ -59,6 +59,10 @@ def initlog(*allargs):
     else:
         log = dolog
     log(*allargs)
+    try:
+        logfp = open(logfile, 'a')
+    except IOError:
+        pass
 
 def dolog(fmt, *args):
     logfp.write(fmt % args + '\n')
@@ -779,9 +783,18 @@ class InterpFormContentDict(SvFormContentDict):
     '''This class is present for backwards compatibility only.'''
 
     def __getitem__(self, key):
+        import sys
         v = SvFormContentDict.__getitem__(self, key)
         if v[0] in '0123456789+-.':
             pass
+        try:
+            return int(v)
+        except ValueError:
+            try:
+                return float(v)
+            except ValueError:
+                pass
+        return v.strip()
 
     def values(self):
         result = []

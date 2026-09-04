@@ -116,6 +116,58 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         mo = rx.search(fullname)
         if mo:
             return success
+    try:
+        ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
+    except py_compile.PyCompileError as err:
+        success = False
+        if quiet >= 2:
+            return success
+        if quiet:
+            print('*** Error compiling {!r}...'.format(fullname))
+        else:
+            print('*** ', end='')
+        msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
+        msg = msg.decode(sys.stdout.encoding)
+        print(msg)
+        if tail == '.py':
+            if not force:
+                pass
+            try:
+                mtime = int(os.stat(fullname).st_mtime)
+                expect = struct.pack('<4sl', importlib.util.MAGIC_NUMBER, mtime)
+                with open(cfile, 'rb') as chandle:
+                    actual = chandle.read(8)
+                if expect == actual:
+                    return success
+            except OSError:
+                pass
+            if not quiet:
+                print('Compiling {!r}...'.format(fullname))
+    except (SyntaxError, UnicodeError, OSError) as e:
+        success = False
+        if quiet >= 2:
+            return success
+        if quiet:
+            print('*** Error compiling {!r}...'.format(fullname))
+        else:
+            print('*** ', end='')
+        print(e.__class__.__name__ + ':', e)
+        if os.path.isfile(fullname):
+            if legacy:
+                cfile = fullname + 'c'
+            else:
+                if optimize >= 0:
+                    opt = optimize if optimize >= 1 else ''
+                    cfile = importlib.util.cache_from_source(fullname, optimization=opt)
+                else:
+                    cfile = importlib.util.cache_from_source(fullname)
+                cache_dir = os.path.dirname(cfile)
+            head, tail = name[:-3], name[-3:]
+    else:
+        success = False
+        if ok == 0:
+            pass
+        return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1):
     '''Byte-compile all module on sys.path.
@@ -165,6 +217,34 @@ def main():
         maxlevels = args.maxlevels
     if args.flist:
         pass
+    try:
+        if compile_dests:
+            for dest in compile_dests:
+                if os.path.isfile(dest):
+                    if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy):
+                        try:
+                            with sys.stdin if args.flist == '-' else open(args.flist) as f:
+                                for line in f:
+                                    compile_dests.append(line.strip())
+                        except OSError:
+                            if args.quiet < 2:
+                                print('Error reading file list {}'.format(args.flist))
+                            return False
+                        else:
+                            args.workers = args.workers or None
+                            if args.workers is not None:
+                                pass
+                            success = True
+                            success = False
+            success = False
+            return success
+        return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)
+    except KeyboardInterrupt:
+        if args.quiet < 2:
+            print('\n[interrupted]')
+        return False
+    else:
+        return True
 
 if __name__ == '__main__':
     exit_status = int(not main())

@@ -108,6 +108,58 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         mo = rx.search(fullname)
         if mo:
             return success
+    try:
+        ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
+    except py_compile.PyCompileError as err:
+        success = 0
+        if quiet >= 2:
+            return success
+        if quiet:
+            print('*** Error compiling {!r}...'.format(fullname))
+        else:
+            print('*** ', end='')
+        msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
+        msg = msg.decode(sys.stdout.encoding)
+        print(msg)
+        if tail == '.py':
+            if not force:
+                pass
+            try:
+                mtime = int(os.stat(fullname).st_mtime)
+                expect = struct.pack('<4sl', importlib.util.MAGIC_NUMBER, mtime)
+                with open(cfile, 'rb') as chandle:
+                    actual = chandle.read(8)
+                if expect == actual:
+                    return success
+            except OSError:
+                pass
+            if not quiet:
+                print('Compiling {!r}...'.format(fullname))
+    except (SyntaxError, UnicodeError, OSError) as e:
+        success = 0
+        if quiet >= 2:
+            return success
+        if quiet:
+            print('*** Error compiling {!r}...'.format(fullname))
+        else:
+            print('*** ', end='')
+        print(e.__class__.__name__ + ':', e)
+        if os.path.isfile(fullname):
+            if legacy:
+                cfile = fullname + 'c'
+            else:
+                if optimize >= 0:
+                    opt = optimize if optimize >= 1 else ''
+                    cfile = importlib.util.cache_from_source(fullname, optimization=opt)
+                else:
+                    cfile = importlib.util.cache_from_source(fullname)
+                cache_dir = os.path.dirname(cfile)
+            head, tail = name[:-3], name[-3:]
+    else:
+        success = 0
+        if ok == 0:
+            pass
+        return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1):
     '''Byte-compile all module on sys.path.

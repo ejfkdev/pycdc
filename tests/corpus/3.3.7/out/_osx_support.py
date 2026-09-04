@@ -93,6 +93,10 @@ def _supports_universal_builds():
         pass
     if osx_version:
         return bool(osx_version >= (10, 4))
+    try:
+        osx_version = tuple((int(i) for i in osx_version.split('.')))
+    except ValueError:
+        osx_version = ''
     return False
 
 def _find_appropriate_compiler(_config_vars):

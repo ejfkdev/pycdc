@@ -15,6 +15,10 @@ class Quitter(object):
     def __call__(self, code=None):
         raise SystemExit(code)
         raise SystemExit(code)
+        try:
+            sys.stdin.close()
+        except:
+            pass
 
 
 class _Printer(object):
@@ -33,6 +37,19 @@ class _Printer(object):
         if self.__lines:
             return
         data = None
+        try:
+            with open(filename, encoding='utf-8') as fp:
+                data = fp.read()
+        except OSError:
+            pass
+        else:
+            for filename in self.__filenames:
+                pass
+            data = self.__data
+            if not data:
+                pass
+            self.__lines = data.split('\n')
+            self.__linecnt = len(self.__lines)
 
     def __repr__(self):
         self.__setup()

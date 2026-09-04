@@ -199,6 +199,20 @@ struct LegacyHandler {
     pop_seen: bool,
 }
 
+/// Saved outer legacy-chain state while a nested chain (a try inside an
+/// except body, <=3.7) parses in the single legacy_try/legacy_handler slots
+struct LegacyNest {
+    outer_try: Option<LegacyTry>,
+    outer_handler: Option<LegacyHandler>,
+    outer_handler_end: Option<usize>,
+    outer_prelude: bool,
+    depth: usize,
+    /// region [start, end) of the nested handler chain the body-end jump
+    /// flew over (parsed by sub-walk): a handler-exit jump inside it that
+    /// lands on the OUTER else_start retracts the outer else region
+    skipped_chain: Option<(usize, usize)>,
+}
+
 /// Reconstructed try-statement region (3.11+ exception-table driven).
 #[derive(Debug, Clone)]
 struct TryCtx {
@@ -258,6 +272,21 @@ struct Ctx<'a> {
     /// 3.5-3.7 async-for: the per-iteration StopAsyncIteration guard
     /// (SETUP_EXCEPT handler start, unwind tail start, loop exit offset)
     async_for_guard: Option<(usize, usize, usize)>,
+    /// <=3.7 nested try inside an open legacy handler body: saved outer
+    /// chain states (innermost last) while nested chains parse in the
+    /// single slots
+    legacy_nest: Vec<LegacyNest>,
+    /// >0 while a skipped nested chain parses in a region sub-walk: the
+    /// py2 implicit-as store there binds an extra exception placeholder
+    /// instead of capturing the clause name
+    legacy_nest_depth: usize,
+    /// 3.3-3.7 swallowed `as`-cleanup wrappers: (SETUP offset, cleanup
+    /// END_FINALLY offset) — that END_FINALLY must not be mistaken for
+    /// the chain end, and the setup's normal-exit POP_BLOCK belongs to
+    /// the wrapper, not the enclosing try
+    as_cleanup_wrappers: Vec<(usize, usize)>,
+    /// a py2 sub-walk bound `sys.exc_info()[1]` — ensure `import sys`
+    used_exc_info: bool,
     pending_gen_code: Option<std::rc::Rc<crate::code::CodeObject>>,
     recent_code_const: Option<std::rc::Rc<crate::code::CodeObject>>,
     /// pending kw names for the next CALL (3.11/3.12 KW_NAMES)
@@ -496,6 +525,10 @@ pub fn decompile_in_scope(
         with_exit_await_drop: false,
         with_handler_starts: std::collections::HashSet::new(),
         async_for_guard: None,
+        legacy_nest: Vec::new(),
+        legacy_nest_depth: 0,
+        as_cleanup_wrappers: Vec::new(),
+        used_exc_info: false,
         pending_gen_code: None,
         recent_code_const: None,
         last_kw_names: Vec::new(),
@@ -661,6 +694,88 @@ pub fn decompile_in_scope(
 
     ctx.run();
 
+    // a legacy try whose emission stayed deferred for the else region:
+    // the walk can end (function-tail return inside the else region)
+    // before the emission point — flush it now
+    while !ctx.legacy_nest.is_empty() {
+        // fold a nested handler still open at walk end (terminating return)
+        if let Some(h) = ctx.legacy_handler.take() {
+            if let Some(lt) = ctx.legacy_try.as_mut() {
+                lt.handlers.push(crate::ast::ExceptHandler {
+                    type_: h.type_,
+                    name: h.name,
+                    body: h.body,
+                });
+            }
+        }
+        let nested = ctx.legacy_try.take();
+        ctx.restore_legacy_nest();
+        if let Some(l) = nested {
+            if !l.handlers.is_empty() {
+                let mut orelse = l.orelse;
+                if matches!(orelse.last(), Some(Stmt::Return(None))) {
+                    orelse.pop();
+                }
+                ctx.push_stmt(Stmt::Try {
+                    body: l.body,
+                    handlers: l.handlers,
+                    orelse,
+                    finalbody: l.finalbody,
+                });
+            }
+        }
+        // the restored outer handler was open when the nest began: if the
+        // walk ended before its chain closed, fold it now
+        if let Some(h) = ctx.legacy_handler.take() {
+            if let Some(lt) = ctx.legacy_try.as_mut() {
+                lt.handlers.push(crate::ast::ExceptHandler {
+                    type_: h.type_,
+                    name: h.name,
+                    body: h.body,
+                });
+            }
+        }
+    }
+    if ctx.used_exc_info {
+        let has_sys = ctx.blocks.first().map_or(false, |b| {
+            b.stmts.iter().any(|st| match st {
+                Stmt::Import { names } => names.iter().any(|(m, _)| m == "sys"),
+                _ => false,
+            })
+        });
+        if !has_sys {
+            if let Some(root) = ctx.blocks.first_mut() {
+                root.stmts.insert(0, Stmt::Import { names: vec![("sys".to_string(), None)] });
+            }
+        }
+    }
+    if let Some(l) = ctx.legacy_try.take() {
+        if !l.handlers.is_empty() {
+            let mut orelse = l.orelse;
+            // the implicit function epilogue `return None` is not an
+            // else clause
+            if matches!(orelse.last(), Some(Stmt::Return(None))) {
+                orelse.pop();
+            }
+            ctx.flush_pending_stores();
+            let try_stmt = Stmt::Try {
+                body: l.body,
+                handlers: l.handlers,
+                orelse,
+                finalbody: l.finalbody,
+            };
+            // statements the walk pushed after the chain (the function
+            // epilogue / trailing returns) chronologically FOLLOW the try
+            // — insert it before them
+            let top = ctx.blocks.last_mut().unwrap();
+            let mut at = top.stmts.len();
+            while at > 0 && matches!(top.stmts[at - 1], Stmt::Return(_)) {
+                at -= 1;
+            }
+            top.stmts.insert(at, try_stmt);
+        }
+    }
+
     // Fold any blocks still open at EOF into statements.
     while ctx.blocks.len() > 1 {
         let pos = ctx.instrs.last().map(|i| i.end()).unwrap_or(0);
@@ -736,6 +851,13 @@ impl<'a> Ctx<'a> {
             if let Some(l) = inst.line {
                 self.cur_line = Some(l);
             }
+            if std::env::var("PYCDC_TRACE2").is_ok() {
+                eprintln!("T2 {:>4} {:?} blocks={:?} skip={:?} lh={:?} lt={:?}", pos, inst.op,
+                    self.blocks.iter().map(|b| format!("{:?}[{},{}]", b.kind, b.start, b.end)).collect::<Vec<_>>(),
+                    self.skip_until,
+                    self.legacy_handler.is_some(),
+                    self.legacy_try.as_ref().map(|l| (l.handler_start, l.handlers.len(), l.else_start, l.chain_done)));
+            }
 
             // py2 inline comprehension: region ends at the FOR_ITER exit
             if self.version.major == 2 {
@@ -781,6 +903,17 @@ impl<'a> Ctx<'a> {
             // chain fully parsed (END_FINALLY passed) but no jump emitted it
             // yet: flush before the continuation executes so statement order
             // and block targeting stay correct
+            // a body-end jump that flew over an unparsed chain: parse it
+            // now so the deferred emission below sees the handlers
+            if !self.legacy_nest.is_empty()
+                && self.legacy_handler.is_none()
+                && self.legacy_try.as_ref().map_or(false, |l| {
+                    !l.chain_done && l.handlers.is_empty() && pos > l.handler_start
+                })
+                && self.blocks.last().map_or(false, |b| b.kind == BlockType::Main)
+            {
+                self.parse_skipped_nested_chain(pos);
+            }
             if self.legacy_handler.is_none()
                 && self.legacy_try.as_ref().map_or(false, |l| {
                     l.chain_done
@@ -793,6 +926,12 @@ impl<'a> Ctx<'a> {
             {
                 let l = self.legacy_try.take().unwrap();
                 self.flush_pending_stores();
+                if let Some(depth) = self.finish_legacy_nest() {
+                    while self.blocks.len() > depth.max(1) {
+                        let p = self.blocks.last().map(|b| b.start).unwrap_or(pos);
+                        self.force_close_top(p);
+                    }
+                }
                 self.push_stmt(Stmt::Try {
                     body: l.body,
                     handlers: l.handlers,
@@ -1066,6 +1205,12 @@ impl<'a> Ctx<'a> {
             }
             // nested tries inside a handler body open from the same table
             self.open_exception_blocks(pos);
+            // pre-3.11: a skipped NESTED handler chain parses with the same
+            // state machine as the main walk (finally-body and 3.11+ handler
+            // regions must NOT drive it — the outer chain state is live)
+            if self.legacy_nest_depth > 0 {
+                self.legacy_chain_step(&inst);
+            }
             self.close_blocks_at(pos);
             if !self.exec(&inst) {
                 if std::env::var("PYCDC_TRACE").is_ok() {
@@ -1807,6 +1952,108 @@ impl<'a> Ctx<'a> {
         end
     }
 
+    /// Save the outer legacy-chain state so a nested chain (a try inside
+    /// an except body) can parse in the single legacy_try/legacy_handler
+    /// slots; `finish_legacy_nest` restores it right before the nested
+    /// Try is emitted so push_stmt routes it into the outer handler body.
+    fn begin_legacy_nest(&mut self) {
+        self.legacy_nest.push(LegacyNest {
+            outer_try: self.legacy_try.take(),
+            outer_handler: self.legacy_handler.take(),
+            outer_handler_end: self.legacy_handler_end.take(),
+            outer_prelude: self.in_handler_prelude,
+            depth: self.blocks.len(),
+            skipped_chain: None,
+        });
+        self.in_handler_prelude = false;
+    }
+
+    /// The nested body-end jump flies over the nested handler chain
+    /// (py2 emits JUMP_ABSOLUTE here, which the walk follows): parse the
+    /// skipped chain [handler_start, target) with a region sub-walk, fold
+    /// any handler the sub-walk left open (a terminating `return` body
+    /// breaks it before END_FINALLY), and mark the chain done when at
+    /// least one clause was parsed — the jump past the chain end IS the
+    /// chain completion for a nested try
+    fn parse_skipped_nested_chain(&mut self, target: usize) -> bool {
+        let Some(lt) = self.legacy_try.clone() else {
+            return false;
+        };
+        if !lt.handlers.is_empty() || target <= lt.handler_start {
+            return false;
+        }
+        self.legacy_nest_depth += 1;
+        self.decompile_region(lt.handler_start, target);
+        self.legacy_nest_depth -= 1;
+        if let Some(nest) = self.legacy_nest.last_mut() {
+            nest.skipped_chain = Some((lt.handler_start, target));
+        }
+        if let Some(h) = self.legacy_handler.take() {
+            if let Some(l) = self.legacy_try.as_mut() {
+                l.handlers.push(ExceptHandler {
+                    type_: h.type_,
+                    name: h.name,
+                    body: h.body,
+                });
+            }
+            self.legacy_handler_end = None;
+        }
+        if let Some(l) = self.legacy_try.as_mut() {
+            if !l.handlers.is_empty() {
+                l.chain_done = true;
+                // the region after the chain belongs to the OUTER flow —
+                // never redirect statements into the nested else
+                l.else_start = None;
+            }
+        }
+        matches!(self.legacy_try.as_ref(), Some(l) if !l.handlers.is_empty())
+    }
+
+    /// Restore the saved outer chain state, returning the nesting depth
+    /// (blocks that opened inside the nested chain and are still open must
+    /// be closed before the nested Try is emitted).
+    fn finish_legacy_nest(&mut self) -> Option<usize> {
+        let nest = self.legacy_nest.pop()?;
+        self.legacy_try = nest.outer_try;
+        self.legacy_handler = nest.outer_handler;
+        self.legacy_handler_end = nest.outer_handler_end;
+        self.in_handler_prelude = nest.outer_prelude;
+        // the nested chain's handler-exit jump landing exactly on the
+        // outer else_start means the outer handler flow continues into
+        // that region: it is a trailing statement zone, not an else
+        if let Some(lt) = self.legacy_try.as_mut() {
+            if !lt.handlers.is_empty() && self.legacy_handler.is_none() {
+                lt.chain_done = true;
+            }
+        }
+        if let (Some((rs, re)), Some(lt)) = (nest.skipped_chain, self.legacy_try.as_mut()) {
+            if let Some(es) = lt.else_start {
+                let exit_lands_on_else = self
+                    .idx_of
+                    .get(&rs)
+                    .map_or(false, |&ri| {
+                        self.instrs[ri..]
+                            .iter()
+                            .take_while(|x| x.offset < re)
+                            .any(|x| {
+                                matches!(x.op, Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE)
+                                    && x.target == Some(es)
+                            })
+                    });
+                if exit_lands_on_else {
+                    lt.else_start = None;
+                }
+            }
+        }
+        Some(nest.depth)
+    }
+
+    /// Restore without block bookkeeping (the emission sites where the
+    /// nested chain's blocks are already closed)
+    fn restore_legacy_nest(&mut self) {
+        let _ = self.finish_legacy_nest();
+    }
+
     /// Drive the pre-3.11 try/except handler chain state machine.
     fn legacy_chain_step(&mut self, inst: &Instruction) {
         if self.version.at_least(3, 11) {
@@ -1916,6 +2163,7 @@ impl<'a> Ctx<'a> {
                 // after the POP_TOPs); a store after real body instructions
                 // started (prelude cleared) is a body statement
                 let wants_name = self.in_handler_prelude
+                    && (self.version.major >= 3 || self.legacy_nest_depth == 0)
                     && self.stack.is_empty()
                     && self
                         .legacy_handler
@@ -2013,6 +2261,7 @@ impl<'a> Ctx<'a> {
                         }
                     } else {
                         let l = self.legacy_try.take().unwrap();
+                        self.restore_legacy_nest();
                         self.push_stmt(Stmt::Try {
                             body: l.body,
                             handlers: l.handlers,
@@ -2024,6 +2273,11 @@ impl<'a> Ctx<'a> {
             }
             // END_FINALLY closes a finally handler (and the statement)
             Op::END_FINALLY => {
+                // a swallowed as-cleanup wrapper's END_FINALLY is not the
+                // chain end
+                if self.as_cleanup_wrappers.iter().any(|(_, e)| *e == pos) {
+                    return;
+                }
                 let mut end_at_chain = false;
                 if let Some(l) = self.legacy_try.as_mut() {
                     if !l.handlers.is_empty() && !l.has_finally {
@@ -2039,6 +2293,7 @@ impl<'a> Ctx<'a> {
                 if end_at_chain {
                     let l = self.legacy_try.take().unwrap();
                     self.flush_pending_stores();
+                    self.restore_legacy_nest();
                     self.push_stmt(Stmt::Try {
                         body: l.body,
                         handlers: l.handlers,
@@ -2049,6 +2304,7 @@ impl<'a> Ctx<'a> {
                 if let Some(l) = self.legacy_try.as_mut() {
                     if l.has_finally {
                         let l = self.legacy_try.take().unwrap();
+                        self.restore_legacy_nest();
                         self.push_stmt(Stmt::Try {
                             body: l.body,
                             handlers: l.handlers,
@@ -2139,6 +2395,7 @@ impl<'a> Ctx<'a> {
                             // else-region stores land in orelse, not after it
                             self.flush_pending_stores();
                             let l = self.legacy_try.take().unwrap();
+                            self.restore_legacy_nest();
                             self.push_stmt(Stmt::Try {
                                 body: l.body,
                                 handlers: l.handlers,
@@ -2154,9 +2411,14 @@ impl<'a> Ctx<'a> {
         // chain fully parsed and no else region followed: emit on the next
         // instruction so statement order stays correct
         if let Some(l) = &self.legacy_try {
-            if l.chain_done && l.else_start.is_none() && !l.handlers.is_empty() {
+            if l.chain_done
+                && l.else_start.is_none()
+                && !l.handlers.is_empty()
+                && self.legacy_handler.is_none()
+            {
                 let l = self.legacy_try.take().unwrap();
                 self.flush_pending_stores();
+                self.restore_legacy_nest();
                 self.push_stmt(Stmt::Try {
                     body: l.body,
                     handlers: l.handlers,
@@ -2547,15 +2809,73 @@ impl<'a> Ctx<'a> {
                 } else {
                     // pre-3.11: handlers live out-of-line starting at `pos`;
                     // defer emission until the chain completes
+                    // 3.8-3.10 try/finally: the out-of-line region is a
+                    // finally COPY (no except dispatch, ends in RERAISE /
+                    // END_FINALLY) and the real finally body runs INLINE
+                    // right after this POP_BLOCK
+                    let mut has_finally = false;
+                    let mut inline_end = usize::MAX;
+                    if self.version.at_least(3, 8) {
+                        if let Some(&hi) = self.idx_of.get(&pos) {
+                            for ins in self.instrs[hi..].iter().take(64) {
+                                match ins.op {
+                                    Op::DUP_TOP
+                                    | Op::JUMP_IF_NOT_EXC_MATCH
+                                    | Op::POP_EXCEPT => break,
+                                    Op::COMPARE_OP
+                                        if cmp_from_index(compare_op_index(
+                                            ins.arg as u32,
+                                            self.version,
+                                        )) == CmpOp::ExceptionMatch =>
+                                    {
+                                        break;
+                                    }
+                                    Op::RERAISE | Op::END_FINALLY => {
+                                        has_finally = true;
+                                        break;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+                        if has_finally {
+                            // the inline finally body ends at the first
+                            // RETURN (function-tail finally) or at the
+                            // forward jump over the handler copy
+                            if let Some(&ci) = self.idx_of.get(&pos) {
+                                let mut ci2 = ci;
+                                while ci2 > 0 && self.instrs[ci2 - 1].op == Op::POP_BLOCK {
+                                    ci2 -= 1;
+                                }
+                                for ins in self.instrs[ci2..].iter().take(256) {
+                                    if ins.offset < pos {
+                                        match ins.op {
+                                            Op::RETURN_VALUE | Op::RETURN_CONST => {
+                                                inline_end = ins.offset;
+                                                break;
+                                            }
+                                            Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE => {
+                                                if ins.target.unwrap_or(0) > pos {
+                                                    inline_end = ins.offset;
+                                                    break;
+                                                }
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     self.legacy_try = Some(LegacyTry {
                         body,
                         handlers: Vec::new(),
                         orelse: Vec::new(),
                         finalbody: Vec::new(),
                         handler_start: pos,
-                        has_finally: false,
-                        else_start: None,
-                        else_stop: usize::MAX,
+                        has_finally,
+                        else_start: if has_finally { Some(pos) } else { None },
+                        else_stop: inline_end,
                         chain_done: false,
                     });
                 }
@@ -2777,11 +3097,16 @@ impl<'a> Ctx<'a> {
             // statement; it lands in the handler body when the block closes
         }
         // statements executed inside a collected try-else region belong to
-        // the Try's orelse, not to the enclosing block
+        // the Try's orelse, not to the enclosing block; a 3.8-3.10 inline
+        // finally body collects into finalbody
         if let Some(lt) = self.legacy_try.as_mut() {
             if let Some(es) = lt.else_start {
                 if self.cur_offset >= es && self.cur_offset < lt.else_stop {
-                    lt.orelse.push(stmt);
+                    if lt.has_finally {
+                        lt.finalbody.push(stmt);
+                    } else {
+                        lt.orelse.push(stmt);
+                    }
                     return;
                 }
             }
@@ -3729,6 +4054,29 @@ impl<'a> Ctx<'a> {
                     // we do not model: supply a placeholder so the match
                     // comparison pops two operands
                     let ph = self.name_expr("/*exc*/");
+                    // py2 `except E, n`: the implicit-as store right after
+                    // the prelude pops binds the exception value — inside a
+                    // skipped-chain sub-walk (where the store is rendered as
+                    // an assignment, not captured as the clause name) give
+                    // it a real binding: sys.exc_info()[1], buried under a
+                    // tb placeholder the first prelude POP_TOP consumes
+                    if self.version.major == 2 && self.legacy_nest_depth > 0 {
+                        self.used_exc_info = true;
+                        self.push(Rc::new(Expr::Subscript {
+                            value: Rc::new(Expr::Call {
+                                func: Rc::new(Expr::Attribute {
+                                    value: self.name_expr("sys"),
+                                    attr: "exc_info".to_string(),
+                                }),
+                                args: vec![],
+                                keywords: vec![],
+                                star_args: None,
+                                star_kwargs: None,
+                            }),
+                            index: Rc::new(Expr::Const(Rc::new(PyObject::Int(1)))),
+                        }));
+                        self.push(ph.clone());
+                    }
                     self.push(ph);
                 }
                 true
@@ -4870,7 +5218,15 @@ impl<'a> Ctx<'a> {
                 // compiler-internal exception-state finally inside a
                 // legacy handler body (e.g. `raise` in except on 3.8-3.10)
                 if self.legacy_handler.is_some() {
-                    return true;
+                    // <=3.7: a REAL nested try inside the handler body —
+                    // save the outer chain, let the nested chain parse in
+                    // the single slots, restore before its Try is emitted
+                    // (push_stmt then routes it into the outer handler body)
+                    if !self.version.at_least(3, 8) {
+                        self.begin_legacy_nest();
+                    } else {
+                        return true;
+                    }
                 }
                 // 3.5-3.7 async-for per-iteration guard:
                 //   SETUP_LOOP; iter; GET_AITER; SETUP_EXCEPT -> H;
@@ -4995,7 +5351,56 @@ impl<'a> Ctx<'a> {
                 // compiler-internal exception-state finally inside a
                 // legacy handler body (e.g. `raise` in except on 3.8-3.10)
                 if self.legacy_handler.is_some() {
-                    return true;
+                    // 3.3-3.7 wrap the implicit `as`-name cleanup in a
+                    // SETUP_FINALLY whose handler is exactly
+                    // `LOAD None; STORE n; DELETE n; END_FINALLY` (also
+                    // around `raise ... from` inside except) — internal,
+                    // swallow it; a REAL nested try/finally gets the
+                    // nesting treatment
+                    let as_cleanup = self
+                        .idx_of
+                        .get(&inst.target.unwrap_or(usize::MAX))
+                        .map_or(false, |&ti| {
+                            matches!(self.instrs[ti].op, Op::LOAD_CONST)
+                                && self
+                                    .code
+                                    .consts
+                                    .get(self.instrs[ti].arg as usize)
+                                    .map_or(false, |c| matches!(&**c, PyObject::None))
+                                && matches!(
+                                    self.instrs.get(ti + 1).map(|x| x.op),
+                                    Some(Op::STORE_FAST) | Some(Op::STORE_NAME) | Some(Op::STORE_DEREF)
+                                )
+                                && matches!(
+                                    self.instrs.get(ti + 2).map(|x| x.op),
+                                    Some(Op::DELETE_FAST) | Some(Op::DELETE_NAME) | Some(Op::DELETE_DEREF)
+                                )
+                                && matches!(
+                                    self.instrs.get(ti + 3).map(|x| x.op),
+                                    Some(Op::END_FINALLY)
+                                )
+                        });
+                    if !self.version.at_least(3, 8) && !as_cleanup {
+                        self.begin_legacy_nest();
+                    } else {
+                        if as_cleanup {
+                            // record the wrapper's own END_FINALLY (inside
+                            // the cleanup handler) so the chain machine
+                            // does not mistake it for the chain end
+                            if let Some(t) = inst.target {
+                                if let Some(&ti) = self.idx_of.get(&t) {
+                                    for ins in self.instrs[ti..].iter().take(6) {
+                                        if ins.op == Op::END_FINALLY {
+                                            self.as_cleanup_wrappers
+                                                .push((inst.offset, ins.offset));
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        return true;
+                    }
                 }
                 // stores before the try belong to the enclosing block
                 if !self.pending_stores.is_empty() {

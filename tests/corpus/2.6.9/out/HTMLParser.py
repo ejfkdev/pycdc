@@ -299,6 +299,10 @@ class HTMLParser(markupbase.ParserBase):
                 HTMLParser.entitydefs = {'apos': "'"}
                 for k, v in htmlentitydefs.name2codepoint.iteritems():
                     entitydefs[k] = unichr(v)
+            try:
+                return self.entitydefs[s]
+            except KeyError:
+                return '&' + s + ';'
 
         return re.sub('&(#?[xX]?(?:[0-9a-fA-F]+|\\w{1,8}));', replaceEntities, s)
 

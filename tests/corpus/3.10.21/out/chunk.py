@@ -61,6 +61,13 @@ class Chunk:
         self.chunkname = file.read(4)
         if len(self.chunkname) < 4:
             raise EOFError
+        try:
+            pass
+        except (AttributeError, OSError):
+            self.seekable = False
+            return
+        else:
+            self.seekable = True
 
     def getname(self):
         '''Return the name (ID) of the current chunk.'''

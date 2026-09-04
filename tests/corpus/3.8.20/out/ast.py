@@ -471,6 +471,15 @@ class _ABC(type):
     def __instancecheck__(cls, inst):
         if not isinstance(inst, Constant):
             return False
+        try:
+            value = inst.value
+        except AttributeError:
+            return False
+        else:
+            return isinstance(value, _const_types[cls]) and not isinstance(value, _const_types_not.get(cls, ()))
+            if cls in _const_types:
+                pass
+            return type.__instancecheck__(cls, inst)
 
 
 def _new(cls, *args, **kwargs):

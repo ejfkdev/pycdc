@@ -367,6 +367,14 @@ class Bdb:
         If arg is invalid, return an error message.
         '''
 
+        try:
+            bp = self.get_bpbynumber(arg)
+        except ValueError as err:
+            return str(err)
+        else:
+            bp.deleteMe()
+            self._prune_breaks(bp.file, bp.line)
+
     def clear_all_file_breaks(self, filename):
         '''Delete all breakpoints in filename.
 

@@ -57,6 +57,18 @@ class InteractiveInterpreter:
 
         '''
 
+        try:
+            code = self.compile(source, filename, symbol)
+        except (OverflowError, SyntaxError, ValueError):
+            self.showsyntaxerror(filename)
+            return False
+        else:
+            return True
+            if code is None:
+                pass
+            self.runcode(code)
+            return False
+
     def runcode(self, code):
         '''Execute a code object.
 
@@ -72,6 +84,10 @@ class InteractiveInterpreter:
 
         return
         self.showtraceback()
+        try:
+            exec(code, self.locals)
+        except SystemExit:
+            raise
 
     def showsyntaxerror(self, filename=None):
         '''Display the syntax error that just occurred.

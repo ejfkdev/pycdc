@@ -672,6 +672,13 @@ class MutableSet(Set):
         '''Return the popped value.  Raise KeyError if empty.'''
 
         it = iter(self)
+        try:
+            value = next(it)
+        except StopIteration:
+            raise KeyError from None
+        else:
+            self.discard(value)
+            return value
 
     def clear(self):
         '''This is slow (creates N new iterators!) but effective.'''
@@ -806,6 +813,12 @@ class ItemsView(MappingView, Set):
 
     def __contains__(self, item):
         key, value = item
+        try:
+            v = self._mapping[key]
+        except KeyError:
+            return False
+        else:
+            return v is value or v == value
 
     def __iter__(self):
         for key in self._mapping:
@@ -854,10 +867,29 @@ class MutableMapping(Mapping):
           If key is not found, d is returned if given, otherwise KeyError is raised.
         '''
 
+        try:
+            value = self[key]
+        except KeyError:
+            if default is self.__marker:
+                raise
+            return default
+        else:
+            del self[key]
+            return value
+
     def popitem(self):
         '''D.popitem() -> (k, v), remove and return some (key, value) pair
            as a 2-tuple; but raise KeyError if D is empty.
         '''
+
+        try:
+            key = next(iter(self))
+        except StopIteration:
+            raise KeyError from None
+        else:
+            value = self[key]
+            del self[key]
+            return key, value
 
     def clear(self):
         '''D.clear() -> None.  Remove all items from D.'''

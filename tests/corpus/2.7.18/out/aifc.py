@@ -434,11 +434,19 @@ class Aifc_read:
                     self._convert = self._adpcm2lin
                     self._sampwidth = 2
                     return
-                raise Error('cannot read compressed AIFF-C files')
+                if self._comptype in ('ULAW', 'ulaw'):
+                    pass
                 try:
                     import cl
                 except ImportError:
-                    pass
+                    try:
+                        import audioop
+                        self._convert = self._ulaw2lin
+                        self._sampwidth = 2
+                        return
+                    except ImportError:
+                        pass
+                    raise Error('cannot read compressed AIFF-C files')
                 if self._comptype in ('ULAW', 'ulaw'):
                     scheme = cl.G711_ULAW
                 elif self._comptype in ('ALAW', 'alaw'):
@@ -687,16 +695,25 @@ class Aifc_write:
             self._write_header(datasize)
 
     def _init_compression(self):
+        import sys
         if self._comptype == 'G722':
             self._convert = self._lin2adpcm
             return
-        raise Error('cannot write compressed AIFF-C files')
-        try:
-            import cl
-        except ImportError:
-            pass
         if self._comptype in ('ULAW', 'ulaw'):
-            scheme = cl.G711_ULAW
+            pass
+        raise Error('cannot write compressed AIFF-C files')
+        if self._comptype in ('ULAW', 'ulaw'):
+            try:
+                import cl
+            except ImportError:
+                try:
+                    import audioop
+                    self._convert = self._lin2ulaw
+                    return
+                except ImportError:
+                    pass
+            else:
+                scheme = cl.G711_ULAW
         elif self._comptype in ('ALAW', 'alaw'):
             scheme = cl.G711_ALAW
         else:

@@ -337,7 +337,23 @@ class SimpleXMLRPCDispatcher:
         not be called.
         """
 
+        import sys
         func = None
+        if self.instance is not None:
+            if hasattr(self.instance, '_dispatch'):
+                return self.instance._dispatch(method, params)
+        try:
+            func = self.funcs[method]
+        except KeyError:
+            try:
+                func = resolve_dotted_attribute(self.instance, method, self.allow_dotted_names)
+            except AttributeError:
+                pass
+            else:
+                return func(*params)
+                if func is not None:
+                    pass
+                raise Exception('method "%s" is not supported' % method)
 
 
 class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):

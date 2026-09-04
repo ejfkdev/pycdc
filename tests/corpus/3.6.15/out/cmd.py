@@ -208,6 +208,12 @@ class Cmd:
             self.lastcmd = ''
         if cmd == '':
             return self.default(line)
+        try:
+            func = getattr(self, 'do_' + cmd)
+        except AttributeError:
+            return self.default(line)
+        else:
+            return func(arg)
 
     def emptyline(self):
         '''Called when an empty line is entered in response to the prompt.
@@ -278,12 +284,18 @@ class Cmd:
         '''List available commands with "help" or detailed help with "help cmd".'''
 
         if arg:
-            self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
-            return
             try:
                 func = getattr(self, 'help_' + arg)
             except AttributeError:
-                pass
+                try:
+                    doc = getattr(self, 'do_' + arg).__doc__
+                    if doc:
+                        self.stdout.write('%s\n' % str(doc))
+                        return
+                except AttributeError:
+                    pass
+                self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
+                return
             else:
                 func()
         else:

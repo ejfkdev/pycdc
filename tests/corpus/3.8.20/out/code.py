@@ -57,6 +57,18 @@ class InteractiveInterpreter:
 
         '''
 
+        try:
+            code = self.compile(source, filename, symbol)
+        except (OverflowError, SyntaxError, ValueError):
+            self.showsyntaxerror(filename)
+            return False
+        else:
+            return True
+            if code is None:
+                pass
+            self.runcode(code)
+            return False
+
     def runcode(self, code):
         self.showtraceback()
         try:
