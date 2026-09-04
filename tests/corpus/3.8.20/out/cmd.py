@@ -330,7 +330,8 @@ class Cmd:
                     colwidth = max(colwidth, len(x))
                 colwidths.append(colwidth)
                 totwidth += colwidth + 2
-                break
+                if totwidth > displaywidth:
+                    break
             if totwidth <= displaywidth:
                 break
         else:

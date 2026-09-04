@@ -116,7 +116,7 @@
    "module": "_strptime",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2841,
+   "ndiff": 2804,
    "ntotal": 2941,
    "detail": "line 49: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 53: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 54: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },

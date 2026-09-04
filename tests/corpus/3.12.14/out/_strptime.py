@@ -31,11 +31,12 @@ def _findall(haystack, needle):
     if not needle:
         return
     i = 0
-    i = haystack.find(needle, i)
-    if i < 0:
-        return
-    yield i
-    i += len(needle)
+    while True:
+        i = haystack.find(needle, i)
+        if i < 0:
+            return
+        yield i
+        i += len(needle)
 
 class LocaleTime(object):
     '''Stores and handles locale-specific information related to time.

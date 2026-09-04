@@ -5350,6 +5350,14 @@ impl<'a> Ctx<'a> {
     /// the loop top as well, and the last one jumps forward over a body
     /// that is exactly a back-edge jump. Returns (cond, body_start,
     /// body_end).
+    /// Polarity of the conditional jump at instruction index `ci`.
+    fn jump_if_true_at_ci(&self, ci: usize) -> bool {
+        matches!(
+            self.instrs.get(ci).map(|i| i.op),
+            Some(Op::POP_JUMP_IF_TRUE) | Some(Op::POP_JUMP_FORWARD_IF_TRUE)
+        )
+    }
+
     fn try_or_continue_chain(
         &self,
         loop_top: usize,
@@ -5415,9 +5423,18 @@ impl<'a> Ctx<'a> {
                                         | Op::JUMP_BACKWARD
                                         | Op::JUMP_BACKWARD_NO_INTERRUPT
                                 );
-                            // a forward jump leaving the loop block is the
-                            // `break` (it may fly over a for-else region)
+                            // a forward UNCONDITIONAL jump leaving the loop
+                            // block is the `break` (it may fly over a
+                            // for-else region); a conditional jump here is
+                            // the rotated-while's duplicated exit test
                             let fwd_exit = !ins.is_backward
+                                && matches!(
+                                    ins.op,
+                                    Op::JUMP_ABSOLUTE
+                                        | Op::JUMP_FORWARD
+                                        | Op::JUMP
+                                        | Op::JUMP_NO_INTERRUPT
+                                )
                                 && self
                                     .blocks
                                     .iter()
@@ -5434,25 +5451,31 @@ impl<'a> Ctx<'a> {
                         }
                         return None;
                     }
-                    let (body_end, _t) = body_jump?;
-                    if top_parts.len() < 2 || !top_jumps_true {
-                        // all-false-jumping chain: the body runs only when
-                        // every operand holds -> And
-                        if top_parts.len() < 2 {
-                            return None;
-                        }
-                    }
+                    let (body_end, body_t) = body_jump?;
                     let op = if top_jumps_true {
                         BoolOpKind::Or
                     } else {
                         BoolOpKind::And
                     };
                     let vals = if top_jumps_true { parts } else { top_parts };
-                    if vals.len() < 2 {
+                    let merged: ExprRef = if vals.len() >= 2 {
+                        Rc::new(Expr::BoolOp { op, values: vals })
+                    } else if !self.jump_if_true_at_ci(ci)
+                        && body_t != loop_top
+                        && !matches!(
+                            self.instrs.get(ci).map(|i| i.op),
+                            Some(Op::POP_JUMP_BACKWARD_IF_TRUE)
+                                | Some(Op::POP_JUMP_BACKWARD_IF_FALSE)
+                        )
+                    {
+                        // single operand `if c: break`: the PJIF jumps to
+                        // the loop top (continue) and the fall-through body
+                        // is the break jump. BACKWARD cond-jump variants are
+                        // rotated-while re-entries, never this shape.
+                        first_cond.clone()
+                    } else {
                         return None;
-                    }
-                    let merged =
-                        Rc::new(Expr::BoolOp { op, values: vals }) as ExprRef;
+                    };
                     let body_off = self.instrs.get(region_start).map(|i| i.offset)?;
                     return Some((merged, body_off, body_end));
                 }
@@ -7050,14 +7073,25 @@ impl<'a> Ctx<'a> {
             if handler_origin {
                 continue;
             }
-            // generator/async resume machinery: SEND/YIELD loops are the
-            // interpreter's resumption protocol, never a source `while True`
+            // generator/async resume machinery is never a source loop:
+            // JUMP_BACKWARD_NO_INTERRUPT is exclusively the yield-resume
+            // edge; a bare back edge directly after YIELD_VALUE/RESUME or
+            // inside a SEND/CLEANUP_THROW region belongs to the protocol.
+            // A real `while True` body may CONTAIN yields — its back edge
+            // sits after body statements, not the resume point.
+            let prev_op = if bi > 0 { Some(self.instrs[bi - 1].op) } else { None };
+            let prev2_op = if bi > 1 { Some(self.instrs[bi - 2].op) } else { None };
+            // direct yield-resume edge: YIELD_VALUE; [RESUME;] back-jump
+            // (a lone RESUME follows every 3.11+ CALL — not a signal)
+            let resume_edge = matches!(prev_op, Some(Op::YIELD_VALUE))
+                || (matches!(prev_op, Some(Op::RESUME))
+                    && matches!(prev2_op, Some(Op::YIELD_VALUE)));
             if bj.op == Op::JUMP_BACKWARD_NO_INTERRUPT
+                || resume_edge
                 || self.instrs[ti..bi].iter().any(|ins| {
                     matches!(
                         ins.op,
-                        Op::YIELD_VALUE
-                            | Op::YIELD_FROM
+                        Op::YIELD_FROM
                             | Op::SEND
                             | Op::GET_YIELD_FROM_ITER
                             | Op::CLEANUP_THROW

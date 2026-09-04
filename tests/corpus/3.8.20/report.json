@@ -219,7 +219,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1061,
+   "ndiff": 1062,
    "ntotal": 1305,
    "detail": "line 219: orig ('SETUP_FINALLY', 'to 320') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 221: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -295,7 +295,7 @@
    "module": "crypt",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 322,
+   "ndiff": 188,
    "ntotal": 412,
    "detail": "line 7: orig ('SETUP_FINALLY', 'to 26') | got ('LOAD_NAME', '_sys')\nline 8: orig ('LOAD_CONST', '0') | got ('LOAD_ATTR', 'platform')\nline 9: orig ('LOAD_CONST', 'None') | got ('LOAD_CONST', \"'win32'\")"
   }
