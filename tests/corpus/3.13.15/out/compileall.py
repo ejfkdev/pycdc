@@ -40,13 +40,19 @@ def _walk_dir(dir, maxlevels, quiet=0):
         if not os.path.isdir(fullname):
             yield fullname
             continue
+        if not maxlevels > 0:
+            continue
+        if not name != os.curdir:
+            continue
+        if not name != os.pardir:
+            continue
+        if not os.path.isdir(fullname):
+            continue
         if os.path.islink(fullname):
+            continue
+        while True:
             pass
-        else:
-            while True:
-                pass
-            _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
-            return
+        _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     '''Byte-compile all modules in the given directory tree.
@@ -109,7 +115,8 @@ hardlink_dupes: hardlink duplicated pyc files
                 return success
                 for file in files:
                     if compile_file(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes):
-                        pass
+                        continue
+                    success = False
                 return success
     return success
 
@@ -190,9 +197,32 @@ hardlink_dupes: hardlink duplicated pyc files
         if tail == '.py':
             if not force:
                 try:
-                    os.unlink(cfile)
-                    os.link(previous_cfile, cfile)
-                    # WARNING: continue outside loop (unrecovered structure)
+                    mtime = int(os.stat(fullname).st_mtime)
+                    expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+                    for cfile in opt_cfiles.values():
+                        with open(cfile, 'rb') as chandle:
+                            actual = chandle.read(12)
+                            try:
+                                try:
+                                    pass
+                                except OSError:
+                                    pass
+                            except py_compile./*bad-name-80*/ as err:
+                                success = False
+                                if quiet >= 2:
+                                    return success
+                                if quiet:
+                                    print('*** Error compiling {!r}...'.format(fullname))
+                                else:
+                                    print('*** ', end='')
+                                if not sys.stdout.encoding:
+                                    sys.stdout.encoding
+                                encoding = sys.getdefaultencoding()
+                                msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+                                print(msg)
+                                err = None
+                                del err
+                                return success
                 finally:
                     if not expect != actual:
                         pass
@@ -246,50 +276,62 @@ hardlink_dupes: hardlink duplicated pyc files
                             cfile = opt_cfiles[opt_level]
                             ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
                             if not index > 0:
+                                continue
+                            try:
                                 pass
-                            else:
-                                try:
-                                    pass
-                                except py_compile./*bad-name-80*/ as err:
-                                    success = False
-                                    if quiet >= 2:
-                                        return success
-                                    if quiet:
-                                        print('*** Error compiling {!r}...'.format(fullname))
-                                    else:
-                                        print('*** ', end='')
-                                    if not sys.stdout.encoding:
-                                        sys.stdout.encoding
-                                    encoding = sys.getdefaultencoding()
-                                    msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
-                                    print(msg)
-                                    err = None
-                                    del err
+                            except py_compile./*bad-name-80*/ as err:
+                                success = False
+                                if quiet >= 2:
                                     return success
-                                if not hardlink_dupes:
-                                    pass
+                                if quiet:
+                                    print('*** Error compiling {!r}...'.format(fullname))
                                 else:
-                                    try:
-                                        previous_cfile = opt_cfiles[optimize[index - 1]]
-                                    except py_compile./*bad-name-80*/ as err:
-                                        success = False
-                                        if quiet >= 2:
-                                            return success
-                                        if quiet:
-                                            print('*** Error compiling {!r}...'.format(fullname))
-                                        else:
-                                            print('*** ', end='')
-                                        if not sys.stdout.encoding:
-                                            sys.stdout.encoding
-                                        encoding = sys.getdefaultencoding()
-                                        msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
-                                        print(msg)
-                                        err = None
-                                        del err
-                                        return success
-                                    if not filecmp.cmp(cfile, previous_cfile, shallow=False):
-                                        pass
+                                    print('*** ', end='')
+                                if not sys.stdout.encoding:
+                                    sys.stdout.encoding
+                                encoding = sys.getdefaultencoding()
+                                msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+                                print(msg)
+                                err = None
+                                del err
+                                return success
                     finally:
+                        if not hardlink_dupes:
+                            try:
+                                previous_cfile = opt_cfiles[optimize[index - 1]]
+                            except py_compile./*bad-name-80*/ as err:
+                                success = False
+                                if quiet >= 2:
+                                    return success
+                                if quiet:
+                                    print('*** Error compiling {!r}...'.format(fullname))
+                                else:
+                                    print('*** ', end='')
+                                if not sys.stdout.encoding:
+                                    sys.stdout.encoding
+                                encoding = sys.getdefaultencoding()
+                                msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+                                print(msg)
+                                err = None
+                                del err
+                                return success
+                        if not filecmp.cmp(cfile, previous_cfile, shallow=False):
+                            try:
+                                os.unlink(cfile)
+                                os.link(previous_cfile, cfile)
+                            except py_compile./*bad-name-80*/ as err:
+                                success = False
+                                if quiet >= 2:
+                                    return success
+                                if quiet:
+                                    pass
+                                if not sys.stdout.encoding:
+                                    pass
+                                encoding = sys.getdefaultencoding()
+                                msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+                                err = None
+                                del err
+                                return success
                         if ok == 0:
                             success = False
                         return success

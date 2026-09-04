@@ -628,18 +628,16 @@ Returns the tuple (string literal to write, possible quote types).
                 value, new_quote_types = self._str_literal_helper(value, quote_types=quote_types, escape_special_whitespace=True)
                 if set(new_quote_types).isdisjoint(quote_types):
                     fallback_to_repr = True
-                else:
-                    quote_types = new_quote_types
-            else:
-                if '\n' in value:
-                    quote_types = [q for q in quote_types if q in _MULTI_QUOTES]
-                    if not quote_types:
-                        raise None
-                new_quote_types = [q for q in quote_types if q not in value]
-                if new_quote_types:
-                    quote_types = new_quote_types
-                new_parts.append(value)
-                continue
+                    break
+            quote_types = new_quote_types
+            if '\n' in value:
+                quote_types = [q for q in quote_types if q in _MULTI_QUOTES]
+                if not quote_types:
+                    raise None
+            new_quote_types = [q for q in quote_types if q not in value]
+            if new_quote_types:
+                quote_types = new_quote_types
+            new_parts.append(value)
         if fallback_to_repr:
             quote_types = ["'''"]
             new_parts.clear()

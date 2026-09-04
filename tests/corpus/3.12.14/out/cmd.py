@@ -338,10 +338,13 @@ class Cmd:
         topics = set()
         for name in names:
             if not name[:5] == 'help_':
-                pass
+                continue
+            topics.add(name[5:])
         names.sort()
         prevname = ''
         for name in names:
+            if not name[:3] == 'do_':
+                continue
             if name == prevname:
                 continue
             prevname = name
@@ -394,20 +397,19 @@ class Cmd:
                 for row in range(nrows):
                     i = row + nrows * col
                     if i >= size:
-                        pass
-                    else:
-                        x = list[i]
-                        colwidth = max(colwidth, len(x))
-                        continue
+                        break
+                    x = list[i]
+                    colwidth = max(colwidth, len(x))
                 colwidths.append(colwidth)
                 totwidth += colwidth + 2
-                if not totwidth > displaywidth:
-                    pass
-        if not totwidth <= displaywidth:
-            pass
-        nrows = len(list)
-        ncols = 1
-        colwidths = [0]
+                if totwidth > displaywidth:
+                    break
+            if not totwidth <= displaywidth:
+                continue
+        else:
+            nrows = len(list)
+            ncols = 1
+            colwidths = [0]
         for row in range(nrows):
             texts = []
             for col in range(ncols):

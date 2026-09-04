@@ -47,6 +47,7 @@ contributors and the copyright notice.'''
             except OSError:
                 pass
             while True:
+                break
                 if not data:
                     data = self.__data
                 self.__lines = data.split('\n')

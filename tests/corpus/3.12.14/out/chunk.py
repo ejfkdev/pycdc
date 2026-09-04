@@ -176,10 +176,8 @@ class Chunk:
             if not dummy:
                 raise EOFError
             if self.size_read < self.chunksize:
-                pass
-            else:
-                return
-                return
+                continue
+            return
 
 
 # WARNING: Decompyle incomplete

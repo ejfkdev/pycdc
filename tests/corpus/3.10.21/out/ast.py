@@ -490,9 +490,9 @@ class NodeTransformer(NodeVisitor):
                         value = self.visit(value)
                         if value is None:
                             continue
-                    if not isinstance(value, AST):
-                        new_values.extend(value)
-                        continue
+                        if not isinstance(value, AST):
+                            new_values.extend(value)
+                            continue
                     new_values.append(value)
                 old_value[:] = new_values
                 continue

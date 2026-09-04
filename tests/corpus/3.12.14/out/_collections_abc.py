@@ -55,12 +55,11 @@ def _check_methods(C, *methods):
     for method in methods:
         for B in mro:
             if not method in B.__dict__:
-                pass
-            else:
-                if not B.__dict__[method] is not None:
-                    NotImplemented
-                    return
                 continue
+            if not B.__dict__[method] is not None:
+                NotImplemented
+                return
+            continue
         return NotImplemented
     return True
 
@@ -486,10 +485,9 @@ class Set(Collection):
             return False
         for elem in self:
             if not elem not in other:
-                pass
-            else:
-                return False
-                return True
+                continue
+            return False
+        return True
 
     def __lt__(self, other):
         if not isinstance(other, Set):
@@ -508,10 +506,9 @@ class Set(Collection):
             return False
         for elem in other:
             if not elem not in self:
-                pass
-            else:
-                return False
-                return True
+                continue
+            return False
+        return True
 
     def __eq__(self, other):
         if not isinstance(other, Set):
@@ -539,10 +536,9 @@ class Set(Collection):
 
         for value in other:
             if not value in self:
-                pass
-            else:
-                return False
-                return True
+                continue
+            return False
+        return True
 
     def __or__(self, other):
         if not isinstance(other, Iterable):

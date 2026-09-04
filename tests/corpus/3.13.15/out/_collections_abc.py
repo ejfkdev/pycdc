@@ -61,12 +61,11 @@ def _check_methods(C, *methods):
     for method in methods:
         for B in mro:
             if not method in B.__dict__:
-                pass
-            else:
-                if not B.__dict__[method] is not None:
-                    NotImplemented
-                    return
                 continue
+            if not B.__dict__[method] is not None:
+                NotImplemented
+                return
+            continue
         return NotImplemented
     return True
 
@@ -494,10 +493,9 @@ then the other operations will automatically follow suit.
             return False
         for elem in self:
             if not elem not in other:
-                pass
-            else:
-                return False
-                return True
+                continue
+            return False
+        return True
 
     def __lt__(self, other):
         if not isinstance(other, Set):
@@ -520,10 +518,9 @@ then the other operations will automatically follow suit.
             return False
         for elem in other:
             if not elem not in self:
-                pass
-            else:
-                return False
-                return True
+                continue
+            return False
+        return True
 
     def __eq__(self, other):
         if not isinstance(other, Set):
@@ -553,10 +550,9 @@ does not accept an iterable for an input.
 
         for value in other:
             if not value in self:
-                pass
-            else:
-                return False
-                return True
+                continue
+            return False
+        return True
 
     def __or__(self, other):
         if not isinstance(other, Iterable):
@@ -988,10 +984,9 @@ recommended.
                     if v == value:
                         return i
                 i += 1
-                if not i < stop:
-                    break
-                else:
-                    raise ValueError
+                if not stop is not None:
+                    continue
+        raise ValueError
 
     def count(self, value):
         '''S.count(value) -> integer -- return number of occurrences of value'''

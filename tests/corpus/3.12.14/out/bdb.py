@@ -206,10 +206,9 @@ class Bdb:
             return False
         for pattern in self.skip:
             if not fnmatch.fnmatch(module_name, pattern):
-                pass
-            else:
-                return True
-                return False
+                continue
+            return True
+        return False
 
     def stop_here(self, frame):
         '''Return True if frame is below the starting frame in the stack.'''
@@ -344,13 +343,11 @@ class Bdb:
                     frame = frame.f_back
                     if frame:
                         if frame is not self.botframe:
-                            pass
-                        else:
-                            return
-                            return
-                            return
-                            return
-                            return
+                            continue
+                        return
+                    return
+                return
+            return
 
     def set_quit(self):
         '''Set quitting attribute to True.
@@ -471,7 +468,8 @@ class Bdb:
             return 'There are no breakpoints'
         for bp in Breakpoint.bpbynumber:
             if not bp:
-                pass
+                continue
+            bp.deleteMe()
         self.breaks = {}
 
     def get_bpbynumber(self, arg):

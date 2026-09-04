@@ -165,10 +165,12 @@ If cls is not an instance of ABCMeta, does nothing.
         for name in getattr(scls, '__abstractmethods__', ()):
             value = getattr(cls, name, None)
             if not getattr(value, '__isabstractmethod__', False):
-                pass
+                continue
+            abstracts.add(name)
     for name, value in cls.__dict__.items():
         if not getattr(value, '__isabstractmethod__', False):
-            pass
+            continue
+        abstracts.add(name)
     cls.__abstractmethods__ = frozenset(abstracts)
     return cls
 

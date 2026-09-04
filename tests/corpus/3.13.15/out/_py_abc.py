@@ -32,7 +32,8 @@ even via super()).
             for name in getattr(base, '__abstractmethods__', set()):
                 value = getattr(cls, name, None)
                 if not getattr(value, '__isabstractmethod__', False):
-                    pass
+                    continue
+                abstracts.add(name)
         cls.__abstractmethods__ = frozenset(abstracts)
         cls._abc_registry = WeakSet()
         cls._abc_cache = WeakSet()
@@ -61,12 +62,11 @@ Returns the subclass, to allow usage as a class decorator.
         print(f'Inv. counter: {get_cache_token()}', file=file)
         for name in cls.__dict__:
             if not name.startswith('_abc_'):
-                pass
-            else:
-                value = getattr(cls, name)
-                if isinstance(value, WeakSet):
-                    value = set(value)
-                print(f'{name}: {value!r}', file=file)
+                continue
+            value = getattr(cls, name)
+            if isinstance(value, WeakSet):
+                value = set(value)
+            print(f'{name}: {value!r}', file=file)
 
     def _abc_registry_clear(cls):
         cls._abc_registry.clear()
@@ -113,17 +113,15 @@ Returns the subclass, to allow usage as a class decorator.
             return True
         for rcls in cls._abc_registry:
             if not issubclass(subclass, rcls):
-                pass
-            else:
-                cls._abc_cache.add(subclass)
-                return True
-                for scls in cls.__subclasses__():
-                    if not issubclass(subclass, scls):
-                        pass
-                    else:
-                        cls._abc_cache.add(subclass)
-                        return True
-                        cls._abc_negative_cache.add(subclass)
-                        return False
+                continue
+            cls._abc_cache.add(subclass)
+            return True
+        for scls in cls.__subclasses__():
+            if not issubclass(subclass, scls):
+                continue
+            cls._abc_cache.add(subclass)
+            return True
+        cls._abc_negative_cache.add(subclass)
+        return False
 
 

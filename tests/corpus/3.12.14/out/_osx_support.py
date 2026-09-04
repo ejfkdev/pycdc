@@ -25,11 +25,10 @@ def _find_executable(executable, path=None):
         for p in paths:
             f = os.path.join(p, executable)
             if not os.path.isfile(f):
-                pass
-            else:
-                return f
-                return
-                return executable
+                continue
+            return f
+        return
+    return executable
 
 def _read_output(commandstring, capture_stderr=False):
     '''Output from successful command execution or None'''
@@ -97,7 +96,8 @@ def _remove_original_values(_config_vars):
 
     for k in list(_config_vars):
         if not k.startswith(_INITPRE):
-            pass
+            continue
+        del _config_vars[k]
 
 def _save_modified_value(_config_vars, cv, newvalue):
     '''Save modified and original unmodified value of configuration var'''
@@ -125,14 +125,14 @@ def _default_sysroot(cc):
             in_incdirs = False
             continue
         if not in_incdirs:
-            pass
-        else:
-            line = line.strip()
-            if line == '/usr/include':
-                _cache_default_sysroot = '/'
-                continue
+            continue
+        line = line.strip()
+        if line == '/usr/include':
+            _cache_default_sysroot = '/'
+            continue
         if not line.endswith('.sdk/usr/include'):
-            pass
+            continue
+        _cache_default_sysroot = line[:-12]
     if not _cache_default_sysroot is not None:
         _cache_default_sysroot = '/'
     return _cache_default_sysroot
@@ -169,26 +169,28 @@ def _find_appropriate_compiler(_config_vars):
         raise SystemError('Cannot locate working compiler')
     if cc != oldcc:
         for cv in _COMPILER_CONFIG_VARS:
+            if not cv in _config_vars:
+                continue
             if not cv not in os.environ:
-                pass
-            else:
-                cv_split = _config_vars[cv].split()
-                cv_split[0] = cc if cv != 'CXX' else cc + '++'
-                _save_modified_value(_config_vars, cv, ' '.join(cv_split))
-                return _config_vars
+                continue
+            cv_split = _config_vars[cv].split()
+            cv_split[0] = cc if cv != 'CXX' else cc + '++'
+            _save_modified_value(_config_vars, cv, ' '.join(cv_split))
+    return _config_vars
 
 def _remove_universal_flags(_config_vars):
     '''Remove all universal build arguments from config vars'''
 
     for cv in _UNIVERSAL_CONFIG_VARS:
+        if not cv in _config_vars:
+            continue
         if not cv not in os.environ:
-            pass
-        else:
-            flags = _config_vars[cv]
-            flags = re.sub('-arch\\s+\\w+\\s', ' ', flags, flags=re.ASCII)
-            flags = re.sub('-isysroot\\s*\\S+', ' ', flags)
-            _save_modified_value(_config_vars, cv, flags)
-            return _config_vars
+            continue
+        flags = _config_vars[cv]
+        flags = re.sub('-arch\\s+\\w+\\s', ' ', flags, flags=re.ASCII)
+        flags = re.sub('-isysroot\\s*\\S+', ' ', flags)
+        _save_modified_value(_config_vars, cv, flags)
+    return _config_vars
 
 def _remove_unsupported_archs(_config_vars):
     '''Remove any unsupported archs from config vars'''
@@ -199,13 +201,14 @@ def _remove_unsupported_archs(_config_vars):
         status = os.system(f"echo 'int main{{}};' | '{_config_vars['CC'].replace("'", '\'"\'"\'')!s}' -c -arch ppc -x c -o /dev/null /dev/null 2>/dev/null")
         if status:
             for cv in _UNIVERSAL_CONFIG_VARS:
+                if not cv in _config_vars:
+                    continue
                 if not cv not in os.environ:
-                    pass
-                else:
-                    flags = _config_vars[cv]
-                    flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
-                    _save_modified_value(_config_vars, cv, flags)
-                    return _config_vars
+                    continue
+                flags = _config_vars[cv]
+                flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
+                _save_modified_value(_config_vars, cv, flags)
+    return _config_vars
 
 def _override_all_archs(_config_vars):
     '''Allow override of all archs with ARCHFLAGS env var'''
@@ -213,14 +216,15 @@ def _override_all_archs(_config_vars):
     if 'ARCHFLAGS' in os.environ:
         arch = os.environ['ARCHFLAGS']
         for cv in _UNIVERSAL_CONFIG_VARS:
+            if not cv in _config_vars:
+                continue
             if not '-arch' in _config_vars[cv]:
-                pass
-            else:
-                flags = _config_vars[cv]
-                flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
-                flags = flags + ' ' + arch
-                _save_modified_value(_config_vars, cv, flags)
-                return _config_vars
+                continue
+            flags = _config_vars[cv]
+            flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
+            flags = flags + ' ' + arch
+            _save_modified_value(_config_vars, cv, flags)
+    return _config_vars
 
 def _check_for_unavailable_sdk(_config_vars):
     '''Remove references to any SDKs not available'''
@@ -231,13 +235,14 @@ def _check_for_unavailable_sdk(_config_vars):
         sdk = m.group(1)
         if not os.path.exists(sdk):
             for cv in _UNIVERSAL_CONFIG_VARS:
+                if not cv in _config_vars:
+                    continue
                 if not cv not in os.environ:
-                    pass
-                else:
-                    flags = _config_vars[cv]
-                    flags = re.sub('-isysroot\\s*\\S+(?:\\s|$)', ' ', flags)
-                    _save_modified_value(_config_vars, cv, flags)
-                    return _config_vars
+                    continue
+                flags = _config_vars[cv]
+                flags = re.sub('-isysroot\\s*\\S+(?:\\s|$)', ' ', flags)
+                _save_modified_value(_config_vars, cv, flags)
+    return _config_vars
 
 def compiler_fixup(compiler_so, cc_args):
     """
@@ -265,42 +270,42 @@ def compiler_fixup(compiler_so, cc_args):
                 pass
     if not _supports_arm64_builds():
         for idx in reversed(range(len(compiler_so))):
+            if not compiler_so[idx] == '-arch':
+                continue
             if not compiler_so[idx + 1] == 'arm64':
-                pass
+                continue
+            del compiler_so[idx:idx + 2]
+    if 'ARCHFLAGS' in os.environ:
+        if not stripArch:
+            compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
+    if stripSysroot:
+        while True:
+            indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
+            if not indices:
+                break
+            index = indices[0]
+            if compiler_so[index] == '-isysroot':
+                del compiler_so[index:index + 2]
             else:
-                if 'ARCHFLAGS' in os.environ:
-                    if not stripArch:
-                        compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
-                if stripSysroot:
-                    while True:
-                        indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
-                        if not indices:
-                            break
-                        index = indices[0]
-                        if compiler_so[index] == '-isysroot':
-                            del compiler_so[index:index + 2]
-                        else:
-                            del compiler_so[index:index + 1]
-                sysroot = None
-                argvar = cc_args
-                indices = [i for i, x in enumerate(cc_args) if x.startswith('-isysroot')]
-                if not indices:
-                    argvar = compiler_so
-                    indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
-                for idx in indices:
-                    if argvar[idx] == '-isysroot':
-                        sysroot = argvar[idx + 1]
-                    else:
-                        sysroot = argvar[idx][len('-isysroot'):]
-                if sysroot:
-                    if not os.path.isdir(sysroot):
-                        sys.stderr.write(f"Compiling with an SDK that doesn't seem to exist: {sysroot}\n")
-                        sys.stderr.write('Please check your Xcode installation\n')
-                        sys.stderr.flush()
-                return compiler_so
-                x, i = None, None
-                x, i = None, None
-                x, i = None, None
+                del compiler_so[index:index + 1]
+    sysroot = None
+    argvar = cc_args
+    indices = [i for i, x in enumerate(cc_args) if x.startswith('-isysroot')]
+    if not indices:
+        argvar = compiler_so
+        indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
+    for idx in indices:
+        if argvar[idx] == '-isysroot':
+            sysroot = argvar[idx + 1]
+            break
+        sysroot = argvar[idx][len('-isysroot'):]
+        break
+    if sysroot:
+        if not os.path.isdir(sysroot):
+            sys.stderr.write(f"Compiling with an SDK that doesn't seem to exist: {sysroot}\n")
+            sys.stderr.write('Please check your Xcode installation\n')
+            sys.stderr.flush()
+    return compiler_so
 
 def customize_config_vars(_config_vars):
     '''Customize Python build configuration variables.

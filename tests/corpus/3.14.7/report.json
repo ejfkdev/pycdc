@@ -92,8 +92,8 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1646,
-   "ntotal": 1864,
+   "ndiff": 1654,
+   "ntotal": 1866,
    "detail": "line 168: orig ('LOAD_FAST_BORROW', 'executable') | got ('LOAD_CONST', 'None')\nline 176: orig ('NOP', '') | got ('LOAD_SMALL_INT', '')\nline 177: orig ('LOAD_SMALL_INT', '') | got ('LOAD_CONST', 'None')"
   },
   {
@@ -124,7 +124,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 273,
+   "ndiff": 276,
    "ntotal": 372,
    "detail": "line 83: orig ('NOP', '') | got ('LOAD_GLOBAL', 'sys')\nline 84: orig ('LOAD_GLOBAL', 'sys') | got ('LOAD_ATTR', 'stdin')\nline 85: orig ('LOAD_ATTR', 'stdin') | got ('LOAD_ATTR', 'close + NULL|self')"
   },

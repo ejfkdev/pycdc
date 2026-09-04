@@ -2067,7 +2067,17 @@ impl<'a> Ctx<'a> {
                         operand,
                     } = &*cond
                     {
-                        if let Some(&ti) = self.idx_of.get(&pos) {
+                        if let Some(&ti0) = self.idx_of.get(&pos) {
+                            // the break block may start with the POP_TOP
+                            // that drops the loop iterator (3.12 `if c:
+                            // break` inside a for)
+                            let mut ti = ti0;
+                            while matches!(
+                                self.instrs.get(ti).map(|x| x.op),
+                                Some(Op::POP_TOP) | Some(Op::NOP) | Some(Op::NOT_TAKEN)
+                            ) {
+                                ti += 1;
+                            }
                             let ins = self.instrs[ti];
                             if matches!(
                                 ins.op,
@@ -3941,7 +3951,23 @@ impl<'a> Ctx<'a> {
                                         })
                                         .map(|l| l.start)
                         });
-                if lands_on_back_edge || self.is_continue_jump(target) {
+                // degenerate `if c: break` fusion (3.12): the back edge is
+                // the ENTIRE then-region of a just-opened If — let the
+                // fused-continue machinery below record the Continue and
+                // the close-time normalizer flip it to `if c: break`
+                let degenerate_break_fusion = self
+                    .blocks
+                    .last()
+                    .map(|t| {
+                        t.kind == BlockType::If
+                            && t.start == self.cur_offset
+                            && t.stmts.is_empty()
+                            && t.short_circuit.is_none()
+                    })
+                    .unwrap_or(false);
+                if !degenerate_break_fusion
+                    && (lands_on_back_edge || self.is_continue_jump(target))
+                {
                     // folded elif/else boundary: this jump is the LAST
                     // instruction of an If/Else branch region and the target
                     // is (or threads to) the enclosing loop's back edge —
@@ -6583,6 +6609,29 @@ impl<'a> Ctx<'a> {
                 if target > b.end && !self.targets.contains(&target) {
                     return Some(i);
                 }
+                // a break jumping over the loop epilogue (END_FOR and the
+                // iterator-drop POP_TOPs) lands on the real continuation
+                if target > b.end {
+                    if let Some(&ei) = self.idx_of.get(&b.end) {
+                        let epilogue = self.instrs[ei..]
+                            .iter()
+                            .take_while(|x| x.offset < target)
+                            .all(|x| {
+                                matches!(
+                                    x.op,
+                                    Op::END_FOR
+                                        | Op::POP_TOP
+                                        | Op::POP_ITER
+                                        | Op::NOP
+                                        | Op::NOT_TAKEN
+                                )
+                            })
+                            && self.instrs.get(ei).map_or(false, |x| x.offset < target);
+                        if epilogue {
+                            return Some(i);
+                        }
+                    }
+                }
             }
         }
         None
@@ -6965,6 +7014,18 @@ impl<'a> Ctx<'a> {
                             && t.end > self.cur_offset
                     );
                     if top_is_pending_if {
+                        // degenerate fusion: the back edge IS the whole
+                        // then-region (`if c: break` with fall-through
+                        // continue) — record the continue and close; the
+                        // Else region holds the break block and the close
+                        // normalizer flips the polarity back
+                        if self.blocks.last().map(|t| t.start) == Some(self.cur_offset) {
+                            let end = self.blocks.last().unwrap().end;
+                            let t = self.blocks.last_mut().unwrap();
+                            t.stmts.push(Stmt::Continue);
+                            self.force_close_top(end);
+                            return;
+                        }
                         let else_end = self
                             .instrs
                             .iter()

@@ -325,12 +325,12 @@ class Cmd:
             if name[:3] == 'do_':
                 if name == prevname:
                     continue
-            prevname = name
-            cmd = name[3:]
-            if cmd in topics:
-                cmds_doc.append(cmd)
-                topics.remove(cmd)
-                continue
+                prevname = name
+                cmd = name[3:]
+                if cmd in topics:
+                    cmds_doc.append(cmd)
+                    topics.remove(cmd)
+                    continue
             if getattr(self, name).__doc__:
                 cmds_doc.append(cmd)
                 continue

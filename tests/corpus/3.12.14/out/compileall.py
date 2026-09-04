@@ -40,14 +40,19 @@ def _walk_dir(dir, maxlevels, quiet=0):
         if not os.path.isdir(fullname):
             yield fullname
             continue
+        if not maxlevels > 0:
+            continue
+        if not name != os.curdir:
+            continue
+        if not name != os.pardir:
+            continue
+        if not os.path.isdir(fullname):
+            continue
         if os.path.islink(fullname):
+            continue
+        while True:
             pass
-        else:
-            while True:
-                pass
-            _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
-            return
-        continue
+        _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     '''Byte-compile all modules in the given directory tree.
@@ -108,7 +113,8 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
                 return success
                 for file in files:
                     if compile_file(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes):
-                        pass
+                        continue
+                    success = False
                 return success
     return success
 
@@ -153,115 +159,132 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         ddir_parts = list(fullname_parts)
         for spart, opart in zip(stripdir_parts, fullname_parts):
             if not spart == opart:
-                pass
+                continue
+            ddir_parts.remove(spart)
         dfile = os.path.join(*ddir_parts)
-    else:
-        if not prependdir is None:
-            if not dfile is not None:
-                dfile = os.path.join(prependdir, fullname)
-            else:
-                dfile = os.path.join(prependdir, dfile)
-        if isinstance(optimize, int):
-            optimize = [optimize]
-        optimize = sorted(set(optimize))
-        if hardlink_dupes and len(optimize) < 2:
-            raise ValueError('Hardlinking of duplicated bytecode makes sense only for more than one optimization level')
-        if not rx is None:
-            mo = rx.search(fullname)
-            if mo:
-                return success
-        if not limit_sl_dest is None:
-            if os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
-                return success
-        opt_cfiles = {}
-        if os.path.isfile(fullname):
-            for opt_level in optimize:
-                if legacy:
-                    opt_cfiles[opt_level] = fullname + 'c'
-                    continue
-                if opt_level >= 0:
-                    opt = opt_level if opt_level >= 1 else ''
-                    cfile = importlib.util.cache_from_source(fullname, optimization=opt)
-                    opt_cfiles[opt_level] = cfile
-                    continue
-                cfile = importlib.util.cache_from_source(fullname)
+    if not prependdir is None:
+        if not dfile is not None:
+            dfile = os.path.join(prependdir, fullname)
+        else:
+            dfile = os.path.join(prependdir, dfile)
+    if isinstance(optimize, int):
+        optimize = [optimize]
+    optimize = sorted(set(optimize))
+    if hardlink_dupes and len(optimize) < 2:
+        raise ValueError('Hardlinking of duplicated bytecode makes sense only for more than one optimization level')
+    if not rx is None:
+        mo = rx.search(fullname)
+        if mo:
+            return success
+    if not limit_sl_dest is None:
+        if os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
+            return success
+    opt_cfiles = {}
+    if os.path.isfile(fullname):
+        for opt_level in optimize:
+            if legacy:
+                opt_cfiles[opt_level] = fullname + 'c'
+                continue
+            if opt_level >= 0:
+                opt = opt_level if opt_level >= 1 else ''
+                cfile = importlib.util.cache_from_source(fullname, optimization=opt)
                 opt_cfiles[opt_level] = cfile
-            head, tail = name[:-3], name[-3:]
-            if tail == '.py':
-                if not force:
-                    mtime = int(os.stat(fullname).st_mtime)
-                    expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
-                    for cfile in opt_cfiles.values():
-                        with open(cfile, 'rb') as chandle:
-                            actual = chandle.read(12)
-                            if not expect != actual:
+                continue
+            cfile = importlib.util.cache_from_source(fullname)
+            opt_cfiles[opt_level] = cfile
+        head, tail = name[:-3], name[-3:]
+        if tail == '.py':
+            if not force:
+                mtime = int(os.stat(fullname).st_mtime)
+                expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+                for cfile in opt_cfiles.values():
+                    with open(cfile, 'rb') as chandle:
+                        actual = chandle.read(12)
+                        try:
+                            try:
+                                if not expect != actual:
+                                    continue
+                            except OSError:
                                 pass
-                            else:
-                                try:
-                                    try:
-                                        pass
-                                    except OSError:
-                                        pass
-                                except py_compile./*bad-name-86*/ as err:
-                                    success = False
-                                    if quiet >= 2:
-                                        return success
-                                    if quiet:
-                                        pass
-                                    if not sys.stdout.encoding:
-                                        pass
-                                    encoding = sys.getdefaultencoding()
-                                    msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
-                                    err = None
-                                    del err
-                                    return success
+                        except py_compile./*bad-name-86*/ as err:
+                            success = False
+                            if quiet >= 2:
                                 return success
-                                if not quiet:
-                                    print('Compiling {!r}...'.format(fullname))
-                                try:
-                                    for index, opt_level in enumerate(optimize):
-                                        cfile = opt_cfiles[opt_level]
-                                        ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
-                                        if not hardlink_dupes:
-                                            pass
-                                        else:
-                                            previous_cfile = opt_cfiles[optimize[index - 1]]
-                                            if not filecmp.cmp(cfile, previous_cfile, shallow=False):
-                                                pass
-                                finally:
-                                    if ok == 0:
-                                        success = False
+                            if quiet:
+                                pass
+                            if not sys.stdout.encoding:
+                                pass
+                            encoding = sys.getdefaultencoding()
+                            msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+                            err = None
+                            del err
+                            return success
+                        try:
+                            try:
+                                pass
+                            except OSError:
+                                pass
+                        except py_compile./*bad-name-86*/ as err:
+                            success = False
+                            if quiet >= 2:
+                                return success
+                            if quiet:
+                                pass
+                            if not sys.stdout.encoding:
+                                pass
+                            encoding = sys.getdefaultencoding()
+                            msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+                            err = None
+                            del err
+                            return success
+                        return success
+                        if not quiet:
+                            print('Compiling {!r}...'.format(fullname))
+                        try:
+                            for index, opt_level in enumerate(optimize):
+                                cfile = opt_cfiles[opt_level]
+                                ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
+                                if not index > 0:
+                                    continue
+                                if not hardlink_dupes:
+                                    continue
+                                previous_cfile = opt_cfiles[optimize[index - 1]]
+                                if not filecmp.cmp(cfile, previous_cfile, shallow=False):
+                                    continue
+                        finally:
+                            if ok == 0:
+                                success = False
+                            return success
+                            return success
+                            if quiet:
+                                print('*** Error compiling {!r}...'.format(fullname))
+                            else:
+                                print('*** ', end='')
+                            encoding = sys.stdout.encoding or sys.getdefaultencoding()
+                            msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+                            print(msg)
+                            err = None
+                            del err
+                            return success
+                            err = None
+                            del err
+                            if SyntaxError, UnicodeError, OSError:
+                                e = None
+                                success = False
+                                if quiet >= 2:
+                                    e = None
+                                    del e
                                     return success
-                                    return success
-                                    if quiet:
-                                        print('*** Error compiling {!r}...'.format(fullname))
-                                    else:
-                                        print('*** ', end='')
-                                    encoding = sys.stdout.encoding or sys.getdefaultencoding()
-                                    msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
-                                    print(msg)
-                                    err = None
-                                    del err
-                                    return success
-                                    err = None
-                                    del err
-                                    if SyntaxError, UnicodeError, OSError:
-                                        e = None
-                                        success = False
-                                        if quiet >= 2:
-                                            e = None
-                                            del e
-                                            return success
-                                        if quiet:
-                                            print('*** Error compiling {!r}...'.format(fullname))
-                                        else:
-                                            print('*** ', end='')
-                                        print(e.__class__.__name__ + ':', e)
-                                        e = None
-                                        del e
-                                        return success
-                                        e = None
-                                        del e
+                                if quiet:
+                                    print('*** Error compiling {!r}...'.format(fullname))
+                                else:
+                                    print('*** ', end='')
+                                print(e.__class__.__name__ + ':', e)
+                                e = None
+                                del e
+                                return success
+                                e = None
+                                del e
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     '''Byte-compile all module on sys.path.
@@ -281,9 +304,10 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
     for dir in sys.path:
         if (dir and dir == os.curdir) and skip_curdir:
             if not quiet < 2:
-                pass
-        else:
-            success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
+                continue
+            print('Skipping current directory')
+            continue
+        success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
     return success
 
 def main():
@@ -338,30 +362,24 @@ def main():
                 else:
                     invalidation_mode = None
                 success = True
+                continue
+                if compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
+                    continue
+                return success
                 try:
-                    if compile_dests:
-                        for dest in compile_dests:
-                            if os.path.isfile(dest):
-                                if compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
-                                    continue
-                            if compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
-                                continue
-                        return success
-                        try:
-                            success = False
-                            continue
-                        except KeyboardInterrupt:
-                            if args.quiet < 2:
-                                print('\n[interrupted]')
-                            return False
-                            try:
-                                pass
-                            except KeyboardInterrupt:
-                                if args.quiet < 2:
-                                    print('\n[interrupted]')
-                                return False
-                finally:
-                    return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
+                    success = False
+                    continue
+                except KeyboardInterrupt:
+                    if args.quiet < 2:
+                        print('\n[interrupted]')
+                    return False
+                    try:
+                        pass
+                    except KeyboardInterrupt:
+                        if args.quiet < 2:
+                            print('\n[interrupted]')
+                        return False
+                return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
 
 if __name__ == '__main__':
     exit_status = int(not main())

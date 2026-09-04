@@ -214,8 +214,8 @@ class Sniffer:
         for restr in ('(?P<delim>[^\\w\\n"\\\'])(?P<space> ?)(?P<quote>["\\\'])%s(?P=quote)(?P=delim)', '(?:^|\\n)(?P<quote>["\\\'])%s(?P=quote)(?P<delim>[^\\w\\n"\\\'])(?P<space> ?)', '(?P<delim>[^\\w\\n"\\\'])(?P<space> ?)(?P<quote>["\\\'])%s(?P=quote)(?:$|\\n)', '(?:^|\\n)(?P<quote>["\\\'])%s(?P=quote)(?:$|\\n)'):
             regexp = re.compile(restr % body, re.DOTALL | re.MULTILINE)
             matches = regexp.findall(data)
-            if not matches:
-                pass
+            if matches:
+                break
         if not matches:
             return ('', False, None, 0)
         quotes = {}
@@ -243,7 +243,8 @@ class Sniffer:
             except KeyError:
                 pass
             if not m[n]:
-                pass
+                continue
+            spaces += 1
         quotechar = max(quotes, key=quotes.get)
         if delims:
             delim = max(delims, key=delims.get)
@@ -311,37 +312,36 @@ class Sniffer:
             threshold = 0.9
             if len(delims) == 0 and consistency >= threshold:
                 for k, v in modeList:
+                    if not v[0] > 0:
+                        continue
+                    if not v[1] > 0:
+                        continue
+                    if not v[1] / total >= consistency:
+                        continue
                     if not delimiters is None and not k in delimiters:
                         pass
-                    else:
-                        consistency -= 0.01
-                        if len(delims) == 0 and consistency >= threshold:
-                            continue
-            else:
-                if len(delims) == 1:
-                    delim = list(delims.keys())[0]
-                    skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
-                    return delim, skipinitialspace
-                start = end
-                end += chunkLength
-                if not start < len(data):
-                    break
+                consistency -= 0.01
+                if len(delims) == 0 and consistency >= threshold:
+                    continue
+            if len(delims) == 1:
+                delim = list(delims.keys())[0]
+                skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
+                return delim, skipinitialspace
+            start = end
+            end += chunkLength
         if not delims:
             return ('', 0)
         if len(delims) > 1:
             for d in self.preferred:
                 if not d in delims.keys():
-                    pass
-                else:
-                    skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
-                    return d, skipinitialspace
-                    items = [(v, k) for k, v in delims.items()]
-                    items.sort()
-                    delim = items[-1][1]
-                    skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
-                    return delim, skipinitialspace
-                    c = None
-                    v, k = None, None
+                    continue
+                skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
+                return d, skipinitialspace
+        items = [(v, k) for k, v in delims.items()]
+        items.sort()
+        delim = items[-1][1]
+        skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
+        return delim, skipinitialspace
 
     def has_header(self, sample):
         rdr = reader(StringIO(sample), self.sniff(sample))
@@ -353,11 +353,10 @@ class Sniffer:
         checked = 0
         for row in rdr:
             if checked > 20:
-                pass
-            else:
-                checked += 1
-                if len(row) != columns:
-                    continue
+                break
+            checked += 1
+            if len(row) != columns:
+                continue
             for col in list(columnTypes.keys()):
                 thisType = complex
                 try:
@@ -367,6 +366,8 @@ class Sniffer:
                         thisType = len(row[col])
                 except (ValueError, TypeError):
                     hasHeader += 1
+                if not thisType != columnTypes[col]:
+                    continue
                 if not columnTypes[col] is not None:
                     columnTypes[col] = thisType
                     continue

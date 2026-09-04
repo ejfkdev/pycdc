@@ -206,16 +206,15 @@ def text(einfo, context=5):
         done, dump = {}, []
         for name, where, value in vars:
             if name in done:
-                pass
-            else:
-                done[name] = 1
-                if value is not __UNDEF__:
-                    if where == 'global':
-                        name = 'global ' + name
-                    elif where != 'local':
-                        name = where + name.split('.')[-1]
-                    dump.append('%s = %s' % (name, pydoc.text.repr(value)))
-                    continue
+                continue
+            done[name] = 1
+            if value is not __UNDEF__:
+                if where == 'global':
+                    name = 'global ' + name
+                elif where != 'local':
+                    name = where + name.split('.')[-1]
+                dump.append('%s = %s' % (name, pydoc.text.repr(value)))
+                continue
             dump.append(name + ' undefined')
         rows.append('\n'.join(dump))
         frames.append('\n%s\n' % '\n'.join(rows))

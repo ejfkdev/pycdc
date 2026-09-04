@@ -147,18 +147,17 @@ def html(einfo, context=5):
         done, dump = {}, []
         for name, where, value in vars:
             if name in done:
-                pass
-            else:
-                done[name] = 1
-                if value is not __UNDEF__:
-                    if where in ('global', 'builtin'):
-                        name = '<em>%s</em> ' % where + strong(name)
-                    elif where == 'local':
-                        name = strong(name)
-                    else:
-                        name = where + strong(name.split('.')[-1])
-                    dump.append(f'{name!s}&nbsp;= {pydoc.html.repr(value)!s}')
-                    continue
+                continue
+            done[name] = 1
+            if value is not __UNDEF__:
+                if where in ('global', 'builtin'):
+                    name = '<em>%s</em> ' % where + strong(name)
+                elif where == 'local':
+                    name = strong(name)
+                else:
+                    name = where + strong(name.split('.')[-1])
+                dump.append(f'{name!s}&nbsp;= {pydoc.html.repr(value)!s}')
+                continue
             dump.append(name + ' <em>undefined</em>')
         rows.append('<tr><td>%s</td></tr>' % small(grey(', '.join(dump))))
         frames.append('\n<table width="100%%" cellspacing=0 cellpadding=0 border=0>\n%s</table>' % '\n'.join(rows))
@@ -166,10 +165,9 @@ def html(einfo, context=5):
     exception = [f'<p>{strong(pydoc.html.escape(str(etype)))!s}: {pydoc.html.escape(str(evalue))!s}']
     for name in dir(evalue):
         if name[:1] == '_':
-            pass
-        else:
-            value = pydoc.html.repr(getattr(evalue, name))
-            exception.append(f'\n<br>{indent!s}{name!s}&nbsp;=\n{value!s}')
+            continue
+        value = pydoc.html.repr(getattr(evalue, name))
+        exception.append(f'\n<br>{indent!s}{name!s}&nbsp;=\n{value!s}')
     return head + ''.join(frames) + ''.join(exception) + "\n\n\n<!-- The above is a description of an error in a Python program, formatted\n     for a web browser because the 'cgitb' module was enabled.  In case you\n     are not reading this in a web browser, here is the original traceback:\n\n%s\n-->\n" % pydoc.html.escape(''.join(traceback.format_exception(etype, evalue, etb)))
 
 def text(einfo, context=5):
@@ -211,16 +209,15 @@ def text(einfo, context=5):
         done, dump = {}, []
         for name, where, value in vars:
             if name in done:
-                pass
-            else:
-                done[name] = 1
-                if value is not __UNDEF__:
-                    if where == 'global':
-                        name = 'global ' + name
-                    elif where != 'local':
-                        name = where + name.split('.')[-1]
-                    dump.append(f'{name!s} = {pydoc.text.repr(value)!s}')
-                    continue
+                continue
+            done[name] = 1
+            if value is not __UNDEF__:
+                if where == 'global':
+                    name = 'global ' + name
+                elif where != 'local':
+                    name = where + name.split('.')[-1]
+                dump.append(f'{name!s} = {pydoc.text.repr(value)!s}')
+                continue
             dump.append(name + ' undefined')
         rows.append('\n'.join(dump))
         frames.append('\n%s\n' % '\n'.join(rows))

@@ -57,7 +57,8 @@ class WeakSet:
             for itemref in self.data:
                 item = itemref()
                 if not item is not None:
-                    pass
+                    continue
+                yield item
             return
 
     def __len__(self):

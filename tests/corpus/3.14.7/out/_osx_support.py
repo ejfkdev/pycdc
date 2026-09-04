@@ -303,8 +303,9 @@ barf if multiple '-isysroot' arguments are present.
                 for idx in indices:
                     if argvar[idx] == '-isysroot':
                         sysroot = argvar[idx + 1]
-                    else:
-                        sysroot = argvar[idx][len('-isysroot'):]
+                        break
+                    sysroot = argvar[idx][len('-isysroot'):]
+                    break
                 if sysroot:
                     if not os.path.isdir(sysroot):
                         sys.stderr.write(f"Compiling with an SDK that doesn't seem to exist: {sysroot}\n")

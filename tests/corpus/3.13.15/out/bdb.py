@@ -228,10 +228,9 @@ Return self.trace_dispatch to continue tracing in this scope.
             return False
         for pattern in self.skip:
             if not fnmatch.fnmatch(module_name, pattern):
-                pass
-            else:
-                return True
-                return False
+                continue
+            return True
+        return False
 
     def stop_here(self, frame):
         '''Return True if frame is below the starting frame in the stack.'''
@@ -308,11 +307,9 @@ Must implement in derived classes or get NotImplementedError.
                     return
                 frame = frame.f_back
                 if not frame is None:
-                    pass
-                else:
-                    return
-                    return
-                    return
+                    continue
+                return
+            return
 
     def _set_stopinfo(self, stopframe, returnframe, stoplineno=0, opcode=False, cmdframe=None, cmdlineno=None):
         """Set the attributes for stopping.
@@ -521,7 +518,8 @@ If none were set, return an error message.
             return 'There are no breakpoints'
         for bp in Breakpoint.bpbynumber:
             if not bp:
-                pass
+                continue
+            bp.deleteMe()
         self.breaks = {}
 
     def get_bpbynumber(self, arg):

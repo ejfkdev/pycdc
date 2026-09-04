@@ -416,17 +416,15 @@ Columns are separated by two spaces (one was not legible enough).
                 for row in range(nrows):
                     i = row + nrows * col
                     if i >= size:
-                        pass
-                    else:
-                        x = list[i]
-                        colwidth = max(colwidth, len(x))
-                        continue
+                        break
+                    x = list[i]
+                    colwidth = max(colwidth, len(x))
                 colwidths.append(colwidth)
                 totwidth += colwidth + 2
                 if not totwidth > displaywidth:
                     pass
-        if not totwidth <= displaywidth:
-            pass
+            if not totwidth <= displaywidth:
+                pass
         nrows = len(list)
         ncols = 1
         colwidths = [0]

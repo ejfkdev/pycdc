@@ -906,81 +906,81 @@ class RawConfigParser(MutableMapping):
                         continue
                     next_prefixes[prefix] = index
                     if not index == 0:
+                        if not index > 0:
+                            continue
                         if not line[index - 1].isspace():
-                            pass
+                            continue
                 inline_prefixes = next_prefixes
                 if comment_start == sys.maxsize and inline_prefixes:
                     continue
-            for prefix in self._comment_prefixes:
-                if not line.strip().startswith(prefix):
-                    pass
-                else:
-                    try:
-                        comment_start = min(comment_start, index)
+            try:
+                comment_start = 0
+                break
+            finally:
+                if comment_start == sys.maxsize:
+                    comment_start = None
+                value = line[:comment_start].strip()
+                if not value:
+                    if self._empty_lines_in_values:
+                        if not comment_start is not None and not cursect is None:
+                            if optname:
+                                if not cursect[optname] is None:
+                                    cursect[optname].append('')
+                                indent_level = sys.maxsize
+                    continue
+                first_nonspace = self.NONSPACECRE.search(line)
+                cur_indent_level = first_nonspace.start() if first_nonspace else 0
+                if not cursect is None:
+                    if optname and cur_indent_level > indent_level:
+                        cursect[optname].append(value)
                         continue
-                    finally:
-                        self._join_multiline_values()
-                        if e:
-                            raise e
-                        try:
-                            comment_start = 0
-                            if comment_start == sys.maxsize:
-                                comment_start = None
-                            value = line[:comment_start].strip()
-                            if not value:
-                                if self._empty_lines_in_values:
-                                    if not comment_start is not None and not cursect is None:
-                                        if optname:
-                                            if not cursect[optname] is None:
-                                                cursect[optname].append('')
-                                            indent_level = sys.maxsize
-                                continue
-                            first_nonspace = self.NONSPACECRE.search(line)
-                            cur_indent_level = first_nonspace.start() if first_nonspace else 0
-                            if not cursect is None:
-                                if optname and cur_indent_level > indent_level:
-                                    cursect[optname].append(value)
-                                    continue
-                            indent_level = cur_indent_level
-                            mo = self.SECTCRE.match(value)
-                            if mo:
-                                sectname = mo.group('header')
-                                if sectname in self._sections:
-                                    if self._strict and sectname in elements_added:
-                                        raise DuplicateSectionError(sectname, fpname, lineno)
-                                    cursect = self._sections[sectname]
-                                    elements_added.add(sectname)
-                                elif sectname == self.default_section:
-                                    cursect = self._defaults
-                                else:
-                                    cursect = self._dict()
-                                    self._sections[sectname] = cursect
-                                    self._proxies[sectname] = SectionProxy(self, sectname)
-                                    elements_added.add(sectname)
-                                optname = None
-                                continue
-                            if not cursect is not None:
-                                raise MissingSectionHeaderError(fpname, lineno, line)
-                            mo = self._optcre.match(value)
-                            if mo:
-                                optname, vi, optval = mo.group('option', 'vi', 'value')
-                                if not optname:
-                                    e = self._handle_error(e, fpname, lineno, line)
-                                optname = self.optionxform(optname.rstrip())
-                                if self._strict and (sectname, optname) in elements_added:
-                                    raise DuplicateOptionError(sectname, optname, fpname, lineno)
-                                elements_added.add((sectname, optname))
-                                if not optval is None:
-                                    optval = optval.strip()
-                                    cursect[optname] = [optval]
-                                    continue
-                                cursect[optname] = None
-                                continue
-                            e = self._handle_error(e, fpname, lineno, line)
+                indent_level = cur_indent_level
+                mo = self.SECTCRE.match(value)
+                if mo:
+                    sectname = mo.group('header')
+                    if sectname in self._sections:
+                        if self._strict and sectname in elements_added:
+                            raise DuplicateSectionError(sectname, fpname, lineno)
+                        cursect = self._sections[sectname]
+                        elements_added.add(sectname)
+                    elif sectname == self.default_section:
+                        cursect = self._defaults
+                    else:
+                        cursect = self._dict()
+                        self._sections[sectname] = cursect
+                        self._proxies[sectname] = SectionProxy(self, sectname)
+                        elements_added.add(sectname)
+                    optname = None
+                    continue
+                if not cursect is not None:
+                    raise MissingSectionHeaderError(fpname, lineno, line)
+                mo = self._optcre.match(value)
+                if mo:
+                    optname, vi, optval = mo.group('option', 'vi', 'value')
+                    if not optname:
+                        e = self._handle_error(e, fpname, lineno, line)
+                    optname = self.optionxform(optname.rstrip())
+                    if self._strict and (sectname, optname) in elements_added:
+                        raise DuplicateOptionError(sectname, optname, fpname, lineno)
+                    elements_added.add((sectname, optname))
+                    if not optval is None:
+                        optval = optval.strip()
+                        cursect[optname] = [optval]
+                        continue
+                    cursect[optname] = None
+                    continue
+                e = self._handle_error(e, fpname, lineno, line)
+                continue
+                self._join_multiline_values()
+                if e:
+                    raise e
+                return
+                try:
+                    for prefix in self._comment_prefixes:
+                        if not line.strip().startswith(prefix):
                             continue
-                        finally:
-                            self._join_multiline_values()
-                    return
+                finally:
+                    self._join_multiline_values()
                     try:
                         p = None
                     finally:
