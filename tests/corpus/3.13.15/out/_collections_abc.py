@@ -437,9 +437,7 @@ def _is_param_expr(obj):
         return True
     obj = type(obj)
     names = ('ParamSpec', '_ConcatenateGenericAlias')
-    if obj.__module__ == 'typing':
-        pass
-    return any((obj.__name__ == name for name in names))
+    return obj.__module__ == 'typing' and any((obj.__name__ == name for name in names))
 
 def _type_repr(obj):
     """Return the repr() of an object, special-casing types (internal helper).
@@ -499,16 +497,12 @@ then the other operations will automatically follow suit.
     def __lt__(self, other):
         if not isinstance(other, Set):
             return NotImplemented
-        if len(self) < len(other):
-            pass
-        return self.__le__(other)
+        return len(self) < len(other) and self.__le__(other)
 
     def __gt__(self, other):
         if not isinstance(other, Set):
             return NotImplemented
-        if len(self) > len(other):
-            pass
-        return self.__ge__(other)
+        return len(self) > len(other) and self.__ge__(other)
 
     def __ge__(self, other):
         if not isinstance(other, Set):
@@ -524,9 +518,7 @@ then the other operations will automatically follow suit.
     def __eq__(self, other):
         if not isinstance(other, Set):
             return NotImplemented
-        if len(self) == len(other):
-            pass
-        return self.__le__(other)
+        return len(self) == len(other) and self.__le__(other)
 
     @classmethod
     def _from_iterable(cls, it):
@@ -800,9 +792,7 @@ class ItemsView(MappingView, Set):
             v = self._mapping[key]
         except KeyError:
             return False
-        if not v is value:
-            pass
-        return v == value
+        return v is value or v == value
 
     def __iter__(self):
         for key in self._mapping:

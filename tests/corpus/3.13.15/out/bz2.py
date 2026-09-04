@@ -130,9 +130,7 @@ closed, any other operation on it will raise a ValueError.
     def seekable(self):
         '''Return whether the file supports seeking.'''
 
-        if self.readable():
-            pass
-        return self._buffer.seekable()
+        return self.readable() and self._buffer.seekable()
 
     def readable(self):
         self._check_not_closed()

@@ -6490,6 +6490,7 @@ impl<'a> Ctx<'a> {
         // operands collected via jumps to the loop top, with their polarity
         let mut top_parts: Vec<ExprRef> = vec![first_cond.clone()];
         let mut top_jumps_true = true;
+        let mut top_jumps_false = true;
         let mut k = ci + 1;
         let mut exit: Option<usize> = None;
         let mut body_start = 0usize;
@@ -6557,7 +6558,138 @@ impl<'a> Ctx<'a> {
                                 break;
                             }
                         }
-                        return None;
+                        // mixed/plain continue-guard chain: every operand
+                        // jumps to the loop top and a REAL body follows,
+                        // ending at the loop's back edge. The body runs
+                        // only when no jump fired: And-merge with each
+                        // operand normalized by its jump polarity (PJIF
+                        // guard = operand, PJIT guard = Not operand).
+                        // Uniform-polarity chains keep the historical Or/And
+                        // forms (corpus-verified); the And-normalization is
+                        // for MIXED chains only, where no historical merge
+                        // applied.
+                        let first_jt = self.jump_if_true_at_ci(ci);
+                        let uniform = (top_jumps_true && first_jt)
+                            || (top_jumps_false && !first_jt);
+                        if uniform {
+                            return None;
+                        }
+                        let mut m = region_start;
+                        let mut back_edge: Option<usize> = None;
+                        let mut failed = false;
+                        while m < self.instrs.len() {
+                            let ins = &self.instrs[m];
+                            if ins.is_backward
+                                && ins.target == Some(loop_top)
+                                && matches!(
+                                    ins.op,
+                                    Op::JUMP_ABSOLUTE
+                                        | Op::JUMP_BACKWARD
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                )
+                            {
+                                back_edge = Some(ins.offset);
+                                break;
+                            }
+                            if let Some(t) = ins.target {
+                                // a break jump out of the loop ends the
+                                // body region as well
+                                let leaves = self
+                                    .blocks
+                                    .iter()
+                                    .rev()
+                                    .find(|b| {
+                                        matches!(b.kind, BlockType::While | BlockType::For)
+                                            && b.start == loop_top
+                                    })
+                                    .map_or(false, |b| {
+                                        !ins.is_backward
+                                            && self
+                                                .loop_exit_offset(b)
+                                                .map_or(false, |le| {
+                                                    self.effective_offset(t)
+                                                        == self.effective_offset(le)
+                                                })
+                                    });
+                                if leaves {
+                                    back_edge = Some(t);
+                                    break;
+                                }
+                                failed = true;
+                                break;
+                            }
+                            m += 1;
+                        }
+                        if failed {
+                            return None;
+                        }
+                        let body_end_off = match back_edge {
+                            Some(b) => b,
+                            None => return None,
+                        };
+                        if body_end_off <= region_start {
+                            return None;
+                        }
+                        // operand polarities: replay the chain jumps with
+                        // their operand regions (a PJIF guard keeps its
+                        // operand, a PJIT guard negates it)
+                        let mut guard_parts: Vec<ExprRef> = Vec::new();
+                        {
+                            let mut region = ci + 1;
+                            let mut kk = ci + 1;
+                            while kk < self.instrs.len() {
+                                let ins = &self.instrs[kk];
+                                if is_cond_jump(ins.op) {
+                                    if ins.target != Some(loop_top) {
+                                        break;
+                                    }
+                                    match self.sim_value_region(region, kk) {
+                                        Some(op) => {
+                                            guard_parts.push(if jump_true(ins.op) {
+                                                Rc::new(Expr::Unary {
+                                                    op: UnaryOp::Not,
+                                                    operand: op,
+                                                })
+                                            } else {
+                                                op
+                                            });
+                                        }
+                                        None => return None,
+                                    }
+                                    kk += 1;
+                                    region = kk;
+                                } else if !is_pure_value_op(ins.op) {
+                                    break;
+                                } else {
+                                    kk += 1;
+                                }
+                            }
+                        }
+                        if guard_parts.is_empty() {
+                            return None;
+                        }
+                        let mut values = Vec::new();
+                        let first_norm = if self.jump_if_true_at_ci(ci) {
+                            Rc::new(Expr::Unary {
+                                op: UnaryOp::Not,
+                                operand: first_cond.clone(),
+                            })
+                        } else {
+                            first_cond.clone()
+                        };
+                        flatten_boolop(first_norm, BoolOpKind::And, &mut values);
+                        for gp in guard_parts {
+                            flatten_boolop(gp, BoolOpKind::And, &mut values);
+                        }
+                        if values.len() < 2 {
+                            return None;
+                        }
+                        let merged: ExprRef = Rc::new(Expr::BoolOp {
+                            op: BoolOpKind::And,
+                            values,
+                        });
+                        let body_off = self.instrs.get(region_start).map(|i| i.offset)?;
+                        return Some((merged, body_off, body_end_off));
                     }
                     let (body_end, body_t) = body_jump?;
                     let op = if top_jumps_true {
@@ -6601,6 +6733,7 @@ impl<'a> Ctx<'a> {
                 // true (`if a and ...: break`) — raw participation
                 top_parts.push(operand);
                 top_jumps_true = top_jumps_true && jt;
+                top_jumps_false = top_jumps_false && !jt;
                 k = jk + 1;
                 continue;
             }
@@ -6691,7 +6824,7 @@ impl<'a> Ctx<'a> {
             let ins = &self.instrs[k];
             let arg = ins.arg as usize;
             match ins.op {
-                Op::LOAD_FAST | Op::LOAD_FAST_CHECK => {
+                Op::LOAD_FAST | Op::LOAD_FAST_CHECK | Op::LOAD_FAST_BORROW => {
                     st.push(self.name_expr(self.local_name(arg)));
                 }
                 Op::LOAD_NAME | Op::LOAD_GLOBAL | Op::STORE_FAST => {
@@ -6712,6 +6845,11 @@ impl<'a> Ctx<'a> {
                         .unwrap_or("???")
                         .to_string();
                     st.push(self.name_expr(n));
+                }
+                Op::LOAD_SMALL_INT => {
+                    st.push(Rc::new(Expr::Const(Rc::new(PyObject::Int(
+                        ins.arg as i32,
+                    )))));
                 }
                 Op::LOAD_CONST => {
                     st.push(Rc::new(Expr::Const(
@@ -6852,7 +6990,227 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    /// 3.14+ continue-guard chain inside a loop: each test jumps FORWARD
+    /// to the next test (or the body) when it passes, and falls through
+    /// to `NOT_TAKEN; JUMP_BACKWARD loop_top` (an inline continue) when
+    /// it fails. Merge the guards into one And condition over the body.
+    fn try_guard_chain(&self, cond: &ExprRef, jump_if_true: bool, target: usize)
+        -> Option<(ExprRef, usize, usize)>
+    {
+        let is_cond_jump = |o: Op| {
+            matches!(
+                o,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+            )
+        };
+        // the enclosing loop top: the trampoline's back-jump target
+        let ci = *self.idx_of.get(&self.cur_offset)?;
+        if !matches!(self.instrs.get(ci + 1).map(|x| x.op), Some(Op::NOT_TAKEN)) {
+            return None;
+        }
+        let mut t = ci + 1;
+        while matches!(self.instrs.get(t).map(|x| x.op), Some(Op::NOT_TAKEN) | Some(Op::NOP)) {
+            t += 1;
+        }
+        let tramp = self.instrs.get(t)?;
+        if !tramp.is_backward
+            || !matches!(
+                tramp.op,
+                Op::JUMP_BACKWARD | Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD_NO_INTERRUPT
+            )
+        {
+            return None;
+        }
+        let loop_top = tramp.target?;
+        if !self.blocks.iter().any(|b| {
+            matches!(b.kind, BlockType::While | BlockType::For)
+                && (b.start == loop_top
+                    || (b.cond_end != usize::MAX && b.cond_end == loop_top))
+        }) {
+            return None;
+        }
+        // walk the guard chain
+        let mut values: Vec<ExprRef> = Vec::new();
+        let first = if jump_if_true {
+            cond.clone()
+        } else {
+            Rc::new(Expr::Unary { op: UnaryOp::Not, operand: cond.clone() })
+        };
+        flatten_boolop(first, BoolOpKind::And, &mut values);
+        let mut next = target;
+        let mut body_start;
+        loop {
+            let Some(&ni) = self.idx_of.get(&next) else {
+                return None;
+            };
+            // scan the operand region up to its cond jump
+            let region_start = ni;
+            let mut jk = ni;
+            while jk < self.instrs.len() {
+                let ins = &self.instrs[jk];
+                if is_cond_jump(ins.op) {
+                    break;
+                }
+                if !is_pure_value_op(ins.op) {
+                    // not another guard: `next` is the body start
+                    break;
+                }
+                jk += 1;
+            }
+            if jk >= self.instrs.len() || !is_cond_jump(self.instrs[jk].op) {
+                body_start = next;
+                break;
+            }
+            // the guard's fall-through must be the continue trampoline
+            // (NOT_TAKEN padding then the back jump)
+            if !matches!(self.instrs.get(jk + 1).map(|x| x.op), Some(Op::NOT_TAKEN)) {
+                return None;
+            }
+            let mut ft = jk + 1;
+            while matches!(self.instrs.get(ft).map(|x| x.op), Some(Op::NOT_TAKEN) | Some(Op::NOP)) {
+                ft += 1;
+            }
+            let ftramp = self.instrs.get(ft)?;
+            if !ftramp.is_backward
+                || ftramp.target != Some(loop_top)
+                || !matches!(
+                    ftramp.op,
+                    Op::JUMP_BACKWARD | Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD_NO_INTERRUPT
+                )
+            {
+                // no trampoline: this jump heads to the body
+                body_start = self.instrs[jk].target?;
+                // the operand region belongs to the body, not a guard —
+                // only accept when nothing was consumed as an operand
+                if jk != region_start {
+                    return None;
+                }
+                break;
+            }
+            let operand = match self.sim_value_region(region_start, jk) {
+                            Some(o) => o,
+                            None => {
+                                return None;
+                            }
+                        };
+            let jins = &self.instrs[jk];
+            let jt = matches!(
+                jins.op,
+                Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+            );
+            values.push(if jt {
+                operand
+            } else {
+                Rc::new(Expr::Unary { op: UnaryOp::Not, operand })
+            });
+            next = jins.target?;
+        }
+        if values.is_empty() {
+            return None;
+        }
+        // the body ends at its back edge to the loop top (or a break)
+        let Some(&bi) = self.idx_of.get(&body_start) else {
+            return None;
+        };
+        let mut body_end = None;
+        for ins in self.instrs[bi..].iter() {
+            if ins.offset >= body_start {
+                if let Some(t) = ins.target {
+                    if ins.is_backward
+                        && t == loop_top
+                        && matches!(
+                            ins.op,
+                            Op::JUMP_BACKWARD
+                                | Op::JUMP_ABSOLUTE
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                        )
+                    {
+                        body_end = Some(ins.offset);
+                        break;
+                    }
+                    // a break jump out of the loop lives inside the body;
+                    // the body ends at the following back edge
+                    let leaves = self
+                        .blocks
+                        .iter()
+                        .rev()
+                        .find(|b| {
+                            matches!(b.kind, BlockType::While | BlockType::For)
+                                && (b.start == loop_top
+                                    || (b.cond_end != usize::MAX && b.cond_end == loop_top))
+                        })
+                        .map_or(false, |b| {
+                            !ins.is_backward
+                                && self
+                                    .loop_exit_offset(b)
+                                    .map_or(false, |le| {
+                                        self.effective_offset(t) == self.effective_offset(le)
+                                    })
+                        });
+                    if leaves {
+                        continue;
+                    }
+                    // any other jump target inside the body is fine, but a
+                    // forward jump past the loop means a break to a merged
+                    // exit we cannot bound — bail
+                    if !ins.is_backward {
+                        let inside = self
+                            .blocks
+                            .iter()
+                            .rev()
+                            .find(|b| {
+                                matches!(b.kind, BlockType::While | BlockType::For)
+                                    && (b.start == loop_top
+                                        || (b.cond_end != usize::MAX
+                                            && b.cond_end == loop_top))
+                            })
+                            .map_or(false, |b| t < b.end);
+                        if !inside {
+                            return None;
+                        }
+                    }
+                }
+            }
+        }
+        let body_end = match body_end {
+            Some(b) => b,
+            None => {
+                return None;
+            }
+        };
+        if body_end <= body_start {
+            return None;
+        }
+        let merged = Rc::new(Expr::BoolOp {
+            op: BoolOpKind::And,
+            values,
+        });
+        Some((merged as ExprRef, body_start, body_end))
+    }
+
     fn handle_cond_jump(&mut self, cond: ExprRef, jump_if_true: bool, target: usize) {
+        // 3.14+ continue-guard chain: pass-jumps forward, fail falls into
+        // a NOT_TAKEN; JUMP_BACKWARD loop-top trampoline. The NOT_TAKEN
+        // padding is mandatory: pre-3.14 `if c: continue` shapes have a
+        // bare back jump after the operand jump and belong to the
+        // historical machinery.
+        if self.version.at_least(3, 12) {
+            if let Some((merged, body_start, body_end)) =
+                self.try_guard_chain(&cond, jump_if_true, target)
+            {
+                let mut blk = Block::new(BlockType::If, body_start, body_end);
+                blk.cond = Some(merged);
+                blk.cond_set = true;
+                blk.jump_if_true = false;
+                blk.stack_depth = self.stack.len();
+                self.blocks.push(blk);
+                self.skip_until = Some(body_start);
+                return;
+            }
+        }
         // py2-style boolop if-conditions: `(a or b) and c` merges into one
         // BoolOp cond + a single If block. Skipped when this jump is an
         // uninitialized loop's condition (SETUP_LOOP era) or a rotated-while
@@ -7304,9 +7662,21 @@ impl<'a> Ctx<'a> {
         // TO_BOOL only marks a value-preserving branch when the jump
         // target holds the chain else-arm (SWAP 2; POP_TOP) — a plain
         // `if x:` in 3.13+ also carries TO_BOOL and must stay a statement
+        // 3.13 value-form boolops interpose TO_BOOL between the COPY and
+        // the cond jump — look through it via the instruction index
+        let copy_to_bool_before = self
+            .idx_of
+            .get(&self.cur_offset)
+            .map_or(false, |&bi| {
+                bi >= 2
+                    && self.instrs[bi - 1].op == Op::TO_BOOL
+                    && self.instrs[bi - 2].op == Op::COPY
+            });
         let value_merge = (matches!(self.prev_op_at_exec, Some(Op::COPY))
             || (matches!(self.prev_op_at_exec, Some(Op::TO_BOOL))
-                && (self.is_chain_else_arm(target) || self.is_chain_else_arm_rot(target))))
+                && (copy_to_bool_before
+                    || self.is_chain_else_arm(target)
+                    || self.is_chain_else_arm_rot(target))))
         .then(|| {
                 if jump_if_true {
                     BoolOpKind::Or
@@ -11846,8 +12216,8 @@ impl<'a> Ctx<'a> {
                 Op::MAKE_FUNCTION | Op::MAKE_CLOSURE => {
                     // mini-sim: turn the code constant into a Function value
                     let mut popped = stack.pop();
-                    // 3.6-3.10: qualname sits above the code constant
-                    if self.version.at_least(3, 6) && !self.version.at_least(3, 11) {
+                    // 3.3-3.10: qualname sits above the code constant
+                    if self.version.at_least(3, 3) && !self.version.at_least(3, 11) {
                         let is_code = matches!(&popped, Some(e) if matches!(&**e, Expr::Const(o) if matches!(&**o, PyObject::Code(_))));
                         if !is_code {
                             popped = stack.pop();

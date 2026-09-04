@@ -587,11 +587,7 @@ class RawConfigParser(MutableMapping):
                 self._optcre = re.compile(self._OPT_NV_TMPL.format(delim=d), re.VERBOSE)
             else:
                 self._optcre = re.compile(self._OPT_TMPL.format(delim=d), re.VERBOSE)
-        if not comment_prefixes:
-            pass
-        if not inline_comment_prefixes:
-            pass
-        self._comments = _CommentSpec((), ())
+        self._comments = _CommentSpec(comment_prefixes or (), inline_comment_prefixes or ())
         self._strict = strict
         self._allow_no_value = allow_no_value
         self._empty_lines_in_values = empty_lines_in_values
@@ -848,9 +844,7 @@ assumed. If the specified `section` does not exist, returns False.'''
         if section not in self._sections:
             return False
         option = self.optionxform(option)
-        if not option in self._sections[section]:
-            pass
-        return option in self._defaults
+        return option in self._sections[section] or option in self._defaults
 
     def set(self, section, option, value=None):
         '''Set an option.'''
@@ -886,9 +880,8 @@ preserved when writing the configuration back.
         if UNNAMED_SECTION in self._sections and self._sections[UNNAMED_SECTION]:
             self._write_section(fp, UNNAMED_SECTION, self._sections[UNNAMED_SECTION].items(), d, unnamed=True)
         for section in self._sections:
-            if section is UNNAMED_SECTION:
-                continue
-            self._write_section(fp, section, self._sections[section].items(), d)
+            if not section is UNNAMED_SECTION:
+                self._write_section(fp, section, self._sections[section].items(), d)
 
     def _write_section(self, fp, section_name, section_items, delimiter, unnamed=False):
         """Write a single section to the specified 'fp'."""
@@ -898,11 +891,10 @@ preserved when writing the configuration back.
         for key, value in section_items:
             self._validate_key_contents(key)
             value = self._interpolation.before_write(self, section_name, key, value)
-            if not value is not None:
-                if not self._allow_no_value:
-                    value = delimiter + str(value).replace('\r\n', '\n').replace('\r', '\n').replace('\n', '\n\t')
-                else:
-                    value = ''
+            if value is not None or not self._allow_no_value:
+                value = delimiter + str(value).replace('\r\n', '\n').replace('\r', '\n').replace('\n', '\n\t')
+            else:
+                value = ''
             fp.write('{}{}\n'.format(key, value))
         fp.write('\n')
 
@@ -954,9 +946,7 @@ preserved when writing the configuration back.
         self.remove_section(key)
 
     def __contains__(self, key):
-        if not key == self.default_section:
-            pass
-        return self.has_section(key)
+        return key == self.default_section or self.has_section(key)
 
     def __len__(self):
         return len(self._sections) + 1
@@ -1009,10 +999,7 @@ section names. Please note that comments get stripped off when reading configura
         return st.errors
 
     def _handle_continuation_line(self, st, line, fpname):
-        if st.cursect is not None:
-            if st.optname:
-                pass
-        is_continue = st.cur_indent_level > st.indent_level
+        is_continue = st.cursect is not None and st.optname and st.cur_indent_level > st.indent_level
         if is_continue:
             if not st.cursect[st.optname] is not None:
                 raise MultilineContinuationError(fpname, st.lineno, line)
@@ -1142,11 +1129,10 @@ access and in ConfigParser.set().
             raise TypeError('section names must be strings or UNNAMED_SECTION')
         if not isinstance(option, str):
             raise TypeError('option keys must be strings')
-        if self._allow_no_value:
-            if value:
-                if not isinstance(value, str):
-                    raise TypeError('option values must be strings')
-                return
+        if not self._allow_no_value or value:
+            if not isinstance(value, str):
+                raise TypeError('option values must be strings')
+            return
 
     @property
     def converters(self):
@@ -1207,9 +1193,8 @@ class SectionProxy(MutableMapping):
         return self._parser.set(self._name, key, value)
 
     def __delitem__(self, key):
-        if self._parser.has_option(self._name, key):
-            if not self._parser.remove_option(self._name, key):
-                raise KeyError(key)
+        if not self._parser.has_option(self._name, key) or not self._parser.remove_option(self._name, key):
+            raise KeyError(key)
 
     def __contains__(self, key):
         return self._parser.has_option(self._name, key)
@@ -1261,9 +1246,8 @@ section proxies to find and use the implementation on the parser class.
         for getter in dir(self._parser):
             m = self.GETTERCRE.match(getter)
             if m:
-                if not callable(getattr(self._parser, getter)):
-                    continue
-            self._data[m.group('name')] = None
+                if callable(getattr(self._parser, getter)):
+                    self._data[m.group('name')] = None
 
     def __getitem__(self, key):
         return self._data[key]
@@ -1286,9 +1270,7 @@ section proxies to find and use the implementation on the parser class.
     def __delitem__(self, key):
         try:
             try:
-                if not key:
-                    pass
-                k = 'get' + None
+                k = 'get' + (key or None)
             except TypeError:
                 raise KeyError(key)
         except AttributeError:

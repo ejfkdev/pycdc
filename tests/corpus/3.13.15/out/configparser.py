@@ -521,9 +521,7 @@ class _Line(str):
 
     @functools.cached_property
     def clean(self):
-        if self._strip_full():
-            pass
-        return self._strip_inline()
+        return self._strip_full() and self._strip_inline()
 
     @property
     def has_comments(self):
@@ -534,9 +532,7 @@ class _Line(str):
 Search for the earliest prefix at the beginning of the line or following a space.
 '''
 
-        if not '|'.join((f'{re.escape(prefix)})' for prefix in self.prefixes.inline)):
-            pass
-        matcher = re.compile('(?!)')
+        matcher = re.compile('|'.join((f'{re.escape(prefix)})' for prefix in self.prefixes.inline)) or '(?!)')
         match = matcher.search(self)
         if match:
             return self[:match.start()].strip()
@@ -576,11 +572,7 @@ class RawConfigParser(MutableMapping):
                 self._optcre = re.compile(self._OPT_NV_TMPL.format(delim=d), re.VERBOSE)
             else:
                 self._optcre = re.compile(self._OPT_TMPL.format(delim=d), re.VERBOSE)
-        if not comment_prefixes:
-            pass
-        if not inline_comment_prefixes:
-            pass
-        self._prefixes = types.SimpleNamespace(full=tuple(()), inline=tuple(()))
+        self._prefixes = types.SimpleNamespace(full=tuple(comment_prefixes or ()), inline=tuple(inline_comment_prefixes or ()))
         self._strict = strict
         self._allow_no_value = allow_no_value
         self._empty_lines_in_values = empty_lines_in_values
@@ -833,9 +825,7 @@ assumed. If the specified `section` does not exist, returns False.'''
         if section not in self._sections:
             return False
         option = self.optionxform(option)
-        if not option in self._sections[section]:
-            pass
-        return option in self._defaults
+        return option in self._sections[section] or option in self._defaults
 
     def set(self, section, option, value=None):
         '''Set an option.'''
@@ -937,9 +927,7 @@ preserved when writing the configuration back.
         self.remove_section(key)
 
     def __contains__(self, key):
-        if not key == self.default_section:
-            pass
-        return self.has_section(key)
+        return key == self.default_section or self.has_section(key)
 
     def __len__(self):
         return len(self._sections) + 1
@@ -992,10 +980,7 @@ section names. Please note that comments get stripped off when reading configura
         return st.errors
 
     def _handle_continuation_line(self, st, line, fpname):
-        if st.cursect is not None:
-            if st.optname:
-                pass
-        is_continue = st.cur_indent_level > st.indent_level
+        is_continue = st.cursect is not None and st.optname and st.cur_indent_level > st.indent_level
         if is_continue:
             if not st.cursect[st.optname] is not None:
                 raise MultilineContinuationError(fpname, st.lineno, line)
@@ -1253,9 +1238,7 @@ section proxies to find and use the implementation on the parser class.
     def __delitem__(self, key):
         try:
             try:
-                if not key:
-                    pass
-                k = 'get' + None
+                k = 'get' + (key or None)
             except TypeError:
                 raise KeyError(key)
         except AttributeError:

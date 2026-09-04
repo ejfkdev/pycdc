@@ -64,9 +64,7 @@ class ANSIColors:
 ColorCodes = set()
 NoColors = ANSIColors()
 for attr, code in ANSIColors.__dict__.items():
-    if attr.startswith('__'):
-        pass
-    else:
+    if not attr.startswith('__'):
         ColorCodes.add(code)
         setattr(NoColors, attr, '')
 
@@ -284,15 +282,7 @@ Themes are immutable to protect against accidental modifications that
 could lead to invalid terminal states.
 '''
 
-        if not argparse:
-            pass
-        if not syntax:
-            pass
-        if not traceback:
-            pass
-        if not unittest:
-            pass
-        return type(self)(argparse=self.argparse, syntax=self.syntax, traceback=self.traceback, unittest=self.unittest)
+        return type(self)(argparse=argparse or self.argparse, syntax=syntax or self.syntax, traceback=traceback or self.traceback, unittest=unittest or self.unittest)
 
     @classmethod
     def no_colors(cls) -> __classdict__:

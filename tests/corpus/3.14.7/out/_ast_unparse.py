@@ -157,9 +157,8 @@ return that docstring node, None otherwise.
 
 Logic mirrored from ``_PyAST_GetDocString``.'''
 
-        if isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
-            if len(node.body) < 1:
-                return
+        if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)) or len(node.body) < 1:
+            return
         node = node.body[0]
         if not isinstance(node, Expr):
             return
@@ -170,9 +169,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             return
 
     def get_type_comment(self, node):
-        if not self._type_ignores.get(node.lineno):
-            pass
-        comment = node.type_comment
+        comment = self._type_ignores.get(node.lineno) or node.type_comment
         if not comment is None:
             return f' # type: {comment}'
 
@@ -238,9 +235,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
 
     def visit_ImportFrom(self, node):
         self.fill('from ')
-        if not node.level:
-            pass
-        self.write('.' * 0)
+        self.write('.' * (node.level or 0))
         if node.module:
             self.write(node.module)
         self.write(' import ')
@@ -265,9 +260,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
 
     def visit_AnnAssign(self, node):
         self.fill()
-        if not node.simple:
-            pass
-        with self.delimit_if('(', ')', isinstance(node.target, Name)):
+        with self.delimit_if('(', ')', not node.simple and isinstance(node.target, Name)):
             self.traverse(node.target)
         self.write(': ')
         self.traverse(node.annotation)
@@ -402,9 +395,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.fill('class ' + node.name, allow_semicolon=False)
         if hasattr(node, 'type_params'):
             self._type_params_helper(node.type_params)
-        if not node.bases:
-            pass
-        with self.delimit_if('(', ')', condition=node.keywords):
+        with self.delimit_if('(', ')', condition=node.bases or node.keywords):
             comma = False
             for e in node.bases:
                 if comma:
@@ -552,9 +543,8 @@ Returns the tuple (string literal to write, possible quote types).
             if not escape_special_whitespace:
                 if c in '\n\t':
                     return c
-            if not c == '\\':
-                if not c.isprintable():
-                    return c.encode('unicode_escape').decode('ascii')
+            if c == '\\' or not c.isprintable():
+                return c.encode('unicode_escape').decode('ascii')
             return c
 
         escaped_string = ''.join(map(escape_char, string))
@@ -786,9 +776,7 @@ Returns the tuple (string literal to write, possible quote types).
             self.interleave((lambda: self.write(', ')), write_item, zip(node.keys, node.values))
 
     def visit_Tuple(self, node):
-        if not len(node.elts) == 0:
-            pass
-        with self.delimit_if('(', ')', self.get_precedence(node) > _Precedence.TUPLE):
+        with self.delimit_if('(', ')', len(node.elts) == 0 or self.get_precedence(node) > _Precedence.TUPLE):
             self.items_view(self.traverse, node.elts)
 
     unop = {'Invert': '~', 'Not': 'not', 'UAdd': '+', 'USub': '-'}
@@ -874,9 +862,7 @@ Returns the tuple (string literal to write, possible quote types).
 
     def visit_Subscript(self, node):
         def is_non_empty_tuple(slice_value):
-            if isinstance(slice_value, Tuple):
-                pass
-            return slice_value.elts
+            return isinstance(slice_value, Tuple) and slice_value.elts
 
         self.set_precedence(_Precedence.ATOM, node.value)
         self.traverse(node.value)
@@ -933,40 +919,35 @@ Returns the tuple (string literal to write, possible quote types).
             if d:
                 self.write('=')
                 self.traverse(d)
-            if not index == len(node.posonlyargs):
-                pass
-        if not node.vararg:
-            if node.kwonlyargs:
-                if first:
-                    first = False
-                else:
-                    self.write(', ')
-                self.write('*')
-                if node.vararg:
-                    self.write(node.vararg.arg)
-                    if node.vararg.annotation:
-                        self.write(': ')
-                        self.traverse(node.vararg.annotation)
+            if index == len(node.posonlyargs):
+                self.write(', /')
+        if node.vararg or node.kwonlyargs:
+            if first:
+                first = False
+            else:
+                self.write(', ')
+            self.write('*')
+            if node.vararg:
+                self.write(node.vararg.arg)
+                if node.vararg.annotation:
+                    self.write(': ')
+                    self.traverse(node.vararg.annotation)
         if node.kwonlyargs:
             for a, d in zip(node.kwonlyargs, node.kw_defaults):
                 self.write(', ')
                 self.traverse(a)
-                if not d:
-                    pass
-                else:
+                if d:
                     self.write('=')
                     self.traverse(d)
-        else:
-            if node.kwarg:
-                if first:
-                    first = False
-                else:
-                    self.write(', ')
-                self.write('**' + node.kwarg.arg)
-                if node.kwarg.annotation:
-                    self.write(': ')
-                    self.traverse(node.kwarg.annotation)
-                    return
+        if node.kwarg:
+            if first:
+                first = False
+            else:
+                self.write(', ')
+            self.write('**' + node.kwarg.arg)
+            if node.kwarg.annotation:
+                self.write(': ')
+                self.traverse(node.kwarg.annotation)
                 return
             return
 

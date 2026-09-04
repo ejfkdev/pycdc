@@ -256,9 +256,7 @@ that order, no matter how many times each of them occurs.
 
         dialect.doublequote = doublequote
         dialect.delimiter = delimiter
-        if not quotechar:
-            pass
-        dialect.quotechar = '"'
+        dialect.quotechar = quotechar or '"'
         dialect.skipinitialspace = skipinitialspace
         return dialect
 

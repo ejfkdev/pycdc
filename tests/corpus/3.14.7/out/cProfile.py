@@ -58,9 +58,7 @@ is, in seconds).
             callersdicts[id(entry.code)] = callers
             self.stats[func] = cc, nc, tt, ct, callers
         for entry in entries:
-            if not entry.calls:
-                pass
-            else:
+            if entry.calls:
                 func = label(entry.code)
                 for subentry in entry.calls:
                     try:

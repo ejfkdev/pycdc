@@ -239,9 +239,9 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 897,
+   "ndiff": 760,
    "ntotal": 1112,
-   "detail": "line 139: orig ('SETUP_LOOP', 'to 286') | got ('SETUP_LOOP', 'to 248')\nline 142: orig ('FOR_ITER', 'to 284') | got ('FOR_ITER', 'to 246')\nline 202: orig ('LOAD_GLOBAL', 'os') | got ('JUMP_ABSOLUTE', '')"
+   "detail": "line 240: orig ('JUMP_FORWARD', 'to 80') | got ('JUMP_FORWARD', 'to 38')\nline 324: orig ('JUMP_FORWARD', 'to 242') | got ('JUMP_FORWARD', 'to 216')\nline 325: orig ('SETUP_LOOP', 'to 242') | got ('SETUP_LOOP', 'to 216')"
   },
   {
    "module": "configparser",

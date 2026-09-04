@@ -550,9 +550,7 @@ raise a ValueError.
         '''Return True if there is a breakpoint for filename:lineno.'''
 
         filename = self.canonic(filename)
-        if filename in self.breaks:
-            pass
-        return lineno in self.breaks[filename]
+        return filename in self.breaks and lineno in self.breaks[filename]
 
     def get_breaks(self, filename, lineno):
         '''Return all breakpoints for filename:lineno.
@@ -561,12 +559,7 @@ If no breakpoints are set, return an empty list.
 '''
 
         filename = self.canonic(filename)
-        if filename in self.breaks:
-            if lineno in self.breaks[filename]:
-                pass
-        if not Breakpoint.bplist[filename, lineno]:
-            pass
-        return []
+        return filename in self.breaks and lineno in self.breaks[filename] and Breakpoint.bplist[filename, lineno] or []
 
     def get_file_breaks(self, filename):
         '''Return all lines with breakpoints for filename.

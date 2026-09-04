@@ -44,8 +44,8 @@ class _MonitoringTracer:
         for event, cb_name in self.EVENT_CALLBACK_MAP.items():
             callback = self.callback_wrapper(getattr(self, f'{cb_name}_callback'), event)
             sys.monitoring.register_callback(self._tool_id, event, callback)
-            if not event != E.INSTRUCTION:
-                pass
+            if event != E.INSTRUCTION:
+                all_events |= event
         self.update_local_events()
         sys.monitoring.set_events(self._tool_id, self.GLOBAL_EVENTS)
         self._enabled = True
@@ -313,15 +313,13 @@ self.user_line(). Raise BdbQuit if self.quitting is set.
 Return self.trace_dispatch to continue tracing in this scope.
 '''
 
-        if not self.stop_here(frame):
-            if self.break_here(frame):
-                if self.cmdframe == frame:
-                    if not self.cmdlineno == frame.f_lineno:
-                        self.user_line(frame)
-                        self.restart_events()
-                        if self.quitting:
-                            raise BdbQuit
-                        return self.trace_dispatch
+        if self.stop_here(frame) or self.break_here(frame):
+            if not self.cmdframe == frame or not self.cmdlineno == frame.f_lineno:
+                self.user_line(frame)
+                self.restart_events()
+                if self.quitting:
+                    raise BdbQuit
+                return self.trace_dispatch
         if not self.get_break(frame.f_code.co_filename, frame.f_lineno):
             self.disable_current_event()
         return self.trace_dispatch
@@ -717,8 +715,8 @@ If none were set, return an error message.
         if not self.breaks:
             return 'There are no breakpoints'
         for bp in Breakpoint.bpbynumber:
-            if not bp:
-                pass
+            if bp:
+                bp.deleteMe()
         self.breaks = {}
 
     def get_bpbynumber(self, arg):
@@ -749,9 +747,7 @@ raise a ValueError.
         '''Return True if there is a breakpoint for filename:lineno.'''
 
         filename = self.canonic(filename)
-        if filename in self.breaks:
-            pass
-        return lineno in self.breaks[filename]
+        return filename in self.breaks and lineno in self.breaks[filename]
 
     def get_breaks(self, filename, lineno):
         '''Return all breakpoints for filename:lineno.
@@ -760,11 +756,7 @@ If no breakpoints are set, return an empty list.
 '''
 
         filename = self.canonic(filename)
-        if filename in self.breaks:
-            if lineno in self.breaks[filename]:
-                if not Breakpoint.bplist[filename, lineno]:
-                    pass
-        return []
+        return filename in self.breaks and lineno in self.breaks[filename] and (Breakpoint.bplist[filename, lineno] or [])
 
     def get_file_breaks(self, filename):
         '''Return all lines with breakpoints for filename.
@@ -1071,13 +1063,12 @@ If no such entry exists, then (None, None) is returned.
     for b in possibles:
         if not b.enabled:
             continue
-        if not checkfuncname(b, frame):
-            continue
-        b.hits += 1
-        if not b.cond:
-            if b.ignore > 0:
-                b.ignore -= 1
-                continue
+        if checkfuncname(b, frame):
+            b.hits += 1
+            if not b.cond:
+                if b.ignore > 0:
+                    b.ignore -= 1
+                    continue
         return b, True
         try:
             val = eval(b.cond, frame.f_globals, frame.f_locals)

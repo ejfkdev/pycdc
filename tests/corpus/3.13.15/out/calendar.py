@@ -105,10 +105,7 @@ month_abbr = _localized_month('%b')
 def isleap(year):
     '''Return True for leap years, False for non-leap years.'''
 
-    if year % 4 == 0:
-        if not year % 100 != 0:
-            pass
-    return year % 400 == 0
+    return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
 
 def leapdays(y1, y2):
     '''Return number of leap years in range [y1, y2).
@@ -134,15 +131,11 @@ def _validate_month(month):
 def monthrange(year, month):
     _validate_month(month)
     day1 = weekday(year, month, 1)
-    if month == FEBRUARY:
-        pass
-    ndays = mdays[month] + isleap(year)
+    ndays = mdays[month] + (month == FEBRUARY and isleap(year))
     return day1, ndays
 
 def _monthlen(year, month):
-    if month == FEBRUARY:
-        pass
-    return mdays[month] + isleap(year)
+    return mdays[month] + (month == FEBRUARY and isleap(year))
 
 def _prevmonth(year, month):
     if month == 1:

@@ -200,14 +200,10 @@ buffer between calls to encode().
         self.buffer = ''
 
     def getstate(self):
-        if not self.buffer:
-            pass
-        return 0
+        return self.buffer or 0
 
     def setstate(self, state):
-        if not state:
-            pass
-        self.buffer = ''
+        self.buffer = state or ''
 
 
 class IncrementalDecoder(object):
@@ -478,9 +474,7 @@ read() method.
             if not keepends:
                 line = line.splitlines(keepends=False)[0]
             return line
-        if not size:
-            pass
-        readsize = 72
+        readsize = size or 72
         line = self._empty_charbuffer
         while True:
             data = self.read(readsize, firstline=True)

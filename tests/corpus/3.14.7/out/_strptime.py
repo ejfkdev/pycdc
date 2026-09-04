@@ -43,8 +43,8 @@ def _findall(haystack, needle):
 def _fixmonths(months):
     yield from months
     for s in months:
-        if not 'i̇' in s:
-            pass
+        if 'i̇' in s:
+            yield s.replace('i̇', 'İ')
 
 lzh_TW_alt_digits = ('〇', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '廿', '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '卅', '卅一')
 
@@ -97,9 +97,8 @@ since changing the timezone is worthless without that call.
         self.__calc_date_time()
         if _getlang() != self.lang:
             raise ValueError('locale changed during initialization')
-        if not time.tzname != self.tzname:
-            if time.daylight != self.daylight:
-                raise ValueError('timezone changed during initialization')
+        if time.tzname != self.tzname or time.daylight != self.daylight:
+            raise ValueError('timezone changed during initialization')
 
     def __calc_weekday(self):
         a_weekday = [calendar.day_abbr[i].lower() for i in range(7)]
@@ -172,8 +171,8 @@ since changing the timezone is worthless without that call.
                 current_format = current_format.replace(self.am_pm[1], '%p')
             for tz_values in self.timezone:
                 for tz in tz_values:
-                    if not tz:
-                        pass
+                    if tz:
+                        current_format = current_format.replace(tz, '%Z')
             if not current_format.isascii() and not self.LC_alt_digits is not None:
                 current_format = re_sub('\\d(?<![0-9])', (lambda m: chr(1632 + int(m[0]))), current_format)
             for old, new in replacement_pairs:
@@ -543,9 +542,7 @@ format string.'''
                             z = z[:5] + z[6:]
                     hours = int(z[1:3])
                     minutes = int(z[3:5])
-                    if not z[5:7]:
-                        pass
-                    seconds = int(0)
+                    seconds = int(z[5:7] or 0)
                     gmtoff = hours * 60 * 60 + minutes * 60 + seconds
                     gmtoff_remainder = z[8:]
                     gmtoff_remainder_padding = '0' * (6 - len(gmtoff_remainder))

@@ -255,9 +255,9 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 886,
+   "ndiff": 754,
    "ntotal": 1094,
-   "detail": "line 141: orig ('FOR_ITER', 'to 282') | got ('FOR_ITER', 'to 244')\nline 201: orig ('LOAD_GLOBAL', 'os') | got ('JUMP_ABSOLUTE', '')\nline 202: orig ('LOAD_ATTR', 'path') | got ('LOAD_GLOBAL', '_walk_dir')"
+   "detail": "line 313: orig ('JUMP_FORWARD', 'to 220') | got ('LOAD_FAST', 'files_and_ddirs')\nline 314: orig ('LOAD_FAST', 'files_and_ddirs') | got ('GET_ITER', '')\nline 315: orig ('GET_ITER', '') | got ('FOR_ITER', 'to 192')"
   },
   {
    "module": "configparser",

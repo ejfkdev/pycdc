@@ -330,19 +330,18 @@ Otherwise try to call complete_<command> to get list of completions.
         cmds_undoc = []
         topics = set()
         for name in names:
-            if not name[:slice(5, None, None)] == 'help_':
-                pass
+            if name[:slice(5, None, None)] == 'help_':
+                topics.add(name[5])
         names.sort()
         prevname = ''
         for name in names:
-            if name == prevname:
-                continue
-            prevname = name
-            cmd = name[3]
-            if cmd in topics:
-                cmds_doc.append(cmd)
-                topics.remove(cmd)
-                continue
+            if not name == prevname:
+                prevname = name
+                cmd = name[3]
+                if cmd in topics:
+                    cmds_doc.append(cmd)
+                    topics.remove(cmd)
+                    continue
             if getattr(self, name).__doc__:
                 cmds_doc.append(cmd)
                 continue

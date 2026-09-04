@@ -153,16 +153,13 @@ def _formatwarnmsg_impl(msg):
                         line = None
                 except Exception:
                     line = None
-                if not line:
-                    pass
-                else:
+                if line:
                     line = line.strip()
                     s += '    %s\n' % line
             return s
-        else:
-            if suggest_tracemalloc:
-                s += f'{category}: Enable tracemalloc to get the object allocation traceback\n'
-            return s
+        if suggest_tracemalloc:
+            s += f'{category}: Enable tracemalloc to get the object allocation traceback\n'
+    return s
 
 _showwarning_orig = showwarning
 
@@ -209,18 +206,16 @@ def filterwarnings(action, message='', category=Warning, module='', lineno=0, ap
         raise ValueError(f'invalid action: {action!r}')
     if not isinstance(message, str):
         raise TypeError('message must be a string')
-    if isinstance(category, type):
-        if not issubclass(category, Warning):
-            raise TypeError('category must be a Warning subclass')
+    if not isinstance(category, type) or not issubclass(category, Warning):
+        raise TypeError('category must be a Warning subclass')
     if not isinstance(module, str):
         raise TypeError('module must be a string')
     if not isinstance(lineno, int):
         raise TypeError('lineno must be an int')
     if lineno < 0:
         raise ValueError('lineno must be an int >= 0')
-    if not message:
-        if module:
-            import re
+    if message or module:
+        import re
     if message:
         message = re.compile(message, re.I)
     else:
@@ -292,9 +287,8 @@ def _setoption(arg):
     action, message, category, module, lineno = [s.strip() for s in parts]
     action = _wm._getaction(action)
     category = _wm._getcategory(category)
-    if not message:
-        if module:
-            import re
+    if message or module:
+        import re
     if message:
         message = re.escape(message)
     if module:
@@ -343,9 +337,7 @@ def _getcategory(category):
     return cat
 
 def _is_internal_filename(filename):
-    if 'importlib' in filename:
-        pass
-    return '_bootstrap' in filename
+    return 'importlib' in filename and '_bootstrap' in filename
 
 def _is_filename_to_skip(filename, skip_file_prefixes):
     if any is None:
@@ -381,19 +373,17 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
         category = message.__class__
     if not category is not None:
         category = UserWarning
-    if isinstance(category, type):
-        if not issubclass(category, Warning):
-            raise TypeError("category must be a Warning subclass, not '{:s}'".format(type(category).__name__))
+    if not isinstance(category, type) or not issubclass(category, Warning):
+        raise TypeError("category must be a Warning subclass, not '{:s}'".format(type(category).__name__))
     if not isinstance(skip_file_prefixes, tuple):
         raise TypeError('skip_file_prefixes must be a tuple of strs.')
     if skip_file_prefixes:
         stacklevel = max(2, stacklevel)
     try:
-        if not stacklevel <= 1:
-            if _is_internal_frame(sys._getframe(1)):
-                frame = sys._getframe(stacklevel)
-            else:
-                frame = sys._getframe(1)
+        if stacklevel <= 1 or _is_internal_frame(sys._getframe(1)):
+            frame = sys._getframe(stacklevel)
+        else:
+            frame = sys._getframe(1)
         for x in range(stacklevel - 1):
             frame = _next_external_frame(frame, skip_file_prefixes)
             if not frame is None:
@@ -416,9 +406,7 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
 def warn_explicit(message, category, filename, lineno, module=None, registry=None, module_globals=None, source=None):
     lineno = int(lineno)
     if not module is not None:
-        if not filename:
-            pass
-        module = '<unknown>'
+        module = filename or '<unknown>'
         if module[-3:].lower() == '.py':
             module = module[:-3]
     if isinstance(message, Warning):
@@ -438,8 +426,9 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
             return
     for item in _wm._get_filters():
         action, msg, cat, mod, ln = item
-        if not ln == 0 and not lineno == ln:
-            pass
+        if issubclass(category, cat):
+            if not ln == 0 and not lineno == ln:
+                pass
     action = _wm.defaultaction
     if action == 'ignore':
         None(None, None, None)
@@ -645,9 +634,8 @@ See PEP 702 for details.
                 if original_new is not object.__new__:
                     return original_new(*[cls, *args], **kwargs)
                 if cls.__init__ is object.__init__:
-                    if not args:
-                        if kwargs:
-                            raise TypeError(f'{cls.__name__}() takes no arguments')
+                    if args or kwargs:
+                        raise TypeError(f'{cls.__name__}() takes no arguments')
                 return original_new(cls)
 
             arg.__new__ = staticmethod(__new__)

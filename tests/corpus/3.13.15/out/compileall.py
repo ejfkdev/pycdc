@@ -104,9 +104,7 @@ hardlink_dupes: hardlink duplicated pyc files
                 mp_context = multiprocessing.get_context('forkserver')
             else:
                 mp_context = None
-            if not workers:
-                pass
-            workers = None
+            workers = workers or None
             with ProcessPoolExecutor(max_workers=workers, mp_context=mp_context) as executor:
                 results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes), files, chunksize=4)
                 success = min(results, default=True)
@@ -278,9 +276,7 @@ invalidation_mode: as for compiler_dir()
             if quiet < 2:
                 print('Skipping current directory')
                 continue
-    if success:
-        pass
-    success = compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
+    success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
     return success
 
 def main():

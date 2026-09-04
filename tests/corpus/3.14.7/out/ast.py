@@ -66,9 +66,8 @@ Caution: A complex expression can overflow the C stack and cause a crash.
         raise ValueError(msg + f': {node!r}')
 
     def _convert_num(node):
-        if isinstance(node, Constant):
-            if type(node.value) not in (int, float, complex):
-                _raise_malformed_node(node)
+        if not isinstance(node, Constant) or type(node.value) not in (int, float, complex):
+            _raise_malformed_node(node)
         return node.value
 
     def _convert_signed_num(node):
@@ -159,9 +158,7 @@ will be omitted from the output for better readability.
                     args.extend(args_buffer)
                     args_buffer = []
                 value, simple = _format(value, level)
-                if allsimple:
-                    pass
-                allsimple = simple
+                allsimple = allsimple and simple
                 if keywords:
                     args.append(f'{name!s}={value!s}')
                     continue
@@ -172,13 +169,11 @@ will be omitted from the output for better readability.
                         value = getattr(node, name)
                     except AttributeError:
                         pass
-                    if not value is not None and not getattr(cls, name, ...) is not None:
-                        continue
-                    value, simple = _format(value, level)
-                    if allsimple:
-                        pass
-                    allsimple = simple
-                    args.append(f'{name!s}={value!s}')
+                    if not value is not None:
+                        if getattr(cls, name, ...) is not None:
+                            value, simple = _format(value, level)
+                            allsimple = allsimple and simple
+                            args.append(f'{name!s}={value!s}')
             if allsimple and len(args) <= 3:
                 return f'{node.__class__.__name__!s}({', '.join(args)!s})', not args
             return f'{node.__class__.__name__!s}({prefix!s}{sep.join(args)!s})', False
@@ -201,13 +196,16 @@ attributes) from *old_node* to *new_node* if possible, and return *new_node*.
 '''
 
     for attr in ('lineno', 'col_offset', 'end_lineno', 'end_col_offset'):
-        if not attr in new_node._attributes:
+        if not attr in old_node._attributes:
             pass
         else:
-            value = getattr(old_node, attr, None)
-            if not value is not None:
-                if not attr.startswith('end_'):
-                    pass
+            if attr in new_node._attributes:
+                value = getattr(old_node, attr, None)
+                if not value is not None:
+                    if hasattr(old_node, attr) and attr.startswith('end_'):
+                        setattr(new_node, attr, value)
+            continue
+    return new_node
 
 def fix_missing_locations(node):
     '''
@@ -258,8 +256,10 @@ location in a file.
             continue
         if 'lineno' in child._attributes:
             child.lineno = getattr(child, 'lineno', 0) + n
-        if not (end_lineno := getattr(child, 'end_lineno', 0)) is not None:
-            pass
+        if 'end_lineno' in child._attributes:
+            if (end_lineno := getattr(child, 'end_lineno', 0)) is not None:
+                child.end_lineno = end_lineno + n
+    return node
 
 def iter_fields(node):
     '''
@@ -283,8 +283,10 @@ and all items of fields that are lists of nodes.
         if isinstance(field, AST):
             yield field
             continue
-        if not isinstance(field, list):
-            pass
+        if isinstance(field, list):
+            for item in field:
+                if isinstance(item, AST):
+                    yield item
 
 def get_docstring(node, clean=True):
     '''
@@ -413,9 +415,7 @@ might differ in whitespace or similar details.
                 else:
                     return False
                     return True
-                    if type(a) is type(b):
-                        pass
-                    return a == b
+                    return type(a) is type(b) and a == b
 
     def _compare_fields(a, b):
         if a._fields != b._fields:
@@ -425,9 +425,8 @@ might differ in whitespace or similar details.
             b_field = getattr(b, field, sentinel)
             if a_field is sentinel and b_field is sentinel:
                 continue
-            if not a_field is sentinel:
-                if b_field is sentinel:
-                    return False
+            if a_field is sentinel or b_field is sentinel:
+                return False
             if _compare(a_field, b_field):
                 pass
             else:
@@ -490,10 +489,11 @@ allows modifications.
         for field, value in iter_fields(node):
             if isinstance(value, list):
                 for item in value:
-                    if not isinstance(item, AST):
-                        pass
-            elif not isinstance(value, AST):
-                pass
+                    if isinstance(item, AST):
+                        self.visit(item)
+                continue
+            if isinstance(value, AST):
+                self.visit(value)
 
 
 class NodeTransformer(NodeVisitor):
@@ -547,9 +547,7 @@ Usually you use the transformer like this::
                     new_values.append(value)
                 old_value[slice(None, None, None)] = new_values
                 continue
-            if not isinstance(old_value, AST):
-                pass
-            else:
+            if isinstance(old_value, AST):
                 new_node = self.visit(old_value)
                 if not new_node is not None:
                     delattr(node, field)

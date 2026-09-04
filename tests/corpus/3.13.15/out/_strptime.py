@@ -550,9 +550,7 @@ format string.'''
                     z = z[:5] + z[6:]
             hours = int(z[1:3])
             minutes = int(z[3:5])
-            if not z[5:7]:
-                pass
-            seconds = int(0)
+            seconds = int(z[5:7] or 0)
             gmtoff = hours * 60 * 60 + minutes * 60 + seconds
             gmtoff_remainder = z[8:]
             gmtoff_remainder_padding = '0' * (6 - len(gmtoff_remainder))

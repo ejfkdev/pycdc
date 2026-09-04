@@ -64,9 +64,7 @@ class DecompressReader(io.RawIOBase):
         data = None
         while True:
             if self._decompressor.eof:
-                if not self._decompressor.unused_data:
-                    pass
-                rawblock = self._fp.read(BUFFER_SIZE)
+                rawblock = self._decompressor.unused_data or self._fp.read(BUFFER_SIZE)
                 if not rawblock:
                     break
             self._decompressor = self._decomp_factory(*(), **self._decomp_args)

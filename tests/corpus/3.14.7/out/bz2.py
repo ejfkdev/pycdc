@@ -71,12 +71,11 @@ multiple compressed streams.
             self._fp = _builtin_open(filename, mode)
             self._closefp = True
             self._mode = mode_code
-        elif not hasattr(filename, 'read'):
-            if hasattr(filename, 'write'):
-                self._fp = filename
-                self._mode = mode_code
-            else:
-                raise TypeError('filename must be a str, bytes, file or PathLike object')
+        elif hasattr(filename, 'read') or hasattr(filename, 'write'):
+            self._fp = filename
+            self._mode = mode_code
+        else:
+            raise TypeError('filename must be a str, bytes, file or PathLike object')
         if self._mode == _MODE_READ:
             raw = _streams.DecompressReader(self._fp, BZ2Decompressor, trailing_error=OSError)
             self._buffer = io.BufferedReader(raw)
@@ -131,9 +130,7 @@ closed, any other operation on it will raise a ValueError.
     def seekable(self):
         '''Return whether the file supports seeking.'''
 
-        if self.readable():
-            pass
-        return self._buffer.seekable()
+        return self.readable() and self._buffer.seekable()
 
     def readable(self):
         self._check_not_closed()

@@ -99,9 +99,8 @@ If the forward reference cannot be evaluated, raise an exception.
             locals = {}
             if isinstance(owner, type):
                 locals.update(vars(owner))
-        elif not type_params is not None and not isinstance(self.__cell__, dict):
-            if self.__extra_names__:
-                locals = dict(locals)
+        elif type_params is not None or isinstance(self.__cell__, dict) or self.__extra_names__:
+            locals = dict(locals)
         if not type_params is None:
             for param in type_params:
                 locals.setdefault(param.__name__, param)
@@ -183,14 +182,7 @@ If the forward reference cannot be evaluated, raise an exception.
     def __eq__(self, other):
         if not isinstance(other, ForwardRef):
             return NotImplemented
-        if self.__forward_arg__ == other.__forward_arg__:
-            if self.__forward_module__ == other.__forward_module__:
-                if self.__globals__ is other.__globals__:
-                    if self.__forward_is_class__ == other.__forward_is_class__:
-                        if {name: id(cell) for name, cell in self.__cell__.items()} == {name: id(cell) for name, cell in other.__cell__.items()} if isinstance(self.__cell__, dict) and isinstance(other.__cell__, dict) else self.__cell__ is other.__cell__:
-                            if self.__owner__ == other.__owner__:
-                                pass
-        return (tuple(sorted(self.__extra_names__.items())) if self.__extra_names__ else None) == (tuple(sorted(other.__extra_names__.items())) if other.__extra_names__ else None)
+        return self.__forward_arg__ == other.__forward_arg__ and self.__forward_module__ == other.__forward_module__ and self.__globals__ is other.__globals__ and self.__forward_is_class__ == other.__forward_is_class__ and ({name: id(cell) for name, cell in self.__cell__.items()} == {name: id(cell) for name, cell in other.__cell__.items()} if isinstance(self.__cell__, dict) and isinstance(other.__cell__, dict) else self.__cell__ is other.__cell__) and self.__owner__ == other.__owner__ and (tuple(sorted(self.__extra_names__.items())) if self.__extra_names__ else None) == (tuple(sorted(other.__extra_names__.items())) if other.__extra_names__ else None)
 
     def __hash__(self):
         if self.__extra_names__:
@@ -242,8 +234,8 @@ class _Stringifier:
             return other.__ast_node__, other.__extra_names__
         if type(other) is _Template:
             return _template_to_ast(other), None
-        if not self.__stringifier_dict__.format == Format.STRING and not other is None:
-            if type(other) in (str, int, float, bool, complex):
+        if not self.__stringifier_dict__.format == Format.STRING:
+            if other is None or type(other) in (str, int, float, bool, complex):
                 return ast.Constant(value=other), None
         if type(other) is dict:
             extra_names = {}
@@ -298,9 +290,7 @@ class _Stringifier:
             new_extra_names.update(self.__extra_names__)
         if not extra_names is None:
             new_extra_names.update(extra_names)
-        if not new_extra_names:
-            pass
-        stringifier = _Stringifier(node, self.__globals__, self.__owner__, self.__forward_is_class__, stringifier_dict=self.__stringifier_dict__, extra_names=None)
+        stringifier = _Stringifier(node, self.__globals__, self.__owner__, self.__forward_is_class__, stringifier_dict=self.__stringifier_dict__, extra_names=new_extra_names or None)
         self.__stringifier_dict__.stringifiers.append(stringifier)
         return stringifier
 
@@ -493,8 +483,9 @@ class _StringifierDict(dict):
             if isinstance(obj.__ast_node__, str):
                 obj.__arg__ = obj.__ast_node__
                 obj.__ast_node__ = None
-            if not obj.__cell__ is None:
-                pass
+            if cell_dict is not None:
+                if obj.__cell__ is None:
+                    obj.__cell__ = cell_dict
 
     def create_unique_name(self):
         name = f'__annotationlib_name_{self.next_id}__'
@@ -661,9 +652,8 @@ default, contingent on type(obj):
                 raise ValueError('The VALUE_WITH_FAKE_GLOBALS format is for internal use only')
             raise ValueError(f'Unsupported format {format!r}')
     if not ann is not None:
-        if not isinstance(obj, type):
-            if callable(obj):
-                return {}
+        if isinstance(obj, type) or callable(obj):
+            return {}
         raise TypeError(f'{obj!r} does not have annotations')
     if not ann:
         return {}

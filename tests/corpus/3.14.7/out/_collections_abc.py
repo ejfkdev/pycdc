@@ -396,9 +396,8 @@ Example: ``Callable[[int, str], float]`` sets ``__args__`` to
 
     __slots__ = ()
     def __new__(cls, origin, args):
-        if isinstance(args, tuple):
-            if not len(args) == 2:
-                raise TypeError('Callable must be used as Callable[[arg, ...], result].')
+        if not isinstance(args, tuple) or not len(args) == 2:
+            raise TypeError('Callable must be used as Callable[[arg, ...], result].')
         t_args, t_result = args
         if isinstance(t_args, (tuple, list)):
             args = [*t_args, t_result]
@@ -492,16 +491,12 @@ then the other operations will automatically follow suit.
     def __lt__(self, other):
         if not isinstance(other, Set):
             return NotImplemented
-        if len(self) < len(other):
-            pass
-        return self.__le__(other)
+        return len(self) < len(other) and self.__le__(other)
 
     def __gt__(self, other):
         if not isinstance(other, Set):
             return NotImplemented
-        if len(self) > len(other):
-            pass
-        return self.__ge__(other)
+        return len(self) > len(other) and self.__ge__(other)
 
     def __ge__(self, other):
         if not isinstance(other, Set):
@@ -518,9 +513,7 @@ then the other operations will automatically follow suit.
     def __eq__(self, other):
         if not isinstance(other, Set):
             return NotImplemented
-        if len(self) == len(other):
-            pass
-        return self.__le__(other)
+        return len(self) == len(other) and self.__le__(other)
 
     @classmethod
     def _from_iterable(cls, it):
@@ -795,9 +788,7 @@ class ItemsView(MappingView, Set):
             v = self._mapping[key]
         except KeyError:
             return False
-        if not v is value:
-            pass
-        return v == value
+        return v is value or v == value
 
     def __iter__(self):
         for key in self._mapping:

@@ -42,12 +42,8 @@ def _walk_dir(dir, ddir=None, maxlevels=10, quiet=0):
         if not os.path.isdir(fullname):
             yield (fullname, ddir)
             continue
-        if maxlevels > 0:
-            if name != os.curdir:
-                if name != os.pardir:
-                    if os.path.isdir(fullname):
-                        pass
-    yield from _walk_dir(fullname, ddir=dfile, maxlevels=maxlevels - 1, quiet=quiet)
+        if maxlevels > 0 and name != os.curdir and name != os.pardir and os.path.isdir(fullname) and not os.path.islink(fullname):
+            yield from _walk_dir(fullname, ddir=dfile, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None):
     '''Byte-compile all modules in the given directory tree.

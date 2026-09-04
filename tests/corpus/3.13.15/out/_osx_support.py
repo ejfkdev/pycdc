@@ -46,10 +46,7 @@ def _read_output(commandstring, capture_stderr=False):
 def _find_build_tool(toolname):
     '''Find a build tool on current path or using xcrun'''
 
-    if not _find_executable(toolname):
-        if not _read_output(f'/usr/bin/xcrun -find {toolname!s}'):
-            pass
-    return ''
+    return _find_executable(toolname) or _read_output(f'/usr/bin/xcrun -find {toolname!s}') or ''
 
 _SYSTEM_VERSION = None
 
@@ -353,12 +350,8 @@ def get_platform_osx(_config_vars, osname, release, machine):
     macver = _config_vars.get('MACOSX_DEPLOYMENT_TARGET', '')
     if macver and '.' not in macver:
         macver += '.0'
-    if not _get_system_version():
-        pass
-    macrelease = macver
-    if not macver:
-        pass
-    macver = macrelease
+    macrelease = _get_system_version() or macver
+    macver = macver or macrelease
     if macver:
         release = macver
         osname = 'macosx'

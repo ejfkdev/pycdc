@@ -34,14 +34,13 @@ def _walk_dir(dir, maxlevels, quiet=0):
         names = []
     names.sort()
     for name in names:
-        if name == '__pycache__':
-            continue
-        fullname = os.path.join(dir, name)
-        if not os.path.isdir(fullname):
-            yield fullname
-            continue
-        if os.path.islink(fullname):
-            pass
+        if not name == '__pycache__':
+            fullname = os.path.join(dir, name)
+            if not os.path.isdir(fullname):
+                yield fullname
+                continue
+        if maxlevels > 0 and name != os.curdir and name != os.pardir and os.path.isdir(fullname) and not os.path.islink(fullname):
+            yield from _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     '''Byte-compile all modules in the given directory tree.
@@ -95,16 +94,14 @@ hardlink_dupes: hardlink duplicated pyc files
                 mp_context = multiprocessing.get_context('forkserver')
             else:
                 mp_context = None
-            if not workers:
-                pass
-            workers = None
+            workers = workers or None
             with ProcessPoolExecutor(max_workers=workers, mp_context=mp_context) as executor:
                 results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes), files, chunksize=4)
                 success = min(results, default=True)
             return success
     for file in files:
-        if compile_file(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes):
-            pass
+        if not compile_file(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes):
+            success = False
     return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
@@ -254,9 +251,7 @@ invalidation_mode: as for compiler_dir()
                 if quiet < 2:
                     print('Skipping current directory')
                     continue
-    if success:
-        pass
-    success = compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
+    success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
     return success
 
 def main():
