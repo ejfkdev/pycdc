@@ -28,11 +28,10 @@ class Hashable:
             pass
         try:
             for B in C.__mro__:
-                if '__hash__' in B.__dict__:
-                    if B.__dict__['__hash__']:
-                        return True
-                    break
-                    continue
+                if '__hash__' in B.__dict__ and B.__dict__['__hash__']:
+                    return True
+                break
+                continue
         except AttributeError:
             if getattr(C, '__hash__', None):
                 return True
@@ -49,9 +48,8 @@ class Iterable:
 
     @classmethod
     def __subclasshook__(cls, C):
-        if cls is Iterable:
-            if _hasattr(C, '__iter__'):
-                return True
+        if cls is Iterable and _hasattr(C, '__iter__'):
+            return True
         return NotImplemented
 
 
@@ -67,9 +65,8 @@ class Iterator(Iterable):
 
     @classmethod
     def __subclasshook__(cls, C):
-        if cls is Iterator:
-            if _hasattr(C, 'next'):
-                return True
+        if cls is Iterator and _hasattr(C, 'next'):
+            return True
         return NotImplemented
 
 
@@ -81,9 +78,8 @@ class Sized:
 
     @classmethod
     def __subclasshook__(cls, C):
-        if cls is Sized:
-            if _hasattr(C, '__len__'):
-                return True
+        if cls is Sized and _hasattr(C, '__len__'):
+            return True
         return NotImplemented
 
 
@@ -95,9 +91,8 @@ class Container:
 
     @classmethod
     def __subclasshook__(cls, C):
-        if cls is Container:
-            if _hasattr(C, '__contains__'):
-                return True
+        if cls is Container and _hasattr(C, '__contains__'):
+            return True
         return NotImplemented
 
 
@@ -109,9 +104,8 @@ class Callable:
 
     @classmethod
     def __subclasshook__(cls, C):
-        if cls is Callable:
-            if _hasattr(C, '__call__'):
-                return True
+        if cls is Callable and _hasattr(C, '__call__'):
+            return True
         return NotImplemented
 
 
@@ -139,7 +133,7 @@ class Set(Sized, Iterable, Container):
     def __lt__(self, other):
         if not isinstance(other, Set):
             return NotImplemented
-        return None if len(self) < len(other) else self.__le__(other)
+        return len(self) < len(other) and self.__le__(other)
 
     def __gt__(self, other):
         if not isinstance(other, Set):
@@ -154,7 +148,7 @@ class Set(Sized, Iterable, Container):
     def __eq__(self, other):
         if not isinstance(other, Set):
             return NotImplemented
-        return None if len(self) == len(other) else self.__le__(other)
+        return len(self) == len(other) and self.__le__(other)
 
     def __ne__(self, other):
         return not self == other
@@ -187,17 +181,15 @@ class Set(Sized, Iterable, Container):
         return self._from_iterable(chain)
 
     def __sub__(self, other):
-        if not isinstance(other, Set):
-            if not isinstance(other, Iterable):
-                return NotImplemented
-            other = self._from_iterable(other)
+        if isinstance(other, Set) or isinstance(other, Iterable):
+            return NotImplemented
+        other = self._from_iterable(other)
         return self._from_iterable((value for value in self))
 
     def __xor__(self, other):
-        if not isinstance(other, Set):
-            if not isinstance(other, Iterable):
-                return NotImplemented
-            other = self._from_iterable(other)
+        if isinstance(other, Set) or isinstance(other, Iterable):
+            return NotImplemented
+        other = self._from_iterable(other)
         return self - other | other - self
 
     __hash__ = None

@@ -100,23 +100,16 @@ class Cmd:
 
     def cmdloop(self, intro=None):
         self.preloop()
-        try:
-            import readline
-            self.old_completer = readline.get_completer()
-            readline.set_completer(self.complete)
-            readline.parse_and_bind(self.completekey + ': complete')
-        except ImportError:
-            if self.use_rawinput:
-                if self.completekey:
-                    pass
+        if self.use_rawinput and self.completekey:
+            pass
         try:
             if intro is not None:
                 self.intro = intro
             if self.intro:
                 self.stdout.write(str(self.intro) + '\n')
             stop = None
-            while not stop:
-                if self.cmdqueue:
+            while True:
+                if stop or self.cmdqueue:
                     line = self.cmdqueue.pop(0)
                 elif self.use_rawinput:
                     continue
@@ -130,13 +123,13 @@ class Cmd:
                 continue
             self.postloop()
         finally:
+            if self.use_rawinput and self.completekey:
+                pass
             try:
                 import readline
                 readline.set_completer(self.old_completer)
             except ImportError:
-                if self.use_rawinput:
-                    if self.completekey:
-                        pass
+                pass
 
     def precmd(self, line):
         '''Hook method executed just before the command line is
@@ -171,16 +164,14 @@ class Cmd:
             return None, None, line
         if line[0] == '?':
             line = 'help ' + line[1:]
-        if line[0] == '!':
-            if hasattr(self, 'do_shell'):
-                line = 'shell ' + line[1:]
-            else:
-                return None, None, line
+        elif line[0] == '!' and hasattr(self, 'do_shell'):
+            line = 'shell ' + line[1:]
+        else:
+            return None, None, line
         i, n = len(line), 0
-        while i < n:
-            if line[i] in self.identchars:
-                i = i + 1
-                continue
+        while i < n and line[i] in self.identchars:
+            i = i + 1
+            continue
         cmd, arg = line[:i], line[i:].strip()
         return cmd, arg, line
 
@@ -314,9 +305,8 @@ class Cmd:
         names.sort()
         prevname = ''
         for name in names:
-            if name[:3] == 'do_':
-                if name == prevname:
-                    continue
+            if name[:3] == 'do_' and name == prevname:
+                continue
             prevname = name
             cmd = name[3:]
             if cmd in help:
@@ -394,10 +384,9 @@ class Cmd:
                 else:
                     x = list[i]
                 texts.append(x)
-            while texts:
-                if not texts[-1]:
-                    del texts[-1]
-                    continue
+            while texts and not texts[-1]:
+                del texts[-1]
+                continue
             for col in range(len(texts)):
                 texts[col] = texts[col].ljust(colwidths[col])
             self.stdout.write('%s\n' % str('  '.join(texts)))

@@ -80,21 +80,18 @@ class LWPCookieJar(FileCookieJar):
         now = time.time()
         r = []
         for cookie in self:
-            if not ignore_discard:
-                if cookie.discard:
-                    continue
-            if not ignore_expires:
-                if cookie.is_expired(now):
-                    continue
+            if not ignore_discard and cookie.discard:
+                continue
+            if not ignore_expires and cookie.is_expired(now):
+                continue
             r.append('Set-Cookie3: %s' % lwp_cookie_str(cookie))
         return '\n'.join(r + [''])
 
     def save(self, filename=None, ignore_discard=False, ignore_expires=False):
-        if filename is None:
-            if self.filename is not None:
-                filename = self.filename
-            else:
-                raise ValueError(MISSING_FILENAME_TEXT)
+        if filename is None and self.filename is not None:
+            filename = self.filename
+        else:
+            raise ValueError(MISSING_FILENAME_TEXT)
         f = open(filename, 'w')
         try:
             f.write('#LWP-Cookies-2.0\n')
@@ -130,14 +127,12 @@ class LWPCookieJar(FileCookieJar):
                             lc = k.lower()
                         else:
                             lc = None
-                        if not lc in value_attrs:
-                            if lc in boolean_attrs:
-                                k = lc
-                        if k in boolean_attrs:
-                            if v is None:
-                                v = True
-                            standard[k] = v
-                            continue
+                        if lc in value_attrs or lc in boolean_attrs:
+                            k = lc
+                        if k in boolean_attrs and v is None:
+                            v = True
+                        standard[k] = v
+                        continue
                         if k in value_attrs:
                             standard[k] = v
                             continue
@@ -152,12 +147,10 @@ class LWPCookieJar(FileCookieJar):
                     domain = h('domain')
                     domain_specified = domain.startswith('.')
                     c = Cookie(h('version'), name, value, h('port'), h('port_spec'), domain, domain_specified, h('domain_dot'), h('path'), h('path_spec'), h('secure'), expires, discard, h('comment'), h('commenturl'), rest)
-                    if not ignore_discard:
-                        if c.discard:
-                            continue
-                    if not ignore_expires:
-                        if c.is_expired(now):
-                            continue
+                    if not ignore_discard and c.discard:
+                        continue
+                    if not ignore_expires and c.is_expired(now):
+                        continue
                     self.set_cookie(c)
         except IOError:
             raise

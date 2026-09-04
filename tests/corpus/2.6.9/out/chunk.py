@@ -109,9 +109,8 @@ class Chunk:
             pos = pos + self.size_read
         if whence == 2:
             pos = pos + self.chunksize
-        if not pos < 0:
-            if pos > self.chunksize:
-                raise RuntimeError
+        if pos < 0 or pos > self.chunksize:
+            raise RuntimeError
         self.file.seek(self.offset + pos, 0)
         self.size_read = pos
 
@@ -136,11 +135,10 @@ class Chunk:
             size = self.chunksize - self.size_read
         data = self.file.read(size)
         self.size_read = self.size_read + len(data)
-        if self.size_read == self.chunksize:
-            if self.align:
-                if self.chunksize & 1:
-                    dummy = self.file.read(1)
-                    self.size_read = self.size_read + len(dummy)
+        if self.size_read == self.chunksize and self.align:
+            if self.chunksize & 1:
+                dummy = self.file.read(1)
+                self.size_read = self.size_read + len(dummy)
         return data
 
     def skip(self):

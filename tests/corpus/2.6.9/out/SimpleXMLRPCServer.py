@@ -134,9 +134,8 @@ def list_public_methods(obj):
 
     _[1] = []
     for member in dir(obj):
-        if not member.startswith('_'):
-            if hasattr(getattr(obj, member), '__call__'):
-                continue
+        if not member.startswith('_') and hasattr(getattr(obj, member), '__call__'):
+            continue
     del _[1]
     return _[1]
 
@@ -252,11 +251,10 @@ class SimpleXMLRPCDispatcher:
         Returns a list of the methods supported by the server."""
 
         methods = self.funcs.keys()
-        if self.instance is not None:
-            if hasattr(self.instance, '_listMethods'):
-                methods = remove_duplicates(methods + self.instance._listMethods())
-            elif not hasattr(self.instance, '_dispatch'):
-                methods = remove_duplicates(methods + list_public_methods(self.instance))
+        if self.instance is not None and hasattr(self.instance, '_listMethods'):
+            methods = remove_duplicates(methods + self.instance._listMethods())
+        elif not hasattr(self.instance, '_dispatch'):
+            methods = remove_duplicates(methods + list_public_methods(self.instance))
         methods.sort()
         return methods
 
@@ -277,17 +275,16 @@ class SimpleXMLRPCDispatcher:
         Returns a string containing documentation for the specified method.'''
 
         method = None
-        if method_name in self.funcs:
-            method = self.funcs[method_name]
-        if self.instance is not None:
-            if hasattr(self.instance, '_methodHelp'):
-                return self.instance._methodHelp(method_name)
-            if not hasattr(self.instance, '_dispatch'):
-                pass
-            try:
-                method = resolve_dotted_attribute(self.instance, method_name, self.allow_dotted_names)
-            except AttributeError:
-                pass
+        try:
+            method = resolve_dotted_attribute(self.instance, method_name, self.allow_dotted_names)
+        except AttributeError:
+            if method_name in self.funcs:
+                method = self.funcs[method_name]
+            else:
+                if self.instance is not None and hasattr(self.instance, '_methodHelp'):
+                    return self.instance._methodHelp(method_name)
+                if not hasattr(self.instance, '_dispatch'):
+                    pass
         if method is None:
             return ''
         import pydoc
@@ -339,21 +336,18 @@ class SimpleXMLRPCDispatcher:
 
         import sys
         func = None
-        if self.instance is not None:
-            if hasattr(self.instance, '_dispatch'):
-                return self.instance._dispatch(method, params)
         try:
             func = self.funcs[method]
         except KeyError:
+            if self.instance is not None and hasattr(self.instance, '_dispatch'):
+                return self.instance._dispatch(method, params)
             try:
                 func = resolve_dotted_attribute(self.instance, method, self.allow_dotted_names)
             except AttributeError:
                 pass
-            else:
-                return func(*params)
-                if func is not None:
-                    pass
-                raise Exception('method "%s" is not supported' % method)
+        if func is not None:
+            return func(*params)
+        raise Exception('method "%s" is not supported' % method)
 
 
 class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -395,10 +389,9 @@ class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             response = self.server._marshaled_dispatch(data, getattr(self, '_dispatch', None))
         except Exception, e:
             self.send_response(500)
-            if hasattr(self.server, '_send_traceback_header'):
-                if self.server._send_traceback_header:
-                    self.send_header('X-exception', str(e))
-                    self.send_header('X-traceback', traceback.format_exc())
+            if hasattr(self.server, '_send_traceback_header') and self.server._send_traceback_header:
+                self.send_header('X-exception', str(e))
+                self.send_header('X-traceback', traceback.format_exc())
             self.end_headers()
         else:
             self.send_response(200)
@@ -442,11 +435,10 @@ class SimpleXMLRPCServer(SocketServer.TCPServer, SimpleXMLRPCDispatcher):
         self.logRequests = logRequests
         SimpleXMLRPCDispatcher.__init__(self, allow_none, encoding)
         SocketServer.TCPServer.__init__(self, addr, requestHandler, bind_and_activate)
-        if fcntl is not None:
-            if hasattr(fcntl, 'FD_CLOEXEC'):
-                flags = fcntl.fcntl(self.fileno(), fcntl.F_GETFD)
-                flags |= fcntl.FD_CLOEXEC
-                fcntl.fcntl(self.fileno(), fcntl.F_SETFD, flags)
+        if fcntl is not None and hasattr(fcntl, 'FD_CLOEXEC'):
+            flags = fcntl.fcntl(self.fileno(), fcntl.F_GETFD)
+            flags |= fcntl.FD_CLOEXEC
+            fcntl.fcntl(self.fileno(), fcntl.F_SETFD, flags)
 
 
 class CGIXMLRPCRequestHandler(SimpleXMLRPCDispatcher):
@@ -488,9 +480,8 @@ class CGIXMLRPCRequestHandler(SimpleXMLRPCDispatcher):
         headers.
         '''
 
-        if request_text is None:
-            if os.environ.get('REQUEST_METHOD', None) == 'GET':
-                self.handle_get()
+        if request_text is None and os.environ.get('REQUEST_METHOD', None) == 'GET':
+            self.handle_get()
         try:
             length = int(os.environ.get('CONTENT_LENGTH', None))
         except (TypeError, ValueError):

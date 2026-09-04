@@ -340,10 +340,10 @@ class Hook:
                     self.file.flush()
                 finally:
                     return
-        if self.format == 'html':
-            self.file.write('<p>%s</p>\n' % msg)
-        else:
-            self.file.write(msg + '\n')
+            if self.format == 'html':
+                self.file.write('<p>%s</p>\n' % msg)
+            else:
+                self.file.write(msg + '\n')
         try:
             self.file.flush()
         finally:

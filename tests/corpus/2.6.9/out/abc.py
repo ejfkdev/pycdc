@@ -119,13 +119,9 @@ class ABCMeta(type):
         subtype = type(instance)
         if subtype is _InstanceType:
             subtype = subclass
-        if not subtype is subclass:
-            if subclass is None:
-                if cls._abc_negative_cache_version == ABCMeta._abc_invalidation_counter:
-                    if subtype in cls._abc_negative_cache:
-                        return False
-                return cls.__subclasscheck__(subtype)
-        return cls.__subclasscheck__(subclass) or cls.__subclasscheck__(subtype)
+        if subtype is subclass or subclass is None and cls._abc_negative_cache_version == ABCMeta._abc_invalidation_counter and subtype in cls._abc_negative_cache:
+            return False
+        return cls.__subclasscheck__(subtype)
 
     def __subclasscheck__(cls, subclass):
         '''Override for issubclass(subclass, cls).'''
@@ -138,25 +134,12 @@ class ABCMeta(type):
         if subclass in cls._abc_negative_cache:
             return False
         ok = cls.__subclasshook__(subclass)
-        if ok is not NotImplemented:
-            assert isinstance(ok, bool)
-            if ok:
-                cls._abc_cache.add(subclass)
-            else:
-                cls._abc_negative_cache.add(subclass)
-            return ok
-        if cls in getattr(subclass, '__mro__', ()):
+        if ok is not NotImplemented and isinstance(ok, bool):
+            raise AssertionError
+        if ok:
             cls._abc_cache.add(subclass)
-            return True
-        for rcls in cls._abc_registry:
-            if issubclass(subclass, rcls):
-                cls._abc_cache.add(subclass)
-                return True
-        for scls in cls.__subclasses__():
-            if issubclass(subclass, scls):
-                cls._abc_cache.add(subclass)
-                return True
-        cls._abc_negative_cache.add(subclass)
-        return False
+        else:
+            cls._abc_negative_cache.add(subclass)
+        return ok
 
 

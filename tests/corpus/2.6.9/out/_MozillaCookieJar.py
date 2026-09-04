@@ -55,9 +55,8 @@ class MozillaCookieJar(FileCookieJar):
                     break
                 if line.endswith('\n'):
                     line = line[:-1]
-                if not line.strip().startswith(('#', '$')):
-                    if line.strip() == '':
-                        continue
+                if line.strip().startswith(('#', '$')) or line.strip() == '':
+                    continue
                 domain, domain_specified, path, secure, expires, name, value = line.split('\t')
                 secure = secure == 'TRUE'
                 domain_specified = domain_specified == 'TRUE'
@@ -71,12 +70,10 @@ class MozillaCookieJar(FileCookieJar):
                     expires = None
                     discard = True
                 c = Cookie(0, name, value, None, False, domain, domain_specified, initial_dot, path, False, secure, expires, discard, None, None, {})
-                if not ignore_discard:
-                    if c.discard:
-                        continue
-                if not ignore_expires:
-                    if c.is_expired(now):
-                        continue
+                if not ignore_discard and c.discard:
+                    continue
+                if not ignore_expires and c.is_expired(now):
+                    continue
                 self.set_cookie(c)
         except IOError:
             raise
@@ -85,22 +82,19 @@ class MozillaCookieJar(FileCookieJar):
             raise LoadError('invalid Netscape format cookies file %r: %r' % (filename, line))
 
     def save(self, filename=None, ignore_discard=False, ignore_expires=False):
-        if filename is None:
-            if self.filename is not None:
-                filename = self.filename
-            else:
-                raise ValueError(MISSING_FILENAME_TEXT)
+        if filename is None and self.filename is not None:
+            filename = self.filename
+        else:
+            raise ValueError(MISSING_FILENAME_TEXT)
         f = open(filename, 'w')
         try:
             f.write(self.header)
             now = time.time()
             for cookie in self:
-                if not ignore_discard:
-                    if cookie.discard:
-                        continue
-                if not ignore_expires:
-                    if cookie.is_expired(now):
-                        continue
+                if not ignore_discard and cookie.discard:
+                    continue
+                if not ignore_expires and cookie.is_expired(now):
+                    continue
                 if cookie.secure:
                     secure = 'TRUE'
                 else:

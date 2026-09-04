@@ -143,10 +143,8 @@ class _localbase(object):
         object.__setattr__(self, '_local__key', key)
         object.__setattr__(self, '_local__args', (args, kw))
         object.__setattr__(self, '_local__lock', RLock())
-        if not args:
-            if kw:
-                if cls.__init__ is object.__init__:
-                    raise TypeError('Initialization arguments are not supported')
+        if args or kw and cls.__init__ is object.__init__:
+            raise TypeError('Initialization arguments are not supported')
         dict = object.__getattribute__(self, '__dict__')
         current_thread().__dict__[key] = dict
         return self

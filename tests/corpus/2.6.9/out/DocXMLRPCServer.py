@@ -74,11 +74,11 @@ class ServerHTMLDoc(pydoc.HTMLDoc):
         else:
             argspec = '(...)'
         if isinstance(object, tuple):
-            argspec = None if object[0] else argspec
+            argspec = object[0] or argspec
             docstring = object[1] or ''
         else:
             docstring = pydoc.getdoc(object)
-        decl = None + (title + argspec if note else self.grey('<font face="helvetica, arial">%s</font>' % note))
+        decl = title + argspec + (note and self.grey('<font face="helvetica, arial">%s</font>' % note))
         doc = self.markup(docstring, self.preformat, funcs, classes, methods)
         doc = doc and '<dd><tt>%s</tt></dd>' % doc
         return '<dl><dt>%s</dt>%s</dl>\n' % (decl, doc)

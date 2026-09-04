@@ -929,8 +929,19 @@ impl<'a> Ctx<'a> {
             if matches!(
                 inst.op,
                 Op::JUMP_ABSOLUTE | Op::JUMP_FORWARD | Op::JUMP | Op::POP_TOP
+                    | Op::ROT_TWO | Op::ROT_THREE | Op::SWAP
             ) {
                 self.close_blocks_at(pos);
+                // py2.6 chained comparison: the close merged the chain
+                // value and armed a skip covering this else-arm cleanup
+                // instruction — honor it instead of letting the shuffle
+                // corrupt the merged value on the live stack.
+                if let Some(skip) = self.skip_until {
+                    if pos < skip {
+                        pc += 1;
+                        continue;
+                    }
+                }
             }
             // chain fully parsed (END_FINALLY passed) but no jump emitted it
             // yet: flush before the continuation executes so statement order
@@ -2646,10 +2657,23 @@ impl<'a> Ctx<'a> {
                                 if let Some(merged) = merge_chain_compare(&cond, &v) {
                                     self.stack.pop();
                                     self.push(merged);
-                                    self.skip_until = Some(else_end);
+                                    self.skip_chain_else_arm(else_end);
                                     return;
                                 }
-                                if self.stack.len() >= 2 {
+                                // A ternary needs the tested value still on
+                                // the stack right under the arm value (the
+                                // py2 peek-style JUMP_IF_* if-shape and the
+                                // 3.12+ COPY both retain it). When the arm's
+                                // POP_TOP already dropped the tested value
+                                // (py2 / PJFP-style short circuit), a single
+                                // arm value is `a and b` / `a or b`.
+                                let tested_retained = self
+                                    .stack
+                                    .get(self.stack.len().wrapping_sub(2))
+                                    .map_or(false, |sv| {
+                                        matches!(sv, Sv::E(e) if expr_eq(e, &cond))
+                                    });
+                                if self.stack.len() >= 2 && tested_retained {
                                     self.stack.pop();
                                     let then_val = self.pop_expr();
                                     self.push(Rc::new(Expr::Ternary {
@@ -2657,7 +2681,7 @@ impl<'a> Ctx<'a> {
                                         then_expr: then_val,
                                         else_expr: v,
                                     }));
-                                    self.skip_until = Some(else_end);
+                                    self.skip_chain_else_arm(else_end);
                                     return;
                                 }
                                 // py2 short-circuit `a and b` / `a or b`:
@@ -2674,7 +2698,7 @@ impl<'a> Ctx<'a> {
                                 flatten_boolop(cond, kind, &mut values);
                                 flatten_boolop(v, kind, &mut values);
                                 self.push(Rc::new(Expr::BoolOp { op: kind, values }));
-                                self.skip_until = Some(else_end);
+                                self.skip_chain_else_arm(else_end);
                                 return;
                             }
                         }
@@ -5187,6 +5211,29 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 if next_pop && target_pop {
+                    // py2.6 statement boolop chain: `if A and B:` / `elif
+                    // C or D:` compile every link as JUMP_IF_* + POP_TOP —
+                    // the same shape as the whole-statement jump. A chain
+                    // is told apart by its then arm holding ANOTHER cond
+                    // jump reachable through pure value ops only (the
+                    // next link); statement bodies contain non-value ops.
+                    // Fold the whole chain into one BoolOp condition and
+                    // open the if from the final link.
+                    let first = match (ci, self.stack.last()) {
+                        (Some(_), Some(Sv::E(e))) => Some(e.clone()),
+                        _ => None,
+                    };
+                    if let (Some(i0), Some(first)) = (ci, first) {
+                        if let Some((cond, then_start, else_body, else_pop)) =
+                            self.py26_stmt_boolop_chain(i0, first, jump_if_true, target)
+                        {
+                            self.pop(); // operand 0 (consumed by the fold)
+                            self.py2_else_pop_at = Some(else_pop);
+                            self.skip_until = Some(then_start);
+                            self.handle_cond_jump(cond, false, else_body);
+                            return true;
+                        }
+                    }
                     // if-statement shape: both paths discard the value
                     let cond = self.pop_expr();
                     let else_body = self
@@ -6139,6 +6186,129 @@ impl<'a> Ctx<'a> {
     /// `J1: PJIT L; <a-false rhs> J0: PJIF E; L: <rhs c> J2: PJIF E; then; E:`
     /// where J1's target region also ends in a cond jump to the same E.
     /// Returns the merged (cond, then_end) when the pattern matches.
+    /// py2.6 statement boolop chain fold. Every link compiles to
+    /// `JUMP_IF_* L; POP_TOP` (the peek-jump keeps the operand for the
+    /// escape path, the POP drops it on fall-through):
+    ///
+    /// ```text
+    ///   eval A; JIF Lelse; POP; eval B; JIF Lelse; POP; THEN ...
+    ///   Lelse: POP; ELSE
+    ///   eval C; JIT Lmerge; POP; eval D; JIF Lelse; Lmerge: POP; THEN
+    /// ```
+    ///
+    /// `first` is operand 0 (on the live stack; the caller pops it on
+    /// success). Each link's polarity combines the operand BEFORE it with
+    /// the chain that follows: JIF escape = And, JIT escape = Or. The
+    /// chain ends when the region after a link's POP_TOP is no longer
+    /// pure-value-then-peek-jump (that region is the THEN body). Returns
+    /// (merged cond, then_start, else_body_start, else_pop_offset).
+    fn py26_stmt_boolop_chain(
+        &self,
+        i0: usize,
+        first: ExprRef,
+        jump_if_true: bool,
+        target: usize,
+    ) -> Option<(ExprRef, usize, usize, usize)> {
+        // link 0's target must hold the escape-path POP_TOP
+        let &t0i = self.idx_of.get(&target)?;
+        if self.instrs.get(t0i).map(|x| x.op) != Some(Op::POP_TOP) {
+            return None;
+        }
+        // pending = (operand, link polarity) pairs awaiting the tail
+        let mut pending: Vec<(ExprRef, bool)> = vec![(first, jump_if_true)];
+        let mut last_target = target;
+        let mut k = i0 + 1;
+        // POP_TOP dropping operand 0 on fall-through
+        if self.instrs.get(k).map(|x| x.op) != Some(Op::POP_TOP) {
+            return None;
+        }
+        k += 1;
+        let tail;
+        loop {
+            // scan the next operand region: pure value ops up to a peek-jump
+            let region_start = k;
+            let mut link = None;
+            while let Some(ins) = self.instrs.get(k) {
+                if matches!(ins.op, Op::JUMP_IF_FALSE | Op::JUMP_IF_TRUE)
+                    && ins.target.map_or(false, |t| t > ins.offset)
+                {
+                    link = Some(k);
+                    break;
+                }
+                if !is_pure_value_op(ins.op) && ins.op != Op::POP_TOP {
+                    return None;
+                }
+                k += 1;
+            }
+            let lk = link?;
+            if lk == region_start {
+                return None;
+            }
+            let operand = self.sim_value_region(region_start, lk)?;
+            let lins = self.instrs[lk];
+            let lt = lins.target?;
+            // the link target must hold the escape POP_TOP
+            let &lti = self.idx_of.get(&lt)?;
+            if self.instrs.get(lti).map(|x| x.op) != Some(Op::POP_TOP) {
+                return None;
+            }
+            let ljit = lins.op == Op::JUMP_IF_TRUE;
+            // POP_TOP dropping this operand on fall-through
+            k = lk + 1;
+            if self.instrs.get(k).map(|x| x.op) != Some(Op::POP_TOP) {
+                return None;
+            }
+            k += 1;
+            // another link follows, or is [k, ..) the THEN body? Probe:
+            // pure value ops then a forward peek-jump whose target holds
+            // POP_TOP → another link. Anything else → body.
+            let mut p = k;
+            let mut more = false;
+            while let Some(ins) = self.instrs.get(p) {
+                if matches!(ins.op, Op::JUMP_IF_FALSE | Op::JUMP_IF_TRUE)
+                    && ins.target.map_or(false, |t| t > ins.offset)
+                {
+                    if let Some(t) = ins.target {
+                        if let Some(&nti) = self.idx_of.get(&t) {
+                            if self.instrs.get(nti).map(|x| x.op) == Some(Op::POP_TOP) {
+                                more = true;
+                            }
+                        }
+                    }
+                    break;
+                }
+                if !is_pure_value_op(ins.op) {
+                    break;
+                }
+                p += 1;
+            }
+            if !more {
+                // this link was the statement jump: its fall-through POP
+                // was just consumed; the operand is the chain tail
+                tail = operand;
+                last_target = lt;
+                break;
+            }
+            pending.push((operand, ljit));
+        }
+        // fold right-associatively from the tail: cond = tail, then each
+        // pending (operand, polarity) wraps it — And for JIF, Or for JIT
+        let mut cond = tail;
+        for (operand, jit) in pending.into_iter().rev() {
+            let kind = if jit { BoolOpKind::Or } else { BoolOpKind::And };
+            let mut values = Vec::new();
+            flatten_boolop(operand, kind, &mut values);
+            flatten_boolop(cond, kind, &mut values);
+            cond = Rc::new(Expr::BoolOp { op: kind, values });
+        }
+        // final link: fall-through after its POP_TOP is the THEN body;
+        // the escape POP_TOP at last_target leads the ELSE body
+        let then_start = self.instrs.get(k).map(|x| x.offset)?;
+        let &lti = self.idx_of.get(&last_target)?;
+        let else_body = self.instrs.get(lti + 1).map(|x| x.offset)?;
+        Some((cond, then_start, else_body, last_target))
+    }
+
     fn try_merge_py2_boolop(
         &self,
         cond: &ExprRef,
@@ -7838,6 +8008,25 @@ impl<'a> Ctx<'a> {
             && matches!(self.instrs.get(i + 1).map(|x| x.op), Some(Op::POP_TOP))
     }
 
+    /// Arm a skip for a value-merge block's false-path region. py2.6
+    /// chained comparisons close at (or after) the else arm's own offset,
+    /// leaving `skip_until = else_end` stale — the `ROT_TWO; POP_TOP`
+    /// cleanup would still run and eat the merged chain value. When the
+    /// arm starts at or behind the current position, skip past it.
+    fn skip_chain_else_arm(&mut self, else_end: usize) {
+        let mut skip = else_end;
+        if else_end <= self.cur_offset
+            && (self.is_chain_else_arm_rot(else_end) || self.is_chain_else_arm(else_end))
+        {
+            if let Some(&i) = self.idx_of.get(&else_end) {
+                if let Some(pop) = self.instrs.get(i + 1) {
+                    skip = pop.end();
+                }
+            }
+        }
+        self.skip_until = Some(skip);
+    }
+
     /// Merge offset of a chained-comparison then arm: scan pure value ops
     /// from `from` — a closing jump gives its target, any consuming op is
     /// the merge itself. `None` when the arm holds a nested link (a
@@ -8018,10 +8207,14 @@ impl<'a> Ctx<'a> {
         // "cond" is the left operand; closing merges into BoolOp.
         let left = self.pop_expr();
         // <=3.11 chained comparison: the else arm at `target` is
-        // ROT_TWO/POP_TOP and the then arm's consumer (CALL/STORE/...) is
-        // the real merge — end the block there so the value merges before
-        // the consumer runs
-        let chain = !or_form && self.is_chain_else_arm_rot(target);
+        // ROT_TWO/POP_TOP (<=3.10) or SWAP 2/POP_TOP (3.11) and the then
+        // arm's consumer (CALL/STORE/...) is the real merge — end the
+        // block there so the value merges before the consumer runs.
+        // Without this the else-arm SWAP executes against the live stack
+        // (rotating the enclosing call's operands) before the close skips
+        // its POP_TOP.
+        let chain = !or_form
+            && (self.is_chain_else_arm_rot(target) || self.is_chain_else_arm(target));
         let blk_end = if chain {
             self.chain_then_merge_from(self.cur_next, target)
                 .unwrap_or(target)

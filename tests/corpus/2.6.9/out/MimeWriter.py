@@ -98,14 +98,12 @@ class MimeWriter:
         '''
 
         lines = value.split('\n')
-        while lines:
-            if not lines[-1]:
-                del lines[-1]
-                continue
-        while lines:
-            if not lines[0]:
-                del lines[0]
-                continue
+        while lines and not lines[-1]:
+            del lines[-1]
+            continue
+        while lines and not lines[0]:
+            del lines[0]
+            continue
         for i in range(1, len(lines)):
             lines[i] = '    ' + lines[i].strip()
         value = '\n'.join(lines) + '\n'

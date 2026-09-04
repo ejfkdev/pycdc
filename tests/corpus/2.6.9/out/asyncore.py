@@ -107,10 +107,9 @@ def poll(timeout=0.0, map=None):
                 r.append(fd)
             if is_w:
                 w.append(fd)
-            if not is_r:
-                if is_w:
-                    e.append(fd)
-                    continue
+            if is_r or is_w:
+                e.append(fd)
+                continue
         if [] == r == w == e:
             time.sleep(timeout)
             return
@@ -171,21 +170,19 @@ poll3 = poll2
 def loop(timeout=30.0, use_poll=False, map=None, count=None):
     if map is None:
         map = socket_map
-    if use_poll:
-        if hasattr(select, 'poll'):
-            poll_fun = poll2
-        else:
-            poll_fun = poll
+    if use_poll and hasattr(select, 'poll'):
+        poll_fun = poll2
+    else:
+        poll_fun = poll
     if count is None:
         while map:
             poll_fun(timeout, map)
             continue
             break
-            while map:
-                if count > 0:
-                    poll_fun(timeout, map)
-                    count = count - 1
-                    continue
+            while map and count > 0:
+                poll_fun(timeout, map)
+                count = count - 1
+                continue
 
 class dispatcher:
     debug = False
@@ -217,9 +214,8 @@ class dispatcher:
 
     def __repr__(self):
         status = [self.__class__.__module__ + '.' + self.__class__.__name__]
-        if self.accepting:
-            if self.addr:
-                status.append('listening')
+        if self.accepting and self.addr:
+            status.append('listening')
         if self.connected:
             status.append('connected')
         if self.addr is not None:
@@ -268,9 +264,8 @@ class dispatcher:
 
     def listen(self, num):
         self.accepting = True
-        if os.name == 'nt':
-            if num > 5:
-                num = 5
+        if os.name == 'nt' and num > 5:
+            num = 5
         return self.socket.listen(num)
 
     def bind(self, addr):
@@ -419,7 +414,7 @@ class dispatcher_with_send(dispatcher):
         self.initiate_send()
 
     def writable(self):
-        return None if self.connected else len(self.out_buffer)
+        return self.connected or len(self.out_buffer)
 
     def send(self, data):
         if self.debug:
@@ -477,10 +472,8 @@ if os.name == 'posix':
             return os.write(self.fd, *args)
 
         def getsockopt(self, level, optname, buflen=None):
-            if level == socket.SOL_SOCKET:
-                if optname == socket.SO_ERROR:
-                    if not buflen:
-                        return 0
+            if level == socket.SOL_SOCKET and optname == socket.SO_ERROR and not buflen:
+                return 0
             raise NotImplementedError('Only asyncore specific behaviour implemented.')
 
         read = recv

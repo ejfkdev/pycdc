@@ -96,11 +96,13 @@ def weekday(year, month, day):
     return datetime.date(year, month, day).weekday()
 
 def monthrange(year, month):
-    1 <= month <= 12
-    if not None:
+    '''Return weekday (0-6 ~ Mon-Sun) and number of days (28-31) for
+       year, month.'''
+
+    if not 1 <= month <= 12:
         raise IllegalMonthError(month)
     day1 = weekday(year, month, 1)
-    ndays = None + (mdays[month] if month == February else isleap(year))
+    ndays = mdays[month] + (month == February and isleap(year))
     return day1, ndays
 
 class Calendar(object):
@@ -142,10 +144,9 @@ class Calendar(object):
         while True:
             yield date
             date += oneday
-            if date.month != month:
-                if date.weekday() == self.firstweekday:
-                    break
-                    continue
+            if date.month != month and date.weekday() == self.firstweekday:
+                break
+                continue
             continue
 
     def itermonthdays2(self, year, month):
@@ -655,50 +656,47 @@ def main(args):
     parser.add_option('-e', '--encoding', dest='encoding', default=None, help='Encoding to use for output')
     parser.add_option('-t', '--type', dest='type', default='text', choices=('text', 'html'), help='output type (text or html)')
     options, args = parser.parse_args(args)
-    if options.locale:
-        if not options.encoding:
-            parser.error('if --locale is specified --encoding is required')
-            sys.exit(1)
+    if options.locale and not options.encoding:
+        parser.error('if --locale is specified --encoding is required')
+        sys.exit(1)
     locale = options.locale, options.encoding
-    if options.type == 'html':
+    if options.type == 'html' and options.locale:
+        cal = LocaleHTMLCalendar(locale=locale)
+    else:
+        cal = HTMLCalendar()
+    encoding = options.encoding
+    if encoding is None:
+        encoding = sys.getdefaultencoding()
+    optdict = dict(encoding=encoding, css=options.css)
+    if len(args) == 1:
+        print datetime.date.today().year(optdict)
+    else:
+        if len(args) == 2:
+            print int(args[1])(optdict)
+        else:
+            parser.error('incorrect number of arguments')
+            sys.exit(1)
+        cal.formatyearpage
         if options.locale:
-            cal = LocaleHTMLCalendar(locale=locale)
+            cal = LocaleTextCalendar(locale=locale)
         else:
-            cal = HTMLCalendar()
-        encoding = options.encoding
-        if encoding is None:
-            encoding = sys.getdefaultencoding()
-        optdict = dict(encoding=encoding, css=options.css)
+            cal = TextCalendar()
+        optdict = dict(w=options.width, l=options.lines)
+        if len(args) != 3:
+            optdict['c'] = options.spacing
+            optdict['m'] = options.months
         if len(args) == 1:
-            print datetime.date.today().year(optdict)
+            result = datetime.date.today().year(optdict)
+        elif len(args) == 2:
+            result = int(args[1])(optdict)
+        elif len(args) == 3:
+            result = int(args[1])(int(args[2]), optdict)
         else:
-            if len(args) == 2:
-                print int(args[1])(optdict)
-            else:
-                parser.error('incorrect number of arguments')
-                sys.exit(1)
-            cal.formatyearpage
-            if options.locale:
-                cal = LocaleTextCalendar(locale=locale)
-            else:
-                cal = TextCalendar()
-            optdict = dict(w=options.width, l=options.lines)
-            if len(args) != 3:
-                optdict['c'] = options.spacing
-                optdict['m'] = options.months
-            if len(args) == 1:
-                result = datetime.date.today().year(optdict)
-            elif len(args) == 2:
-                result = int(args[1])(optdict)
-            elif len(args) == 3:
-                result = int(args[1])(int(args[2]), optdict)
-            else:
-                parser.error('incorrect number of arguments')
-                sys.exit(1)
-            if options.encoding:
-                result = result.encode(options.encoding)
-            print result
+            parser.error('incorrect number of arguments')
+            sys.exit(1)
+        if options.encoding:
+            result = result.encode(options.encoding)
+        print result
 
 if __name__ == '__main__':
     main(sys.argv)
-# WARNING: Decompyle incomplete

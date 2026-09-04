@@ -53,11 +53,9 @@ except ImportError:
         fp = open(name)
         data = open(name).read(256)
         for c in data:
-            if not c.isspace():
-                if not c < ' ':
-                    if ord(c) > 127:
-                        break
-                        continue
+            if not c.isspace() and (c < ' ' or ord(c) > 127):
+                break
+                continue
         else:
             finfo.Type = 'TEXT'
         fp.seek(0, 2)
@@ -257,8 +255,8 @@ class _Hqxdecoderengine:
 
         decdata = ''
         wtd = totalwtd
-        while wtd > 0:
-            if self.eof:
+        while True:
+            if wtd > 0 and self.eof:
                 return decdata
             wtd = (wtd + 2) // 3 * 4
             data = self.ifp.read(wtd)
@@ -275,10 +273,9 @@ class _Hqxdecoderengine:
                 continue
             decdata = decdata + decdatacur
             wtd = totalwtd - len(decdata)
-            if not decdata:
-                if not self.eof:
-                    raise Error('Premature EOF on binhex file')
-                    continue
+            if not decdata and not self.eof:
+                raise Error('Premature EOF on binhex file')
+                continue
             continue
         return decdata
 

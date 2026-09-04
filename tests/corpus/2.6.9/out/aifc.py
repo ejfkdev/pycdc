@@ -217,23 +217,22 @@ def _write_float(f, x):
         lomant = 0
     else:
         fmant, expon = math.frexp(x)
-        if not expon > 16384:
-            if fmant >= 1:
-                expon = sign | 32767
-                himant = 0
-                lomant = 0
-            else:
-                expon = expon + 16382
-                if expon < 0:
-                    fmant = math.ldexp(fmant, expon)
-                    expon = 0
-                expon = expon | sign
-                fmant = math.ldexp(fmant, 32)
-                fsmant = math.floor(fmant)
-                himant = long(fsmant)
-                fmant = math.ldexp(fmant - fsmant, 32)
-                fsmant = math.floor(fmant)
-                lomant = long(fsmant)
+        if expon > 16384 or fmant >= 1:
+            expon = sign | 32767
+            himant = 0
+            lomant = 0
+        else:
+            expon = expon + 16382
+            if expon < 0:
+                fmant = math.ldexp(fmant, expon)
+                expon = 0
+            expon = expon | sign
+            fmant = math.ldexp(fmant, 32)
+            fsmant = math.floor(fmant)
+            himant = long(fsmant)
+            fmant = math.ldexp(fmant - fsmant, 32)
+            fsmant = math.floor(fmant)
+            lomant = long(fsmant)
     _write_short(f, expon)
     _write_long(f, himant)
     _write_long(f, lomant)
@@ -279,20 +278,18 @@ class Aifc_read:
                 self._readmark(chunk)
             chunk.skip()
             continue
-        if not not self._comm_chunk_read:
-            if not self._ssnd_chunk:
-                raise Error('COMM chunk and/or SSND chunk missing')
-        if self._aifc:
-            if self._decomp:
-                import cl
-                params = [cl.ORIGINAL_FORMAT, 0, cl.BITS_PER_COMPONENT, self._sampwidth * 8, cl.FRAME_RATE, self._framerate]
-                if self._nchannels == 1:
-                    params[1] = cl.MONO
-                elif self._nchannels == 2:
-                    params[1] = cl.STEREO_INTERLEAVED
-                else:
-                    raise Error('cannot compress more than 2 channels')
-                self._decomp.SetParams(params)
+        if not self._comm_chunk_read or not self._ssnd_chunk:
+            raise Error('COMM chunk and/or SSND chunk missing')
+        if self._aifc and self._decomp:
+            import cl
+            params = [cl.ORIGINAL_FORMAT, 0, cl.BITS_PER_COMPONENT, self._sampwidth * 8, cl.FRAME_RATE, self._framerate]
+            if self._nchannels == 1:
+                params[1] = cl.MONO
+            elif self._nchannels == 2:
+                params[1] = cl.STEREO_INTERLEAVED
+            else:
+                raise Error('cannot compress more than 2 channels')
+            self._decomp.SetParams(params)
 
     def __init__(self, f):
         if type(f) == type(''):
@@ -348,9 +345,8 @@ class Aifc_read:
         raise Error('marker %r does not exist' % (id,))
 
     def setpos(self, pos):
-        if not pos < 0:
-            if pos > self._nframes:
-                raise Error('position not in range')
+        if pos < 0 or pos > self._nframes:
+            raise Error('position not in range')
         self._soundpos = pos
         self._ssnd_seek_needed = 1
 
@@ -365,9 +361,8 @@ class Aifc_read:
         if nframes == 0:
             return ''
         data = self._ssnd_chunk.read(nframes * self._framesize)
-        if self._convert:
-            if data:
-                data = self._convert(data)
+        if self._convert and data:
+            data = self._convert(data)
         self._soundpos = self._soundpos + len(data) // (self._nchannels * self._sampwidth)
         return data
 
@@ -407,39 +402,38 @@ class Aifc_read:
                 chunk.chunksize = chunk.chunksize + length
                 chunk.file.seek(-1, 1)
             self._compname = _read_string(chunk)
-            if self._comptype != 'NONE':
+            try:
+                import audioop
+            except ImportError:
+                if self._comptype != 'NONE' and self._comptype == 'G722':
+                    pass
+            else:
+                self._convert = self._adpcm2lin
+                self._framesize = self._framesize // 4
+                return
+            if self._comptype == 'ULAW':
+                pass
+            try:
+                import cl
+            except ImportError:
                 try:
                     import audioop
-                except ImportError:
-                    if self._comptype == 'G722':
-                        pass
-                else:
-                    self._convert = self._adpcm2lin
-                    self._framesize = self._framesize // 4
+                    self._convert = self._ulaw2lin
+                    self._framesize = self._framesize // 2
                     return
-                if self._comptype == 'ULAW':
-                    pass
-                try:
-                    import cl
                 except ImportError:
-                    try:
-                        import audioop
-                        self._convert = self._ulaw2lin
-                        self._framesize = self._framesize // 2
-                        return
-                    except ImportError:
-                        pass
-                    raise Error('cannot read compressed AIFF-C files')
-                if self._comptype == 'ULAW':
-                    scheme = cl.G711_ULAW
-                    self._framesize = self._framesize // 2
-                elif self._comptype == 'ALAW':
-                    scheme = cl.G711_ALAW
-                    self._framesize = self._framesize // 2
-                else:
-                    raise Error('unsupported compression type')
-                self._decomp = cl.OpenDecompressor(scheme)
-                self._convert = self._decomp_data
+                    pass
+                raise Error('cannot read compressed AIFF-C files')
+            if self._comptype == 'ULAW':
+                scheme = cl.G711_ULAW
+                self._framesize = self._framesize // 2
+            elif self._comptype == 'ALAW':
+                scheme = cl.G711_ALAW
+                self._framesize = self._framesize // 2
+            else:
+                raise Error('unsupported compression type')
+            self._decomp = cl.OpenDecompressor(scheme)
+            self._convert = self._decomp_data
         else:
             self._comptype = 'NONE'
             self._compname = 'not compressed'
@@ -451,10 +445,9 @@ class Aifc_read:
                 id = _read_short(chunk)
                 pos = _read_long(chunk)
                 name = _read_string(chunk)
-                if not pos:
-                    if name:
-                        self._markers.append((id, pos, name))
-                        continue
+                if pos or name:
+                    self._markers.append((id, pos, name))
+                    continue
         except EOFError:
             print 'Warning: MARK chunk contains only', len(self._markers), 'marker', 'markers', 'instead of', nmarkers
             None if len(self._markers) == 1 else None
@@ -520,9 +513,8 @@ class Aifc_write:
     def setsampwidth(self, sampwidth):
         if self._nframeswritten:
             raise Error('cannot change parameters after starting to write')
-        if not sampwidth < 1:
-            if sampwidth > 4:
-                raise Error('bad sample width')
+        if sampwidth < 1 or sampwidth > 4:
+            raise Error('bad sample width')
         self._sampwidth = sampwidth
 
     def getsampwidth(self):
@@ -577,10 +569,8 @@ class Aifc_write:
         self.setcomptype(comptype, compname)
 
     def getparams(self):
-        if not not self._nchannels:
-            if not not self._sampwidth:
-                if not self._framerate:
-                    raise Error('not all parameters set')
+        if not self._nchannels or not self._sampwidth or not self._framerate:
+            raise Error('not all parameters set')
         return self._nchannels, self._sampwidth, self._framerate, self._nframes, self._comptype, self._compname
 
     def setmark(self, id, pos, name):
@@ -621,9 +611,8 @@ class Aifc_write:
 
     def writeframes(self, data):
         self.writeframesraw(data)
-        if not self._nframeswritten != self._nframes:
-            if self._datalength != self._datawritten:
-                self._patchheader()
+        if self._nframeswritten != self._nframes or self._datalength != self._datawritten:
+            self._patchheader()
 
     def close(self):
         self._ensure_header_written(0)
@@ -631,10 +620,8 @@ class Aifc_write:
             self._file.write(chr(0))
             self._datawritten = self._datawritten + 1
         self._writemarkers()
-        if not self._nframeswritten != self._nframes:
-            if not self._datalength != self._datawritten:
-                if self._marklength:
-                    self._patchheader()
+        if self._nframeswritten != self._nframes or self._datalength != self._datawritten or self._marklength:
+            self._patchheader()
         if self._comp:
             self._comp.CloseCompressor()
             self._comp = None
@@ -658,24 +645,21 @@ class Aifc_write:
         return data
 
     def _ensure_header_written(self, datasize):
-        if not self._nframeswritten:
-            if self._comptype in ('ULAW', 'ALAW'):
-                if not self._sampwidth:
-                    self._sampwidth = 2
-                if self._sampwidth != 2:
-                    raise Error('sample width must be 2 when compressing with ULAW or ALAW')
-            if self._comptype == 'G722':
-                if not self._sampwidth:
-                    self._sampwidth = 2
-                if self._sampwidth != 2:
-                    raise Error('sample width must be 2 when compressing with G7.22 (ADPCM)')
-            if not self._nchannels:
-                raise Error('# channels not specified')
-            if not self._sampwidth:
-                raise Error('sample width not specified')
-            if not self._framerate:
-                raise Error('sampling rate not specified')
-            self._write_header(datasize)
+        if self._nframeswritten or self._comptype in ('ULAW', 'ALAW') and self._sampwidth:
+            self._sampwidth = 2
+        if self._sampwidth != 2:
+            raise Error('sample width must be 2 when compressing with ULAW or ALAW')
+        if self._comptype == 'G722' and self._sampwidth:
+            self._sampwidth = 2
+        if self._sampwidth != 2:
+            raise Error('sample width must be 2 when compressing with G7.22 (ADPCM)')
+        if not self._nchannels:
+            raise Error('# channels not specified')
+        if not self._sampwidth:
+            raise Error('sample width not specified')
+        if not self._framerate:
+            raise Error('sampling rate not specified')
+        self._write_header(datasize)
 
     def _init_compression(self):
         import sys
@@ -714,24 +698,22 @@ class Aifc_write:
         self._convert = self._comp_data
 
     def _write_header(self, initlength):
-        if self._aifc:
-            if self._comptype != 'NONE':
-                self._init_compression()
+        if self._aifc and self._comptype != 'NONE':
+            self._init_compression()
         self._file.write('FORM')
         if not self._nframes:
             self._nframes = initlength // (self._nchannels * self._sampwidth)
         self._datalength = self._nframes * self._nchannels * self._sampwidth
         if self._datalength & 1:
             self._datalength = self._datalength + 1
-        if self._aifc:
-            if self._comptype in ('ULAW', 'ALAW'):
-                self._datalength = self._datalength // 2
-                if self._datalength & 1:
-                    self._datalength = self._datalength + 1
-            if self._comptype == 'G722':
-                self._datalength = (self._datalength + 3) // 4
-                if self._datalength & 1:
-                    self._datalength = self._datalength + 1
+        if self._aifc and self._comptype in ('ULAW', 'ALAW'):
+            self._datalength = self._datalength // 2
+            if self._datalength & 1:
+                self._datalength = self._datalength + 1
+        if self._comptype == 'G722':
+            self._datalength = (self._datalength + 3) // 4
+            if self._datalength & 1:
+                self._datalength = self._datalength + 1
         self._form_length_pos = self._file.tell()
         commlength = self._write_form_length(self._datalength)
         if self._aifc:
@@ -776,11 +758,9 @@ class Aifc_write:
             self._file.write(chr(0))
         else:
             datalength = self._datawritten
-        if datalength == self._datalength:
-            if self._nframes == self._nframeswritten:
-                if self._marklength == 0:
-                    self._file.seek(curpos, 0)
-                    return
+        if datalength == self._datalength and self._nframes == self._nframeswritten and self._marklength == 0:
+            self._file.seek(curpos, 0)
+            return
         self._file.seek(self._form_length_pos, 0)
         dummy = self._write_form_length(datalength)
         self._file.seek(self._nframes_pos, 0)
@@ -813,11 +793,10 @@ class Aifc_write:
 
 
 def open(f, mode=None):
-    if mode is None:
-        if hasattr(f, 'mode'):
-            mode = f.mode
-        else:
-            mode = 'rb'
+    if mode is None and hasattr(f, 'mode'):
+        mode = f.mode
+    else:
+        mode = 'rb'
     if mode in ('r', 'rb'):
         return Aifc_read(f)
     if mode in ('w', 'wb'):

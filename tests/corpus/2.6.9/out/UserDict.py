@@ -74,12 +74,11 @@ class UserDict:
             pass
         elif isinstance(dict, UserDict):
             self.data.update(dict.data)
-        elif not isinstance(dict, type({})):
-            if not hasattr(dict, 'items'):
-                self.data.update(dict)
-            else:
-                for k, v in dict.items():
-                    self[k] = v
+        elif isinstance(dict, type({})) or not hasattr(dict, 'items'):
+            self.data.update(dict)
+        else:
+            for k, v in dict.items():
+                self[k] = v
         if len(kwargs):
             self.data.update(kwargs)
 

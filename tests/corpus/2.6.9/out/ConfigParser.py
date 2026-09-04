@@ -292,18 +292,16 @@ class RawConfigParser:
 
     def get(self, section, option):
         opt = self.optionxform(option)
-        if section not in self._sections:
-            if section != DEFAULTSECT:
-                raise NoSectionError(section)
-            if opt in self._defaults:
-                return self._defaults[opt]
-            raise NoOptionError(option, section)
-        else:
-            if opt in self._sections[section]:
-                return self._sections[section][opt]
-            if opt in self._defaults:
-                return self._defaults[opt]
-            raise NoOptionError(option, section)
+        if section not in self._sections and section != DEFAULTSECT:
+            raise NoSectionError(section)
+        if opt in self._defaults:
+            return self._defaults[opt]
+        raise NoOptionError(option, section)
+        if opt in self._sections[section]:
+            return self._sections[section][opt]
+        if opt in self._defaults:
+            return self._defaults[opt]
+        raise NoOptionError(option, section)
 
     def items(self, section):
         try:
@@ -340,10 +338,9 @@ class RawConfigParser:
     def has_option(self, section, option):
         '''Check for the existence of a given option in a given section.'''
 
-        if not not section:
-            if section == DEFAULTSECT:
-                option = self.optionxform(option)
-                return option in self._defaults
+        if not section or section == DEFAULTSECT:
+            option = self.optionxform(option)
+            return option in self._defaults
         if section not in self._sections:
             return False
         option = self.optionxform(option)
@@ -352,9 +349,8 @@ class RawConfigParser:
     def set(self, section, option, value):
         '''Set an option.'''
 
-        if not not section:
-            if section == DEFAULTSECT:
-                sectdict = self._defaults
+        if not section or section == DEFAULTSECT:
+            sectdict = self._defaults
         try:
             sectdict = self._sections[section]
         except KeyError:
@@ -380,9 +376,8 @@ class RawConfigParser:
     def remove_option(self, section, option):
         '''Remove an option.'''
 
-        if not not section:
-            if section == DEFAULTSECT:
-                sectdict = self._defaults
+        if not section or section == DEFAULTSECT:
+            sectdict = self._defaults
         try:
             sectdict = self._sections[section]
         except KeyError:
@@ -423,45 +418,40 @@ class RawConfigParser:
             if not line:
                 break
             lineno = lineno + 1
-            if not line.strip() == '':
-                if line[0] in '#;':
-                    continue
-            if line.split(None, 1)[0].lower() == 'rem':
-                if line[0] in 'rR':
-                    continue
-            if line[0].isspace():
-                if cursect is not None:
-                    if optname:
-                        value = line.strip()
-                        if value:
-                            cursect[optname] = '%s\n%s' % (cursect[optname], value)
+            if line.strip() == '' or line[0] in '#;':
+                continue
+            if line.split(None, 1)[0].lower() == 'rem' and line[0] in 'rR':
+                continue
+            if line[0].isspace() and cursect is not None and optname:
+                value = line.strip()
+                if value:
+                    cursect[optname] = '%s\n%s' % (cursect[optname], value)
+            else:
+                mo = self.SECTCRE.match(line)
+                if mo:
+                    sectname = mo.group('header')
+                    if sectname in self._sections:
+                        cursect = self._sections[sectname]
+                    elif sectname == DEFAULTSECT:
+                        cursect = self._defaults
                     else:
-                        mo = self.SECTCRE.match(line)
-                        if mo:
-                            sectname = mo.group('header')
-                            if sectname in self._sections:
-                                cursect = self._sections[sectname]
-                            elif sectname == DEFAULTSECT:
-                                cursect = self._defaults
-                            else:
-                                cursect = self._dict()
-                                cursect['__name__'] = sectname
-                                self._sections[sectname] = cursect
-                            optname = None
-                            continue
+                        cursect = self._dict()
+                        cursect['__name__'] = sectname
+                        self._sections[sectname] = cursect
+                    optname = None
+                    continue
             if cursect is None:
                 raise MissingSectionHeaderError(fpname, lineno, line)
                 continue
             mo = self.OPTCRE.match(line)
             if mo:
                 optname, vi, optval = mo.group('option', 'vi', 'value')
-                if vi in ('=', ':'):
-                    if ';' in optval:
-                        pos = optval.find(';')
-                        if pos != -1:
-                            if optval[pos - 1].isspace():
-                                optval = optval[:pos]
-                                continue
+                if vi in ('=', ':') and ';' in optval:
+                    pos = optval.find(';')
+                    if pos != -1:
+                        if optval[pos - 1].isspace():
+                            optval = optval[:pos]
+                            continue
             optval = optval.strip()
             if optval == '""':
                 optval = ''

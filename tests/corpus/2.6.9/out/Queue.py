@@ -34,10 +34,9 @@ class Queue:
         self.all_tasks_done.acquire()
         try:
             unfinished = self.unfinished_tasks - 1
-            if unfinished <= 0:
-                if unfinished < 0:
-                    raise ValueError('task_done() called too many times')
-                self.all_tasks_done.notify_all()
+            if unfinished <= 0 and unfinished < 0:
+                raise ValueError('task_done() called too many times')
+            self.all_tasks_done.notify_all()
             self.unfinished_tasks = unfinished
         finally:
             self.all_tasks_done.release()
@@ -65,22 +64,19 @@ class Queue:
 
     def full(self):
         self.mutex.acquire()
-        0 < self.maxsize == self._qsize()
-        n = None
+        n = 0 < self.maxsize == self._qsize()
         self.mutex.release()
         return n
 
     def put(self, item, block=True, timeout=None):
         self.not_full.acquire()
         try:
-            if self.maxsize > 0:
-                if not block:
-                    if self._qsize() == self.maxsize:
-                        raise Full
-                elif timeout is None:
-                    while self._qsize() == self.maxsize:
-                        self.not_full.wait()
-                        continue
+            if self.maxsize > 0 and (block or self._qsize() == self.maxsize):
+                raise Full
+            if timeout is None:
+                while self._qsize() == self.maxsize:
+                    self.not_full.wait()
+                    continue
             self._put(item)
             self.unfinished_tasks += 1
             self.not_empty.notify()
@@ -99,10 +95,9 @@ class Queue:
     def get(self, block=True, timeout=None):
         self.not_empty.acquire()
         try:
-            if not block:
-                if not self._qsize():
-                    raise Empty
-            elif timeout is None:
+            if block or self._qsize():
+                raise Empty
+            if timeout is None:
                 while not self._qsize():
                     self.not_empty.wait()
                     continue
@@ -180,4 +175,3 @@ class LifoQueue(Queue):
         return self.queue.pop()
 
 
-# WARNING: Decompyle incomplete

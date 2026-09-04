@@ -60,9 +60,8 @@ def literal_eval(node_or_string):
             return list(map(_convert, node.elts))
         if isinstance(node, Dict):
             return dict(((_convert(k), _convert(v)) for k, v in zip(node.keys, node.values)))
-        if isinstance(node, Name):
-            if node.id in _safe_names:
-                return _safe_names[node.id]
+        if isinstance(node, Name) and node.id in _safe_names:
+            return _safe_names[node.id]
         raise ValueError('malformed string')
 
     return _convert(node_or_string)
@@ -108,11 +107,9 @@ def copy_location(new_node, old_node):
     '''
 
     for attr in ('lineno', 'col_offset'):
-        if attr in old_node._attributes:
-            if attr in new_node._attributes:
-                if hasattr(old_node, attr):
-                    setattr(new_node, attr, getattr(old_node, attr))
-                    continue
+        if attr in old_node._attributes and attr in new_node._attributes and hasattr(old_node, attr):
+            setattr(new_node, attr, getattr(old_node, attr))
+            continue
     return new_node
 
 def fix_missing_locations(node):
@@ -125,16 +122,14 @@ def fix_missing_locations(node):
     '''
 
     def _fix(node, lineno, col_offset):
-        if 'lineno' in node._attributes:
-            if not hasattr(node, 'lineno'):
-                node.lineno = lineno
-            else:
-                lineno = node.lineno
-        if 'col_offset' in node._attributes:
-            if not hasattr(node, 'col_offset'):
-                node.col_offset = col_offset
-            else:
-                col_offset = node.col_offset
+        if 'lineno' in node._attributes and hasattr(node, 'lineno'):
+            node.lineno = lineno
+        else:
+            lineno = node.lineno
+        if 'col_offset' in node._attributes and hasattr(node, 'col_offset'):
+            node.col_offset = col_offset
+        else:
+            col_offset = node.col_offset
         for child in iter_child_nodes(node):
             _fix(child, lineno, col_offset)
 
@@ -194,13 +189,10 @@ def get_docstring(node, clean=True):
 
     if not isinstance(node, (FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
-    if node.body:
-        if isinstance(node.body[0], Expr):
-            if isinstance(node.body[0].value, Str):
-                if clean:
-                    import inspect
-                    return inspect.cleandoc(node.body[0].value.s)
-                return node.body[0].value.s
+    if node.body and isinstance(node.body[0], Expr) and isinstance(node.body[0].value, Str) and clean:
+        import inspect
+        return inspect.cleandoc(node.body[0].value.s)
+    return node.body[0].value.s
 
 def walk(node):
     """

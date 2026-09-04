@@ -57,11 +57,10 @@ class Bdb:
         return self.trace_dispatch
 
     def dispatch_line(self, frame):
-        if not self.stop_here(frame):
-            if self.break_here(frame):
-                self.user_line(frame)
-                if self.quitting:
-                    raise BdbQuit
+        if self.stop_here(frame) or self.break_here(frame):
+            self.user_line(frame)
+            if self.quitting:
+                raise BdbQuit
         return self.trace_dispatch
 
     def dispatch_call(self, frame, arg):
@@ -76,11 +75,10 @@ class Bdb:
         return self.trace_dispatch
 
     def dispatch_return(self, frame, arg):
-        if not self.stop_here(frame):
-            if frame == self.returnframe:
-                self.user_return(frame, arg)
-                if self.quitting:
-                    raise BdbQuit
+        if self.stop_here(frame) or frame == self.returnframe:
+            self.user_return(frame, arg)
+            if self.quitting:
+                raise BdbQuit
         return self.trace_dispatch
 
     def dispatch_exception(self, frame, arg):
@@ -91,17 +89,9 @@ class Bdb:
         return self.trace_dispatch
 
     def stop_here(self, frame):
-        if frame is self.stopframe:
-            if self.stoplineno == -1:
-                return False
-            return frame.f_lineno >= self.stoplineno
-        while frame is not None:
-            if frame is not self.stopframe:
-                if frame is self.botframe:
-                    return True
-                frame = frame.f_back
-                continue
-        return False
+        if frame is self.stopframe and self.stoplineno == -1:
+            return False
+        return frame.f_lineno >= self.stoplineno
 
     def break_here(self, frame):
         filename = self.canonic(frame.f_code.co_filename)
@@ -115,9 +105,8 @@ class Bdb:
         bp, flag = effective(filename, lineno, frame)
         if bp:
             self.currentbp = bp.number
-            if flag:
-                if bp.temporary:
-                    self.do_clear(str(bp.number))
+            if flag and bp.temporary:
+                self.do_clear(str(bp.number))
             return True
         return False
 
@@ -180,11 +169,10 @@ class Bdb:
         if not self.breaks:
             sys.settrace(None)
             frame = sys._getframe().f_back
-            while frame:
-                if frame is not self.botframe:
-                    del frame.f_trace
-                    frame = frame.f_back
-                    continue
+            while frame and frame is not self.botframe:
+                del frame.f_trace
+                frame = frame.f_back
+                continue
                 break
 
     def set_quit(self):
@@ -259,9 +247,8 @@ class Bdb:
 
     def get_breaks(self, filename, lineno):
         filename = self.canonic(filename)
-        if filename in self.breaks:
-            if lineno in self.breaks[filename]:
-                pass
+        if filename in self.breaks and lineno in self.breaks[filename]:
+            pass
         return Breakpoint.bplist[filename, lineno] if Breakpoint.bplist[filename, lineno] else []
 
     def get_file_breaks(self, filename):
@@ -275,9 +262,8 @@ class Bdb:
 
     def get_stack(self, f, t):
         stack = []
-        if t:
-            if t.tb_frame is f:
-                t = t.tb_next
+        if t and t.tb_frame is f:
+            t = t.tb_next
         while f is not None:
             stack.append((f, f.f_lineno))
             if f is self.botframe:
@@ -444,26 +430,17 @@ class Breakpoint:
             print >>out, out
         if self.ignore:
             print >>out, out
-        if self.hits:
-            if self.hits > 1:
-                ss = 's'
-            else:
-                ss = ''
-            print >>out, out
+        if self.hits and self.hits > 1:
+            ss = 's'
+        else:
+            ss = ''
+        print >>out, out
 
 
 def checkfuncname(b, frame):
     '''Check whether we should break here because of `b.funcname`.'''
 
-    if not b.funcname:
-        if b.line != frame.f_lineno:
-            return False
-        return True
-    if frame.f_code.co_name != b.funcname:
-        return False
-    if not b.func_first_executable_line:
-        b.func_first_executable_line = frame.f_lineno
-    if b.func_first_executable_line != frame.f_lineno:
+    if b.funcname or b.line != frame.f_lineno:
         return False
     return True
 
@@ -484,10 +461,9 @@ def effective(file, line, frame):
         if not checkfuncname(b, frame):
             continue
         b.hits = b.hits + 1
-        if not b.cond:
-            if b.ignore > 0:
-                b.ignore = b.ignore - 1
-                continue
+        if b.cond or b.ignore > 0:
+            b.ignore = b.ignore - 1
+            continue
     return (None, None)
 
 class Tdb(Bdb):

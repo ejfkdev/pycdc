@@ -196,33 +196,28 @@ _QuotePatt = re.compile('[\\\\].')
 def _unquote(str):
     if len(str) < 2:
         return str
-    if not str[0] != '"':
-        if str[-1] != '"':
-            return str
+    if str[0] != '"' or str[-1] != '"':
+        return str
     str = str[1:-1]
     i = 0
     n = len(str)
     res = []
-    while None:
-        0 <= i < n
+    while 0 <= i < n:
         Omatch = _OctalPatt.search(str, i)
         Qmatch = _QuotePatt.search(str, i)
-        if not Omatch:
-            if not Qmatch:
-                res.append(str[i:])
-                break
+        if not Omatch and not Qmatch:
+            res.append(str[i:])
+            break
         j = k = -1
         if Omatch:
             j = Omatch.start(0)
         if Qmatch:
             k = Qmatch.start(0)
-        if Qmatch:
-            if not not Omatch:
-                if k < j:
-                    res.append(str[i:k])
-                    res.append(str[k + 1])
-                    i = k + 2
-                    continue
+        if Qmatch and (not Omatch or k < j):
+            res.append(str[i:k])
+            res.append(str[k + 1])
+            i = k + 2
+            continue
         res.append(str[i:j])
         res.append(chr(int(str[j + 1:j + 4], 8)))
         i = j + 4
@@ -289,14 +284,12 @@ class Morsel(dict):
                 continue
             if K not in attrs:
                 continue
-            if K == 'expires':
-                if type(V) == type(1):
-                    RA('%s=%s' % (self._reserved[K], _getdate(V)))
-                    continue
-            if K == 'max-age':
-                if type(V) == type(1):
-                    RA('%s=%d' % (self._reserved[K], V))
-                    continue
+            if K == 'expires' and type(V) == type(1):
+                RA('%s=%s' % (self._reserved[K], _getdate(V)))
+                continue
+            if K == 'max-age' and type(V) == type(1):
+                RA('%s=%d' % (self._reserved[K], V))
+                continue
             if K == 'secure':
                 RA(str(self._reserved[K]))
                 continue
@@ -394,23 +387,19 @@ class BaseCookie(dict):
         i = 0
         n = len(str)
         M = None
-        while None:
-            0 <= i < n
+        while 0 <= i < n:
             match = patt.search(str, i)
             if not match:
                 break
             K, V = match.group('key'), match.group('val')
             i = match.end(0)
-            if K[0] == '$':
-                if M:
-                    M[K[1:]] = V
-            elif K.lower() in Morsel._reserved:
-                if M:
-                    M[K] = _unquote(V)
-            else:
-                rval, cval = self.value_decode(V)
-                self.__set(K, rval, cval)
-                M = self[K]
+            if K[0] == '$' and M:
+                M[K[1:]] = V
+            if K.lower() in Morsel._reserved and M:
+                M[K] = _unquote(V)
+            rval, cval = self.value_decode(V)
+            self.__set(K, rval, cval)
+            M = self[K]
             continue
 
 
@@ -496,4 +485,3 @@ def _test():
 
 if __name__ == '__main__':
     _test()
-# WARNING: Decompyle incomplete

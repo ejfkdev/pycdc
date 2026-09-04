@@ -78,10 +78,9 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         for x in self.cgi_directories:
             i = len(x)
             if path[:i] == x:
-                if not not path[i:]:
-                    if path[i] == '/':
-                        self.cgi_info = path[:i], path[i + 1:]
-                        return True
+                if not path[i:] or path[i] == '/':
+                    self.cgi_info = path[:i], path[i + 1:]
+                    return True
         return False
 
     cgi_directories = ['/cgi-bin', '/htbin']
@@ -132,7 +131,7 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             return
         ispy = self.is_python(scriptname)
         if not ispy:
-            if not (self.have_fork or (None if self.have_popen2 else self.have_popen3)):
+            if not (self.have_fork or self.have_popen2 or self.have_popen3):
                 self.send_error(403, 'CGI script is not a Python script (%r)' % scriptname)
                 return
             if not self.is_executable(scriptfile):
@@ -208,11 +207,9 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             pid = os.fork()
             if pid != 0:
                 pid, sts = os.waitpid(pid, 0)
-                while select.select([self.rfile], [], [], 0)[0]:
-                    if not self.rfile.read(1):
+                while True:
+                    while select.select([self.rfile], [], [], 0)[0] and self.rfile.read(1):
                         break
-                        continue
-                    continue
                 if sts:
                     self.log_error('CGI script exit status %#x', sts)
                 return
@@ -243,16 +240,13 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         except (TypeError, ValueError):
             nbytes = 0
         p = subprocess.Popen(cmdline, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if self.command.lower() == 'post':
-            if nbytes > 0:
-                data = self.rfile.read(nbytes)
-            else:
-                data = None
-        while select.select([self.rfile._sock], [], [], 0)[0]:
-            if not self.rfile._sock.recv(1):
+        if self.command.lower() == 'post' and nbytes > 0:
+            data = self.rfile.read(nbytes)
+        else:
+            data = None
+        while True:
+            while select.select([self.rfile._sock], [], [], 0)[0] and self.rfile._sock.recv(1):
                 break
-                continue
-            continue
         stdout, stderr = p.communicate(data)
         self.wfile.write(stdout)
         if stderr:

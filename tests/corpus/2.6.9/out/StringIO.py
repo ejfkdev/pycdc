@@ -104,11 +104,10 @@ class StringIO:
         if self.buflist:
             self.buf += ''.join(self.buflist)
             self.buflist = []
-        if not n is None:
-            if n < 0:
-                newpos = self.len
-            else:
-                newpos = min(self.pos + n, self.len)
+        if n is None or n < 0:
+            newpos = self.len
+        else:
+            newpos = min(self.pos + n, self.len)
         r = self.buf[self.pos:newpos]
         self.pos = newpos
         return r
@@ -123,10 +122,9 @@ class StringIO:
             newpos = self.len
         else:
             newpos = i + 1
-        if length is not None:
-            if length > 0:
-                if self.pos + length < newpos:
-                    newpos = self.pos + length
+        if length is not None and length > 0:
+            if self.pos + length < newpos:
+                newpos = self.pos + length
         r = self.buf[self.pos:newpos]
         self.pos = newpos
         return r
@@ -146,8 +144,7 @@ class StringIO:
         while line:
             lines.append(line)
             total += len(line)
-            0 < sizehint <= total
-            if None:
+            if 0 < sizehint <= total:
                 break
             line = self.readline()
             continue
@@ -181,16 +178,14 @@ class StringIO:
             self.buflist.append('\x00' * (spos - slen))
             slen = spos
         newpos = spos + len(s)
-        if spos < slen:
-            if self.buflist:
-                self.buf += ''.join(self.buflist)
-            self.buflist = [self.buf[:spos], s, self.buf[newpos:]]
-            self.buf = ''
-            if newpos > slen:
-                slen = newpos
-        else:
-            self.buflist.append(s)
+        if spos < slen and self.buflist:
+            self.buf += ''.join(self.buflist)
+        self.buflist = [self.buf[:spos], s, self.buf[newpos:]]
+        self.buf = ''
+        if newpos > slen:
             slen = newpos
+        self.buflist.append(s)
+        slen = newpos
         self.len = slen
         self.pos = newpos
 
@@ -275,4 +270,3 @@ def test():
 
 if __name__ == '__main__':
     test()
-# WARNING: Decompyle incomplete

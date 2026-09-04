@@ -111,28 +111,26 @@ class HTMLParser(markupbase.ParserBase):
             if i == n:
                 break
             startswith = rawdata.startswith
-            if startswith('<', i):
-                if starttagopen.match(rawdata, i):
-                    k = self.parse_starttag(i)
-                elif startswith('</', i):
-                    k = self.parse_endtag(i)
-                elif startswith('<!--', i):
-                    k = self.parse_comment(i)
-                elif startswith('<?', i):
-                    k = self.parse_pi(i)
-                elif startswith('<!', i):
-                    k = self.parse_declaration(i)
-                elif i + 1 < n:
-                    self.handle_data('<')
-                    k = i + 1
-                else:
-                    break
-                if k < 0:
-                    if end:
-                        self.error('EOF in middle of construct')
-                    break
-                i = self.updatepos(i, k)
-                continue
+            if startswith('<', i) and starttagopen.match(rawdata, i):
+                k = self.parse_starttag(i)
+            elif startswith('</', i):
+                k = self.parse_endtag(i)
+            elif startswith('<!--', i):
+                k = self.parse_comment(i)
+            elif startswith('<?', i):
+                k = self.parse_pi(i)
+            elif startswith('<!', i):
+                k = self.parse_declaration(i)
+            elif i + 1 < n:
+                self.handle_data('<')
+                k = i + 1
+            else:
+                break
+            if k < 0 and end:
+                self.error('EOF in middle of construct')
+            break
+            i = self.updatepos(i, k)
+            continue
             if startswith('&#', i):
                 match = charref.match(rawdata, i)
                 if match:
@@ -144,10 +142,9 @@ class HTMLParser(markupbase.ParserBase):
                     i = self.updatepos(i, k)
                     continue
             continue
-        if end:
-            if i < n:
-                self.handle_data(rawdata[i:n])
-                i = self.updatepos(i, n)
+        if end and i < n:
+            self.handle_data(rawdata[i:n])
+            i = self.updatepos(i, n)
         self.rawdata = rawdata[i:]
 
     def parse_pi(self, i):
@@ -183,13 +180,10 @@ class HTMLParser(markupbase.ParserBase):
             attrname, rest, attrvalue = m.group(1, 2, 3)
             if not rest:
                 attrvalue = None
-            else:
-                attrvalue[:1] == "'" == attrvalue[-1:]
-                if not None:
-                    attrvalue[:1] == '"' == attrvalue[-1:]
-                    if None:
-                        attrvalue = attrvalue[1:-1]
-                        attrvalue = self.unescape(attrvalue)
+            elif not attrvalue[:1] == "'" == attrvalue[-1:]:
+                if attrvalue[:1] == '"' == attrvalue[-1:]:
+                    attrvalue = attrvalue[1:-1]
+                    attrvalue = self.unescape(attrvalue)
             attrs.append((attrname.lower(), attrvalue))
             k = m.end()
             continue
@@ -218,13 +212,12 @@ class HTMLParser(markupbase.ParserBase):
             next = rawdata[j:j + 1]
             if next == '>':
                 return j + 1
-            if next == '/':
-                if rawdata.startswith('/>', j):
-                    return j + 2
-                if rawdata.startswith('/', j):
-                    return -1
-                self.updatepos(i, j + 1)
-                self.error('malformed empty start tag')
+            if next == '/' and rawdata.startswith('/>', j):
+                return j + 2
+            if rawdata.startswith('/', j):
+                return -1
+            self.updatepos(i, j + 1)
+            self.error('malformed empty start tag')
             if next == '':
                 return -1
             if next in 'abcdefghijklmnopqrstuvwxyz=/ABCDEFGHIJKLMNOPQRSTUVWXYZ':
