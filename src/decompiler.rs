@@ -5081,17 +5081,49 @@ impl<'a> Ctx<'a> {
                         target: None,
                     };
                     let start = self.cur_offset;
+                    // the protected body starts after the header and (for
+                    // async) the await protocol — protocol-fragment entries
+                    // (RESUME..STORE of a NESTED with) must not define the
+                    // span; find the first non-protocol instruction
+                    let body_at = self
+                        .idx_of
+                        .get(&start)
+                        .and_then(|&si| {
+                            self.instrs[si..]
+                                .iter()
+                                .take(26)
+                                .find(|x| {
+                                    !matches!(
+                                        x.op,
+                                        Op::SWAP
+                                            | Op::COPY
+                                            | Op::LOAD_SPECIAL
+                                            | Op::CALL
+                                            | Op::GET_AWAITABLE
+                                            | Op::SEND
+                                            | Op::YIELD_VALUE
+                                            | Op::RESUME
+                                            | Op::RESUME_CHECK
+                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                            | Op::END_SEND
+                                            | Op::CLEANUP_THROW
+                                            | Op::LOAD_CONST
+                                            | Op::NOP
+                                            | Op::NOT_TAKEN
+                                            | Op::END_ASYNC_FOR
+                                    )
+                                })
+                                .map(|x| x.offset)
+                        })
+                        .unwrap_or(start);
                     let end = self
                         .with_regions
-                        .get(&start)
+                        .get(&body_at)
                         .copied()
                         .or_else(|| {
-                            // the protected body starts after the enter
-                            // protocol (async) or enter CALL (sync): take
-                            // the first with region at/after the header
                             self.with_regions
                                 .iter()
-                                .filter(|(k, _)| **k >= start)
+                                .filter(|(k, _)| **k >= body_at)
                                 .min_by_key(|(k, _)| *k)
                                 .map(|(_, v)| *v)
                         })
@@ -7307,13 +7339,42 @@ impl<'a> Ctx<'a> {
                             // the __aenter__ await protocol (GET_AWAITABLE
                             // ..SEND..END_SEND, possibly a CLEANUP_THROW
                             // trampoline) sits between BEFORE_ASYNC_WITH and
-                            // the protected body, so the body's exception
-                            // entry starts AFTER inst.end() — scan forward
-                            self.instrs
+                            // the protected body — protocol-fragment entries
+                            // (e.g. RESUME..STORE for a NESTED async with)
+                            // must not define the span; find the first
+                            // non-protocol instruction and take its region
+                            let body_at = self
+                                .instrs
                                 .iter()
                                 .skip_while(|x| x.offset < start)
                                 .take(20)
-                                .find_map(|x| self.with_regions.get(&x.offset).copied())
+                                .find(|x| {
+                                    !matches!(
+                                        x.op,
+                                        Op::GET_AWAITABLE
+                                            | Op::SEND
+                                            | Op::YIELD_VALUE
+                                            | Op::RESUME
+                                            | Op::RESUME_CHECK
+                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                            | Op::END_SEND
+                                            | Op::CLEANUP_THROW
+                                            | Op::LOAD_CONST
+                                            | Op::NOP
+                                            | Op::NOT_TAKEN
+                                            | Op::END_ASYNC_FOR
+                                    )
+                                })
+                                .map(|x| x.offset)?;
+                            self.with_regions.get(&body_at).copied().or_else(|| {
+                                self.instrs
+                                    .iter()
+                                    .skip_while(|x| x.offset < body_at)
+                                    .take(20)
+                                    .find_map(|x| {
+                                        self.with_regions.get(&x.offset).copied()
+                                    })
+                            })
                         })
                         .unwrap_or(usize::MAX);
                     let mut wb = Block::new(BlockType::With, start, end);
