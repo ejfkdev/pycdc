@@ -1369,6 +1369,95 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    /// Decompose an inline-finally span [from, to) for handler `fh`.
+    /// 3.11+ nests zero-depth finally chains linearly:
+    ///   body; [POP] <inline fin copy>; JF next; CHAIN(fh): copy; RERAISE;
+    ///   stubs; next: ...
+    /// When the span holds a nested try's inline body followed by an
+    /// outward jump and `fh`'s chain follows, rebuild the nested Try and
+    /// recurse on the remainder.
+    fn decompose_finally_span(
+        &mut self,
+        from: usize,
+        to: usize,
+        fh: Option<usize>,
+    ) -> Vec<Stmt> {
+        // locate the outward exit jump of the nested inline body
+        let exit = self
+            .instrs
+            .iter()
+            .find(|x| {
+                x.offset >= from
+                    && x.offset < to
+                    && matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                    && x.target.map_or(false, |t| t > to)
+            })
+            .map(|x| (x.offset, x.target.unwrap()));
+        // a nested try exists only when a deeper TryCtx region starts
+        // inside this span (the merged finally-levels grouping); a
+        // single-level try's span is just [inline copy][exit JF] and the
+        // chain at `fh` is its OWN handler copy
+        let has_nested_ctx = self
+            .try_ctxs
+            .keys()
+            .any(|s| *s > from && *s < to);
+        let nested = match (exit, fh) {
+            (Some((xj_off, xj_tgt)), Some(h)) if xj_tgt > h && has_nested_ctx => {
+                let hi = self.idx_of.get(&h).copied();
+                let head_ok = hi.map_or(false, |i| self.instrs[i].op == Op::PUSH_EXC_INFO);
+                if !head_ok {
+                    None
+                } else {
+                    // chain copy ends at its first RERAISE/END_FINALLY
+                    let fin_stop = self.instrs[hi.unwrap()..]
+                        .iter()
+                        .take(200)
+                        .find(|y| matches!(y.op, Op::RERAISE | Op::END_FINALLY))
+                        .map(|y| y.end());
+                    // the nested try is real only when the chain stubs
+                    // lead to the exit landing (no further chains between)
+                    let extent = self.chain_extent(h);
+                    let lands = extent <= xj_tgt && xj_tgt <= xj_off + 64;
+                    fin_stop.map(|fs| (xj_off, xj_tgt, h, fs, lands))
+                }
+            }
+            _ => None,
+        };
+        if let Some((xj_off, xj_tgt, h, fin_stop, lands)) = nested {
+            // skip a leading POP_TOP (yield-resume padding)
+            let body_from = self
+                .instrs
+                .iter()
+                .find(|x| x.offset >= from)
+                .map(|x| {
+                    if x.op == Op::POP_TOP {
+                        x.end()
+                    } else {
+                        x.offset
+                    }
+                })
+                .unwrap_or(from);
+            let body = self.decompose_finally_span(body_from, xj_off, None);
+            let fin = self.decompile_region(h, fin_stop);
+            let stmt = Stmt::Try {
+                body,
+                handlers: Vec::new(),
+                orelse: Vec::new(),
+                finalbody: fin,
+            };
+            let resume = xj_tgt;
+            let mut out = vec![stmt];
+            if lands && resume < to {
+                // the remainder of THIS span after the nested chain is
+                // unreachable through it — nothing more to add
+            } else if resume < to {
+                out.extend(self.decompile_region(resume, to));
+            }
+            return out;
+        }
+        self.decompile_region(from, to)
+    }
+
     /// True when the chain at instruction index `hi` dispatches except*
     /// clauses (CHECK_EG_MATCH within the clause-head window).
     fn is_star_dispatch(&self, hi: usize) -> bool {
@@ -1727,16 +1816,25 @@ impl<'a> Ctx<'a> {
             }
         }
         // `else:` clause exists only when the protected region extends past
-        // the try body (finally covers body+else)
+        // the try body (finally covers body+else). For a FINALLY-only
+        // chain the extended region is the inline finally body itself —
+        // the walk collected it into the enclosing block; take it as the
+        // finalbody instead and skip the inline copy below.
         let mut orelse = Vec::new();
+        let mut early_fin: Option<Vec<Stmt>> = None;
         if tc.region_end > tc.body_end {
             if let Some(top) = self.blocks.last_mut() {
                 let mark = self.pending_orelse_mark.take().unwrap_or(0);
-                orelse = if mark <= top.stmts.len() {
+                let taken = if mark <= top.stmts.len() {
                     top.stmts.split_off(mark)
                 } else {
                     std::mem::take(&mut top.stmts)
                 };
+                if tc.except_handler.is_none() && tc.finally_handler.is_some() {
+                    early_fin = Some(taken);
+                } else {
+                    orelse = taken;
+                }
             }
         } else {
             self.pending_orelse_mark = None;
@@ -1755,6 +1853,21 @@ impl<'a> Ctx<'a> {
         if let Some(fh) = tc.finally_handler {
             if fh > pos && fh < stop {
                 stop = fh;
+            }
+        }
+        // nested finally levels are laid out consecutively: when the
+        // walk already collected the first level's inline copy (an
+        // early_fin is pending), the span for the deeper copy ends at
+        // the next chain head — but ONLY then; an except chain inside
+        // the span belongs to the handlers parse, not the finally bound
+        if early_fin.is_some() {
+            if let Some(nh) = self
+                .instrs
+                .iter()
+                .find(|x| x.offset > pos && x.offset < stop && x.op == Op::PUSH_EXC_INFO)
+                .map(|x| x.offset)
+            {
+                stop = nh;
             }
         }
         // a `return` sunk past the inline finally evaluates its value
@@ -1793,14 +1906,84 @@ impl<'a> Ctx<'a> {
                 }
             }
         }
-        let mut finalbody = if tc.finally_handler.is_some() && stop > pos {
-            let body = self.decompile_region(pos, stop);
-            // main pass must not re-execute the inline finally body
-            self.skip_until = Some(stop);
-            body
+        let mut nested_inner_fin: Option<Vec<Stmt>> = None;
+        let mut finalbody = if let Some(ef) = early_fin {
+            // ef is the FIRST nested level's inline copy (already walked).
+            // When the walk now stands at a deeper level's inline copy
+            // (stop > pos), decompile it as the outer finally and wrap
+            // the inner try inside the body.
+            if stop > pos {
+                let walked = self.decompose_finally_span(pos, stop, None);
+                if self.skip_until.map_or(true, |s| s < stop) {
+                    self.skip_until = Some(stop);
+                }
+                if !walked.is_empty() {
+                    nested_inner_fin = Some(ef);
+                    walked
+                } else {
+                    if self.skip_until.map_or(true, |s| s < stop) {
+                        self.skip_until = Some(stop);
+                    }
+                    ef
+                }
+            } else {
+                if self.skip_until.map_or(true, |s| s < stop) {
+                    self.skip_until = Some(stop);
+                }
+                ef
+            }
+        } else if tc.finally_handler.is_some() && stop > pos {
+            // the span may hold a NESTED try whose own finally chain was
+            // laid out inside it (nested try/finally around a yield in
+            // 3.11+): decompose recursively instead of letting the region
+            // walk re-open the nested TryCtx and tangle the chains. The
+            // nested chain head is the first PUSH_EXC_INFO after the
+            // span's outward exit jump.
+            let nested_head = self
+                .instrs
+                .iter()
+                .find(|x| {
+                    x.offset >= pos && x.offset < stop && x.op == Op::PUSH_EXC_INFO
+                })
+                .map(|x| x.offset);
+            let head = match nested_head {
+                Some(nh) => {
+                    // confirm an outward exit jump precedes it in the span
+                    let has_exit = self.instrs.iter().any(|x| {
+                        x.offset >= pos
+                            && x.offset < nh
+                            && matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                            && x.target.map_or(false, |t| t > nh)
+                    });
+                    if has_exit {
+                        Some(nh)
+                    } else {
+                        tc.finally_handler
+                    }
+                }
+                None => tc.finally_handler,
+            };
+            let span = self.decompose_finally_span(pos, stop, head);
+            // the nested chain and its stubs are folded — never let the
+            // main walk re-enter them
+            if let Some(nh) = nested_head {
+                if head == Some(nh) {
+                    let skip_past = self.chain_extent(nh);
+                    if self.skip_until.map_or(true, |s| s < skip_past) {
+                        self.skip_until = Some(skip_past);
+                    }
+                }
+            }
+            span
         } else {
             Vec::new()
         };
+        if tc.finally_handler.is_some() && stop > pos {
+            // main pass must not re-execute the inline finally body
+            if self.skip_until.map_or(true, |s| s < stop) {
+                self.skip_until = Some(stop);
+            }
+        }
         // except handlers (out-of-line)
         let handlers = match tc.except_handler {
             Some(h) => self.parse_except_dispatch(h),
@@ -1842,12 +2025,29 @@ impl<'a> Ctx<'a> {
         {
             return;
         }
-        self.push_stmt(Stmt::Try {
-            body,
-            handlers,
-            orelse,
-            finalbody,
-        });
+        if let Some(inner_fin) = nested_inner_fin.take() {
+            // two nested finally levels merged into one region: the body
+            // plus the first level's copy form the inner try
+            let inner = Stmt::Try {
+                body,
+                handlers,
+                orelse,
+                finalbody: inner_fin,
+            };
+            self.push_stmt(Stmt::Try {
+                body: vec![inner],
+                handlers: Vec::new(),
+                orelse: Vec::new(),
+                finalbody,
+            });
+        } else {
+            self.push_stmt(Stmt::Try {
+                body,
+                handlers,
+                orelse,
+                finalbody,
+            });
+        }
         let star_tail = std::mem::take(&mut self.star_tail);
         if !star_tail.is_empty() {
             self.push_stmt_all(star_tail);
@@ -2650,7 +2850,16 @@ impl<'a> Ctx<'a> {
         // handler region (`try: raise X / except X: ... / return v` — the
         // body always raises, so the flow is only reachable through the
         // handler). Include it so the function's tail is not lost.
-        if k2 < self.instrs.len() && self.instrs[k2].offset < limit {
+        if k2 < self.instrs.len()
+            && self.instrs[k2].offset < limit
+            // a normal handler exit (JUMP_FORWARD over the mismatch
+            // stubs) is NOT a sunk continuation — extending over it
+            // would swallow the exception-path as-cleanup
+            && !matches!(
+                self.instrs[k2].op,
+                Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+            )
+        {
             let mut m2 = k2;
             let mut saw_term = false;
             while m2 < self.instrs.len() {
@@ -2712,7 +2921,7 @@ impl<'a> Ctx<'a> {
         };
         // except* chain: clauses match with CHECK_EG_MATCH and the
         // epilogue re-raises via PREP_RERAISE_STAR
-        let is_star_chain = self.instrs[i..]
+        let _is_star_chain = self.instrs[i..]
             .iter()
             .take(80)
             .any(|x| x.op == Op::CHECK_EG_MATCH || x.op == Op::PREP_RERAISE_STAR);
@@ -12004,8 +12213,33 @@ impl<'a> Ctx<'a> {
             // nested loops' back edges first). Such jumps are suppressed
             // -exception continuations (with/try), not `while True` edges.
             let mut handler_origin = false;
+            // chain heads the body jumps OVER: their dead handler code
+            // (PUSH_EXC_INFO etc.) must not count as live back-scan hits
+            let mut skipped_chains: Vec<(usize, usize)> = Vec::new();
+            for ins in &self.instrs[ti..bi] {
+                if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP)
+                    && ins.target.map_or(false, |t| t > ins.offset)
+                {
+                    if let Some(&hi) = self.idx_of.get(&ins.offset) {
+                        if self.instrs[hi + 1..]
+                            .iter()
+                            .take(3)
+                            .any(|x| x.op == Op::PUSH_EXC_INFO)
+                        {
+                            let ext = self.chain_extent(ins.offset + 2);
+                            skipped_chains.push((ins.offset, ext.max(ins.offset + 2)));
+                        }
+                    }
+                }
+            }
             for k in (ti..bi).rev() {
                 let ins = &self.instrs[k];
+                if skipped_chains
+                    .iter()
+                    .any(|(js, je)| ins.offset > *js && ins.offset < *je)
+                {
+                    continue;
+                }
                 if ins.op == Op::PUSH_EXC_INFO {
                     handler_origin = true;
                     break;

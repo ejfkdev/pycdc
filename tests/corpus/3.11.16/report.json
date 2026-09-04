@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 7,
-  "SIG-DIFF": 33
+  "PASS": 8,
+  "SIG-DIFF": 32
  },
  "results": [
   {
@@ -46,9 +46,9 @@
    "module": "_compression",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 283,
-   "ntotal": 617,
-   "detail": "line 332: orig ('NOP', '') | got ('LOAD_FAST', 'self')\nline 333: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', '_decompressor')\nline 334: orig ('LOAD_ATTR', '_decompressor') | got ('LOAD_ATTR', 'eof')"
+   "ndiff": 82,
+   "ntotal": 619,
+   "detail": "line 336: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 334') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 198')\nline 371: orig ('JUMP_FORWARD', 'to 514') | got ('JUMP_FORWARD', 'to 334')\nline 379: orig ('JUMP_FORWARD', 'to 522') | got ('JUMP_FORWARD', 'to 334')"
   },
   {
    "module": "_markupbase",
@@ -62,7 +62,7 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1295,
+   "ndiff": 1285,
    "ntotal": 1551,
    "detail": "line 234: orig ('LOAD_GLOBAL', 'NULL + os') | got ('LOAD_CONST', 'None')\nline 235: orig ('LOAD_ATTR', 'system') | got ('LOAD_CONST', 'None')\nline 236: orig ('LOAD_FAST', 'cmd') | got ('LOAD_CONST', 'None')"
   },
@@ -74,7 +74,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 32: orig  body=[Return(value=BinOp(left=Constant(value='Use %s() or %s to exit') | dec  body=[Return(value=JoinedStr(values=[Constant(value='Use ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 233,
+   "ndiff": 214,
    "ntotal": 399,
    "detail": "line 87: orig ('JUMP_FORWARD', 'to 80') | got ('LOAD_GLOBAL', 'NULL + SystemExit')\nline 88: orig ('PUSH_EXC_INFO', '') | got ('LOAD_FAST', 'code')\nline 89: orig ('POP_TOP', '') | got ('PRECALL', '')"
   },
@@ -100,11 +100,7 @@
   },
   {
    "module": "_weakrefset",
-   "ast_detail": "diff at token 44: orig  If(test=Compare(left=Name(id='w' | dec  If(test=UnaryOp(op=Not()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 59,
-   "ntotal": 1027,
-   "detail": "line 312: orig ('NOP', '') | got ('PUSH_NULL', '')\nline 313: orig ('PUSH_NULL', '') | got ('LOAD_FAST', 'pop')\nline 314: orig ('LOAD_FAST', 'pop') | got ('PRECALL', '')"
+   "verdict": "PASS"
   },
   {
    "module": "abc",
@@ -118,7 +114,7 @@
    "module": "aifc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2097,
+   "ndiff": 3028,
    "ntotal": 3700,
    "detail": "line 571: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 572: orig ('COPY', '') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 266')\nline 573: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },
@@ -194,8 +190,8 @@
    "module": "cgitb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2859,
-   "ntotal": 3229,
+   "ndiff": 3268,
+   "ntotal": 3643,
    "detail": "line 337: orig ('MAKE_CELL', 'file') | got ('MAKE_CELL', 'highlight')\nline 338: orig ('MAKE_CELL', 'highlight') | got ('RESUME', '')\nline 339: orig ('RESUME', '') | got ('LOAD_FAST', 'einfo')"
   },
   {
@@ -218,16 +214,16 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 703,
-   "ntotal": 735,
+   "ndiff": 682,
+   "ntotal": 715,
    "detail": "line 13: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 17: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "codecs",
    "ast_detail": "diff at token 209: orig  If(test=Compare(left=Name(id='_is_text_encoding' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1685,
-   "ntotal": 2328,
+   "ndiff": 1655,
+   "ntotal": 2331,
    "detail": "line 317: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, None, None, None)')\nline 318: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 319: orig ('LOAD_CONST', '(None, None, None, None, None)') | got ('LOAD_CONST', \"('_is_text_encoding',)\")"
   },
   {

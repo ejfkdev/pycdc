@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 5,
-  "SIG-DIFF": 30,
-  "INCOMPLETE": 5
+  "SIG-DIFF": 33,
+  "INCOMPLETE": 2
  },
  "results": [
   {
@@ -57,8 +57,11 @@
   },
   {
    "module": "_colorize",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: invalid syntax"
+   "ast_detail": "",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1616,
+   "ntotal": 1725,
+   "detail": "line 1: orig ('MAKE_CELL', '__conditional_annotations__') | got ('RESUME', '')\nline 2: orig ('RESUME', '') | got ('LOAD_CONST', '<code __annotate__>')\nline 3: orig ('LOAD_CONST', '<code __annotate__>') | got ('MAKE_FUNCTION', '')"
   },
   {
    "module": "_compat_pickle",
@@ -166,8 +169,11 @@
   },
   {
    "module": "annotationlib",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: invalid syntax"
+   "ast_detail": "",
+   "verdict": "SIG-DIFF",
+   "ndiff": 4034,
+   "ntotal": 4129,
+   "detail": "line 56: orig ('LOAD_NAME', 'type') | got ('NOP', '')\nline 57: orig ('PUSH_NULL', '') | got ('LOAD_NAME', 'type')\nline 58: orig ('LOAD_CONST', \"('',)\") | got ('PUSH_NULL', '')"
   },
   {
    "module": "ast",
@@ -265,8 +271,11 @@
   },
   {
    "module": "configparser",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: invalid syntax"
+   "ast_detail": "",
+   "verdict": "SIG-DIFF",
+   "ndiff": 4872,
+   "ntotal": 5073,
+   "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_SMALL_INT', '')"
   },
   {
    "module": "contextlib",

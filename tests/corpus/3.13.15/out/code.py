@@ -286,6 +286,7 @@ a default message is printed.
                     self.write('%s\n' % exitmsg)
             more = self.push(line)
             try:
+                # WARNING: unrecovered try/except structure
                 continue
             finally:
                 if SystemExit:

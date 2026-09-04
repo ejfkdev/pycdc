@@ -270,26 +270,33 @@ class Hook:
                     with os.fdopen(fd, 'w') as file:
                         file.write(doc)
                 finally:
-                    file = None
-                    file.write(doc)
                     try:
-                        pass
+                        file = None
+                        file.write(doc)
+                        try:
+                            pass
+                        finally:
+                            try:
+                                if not None:
+                                    pass
+                                try:
+                                    msg = '%s contains the description of this error.' % path
+                                finally:
+                                    msg = 'Tried to save traceback to %s, but failed.' % path
+                                    if self.format == 'html':
+                                        self.file.write('<p>%s</p>\n' % msg)
+                                    else:
+                                        self.file.write(msg + '\n')
+                                    try:
+                                        self.file.flush()
+                                    finally:
+                                        return
+                                    return
+                            finally:
+                                msg = 'Tried to save traceback to %s, but failed.' % path
                     finally:
                         if not None:
                             pass
-                        try:
-                            msg = '%s contains the description of this error.' % path
-                        finally:
-                            msg = 'Tried to save traceback to %s, but failed.' % path
-                            if self.format == 'html':
-                                self.file.write('<p>%s</p>\n' % msg)
-                            else:
-                                self.file.write(msg + '\n')
-                            try:
-                                self.file.flush()
-                            finally:
-                                return
-                            return
         if self.display:
             if plain:
                 doc = pydoc.html.escape(doc)
@@ -305,26 +312,33 @@ class Hook:
                 with os.fdopen(fd, 'w') as file:
                     file.write(doc)
             finally:
-                file = None
-                file.write(doc)
                 try:
-                    pass
+                    file = None
+                    file.write(doc)
+                    try:
+                        pass
+                    finally:
+                        try:
+                            if not None:
+                                pass
+                            try:
+                                msg = '%s contains the description of this error.' % path
+                            finally:
+                                msg = 'Tried to save traceback to %s, but failed.' % path
+                                if self.format == 'html':
+                                    self.file.write('<p>%s</p>\n' % msg)
+                                else:
+                                    self.file.write(msg + '\n')
+                                try:
+                                    self.file.flush()
+                                finally:
+                                    return
+                                return
+                        finally:
+                            msg = 'Tried to save traceback to %s, but failed.' % path
                 finally:
                     if not None:
                         pass
-                    try:
-                        msg = '%s contains the description of this error.' % path
-                    finally:
-                        msg = 'Tried to save traceback to %s, but failed.' % path
-                        if self.format == 'html':
-                            self.file.write('<p>%s</p>\n' % msg)
-                        else:
-                            self.file.write(msg + '\n')
-                        try:
-                            self.file.flush()
-                        finally:
-                            return
-                        return
             try:
                 None
                 msg = '%s contains the description of this error.' % path

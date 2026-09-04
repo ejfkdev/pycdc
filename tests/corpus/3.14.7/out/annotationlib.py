@@ -207,7 +207,8 @@ If the forward reference cannot be evaluated, raise an exception.
         return f'ForwardRef({self.__resolved_str__!r}{''.join(extra)})'
 
 
-/* unknown opcode: BUILD_TEMPLATE  @154 */
+# UNIMPLEMENTED: unknown opcode: BUILD_TEMPLATE  @154
+pass
 _Template = type(())
 
 class _Stringifier:
@@ -418,7 +419,8 @@ def _template_to_ast_constructor(template):
 
     args = []
     for part in template:
-        /* match/case: MATCH_CLASS 0 @30 */
+        # UNIMPLEMENTED: match/case: MATCH_CLASS 0 @30
+        pass
         if not () is None:
             args.append(ast.Constant(value=part))
             continue
@@ -433,7 +435,8 @@ def _template_to_ast_literal(template, parsed):
     values = []
     interp_count = 0
     for part in template:
-        /* match/case: MATCH_CLASS 0 @34 */
+        # UNIMPLEMENTED: match/case: MATCH_CLASS 0 @34
+        pass
         if not () is None:
             values.append(ast.Constant(value=part))
             continue

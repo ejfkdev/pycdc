@@ -108,15 +108,23 @@ methods.
     def __annotate_func__(format, /):
         if format > 2:
             raise None
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26 */
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @30 */
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @34 */
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 3 @38 */
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @42 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
+        pass
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @30
+        pass
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @34
+        pass
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 3 @38
+        pass
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @42
+        pass
         {}['__dataclass_fields__'] = __classdict__[__classdict__[__classdict__, __classdict__[__classdict__]]]
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 4 @92 */
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @96 */
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @102 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 4 @92
+        pass
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @96
+        pass
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @102
+        pass
         {}['_name_to_value'] = __classdict__[[__classdict__], __classdict__]
         return {}
 
@@ -139,31 +147,44 @@ class Argparse(ThemeSection):
     def __annotate_func__(format, /):
         if format > 2:
             raise None
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
+        pass
         {}['usage'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38
+        pass
         {}['prog'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50
+        pass
         {}['prog_extra'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62
+        pass
         {}['heading'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74
+        pass
         {}['summary_long_option'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @86 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @86
+        pass
         {}['summary_short_option'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @98 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @98
+        pass
         {}['summary_label'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @110 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @110
+        pass
         {}['summary_action'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @122 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @122
+        pass
         {}['long_option'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @134 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @134
+        pass
         {}['short_option'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @146 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @146
+        pass
         {}['label'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @158 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @158
+        pass
         {}['action'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @170 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @170
+        pass
         {}['reset'] = __classdict__
         return {}
 
@@ -184,27 +205,38 @@ class Syntax(ThemeSection):
     def __annotate_func__(format, /):
         if format > 2:
             raise None
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
+        pass
         {}['prompt'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38
+        pass
         {}['keyword'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50
+        pass
         {}['keyword_constant'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62
+        pass
         {}['builtin'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74
+        pass
         {}['comment'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @86 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @86
+        pass
         {}['string'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @98 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @98
+        pass
         {}['number'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @110 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @110
+        pass
         {}['op'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @122 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @122
+        pass
         {}['definition'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @134 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @134
+        pass
         {}['soft_keyword'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @146 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @146
+        pass
         {}['reset'] = __classdict__
         return {}
 
@@ -222,21 +254,29 @@ class Traceback(ThemeSection):
     def __annotate_func__(format, /):
         if format > 2:
             raise None
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
+        pass
         {}['type'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38
+        pass
         {}['message'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50
+        pass
         {}['filename'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62
+        pass
         {}['line_no'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74
+        pass
         {}['frame'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @86 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @86
+        pass
         {}['error_highlight'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @98 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @98
+        pass
         {}['error_range'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @110 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @110
+        pass
         {}['reset'] = __classdict__
         return {}
 
@@ -251,15 +291,20 @@ class Unittest(ThemeSection):
     def __annotate_func__(format, /):
         if format > 2:
             raise None
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
+        pass
         {}['passed'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38
+        pass
         {}['warn'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50
+        pass
         {}['fail'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62
+        pass
         {}['fail_info'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74
+        pass
         {}['reset'] = __classdict__
         return {}
 
@@ -299,13 +344,17 @@ and possible, and empty strings otherwise.
     def __annotate_func__(format, /):
         if format > 2:
             raise None
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
+        pass
         {}['argparse'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @38 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @38
+        pass
         {}['syntax'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @50 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @50
+        pass
         {}['traceback'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 3 @62 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 3 @62
+        pass
         {}['unittest'] = __classdict__
         return {}
 

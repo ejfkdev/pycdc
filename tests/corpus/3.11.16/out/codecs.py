@@ -411,33 +411,32 @@ class StreamReader(Codec):
             self.linebuffer = None
         if chars < 0:
             chars = size
-        if chars >= 0 and len(self.charbuffer) >= chars:
-            pass
-        else:
+        while True:
+            if chars >= 0 and len(self.charbuffer) >= chars:
+                break
             if size < 0:
                 newdata = self.stream.read()
             else:
                 newdata = self.stream.read(size)
             data = self.bytebuffer + newdata
             if not data:
-                pass
-            else:
-                try:
-                    newchars, decodedbytes = self.decode(data, self.errors)
-                except UnicodeDecodeError as exc:
-                    if firstline:
-                        newchars, decodedbytes = self.decode(data[:exc.start], self.errors)
-                        lines = newchars.splitlines(keepends=True)
-                        if len(lines) <= 1:
-                            raise
-                    else:
+                break
+            try:
+                newchars, decodedbytes = self.decode(data, self.errors)
+            except UnicodeDecodeError as exc:
+                if firstline:
+                    newchars, decodedbytes = self.decode(data[:exc.start], self.errors)
+                    lines = newchars.splitlines(keepends=True)
+                    if len(lines) <= 1:
                         raise
-                    exc = None
-                    del exc
-        self.bytebuffer = data[decodedbytes:]
-        self.charbuffer += newchars
-        if not newdata:
-            pass
+                else:
+                    raise
+                exc = None
+                del exc
+            self.bytebuffer = data[decodedbytes:]
+            self.charbuffer += newchars
+            if not newdata:
+                break
         if chars < 0:
             result = self.charbuffer
             self.charbuffer = self._empty_charbuffer
@@ -991,4 +990,3 @@ if _false:
 if __name__ == '__main__':
     sys.stdout = EncodedFile(sys.stdout, 'latin-1', 'utf-8')
     sys.stdin = EncodedFile(sys.stdin, 'utf-8', 'latin-1')
-# WARNING: Decompyle incomplete

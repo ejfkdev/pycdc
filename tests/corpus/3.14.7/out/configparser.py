@@ -514,23 +514,34 @@ class _ReadState:
     def __annotate_func__(format, /):
         if format > 2:
             raise None
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26 */
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @30 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
+        pass
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @30
+        pass
         {}['elements_added'] = __classdict__[__classdict__]
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @54 */
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @58 */
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @62 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @54
+        pass
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @58
+        pass
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @62
+        pass
         {}['cursect'] = __classdict__[__classdict__, __classdict__] | None
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @102 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @102
+        pass
         {}['sectname'] = __classdict__ | None
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @128 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @128
+        pass
         {}['optname'] = __classdict__ | None
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 3 @154 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 3 @154
+        pass
         {}['lineno'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 3 @166 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 3 @166
+        pass
         {}['indent_level'] = __classdict__
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 4 @178 */
-        /* unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 5 @182 */
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 4 @178
+        pass
+        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 5 @182
+        pass
         {}['errors'] = __classdict__[__classdict__]
         return {}
 
