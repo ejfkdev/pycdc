@@ -916,10 +916,9 @@ class Sequence(Reversible, Collection):
     def __iter__(self):
         i = 0
         try:
-            while True:
-                v = self[i]
-                yield v
-                i += 1
+            v = self[i]
+            yield v
+            i += 1
         except IndexError:
             return
 

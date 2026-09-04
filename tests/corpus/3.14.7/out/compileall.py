@@ -196,12 +196,9 @@ hardlink_dupes: hardlink duplicated pyc files
                             pass
                         except OSError:
                             pass
-                    except py_compile./*bad-name-80*/:
-                        err = None
+                    except py_compile./*bad-name-80*/ as err:
                         success = False
                         if quiet >= 2:
-                            err = None
-                            del err
                             return success
                         if quiet:
                             print('*** Error compiling {!r}...'.format(fullname))
@@ -220,12 +217,9 @@ hardlink_dupes: hardlink duplicated pyc files
                             pass
                         except OSError:
                             pass
-                    except py_compile./*bad-name-80*/:
-                        err = None
+                    except py_compile./*bad-name-80*/ as err:
                         success = False
                         if quiet >= 2:
-                            err = None
-                            del err
                             return success
                         if quiet:
                             print('*** Error compiling {!r}...'.format(fullname))
@@ -251,12 +245,9 @@ hardlink_dupes: hardlink duplicated pyc files
                             else:
                                 try:
                                     pass
-                                except py_compile./*bad-name-80*/:
-                                    err = None
+                                except py_compile./*bad-name-80*/ as err:
                                     success = False
                                     if quiet >= 2:
-                                        err = None
-                                        del err
                                         return success
                                     if quiet:
                                         print('*** Error compiling {!r}...'.format(fullname))
@@ -275,12 +266,9 @@ hardlink_dupes: hardlink duplicated pyc files
                                 else:
                                     try:
                                         previous_cfile = opt_cfiles[optimize[index - 1]]
-                                    except py_compile./*bad-name-80*/:
-                                        err = None
+                                    except py_compile./*bad-name-80*/ as err:
                                         success = False
                                         if quiet >= 2:
-                                            err = None
-                                            del err
                                             return success
                                         if quiet:
                                             print('*** Error compiling {!r}...'.format(fullname))

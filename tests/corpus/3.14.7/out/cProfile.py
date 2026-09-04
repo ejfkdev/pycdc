@@ -150,12 +150,9 @@ def main():
         globs.update({'__spec__': spec, '__file__': spec.origin, '__name__': spec.name, '__package__': None, '__cached__': None})
         try:
             runctx(code, globs, None, options.outfile, options.sort)
-        except BrokenPipeError:
-            exc = None
+        except BrokenPipeError as exc:
             sys.stdout = None
             sys.exit(exc.errno)
-            exc = None
-            del exc
             return parser
         return parser
     parser.print_usage()

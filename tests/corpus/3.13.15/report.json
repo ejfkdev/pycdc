@@ -39,7 +39,7 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3656,
+   "ndiff": 3488,
    "ntotal": 3732,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -116,7 +116,7 @@
    "module": "_strptime",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2832,
+   "ndiff": 2841,
    "ntotal": 2941,
    "detail": "line 49: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 53: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 54: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -185,7 +185,7 @@
    "module": "calendar",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3326,
+   "ndiff": 3284,
    "ntotal": 3430,
    "detail": "line 13: orig ('LOAD_CONST', \"('IntEnum', 'global_enum')\") | got ('LOAD_CONST', \"('IntEnum',)\")\nline 17: orig ('IMPORT_FROM', 'global_enum') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'global_enum') | got ('LOAD_CONST', '0')"
   },
@@ -242,7 +242,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 54: orig  body=[Return(value=Constant(value=None))] | dec  decorator_list=[Attribute(value=Name(id='abc'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2144,
+   "ndiff": 2140,
    "ntotal": 2204,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },

@@ -170,8 +170,6 @@ class AsyncGenerator(AsyncIterator):
         When exhausted, raise StopAsyncIteration.
         '''
 
-        while True:
-            pass
         return await self.asend(None)
 
     @abstractmethod
@@ -201,8 +199,6 @@ class AsyncGenerator(AsyncIterator):
         '''
 
         try:
-            while True:
-                pass
             await self.athrow(GeneratorExit)
         except (GeneratorExit, StopAsyncIteration):
             return
@@ -754,9 +750,7 @@ class KeysView(MappingView, Set):
         return key in self._mapping
 
     def __iter__(self):
-        while True:
-            pass
-        yield None
+        yield from self._mapping
 
 
 KeysView.register(dict_keys)
@@ -900,10 +894,9 @@ class Sequence(Reversible, Collection):
     def __iter__(self):
         i = 0
         try:
-            while True:
-                v = self[i]
-                yield v
-                i += 1
+            v = self[i]
+            yield v
+            i += 1
         except IndexError:
             return
 

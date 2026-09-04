@@ -27,8 +27,8 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3612,
-   "ntotal": 3688,
+   "ndiff": 3602,
+   "ntotal": 3698,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
   {
@@ -88,7 +88,7 @@
    "module": "_strptime",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2189,
+   "ndiff": 2177,
    "ntotal": 2287,
    "detail": "line 41: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 45: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 46: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -162,7 +162,7 @@
    "module": "calendar",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3311,
+   "ndiff": 3323,
    "ntotal": 3395,
    "detail": "line 13: orig ('LOAD_CONST', \"('IntEnum', 'global_enum')\") | got ('LOAD_CONST', \"('IntEnum',)\")\nline 17: orig ('IMPORT_FROM', 'global_enum') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'global_enum') | got ('LOAD_CONST', '0')"
   },
@@ -227,7 +227,7 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1433,
+   "ndiff": 1435,
    "ntotal": 1501,
    "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
@@ -243,7 +243,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 63: orig  body=[Return(value=Constant(value=None))] | dec  body=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2130,
+   "ndiff": 2111,
    "ntotal": 2190,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },

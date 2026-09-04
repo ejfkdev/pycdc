@@ -433,11 +433,8 @@ The result is returned as a bytes object.
     s = s.translate(_z85_decode_translation)
     try:
         pass
-    except ValueError:
-        e = None
+    except ValueError as e:
         raise ValueError(e.args[0].replace('base85', 'z85')) from None
-        e = None
-        del e
     return b85decode(s)
 
 MAXLINESIZE = 76
@@ -462,12 +459,9 @@ def decode(input, output):
 def _input_type_check(s):
     try:
         m = memoryview(s)
-    except TypeError:
-        err = None
+    except TypeError as err:
         msg = 'expected bytes-like object, not %s' % s.__class__.__name__
         raise TypeError(msg) from err
-        err = None
-        del err
     if m.format not in ('c', 'b', 'B'):
         msg = f'expected single byte elements, not {m.format!r} from {s.__class__.__name__!s}'
         raise TypeError(msg)

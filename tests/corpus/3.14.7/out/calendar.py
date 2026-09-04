@@ -197,15 +197,10 @@ the specified month the day number is 0.
 
         day1, ndays = monthrange(year, month)
         days_before = (day1 - self.firstweekday) % 7
-        while True:
-            yield None
-            while True:
-                while True:
-                    yield None
-                days_after = (self.firstweekday - day1 - ndays) % 7
-                while True:
-                    yield None
-                return
+        yield from repeat(0, days_before)
+        yield from range(1, ndays + 1)
+        days_after = (self.firstweekday - day1 - ndays) % 7
+        yield from repeat(0, days_after)
 
     def itermonthdays2(self, year, month):
         '''

@@ -33,22 +33,18 @@ def _findall(haystack, needle):
     if not needle:
         return
     i = 0
-    while True:
-        i = haystack.find(needle, i)
-        if i < 0:
-            return
-        yield i
-        i += len(needle)
+    i = haystack.find(needle, i)
+    if i < 0:
+        return
+    yield i
+    i += len(needle)
 
 def _fixmonths(months):
-    while True:
-        while True:
-            months
-            for s in months:
-                if not 'i̇' in s:
-                    continue
-                yield s.replace('i̇', 'İ')
-            return
+    yield from months
+    for s in months:
+        if not 'i̇' in s:
+            continue
+        yield s.replace('i̇', 'İ')
 
 lzh_TW_alt_digits = ('〇', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '廿', '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '卅', '卅一')
 

@@ -89,12 +89,6 @@ class AsyncContextDecorator(object):
         @wraps(func)
         async def inner(*args, **kwds):
             async with self._recreate_cm():
-                while True:
-                    pass
-                while True:
-                    pass
-                while True:
-                    pass
                 await None(None, None)
                 return
                 return
@@ -156,8 +150,7 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
     async def __aenter__(self):
         del self.args, self.kwds, self.func
         try:
-            while True:
-                pass
+            pass
         except StopAsyncIteration:
             raise RuntimeError("generator didn't yield") from None
         return await anext(self.gen)
@@ -165,8 +158,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
     async def __aexit__(self, typ, value, traceback):
         if not typ is not None:
             try:
-                while True:
-                    pass
                 await anext(self.gen)
             except StopAsyncIteration:
                 return False
@@ -175,8 +166,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         if not value is not None:
             value = typ()
         try:
-            while True:
-                pass
             await self.gen.athrow(typ, value, traceback)
         except StopAsyncIteration as exc:
             return exc is not value
@@ -308,8 +297,6 @@ class aclosing(AbstractAsyncContextManager):
         return self.thing
 
     async def __aexit__(self, *exc_info):
-        while True:
-            pass
         await self.thing.aclose()
 
 
@@ -538,8 +525,6 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
     @staticmethod
     def _create_async_cb_wrapper(callback, /, *args, **kwds):
         async def _exit_wrapper(exc_type, exc, tb):
-            while True:
-                pass
             await callback(*args, **kwds)
 
         return _exit_wrapper
@@ -557,8 +542,6 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             _exit = cls.__aexit__
         except AttributeError:
             raise TypeError(f'\'{cls.__module__}.{cls.__qualname__}\' object does not support the asynchronous context manager protocol') from None
-        while True:
-            pass
         result = await _enter(cm)
         self._push_async_cm_exit(cm, _exit)
         return result
@@ -592,10 +575,6 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         return callback
 
     async def aclose(self):
-        '''Immediately unwind the context stack.'''
-
-        while True:
-            pass
         await self.__aexit__(None, None, None)
 
     def _push_async_cm_exit(self, cm, cm_exit):
@@ -628,9 +607,6 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             try:
                 if is_sync:
                     cb_suppress = cb(*exc_details)
-                else:
-                    while True:
-                        pass
                 cb_suppress = await cb(*exc_details)
                 if cb_suppress:
                     suppressed_exc = True

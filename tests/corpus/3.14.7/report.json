@@ -51,7 +51,7 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3980,
+   "ndiff": 3390,
    "ntotal": 4049,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_SMALL_INT', '')"
   },
@@ -108,7 +108,7 @@
    "module": "_py_warnings",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2791,
+   "ndiff": 2766,
    "ntotal": 3167,
    "detail": "line 322: orig ('LOAD_GLOBAL', '_wm') | got ('NOP', '')\nline 323: orig ('LOAD_ATTR', 'filters') | got ('LOAD_GLOBAL', '_wm')\nline 324: orig ('RETURN_VALUE', '') | got ('LOAD_ATTR', 'filters')"
   },
@@ -132,7 +132,7 @@
    "module": "_strptime",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3065,
+   "ndiff": 2809,
    "ntotal": 3196,
    "detail": "line 49: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 53: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 54: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_SMALL_INT', '')"
   },
@@ -186,7 +186,7 @@
    "module": "bdb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3622,
+   "ndiff": 3624,
    "ntotal": 4001,
    "detail": "line 31: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 35: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 36: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_SMALL_INT', '')"
   },
@@ -218,7 +218,7 @@
    "module": "calendar",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4174,
+   "ndiff": 4160,
    "ntotal": 4326,
    "detail": "line 13: orig ('LOAD_CONST', \"('IntEnum', 'global_enum')\") | got ('LOAD_CONST', \"('IntEnum',)\")\nline 17: orig ('IMPORT_FROM', 'global_enum') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'global_enum') | got ('LOAD_SMALL_INT', '')"
   },
@@ -234,15 +234,15 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4018,
-   "ntotal": 4059,
+   "ndiff": 4008,
+   "ntotal": 4061,
    "detail": "line 17: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 21: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'compile_command') | got ('LOAD_SMALL_INT', '')"
   },
   {
    "module": "codecs",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2278,
+   "ndiff": 2288,
    "ntotal": 2373,
    "detail": "line 18: orig ('BUILD_LIST', '') | got ('NOP', '')\nline 19: orig ('LOAD_CONST', \"'register'\") | got ('BUILD_LIST', '')\nline 20: orig ('LIST_APPEND', '') | got ('LOAD_CONST', \"'register'\")"
   },
@@ -250,7 +250,7 @@
    "module": "codeop",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 313,
+   "ndiff": 314,
    "ntotal": 411,
    "detail": "line 88: orig ('FOR_ITER', 'to L4') | got ('FOR_ITER', 'to L3')\nline 95: orig ('TO_BOOL', '') | got ('LOAD_SMALL_INT', '')\nline 96: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('BINARY_OP', '[]')"
   },

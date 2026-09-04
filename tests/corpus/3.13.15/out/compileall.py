@@ -50,9 +50,7 @@ def _walk_dir(dir, maxlevels, quiet=0):
             continue
         if os.path.islink(fullname):
             continue
-        while True:
-            pass
-        _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
+        yield from _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     '''Byte-compile all modules in the given directory tree.

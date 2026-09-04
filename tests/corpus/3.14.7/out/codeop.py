@@ -54,10 +54,7 @@ def _maybe_compile(compiler, source, filename, symbol, flags):
     except SyntaxError:
         try:
             compiler(source + '\n', filename, symbol, flags=flags)
-        except _IncompleteInputError:
-            e = None
-            e = None
-            del e
+        except _IncompleteInputError as e:
             None(None, None, None)
             return
     None(None, None, None)

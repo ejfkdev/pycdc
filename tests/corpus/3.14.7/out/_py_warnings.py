@@ -279,12 +279,10 @@ def _processoptions(args):
     for arg in args:
         try:
             _wm._setoption(arg)
-        except _wm.sys:
-            msg = None
+        except _wm.sys as msg:
             print('Invalid -W option ignored:', msg, file=sys.stderr)
             msg = None
-            del msg, msg
-            msg = None
+            del msg
 
 def _setoption(arg):
     parts = arg.split(':')

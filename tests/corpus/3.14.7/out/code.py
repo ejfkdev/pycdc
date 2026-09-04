@@ -141,8 +141,7 @@ The output is written by self.write(), below.
             sys.excepthook(typ, value, tb)
         except SystemExit:
             raise
-        except BaseException:
-            e = None
+        except BaseException as e:
             e.__context__ = None
             e = e.with_traceback(e.__traceback__.tb_next)
             print('Error in sys.excepthook:', file=sys.stderr)
@@ -150,8 +149,6 @@ The output is written by self.write(), below.
             print(file=sys.stderr)
             print('Original exception was:', file=sys.stderr)
             sys.__excepthook__(typ, value, tb)
-            e = None
-            del e
             return
 
     def _excepthook(self, typ, value, tb):

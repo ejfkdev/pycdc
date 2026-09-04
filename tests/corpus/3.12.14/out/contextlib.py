@@ -89,14 +89,8 @@ class AsyncContextDecorator(object):
         @wraps(func)
         async def inner(*args, **kwds):
             async with self._recreate_cm():
-                while True:
-                    while True:
-                        while True:
-                            pass
-                        while True:
-                            pass
-                        await None(None, None)
-                        return
+                await None(None, None)
+                return
 
         return inner
 
@@ -156,37 +150,45 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
 
     async def __aenter__(self):
         del self.args, self.kwds, self.func
-        while True:
-            while True:
-                return await anext(self.gen)
-                try:
-                    pass
-                except StopAsyncIteration:
-                    raise RuntimeError("generator didn't yield") from None
+        try:
+            pass
+        except StopAsyncIteration:
+            raise RuntimeError("generator didn't yield") from None
+        try:
+            pass
+        except StopAsyncIteration:
+            raise RuntimeError("generator didn't yield") from None
+        return await anext(self.gen)
 
     async def __aexit__(self, typ, value, traceback):
         if not typ is not None:
-            while True:
-                while True:
-                    await anext(self.gen)
-                    # WARNING: unrecovered try/except structure
-                    raise RuntimeError("generator didn't stop")
-                    if not value is not None:
-                        value = typ()
-                    try:
-                        while True:
-                            try:
-                                await self.gen.athrow(value)
-                            except StopAsyncIteration as exc:
-                                return exc is not value
-                    finally:
-                        try:
-                            raise RuntimeError("generator didn't stop after athrow()")
-                        except StopAsyncIteration:
-                            return False
-                        finally:
-                            if StopAsyncIteration:
-                                None
+            try:
+                pass
+            except StopAsyncIteration:
+                return False
+            try:
+                await anext(self.gen)
+            except StopAsyncIteration:
+                return False
+            # WARNING: unrecovered try/except structure
+            raise RuntimeError("generator didn't stop")
+        if not value is not None:
+            value = typ()
+        try:
+            pass
+        except StopAsyncIteration as exc:
+            return exc is not value
+        try:
+            await self.gen.athrow(value)
+        except StopAsyncIteration as exc:
+            return exc is not value
+        try:
+            raise RuntimeError("generator didn't stop after athrow()")
+        except StopAsyncIteration:
+            return False
+        finally:
+            if StopAsyncIteration:
+                None
 
 
 def contextmanager(func):
@@ -311,10 +313,7 @@ class aclosing(AbstractAsyncContextManager):
         return self.thing
 
     async def __aexit__(self, *exc_info):
-        while True:
-            while True:
-                await self.thing.aclose()
-                return
+        await self.thing.aclose()
 
 
 class _RedirectStream(AbstractContextManager):
@@ -536,10 +535,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
     @staticmethod
     def _create_async_cb_wrapper(callback, /, *args, **kwds):
         async def _exit_wrapper(exc_type, exc, tb):
-            while True:
-                while True:
-                    await callback(*args, **kwds)
-                    return
+            await callback(*args, **kwds)
 
         return _exit_wrapper
 
@@ -556,8 +552,6 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             _exit = cls.__aexit__
         except AttributeError:
             raise TypeError(f"'{cls.__module__}.{cls.__qualname__}' object does not support the asynchronous context manager protocol") from None
-        while True:
-            pass
         result = await _enter(cm)
         self._push_async_cm_exit(cm, _exit)
         return result
@@ -592,12 +586,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         return callback
 
     async def aclose(self):
-        '''Immediately unwind the context stack.'''
-
-        while True:
-            while True:
-                await self.__aexit__(None, None, None)
-                return
+        await self.__aexit__(None, None, None)
 
     def _push_async_cm_exit(self, cm, cm_exit):
         '''Helper to correctly register coroutine function to __aexit__
@@ -626,21 +615,15 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         pending_raise = False
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
-            try:
-                if is_sync:
-                    cb_suppress = cb(*exc_details)
-                else:
-                    while True:
-                        # WARNING: unrecovered try/except structure
-                        cb_suppress = await cb(*exc_details)
-                        if cb_suppress:
-                            suppressed_exc = True
-                            pending_raise = False
-                            exc_details = (None, None, None)
-            finally:
-                if not self._exit_callbacks:
-                    break
-                continue
+            # WARNING: unrecovered try/except structure
+            if is_sync:
+                cb_suppress = cb(*exc_details)
+            # WARNING: unrecovered try/except structure
+            cb_suppress = await cb(*exc_details)
+            if cb_suppress:
+                suppressed_exc = True
+                pending_raise = False
+                exc_details = (None, None, None)
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__

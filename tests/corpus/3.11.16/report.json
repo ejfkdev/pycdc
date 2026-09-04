@@ -30,8 +30,8 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3767,
-   "ntotal": 3887,
+   "ndiff": 2458,
+   "ntotal": 3889,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
   {
@@ -178,7 +178,7 @@
    "module": "calendar",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2804,
+   "ndiff": 2807,
    "ntotal": 3519,
    "detail": "line 605: orig ('SWAP', '') | got ('COMPARE_OP', '<=')\nline 606: orig ('COPY', '') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 82')\nline 607: orig ('COMPARE_OP', '<=') | got ('LOAD_FAST', 'year')"
   },
@@ -246,7 +246,7 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1477,
+   "ndiff": 1486,
    "ntotal": 1565,
    "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
@@ -262,8 +262,8 @@
    "module": "contextlib",
    "ast_detail": "diff at token 62: orig  body=[Return(value=Constant(value=None))] | dec  body=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2182,
-   "ntotal": 2283,
+   "ndiff": 2129,
+   "ntotal": 2298,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
   {

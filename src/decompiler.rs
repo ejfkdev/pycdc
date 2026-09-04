@@ -1064,6 +1064,13 @@ impl<'a> Ctx<'a> {
                     let next = inst.target.unwrap_or(end);
                     clause_offsets.push(inst.offset);
                     pc += 1;
+                    // 3.14 pads the clause head with NOT_TAKEN
+                    while matches!(
+                        self.instrs.get(pc).map(|i| i.op),
+                        Some(Op::NOT_TAKEN) | Some(Op::NOP)
+                    ) {
+                        pc += 1;
+                    }
                     // optional `as name` store
                     let mut name = None;
                     if let Some(ninst) = self.instrs.get(pc) {
@@ -3822,6 +3829,90 @@ impl<'a> Ctx<'a> {
                 self.await_mode = true;
                 true
             }
+            Op::GET_YIELD_FROM_ITER if self.version.at_least(3, 11) => {
+                // 3.11+ delegation (`yield from`) / await protocol:
+                //   GET_YIELD_FROM_ITER; LOAD sent; SEND loop; END_SEND
+                // Emit the whole protocol as one YieldFrom/Await value or
+                // statement and skip the resume machinery. (<=3.10 uses
+                // the YIELD_FROM opcode and stays a plain no-op here.)
+                let it = self.pop_expr();
+                let is_placeholder =
+                    matches!(&*it, Expr::Name(n) if n == WITH_RESULT_PLACEHOLDER);
+                let expr = if is_placeholder {
+                    it
+                } else if self.code.is_coroutine() && !self.code.is_async_generator()
+                {
+                    Rc::new(Expr::Await(it))
+                } else {
+                    Rc::new(Expr::YieldFrom(it))
+                };
+                if let Some(&si) = self.idx_of.get(&inst.offset) {
+                    let mut end_send = None;
+                    let mut tail_pop = None;
+                    let mut send_target = None;
+                    let mut prev = inst.op;
+                    for k in si + 1..self.instrs.len().min(si + 40) {
+                        let nx = &self.instrs[k];
+                        if nx.op == Op::SEND && send_target.is_none() {
+                            send_target = nx.target;
+                        }
+                        if nx.op == Op::END_SEND {
+                            end_send = Some(k);
+                            break;
+                        }
+                        // 3.11 has no END_SEND: the protocol ends with the
+                        // POP_TOP right after the resume loop
+                        if nx.op == Op::POP_TOP
+                            && matches!(
+                                prev,
+                                Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    | Op::SEND
+                                    | Op::RESUME
+                                    | Op::YIELD_VALUE
+                            )
+                        {
+                            tail_pop = Some(k);
+                            break;
+                        }
+                        if matches!(nx.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                            break;
+                        }
+                        prev = nx.op;
+                    }
+                    if let Some(ei) = end_send {
+                        let after_pop = self
+                            .instrs
+                            .get(ei + 1)
+                            .filter(|a| a.op == Op::POP_TOP)
+                            .map(|a| a.end());
+                        let end_send_end = self.instrs[ei].end();
+                        if let Some(pop_end) = after_pop {
+                            self.push_stmt(Stmt::Expr(expr));
+                            self.skip_until = Some(pop_end);
+                        } else {
+                            self.push(expr);
+                            self.skip_until = Some(end_send_end);
+                        }
+                        return true;
+                    }
+                    if let Some(pi) = tail_pop {
+                        let pop_end = self.instrs[pi].end();
+                        self.push_stmt(Stmt::Expr(expr));
+                        self.skip_until = Some(pop_end);
+                        return true;
+                    }
+                    // value form without END_SEND (3.11): the SEND's jump
+                    // target is where the delegated value lands
+                    if let Some(st) = send_target {
+                        self.push(expr);
+                        self.skip_until = Some(st);
+                        return true;
+                    }
+                }
+                self.push(expr);
+                true
+            }
+            // <=3.10: the YIELD_FROM opcode arm models the delegation
             Op::GET_ITER | Op::GET_YIELD_FROM_ITER | Op::GET_AITER | Op::GET_ANEXT => true,
             Op::END_ASYNC_FOR => {
                 self.pop();
@@ -6957,6 +7048,22 @@ impl<'a> Ctx<'a> {
                 }
             }
             if handler_origin {
+                continue;
+            }
+            // generator/async resume machinery: SEND/YIELD loops are the
+            // interpreter's resumption protocol, never a source `while True`
+            if bj.op == Op::JUMP_BACKWARD_NO_INTERRUPT
+                || self.instrs[ti..bi].iter().any(|ins| {
+                    matches!(
+                        ins.op,
+                        Op::YIELD_VALUE
+                            | Op::YIELD_FROM
+                            | Op::SEND
+                            | Op::GET_YIELD_FROM_ITER
+                            | Op::CLEANUP_THROW
+                    )
+                })
+            {
                 continue;
             }
             let mut breaks: Vec<usize> = Vec::new();

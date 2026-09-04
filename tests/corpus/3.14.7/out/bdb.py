@@ -670,10 +670,7 @@ If arg is invalid, return an error message.
 
         try:
             bp = self.get_bpbynumber(arg)
-        except ValueError:
-            err = None
-            err = None
-            del err
+        except ValueError as err:
             return str(err)
         bp.deleteMe()
         self._prune_breaks(bp.file, bp.line)

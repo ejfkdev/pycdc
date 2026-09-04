@@ -172,9 +172,7 @@ class AsyncGenerator(AsyncIterator):
         When exhausted, raise StopAsyncIteration.
         '''
 
-        while True:
-            while True:
-                return await self.asend(None)
+        return await self.asend(None)
 
     @abstractmethod
     async def asend(self, value):
@@ -202,14 +200,19 @@ class AsyncGenerator(AsyncIterator):
         '''Raise GeneratorExit inside coroutine.
         '''
 
-        while True:
-            while True:
-                await self.athrow(GeneratorExit)
-                raise RuntimeError('asynchronous generator ignored GeneratorExit')
-                try:
-                    pass
-                except (GeneratorExit, StopAsyncIteration):
-                    return
+        try:
+            pass
+        except (GeneratorExit, StopAsyncIteration):
+            return
+        try:
+            await self.athrow(GeneratorExit)
+        except (GeneratorExit, StopAsyncIteration):
+            return
+        raise RuntimeError('asynchronous generator ignored GeneratorExit')
+        try:
+            pass
+        except (GeneratorExit, StopAsyncIteration):
+            return
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -769,10 +772,7 @@ class KeysView(MappingView, Set):
         return key in self._mapping
 
     def __iter__(self):
-        while True:
-            while True:
-                self._mapping
-                return
+        yield from self._mapping
 
 
 KeysView.register(dict_keys)
@@ -919,10 +919,9 @@ class Sequence(Reversible, Collection):
     def __iter__(self):
         i = 0
         try:
-            while True:
-                v = self[i]
-                yield v
-                i += 1
+            v = self[i]
+            yield v
+            i += 1
         except IndexError:
             return
 
