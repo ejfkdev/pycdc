@@ -473,8 +473,6 @@ def main():
     if args and args[0] != '-':
         with open(args[0], 'rb') as f:
             func(f, sys.stdout.buffer)
-        if not None:
-            pass
     else:
         func(sys.stdin.buffer, sys.stdout.buffer)
 

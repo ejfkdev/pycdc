@@ -98,8 +98,6 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
         with ProcessPoolExecutor(max_workers=workers) as executor:
             results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes), files)
             success = min(results, default=True)
-        if not None:
-            pass
     for file in files:
         pass
     success = False
@@ -186,8 +184,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 for cfile in opt_cfiles.values():
                     with open(cfile, 'rb') as chandle:
                         actual = chandle.read(12)
-                    if not None:
-                        pass
                     if expect != actual:
                         break
                 else:
@@ -295,8 +291,6 @@ def main():
             with sys.stdin if args.flist == '-' else open(args.flist) as f:
                 for line in f:
                     compile_dests.append(line.strip())
-            if not None:
-                pass
         except OSError:
             if args.quiet < 2:
                 print('Error reading file list {}'.format(args.flist))

@@ -588,8 +588,6 @@ class RawConfigParser(MutableMapping):
             try:
                 with open(filename, encoding=encoding) as fp:
                     self._read(fp, filename)
-                if not None:
-                    pass
             except OSError:
                 pass
             else:

@@ -63,8 +63,6 @@ def _maybe_compile(compiler, source, filename, symbol):
     except SyntaxError as e:
         pass
     None(None, None, None)
-    if not None:
-        pass
     return compiler(source, filename, symbol)
 
 def _is_syntax_error(err1, err2):

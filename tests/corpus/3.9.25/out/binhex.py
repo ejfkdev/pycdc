@@ -38,8 +38,6 @@ def getfileinfo(name):
             finfo.Type = 'TEXT'
         fp.seek(0, 2)
         dsize = fp.tell()
-    if not None:
-        pass
     dir, file = os.path.split(name)
     file = file.replace(':', '-', 1)
     return file, finfo, dsize, 0
@@ -63,8 +61,6 @@ def _ignore_deprecation_warning():
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore', '', DeprecationWarning)
         yield None
-    if not None:
-        pass
 
 class _Hqxcoderengine:
     '''Write data to the coder in 3-byte chunks'''
@@ -85,8 +81,6 @@ class _Hqxcoderengine:
             return
         with _ignore_deprecation_warning():
             self.hqxdata = self.hqxdata + binascii.b2a_hqx(data)
-        if not None:
-            pass
         self._flush(0)
 
     def _flush(self, force):
@@ -104,8 +98,6 @@ class _Hqxcoderengine:
         if self.data:
             with _ignore_deprecation_warning():
                 self.hqxdata = self.hqxdata + binascii.b2a_hqx(self.data)
-        if not None:
-            pass
         self._flush(1)
         self.ofp.close()
         del self.ofp
@@ -124,8 +116,6 @@ class _Rlecoderengine:
             return
         with _ignore_deprecation_warning():
             rledata = binascii.rlecode_hqx(self.data)
-        if not None:
-            pass
         self.ofp.write(rledata)
         self.data = b''
 
@@ -133,8 +123,6 @@ class _Rlecoderengine:
         if self.data:
             with _ignore_deprecation_warning():
                 rledata = binascii.rlecode_hqx(self.data)
-            if not None:
-                pass
             self.ofp.write(rledata)
         self.ofp.close()
         del self.ofp
@@ -238,8 +226,6 @@ def binhex(inp, out):
                 break
             ofp.write(d)
         ofp.close_data()
-    if not None:
-        pass
     ifp = openrsrc(inp, 'rb')
     while True:
         d = ifp.read(128000)
@@ -264,8 +250,6 @@ class _Hqxdecoderengine:
         try:
             with _ignore_deprecation_warning():
                 decdatacur, self.eof = binascii.a2b_hqx(data)
-            if not None:
-                pass
         except binascii.Incomplete:
             pass
         else:
@@ -312,8 +296,6 @@ class _Rledecoderengine:
         if self.ifp.eof:
             with _ignore_deprecation_warning():
                 self.post_buffer = self.post_buffer + binascii.rledecode_hqx(self.pre_buffer)
-            if not None:
-                pass
             self.pre_buffer = b''
             return
         mark = len(self.pre_buffer)
@@ -329,8 +311,6 @@ class _Rledecoderengine:
             mark = mark - 1
         with _ignore_deprecation_warning():
             self.post_buffer = self.post_buffer + binascii.rledecode_hqx(self.pre_buffer[:mark])
-        if not None:
-            pass
         self.pre_buffer = self.pre_buffer[mark:]
 
     def close(self):
@@ -440,8 +420,6 @@ def hexbin(inp, out):
             if not d:
                 break
             ofp.write(d)
-    if not None:
-        pass
     ifp.close_data()
     d = ifp.read_rsrc(128000)
     if d:

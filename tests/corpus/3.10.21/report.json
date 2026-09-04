@@ -43,9 +43,9 @@
    "module": "_compression",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 313,
+   "ndiff": 322,
    "ntotal": 575,
-   "detail": "line 228: orig ('SETUP_WITH', 'to 122') | got ('SETUP_WITH', 'to 118')\nline 234: orig ('SETUP_WITH', 'to 66') | got ('SETUP_WITH', 'to 64')\nline 237: orig ('LOAD_METHOD', 'read') | got ('LOAD_GLOBAL', 'len')"
+   "detail": "line 228: orig ('SETUP_WITH', 'to 122') | got ('SETUP_WITH', 'to 114')\nline 234: orig ('SETUP_WITH', 'to 66') | got ('SETUP_WITH', 'to 64')\nline 237: orig ('LOAD_METHOD', 'read') | got ('LOAD_GLOBAL', 'len')"
   },
   {
    "module": "_markupbase",
@@ -79,7 +79,7 @@
    "module": "_strptime",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2053,
+   "ndiff": 2040,
    "ntotal": 2141,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -111,16 +111,16 @@
    "module": "aifc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2752,
+   "ndiff": 2720,
    "ntotal": 3104,
-   "detail": "line 143: orig ('POP_JUMP_IF_FALSE', 'to 624') | got ('POP_JUMP_IF_FALSE', 'to 640')\nline 170: orig ('SETUP_WITH', 'to 602') | got ('SETUP_WITH', 'to 614')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to 586') | got ('POP_JUMP_IF_FALSE', 'to 588')"
+   "detail": "line 170: orig ('SETUP_WITH', 'to 602') | got ('SETUP_WITH', 'to 598')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to 586') | got ('POP_JUMP_IF_FALSE', 'to 572')\nline 286: orig ('POP_BLOCK', '') | got ('JUMP_FORWARD', 'to 584')"
   },
   {
    "module": "ast",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 7514,
-   "ntotal": 7863,
+   "ndiff": 7508,
+   "ntotal": 7851,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
   {
@@ -159,9 +159,9 @@
    "module": "binhex",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1807,
+   "ndiff": 1319,
    "ntotal": 2054,
-   "detail": "line 212: orig ('LOAD_GLOBAL', 'os') | got ('NOP', '')\nline 213: orig ('LOAD_ATTR', 'path') | got ('NOP', '')\nline 214: orig ('LOAD_METHOD', 'split') | got ('LOAD_GLOBAL', 'os')"
+   "detail": "line 711: orig ('POP_JUMP_IF_FALSE', 'to 46') | got ('POP_JUMP_IF_FALSE', 'to 50')\nline 722: orig ('SETUP_FINALLY', 'to 132') | got ('LOAD_CONST', 'None')\nline 723: orig ('LOAD_FAST', 'ofp') | got ('RETURN_VALUE', '')"
   },
   {
    "module": "bisect",
@@ -179,7 +179,7 @@
    "module": "cProfile",
    "ast_detail": "diff at token 312: orig  body=[Continue()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 360,
+   "ndiff": 361,
    "ntotal": 678,
    "detail": "line 262: orig ('FOR_ITER', 'to 288') | got ('FOR_ITER', 'to 290')\nline 266: orig ('POP_JUMP_IF_FALSE', 'to 286') | got ('POP_JUMP_IF_FALSE', 'to 288')\nline 275: orig ('FOR_ITER', 'to 286') | got ('FOR_ITER', 'to 288')"
   },
@@ -243,7 +243,7 @@
    "module": "codeop",
    "ast_detail": "diff at token 65: orig  body=[Break()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 111,
+   "ndiff": 251,
    "ntotal": 345,
    "detail": "line 78: orig ('FOR_ITER', 'to 44') | got ('FOR_ITER', 'to 42')\nline 85: orig ('POP_JUMP_IF_FALSE', 'to 42') | got ('POP_JUMP_IF_FALSE', 'to 40')\nline 91: orig ('POP_JUMP_IF_FALSE', 'to 42') | got ('POP_JUMP_IF_FALSE', 'to 40')"
   },
@@ -255,7 +255,7 @@
    "module": "compileall",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1449,
+   "ndiff": 1448,
    "ntotal": 1512,
    "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
@@ -263,7 +263,7 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2908,
+   "ndiff": 2922,
    "ntotal": 4289,
    "detail": "line 1021: orig ('SETUP_FINALLY', 'to 246') | got ('LOAD_CONST', \"'%'\")\nline 1022: orig ('LOAD_FAST', 'map') | got ('LOAD_FAST', 'v')\nline 1023: orig ('LOAD_FAST', 'var') | got ('CONTAINS_OP', '')"
   },

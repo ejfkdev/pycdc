@@ -270,8 +270,6 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             except IndexError:
                 raise ValueError("stray %% in format '%s'" % format) from None
             _regex_cache[format] = format_regex
-    if not None:
-        pass
     found = format_regex.match(data_string)
     if not found:
         raise ValueError('time data %r does not match format %r' % (data_string, format))

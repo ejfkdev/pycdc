@@ -183,8 +183,6 @@ def _patch(self):
     with impl.locallock:
         object.__setattr__(self, '__dict__', dct)
         yield None
-    if not None:
-        pass
 
 class local:
     __slots__ = ('_local__impl', '__dict__')

@@ -267,8 +267,6 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                 raise ValueError("stray %% in format '%s'" % format) from None
             else:
                 _regex_cache[format] = format_regex
-    if not None:
-        pass
     found = format_regex.match(data_string)
     if not found:
         raise ValueError('time data %r does not match format %r' % (data_string, format))
@@ -460,4 +458,3 @@ def _strptime_datetime(cls, data_string, format='%a %b %d %H:%M:%S %Y'):
         args += (tz,)
     return cls(*args)
 
-# WARNING: Decompyle incomplete

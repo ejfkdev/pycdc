@@ -79,4 +79,3 @@ class _Helper(object):
         return pydoc.help(*args, **kwds)
 
 
-# WARNING: Decompyle incomplete

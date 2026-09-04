@@ -252,6 +252,12 @@ struct Ctx<'a> {
     /// call: the following GET_AWAITABLE..YIELD_VALUE protocol has no
     /// awaitable left and must be dropped without a stack underflow
     with_exit_await_drop: bool,
+    /// <=3.10 SETUP_WITH/SETUP_ASYNC_WITH handler starts: the normal-exit
+    /// JUMP_FORWARD right before one must skip the whole handler region
+    with_handler_starts: std::collections::HashSet<usize>,
+    /// 3.5-3.7 async-for: the per-iteration StopAsyncIteration guard
+    /// (SETUP_EXCEPT handler start, unwind tail start, loop exit offset)
+    async_for_guard: Option<(usize, usize, usize)>,
     pending_gen_code: Option<std::rc::Rc<crate::code::CodeObject>>,
     recent_code_const: Option<std::rc::Rc<crate::code::CodeObject>>,
     /// pending kw names for the next CALL (3.11/3.12 KW_NAMES)
@@ -488,6 +494,8 @@ pub fn decompile_in_scope(
         pending_async_with_ctx: None,
         skip_end_send: false,
         with_exit_await_drop: false,
+        with_handler_starts: std::collections::HashSet::new(),
+        async_for_guard: None,
         pending_gen_code: None,
         recent_code_const: None,
         last_kw_names: Vec::new(),
@@ -743,6 +751,22 @@ impl<'a> Ctx<'a> {
                 }
             }
 
+            // 3.5-3.7 async-for: the per-iteration StopAsyncIteration
+            // guard handler is loop machinery — never walk it; skip from
+            // its head past the END_FINALLY into the loop body
+            if self
+                .async_for_guard
+                .map_or(false, |(h, _, _)| h == pos && inst.op == Op::DUP_TOP)
+            {
+                if let Some(&hi) = self.idx_of.get(&pos) {
+                    for ins in self.instrs[hi..].iter().take(10) {
+                        if ins.op == Op::END_FINALLY {
+                            self.skip_until = Some(ins.end());
+                            break;
+                        }
+                    }
+                }
+            }
             // pre-3.11 handler-chain bookkeeping
             self.legacy_chain_step(&inst);
             // an if/else branch may have closed exactly at this offset
@@ -4003,7 +4027,9 @@ impl<'a> Ctx<'a> {
                     // __aexit__ call, so nothing awaitable is left — the
                     // whole protocol is desugaring residue; drop it
                     // without underflowing the value stack
-                    if self.with_exit_await_drop {
+                    if self.with_exit_await_drop
+                        || !self.stack.iter().any(|sv| matches!(sv, Sv::E(_)))
+                    {
                         self.with_exit_await_drop = false;
                         return true;
                     }
@@ -4040,6 +4066,19 @@ impl<'a> Ctx<'a> {
             Op::YIELD_FROM => {
                 // stack: [iterable, sent_value]; the sent value is on top
                 self.pop();
+                if self.await_mode
+                    && (self.with_exit_await_drop
+                        || !self.stack.iter().any(|sv| matches!(sv, Sv::E(_))))
+                {
+                    // swallowed async-with __aexit__ call (or a 3.8
+                    // WITH_CLEANUP_START whose awaited result was never
+                    // modeled): desugaring residue, drop it cleanly —
+                    // a real `await x` always has x on the stack
+                    self.await_mode = false;
+                    self.with_exit_await_drop = false;
+                    self.pop();
+                    return true;
+                }
                 let e = self.pop_expr();
                 self.await_mode = false;
                 // async with: the awaited value is the __aenter__ result
@@ -4164,6 +4203,79 @@ impl<'a> Ctx<'a> {
                 true
             }
             // <=3.10: the YIELD_FROM opcode arm models the delegation
+            Op::GET_ANEXT if !self.version.at_least(3, 11) => {
+                // <=3.10 async-for:
+                //   SETUP_FINALLY(->END_ASYNC_FOR); GET_ANEXT; LOAD None;
+                //   YIELD_FROM; POP_BLOCK; STORE target; body;
+                //   JUMP_ABSOLUTE -> SETUP_FINALLY; END_ASYNC_FOR
+                // The back edge targets the SETUP_FINALLY, so the block
+                // starts there; skip the anext-await protocol up to the
+                // target store.
+                let iter = self.pop_expr();
+                let mut skip_to = None;
+                if let Some(&ai) = self.idx_of.get(&inst.offset) {
+                    for k in ai + 1..self.instrs.len().min(ai + 8) {
+                        match self.instrs[k].op {
+                            Op::STORE_FAST | Op::STORE_NAME | Op::STORE_DEREF => {
+                                skip_to = Some(self.instrs[k].offset);
+                                break;
+                            }
+                            Op::YIELD_FROM | Op::POP_BLOCK | Op::LOAD_CONST => {}
+                            _ => break,
+                        }
+                    }
+                }
+                // 3.5-3.7: the SETUP_EXCEPT guard recognition already opened
+                // the async For block (the back edge targets the setup) —
+                // just attach the iterator
+                // 3.6: GET_AITER's result arrives awaited (`GET_AITER;
+                // LOAD None; YIELD_FROM` before the guard) — unwrap so the
+                // header renders the plain iterable
+                let iter = match &*iter {
+                    Expr::Await(inner) => inner.clone(),
+                    _ => iter,
+                };
+                let joined = matches!(
+                    self.blocks.last(),
+                    Some(b) if b.is_async
+                        && matches!(b.kind, BlockType::For)
+                        && b.iter.is_none()
+                );
+                if joined {
+                    if let Some(top) = self.blocks.last_mut() {
+                        top.iter = Some(iter.clone());
+                        top.cond_end = inst.end();
+                    }
+                } else {
+                    let mut start = inst.offset;
+                    if let Some(&ai) = self.idx_of.get(&inst.offset) {
+                        if ai > 0 && self.instrs[ai - 1].op == Op::SETUP_FINALLY {
+                            start = self.instrs[ai - 1].offset;
+                        }
+                    }
+                    let mut exit = usize::MAX;
+                    if let Some(&ai) = self.idx_of.get(&inst.offset) {
+                        for ins in self.instrs.iter().skip(ai + 1) {
+                            if ins.op == Op::END_ASYNC_FOR {
+                                exit = ins.offset;
+                                break;
+                            }
+                        }
+                    }
+                    let mut fb = Block::new(BlockType::For, start, exit);
+                    fb.cond_end = inst.end();
+                    fb.iter = Some(iter.clone());
+                    fb.is_async = true;
+                    fb.cond_set = true;
+                    self.blocks.push(fb);
+                }
+                self.awaiting_for_target = true;
+                self.push(iter);
+                if let Some(st) = skip_to {
+                    self.skip_until = Some(st);
+                }
+                true
+            }
             Op::GET_ANEXT => {
                 // 3.10+ async-for loop top:
                 //   GET_ANEXT; LOAD sent; SEND L; YIELD_VALUE; RESUME;
@@ -4270,6 +4382,16 @@ impl<'a> Ctx<'a> {
                     self.close_inner_blocks_to_loop();
                 }
                 let r = self.handle_jump_forward(target);
+                // <=3.10 with normal exit: the jump flies over the whole
+                // exception-time cleanup handler (the SETUP_WITH /
+                // SETUP_ASYNC_WITH target) — only reachable through an
+                // exception, never walk it
+                if target > self.cur_next
+                    && self.with_handler_starts.contains(&self.cur_next)
+                {
+                    self.skip_until = Some(target);
+                    return r;
+                }
                 // With no branch block open and the jumped-over region a
                 // PURE VALUE arm, the region is unreachable dead code
                 // (e.g. the vestigial else arm of a constant-folded
@@ -4282,6 +4404,16 @@ impl<'a> Ctx<'a> {
                     && self.find_loop_exit(target).is_none()
                     && matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
                     && self.is_pure_value_region(self.cur_next, target)
+                {
+                    self.skip_until = Some(target);
+                }
+                // 3.5-3.7 async-for: the per-iteration JUMP_FORWARD flies
+                // over the StopAsyncIteration guard handler into the loop
+                // body — skip exactly that machinery region
+                if self.skip_until.is_none()
+                    && self.async_for_guard.map_or(false, |(h, _, _)| {
+                        h == self.cur_next && target > h
+                    })
                 {
                     self.skip_until = Some(target);
                 }
@@ -4740,6 +4872,101 @@ impl<'a> Ctx<'a> {
                 if self.legacy_handler.is_some() {
                     return true;
                 }
+                // 3.5-3.7 async-for per-iteration guard:
+                //   SETUP_LOOP; iter; GET_AITER; SETUP_EXCEPT -> H;
+                //   GET_ANEXT; LOAD None; YIELD_FROM; STORE; POP_BLOCK;
+                //   JUMP_FORWARD -> body; H: DUP_TOP; LOAD StopAsyncIteration;
+                //   COMPARE_OP exc-match; PJIT -> unwind; END_FINALLY;
+                //   unwind: POP_TOP x3; POP_EXCEPT; POP_TOP; POP_BLOCK
+                // The guard is loop machinery, not a source-level try:
+                // open the async For block HERE (the back edge targets this
+                // SETUP_EXCEPT) and absorb the handler when reached.
+                if !self.version.at_least(3, 8) {
+                    if let Some(t) = inst.target {
+                        let is_guard = self
+                            .idx_of
+                            .get(&t)
+                            .map_or(false, |&hi| {
+                                self.instrs[hi].op == Op::DUP_TOP
+                                    && self.instrs[hi + 1..]
+                                        .iter()
+                                        .take(3)
+                                        .any(|x| {
+                                            x.op == Op::LOAD_GLOBAL
+                                                && self.const_name(x.arg as usize)
+                                                    == "StopAsyncIteration"
+                                        })
+                            })
+                            && self
+                                .idx_of
+                                .get(&inst.offset)
+                                .map_or(false, |&si| {
+                                    self.instrs[si + 1..]
+                                        .iter()
+                                        .take(2)
+                                        .any(|x| x.op == Op::GET_ANEXT)
+                                });
+                        if is_guard {
+                            // the exhaustion unwind tail starts at the
+                            // guard handler's PJIT target; it ends at the
+                            // POP_BLOCK whose next instruction is the loop
+                            // continuation
+                            let mut unwind = usize::MAX;
+                            let mut exit = usize::MAX;
+                            if let Some(&hi) = self.idx_of.get(&t) {
+                                for k in hi..self.instrs.len().min(hi + 8) {
+                                    if matches!(
+                                        self.instrs[k].op,
+                                        Op::POP_JUMP_IF_TRUE | Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE
+                                    ) && unwind == usize::MAX
+                                        && k > hi
+                                    {
+                                        unwind = self.instrs[k].target.unwrap_or(usize::MAX);
+                                    }
+                                }
+                                if unwind != usize::MAX {
+                                    if let Some(&ui) = self.idx_of.get(&unwind) {
+                                        for ins in self.instrs[ui..].iter().take(12) {
+                                            if ins.op == Op::POP_BLOCK {
+                                                if let Some(&pi) =
+                                                    self.idx_of.get(&ins.offset)
+                                                {
+                                                    exit = self
+                                                        .instrs
+                                                        .get(pi + 1)
+                                                        .map(|x| x.offset)
+                                                        .unwrap_or(usize::MAX);
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            self.async_for_guard = Some((t, unwind, exit));
+                            let mut fb =
+                                Block::new(BlockType::For, inst.offset, usize::MAX);
+                            fb.is_async = true;
+                            fb.cond_set = true;
+                            // a SETUP_LOOP placeholder may be open: absorb it
+                            // (it would render as a bogus `while True`)
+                            if let Some(top) = self.blocks.last() {
+                                if matches!(top.kind, BlockType::While) && !top.cond_set {
+                                    fb.for_setup_end = Some(top.end);
+                                }
+                            }
+                            while let Some(top) = self.blocks.last() {
+                                if matches!(top.kind, BlockType::While) && !top.cond_set {
+                                    self.blocks.pop();
+                                } else {
+                                    break;
+                                }
+                            }
+                            self.blocks.push(fb);
+                            return true;
+                        }
+                    }
+                }
                 // stores before the try belong to the enclosing block
                 if !self.pending_stores.is_empty() {
                     self.flushing = true;
@@ -4751,6 +4978,20 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::SETUP_FINALLY => {
+                // <=3.10 async-for wrapper: SETUP_FINALLY targeting
+                // END_ASYNC_FOR is loop machinery, not a source-level
+                // try/finally — swallow it (GET_ANEXT opens the loop)
+                if !self.version.at_least(3, 11) {
+                    if let Some(t) = inst.target {
+                        if self
+                            .idx_of
+                            .get(&t)
+                            .map_or(false, |&ti| self.instrs[ti].op == Op::END_ASYNC_FOR)
+                        {
+                            return true;
+                        }
+                    }
+                }
                 // compiler-internal exception-state finally inside a
                 // legacy handler body (e.g. `raise` in except on 3.8-3.10)
                 if self.legacy_handler.is_some() {
@@ -7759,6 +8000,9 @@ impl<'a> Ctx<'a> {
         };
         // SETUP_WITH pushes the bound __exit__ (and 3.2+ two more dummies)
         self.with_exits += 1;
+        if let Some(h) = handler_target {
+            self.with_handler_starts.insert(h);
+        }
         let item = WithItem {
             ctx: ctx_e,
             target: None,
@@ -9141,16 +9385,53 @@ impl<'a> Ctx<'a> {
         // CALL_METHOD (3.7-3.10): LOAD_METHOD pushed a self/NULL marker
         // above the method; pop it between the args and the callable.
         let marker = if is_method { self.pop() } else { None };
-        let func = self.pop_callable();
-        // normal with exit (<=3.10): __exit__(None, None, None) where the
-        // exit callable is not modeled on our stack
+        // <=3.10 async-with inline __aexit__ call: the exit callable was
+        // never modeled, so the stack is already empty here — swallow the
+        // desugared call without an underflowing pop_callable
         if self.with_exits > 0
+            && self.stack.is_empty()
             && keywords.is_empty()
             && star_args_none(&args)
             && args.iter().all(|a| matches!(&**a, Expr::Const(o) if matches!(&**o, PyObject::None)))
-            && matches!(&*func, Expr::Const(o) if matches!(&**o, PyObject::None))
         {
             self.with_exits -= 1;
+            let next_awaitable = self
+                .idx_of
+                .get(&self.cur_offset)
+                .map_or(false, |&ci| {
+                    self.instrs[ci + 1..]
+                        .iter()
+                        .take(3)
+                        .any(|nx| nx.op == Op::GET_AWAITABLE)
+                });
+            if next_awaitable {
+                self.with_exit_await_drop = true;
+            }
+            return;
+        }
+        let func = self.pop_callable();
+        // normal with exit (<=3.10): __exit__(None, None, None) where the
+        // exit callable is not modeled on our stack
+        let none_args = star_args_none(&args)
+            && args.iter().all(|a| matches!(&**a, Expr::Const(o) if matches!(&**o, PyObject::None)));
+        let func_is_exit_slot = matches!(&*func, Expr::Const(o) if matches!(&**o, PyObject::None))
+            || matches!(&*func, Expr::Name(n) if n.contains("underflow"));
+        if self.with_exits > 0 && keywords.is_empty() && none_args && func_is_exit_slot {
+            self.with_exits -= 1;
+            // async with (<=3.10): the __aexit__ result is awaited right
+            // after the swallowed call — drop that protocol cleanly
+            let next_awaitable = self
+                .idx_of
+                .get(&self.cur_offset)
+                .map_or(false, |&ci| {
+                    self.instrs[ci + 1..]
+                        .iter()
+                        .take(3)
+                        .any(|nx| nx.op == Op::GET_AWAITABLE)
+                });
+            if next_awaitable {
+                self.with_exit_await_drop = true;
+            }
             return;
         }
         // decorator application via CALL_FUNCTION (<=3.10)

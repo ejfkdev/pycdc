@@ -92,9 +92,6 @@ class BZ2File(_compression.BaseStream):
         closed, any other operation on it will raise a ValueError.
         '''
 
-        if not None:
-            pass
-
     @property
     def closed(self):
         '''True if this file is closed.'''

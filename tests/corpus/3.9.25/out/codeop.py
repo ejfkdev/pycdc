@@ -90,8 +90,6 @@ def _maybe_compile(compiler, source, filename, symbol):
             code2 = compiler(source + '\n\n', filename, symbol)
         except SyntaxError as e:
             err2 = e
-    if not None:
-        pass
     err1 = err2 = None
     err1 = err2 = None
 
@@ -170,4 +168,3 @@ class CommandCompiler:
         return _maybe_compile(self.compiler, source, filename, symbol)
 
 
-# WARNING: Decompyle incomplete

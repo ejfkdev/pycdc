@@ -782,8 +782,6 @@ class _Unparser(NodeVisitor):
     def visit_FunctionType(self, node):
         with self.delimit('(', ')'):
             self.interleave((lambda: self.write(', ')), self.traverse, node.argtypes)
-        if not None:
-            pass
         self.write(' -> ')
         self.traverse(node.returns)
 
@@ -832,8 +830,6 @@ class _Unparser(NodeVisitor):
         self.fill()
         with self.delimit_if('(', ')', not node.simple and isinstance(node.target, Name)):
             self.traverse(node.target)
-        if not None:
-            pass
         self.write(': ')
         self.traverse(node.annotation)
         if node.value:
@@ -925,16 +921,12 @@ class _Unparser(NodeVisitor):
         self.fill('try')
         with self.block():
             self.traverse(node.body)
-        if not None:
-            pass
         for ex in node.handlers:
             self.traverse(ex)
         if node.orelse:
             self.fill('else')
             with self.block():
                 self.traverse(node.orelse)
-        if not None:
-            pass
         if node.finalbody:
             self.fill('finally')
             with self.block():
@@ -975,8 +967,6 @@ class _Unparser(NodeVisitor):
                 else:
                     comma = True
                 self.traverse(e)
-        if not None:
-            pass
         with self.block():
             self._write_docstring_and_traverse_body(node)
 
@@ -995,8 +985,6 @@ class _Unparser(NodeVisitor):
         self.fill(def_str)
         with self.delimit('(', ')'):
             self.traverse(node.args)
-        if not None:
-            pass
         if node.returns:
             self.write(' -> ')
             self.traverse(node.returns)
@@ -1016,8 +1004,6 @@ class _Unparser(NodeVisitor):
         self.traverse(node.iter)
         with self.block(extra=self.get_type_comment(node)):
             self.traverse(node.body)
-        if not None:
-            pass
         if node.orelse:
             self.fill('else')
             with self.block():
@@ -1032,8 +1018,6 @@ class _Unparser(NodeVisitor):
         self.traverse(node.test)
         with self.block():
             self.traverse(node.body)
-        if not None:
-            pass
         if node.orelse and len(node.orelse) == 1:
             while isinstance(node.orelse[0], If):
                 node = node.orelse[0]
@@ -1041,8 +1025,6 @@ class _Unparser(NodeVisitor):
                 self.traverse(node.test)
                 with self.block():
                     self.traverse(node.body)
-                if not None:
-                    pass
         if node.orelse:
             self.fill('else')
             with self.block():
@@ -1057,8 +1039,6 @@ class _Unparser(NodeVisitor):
         self.traverse(node.test)
         with self.block():
             self.traverse(node.body)
-        if not None:
-            pass
         if node.orelse:
             self.fill('else')
             with self.block():
@@ -1598,8 +1578,6 @@ def main():
     args = parser.parse_args()
     with args.infile as infile:
         source = infile.read()
-    if not None:
-        pass
     tree = parse(source, args.infile.name, args.mode, type_comments=args.no_type_comments)
     print(dump(tree, include_attributes=args.include_attributes, indent=args.indent))
 

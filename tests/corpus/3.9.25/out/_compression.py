@@ -54,10 +54,6 @@ class DecompressReader(io.RawIOBase):
                 data = self(len(byte_view))
                 byte_view[:len(data)] = data
             self.read(None, None, None)
-            if not None:
-                pass
-        if not None:
-            pass
         return len(data)
 
     def read(self, size=-1):
@@ -101,4 +97,3 @@ class DecompressReader(io.RawIOBase):
         return self._pos
 
 
-# WARNING: Decompyle incomplete

@@ -238,8 +238,6 @@ def main():
             with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
                 for line in f:
                     compile_dests.append(line.strip())
-            if not None:
-                pass
         except OSError:
             if args.quiet < 2:
                 print('Error reading file list {}'.format(args.flist))

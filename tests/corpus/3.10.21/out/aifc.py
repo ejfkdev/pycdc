@@ -810,10 +810,7 @@ if __name__ == '__main__':
                     if not data:
                         break
                     g.writeframes(data)
-            if not None:
-                pass
             print('Done.')
-            None(None, None, None)
         else:
             None(None, None, None)
     if not None:

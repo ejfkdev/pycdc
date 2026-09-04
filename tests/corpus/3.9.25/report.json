@@ -93,7 +93,7 @@
   },
   {
    "module": "_threading_local",
-   "ast_detail": "diff at token 272: orig  ctx=Load())))])] | dec  ctx=Load())))])",
+   "ast_detail": "diff at token 374: orig  body=[Return(value=Call(func=Attribute(value=Name(id='object' | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
    "ndiff": 386,
    "ntotal": 451,
@@ -101,7 +101,7 @@
   },
   {
    "module": "_weakrefset",
-   "ast_detail": "diff at token 276: orig  orelse=[])])] | dec  orelse=[])])",
+   "ast_detail": "diff at token 307: orig  body=[Try(body=[Assign(targets=[Name(id='wr' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 488,
    "ntotal": 906,
@@ -115,15 +115,15 @@
    "module": "aifc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2694,
+   "ndiff": 2587,
    "ntotal": 3098,
-   "detail": "line 305: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', 'None')\nline 306: orig ('Error', 0) | got ('LOAD_CONST', 'None')\nline 307: orig ('LOAD_NAME', '__name__') | got ('LOAD_CONST', 'None')"
+   "detail": "line 314: orig ('SETUP_FINALLY', 'to 26') | got ('LOAD_GLOBAL', 'struct')\nline 315: orig ('LOAD_GLOBAL', 'struct') | got ('LOAD_METHOD', 'unpack')\nline 316: orig ('LOAD_METHOD', 'unpack') | got ('LOAD_CONST', \"'>l'\")"
   },
   {
    "module": "ast",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 6866,
+   "ndiff": 6851,
    "ntotal": 7116,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
@@ -181,7 +181,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 155: orig  keywords=[]))])] | dec  keywords=[]))])",
+   "ast_detail": "diff at token 312: orig  body=[Continue()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
    "ndiff": 388,
    "ntotal": 686,
