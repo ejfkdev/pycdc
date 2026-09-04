@@ -204,6 +204,7 @@ def compiler_fixup(compiler_so, cc_args):
                 del compiler_so[index:index + 2]
             except ValueError:
                 break
+                continue
             continue
     if 'ARCHFLAGS' in os.environ and not stripArch:
         compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
@@ -214,6 +215,7 @@ def compiler_fixup(compiler_so, cc_args):
                 del compiler_so[index:index + 2]
             except ValueError:
                 break
+                continue
             continue
     sysroot = None
     if '-isysroot' in cc_args:

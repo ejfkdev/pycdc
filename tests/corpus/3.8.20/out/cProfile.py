@@ -60,7 +60,7 @@ class Profile(_lsprof.Profiler):
                     try:
                         callers = callersdicts[id(subentry.code)]
                     except KeyError:
-                        pass
+                        continue
                     nc = subentry.callcount
                     cc = nc - subentry.reccallcount
                     tt = subentry.inlinetime
@@ -99,7 +99,10 @@ class Profile(_lsprof.Profiler):
         else:
             raise TypeError('runcall expected at least 1 positional argument, got %d' % (len(args) - 1))
         self.enable()
-        # WARNING: unrecovered try/except structure
+        try:
+            pass
+        finally:
+            self.disable()
         return func(*args, **kw)
 
     runcall.__text_signature__ = '($self, func, /, *args, **kw)'

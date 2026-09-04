@@ -452,6 +452,12 @@ class Bdb:
         if not arg:
             raise ValueError('Breakpoint number expected')
         try:
+            number = int(arg)
+        except ValueError:
+            raise ValueError('Non-numeric breakpoint number %s' % arg) from None
+        else:
+            bp = Breakpoint.bpbynumber[number]
+        try:
             pass
         except IndexError:
             raise ValueError('Breakpoint number %d out of range' % number) from None
@@ -568,6 +574,10 @@ class Bdb:
         finally:
             self.quitting = True
             sys.settrace(None)
+        try:
+            exec(cmd, globals, locals)
+        except BdbQuit:
+            pass
 
     def runeval(self, expr, globals=None, locals=None):
         '''Debug an expression executed via the eval() function.
@@ -601,7 +611,12 @@ class Bdb:
         finally:
             self.quitting = True
             sys.settrace(None)
-        return res
+        try:
+            res = func(*args, **kwds)
+        except BdbQuit:
+            pass
+        else:
+            return res
 
 
 def set_trace():

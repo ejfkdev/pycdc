@@ -389,6 +389,7 @@ def b85decode(b):
             out.append(packI(acc))
         except struct.error:
             raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
+            continue
         continue
     result = b''.join(out)
     if padding:

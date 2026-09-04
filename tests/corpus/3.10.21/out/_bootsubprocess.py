@@ -61,6 +61,18 @@ def check_output(cmd, **kwargs):
         cmd = ' '.join(cmd)
     cmd = f'{cmd} >{tmp_filename}'
     try:
+        status = os.system(cmd)
+        exitcode = os.waitstatus_to_exitcode(status)
+        if exitcode:
+            raise ValueError(f'Command {cmd!r} returned non-zero exit status {exitcode!r}')
+        try:
+            with open(tmp_filename, 'rb') as fp:
+                stdout = fp.read()
+        except FileNotFoundError:
+            stdout = b''
+    finally:
+        os.unlink(tmp_filename)
+    try:
         return stdout
     except OSError:
         return stdout

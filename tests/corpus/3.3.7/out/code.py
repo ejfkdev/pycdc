@@ -197,6 +197,7 @@ class InteractiveConsole(InteractiveInterpreter):
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
                 more = 0
+                continue
             continue
             continue
 

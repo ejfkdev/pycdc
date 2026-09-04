@@ -63,7 +63,7 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1229,
+   "ndiff": 1101,
    "ntotal": 1437,
    "detail": "line 180: orig ('LOAD_CONST', 'None') | got ('_read_output', 2)\nline 181: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', '0')\nline 182: orig ('_read_output', 2) | got ('LOAD_CONST', 'None')"
   },
@@ -123,15 +123,15 @@
    "module": "ast",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 6460,
-   "ntotal": 7132,
+   "ndiff": 5970,
+   "ntotal": 7138,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "asynchat",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 334,
+   "ndiff": 336,
    "ntotal": 797,
    "detail": "line 219: orig ('SETUP_FINALLY', 'to 18') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'ac_in_buffer')\nline 221: orig ('LOAD_METHOD', 'recv') | got ('EXTENDED_ARG', '')"
   },
@@ -139,15 +139,15 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2132,
-   "ntotal": 2218,
+   "ndiff": 2131,
+   "ntotal": 2220,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "base64",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1556,
+   "ndiff": 1548,
    "ntotal": 1868,
    "detail": "line 270: orig ('LOAD_METHOD', 'translate') | got ('LOAD_GLOBAL', 'bytes')\nline 271: orig ('LOAD_GLOBAL', 'bytes') | got ('LOAD_METHOD', 'maketrans')\nline 272: orig ('LOAD_METHOD', 'maketrans') | got ('LOAD_CONST', \"b'+/'\")"
   },
@@ -175,17 +175,17 @@
    "module": "bz2",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 948,
-   "ntotal": 1051,
+   "ndiff": 972,
+   "ntotal": 1059,
    "detail": "line 34: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 38: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 312: orig  body=[Continue()])] | dec  body=[Pass()])]",
+   "ast_detail": "diff at token 477: orig  Try(body=[Return(value=Call(func=Name(id='func' | dec  Try(body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 392,
+   "ndiff": 282,
    "ntotal": 686,
-   "detail": "line 259: orig ('FOR_ITER', 'to 294') | got ('FOR_ITER', 'to 290')\nline 272: orig ('FOR_ITER', 'to 292') | got ('FOR_ITER', 'to 288')\nline 283: orig ('JUMP_FORWARD', 'to 180') | got ('JUMP_FORWARD', 'to 176')"
+   "detail": "line 399: orig ('SETUP_FINALLY', 'to 34') | got ('SETUP_FINALLY', 'to 22')\nline 400: orig ('LOAD_FAST', 'func') | got ('POP_BLOCK', '')\nline 401: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "calendar",
@@ -231,7 +231,7 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 628,
+   "ndiff": 624,
    "ntotal": 665,
    "detail": "line 12: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 16: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
@@ -267,7 +267,7 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2824,
+   "ndiff": 2821,
    "ntotal": 4333,
    "detail": "line 1068: orig ('JUMP_FORWARD', 'to 334') | got ('JUMP_ABSOLUTE', '')\nline 1393: orig ('JUMP_FORWARD', 'to 470') | got ('JUMP_ABSOLUTE', '')\nline 1451: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')"
   },

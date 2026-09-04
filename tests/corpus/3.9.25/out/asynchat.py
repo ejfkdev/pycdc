@@ -166,6 +166,7 @@ class async_chat(asyncore.dispatcher):
                 data = first[:obs]
             except TypeError:
                 data = first.more()
+                continue
             if isinstance(data, str) and self.use_encoding:
                 data = bytes(data, self.encoding)
             if num_sent:

@@ -66,6 +66,5 @@ def check_output(cmd, **kwargs):
         os.unlink(tmp_filename)
     except OSError:
         pass
-    return stdout
 
 # WARNING: Decompyle incomplete

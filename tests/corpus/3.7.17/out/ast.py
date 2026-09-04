@@ -109,6 +109,7 @@ def dump(node, annotate_fields=True, include_attributes=False):
                         value = getattr(node, field)
                     except AttributeError:
                         keywords = True
+                        continue
                     else:
                         args.append('%s=%s' % (field, _format(value)))
                 else:
@@ -118,7 +119,7 @@ def dump(node, annotate_fields=True, include_attributes=False):
                     try:
                         args.append('%s=%s' % (a, _format(getattr(node, a))))
                     except AttributeError:
-                        pass
+                        continue
                     continue
             return '%s(%s)' % (node.__class__.__name__, ', '.join(args))
         else:
@@ -190,7 +191,7 @@ def iter_fields(node):
         try:
             yield (field, getattr(node, field))
         except AttributeError:
-            pass
+            continue
         continue
 
 def iter_child_nodes(node):

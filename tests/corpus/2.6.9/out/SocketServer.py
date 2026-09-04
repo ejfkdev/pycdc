@@ -239,7 +239,12 @@ class BaseServer:
         '''
 
         if self.verify_request(request, client_address):
-            pass
+            try:
+                request, client_address = self.get_request()
+            except socket.error:
+                return
+            else:
+                self.process_request(request, client_address)
         try:
             pass
         except:

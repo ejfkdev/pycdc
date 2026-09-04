@@ -266,6 +266,12 @@ def nobody_uid():
     if nobody:
         return nobody
     try:
+        import pwd
+    except ImportError:
+        return -1
+    else:
+        nobody = pwd.getpwnam('nobody')[2]
+    try:
         pass
     except KeyError:
         nobody = 1 + max(map((lambda x: x[2]), pwd.getpwall()))

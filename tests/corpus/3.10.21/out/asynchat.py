@@ -178,6 +178,16 @@ class async_chat(asyncore.dispatcher):
                     else:
                         del self.producer_fifo[0]
                     continue
+                try:
+                    data = first[:obs]
+                except TypeError:
+                    data = first.more()
+                    continue
+                else:
+                    data = bytes(data, self.encoding)
+                    if isinstance(data, str) and self.use_encoding:
+                        pass
+                    num_sent = self.send(data)
             return
 
     def discard_buffers(self):

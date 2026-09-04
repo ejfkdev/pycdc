@@ -561,7 +561,11 @@ class Bdb:
             locals = globals
         self.reset()
         sys.settrace(self.trace_dispatch)
-        # WARNING: unrecovered try/except structure
+        try:
+            pass
+        finally:
+            self.quitting = True
+            sys.settrace(None)
         return eval(expr, globals, locals)
 
     def runctx(self, cmd, globals, locals):

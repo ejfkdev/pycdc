@@ -178,6 +178,12 @@ class InteractiveConsole(InteractiveInterpreter):
         more = 0
         while True:
             try:
+                line = self.raw_input(prompt)
+            except EOFError:
+                self.write('\n')
+            else:
+                more = self.push(line)
+            try:
                 if more:
                     prompt = sys.ps2
                 else:

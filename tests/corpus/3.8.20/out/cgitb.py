@@ -118,7 +118,10 @@ def html(einfo, context=5):
         highlight = {}
         def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1
-            # WARNING: unrecovered try/except structure
+            try:
+                pass
+            finally:
+                lnum[0] += 1
             return linecache.getline(file, lnum[0])
 
         vars = scanvars(reader, frame, locals)
@@ -186,7 +189,10 @@ def text(einfo, context=5):
         highlight = {}
         def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1
-            # WARNING: unrecovered try/except structure
+            try:
+                pass
+            finally:
+                lnum[0] += 1
             return linecache.getline(file, lnum[0])
 
         vars = scanvars(reader, frame, locals)

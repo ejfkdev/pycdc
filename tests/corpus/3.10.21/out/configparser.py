@@ -597,7 +597,7 @@ class RawConfigParser(MutableMapping):
                 with open(filename, encoding=encoding) as fp:
                     self._read(fp, filename)
             except OSError:
-                pass
+                continue
             else:
                 filename = os.fspath(filename)
                 if isinstance(filename, os.PathLike):
@@ -681,6 +681,15 @@ class RawConfigParser(MutableMapping):
         The section DEFAULT is special.
         '''
 
+        try:
+            d = self._unify_values(section, vars)
+        except NoSectionError:
+            if fallback is _UNSET:
+                raise
+            return fallback
+        else:
+            option = self.optionxform(option)
+            value = d[option]
         try:
             pass
         except KeyError:
@@ -1206,7 +1215,7 @@ class ConverterMapping(MutableMapping):
             try:
                 delattr(inst, k)
             except AttributeError:
-                pass
+                continue
 
     def __iter__(self):
         return iter(self._data)

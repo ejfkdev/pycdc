@@ -186,6 +186,9 @@ struct LegacyTry {
     else_stop: usize,
     /// handler chain fully parsed (END_FINALLY passed); emit on next jump
     chain_done: bool,
+    /// enclosing block's statement count when this chain's inline
+    /// finally region opened — stmts past the mark are the inline body
+    else_stmt_mark: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -353,6 +356,10 @@ struct Ctx<'a> {
     /// body closed — the else region starts there; statements BEFORE the
     /// mark are pre-try code and must not be stolen as orelse
     pending_orelse_mark: Option<usize>,
+    /// legacy swap-in fold: handler_start of the chain whose BODY should
+    /// receive the next push_legacy_try statement (the swapped-out chain
+    /// that was active while this one parsed)
+    legacy_body_redirect: Option<usize>,
     pending_try_handlers: Vec<Vec<ExceptHandler>>,
     pending_loop: Vec<(Option<ExprRef>, Option<ExprRef>, Option<ExprRef>, Vec<Stmt>, bool)>,
     pending_with: Vec<Vec<WithItem>>,
@@ -596,6 +603,7 @@ pub fn decompile_in_scope(
         pending_handlers: Vec::new(),
         pending_try_body: Vec::new(),
         pending_orelse_mark: None,
+        legacy_body_redirect: None,
         pending_try_handlers: Vec::new(),
         pending_loop: Vec::new(),
         pending_with: Vec::new(),
@@ -3146,10 +3154,44 @@ impl<'a> Ctx<'a> {
         if self.version.at_least(3, 11) {
             return;
         }
+        let pos = inst.offset;
+        // consecutive SETUP_FINALLY nesting (3.8-3.10): handler regions
+        // are laid out in source order, but the chains stash in nesting
+        // order — when this position is a STASHED chain's handler start,
+        // swap that chain into the active slot so the clause parses into
+        // the right try
+        if self.legacy_handler.is_none()
+            && self
+                .legacy_try
+                .as_ref()
+                .map_or(false, |l| l.handler_start != pos)
+        {
+            let mut swap_idx = None;
+            for (i, nest) in self.legacy_nest.iter().enumerate() {
+                if nest
+                    .outer_try
+                    .as_ref()
+                    .map_or(false, |t| t.handler_start == pos)
+                {
+                    swap_idx = Some(i);
+                    break;
+                }
+            }
+            if let Some(i) = swap_idx {
+                let mut nest = self.legacy_nest.remove(i);
+                let stashed = nest.outer_try.take();
+                nest.outer_try = self.legacy_try.take();
+                // when the swapped-in chain folds, its Try statement
+                // belongs to the swapped-out chain's body
+                self.legacy_body_redirect =
+                    nest.outer_try.as_ref().map(|l| l.handler_start);
+                self.legacy_try = stashed;
+                self.legacy_nest.push(nest);
+            }
+        }
         let Some(lt) = self.legacy_try.clone() else {
             return;
         };
-        let pos = inst.offset;
 
         // bare `except:` entry: the handler starts with POP_TOPs instead of
         // DUP_TOP + COMPARE_OP + PJIF — open a typeless legacy handler whose
@@ -3292,6 +3334,36 @@ impl<'a> Ctx<'a> {
                 } else {
                     if self.legacy_handler.is_some() {
                         self.flush_pending_stores();
+                    }
+                    // a handler whose exit jump heads to an enclosing
+                    // loop top ends in `continue` — the jump itself is
+                    // the loop's back edge and folds nothing
+                    let add_cont = self
+                        .idx_of
+                        .get(&self.cur_next)
+                        .and_then(|&ni| self.instrs.get(ni))
+                        .map_or(false, |x| {
+                            matches!(
+                                x.op,
+                                Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP
+                            ) && x.target.map_or(false, |t| {
+                                let te = self.effective_offset(t);
+                                self.blocks.iter().any(|b| {
+                                    matches!(
+                                        b.kind,
+                                        BlockType::While | BlockType::For
+                                    ) && self.effective_offset(b.start) == te
+                                })
+                            })
+                        })
+                        && !self
+                            .legacy_handler
+                            .as_ref()
+                            .map_or(true, |h| matches!(h.body.last(), Some(Stmt::Continue)));
+                    if add_cont {
+                        if let Some(h) = self.legacy_handler.as_mut() {
+                            h.body.push(Stmt::Continue);
+                        }
                     }
                     if let Some(h) = self.legacy_handler.take() {
                         if let Some(he) = &h.name {
@@ -3991,6 +4063,13 @@ impl<'a> Ctx<'a> {
                                         inline_end = ins.offset;
                                         break;
                                     }
+                                    // a nested try/finally runs the
+                                    // enclosing level's POP_BLOCK right
+                                    // after this level's inline body
+                                    Op::POP_BLOCK => {
+                                        inline_end = ins.offset;
+                                        break;
+                                    }
                                     Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE => {
                                         if ins.target.unwrap_or(0) > pos {
                                             inline_end = ins.offset;
@@ -4001,6 +4080,39 @@ impl<'a> Ctx<'a> {
                                 }
                             }
                         }
+                    }
+                    // a nested inline-finally level completes right here
+                    // (its else region ends at this POP_BLOCK): fold the
+                    // still-active inner chain into a Try statement first
+                    // — the trailing stmts of `body` collected past the
+                    // inner else_start are the inner inline finally
+                    // an active chain at this POP_BLOCK: structurally
+                    // COMPLETE (its protected region ended here) folds on
+                    // top of the new chain so its Try statement lands in
+                    // the new body; a still-live chain (mid-body) stashes
+                    // via legacy_nest and the new level nests inside it
+                    let prev_complete = self.legacy_try.as_ref().map_or(false, |prev| {
+                        prev.else_start
+                            .map_or(false, |es| es < self.cur_offset)
+                            && (prev.has_finally || !prev.handlers.is_empty())
+                    });
+                    let mut prev_done = if prev_complete {
+                        self.legacy_try.take()
+                    } else {
+                        None
+                    };
+                    if self.legacy_try.is_some() {
+                        self.begin_legacy_nest();
+                    }
+                    let mark = self.blocks.last().map(|b| b.stmts.len()).unwrap_or(0);
+                    if self.legacy_try.is_some() {
+                        self.begin_legacy_nest();
+                    }
+                    if let Some(p) = prev_done.take() {
+                        // fold the completed inner chain FIRST so its Try
+                        // statement is in place before the enclosing chain
+                        // starts collecting
+                        self.push_legacy_try(p);
                     }
                     self.legacy_try = Some(LegacyTry {
                         body,
@@ -4016,7 +4128,9 @@ impl<'a> Ctx<'a> {
                         },
                         else_stop: inline_end,
                         chain_done: false,
+                        else_stmt_mark: mark,
                     });
+
                 }
             }
             BlockType::TryElse => {
@@ -5975,6 +6089,12 @@ impl<'a> Ctx<'a> {
             // ---------- control flow ----------
             Op::JUMP_FORWARD => {
                 let target = inst.target.unwrap_or(inst.end());
+                if !self.version.at_least(3, 11)
+                    && target > self.cur_offset
+                    && self.legacy_split_finally_rebuild(target)
+                {
+                    return true;
+                }
                 // 3.12+ split finally: this is the exit path's jump out
                 // of the inlined finally copy — fold the deferred try
                 // here (position-based closing never reaches it under
@@ -6067,6 +6187,17 @@ impl<'a> Ctx<'a> {
                 r
             }
             Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::CONTINUE_LOOP => {
+                // 3.9 break-in-try/finally exits via a FORWARD
+                // JUMP_ABSOLUTE past the handler copy
+                if !self.version.at_least(3, 11)
+                    && inst.target.map_or(false, |t| t > inst.offset)
+                {
+                    if let Some(t) = inst.target {
+                        if self.legacy_split_finally_rebuild(t) {
+                            return true;
+                        }
+                    }
+                }
                 let target = inst.target.unwrap_or(0);
                 if let Some(comp) = &self.inline_comp {
                     if comp.for_iter_offsets.contains(&target) {
@@ -7078,9 +7209,215 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::CALL_FINALLY => {
-                // 3.8 alpha era
+                // 3.8 alpha era: `POP_BLOCK; CALL_FINALLY h; <body ending
+                // in RETURN>` — the finally at h runs before the return
+                // resumes. Parse the handler as the finalbody and fold
+                // the deferred legacy try here.
                 let target = inst.target.unwrap_or(inst.end());
-                if let Some(top) = self.blocks.last_mut() {
+                // 3.8 `except E as e: return <expr>` wraps the return in
+                // an as-cleanup SETUP_FINALLY whose handler is exactly
+                // `None; STORE e; DELETE e` — not a real finally; leave
+                // that idiom to the legacy cleanup machinery
+                let as_cleanup_wrapper = self
+                    .idx_of
+                    .get(&target)
+                    .map_or(false, |&hi| {
+                        matches!(self.instrs.get(hi).map(|x| x.op), Some(Op::LOAD_CONST))
+                            && matches!(
+                                self.instrs.get(hi + 1).map(|x| x.op),
+                                Some(Op::STORE_FAST) | Some(Op::STORE_NAME) | Some(Op::STORE_DEREF)
+                            )
+                            && matches!(
+                                self.instrs.get(hi + 2).map(|x| x.op),
+                                Some(Op::DELETE_FAST) | Some(Op::DELETE_NAME) | Some(Op::DELETE_DEREF)
+                            )
+                    });
+                // skip the fold only while THIS finally's own try block
+                // is still open (the break-path variant rebuilds below);
+                // an enclosing try belonging to a LATER finally must not
+                // block the inner fold (nested `return` in try/finally)
+                let try_open = self.blocks.iter().any(|b| {
+                    b.kind == BlockType::Try
+                        && (b.finally_target == Some(target) || b.end == target)
+                });
+                if self.legacy_try.is_some() && !as_cleanup_wrapper && !try_open {
+                    let fin_stop = self
+                        .idx_of
+                        .get(&target)
+                        .and_then(|&hi| {
+                            self.instrs[hi..]
+                                .iter()
+                                .take(200)
+                                .find(|x| {
+                                    matches!(
+                                        x.op,
+                                        Op::END_FINALLY | Op::RERAISE | Op::JUMP_ABSOLUTE
+                                    )
+                                })
+                                .map(|x| x.offset)
+                        })
+                        .unwrap_or(target);
+                    let fin = if fin_stop > target {
+                        self.decompile_region(target, fin_stop)
+                    } else {
+                        Vec::new()
+                    };
+                    let lt = self.legacy_try.take().unwrap();
+                    let handlers = lt.handlers;
+                    // the legacy try keeps its body on the LegacyTry
+                    // record (pending_try_body stays empty pre-3.11)
+                    let body = if lt.body.is_empty() {
+                        std::mem::take(&mut self.pending_try_body).pop().unwrap_or_default()
+                    } else {
+                        lt.body
+                    };
+                    if !handlers.is_empty() || !fin.is_empty() {
+                        self.push_stmt(Stmt::Try {
+                            body,
+                            handlers,
+                            orelse: Vec::new(),
+                            finalbody: fin,
+                        });
+                    } else {
+                        self.push_stmt_all(body);
+                    }
+                    // the handler region is folded; the flow continues
+                    // with the return value right after this jump
+                    self.legacy_handler = None;
+                    self.legacy_handler_end = None;
+                } else if !as_cleanup_wrapper
+                    && !self.version.at_least(3, 11)
+                    && matches!(
+                        self.blocks.last().map(|b| b.kind),
+                        Some(BlockType::If)
+                    )
+                    && self
+                        .blocks
+                        .iter()
+                        .any(|b| matches!(b.kind, BlockType::While | BlockType::For))
+                {
+                    // 3.8 break-in-try/finally: the break path is
+                    //   POP_BLOCK; CALL_FINALLY h; [POP_TOP;] JABS exit
+                    // with ONE shared finally copy at h ending in the
+                    // loop back edge — rebuild the split try from spans
+                    let n = self.blocks.len();
+                    let ii = n - 1;
+                    let ti = (0..ii)
+                        .rev()
+                        .find(|&i| self.blocks[i].kind == BlockType::Try);
+                    if std::env::var("PYCDC_EG_DBG").is_ok() {
+                        eprintln!(
+                            "EG cf-split [{}] pos={} target={} ti={:?} ii={} blocks={:?}",
+                            self.code.name, self.cur_offset, target, ti, ii,
+                            self.blocks.iter().map(|b| format!("{:?}", b.kind)).collect::<Vec<_>>()
+                        );
+                    }
+                    // the break path's exit jump: any jump between here
+                    // and the handler that lands PAST the handler (3.8
+                    // uses a forward JUMP_ABSOLUTE to the loop exit)
+                    let exit_jump = self.instrs.iter().find(|x| {
+                        x.offset > self.cur_offset
+                            && x.offset < target
+                            && matches!(
+                                x.op,
+                                Op::JUMP_ABSOLUTE | Op::JUMP_FORWARD | Op::JUMP
+                            )
+                            && x.target.map_or(false, |t| t > target)
+                    });
+                    let exit_target = exit_jump.and_then(|x| x.target);
+                    if let (Some(ti), Some(exit_at)) = (ti, exit_target) {
+                        let b2_start = self.blocks[ii].end;
+                        let try_start = self.blocks[ti].start;
+                        let pb2 = self
+                            .instrs
+                            .iter()
+                            .find(|x| x.offset >= b2_start && x.op == Op::POP_BLOCK)
+                            .map(|x| x.offset);
+                        let fin_stop = self
+                            .idx_of
+                            .get(&target)
+                            .and_then(|&hi| {
+                                self.instrs[hi..]
+                                    .iter()
+                                    .take(200)
+                                    .find(|x| {
+                                        matches!(
+                                            x.op,
+                                            Op::END_FINALLY
+                                                | Op::RERAISE
+                                                | Op::JUMP_ABSOLUTE
+                                        )
+                                    })
+                                    .map(|x| x.offset)
+                            })
+                            .unwrap_or(target);
+                        let cond_jump = self
+                            .instrs
+                            .iter()
+                            .find(|x| {
+                                x.offset >= try_start
+                                    && x.offset < b2_start
+                                    && matches!(
+                                        x.op,
+                                        Op::POP_JUMP_IF_FALSE
+                                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                                            | Op::POP_JUMP_IF_TRUE
+                                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                                    )
+                                    && x.target == Some(b2_start)
+                            })
+                            .map(|x| (x.offset, x.op));
+                        if std::env::var("PYCDC_EG_DBG").is_ok() {
+                            eprintln!(
+                                "EG cf-split2 b2={} pb2={:?} fin_stop={} cj={:?}",
+                                b2_start, pb2, fin_stop, cond_jump
+                            );
+                        }
+                        if let (Some(pb2), Some((cj_off, cj_op))) = (pb2, cond_jump) {
+                            if pb2 < target && fin_stop > target {
+                                while self.blocks.len() > ti {
+                                    self.blocks.pop();
+                                }
+                                self.legacy_try = None;
+                                self.legacy_handler = None;
+                                self.legacy_handler_end = None;
+                                self.region_result_expr = None;
+                                let _ = self.decompile_region(try_start, cj_off);
+                                let mut cond_e = self
+                                    .region_result_expr
+                                    .take()
+                                    .unwrap_or_else(|| self.name_expr("???"));
+                                if matches!(
+                                    cj_op,
+                                    Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+                                ) {
+                                    cond_e = Rc::new(Expr::Unary {
+                                        op: UnaryOp::Not,
+                                        operand: cond_e,
+                                    });
+                                }
+                                let mut body = vec![Stmt::If {
+                                    cond: cond_e,
+                                    body: vec![Stmt::Break],
+                                    orelse: Vec::new(),
+                                }];
+                                body.extend(self.decompile_region(b2_start, pb2));
+                                let fin = self.decompile_region(target, fin_stop);
+                                self.push_stmt(Stmt::Try {
+                                    body,
+                                    handlers: Vec::new(),
+                                    orelse: Vec::new(),
+                                    finalbody: fin,
+                                });
+                                self.skip_until = Some(exit_at);
+                                return true;
+                            }
+                        }
+                    }
+                    if let Some(top) = self.blocks.last_mut() {
+                        top.finally_target = Some(target);
+                    }
+                } else if let Some(top) = self.blocks.last_mut() {
                     top.finally_target = Some(target);
                 }
                 self.stack.push(Sv::Null);
@@ -7574,6 +7911,41 @@ impl<'a> Ctx<'a> {
             orelse: l.orelse,
             finalbody: l.finalbody,
         };
+        // swap-in fold: route into the swapped-out chain's body (it may
+        // be active again already — the fold path restores the nest
+        // BEFORE pushing) or still stashed
+        if let Some(hs) = self.legacy_body_redirect.take() {
+            let owner_active = self
+                .legacy_try
+                .as_ref()
+                .map_or(false, |l| l.handler_start == hs);
+            // insert before any trailing returns of the owner body (the
+            // sunk post-try `return` collected before this fold)
+            let insert_before_returns = |body: &mut Vec<Stmt>, s: Stmt| {
+                let mut at = body.len();
+                while at > 0 && matches!(body[at - 1], Stmt::Return(_)) {
+                    at -= 1;
+                }
+                body.insert(at, s);
+            };
+            if owner_active {
+                if let Some(ot) = self.legacy_try.as_mut() {
+                    insert_before_returns(&mut ot.body, try_stmt);
+                }
+                return;
+            }
+            let owner_idx = self.legacy_nest.iter().position(|n| {
+                n.outer_try
+                    .as_ref()
+                    .map_or(false, |l| l.handler_start == hs)
+            });
+            if let Some(idx) = owner_idx {
+                if let Some(ot) = self.legacy_nest[idx].outer_try.as_mut() {
+                    insert_before_returns(&mut ot.body, try_stmt);
+                }
+                return;
+            }
+        }
         // a nested chain flushed inside a restored outer handler belongs to
         // that handler's body, not to the enclosing block
         if let Some(h) = self.legacy_handler.as_mut() {
@@ -10843,6 +11215,155 @@ impl<'a> Ctx<'a> {
         self.blocks.push(blk);
     }
 
+    /// 3.8-3.10 try/finally inside a loop with break: the break path
+    /// inlines the finally copy and jumps out —
+    ///   FOR; SETUP_FIN h; <cond>; PJIF b2; POP_BLOCK;
+    ///   <copy>; JF/JABS exit; b2:<body2>; POP_BLOCK; <copy>; JB FOR
+    ///   h: <copy>; RERAISE; exit: ...
+    /// Rebuild the split try from spans; the loop closes at the exit
+    /// landing (its end == FOR_ITER's exit target). Returns true when
+    /// the jump was consumed.
+    fn legacy_split_finally_rebuild(&mut self, target: usize) -> bool {
+                // 3.8-3.10 try/finally inside a loop with break: the
+                // break path inlines the finally copy and jumps out —
+                //   FOR; SETUP_FIN h; <cond>; PJIF b2; POP_BLOCK;
+                //   <copy>; JF exit; b2:<body2>; POP_BLOCK; <copy>; JB FOR
+                //   h: <copy>; RERAISE; exit: ...
+                // rebuild the split try from spans; the loop closes at
+                // the exit landing (its end == FOR_ITER's exit target)
+                if !self.version.at_least(3, 11)
+                    && matches!(
+                        self.blocks.last().map(|b| b.kind),
+                        Some(BlockType::If)
+                    )
+                    && target > self.cur_offset
+                {
+                    let n = self.blocks.len();
+                    let ii = n - 1;
+                    let ti = (0..ii).rev().find(|&i| self.blocks[i].kind == BlockType::Try);
+                    let has_loop = self
+                        .blocks
+                        .iter()
+                        .any(|b| matches!(b.kind, BlockType::While | BlockType::For));
+                    if let (Some(ti), true) = (ti, has_loop) {
+                        let b2_start = self.blocks[ii].end;
+                        let try_start = self.blocks[ti].start;
+                        // legacy SETUP_FINALLY opens the Try with
+                        // end == the handler start
+                        let handler = self.blocks[ti]
+                            .finally_target
+                            .or_else(|| self.legacy_try.as_ref().map(|l| l.handler_start))
+                            .unwrap_or(self.blocks[ti].end);
+                        let cond_jump = self
+                            .instrs
+                            .iter()
+                            .find(|x| {
+                                x.offset >= try_start
+                                    && x.offset < b2_start
+                                    && matches!(
+                                        x.op,
+                                        Op::POP_JUMP_IF_FALSE
+                                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                                            | Op::POP_JUMP_IF_TRUE
+                                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                                    )
+                                    && x.target == Some(b2_start)
+                            })
+                            .map(|x| (x.offset, x.op));
+                        // scan the fall-through span for its POP_BLOCK and
+                        // the loop back edge that follows the second copy
+                        let mut pb2 = None;
+                        let mut jabs = None;
+                        if handler != usize::MAX {
+                            for x in self.instrs.iter() {
+                                if x.offset < b2_start || x.offset >= handler {
+                                    continue;
+                                }
+                                if x.op == Op::POP_BLOCK && pb2.is_none() {
+                                    pb2 = Some(x.offset);
+                                    continue;
+                                }
+                                if pb2.is_some()
+                                    && ((x.op == Op::JUMP_ABSOLUTE && x.is_backward)
+                                        || x.op == Op::JUMP_FORWARD
+                                        || x.op == Op::JUMP_BACKWARD
+                                        || x.op == Op::JUMP)
+                                {
+                                    // the loop back edge after the second
+                                    // copy: JABS (for) or a rotated-while
+                                    // JF to the cond re-test
+                                    jabs = Some(x.offset);
+                                    break;
+                                }
+                            }
+                        }
+                        if let (Some(pb2), Some(jabs), Some((cj_off, cj_op))) =
+                            (pb2, jabs, cond_jump)
+                        {
+                            if jabs > pb2 && handler > jabs && handler < target {
+                                let fin_stop = self
+                                    .idx_of
+                                    .get(&handler)
+                                    .and_then(|&hi| {
+                                        self.instrs[hi..]
+                                            .iter()
+                                            .take(200)
+                                            .find(|x| {
+                                                matches!(
+                                                    x.op,
+                                                    Op::RERAISE
+                                                        | Op::END_FINALLY
+                                                        | Op::JUMP_ABSOLUTE
+                                                )
+                                            })
+                                            .map(|x| x.offset)
+                                    })
+                                    .unwrap_or(handler);
+                                // discard the open If/Try — their stmts
+                                // are inlined finally copies, rebuilt below
+                                while self.blocks.len() > ti {
+                                    self.blocks.pop();
+                                }
+                                self.legacy_try = None;
+                                self.legacy_handler = None;
+                                self.legacy_handler_end = None;
+                                self.region_result_expr = None;
+                                let _ = self.decompile_region(try_start, cj_off);
+                                let mut cond_e = self
+                                    .region_result_expr
+                                    .take()
+                                    .unwrap_or_else(|| self.name_expr("???"));
+                                if matches!(
+                                    cj_op,
+                                    Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+                                ) {
+                                    cond_e = Rc::new(Expr::Unary {
+                                        op: UnaryOp::Not,
+                                        operand: cond_e,
+                                    });
+                                }
+                                let mut body = vec![Stmt::If {
+                                    cond: cond_e,
+                                    body: vec![Stmt::Break],
+                                    orelse: Vec::new(),
+                                }];
+                                body.extend(self.decompile_region(b2_start, pb2));
+                                let fin = self.decompile_region(handler, fin_stop);
+                                self.push_stmt(Stmt::Try {
+                                    body,
+                                    handlers: Vec::new(),
+                                    orelse: Vec::new(),
+                                    finalbody: fin,
+                                });
+                                self.skip_until = Some(target);
+                                return true;
+                            }
+                        }
+                    }
+                }
+        false
+    }
+
     fn handle_jump_forward(&mut self, target: usize) -> bool {
         self.close_blocks_at(self.cur_offset);
         // a forward jump flying over an OPEN (non-top) If block's end
@@ -11467,6 +11988,47 @@ impl<'a> Ctx<'a> {
     }
 
     fn handle_jump_backward(&mut self, target: usize) {
+        // 3.8-3.10 inline finally inside a loop body: the back edge
+        // follows the inline finally copy — fold the chain FIRST so the
+        // Try lands in the loop body before the loop closes
+        let fold_inline_fin = !self.version.at_least(3, 11)
+            && self
+                .legacy_try
+                .as_ref()
+                .map_or(false, |l| {
+                    l.has_finally
+                        && l.else_start
+                            .map_or(false, |es| self.cur_offset >= es)
+                })
+            && self.blocks.iter().any(|b| {
+                matches!(b.kind, BlockType::While | BlockType::For)
+                    && (b.start == target || b.cond_end == target)
+            });
+        if fold_inline_fin {
+            self.flush_pending_stores();
+            if let Some(l) = self.legacy_try.take() {
+                // the out-of-line handler copy is exception-path only —
+                // skip it so its statements do not leak into the flow
+                let skip_to = self
+                    .idx_of
+                    .get(&l.handler_start)
+                    .and_then(|&hi| {
+                        self.instrs[hi..]
+                            .iter()
+                            .take(200)
+                            .find(|x| matches!(x.op, Op::RERAISE | Op::END_FINALLY))
+                            .map(|x| x.end())
+                    })
+                    .filter(|e| *e > self.cur_offset);
+                self.restore_legacy_nest();
+                self.push_legacy_try(l);
+                if let Some(s) = skip_to {
+                    if self.skip_until.map_or(true, |cur| cur < s) {
+                        self.skip_until = Some(s);
+                    }
+                }
+            }
+        }
         // dead back-edge padding: the loop owning this top already closed
         if self
             .closed_loop_tops

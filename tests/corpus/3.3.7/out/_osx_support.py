@@ -209,6 +209,7 @@ def compiler_fixup(compiler_so, cc_args):
                 del compiler_so[index:index + 2]
             except ValueError:
                 break
+                continue
             continue
             continue
             break
@@ -221,6 +222,7 @@ def compiler_fixup(compiler_so, cc_args):
                 del compiler_so[index:index + 2]
             except ValueError:
                 break
+                continue
             continue
             continue
             break

@@ -120,6 +120,13 @@ class Cmd:
                     line = raw_input(self.prompt)
                 except EOFError:
                     line = 'EOF'
+                try:
+                    import readline
+                    self.old_completer = readline.get_completer()
+                    readline.set_completer(self.complete)
+                    readline.parse_and_bind(self.completekey + ': complete')
+                except ImportError:
+                    pass
         finally:
             self.postloop()
             if self.use_rawinput and self.completekey:

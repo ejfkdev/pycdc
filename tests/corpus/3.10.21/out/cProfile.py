@@ -60,7 +60,7 @@ class Profile(_lsprof.Profiler):
                     try:
                         callers = callersdicts[id(subentry.code)]
                     except KeyError:
-                        pass
+                        continue
                     else:
                         nc = subentry.callcount
                         cc = nc - subentry.reccallcount

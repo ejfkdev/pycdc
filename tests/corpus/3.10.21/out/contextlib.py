@@ -496,6 +496,16 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
             except BaseException:
                 exc_details[1].__context__ = fixed_ctx
                 raise
+            try:
+                if cb(*exc_details):
+                    suppressed_exc = True
+                    pending_raise = False
+                    exc_details = (None, None, None)
+            except:
+                new_exc_details = sys.exc_info()
+                _fix_exception_context(new_exc_details[1], exc_details[1])
+                pending_raise = True
+                exc_details = new_exc_details
         return received_exc and suppressed_exc
 
     def close(self):
@@ -606,6 +616,20 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             except BaseException:
                 exc_details[1].__context__ = fixed_ctx
                 raise
+            try:
+                if is_sync:
+                    cb_suppress = cb(*exc_details)
+                else:
+                    cb_suppress = await cb(*exc_details)
+                if cb_suppress:
+                    suppressed_exc = True
+                    pending_raise = False
+                    exc_details = (None, None, None)
+            except:
+                new_exc_details = sys.exc_info()
+                _fix_exception_context(new_exc_details[1], exc_details[1])
+                pending_raise = True
+                exc_details = new_exc_details
         return received_exc and suppressed_exc
 
 

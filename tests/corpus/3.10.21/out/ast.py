@@ -144,6 +144,7 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
                         value = getattr(node, name)
                     except AttributeError:
                         keywords = True
+                        continue
                     else:
                         keywords = True
                     continue
@@ -159,7 +160,7 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
                         try:
                             value = getattr(node, name)
                         except AttributeError:
-                            pass
+                            continue
                         continue
                     value, simple = _format(value, level)
                     allsimple = allsimple and simple
@@ -258,7 +259,7 @@ def iter_fields(node):
         try:
             yield (field, getattr(node, field))
         except AttributeError:
-            pass
+            continue
 
 def iter_child_nodes(node):
     '''

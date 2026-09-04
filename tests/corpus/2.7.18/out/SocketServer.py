@@ -255,6 +255,12 @@ class BaseServer:
 
         if self.verify_request(request, client_address):
             try:
+                request, client_address = self.get_request()
+            except socket.error:
+                return
+            else:
+                self.process_request(request, client_address)
+            try:
                 pass
             except:
                 self.handle_error(request, client_address)

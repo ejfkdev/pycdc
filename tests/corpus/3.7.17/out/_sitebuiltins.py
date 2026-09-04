@@ -42,7 +42,7 @@ class _Printer(object):
                     data = fp.read()
                 break
             except OSError:
-                pass
+                continue
             continue
         if not data:
             data = self.__data
@@ -66,6 +66,7 @@ class _Printer(object):
                         print(self.__lines[i])
                 except IndexError:
                     break
+                    continue
                 else:
                     lineno += self.MAXLINES
                     key = None

@@ -391,6 +391,35 @@ class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if self.encode_threshold is not None and len(response) > self.encode_threshold:
             if q:
                 try:
+                    max_chunk_size = 10485760
+                    size_remaining = int(self.headers['content-length'])
+                    L = []
+                    while size_remaining:
+                        chunk_size = min(size_remaining, max_chunk_size)
+                        chunk = self.rfile.read(chunk_size)
+                        if not chunk:
+                            break
+                        L.append(chunk)
+                        size_remaining -= len(L[-1])
+                    data = ''.join(L)
+                    data = self.decode_request_content(data)
+                    if data is None:
+                        return
+                    response = self.server._marshaled_dispatch(data, getattr(self, '_dispatch', None), self.path)
+                except Exception, e:
+                    self.send_response(500)
+                    if hasattr(self.server, '_send_traceback_header') and self.server._send_traceback_header:
+                        self.send_header('X-exception', str(e))
+                        self.send_header('X-traceback', traceback.format_exc())
+                    self.send_header('Content-length', '0')
+                    self.end_headers()
+                else:
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/xml')
+                    q = self.accept_encodings().get('gzip', 0)
+                    response = xmlrpclib.gzip_encode(response)
+                    self.send_header('Content-Encoding', 'gzip')
+                try:
                     pass
                 except NotImplementedError:
                     pass
