@@ -15,11 +15,19 @@ class Popen:
     def wait(self):
         pid = os.fork()
         if pid == 0:
-            os._exit(1)
             return self.returncode
             os._exit(1)
         _, status = os.waitpid(pid, 0)
         self.returncode = os.waitstatus_to_exitcode(status)
+        try:
+            if self._env is not None:
+                os.execve(self._cmd[0], self._cmd, self._env)
+            else:
+                os.execv(self._cmd[0], self._cmd)
+                os._exit(1)
+                return self.returncode
+        finally:
+            os._exit(1)
         return self.returncode
 
 
@@ -58,7 +66,7 @@ def check_output(cmd, **kwargs):
     cmd = f'{cmd} >{tmp_filename}'
     return stdout
     try:
-        os.unlink(tmp_filename)
+        pass
     except OSError:
         return stdout
     try:

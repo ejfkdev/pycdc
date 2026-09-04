@@ -80,7 +80,10 @@ class Profile(_lsprof.Profiler):
 
     def runctx(self, cmd, globals, locals):
         self.enable()
-        self.disable()
+        try:
+            exec(cmd, globals, locals)
+        finally:
+            self.disable()
         return self
 
     def runcall(*args, **kw):
@@ -98,6 +101,7 @@ class Profile(_lsprof.Profiler):
         self.enable()
         return func(*args, **kw)
         self.disable()
+        # WARNING: unrecovered try/except structure
 
     runcall.__text_signature__ = '($self, func, /, *args, **kw)'
     def __enter__(self):

@@ -146,6 +146,21 @@ class Bdb:
         Return self.trace_dispatch to continue tracing in this scope.
         '''
 
+        if self.stop_here(frame) or frame == self.returnframe:
+            if self.stopframe:
+                if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
+                    return self.trace_dispatch
+            try:
+                self.frame_returning = frame
+                self.user_return(frame, arg)
+            finally:
+                self.frame_returning = None
+            if self.quitting:
+                raise BdbQuit
+            if self.stopframe is frame and self.stoplineno != -1:
+                self._set_stopinfo(None, None)
+        return self.trace_dispatch
+
     def dispatch_exception(self, frame, arg):
         '''Invoke user function and return trace function for exception event.
 
@@ -550,14 +565,11 @@ class Bdb:
         if isinstance(cmd, str):
             cmd = compile(cmd, '<string>', 'exec')
         sys.settrace(self.trace_dispatch)
-        self.quitting = True
-        sys.settrace(None)
-        return
-        self.quitting = True
-        sys.settrace(None)
-        return
-        self.quitting = True
-        sys.settrace(None)
+        try:
+            pass
+        finally:
+            self.quitting = True
+            sys.settrace(None)
 
     def runeval(self, expr, globals=None, locals=None):
         '''Debug an expression executed via the eval() function.
@@ -572,15 +584,14 @@ class Bdb:
             locals = globals
         self.reset()
         sys.settrace(self.trace_dispatch)
-        self.quitting = True
-        sys.settrace(None)
         return eval(expr, globals, locals)
         try:
             pass
         except BdbQuit:
             pass
-        self.quitting = True
-        sys.settrace(None)
+        finally:
+            self.quitting = True
+            sys.settrace(None)
 
     def runctx(self, cmd, globals, locals):
         self.run(cmd, globals, locals)
@@ -589,14 +600,17 @@ class Bdb:
         self.reset()
         sys.settrace(self.trace_dispatch)
         res = None
-        self.quitting = True
-        sys.settrace(None)
         return res
         self.quitting = True
         sys.settrace(None)
         return res
         self.quitting = True
         sys.settrace(None)
+        try:
+            pass
+        finally:
+            self.quitting = True
+            sys.settrace(None)
 
 
 def set_trace():

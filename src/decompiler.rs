@@ -750,19 +750,23 @@ pub fn decompile_in_scope(
         }
     }
     if let Some(l) = ctx.legacy_try.take() {
-        if !l.handlers.is_empty() {
+        if !l.handlers.is_empty() || l.has_finally {
             let mut orelse = l.orelse;
+            let mut finalbody = l.finalbody;
             // the implicit function epilogue `return None` is not an
-            // else clause
+            // else/finally clause
             if matches!(orelse.last(), Some(Stmt::Return(None))) {
                 orelse.pop();
+            }
+            if matches!(finalbody.last(), Some(Stmt::Return(None))) {
+                finalbody.pop();
             }
             ctx.flush_pending_stores();
             let try_stmt = Stmt::Try {
                 body: l.body,
                 handlers: l.handlers,
                 orelse,
-                finalbody: l.finalbody,
+                finalbody,
             };
             // statements the walk pushed after the chain (the function
             // epilogue / trailing returns) chronologically FOLLOW the try
@@ -2328,6 +2332,28 @@ impl<'a> Ctx<'a> {
                         l.else_start = None;
                     }
                 }
+                // 3.8-3.10 try/finally: the inline finally body ends with
+                // the forward jump over the handler copy — emit and skip
+                if lt.has_finally
+                    && self.legacy_handler.is_none()
+                    && lt.else_start.map_or(false, |es| pos >= es)
+                {
+                    if let Some(target) = inst.target {
+                        if target > pos && target >= lt.handler_start {
+                            self.flush_pending_stores();
+                            let l = self.legacy_try.take().unwrap();
+                            self.restore_legacy_nest();
+                            self.push_stmt(Stmt::Try {
+                                body: l.body,
+                                handlers: l.handlers,
+                                orelse: l.orelse,
+                                finalbody: l.finalbody,
+                            });
+                            self.skip_until = Some(target);
+                            return;
+                        }
+                    }
+                }
                 if self.legacy_handler.is_none() && !lt.has_finally {
                     let in_else = lt
                         .else_start
@@ -2839,30 +2865,27 @@ impl<'a> Ctx<'a> {
                             }
                         }
                         if has_finally {
-                            // the inline finally body ends at the first
-                            // RETURN (function-tail finally) or at the
-                            // forward jump over the handler copy
-                            if let Some(&ci) = self.idx_of.get(&pos) {
-                                let mut ci2 = ci;
-                                while ci2 > 0 && self.instrs[ci2 - 1].op == Op::POP_BLOCK {
-                                    ci2 -= 1;
+                            // the inline finally body runs from right after
+                            // the POP_BLOCK to its RETURN (function-tail
+                            // finally) or the forward jump over the handler
+                            // copy — the block end is the handler start,
+                            // which lies PAST the inline region
+                            for ins in self.instrs.iter() {
+                                if ins.offset < self.cur_next {
+                                    continue;
                                 }
-                                for ins in self.instrs[ci2..].iter().take(256) {
-                                    if ins.offset < pos {
-                                        match ins.op {
-                                            Op::RETURN_VALUE | Op::RETURN_CONST => {
-                                                inline_end = ins.offset;
-                                                break;
-                                            }
-                                            Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE => {
-                                                if ins.target.unwrap_or(0) > pos {
-                                                    inline_end = ins.offset;
-                                                    break;
-                                                }
-                                            }
-                                            _ => {}
+                                match ins.op {
+                                    Op::RETURN_VALUE | Op::RETURN_CONST => {
+                                        inline_end = ins.offset;
+                                        break;
+                                    }
+                                    Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE => {
+                                        if ins.target.unwrap_or(0) > pos {
+                                            inline_end = ins.offset;
+                                            break;
                                         }
                                     }
+                                    _ => {}
                                 }
                             }
                         }
@@ -2874,7 +2897,11 @@ impl<'a> Ctx<'a> {
                         finalbody: Vec::new(),
                         handler_start: pos,
                         has_finally,
-                        else_start: if has_finally { Some(pos) } else { None },
+                        else_start: if has_finally {
+                            Some(self.cur_next)
+                        } else {
+                            None
+                        },
                         else_stop: inline_end,
                         chain_done: false,
                     });
@@ -9674,6 +9701,34 @@ impl<'a> Ctx<'a> {
     }
 
     fn emit_return(&mut self, e: Option<ExprRef>) {
+        // 3.8-3.10 function-tail try/finally: the inline finally body ends
+        // with LOAD None; RETURN — the epilogue return. Flush the collected
+        // try/finally first (the walk ends here), drop the return, and skip
+        // the out-of-line finally copy that follows.
+        let epilogue_none = match &e {
+            None => true,
+            Some(v) => matches!(&**v, Expr::Const(o) if matches!(&**o, PyObject::None)),
+        };
+        if epilogue_none
+            && self.legacy_handler.is_none()
+            && self.legacy_try.as_ref().map_or(false, |l| {
+                l.has_finally
+                    && l.else_start
+                        .map_or(false, |es| self.cur_offset >= es && self.cur_offset <= l.else_stop)
+            })
+        {
+            let l = self.legacy_try.take().unwrap();
+            self.flush_pending_stores();
+            self.restore_legacy_nest();
+            self.push_stmt(Stmt::Try {
+                body: l.body,
+                handlers: l.handlers,
+                orelse: l.orelse,
+                finalbody: l.finalbody,
+            });
+            self.skip_until = Some(usize::MAX);
+            return;
+        }
         let value = match e {
             Some(v) => match &*v {
                 Expr::Const(o) if matches!(&**o, PyObject::None) => None,

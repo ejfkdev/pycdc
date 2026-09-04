@@ -80,14 +80,20 @@ class Profile(_lsprof.Profiler):
 
     def runctx(self, cmd, globals, locals):
         self.enable()
-        self.disable()
-        self.disable()
+        try:
+            exec(cmd, globals, locals)
+        finally:
+            self.disable()
+        return self
 
     def runcall(self, func, /, *args, **kw):
         self.enable()
-        self.disable()
         return func(*args, **kw)
         self.disable()
+        try:
+            pass
+        finally:
+            self.disable()
 
     def __enter__(self):
         self.enable()

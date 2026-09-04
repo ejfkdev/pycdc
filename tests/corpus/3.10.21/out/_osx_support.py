@@ -56,6 +56,15 @@ def _get_system_version():
     '''Return the OS X system version as a string'''
 
     global _SYSTEM_VERSION
+    if _SYSTEM_VERSION is None:
+        _SYSTEM_VERSION = ''
+        try:
+            pass
+        finally:
+            f.close()
+        if m is not None:
+            _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
+    return _SYSTEM_VERSION
 
 _SYSTEM_VERSION_TUPLE = None
 

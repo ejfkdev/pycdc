@@ -122,9 +122,12 @@ def html(einfo, context=5):
         highlight = {}
         def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1
-            lnum[0] += 1
             return linecache.getline(file, lnum[0])
             lnum[0] += 1
+            try:
+                pass
+            finally:
+                lnum[0] += 1
 
         vars = scanvars(reader, frame, locals)
         rows = ['<tr><td bgcolor="#d8bbff">%s%s %s</td></tr>' % ('<big>&nbsp;</big>', link, call)]
@@ -191,9 +194,12 @@ def text(einfo, context=5):
         highlight = {}
         def reader(lnum=[lnum]):
             highlight[lnum[0]] = 1
-            lnum[0] += 1
             return linecache.getline(file, lnum[0])
             lnum[0] += 1
+            try:
+                pass
+            finally:
+                lnum[0] += 1
 
         vars = scanvars(reader, frame, locals)
         rows = [' %s %s' % (file, call)]

@@ -110,8 +110,7 @@ class Cmd:
             if self.completekey:
                 return
                 try:
-                    import readline
-                    readline.set_completer(self.old_completer)
+                    pass
                 except ImportError:
                     return
                 return

@@ -149,7 +149,11 @@ class Bdb:
             if self.stopframe:
                 if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
                     return self.trace_dispatch
-            self.frame_returning = None
+            try:
+                self.frame_returning = frame
+                self.user_return(frame, arg)
+            finally:
+                self.frame_returning = None
             if self.quitting:
                 raise BdbQuit
             if self.stopframe is frame and self.stoplineno != -1:
@@ -535,8 +539,14 @@ class Bdb:
         if isinstance(cmd, str):
             cmd = compile(cmd, '<string>', 'exec')
         sys.settrace(self.trace_dispatch)
-        self.quitting = True
-        sys.settrace(None)
+        try:
+            try:
+                exec(cmd, globals, locals)
+            except BdbQuit:
+                pass
+        finally:
+            self.quitting = True
+            sys.settrace(None)
 
     def runeval(self, expr, globals=None, locals=None):
         '''Debug an expression executed via the eval() function.
@@ -582,8 +592,14 @@ class Bdb:
         self.reset()
         sys.settrace(self.trace_dispatch)
         res = None
-        self.quitting = True
-        sys.settrace(None)
+        try:
+            try:
+                res = func(*args, **kwds)
+            except BdbQuit:
+                pass
+        finally:
+            self.quitting = True
+            sys.settrace(None)
         return res
 
     runcall.__text_signature__ = '($self, func, /, *args, **kwds)'

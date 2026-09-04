@@ -1077,9 +1077,12 @@ class ConfigParser(RawConfigParser):
         Does not perform interpolation for backwards compatibility.
         '''
 
-        self._interpolation = hold_interpolation
-        return
-        self._interpolation = hold_interpolation
+        try:
+            hold_interpolation = self._interpolation
+            self._interpolation = Interpolation()
+            self.read_dict({self.default_section: defaults})
+        finally:
+            self._interpolation = hold_interpolation
 
 
 class SafeConfigParser(ConfigParser):

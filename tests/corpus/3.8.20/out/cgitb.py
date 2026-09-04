@@ -120,6 +120,7 @@ def html(einfo, context=5):
             highlight[lnum[0]] = 1
             return linecache.getline(file, lnum[0])
             lnum[0] += 1
+            # WARNING: unrecovered try/except structure
 
         vars = scanvars(reader, frame, locals)
         rows = ['<tr><td bgcolor="#d8bbff">%s%s %s</td></tr>' % ('<big>&nbsp;</big>', link, call)]
@@ -188,6 +189,7 @@ def text(einfo, context=5):
             highlight[lnum[0]] = 1
             return linecache.getline(file, lnum[0])
             lnum[0] += 1
+            # WARNING: unrecovered try/except structure
 
         vars = scanvars(reader, frame, locals)
         rows = [' %s %s' % (file, call)]

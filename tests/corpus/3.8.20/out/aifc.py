@@ -637,10 +637,19 @@ class Aifc_write:
     def close(self):
         if self._file is None:
             return
-        self._convert = None
-        f = self._file
-        self._file = None
-        f.close()
+        try:
+            self._ensure_header_written(0)
+            if self._datawritten & 1:
+                self._file.write(b'\x00')
+                self._datawritten = self._datawritten + 1
+            self._writemarkers()
+            if self._nframeswritten != self._nframes or self._datalength != self._datawritten or self._marklength:
+                self._patchheader()
+        finally:
+            self._convert = None
+            f = self._file
+            self._file = None
+            f.close()
 
     def _lin2alaw(self, data):
         import audioop

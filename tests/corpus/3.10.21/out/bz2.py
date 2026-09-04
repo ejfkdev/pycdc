@@ -93,23 +93,6 @@ class BZ2File(_compression.BaseStream):
 
         if self._mode == _MODE_CLOSED:
             return
-        self._fp = None
-        self._closefp = False
-        self._mode = _MODE_CLOSED
-        self._buffer = None
-        return
-        self._fp = None
-        self._closefp = False
-        self._mode = _MODE_CLOSED
-        self._buffer = None
-        self._fp = None
-        self._closefp = False
-        self._mode = _MODE_CLOSED
-        self._buffer = None
-        self._fp = None
-        self._closefp = False
-        self._mode = _MODE_CLOSED
-        self._buffer = None
 
     @property
     def closed(self):

@@ -81,9 +81,10 @@ class Chunk:
 
     def close(self):
         if not self.closed:
-            self.closed = True
-            return
-            self.closed = True
+            try:
+                self.skip()
+            finally:
+                self.closed = True
 
     def isatty(self):
         if self.closed:

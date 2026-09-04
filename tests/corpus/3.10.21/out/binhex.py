@@ -190,15 +190,19 @@ class BinHex:
     def close(self):
         if self.state is None:
             return
-        self.state = None
-        ofp = self.ofp
-        del self.ofp
-        ofp.close()
-        return
-        self.state = None
-        ofp = self.ofp
-        del self.ofp
-        ofp.close()
+        try:
+            if self.state < _DID_DATA:
+                self.close_data()
+            if self.state != _DID_DATA:
+                raise Error('Close at the wrong time')
+            if self.rlen != 0:
+                raise Error('Incorrect resource-datasize, diff=%r' % (self.rlen,))
+            self._writecrc()
+        finally:
+            self.state = None
+            ofp = self.ofp
+            del self.ofp
+            ofp.close()
 
 
 def binhex(inp, out):
@@ -387,11 +391,13 @@ class HexBin:
     def close(self):
         if self.state is None:
             return
-        self.state = None
-        self.ifp.close()
-        return
-        self.state = None
-        self.ifp.close()
+        try:
+            if self.rlen:
+                dummy = self.read_rsrc(self.rlen)
+            self._checkcrc()
+        finally:
+            self.state = None
+            self.ifp.close()
 
 
 def hexbin(inp, out):

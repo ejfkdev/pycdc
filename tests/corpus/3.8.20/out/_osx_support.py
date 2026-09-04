@@ -58,7 +58,10 @@ def _get_system_version():
     global _SYSTEM_VERSION
     if _SYSTEM_VERSION is None:
         _SYSTEM_VERSION = ''
-    f.close()
+    try:
+        pass
+    finally:
+        f.close()
     if m is not None:
         _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
     return _SYSTEM_VERSION

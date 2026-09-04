@@ -128,11 +128,15 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             pass
         exc = None
         del exc, exc
-        exc = None
         return False
         exc = None
         del exc
         raise RuntimeError("generator didn't stop after throw()")
+        try:
+            if exc is not value:
+                raise
+        finally:
+            exc = None
 
 
 class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncContextManager):
@@ -171,11 +175,15 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             pass
         exc = None
         del exc, exc
-        exc = None
         return False
         exc = None
         del exc
         raise RuntimeError("generator didn't stop after athrow()")
+        try:
+            if exc is not value:
+                raise
+        finally:
+            exc = None
 
 
 def contextmanager(func):
