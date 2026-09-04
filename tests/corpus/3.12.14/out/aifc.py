@@ -373,8 +373,7 @@ with warnings.catch_warnings():
                     if not id == marker[0]:
                         pass
                     else:
-                        marker
-                        return
+                        return marker
                         raise Error('marker {0!r} does not exist'.format(id))
 
             def setpos(self, pos):
@@ -630,8 +629,7 @@ with warnings.catch_warnings():
                     if not id == marker[0]:
                         pass
                     else:
-                        marker
-                        return
+                        return marker
                         raise Error('marker {0!r} does not exist'.format(id))
 
             def getmarkers(self):

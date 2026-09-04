@@ -66,8 +66,7 @@ def literal_eval(node_or_string):
         node_or_string = node_or_string.body
     def _raise_malformed_node(node):
         msg = 'malformed node or string'
-        if getattr(node, 'lineno', None):
-            lno = getattr(node, 'lineno', None)
+        if (lno := getattr(node, 'lineno', None)):
             msg += f' on line {lno}'
         raise ValueError(msg + f': {node!r}')
 
@@ -245,8 +244,7 @@ def increment_lineno(node, n=1):
         if 'lineno' in child._attributes:
             child.lineno = getattr(child, 'lineno', 0) + n
         if 'end_lineno' in child._attributes:
-            end_lineno = getattr(child, 'end_lineno', 0)
-            if getattr(child, 'end_lineno', 0) is not None:
+            if (end_lineno := getattr(child, 'end_lineno', 0)) is not None:
                 child.end_lineno = end_lineno + n
     return node
 
@@ -770,8 +768,7 @@ class _Unparser(NodeVisitor):
         return ''.join(self._source)
 
     def _write_docstring_and_traverse_body(self, node):
-        if self.get_raw_docstring(node):
-            docstring = self.get_raw_docstring(node)
+        if (docstring := self.get_raw_docstring(node)):
             self._write_docstring(docstring)
             self.traverse(node.body[1:])
             return
@@ -821,8 +818,7 @@ class _Unparser(NodeVisitor):
             self.traverse(target)
             self.write(' = ')
         self.traverse(node.value)
-        if self.get_type_comment(node):
-            type_comment = self.get_type_comment(node)
+        if (type_comment := self.get_type_comment(node)):
             self.write(type_comment)
             return
 

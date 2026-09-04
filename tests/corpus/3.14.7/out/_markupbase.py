@@ -145,7 +145,7 @@ by the SGML/HTML and XHTML parsers.'''
                 if j + 4 > n:
                     return -1
                 if rawdata[j:j + 4] == '<!--':
-                    j = self.parse_comment(j, 0)
+                    j = self.parse_comment(j, report=0)
                     if j < 0:
                         return j
                     continue
@@ -211,7 +211,7 @@ by the SGML/HTML and XHTML parsers.'''
                 j = rawdata.find(')', j) + 1
             else:
                 return -1
-            if rawdata[j:j + 1].isspace():
+            while rawdata[j:j + 1].isspace():
                 j = j + 1
             if not rawdata[j:]:
                 return -1

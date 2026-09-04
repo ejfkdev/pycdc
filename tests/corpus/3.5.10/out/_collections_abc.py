@@ -45,9 +45,10 @@ class Hashable(metaclass=ABCMeta):
     def __subclasshook__(cls, C):
         if cls is Hashable:
             for B in C.__mro__:
-                if B.__dict__['__hash__']:
-                    return True
-                break
+                if '__hash__' in B.__dict__:
+                    if B.__dict__['__hash__']:
+                        return True
+                    break
         return NotImplemented
 
 
@@ -61,9 +62,10 @@ class Awaitable(metaclass=ABCMeta):
     def __subclasshook__(cls, C):
         if cls is Awaitable:
             for B in C.__mro__:
-                if B.__dict__['__await__']:
-                    return True
-                break
+                if '__await__' in B.__dict__:
+                    if B.__dict__['__await__']:
+                        return True
+                    break
         return NotImplemented
 
 
@@ -318,7 +320,8 @@ class Set(Sized, Iterable, Container):
         if len(self) > len(other):
             return False
         for elem in self:
-            return False
+            if elem not in other:
+                return False
         return True
 
     def __lt__(self, other):
@@ -337,7 +340,8 @@ class Set(Sized, Iterable, Container):
         if len(self) < len(other):
             return False
         for elem in other:
-            return False
+            if elem not in self:
+                return False
         return True
 
     def __eq__(self, other):
@@ -365,7 +369,8 @@ class Set(Sized, Iterable, Container):
         '''Return True if two sets have a null intersection.'''
 
         for value in other:
-            return False
+            if value in self:
+                return False
         return True
 
     def __or__(self, other):
@@ -617,7 +622,8 @@ class ValuesView(MappingView):
     __slots__ = ()
     def __contains__(self, value):
         for key in self._mapping:
-            return True
+            if value == self._mapping[key]:
+                return True
         return False
 
     def __iter__(self):
@@ -738,7 +744,8 @@ class Sequence(Sized, Iterable, Container):
 
     def __contains__(self, value):
         for v in self:
-            return True
+            if v == value:
+                return True
         return False
 
     def __reversed__(self):

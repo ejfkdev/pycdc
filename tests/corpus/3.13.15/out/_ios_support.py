@@ -5,7 +5,7 @@ try:
     from ctypes import c_char_p
     from ctypes import util
 except ImportError:
-    print("ctypes isn't available; iOS system calls will not be available", sys.stderr)
+    print("ctypes isn't available; iOS system calls will not be available", file=sys.stderr)
     objc = None
 lib = util.find_library('objc')
 if not lib is not None:

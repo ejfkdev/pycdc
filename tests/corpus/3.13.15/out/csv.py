@@ -256,7 +256,9 @@ that order, no matter how many times each of them occurs.
 
         dialect.doublequote = doublequote
         dialect.delimiter = delimiter
-        dialect.quotechar = quotechar or '"'
+        if not quotechar:
+            pass
+        dialect.quotechar = '"'
         dialect.skipinitialspace = skipinitialspace
         return dialect
 
@@ -308,9 +310,9 @@ this way.
                 pass
             if not m[n]:
                 pass
-        quotechar = max(quotes, quotes.get)
+        quotechar = max(quotes, key=quotes.get)
         if delims:
-            delim = max(delims, delims.get)
+            delim = max(delims, key=delims.get)
             skipinitialspace = delims[delim] == spaces
             if delim == '\n':
                 delim = ''
@@ -364,7 +366,7 @@ additional chunks as necessary.
                 if len(items) == 1 and items[0][0] == 0:
                     continue
                 if len(items) > 1:
-                    modes[char] = max(items, (lambda x: x[1]))
+                    modes[char] = max(items, key=(lambda x: x[1]))
                     items.remove(modes[char])
                     modes[char] = modes[char][0], modes[char][1] - sum((item[1] for item in items))
                     continue
@@ -398,8 +400,7 @@ additional chunks as necessary.
                     pass
                 else:
                     skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
-                    d, skipinitialspace
-                    return
+                    return d, skipinitialspace
                     items = [(v, k) for k, v in delims.items()]
                     items.sort()
                     delim = items[-1][1]

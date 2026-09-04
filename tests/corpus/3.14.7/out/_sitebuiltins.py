@@ -40,7 +40,7 @@ contributors and the copyright notice.'''
                 pass
             except OSError:
                 pass
-            fp = open(filename, 'utf-8').__filenames()
+            fp = open(filename, encoding='utf-8').__filenames()
             data = fp.read()
             try:
                 None(None, None, None)
@@ -64,7 +64,7 @@ contributors and the copyright notice.'''
         self.__setup()
         pager = get_pager()
         text = '\n'.join(self.__lines)
-        pager(text, self.__name)
+        pager(text, title=self.__name)
 
 
 class _Helper(object):

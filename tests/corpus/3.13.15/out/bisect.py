@@ -14,7 +14,7 @@ A custom key function can be supplied to customize the sort order.
     if not key is not None:
         lo = bisect_right(a, x, lo, hi)
     else:
-        lo = bisect_right(a, key(x), lo, hi, key)
+        lo = bisect_right(a, key(x), lo, hi, key=key)
     a.insert(lo, x)
 
 def bisect_right(a, x, lo=0, hi=None, *, key=None):
@@ -64,7 +64,7 @@ A custom key function can be supplied to customize the sort order.
     if not key is not None:
         lo = bisect_left(a, x, lo, hi)
     else:
-        lo = bisect_left(a, key(x), lo, hi, key)
+        lo = bisect_left(a, key(x), lo, hi, key=key)
     a.insert(lo, x)
 
 def bisect_left(a, x, lo=0, hi=None, *, key=None):

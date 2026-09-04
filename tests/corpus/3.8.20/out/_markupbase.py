@@ -92,7 +92,8 @@ class ParserBase:
                     self.error("unexpected '[' char in declaration")
             else:
                 self.error('unexpected %r char in declaration' % rawdata[j])
-            return j
+            if j < 0:
+                return j
         return -1
 
     def parse_marked_section(self, i, report=1):
@@ -145,7 +146,8 @@ class ParserBase:
                     return -1
                 if rawdata[j:j + 4] == '<!--':
                     j = self.parse_comment(j, report=0)
-                    return j
+                    if j < 0:
+                        return j
                     continue
             name, j = self._scan_name(j + 2, declstartpos)
             if j == -1:
@@ -215,12 +217,12 @@ class ParserBase:
                         j = rawdata.find(')', j) + 1
                     else:
                         return -1
-                    if rawdata[j:j + 1].isspace():
+                    while rawdata[j:j + 1].isspace():
                         j = j + 1
-                        continue
-                if not rawdata[j:]:
-                    return -1
-                name, j = self._scan_name(j, declstartpos)
+                    if not rawdata[j:]:
+                        return -1
+                else:
+                    name, j = self._scan_name(j, declstartpos)
                 c = rawdata[j:j + 1]
                 if not c:
                     return -1
@@ -242,7 +244,8 @@ class ParserBase:
                     c = rawdata[j:j + 1]
                     if not c:
                         return -1
-                return j + 1
+                if c == '>':
+                    return j + 1
 
     def _parse_doctype_notation(self, i, declstartpos):
         name, j = self._scan_name(i, declstartpos)

@@ -56,9 +56,9 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1305,
+   "ndiff": 1303,
    "ntotal": 1489,
-   "detail": "line 153: orig ('SWAP', '') | got ('POP_TOP', '')\nline 155: orig ('RETURN_VALUE', '') | got ('RETURN_CONST', 'None')\nline 158: orig ('LOAD_FAST', 'executable') | got ('RETURN_CONST', 'None')"
+   "detail": "line 158: orig ('LOAD_FAST', 'executable') | got ('RETURN_CONST', 'None')\nline 159: orig ('RETURN_VALUE', '') | got ('_read_output', 2)\nline 160: orig ('_read_output', 2) | got ('RESUME', '')"
   },
   {
    "module": "_py_abc",
@@ -72,8 +72,8 @@
    "module": "_pylong",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 838,
-   "ntotal": 1011,
+   "ndiff": 697,
+   "ntotal": 997,
    "detail": "line 150: orig ('LOAD_CONST', 'None') | got ('LOAD_FAST', 'result')\nline 151: orig ('LOAD_CONST', 'None') | got ('SWAP', '')\nline 153: orig ('CALL', '') | got ('LOAD_CONST', 'None')"
   },
   {

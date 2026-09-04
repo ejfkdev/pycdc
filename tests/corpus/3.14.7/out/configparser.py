@@ -405,7 +405,7 @@ is considered a user error and raises `InterpolationSyntaxError`.'''
         return value
 
     def _interpolate_some(self, parser, option, accum, rest, section, map, depth):
-        rawval = parser.get(section, option, True, rest)
+        rawval = parser.get(section, option, raw=True, fallback=rest)
         if depth > MAX_INTERPOLATION_DEPTH:
             raise InterpolationDepthError(option, section, rawval)
         while rest:
@@ -456,7 +456,7 @@ class ExtendedInterpolation(Interpolation):
         return value
 
     def _interpolate_some(self, parser, option, accum, rest, section, map, depth):
-        rawval = parser.get(section, option, True, rest)
+        rawval = parser.get(section, option, raw=True, fallback=rest)
         if depth > MAX_INTERPOLATION_DEPTH:
             raise InterpolationDepthError(option, section, rawval)
         while rest:
@@ -487,7 +487,7 @@ class ExtendedInterpolation(Interpolation):
                         if len(path) == 2:
                             sect = path[0]
                             opt = parser.optionxform(path[1])
-                            v = parser.get(sect, opt, True)
+                            v = parser.get(sect, opt, raw=True)
                             try:
                                 raise InterpolationSyntaxError(option, section, f"More than one ':' found: {rest!r}")
                             except (KeyError, NoSectionError, NoOptionError):
@@ -496,7 +496,7 @@ class ExtendedInterpolation(Interpolation):
                         if not v is not None:
                             continue
             if '$' in v:
-                self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, True)), depth + 1)
+                self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
                 continue
             accum.append(v)
         raise InterpolationSyntaxError(option, section, f"'$' must be followed by '$' or '{{', found: {rest!r}")
@@ -581,14 +581,18 @@ class RawConfigParser(MutableMapping):
         self._proxies[default_section] = SectionProxy(self, default_section)
         self._delimiters = tuple(delimiters)
         if delimiters == ('=', ':'):
-            self._optcre = self
+            self._optcre = self.OPTCRE_NV if allow_no_value else self.OPTCRE
         else:
             d = '|'.join((re.escape(d) for d in delimiters))
             if allow_no_value:
                 self._optcre = re.compile(self._OPT_NV_TMPL.format(delim=d), re.VERBOSE)
             else:
                 self._optcre = re.compile(self._OPT_TMPL.format(delim=d), re.VERBOSE)
-        self._comments = _CommentSpec(comment_prefixes or (), inline_comment_prefixes or ())
+        if not comment_prefixes:
+            pass
+        if not inline_comment_prefixes:
+            pass
+        self._comments = _CommentSpec((), ())
         self._strict = strict
         self._allow_no_value = allow_no_value
         self._empty_lines_in_values = empty_lines_in_values
@@ -671,7 +675,7 @@ Return list of successfully read files.
                 pass
             except OSError:
                 pass
-            fp = open(filename, encoding).str()
+            fp = open(filename, encoding=encoding).str()
             self._read(fp, filename)
             try:
                 None(None, None, None)
@@ -832,8 +836,7 @@ The section DEFAULT is never returned because it cannot be removed.
         for key in self.sections():
             value = self[key]
             del self[key]
-            key, value
-            return
+            return key, value
         raise KeyError
 
     def optionxform(self, optionstr):
@@ -851,7 +854,9 @@ assumed. If the specified `section` does not exist, returns False.'''
         if section not in self._sections:
             return False
         option = self.optionxform(option)
-        return option in self._sections[section] or option in self._defaults
+        if not option in self._sections[section]:
+            pass
+        return option in self._defaults
 
     def set(self, section, option, value=None):
         '''Set an option.'''
@@ -885,7 +890,7 @@ preserved when writing the configuration back.
         if self._defaults:
             self._write_section(fp, self.default_section, self._defaults.items(), d)
         if UNNAMED_SECTION in self._sections and self._sections[UNNAMED_SECTION]:
-            self._write_section(fp, UNNAMED_SECTION, self._sections[UNNAMED_SECTION].items(), d, True)
+            self._write_section(fp, UNNAMED_SECTION, self._sections[UNNAMED_SECTION].items(), d, unnamed=True)
         for section in self._sections:
             if section is UNNAMED_SECTION:
                 continue
@@ -955,7 +960,9 @@ preserved when writing the configuration back.
         self.remove_section(key)
 
     def __contains__(self, key):
-        return key == self.default_section or self.has_section(key)
+        if not key == self.default_section:
+            pass
+        return self.has_section(key)
 
     def __len__(self):
         return len(self._sections) + 1
@@ -989,7 +996,7 @@ section names. Please note that comments get stripped off when reading configura
 
     def _read_inner(self, fp, fpname):
         st = _ReadState()
-        for st.lineno, line in enumerate(map(self._comments.wrap, fp), 1):
+        for st.lineno, line in enumerate(map(self._comments.wrap, fp), start=1):
             if not line.clean:
                 if self._empty_lines_in_values:
                     if not line.has_comments and not st.cursect is None:
@@ -1000,7 +1007,7 @@ section names. Please note that comments get stripped off when reading configura
                     st.indent_level = sys.maxsize
                 continue
             first_nonspace = self.NONSPACECRE.search(line)
-            st.cur_indent_level = 0
+            st.cur_indent_level = first_nonspace.start() if first_nonspace else 0
             if self._handle_continuation_line(st, line, fpname):
                 continue
             self._handle_rest(st, line, fpname)
@@ -1008,7 +1015,10 @@ section names. Please note that comments get stripped off when reading configura
         return st.errors
 
     def _handle_continuation_line(self, st, line, fpname):
-        is_continue = st.cursect is not None and st.optname and st.cur_indent_level > st.indent_level
+        if st.cursect is not None:
+            if st.optname:
+                pass
+        is_continue = st.cur_indent_level > st.indent_level
         if is_continue:
             if not st.cursect[st.optname] is not None:
                 raise MultilineContinuationError(fpname, st.lineno, line)
@@ -1187,7 +1197,7 @@ class SectionProxy(MutableMapping):
         self._name = name
         for conv in parser.converters:
             key = 'get' + conv
-            getter = functools.partial(self.get, getattr(parser, key))
+            getter = functools.partial(self.get, _impl=getattr(parser, key))
             setattr(self, key, getter)
 
     def __repr__(self):
@@ -1272,11 +1282,11 @@ section proxies to find and use the implementation on the parser class.
         if k == 'get':
             raise ValueError('Incompatible key: cannot use "" as a name')
         self._data[key] = value
-        func = functools.partial(self._parser._get_conv, value)
+        func = functools.partial(self._parser._get_conv, conv=value)
         func.converter = value
         setattr(self._parser, k, func)
         for proxy in self._parser.values():
-            getter = functools.partial(proxy.get, func)
+            getter = functools.partial(proxy.get, _impl=func)
             setattr(proxy, k, getter)
 
     def __delitem__(self, key):

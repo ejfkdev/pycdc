@@ -182,7 +182,8 @@ class Bdb:
         if module_name is None:
             return False
         for pattern in self.skip:
-            return True
+            if fnmatch.fnmatch(module_name, pattern):
+                return True
         return False
 
     def stop_here(self, frame):

@@ -31,7 +31,7 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3608,
+   "ndiff": 3590,
    "ntotal": 3676,
    "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -43,7 +43,7 @@
    "module": "_compression",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 229,
+   "ndiff": 313,
    "ntotal": 575,
    "detail": "line 228: orig ('SETUP_WITH', 'to 122') | got ('SETUP_WITH', 'to 118')\nline 234: orig ('SETUP_WITH', 'to 66') | got ('SETUP_WITH', 'to 64')\nline 237: orig ('LOAD_METHOD', 'read') | got ('LOAD_GLOBAL', 'len')"
   },
@@ -59,9 +59,9 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1238,
+   "ndiff": 1166,
    "ntotal": 1420,
-   "detail": "line 153: orig ('POP_JUMP_IF_TRUE', 'to 132') | got ('POP_JUMP_IF_TRUE', 'to 134')\nline 156: orig ('FOR_ITER', 'to 128') | got ('FOR_ITER', 'to 130')\nline 170: orig ('POP_JUMP_IF_FALSE', 'to 126') | got ('POP_JUMP_IF_FALSE', 'to 128')"
+   "detail": "line 219: orig ('SETUP_WITH', 'to 160') | got ('SETUP_WITH', 'to 128')\nline 238: orig ('LOAD_GLOBAL', 'os') | got ('POP_BLOCK', '')\nline 239: orig ('LOAD_METHOD', 'system') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "_py_abc",
@@ -111,7 +111,7 @@
    "module": "aifc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2748,
+   "ndiff": 2752,
    "ntotal": 3104,
    "detail": "line 143: orig ('POP_JUMP_IF_FALSE', 'to 624') | got ('POP_JUMP_IF_FALSE', 'to 640')\nline 170: orig ('SETUP_WITH', 'to 602') | got ('SETUP_WITH', 'to 614')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to 586') | got ('POP_JUMP_IF_FALSE', 'to 588')"
   },
@@ -119,8 +119,8 @@
    "module": "ast",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 7538,
-   "ntotal": 7877,
+   "ndiff": 7514,
+   "ntotal": 7863,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
   {
@@ -263,7 +263,7 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2925,
+   "ndiff": 2908,
    "ntotal": 4289,
    "detail": "line 1021: orig ('SETUP_FINALLY', 'to 246') | got ('LOAD_CONST', \"'%'\")\nline 1022: orig ('LOAD_FAST', 'map') | got ('LOAD_FAST', 'v')\nline 1023: orig ('LOAD_FAST', 'var') | got ('CONTAINS_OP', '')"
   },

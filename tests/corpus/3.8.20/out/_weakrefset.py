@@ -81,7 +81,8 @@ class WeakSet:
                 except KeyError:
                     raise KeyError('pop from empty WeakSet') from None
                 item = itemref()
-                return item
+                if item is not None:
+                    return item
 
     def remove(self, item):
         if self._pending_removals:

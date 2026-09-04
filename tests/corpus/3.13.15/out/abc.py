@@ -126,13 +126,13 @@ Returns the subclass, to allow usage as a class decorator.
         return _abc_subclasscheck(cls, subclass)
 
     def _dump_registry(cls, file=None):
-        print(f'Class: {cls.__module__}.{cls.__qualname__}', file)
-        print(f'Inv. counter: {get_cache_token()}', file)
+        print(f'Class: {cls.__module__}.{cls.__qualname__}', file=file)
+        print(f'Inv. counter: {get_cache_token()}', file=file)
         _abc_registry, _abc_cache, _abc_negative_cache, _abc_negative_cache_version = _get_dump(cls)
-        print(f'_abc_registry: {_abc_registry!r}', file)
-        print(f'_abc_cache: {_abc_cache!r}', file)
-        print(f'_abc_negative_cache: {_abc_negative_cache!r}', file)
-        print(f'_abc_negative_cache_version: {_abc_negative_cache_version!r}', file)
+        print(f'_abc_registry: {_abc_registry!r}', file=file)
+        print(f'_abc_cache: {_abc_cache!r}', file=file)
+        print(f'_abc_negative_cache: {_abc_negative_cache!r}', file=file)
+        print(f'_abc_negative_cache_version: {_abc_negative_cache_version!r}', file=file)
 
     def _abc_registry_clear(cls):
         _reset_registry(cls)
@@ -172,7 +172,7 @@ If cls is not an instance of ABCMeta, does nothing.
     cls.__abstractmethods__ = frozenset(abstracts)
     return cls
 
-class ABC(ABCMeta):
+class ABC(metaclass=ABCMeta):
     '''Helper class that provides a standard way to create an ABC using
 inheritance.
 '''

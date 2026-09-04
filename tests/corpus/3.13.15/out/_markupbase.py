@@ -141,7 +141,7 @@ by the SGML/HTML and XHTML parsers.'''
                 if j + 4 > n:
                     return -1
                 if rawdata[j:j + 4] == '<!--':
-                    j = self.parse_comment(j, 0)
+                    j = self.parse_comment(j, report=0)
                     if j < 0:
                         return j
                     continue

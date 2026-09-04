@@ -57,8 +57,8 @@ Returns the subclass, to allow usage as a class decorator.
         return subclass
 
     def _dump_registry(cls, file=None):
-        print(f'Class: {cls.__module__}.{cls.__qualname__}', file)
-        print(f'Inv. counter: {get_cache_token()}', file)
+        print(f'Class: {cls.__module__}.{cls.__qualname__}', file=file)
+        print(f'Inv. counter: {get_cache_token()}', file=file)
         for name in cls.__dict__:
             if not name.startswith('_abc_'):
                 pass
@@ -66,7 +66,7 @@ Returns the subclass, to allow usage as a class decorator.
                 value = getattr(cls, name)
                 if isinstance(value, WeakSet):
                     value = set(value)
-                print(f'{name}: {value!r}', file)
+                print(f'{name}: {value!r}', file=file)
 
     def _abc_registry_clear(cls):
         cls._abc_registry.clear()

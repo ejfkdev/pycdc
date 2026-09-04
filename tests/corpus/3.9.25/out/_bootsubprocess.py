@@ -35,8 +35,9 @@ def _check_cmd(cmd):
         if not arg:
             return False
         for ch in arg:
-            safe_chars.append
-            return False
+            if ch not in safe_chars:
+                safe_chars.append
+                return False
     return True
 
 def check_output(cmd, **kwargs):

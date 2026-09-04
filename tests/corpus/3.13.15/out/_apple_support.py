@@ -2,8 +2,8 @@ import io
 import sys
 
 def init_streams(log_write, stdout_level, stderr_level):
-    sys.stdout = SystemLog(log_write, stdout_level, sys.stderr.errors)
-    sys.stderr = SystemLog(log_write, stderr_level, sys.stderr.errors)
+    sys.stdout = SystemLog(log_write, stdout_level, errors=sys.stderr.errors)
+    sys.stderr = SystemLog(log_write, stderr_level, errors=sys.stderr.errors)
 
 class SystemLog(io.TextIOWrapper):
     def __init__(self, log_write, level, **kwargs):

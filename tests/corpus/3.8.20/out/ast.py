@@ -200,8 +200,7 @@ def increment_lineno(node, n=1):
         if 'lineno' in child._attributes:
             child.lineno = getattr(child, 'lineno', 0) + n
         if 'end_lineno' in child._attributes:
-            end_lineno = getattr(child, 'end_lineno', 0)
-            if getattr(child, 'end_lineno', 0) is not None:
+            if (end_lineno := getattr(child, 'end_lineno', 0)) is not None:
                 child.end_lineno = end_lineno + n
     return node
 
@@ -267,7 +266,7 @@ def _splitlines_no_ff(source):
     idx = 0
     lines = []
     next_line = ''
-    if idx < len(source):
+    while idx < len(source):
         c = source[idx]
         next_line += c
         idx += 1
@@ -276,9 +275,8 @@ def _splitlines_no_ff(source):
                 next_line += '\n'
                 idx += 1
         if c in '\r\n':
-            pass
-        lines.append(next_line)
-        next_line = ''
+            lines.append(next_line)
+            next_line = ''
     if next_line:
         lines.append(next_line)
     return lines
@@ -385,9 +383,8 @@ class NodeVisitor(object):
         type_name = _const_node_type_names(type(value))
         if type_name is None:
             for cls, name in _const_node_type_names.items():
-                if isinstance(value, cls):
-                    type_name = name
-                    break
+                type_name = name
+                break
         if type_name is not None:
             method = 'visit_' + type_name
         try:

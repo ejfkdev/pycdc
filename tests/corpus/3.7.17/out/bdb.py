@@ -184,7 +184,8 @@ class Bdb:
         '''Return True if module_name matches any skip pattern.'''
 
         for pattern in self.skip:
-            return True
+            if fnmatch.fnmatch(module_name, pattern):
+                return True
         return False
 
     def stop_here(self, frame):

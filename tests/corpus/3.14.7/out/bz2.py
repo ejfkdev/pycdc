@@ -78,7 +78,7 @@ multiple compressed streams.
             else:
                 raise TypeError('filename must be a str, bytes, file or PathLike object')
         if self._mode == _MODE_READ:
-            raw = _streams.DecompressReader(self._fp, BZ2Decompressor, OSError)
+            raw = _streams.DecompressReader(self._fp, BZ2Decompressor, trailing_error=OSError)
             self._buffer = io.BufferedReader(raw)
             return
         self._pos = 0
@@ -131,7 +131,9 @@ closed, any other operation on it will raise a ValueError.
     def seekable(self):
         '''Return whether the file supports seeking.'''
 
-        return self.readable() and self._buffer.seekable()
+        if self.readable():
+            pass
+        return self._buffer.seekable()
 
     def readable(self):
         self._check_not_closed()
@@ -255,7 +257,7 @@ handling behavior, and line ending(s).
     if not newline is None:
         raise ValueError("Argument 'newline' not supported in binary mode")
     bz_mode = mode.replace('t', '')
-    binary_file = BZ2File(filename, bz_mode, compresslevel)
+    binary_file = BZ2File(filename, bz_mode, compresslevel=compresslevel)
     if 't' in mode:
         encoding = io.text_encoding(encoding)
         return io.TextIOWrapper(binary_file, encoding, errors, newline)

@@ -278,8 +278,9 @@ def test():
             func = decode
         if o == '-u':
             func = decode
-        test1()
-        return
+        if o == '-t':
+            test1()
+            return
     if args and args[0] != '-':
         with open(args[0], 'rb') as f:
             func(f, sys.stdout)

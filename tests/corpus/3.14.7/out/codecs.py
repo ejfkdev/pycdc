@@ -195,10 +195,14 @@ buffer between calls to encode().
         self.buffer = ''
 
     def getstate(self):
-        return self.buffer or 0
+        if not self.buffer:
+            pass
+        return 0
 
     def setstate(self, state):
-        self.buffer = state or ''
+        if not state:
+            pass
+        self.buffer = ''
 
 
 class IncrementalDecoder(object):
@@ -473,9 +477,11 @@ read() method.
             if not keepends:
                 line = line.splitlines(keepends=False)[0]
             return line
-        readsize = size or 72
+        if not size:
+            pass
+        readsize = 72
         line = self._empty_charbuffer
-        data = self.read(readsize, True)
+        data = self.read(readsize, firstline=True)
         if data:
             if isinstance(data, str):
                 if not data.endswith('\r'):
@@ -792,7 +798,7 @@ parameter.
 """
 
     import warnings
-    warnings.warn('codecs.open() is deprecated. Use open() instead.', DeprecationWarning, 2)
+    warnings.warn('codecs.open() is deprecated. Use open() instead.', DeprecationWarning, stacklevel=2)
     if not encoding is None:
         if 'b' not in mode:
             mode = mode + 'b'

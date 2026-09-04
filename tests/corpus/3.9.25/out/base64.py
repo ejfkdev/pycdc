@@ -404,12 +404,11 @@ def encode(input, output):
         s = input(MAXBINSIZE)
         if not s:
             break
-        if len(s) < MAXBINSIZE:
+        while len(s) < MAXBINSIZE:
             ns = input(MAXBINSIZE - len(s))
             if not ns:
-                continue
-        s += ns
-        continue
+                break
+            s += ns
         line = binascii.b2a_base64(s)
         output.write(line)
 
@@ -468,8 +467,9 @@ def main():
             func = decode
         if o == '-u':
             func = decode
-        test()
-        return
+        if o == '-t':
+            test()
+            return
     if args and args[0] != '-':
         with open(args[0], 'rb') as f:
             func(f, sys.stdout.buffer)

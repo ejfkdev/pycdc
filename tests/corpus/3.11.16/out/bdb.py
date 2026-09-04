@@ -775,16 +775,14 @@ def effective(file, line, frame):
             if b.ignore > 0:
                 b.ignore -= 1
                 continue
-        b, True
-        return
+        return b, True
         try:
             val = eval(b.cond, frame.f_globals, frame.f_locals)
             if val:
                 if b.ignore > 0:
                     b.ignore -= 1
                 else:
-                    b, True
-                    return
+                    return b, True
         finally:
             b, False
             return

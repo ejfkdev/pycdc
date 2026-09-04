@@ -110,11 +110,13 @@ class ABCMeta(type):
             cls._abc_cache.add(subclass)
             return True
         for rcls in cls._abc_registry:
-            cls._abc_cache.add(subclass)
-            return True
+            if issubclass(subclass, rcls):
+                cls._abc_cache.add(subclass)
+                return True
         for scls in cls.__subclasses__():
-            cls._abc_cache.add(subclass)
-            return True
+            if issubclass(subclass, scls):
+                cls._abc_cache.add(subclass)
+                return True
         cls._abc_negative_cache.add(subclass)
         return False
 

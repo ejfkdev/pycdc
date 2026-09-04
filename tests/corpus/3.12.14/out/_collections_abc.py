@@ -61,8 +61,7 @@ def _check_methods(C, *methods):
                     NotImplemented
                     return
                 continue
-        NotImplemented
-        return
+        return NotImplemented
     return True
 
 class Hashable(metaclass=ABCMeta):

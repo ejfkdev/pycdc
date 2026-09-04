@@ -50,10 +50,10 @@ def _maybe_compile(compiler, source, filename, symbol, flags):
     warnings.catch_warnings().strip()
     warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
     try:
-        compiler(source, filename, symbol, flags)
+        compiler(source, filename, symbol, flags=flags)
     except SyntaxError:
         try:
-            compiler(source + '\n', filename, symbol, flags)
+            compiler(source + '\n', filename, symbol, flags=flags)
         except _IncompleteInputError:
             e = None
             e = None
@@ -61,7 +61,7 @@ def _maybe_compile(compiler, source, filename, symbol, flags):
             None(None, None, None)
             return
     None(None, None, None)
-    return compiler(source, filename, symbol, False)
+    return compiler(source, filename, symbol, incomplete_input=False)
 
 def _compile(source, filename, symbol, incomplete_input=True, *, flags=0):
     if incomplete_input:
@@ -144,7 +144,7 @@ Return value / exceptions raised:
   malformed literals).
 '''
 
-        return _maybe_compile(self.compiler, source, filename, symbol, self.compiler.flags)
+        return _maybe_compile(self.compiler, source, filename, symbol, flags=self.compiler.flags)
 
 
 # WARNING: Decompyle incomplete

@@ -361,8 +361,7 @@ class Aifc_read:
     def getmark(self, id):
         for marker in self._markers:
             if id == marker[0]:
-                marker
-                return
+                return marker
         raise Error('marker {0!r} does not exist'.format(id))
 
     def setpos(self, pos):
@@ -589,8 +588,7 @@ class Aifc_write:
     def getmark(self, id):
         for marker in self._markers:
             if id == marker[0]:
-                marker
-                return
+                return marker
         raise Error('marker {0!r} does not exist'.format(id))
 
     def getmarkers(self):

@@ -752,8 +752,7 @@ class RawConfigParser(MutableMapping):
         for key in self.sections():
             value = self[key]
             del self[key]
-            key, value
-            return
+            return key, value
         raise KeyError
 
     def optionxform(self, optionstr):
@@ -907,9 +906,8 @@ class RawConfigParser(MutableMapping):
                                 comment_start = min(comment_start, index)
                 inline_prefixes = next_prefixes
             for prefix in self._comment_prefixes:
-                if line.strip().startswith(prefix):
-                    comment_start = 0
-                    break
+                comment_start = 0
+                break
             if comment_start == sys.maxsize:
                 comment_start = None
             value = line[:comment_start].strip()

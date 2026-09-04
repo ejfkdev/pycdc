@@ -320,8 +320,7 @@ class Sniffer:
             for d in self.preferred:
                 if d in delims.keys():
                     skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
-                    d, skipinitialspace
-                    return
+                    return d, skipinitialspace
         else:
             items = [(v, k) for k, v in delims.items()]
             items.sort()

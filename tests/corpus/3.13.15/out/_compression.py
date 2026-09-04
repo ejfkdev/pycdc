@@ -65,7 +65,9 @@ class DecompressReader(io.RawIOBase):
         data = None
         while True:
             if self._decompressor.eof:
-                rawblock = self._decompressor.unused_data or self._fp.read(BUFFER_SIZE)
+                if not self._decompressor.unused_data:
+                    pass
+                rawblock = self._fp.read(BUFFER_SIZE)
                 if not rawblock:
                     break
             self._decompressor = self._decomp_factory(*(), **self._decomp_args)
@@ -91,10 +93,8 @@ class DecompressReader(io.RawIOBase):
 
     def readall(self):
         chunks = []
-        while self.read(sys.maxsize):
-            data = self.read(sys.maxsize)
+        while (data := self.read(sys.maxsize)):
             chunks.append(data)
-            data = self.read(sys.maxsize)
         return b''.join(chunks)
 
     def _rewind(self):
@@ -110,7 +110,7 @@ class DecompressReader(io.RawIOBase):
             offset = self._pos + offset
         elif whence == io.SEEK_END:
             if self._size < 0 and self.read(io.DEFAULT_BUFFER_SIZE):
-                if self.read(io.DEFAULT_BUFFER_SIZE):
+                while self.read(io.DEFAULT_BUFFER_SIZE):
                     pass
             offset = self._size + offset
         else:

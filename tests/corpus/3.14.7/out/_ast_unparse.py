@@ -170,7 +170,9 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             return
 
     def get_type_comment(self, node):
-        comment = self._type_ignores.get(node.lineno) or node.type_comment
+        if not self._type_ignores.get(node.lineno):
+            pass
+        comment = node.type_comment
         if not comment is None:
             return f' # type: {comment}'
 
@@ -190,8 +192,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         return ''.join(self._source)
 
     def _write_docstring_and_traverse_body(self, node):
-        if self.get_raw_docstring(node):
-            docstring = self.get_raw_docstring(node)
+        if (docstring := self.get_raw_docstring(node)):
             self._write_docstring(docstring)
             self.traverse(node.body[1:])
             return
@@ -241,7 +242,9 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
 
     def visit_ImportFrom(self, node):
         self.fill('from ')
-        self.write('.' * (node.level or 0))
+        if not node.level:
+            pass
+        self.write('.' * 0)
         if node.module:
             self.write(node.module)
         self.write(' import ')
@@ -254,8 +257,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             self.traverse(target)
             self.write(' = ')
         self.traverse(node.value)
-        if self.get_type_comment(node):
-            type_comment = self.get_type_comment(node)
+        if (type_comment := self.get_type_comment(node)):
             self.write(type_comment)
             return
 
@@ -267,7 +269,9 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
 
     def visit_AnnAssign(self, node):
         self.fill()
-        self.delimit_if('(', ')', not node.simple and isinstance(node.target, Name)).delimit_if()
+        if not node.simple:
+            pass
+        self.delimit_if('(', ')', isinstance(node.target, Name)).delimit_if()
         self.traverse(node.target)
         None(None, None, None)
         while True:
@@ -356,7 +360,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             return
 
     def do_visit_try(self, node):
-        self.fill('try', False)
+        self.fill('try', allow_semicolon=False)
         self.block().block()
         self.traverse(node.body)
         None(None, None, None)
@@ -364,12 +368,12 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             for ex in node.handlers:
                 self.traverse(ex)
             if node.orelse:
-                self.fill('else', False)
+                self.fill('else', allow_semicolon=False)
                 self.block().block()
                 self.traverse(node.orelse)
                 None(None, None, None)
             if node.finalbody:
-                self.fill('finally', False)
+                self.fill('finally', allow_semicolon=False)
                 self.block().block()
                 self.traverse(node.finalbody)
                 None(None, None, None)
@@ -395,7 +399,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         return self
 
     def visit_ExceptHandler(self, node):
-        self.fill('except', False)
+        self.fill('except*' if self._in_try_star else 'except', allow_semicolon=False)
         if node.type:
             self.write(' ')
             self.traverse(node.type)
@@ -409,12 +413,14 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
     def visit_ClassDef(self, node):
         self.maybe_newline()
         for deco in node.decorator_list:
-            self.fill('@', False)
+            self.fill('@', allow_semicolon=False)
             self.traverse(deco)
-        self.fill('class ' + node.name, False)
+        self.fill('class ' + node.name, allow_semicolon=False)
         if hasattr(node, 'type_params'):
             self._type_params_helper(node.type_params)
-        self.delimit_if('(', ')', node.bases or node.keywords).decorator_list()
+        if not node.bases:
+            pass
+        self.delimit_if('(', ')', condition=node.keywords).decorator_list()
         comma = False
         for e in node.bases:
             if comma:
@@ -444,10 +450,10 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
     def _function_helper(self, node, fill_suffix):
         self.maybe_newline()
         for deco in node.decorator_list:
-            self.fill('@', False)
+            self.fill('@', allow_semicolon=False)
             self.traverse(deco)
         def_str = fill_suffix + ' ' + node.name
-        self.fill(def_str, False)
+        self.fill(def_str, allow_semicolon=False)
         if hasattr(node, 'type_params'):
             self._type_params_helper(node.type_params)
         self.delimit('(', ')').decorator_list()
@@ -509,7 +515,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self._for_helper('async for ', node)
 
     def _for_helper(self, fill, node):
-        self.fill(fill, False)
+        self.fill(fill, allow_semicolon=False)
         self.set_precedence(_Precedence.TUPLE, node.target)
         self.traverse(node.target)
         self.write(' in ')
@@ -519,7 +525,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         None(None, None, None)
         while True:
             if node.orelse:
-                self.fill('else', False)
+                self.fill('else', allow_semicolon=False)
                 self.block().set_precedence()
                 self.traverse(node.orelse)
                 None(None, None, None)
@@ -527,34 +533,34 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             return
 
     def visit_If(self, node):
-        self.fill('if ', False)
+        self.fill('if ', allow_semicolon=False)
         self.traverse(node.test)
         self.block().traverse()
         self.traverse(node.body)
         None(None, None, None)
         while node.orelse:
             node = node.orelse[0]
-            self.fill('elif ', False)
+            self.fill('elif ', allow_semicolon=False)
             self.traverse(node.test)
             self.block().traverse()
             self.traverse(node.body)
             None(None, None, None)
         if node.orelse:
-            self.fill('else', False)
+            self.fill('else', allow_semicolon=False)
             self.block().traverse()
             self.traverse(node.orelse)
             None(None, None, None)
             return
 
     def visit_While(self, node):
-        self.fill('while ', False)
+        self.fill('while ', allow_semicolon=False)
         self.traverse(node.test)
         self.block().traverse()
         self.traverse(node.body)
         None(None, None, None)
         while True:
             if node.orelse:
-                self.fill('else', False)
+                self.fill('else', allow_semicolon=False)
                 self.block().traverse()
                 self.traverse(node.orelse)
                 None(None, None, None)
@@ -562,14 +568,14 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             return
 
     def visit_With(self, node):
-        self.fill('with ', False)
+        self.fill('with ', allow_semicolon=False)
         self.interleave((lambda: self.write(', ')), self.traverse, node.items)
         self.block(extra=self.get_type_comment(node)).interleave()
         self.traverse(node.body)
         None(None, None, None)
 
     def visit_AsyncWith(self, node):
-        self.fill('async with ', False)
+        self.fill('async with ', allow_semicolon=False)
         self.interleave((lambda: self.write(', ')), self.traverse, node.items)
         self.block(extra=self.get_type_comment(node)).interleave()
         self.traverse(node.body)
@@ -609,7 +615,7 @@ Returns the tuple (string literal to write, possible quote types).
     def _write_str_avoiding_backslashes(self, string, *, quote_types=_ALL_QUOTES):
         '''Write string literal value with a best effort attempt to avoid backslashes.'''
 
-        string, quote_types = self._str_literal_helper(string, quote_types)
+        string, quote_types = self._str_literal_helper(string, quote_types=quote_types)
         quote_type = quote_types[0]
         self.write(f'{quote_type}{string}{quote_type}')
 
@@ -619,7 +625,7 @@ Returns the tuple (string literal to write, possible quote types).
         fallback_to_repr = False
         for value, is_constant in parts:
             if is_constant:
-                value, new_quote_types = self._str_literal_helper(value, quote_types, True)
+                value, new_quote_types = self._str_literal_helper(value, quote_types=quote_types, escape_special_whitespace=True)
                 if set(new_quote_types).isdisjoint(quote_types):
                     fallback_to_repr = True
                 else:
@@ -668,7 +674,7 @@ Returns the tuple (string literal to write, possible quote types).
     def _write_ftstring_inner(self, node, is_format_spec=False):
         if isinstance(node, JoinedStr):
             for value in node.values:
-                self._write_ftstring_inner(value, is_format_spec)
+                self._write_ftstring_inner(value, is_format_spec=is_format_spec)
             return
         if isinstance(node, Constant) and isinstance(node.value, str):
             value = node.value.replace('{', '{{').replace('}', '}}')
@@ -705,14 +711,14 @@ Returns the tuple (string literal to write, possible quote types).
             self.write(f'!{chr(node.conversion)}')
         if node.format_spec:
             self.write(':')
-            self._write_ftstring_inner(node.format_spec, True)
+            self._write_ftstring_inner(node.format_spec, is_format_spec=True)
         None(None, None, None)
 
     def visit_FormattedValue(self, node):
         self._write_interpolation(node)
 
     def visit_Interpolation(self, node):
-        self._write_interpolation(node, node.str is not None)
+        self._write_interpolation(node, use_str_attr=node.str is not None)
 
     def visit_Name(self, node):
         self.write(node.id)
@@ -721,7 +727,7 @@ Returns the tuple (string literal to write, possible quote types).
         self.fill(allow_semicolon=False)
         if node.kind == 'u':
             self.write('u')
-        self._write_str_avoiding_backslashes(node.value, _MULTI_QUOTES)
+        self._write_str_avoiding_backslashes(node.value, quote_types=_MULTI_QUOTES)
 
     def _write_constant(self, value):
         if isinstance(value, (float, complex)):
@@ -831,7 +837,9 @@ Returns the tuple (string literal to write, possible quote types).
         None(None, None, None)
 
     def visit_Tuple(self, node):
-        self.delimit_if('(', ')', len(node.elts) == 0 or self.get_precedence(node) > _Precedence.TUPLE).len()
+        if not len(node.elts) == 0:
+            pass
+        self.delimit_if('(', ')', self.get_precedence(node) > _Precedence.TUPLE).len()
         self.items_view(self.traverse, node.elts)
         None(None, None, None)
 
@@ -923,7 +931,9 @@ Returns the tuple (string literal to write, possible quote types).
 
     def visit_Subscript(self, node):
         def is_non_empty_tuple(slice_value):
-            return isinstance(slice_value, Tuple) and slice_value.elts
+            if isinstance(slice_value, Tuple):
+                pass
+            return slice_value.elts
 
         self.set_precedence(_Precedence.ATOM, node.value)
         self.traverse(node.value)
@@ -954,7 +964,7 @@ Returns the tuple (string literal to write, possible quote types).
             return
 
     def visit_Match(self, node):
-        self.fill('match ', False)
+        self.fill('match ', allow_semicolon=False)
         self.traverse(node.subject)
         self.block().traverse()
         for case in node.cases:
@@ -1056,7 +1066,7 @@ Returns the tuple (string literal to write, possible quote types).
             return
 
     def visit_match_case(self, node):
-        self.fill('case ', False)
+        self.fill('case ', allow_semicolon=False)
         self.traverse(node.pattern)
         if node.guard:
             self.write(' if ')
@@ -1091,7 +1101,7 @@ Returns the tuple (string literal to write, possible quote types).
 
         self.delimit('{', '}').keys()
         keys = node.keys
-        self.interleave((lambda: self.write(', ')), write_key_pattern_pair, zip(keys, node.patterns, True))
+        self.interleave((lambda: self.write(', ')), write_key_pattern_pair, zip(keys, node.patterns, strict=True))
         rest = node.rest
         if not rest is None:
             if keys:
@@ -1114,7 +1124,7 @@ Returns the tuple (string literal to write, possible quote types).
 
             if patterns:
                 self.write(', ')
-            self.interleave((lambda: self.write(', ')), write_attr_pattern, zip(attrs, node.kwd_patterns, True))
+            self.interleave((lambda: self.write(', ')), write_attr_pattern, zip(attrs, node.kwd_patterns, strict=True))
         None(None, None, None)
 
     def visit_MatchAs(self, node):

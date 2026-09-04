@@ -36,7 +36,7 @@ contributors and the copyright notice.'''
             return
         data = None
         for filename in self.__filenames:
-            with open(filename, 'utf-8') as fp:
+            with open(filename, encoding='utf-8') as fp:
                 data = fp.read()
                 try:
                     pass
@@ -60,7 +60,7 @@ contributors and the copyright notice.'''
         self.__setup()
         pager = get_pager()
         text = '\n'.join(self.__lines)
-        pager(text, self.__name)
+        pager(text, title=self.__name)
 
 
 class _Helper(object):

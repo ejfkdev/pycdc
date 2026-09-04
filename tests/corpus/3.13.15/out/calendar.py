@@ -33,7 +33,7 @@ class IllegalWeekdayError(ValueError):
 def __getattr__(name):
     if name in ('January', 'February'):
         import warnings
-        warnings.warn(f"The '{name}' attribute is deprecated, use '{name.upper()}' instead", DeprecationWarning, 2)
+        warnings.warn(f"The '{name}' attribute is deprecated, use '{name.upper()}' instead", DeprecationWarning, stacklevel=2)
         if name == 'January':
             return 1
         return 2
@@ -105,7 +105,10 @@ month_abbr = _localized_month('%b')
 def isleap(year):
     '''Return True for leap years, False for non-leap years.'''
 
-    return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+    if year % 4 == 0:
+        if not year % 100 != 0:
+            pass
+    return year % 400 == 0
 
 def leapdays(y1, y2):
     '''Return number of leap years in range [y1, y2).
@@ -131,11 +134,15 @@ def _validate_month(month):
 def monthrange(year, month):
     _validate_month(month)
     day1 = weekday(year, month, 1)
-    ndays = mdays[month] + (month == FEBRUARY and isleap(year))
+    if month == FEBRUARY:
+        pass
+    ndays = mdays[month] + isleap(year)
     return day1, ndays
 
 def _monthlen(year, month):
-    return mdays[month] + (month == FEBRUARY and isleap(year))
+    if month == FEBRUARY:
+        pass
+    return mdays[month] + isleap(year)
 
 def _prevmonth(year, month):
     if month == 1:
@@ -308,7 +315,7 @@ similar to the UNIX program cal.
 '''
 
     def prweek(self, theweek, width):
-        print(self.formatweek(theweek, width), '')
+        print(self.formatweek(theweek, width), end='')
 
     def formatday(self, day, weekday, width):
         '''
@@ -354,7 +361,7 @@ Return a header for a week.
         return s.center(width)
 
     def prmonth(self, theyear, themonth, w=0, l=0):
-        print(self.formatmonth(theyear, themonth, w, l), '')
+        print(self.formatmonth(theyear, themonth, w, l), end='')
 
     def formatmonth(self, theyear, themonth, w=0, l=0):
         """
@@ -410,7 +417,7 @@ Returns a year's calendar as a multi-line string.
         return ''.join(v)
 
     def pryear(self, theyear, w=0, l=0, c=6, m=3):
-        print(self.formatyear(theyear, w, l, c, m), '')
+        print(self.formatyear(theyear, w, l, c, m), end='')
 
 
 class HTMLCalendar(Calendar):
@@ -474,7 +481,7 @@ Return a formatted month as a table.
         a = v.append
         a('<table border="0" cellpadding="0" cellspacing="0" class="%s">' % self.cssclass_month)
         a('\n')
-        a(self.formatmonthname(theyear, themonth, withyear))
+        a(self.formatmonthname(theyear, themonth, withyear=withyear))
         a('\n')
         a(self.formatweekheader())
         a('\n')
@@ -501,7 +508,7 @@ Return a formatted year as a table of tables.
             a('<tr>')
             for m in months:
                 a('<td>')
-                a(self.formatmonth(theyear, m, False))
+                a(self.formatmonth(theyear, m, withyear=False))
                 a('</td>')
             a('</tr>')
         a('</table>')
@@ -647,17 +654,17 @@ def main(args=None):
     parser = argparse.ArgumentParser()
     textgroup = parser.add_argument_group('text only arguments')
     htmlgroup = parser.add_argument_group('html only arguments')
-    textgroup.add_argument('-w', '--width', int, 2, 'width of date column (default 2)')
-    textgroup.add_argument('-l', '--lines', int, 1, 'number of lines for each week (default 1)')
-    textgroup.add_argument('-s', '--spacing', int, 6, 'spacing between months (default 6)')
-    textgroup.add_argument('-m', '--months', int, 3, 'months per row (default 3)')
-    htmlgroup.add_argument('-c', '--css', 'calendar.css', 'CSS to use for page')
-    parser.add_argument('-L', '--locale', None, 'locale to use for month and weekday names')
-    parser.add_argument('-e', '--encoding', None, 'encoding to use for output')
-    parser.add_argument('-t', '--type', 'text', ('text', 'html'), 'output type (text or html)')
-    parser.add_argument('-f', '--first-weekday', int, 0, 'weekday (0 is Monday, 6 is Sunday) to start each week (default 0)')
-    parser.add_argument('year', '?', int, 'year number')
-    parser.add_argument('month', '?', int, 'month number (1-12, text only)')
+    textgroup.add_argument('-w', '--width', type=int, default=2, help='width of date column (default 2)')
+    textgroup.add_argument('-l', '--lines', type=int, default=1, help='number of lines for each week (default 1)')
+    textgroup.add_argument('-s', '--spacing', type=int, default=6, help='spacing between months (default 6)')
+    textgroup.add_argument('-m', '--months', type=int, default=3, help='months per row (default 3)')
+    htmlgroup.add_argument('-c', '--css', default='calendar.css', help='CSS to use for page')
+    parser.add_argument('-L', '--locale', default=None, help='locale to use for month and weekday names')
+    parser.add_argument('-e', '--encoding', default=None, help='encoding to use for output')
+    parser.add_argument('-t', '--type', default='text', choices=('text', 'html'), help='output type (text or html)')
+    parser.add_argument('-f', '--first-weekday', type=int, default=0, help='weekday (0 is Monday, 6 is Sunday) to start each week (default 0)')
+    parser.add_argument('year', nargs='?', type=int, help='year number')
+    parser.add_argument('month', nargs='?', type=int, help='month number (1-12, text only)')
     options = parser.parse_args(args)
     if options.locale:
         if not options.encoding:

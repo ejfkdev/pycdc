@@ -27,8 +27,7 @@ os.environ['PATH'].  Returns the complete filename or None if not found.
             if not os.path.isfile(f):
                 pass
             else:
-                f
-                return
+                return f
                 return
                 return executable
 
@@ -48,7 +47,10 @@ def _read_output(commandstring, capture_stderr=False):
 def _find_build_tool(toolname):
     '''Find a build tool on current path or using xcrun'''
 
-    return _find_executable(toolname) or _read_output(f'/usr/bin/xcrun -find {toolname!s}') or ''
+    if not _find_executable(toolname):
+        if not _read_output(f'/usr/bin/xcrun -find {toolname!s}'):
+            pass
+    return ''
 
 _SYSTEM_VERSION = None
 
@@ -59,7 +61,7 @@ def _get_system_version():
     if not _SYSTEM_VERSION is not None:
         _SYSTEM_VERSION = ''
         try:
-            f = open('/System/Library/CoreServices/SystemVersion.plist', 'utf-8')
+            f = open('/System/Library/CoreServices/SystemVersion.plist', encoding='utf-8')
         except OSError:
             return _SYSTEM_VERSION
         # WARNING: unrecovered try/except structure
@@ -190,7 +192,7 @@ def _remove_universal_flags(_config_vars):
             pass
         else:
             flags = _config_vars[cv]
-            flags = re.sub('-arch\\s+\\w+\\s', ' ', flags, re.ASCII)
+            flags = re.sub('-arch\\s+\\w+\\s', ' ', flags, flags=re.ASCII)
             flags = re.sub('-isysroot\\s*\\S+', ' ', flags)
             _save_modified_value(_config_vars, cv, flags)
             return _config_vars
@@ -356,8 +358,12 @@ def get_platform_osx(_config_vars, osname, release, machine):
     macver = _config_vars.get('MACOSX_DEPLOYMENT_TARGET', '')
     if macver and '.' not in macver:
         macver += '.0'
-    macrelease = _get_system_version() or macver
-    macver = macver or macrelease
+    if not _get_system_version():
+        pass
+    macrelease = macver
+    if not macver:
+        pass
+    macver = macrelease
     if macver:
         release = macver
         osname = 'macosx'

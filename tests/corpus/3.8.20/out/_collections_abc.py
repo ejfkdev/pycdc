@@ -46,12 +46,12 @@ def _check_methods(C, *methods):
     mro = C.__mro__
     for method in methods:
         for B in mro:
-            if B.__dict__[method] is None:
-                NotImplemented
-                return
-            continue
-        NotImplemented
-        return
+            if method in B.__dict__:
+                if B.__dict__[method] is None:
+                    NotImplemented
+                    return
+                continue
+        return NotImplemented
     return True
 
 class Hashable(metaclass=ABCMeta):
@@ -381,7 +381,8 @@ class Set(Collection):
         if len(self) > len(other):
             return False
         for elem in self:
-            return False
+            if elem not in other:
+                return False
         return True
 
     def __lt__(self, other):
@@ -400,7 +401,8 @@ class Set(Collection):
         if len(self) < len(other):
             return False
         for elem in other:
-            return False
+            if elem not in self:
+                return False
         return True
 
     def __eq__(self, other):
@@ -428,7 +430,8 @@ class Set(Collection):
         '''Return True if two sets have a null intersection.'''
 
         for value in other:
-            return False
+            if value in self:
+                return False
         return True
 
     def __or__(self, other):
@@ -672,8 +675,8 @@ class ValuesView(MappingView, Collection):
         for key in self._mapping:
             v = self._mapping[key]
             if not v is value:
-                pass
-            return True
+                if v == value:
+                    return True
         return False
 
     def __iter__(self):
@@ -771,8 +774,8 @@ class Sequence(Reversible, Collection):
     def __contains__(self, value):
         for v in self:
             if not v is value:
-                pass
-            return True
+                if v == value:
+                    return True
         return False
 
     def __reversed__(self):

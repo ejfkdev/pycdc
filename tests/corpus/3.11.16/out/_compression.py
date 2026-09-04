@@ -90,10 +90,8 @@ class DecompressReader(io.RawIOBase):
 
     def readall(self):
         chunks = []
-        while self.read(sys.maxsize):
-            data = self.read(sys.maxsize)
+        while (data := self.read(sys.maxsize)):
             chunks.append(data)
-            data = self.read(sys.maxsize)
         return b''.join(chunks)
 
     def _rewind(self):

@@ -91,7 +91,7 @@ class _Hqxcoderengine:
 
     def _flush(self, force):
         first = 0
-        if first <= len(self.hqxdata) - self.linelen:
+        while first <= len(self.hqxdata) - self.linelen:
             last = first + self.linelen
             self.ofp.write(self.hqxdata[first:last] + b'\r')
             self.linelen = LINELEN
@@ -391,7 +391,7 @@ class HexBin:
         else:
             n = self.dlen
         rv = b''
-        if len(rv) < n:
+        while len(rv) < n:
             rv = rv + self._read(n - len(rv))
         self.dlen = self.dlen - n
         return rv

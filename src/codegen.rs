@@ -60,6 +60,8 @@ pub fn expr_precedence(e: &Expr) -> u8 {
             BinaryOp::Pow => POW,
         },
         Expr::Await(_) => AWAIT,
+        // Named always renders parenthesized — ATOM keeps outer parens off
+        Expr::Named { .. } => ATOM,
         _ => ATOM,
     }
 }
@@ -969,6 +971,13 @@ impl Printer {
             Expr::Await(inner) => {
                 self.write("await ");
                 self.expr(inner, prec::AWAIT);
+            }
+            Expr::Named { target, value } => {
+                self.write("(");
+                self.expr(target, 0);
+                self.write(" := ");
+                self.expr(value, 0);
+                self.write(")");
             }
             Expr::Yield(None) => self.write("yield"),
             Expr::Yield(Some(v)) => {

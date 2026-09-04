@@ -334,8 +334,7 @@ class Sniffer:
                     pass
                 else:
                     skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
-                    d, skipinitialspace
-                    return
+                    return d, skipinitialspace
                     items = [(v, k) for k, v in delims.items()]
                     items.sort()
                     delim = items[-1][1]

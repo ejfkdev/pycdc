@@ -267,7 +267,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
         raise ValueError('unconverted data remains: %s' % data_string[found.end():])
     iso_year = year = None
     month = day = 1
-    hour = minute = second = fraction = 0
+    second = fraction = (minute := (hour := 0))
     tz = -1
     gmtoff = None
     gmtoff_fraction = 0

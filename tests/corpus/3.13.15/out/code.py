@@ -61,7 +61,7 @@ line.
         try:
             code = self.compile(source, filename, symbol)
         except (OverflowError, SyntaxError, ValueError):
-            self.showsyntaxerror(filename, source)
+            self.showsyntaxerror(filename, source=source)
             return False
         if not code is not None:
             return True
@@ -106,7 +106,7 @@ The output is written by self.write(), below.
             source = kwargs.pop('source', '')
             self._showtraceback(typ, value, None, source)
         finally:
-            typ = value = tb = None
+            value = tb = (typ := None)
 
     def showtraceback(self):
         '''Display the exception that just occurred.
@@ -121,7 +121,7 @@ The output is written by self.write(), below.
             typ, value, tb = sys.exc_info()
             self._showtraceback(typ, value, tb.tb_next, '')
         finally:
-            typ = value = tb = None
+            value = tb = (typ := None)
 
     def _showtraceback(self, typ, value, tb, source):
         sys.last_type = typ
@@ -145,10 +145,10 @@ The output is written by self.write(), below.
         except BaseException as e:
             e.__context__ = None
             e = e.with_traceback(e.__traceback__.tb_next)
-            print('Error in sys.excepthook:', sys.stderr)
+            print('Error in sys.excepthook:', file=sys.stderr)
             sys.__excepthook__(type(e), e, e.__traceback__)
             print(file=sys.stderr)
-            print('Original exception was:', sys.stderr)
+            print('Original exception was:', file=sys.stderr)
             sys.__excepthook__(typ, value, tb)
             return
 
@@ -306,7 +306,7 @@ a default message is printed.
         source = '\n'.join(self.buffer)
         if not filename is not None:
             filename = self.filename
-        more = self.runsource(source, filename, _symbol)
+        more = self.runsource(source, filename, symbol=_symbol)
         if not more:
             self.resetbuffer()
         return more
@@ -358,7 +358,7 @@ local_exit -- passed to InteractiveConsole.__init__()
 
 '''
 
-    console = InteractiveConsole(local, local_exit)
+    console = InteractiveConsole(local, local_exit=local_exit)
     if not readfunc is None:
         console.raw_input = readfunc
     else:
@@ -371,7 +371,7 @@ local_exit -- passed to InteractiveConsole.__init__()
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('-q', 'store_true', "don't print version and copyright messages")
+    parser.add_argument('-q', action='store_true', help="don't print version and copyright messages")
     args = parser.parse_args()
     if args.q or sys.flags.quiet:
         banner = ''

@@ -229,7 +229,7 @@ def filterwarnings(action, message='', category=Warning, module='', lineno=0, ap
         module = re.compile(module)
     else:
         module = None
-    _wm._add_filter(action, message, category, module, lineno, append)
+    _wm._add_filter(action, message, category, module, lineno, append=append)
 
 def simplefilter(action, category=Warning, lineno=0, append=False):
     '''Insert a simple entry into the list of warnings filters (at the front).
@@ -248,7 +248,7 @@ A simple filter matches all modules and messages.
         raise TypeError('lineno must be an int')
     if lineno < 0:
         raise ValueError('lineno must be an int >= 0')
-    _wm._add_filter(action, None, category, None, lineno, append)
+    _wm._add_filter(action, None, category, None, lineno, append=append)
 
 def _filters_mutated():
     _wm._lock._lock()
@@ -281,7 +281,7 @@ def _processoptions(args):
             _wm._setoption(arg)
         except _wm.sys:
             msg = None
-            print('Invalid -W option ignored:', msg, sys.stderr)
+            print('Invalid -W option ignored:', msg, file=sys.stderr)
             msg = None
             del msg, msg
             msg = None
@@ -290,7 +290,7 @@ def _setoption(arg):
     parts = arg.split(':')
     if len(parts) > 5:
         raise _wm._OptionError(f'too many fields (max 5): {arg!r}')
-    if len(parts) < 5:
+    while len(parts) < 5:
         parts.append('')
     action, message, category, module, lineno = [s.strip() for s in parts]
     action = _wm._getaction(action)
@@ -319,8 +319,7 @@ def _getaction(action):
         if not a.startswith(action):
             pass
         else:
-            a
-            return
+            return a
             raise _wm._OptionError(f'invalid action: {action!r}')
 
 def _getcategory(category):
@@ -347,7 +346,9 @@ def _getcategory(category):
     return cat
 
 def _is_internal_filename(filename):
-    return 'importlib' in filename and '_bootstrap' in filename
+    if 'importlib' in filename:
+        pass
+    return '_bootstrap' in filename
 
 def _is_filename_to_skip(filename, skip_file_prefixes):
     if any is None:
@@ -369,8 +370,7 @@ def _next_external_frame(frame, skip_file_prefixes):
 
     frame = frame.f_back
     while not frame is None:
-        filename = frame.f_code.co_filename
-        if not _is_internal_filename(frame.f_code.co_filename):
+        if not _is_internal_filename((filename := frame.f_code.co_filename)):
             if not _is_filename_to_skip(filename, skip_file_prefixes):
                 break
         frame = frame.f_back
@@ -414,13 +414,15 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
             else:
                 module = '<string>'
             registry = globals.setdefault('__warningregistry__', {})
-            _wm.warn_explicit(message, category, filename, lineno, module, registry, globals, source)
+            _wm.warn_explicit(message, category, filename, lineno, module, registry, globals, source=source)
             return
 
 def warn_explicit(message, category, filename, lineno, module=None, registry=None, module_globals=None, source=None):
     lineno = int(lineno)
     if not module is not None:
-        module = filename or '<unknown>'
+        if not filename:
+            pass
+        module = '<unknown>'
         if module[-3:].lower() == '.py':
             module = module[:-3]
     if isinstance(message, Warning):
@@ -473,7 +475,7 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
     while True:
         import linecache
         linecache.getlines(filename, module_globals)
-        msg = _wm.WarningMessage(message, category, filename, lineno, source)
+        msg = _wm.WarningMessage(message, category, filename, lineno, source=source)
         _wm._showwarnmsg(msg)
         return
 
@@ -649,7 +651,7 @@ See PEP 702 for details.
             @functools.wraps(original_new)
             def __new__(cls, /, *args, **kwargs):
                 if cls is arg:
-                    _wm.warn(msg, category, stacklevel + 1)
+                    _wm.warn(msg, category=category, stacklevel=stacklevel + 1)
                 if original_new is not object.__new__:
                     return original_new(*[cls, *args], **kwargs)
                 if cls.__init__ is object.__init__:
@@ -665,12 +667,12 @@ See PEP 702 for details.
                     original_init_subclass = original_init_subclass.__func__
                 @functools.wraps(original_init_subclass)
                 def __init_subclass__(*args, **kwargs):
-                    _wm.warn(msg, category, stacklevel + 1)
+                    _wm.warn(msg, category=category, stacklevel=stacklevel + 1)
                     return original_init_subclass(*args, **kwargs)
 
             else:
                 def __init_subclass__(cls, *args, **kwargs):
-                    _wm.warn(msg, category, stacklevel + 1)
+                    _wm.warn(msg, category=category, stacklevel=stacklevel + 1)
                     return super().__init_subclass__(*args, **kwargs)
 
             arg.__init_subclass__ = classmethod(__init_subclass__)
@@ -683,7 +685,7 @@ See PEP 702 for details.
             import inspect
             @functools.wraps(arg)
             def wrapper(*args, **kwargs):
-                _wm.warn(msg, category, stacklevel + 1)
+                _wm.warn(msg, category=category, stacklevel=stacklevel + 1)
                 return arg(*args, **kwargs)
 
             if inspect.iscoroutinefunction(arg):
@@ -713,7 +715,7 @@ version tuple (e.g. (3, 11)).
             msg = f'{name!r} was slated for removal after Python {remove_formatted} alpha'
             raise RuntimeError(msg)
     msg = message.format(name=name, remove=remove_formatted)
-    _wm.warn(msg, DeprecationWarning, 3)
+    _wm.warn(msg, DeprecationWarning, stacklevel=3)
 
 def _warn_unawaited_coroutine(coro):
     msg_lines = [f"coroutine '{coro.__qualname__}' was never awaited\n"]
@@ -728,15 +730,15 @@ def _warn_unawaited_coroutine(coro):
         msg_lines.append('Coroutine created at (most recent call last)\n')
         msg_lines += traceback.format_list(list(extract()))
     msg = ''.join(msg_lines).rstrip('\n')
-    _wm.warn(msg, RuntimeWarning, 2, coro)
+    _wm.warn(msg, category=RuntimeWarning, stacklevel=2, source=coro)
 
 def _setup_defaults():
     if hasattr(sys, 'gettotalrefcount'):
         return
-    _wm.filterwarnings('default', DeprecationWarning, '__main__', 1)
-    _wm.simplefilter('ignore', DeprecationWarning, 1)
-    _wm.simplefilter('ignore', PendingDeprecationWarning, 1)
-    _wm.simplefilter('ignore', ImportWarning, 1)
-    _wm.simplefilter('ignore', ResourceWarning, 1)
+    _wm.filterwarnings('default', category=DeprecationWarning, module='__main__', append=1)
+    _wm.simplefilter('ignore', category=DeprecationWarning, append=1)
+    _wm.simplefilter('ignore', category=PendingDeprecationWarning, append=1)
+    _wm.simplefilter('ignore', category=ImportWarning, append=1)
+    _wm.simplefilter('ignore', category=ResourceWarning, append=1)
 
 # WARNING: Decompyle incomplete

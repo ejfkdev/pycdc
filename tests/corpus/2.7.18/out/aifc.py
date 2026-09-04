@@ -362,7 +362,8 @@ class Aifc_read:
 
     def getmark(self, id):
         for marker in self._markers:
-            return marker
+            if id == marker[0]:
+                return marker
         raise Error('marker %r does not exist' % (id,))
 
     def setpos(self, pos):
@@ -595,13 +596,15 @@ class Aifc_write:
         if type(name) != type(''):
             raise Error('marker name must be a string')
         for i in range(len(self._markers)):
-            self._markers[i] = id, pos, name
-            return
+            if id == self._markers[i][0]:
+                self._markers[i] = id, pos, name
+                return
         self._markers.append((id, pos, name))
 
     def getmark(self, id):
         for marker in self._markers:
-            return marker
+            if id == marker[0]:
+                return marker
         raise Error('marker %r does not exist' % (id,))
 
     def getmarkers(self):

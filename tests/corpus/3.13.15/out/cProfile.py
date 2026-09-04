@@ -122,9 +122,9 @@ def main():
     usage = 'cProfile.py [-o output_file_path] [-s sort] [-m module | scriptfile] [arg] ...'
     parser = OptionParser(usage=usage)
     parser.allow_interspersed_args = False
-    parser.add_option('-o', '--outfile', 'outfile', 'Save stats to <outfile>', None)
-    parser.add_option('-s', '--sort', 'sort', 'Sort order when printing to stdout, based on pstats.Stats class', 2, sorted(pstats.Stats.sort_arg_dict_default))
-    parser.add_option('-m', 'module', 'store_true', 'Profile a library module', False)
+    parser.add_option('-o', '--outfile', dest='outfile', help='Save stats to <outfile>', default=None)
+    parser.add_option('-s', '--sort', dest='sort', help='Sort order when printing to stdout, based on pstats.Stats class', default=2, choices=sorted(pstats.Stats.sort_arg_dict_default))
+    parser.add_option('-m', dest='module', action='store_true', help='Profile a library module', default=False)
     if not sys.argv[1:]:
         parser.print_usage()
         sys.exit(2)

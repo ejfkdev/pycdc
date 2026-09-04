@@ -2718,6 +2718,15 @@ impl<'a> Ctx<'a> {
             }
             Op::STORE_FAST | Op::STORE_FAST_MAYBE_NULL => {
                 let n = self.local_name(arg as usize);
+                if self.walrus_at_name(inst, &n) {
+                    let val = self.pop_expr();
+                    self.pop(); // the duplicated original
+                    self.push(Rc::new(Expr::Named {
+                        target: self.name_expr(n),
+                        value: val,
+                    }));
+                    return true;
+                }
                 let val = self.pop_store_value();
                 self.emit_store_sv(self.name_expr(n), val);
                 true
@@ -2777,6 +2786,17 @@ impl<'a> Ctx<'a> {
                 if !self.globals.contains(&n) {
                     self.globals.push(n.clone());
                 }
+                if self.walrus_at_name(inst, &n) {
+                    // a walrus inside a comprehension stores to the
+                    // enclosing scope (STORE_GLOBAL at module level)
+                    let val = self.pop_expr();
+                    self.pop(); // the duplicated original
+                    self.push(Rc::new(Expr::Named {
+                        target: self.name_expr(n),
+                        value: val,
+                    }));
+                    return true;
+                }
                 let val = self.pop_store_value();
                 self.emit_store_sv(self.name_expr(n), val);
                 true
@@ -2791,6 +2811,15 @@ impl<'a> Ctx<'a> {
             }
             Op::STORE_NAME => {
                 let n = self.const_name(arg as usize);
+                if self.walrus_at_name(inst, &n) {
+                    let val = self.pop_expr();
+                    self.pop(); // the duplicated original
+                    self.push(Rc::new(Expr::Named {
+                        target: self.name_expr(n),
+                        value: val,
+                    }));
+                    return true;
+                }
                 let val = self.pop_store_value();
                 self.emit_store_sv(self.name_expr(n), val);
                 true
@@ -2821,6 +2850,15 @@ impl<'a> Ctx<'a> {
                     && self.code.name != "<module>";
                 if is_free && !self.nonlocals.contains(&n) {
                     self.nonlocals.push(n.clone());
+                }
+                if self.walrus_at_name(inst, &n) {
+                    let val = self.pop_expr();
+                    self.pop(); // the duplicated original
+                    self.push(Rc::new(Expr::Named {
+                        target: self.name_expr(n),
+                        value: val,
+                    }));
+                    return true;
                 }
                 let val = self.pop_store_value();
                 self.emit_store_sv(self.name_expr(n), val);
@@ -3491,29 +3529,25 @@ impl<'a> Ctx<'a> {
                     _ => Vec::new(),
                 };
                 self.call_311(arg as usize, false);
-                // retrofit kw names onto the produced call
+                // retrofit kw names onto the produced call: the names tuple
+                // covers the TRAILING k values (like KW_NAMES), the leading
+                // total-k values are positional
                 if let Some(Sv::E(e)) = self.stack.last_mut() {
                     if let Expr::Call { args, keywords, .. } = Rc::make_mut(e) {
                         let total = args.len() + keywords.len();
-                        if names.len() == total {
-                            let pos_count = total - names.iter().take_while(|n| n.is_none()).count();
-                            let mut pos = 0usize;
-                            let mut new_args = Vec::new();
-                            let mut new_kws = Vec::new();
+                        let named: Vec<Option<String>> = names.clone();
+                        if !named.is_empty() && named.len() <= total {
+                            let pos_count = total - named.len();
                             let all_vals: Vec<ExprRef> = args
                                 .drain(..)
                                 .chain(keywords.drain(..).map(|(_, v)| v))
                                 .collect();
-                            for (i, v) in all_vals.into_iter().enumerate() {
-                                match names.get(i).cloned().flatten() {
-                                    Some(kw) => new_kws.push((Some(kw), v)),
-                                    None if pos < pos_count => {
-                                        new_args.push(v);
-                                        pos += 1;
-                                    }
-                                    None => new_args.push(v),
-                                }
-                            }
+                            let new_args: Vec<ExprRef> =
+                                all_vals.iter().take(pos_count).cloned().collect();
+                            let new_kws: Vec<(Option<String>, ExprRef)> = named
+                                .into_iter()
+                                .zip(all_vals.into_iter().skip(pos_count))
+                                .collect();
                             *args = new_args;
                             *keywords = new_kws;
                         }
@@ -5868,7 +5902,13 @@ impl<'a> Ctx<'a> {
                                 self.blocks.push(blk);
                                 return;
                             }
-                            if matches!(inst.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                            // a RETURN may sit inside the then region —
+                            // 3.8/3.9 jump-threading leaves the loop's
+                            // (dead) back edge AFTER it; only stop at a
+                            // forward escape out of the loop
+                            if inst.target.map_or(false, |t| {
+                                t > inst.offset && self.find_loop_exit(t).is_some()
+                            }) {
                                 break;
                             }
                         }
@@ -5993,8 +6033,13 @@ impl<'a> Ctx<'a> {
         // COPY/TO_BOOL + cond jump = value-preserving branch (3.12+ and/or
         // chains, chained comparisons); plain statements are guarded at
         // close time by requiring an empty body and a live stack value
-        let value_merge = matches!(self.prev_op_at_exec, Some(Op::COPY) | Some(Op::TO_BOOL))
-            .then(|| {
+        // TO_BOOL only marks a value-preserving branch when the jump
+        // target holds the chain else-arm (SWAP 2; POP_TOP) — a plain
+        // `if x:` in 3.13+ also carries TO_BOOL and must stay a statement
+        let value_merge = (matches!(self.prev_op_at_exec, Some(Op::COPY))
+            || (matches!(self.prev_op_at_exec, Some(Op::TO_BOOL))
+                && (self.is_chain_else_arm(target) || self.is_chain_else_arm_rot(target))))
+        .then(|| {
                 if jump_if_true {
                     BoolOpKind::Or
                 } else {
@@ -6650,23 +6695,38 @@ impl<'a> Ctx<'a> {
         if ti >= ci {
             return false;
         }
-        self.instrs[ti..ci].iter().all(|inst| {
-            inst.target.is_none()
-                && !matches!(
-                    inst.op,
-                    Op::STORE_FAST
-                        | Op::STORE_NAME
-                        | Op::STORE_GLOBAL
-                        | Op::STORE_DEREF
-                        | Op::STORE_SUBSCR
-                        | Op::STORE_ATTR
-                        | Op::POP_TOP
-                        | Op::RETURN_VALUE
-                        | Op::CALL
-                        | Op::CALL_FUNCTION
-                        | Op::CALL_METHOD
-                )
-        })
+        let mut prev: Option<Op> = None;
+        let mut prev_arg = 0u32;
+        let ok = self.instrs[ti..ci].iter().all(|inst| {
+            let good = match inst.op {
+                Op::RETURN_VALUE
+                | Op::RETURN_CONST
+                | Op::POP_TOP
+                | Op::STORE_SUBSCR
+                | Op::STORE_ATTR => false,
+                Op::STORE_FAST | Op::STORE_NAME | Op::STORE_GLOBAL | Op::STORE_DEREF => {
+                    // walrus: the value was duplicated right before
+                    matches!(prev, Some(Op::DUP_TOP))
+                        || (prev == Some(Op::COPY) && prev_arg == 1)
+                }
+                // value-producing calls are fine inside conditions
+                Op::CALL
+                | Op::CALL_FUNCTION
+                | Op::CALL_METHOD
+                | Op::CALL_FUNCTION_KW
+                | Op::CALL_FUNCTION_EX => true,
+                _ => match inst.target {
+                    // value-level branch (ternary/boolop): self-contained
+                    // when every target stays inside the region
+                    Some(t) => t >= top && t <= cur,
+                    None => true,
+                },
+            };
+            prev = Some(inst.op);
+            prev_arg = inst.arg;
+            good
+        });
+        ok
     }
 
     /// True when a backward jump targets an enclosing loop's top while
@@ -7419,6 +7479,50 @@ fn expr_eq(a: &ExprRef, b: &ExprRef) -> bool {
 /// Pure value-computation opcodes (no statements, no control flow):
 /// a region of only these between two cond jumps means the second jump
 /// is part of the same condition, not a nested statement.
+impl<'a> Ctx<'a> {
+    /// 3.8+ walrus: the value expression was duplicated (DUP_TOP <=3.10,
+    /// COPY 1 on 3.11+) right before this store, and the next instruction
+    /// is NOT another store (that would be a chained `a = b = v`).
+    fn walrus_at_name(&self, inst: &Instruction, name: &str) -> bool {
+        // the class-cell idiom (`LOAD __class__; DUP_TOP; STORE_NAME
+        // __classcell__`) looks exactly like a walrus — exclude the
+        // compiler-generated cell names
+        if name.starts_with("__class")
+            || name.starts_with("__firstlineno")
+            || name.starts_with("__static_attributes")
+        {
+            return false;
+        }
+        self.walrus_at(inst)
+    }
+
+    fn walrus_at(&self, inst: &Instruction) -> bool {
+        if !self.version.at_least(3, 8) {
+            return false;
+        }
+        let Some(&ci) = self.idx_of.get(&inst.offset) else {
+            return false;
+        };
+        if ci == 0 {
+            return false;
+        }
+        let prev = &self.instrs[ci - 1];
+        let dup =
+            prev.op == Op::DUP_TOP || (prev.op == Op::COPY && prev.arg == 1);
+        if !dup {
+            return false;
+        }
+        !matches!(
+            self.instrs.get(ci + 1).map(|x| x.op),
+            Some(Op::STORE_FAST)
+                | Some(Op::STORE_NAME)
+                | Some(Op::STORE_DEREF)
+                | Some(Op::STORE_GLOBAL)
+                | Some(Op::STORE_FAST_MAYBE_NULL)
+        )
+    }
+}
+
 fn is_pure_value_op(op: Op) -> bool {
     matches!(
         op,
@@ -7571,6 +7675,26 @@ fn cmp_from_index(idx: usize) -> CmpOp {
 
 impl<'a> Ctx<'a> {
     fn handle_pop_top(&mut self) {
+        // `return v` inside a loop: `SWAP 2; POP_TOP` (3.12+) or
+        // `ROT_TWO; POP_TOP` (3.8-3.11) before the RETURN drops the loop
+        // iterator, which the VM keeps below the value but our simulation
+        // does not — swallow the pop. Legacy handler preludes reuse the
+        // same ops for exception bookkeeping: never no-op inside them.
+        if matches!(self.prev_op_at_exec, Some(Op::SWAP) | Some(Op::ROT_TWO))
+            && self.legacy_handler.is_none()
+            && self.legacy_try.is_none()
+        {
+            let next_returns = self
+                .idx_of
+                .get(&self.cur_offset)
+                .and_then(|&pi| self.instrs.get(pi + 1))
+                .map_or(false, |nx| {
+                    matches!(nx.op, Op::RETURN_VALUE | Op::RETURN_CONST)
+                });
+            if next_returns {
+                return;
+            }
+        }
         // py2 if-statement: the else branch starts with a POP_TOP that
         // discards the cond value we already popped at the JUMP_IF_*
         if self.py2_else_pop_at == Some(self.cur_offset) {
@@ -9745,8 +9869,68 @@ impl<'a> Ctx<'a> {
                 .unwrap_or_else(|| "?".into())
         };
 
-        for inst in &instrs {
+        let mut prev_inst: Option<(Op, u32)> = None;
+        for (ii, inst) in instrs.iter().enumerate() {
+            let prev = prev_inst.replace((inst.op, inst.arg));
+            // walrus inside a comprehension: DUP_TOP (<=3.10) / COPY 1
+            // (3.11+) then a non-loop store; both duplicated slots fold
+            // into a Named expression that becomes the element value
+            let walrus = self.version.at_least(3, 8)
+                && (matches!(prev, Some((Op::DUP_TOP, _)))
+                    || matches!(prev, Some((Op::COPY, 1))))
+                && matches!(
+                    inst.op,
+                    Op::STORE_FAST | Op::STORE_DEREF | Op::STORE_GLOBAL | Op::STORE_NAME
+                )
+                && !matches!(
+                    instrs.get(ii + 1).map(|x| x.op),
+                    Some(Op::STORE_FAST)
+                        | Some(Op::STORE_NAME)
+                        | Some(Op::STORE_DEREF)
+                        | Some(Op::STORE_GLOBAL)
+                );
+            if walrus {
+                let name = match inst.op {
+                    Op::STORE_FAST => code
+                        .varnames
+                        .get(inst.arg as usize)
+                        .cloned()
+                        .unwrap_or_default(),
+                    Op::STORE_DEREF => code
+                        .deref_name(inst.arg as usize)
+                        .unwrap_or("?")
+                        .to_string(),
+                    Op::STORE_GLOBAL | Op::STORE_NAME => name_of_arg(code, inst.arg as usize),
+                    _ => String::new(),
+                };
+                let v = stack.pop();
+                stack.pop(); // the duplicated original
+                if let Some(v) = v {
+                    stack.push(Rc::new(Expr::Named {
+                        target: Rc::new(Expr::Name(name)),
+                        value: v,
+                    }));
+                }
+                continue;
+            }
             match inst.op {
+                Op::DUP_TOP => {
+                    if let Some(t) = stack.last().cloned() {
+                        stack.push(t);
+                    }
+                }
+                Op::COPY => {
+                    let n = inst.arg as usize;
+                    if n >= 1 && stack.len() >= n {
+                        let v = stack[stack.len() - n].clone();
+                        stack.push(v);
+                    }
+                }
+                Op::STORE_GLOBAL | Op::STORE_NAME => {
+                    // non-walrus stores do not occur in comprehension code;
+                    // consume the value to keep the stack balanced
+                    stack.pop();
+                }
                 Op::RESUME
                 | Op::NOP
                 | Op::CACHE

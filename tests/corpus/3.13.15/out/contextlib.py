@@ -528,7 +528,9 @@ For example:
             except BaseException:
                 exc.__context__ = fixed_ctx
                 raise
-        return received_exc and suppressed_exc
+        if received_exc:
+            pass
+        return suppressed_exc
 
     def close(self):
         self.__exit__(None, None, None)
@@ -682,7 +684,9 @@ method.'''
             except BaseException:
                 exc.__context__ = fixed_ctx
                 raise
-        return received_exc and suppressed_exc
+        if received_exc:
+            pass
+        return suppressed_exc
 
 
 class nullcontext(AbstractContextManager, AbstractAsyncContextManager):

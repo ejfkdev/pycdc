@@ -43,7 +43,7 @@ Pass type_comments=True to get back type comments where the syntax allows.
         if major != 3:
             raise ValueError(f'Unsupported major version: {major}')
         feature_version = minor
-    return compile(source, filename, mode, flags, feature_version, optimize)
+    return compile(source, filename, mode, flags, _feature_version=feature_version, optimize=optimize)
 
 def literal_eval(node_or_string):
     '''
@@ -56,13 +56,12 @@ Caution: A complex expression can overflow the C stack and cause a crash.
 '''
 
     if isinstance(node_or_string, str):
-        node_or_string = parse(node_or_string.lstrip(' \t'), 'eval')
+        node_or_string = parse(node_or_string.lstrip(' \t'), mode='eval')
     if isinstance(node_or_string, Expression):
         node_or_string = node_or_string.body
     def _raise_malformed_node(node):
         msg = 'malformed node or string'
-        if getattr(node, 'lineno', None):
-            lno = getattr(node, 'lineno', None)
+        if (lno := getattr(node, 'lineno', None)):
             msg += f' on line {lno}'
         raise ValueError(msg + f': {node!r}')
 
@@ -160,7 +159,9 @@ will be omitted from the output for better readability.
                     args.extend(args_buffer)
                     args_buffer = []
                 value, simple = _format(value, level)
-                allsimple = allsimple and simple
+                if allsimple:
+                    pass
+                allsimple = simple
                 if keywords:
                     args.append(f'{name!s}={value!s}')
                     continue
@@ -174,7 +175,9 @@ will be omitted from the output for better readability.
                     if not value is not None and not getattr(cls, name, ...) is not None:
                         continue
                     value, simple = _format(value, level)
-                    allsimple = allsimple and simple
+                    if allsimple:
+                        pass
+                    allsimple = simple
                     args.append(f'{name!s}={value!s}')
             if allsimple and len(args) <= 3:
                 return f'{node.__class__.__name__!s}({', '.join(args)!s})', not args
@@ -255,11 +258,8 @@ location in a file.
             continue
         if 'lineno' in child._attributes:
             child.lineno = getattr(child, 'lineno', 0) + n
-        if not getattr(child, 'end_lineno', 0) is not None:
-            end_lineno = getattr(child, 'end_lineno', 0)
-        else:
-            child.end_lineno = end_lineno + n
-            return node
+        if not (end_lineno := getattr(child, 'end_lineno', 0)) is not None:
+            pass
 
 def iter_fields(node):
     '''
@@ -364,7 +364,7 @@ be padded with spaces to match its original position.
                 except AttributeError:
                     return
     finally:
-        lines = _splitlines_no_ff(source, end_lineno + 1)
+        lines = _splitlines_no_ff(source, maxlines=end_lineno + 1)
         if end_lineno == lineno:
             return lines[lineno].encode()[col_offset:end_col_offset].decode()
         if padded:
@@ -405,7 +405,7 @@ might differ in whitespace or similar details.
     sentinel = object()
     def _compare(a, b):
         if isinstance(a, AST):
-            return compare(a, b, compare_attributes)
+            return compare(a, b, compare_attributes=compare_attributes)
         if isinstance(a, list):
             if len(a) != len(b):
                 return False
@@ -415,7 +415,9 @@ might differ in whitespace or similar details.
                 else:
                     return False
                     return True
-                    return type(a) is type(b) and a == b
+                    if type(a) is type(b):
+                        pass
+                    return a == b
 
     def _compare_fields(a, b):
         if a._fields != b._fields:
@@ -611,14 +613,14 @@ def main(args=None):
     import argparse
     import sys
     parser = argparse.ArgumentParser(color=True)
-    parser.add_argument('infile', '?', '-', 'the file to parse; defaults to stdin')
-    parser.add_argument('-m', '--mode', 'exec', ('exec', 'single', 'eval', 'func_type'), 'specify what kind of code must be parsed')
-    parser.add_argument('--no-type-comments', True, 'store_false', "don't add information about type comments")
-    parser.add_argument('-a', '--include-attributes', 'store_true', 'include attributes such as line numbers and column offsets')
-    parser.add_argument('-i', '--indent', int, 3, 'indentation of nodes (number of spaces)')
-    parser.add_argument('--feature-version', str, None, 'VERSION', 'Python version in the format 3.x (for example, 3.10)')
-    parser.add_argument('-O', '--optimize', int, -1, 'LEVEL', 'optimization level for parser (default -1)')
-    parser.add_argument('--show-empty', False, 'store_true', 'show empty lists and fields in dump output')
+    parser.add_argument('infile', nargs='?', default='-', help='the file to parse; defaults to stdin')
+    parser.add_argument('-m', '--mode', default='exec', choices=('exec', 'single', 'eval', 'func_type'), help='specify what kind of code must be parsed')
+    parser.add_argument('--no-type-comments', default=True, action='store_false', help="don't add information about type comments")
+    parser.add_argument('-a', '--include-attributes', action='store_true', help='include attributes such as line numbers and column offsets')
+    parser.add_argument('-i', '--indent', type=int, default=3, help='indentation of nodes (number of spaces)')
+    parser.add_argument('--feature-version', type=str, default=None, metavar='VERSION', help='Python version in the format 3.x (for example, 3.10)')
+    parser.add_argument('-O', '--optimize', type=int, default=-1, metavar='LEVEL', help='optimization level for parser (default -1)')
+    parser.add_argument('--show-empty', default=False, action='store_true', help='show empty lists and fields in dump output')
     args = parser.parse_args(args)
     if args.infile == '-':
         name = '<stdin>'
@@ -636,8 +638,8 @@ def main(args=None):
                 except ValueError:
                     parser.error('Invalid format for --feature-version; expected format 3.x (for example, 3.10)')
                 feature_version = major, minor
-            tree = parse(source, name, args.mode, args.no_type_comments, feature_version, args.optimize)
-            print(dump(tree, args.include_attributes, args.indent, args.show_empty))
+            tree = parse(source, name, args.mode, type_comments=args.no_type_comments, feature_version=feature_version, optimize=args.optimize)
+            print(dump(tree, include_attributes=args.include_attributes, indent=args.indent, show_empty=args.show_empty))
             return
 
 if __name__ == '__main__':

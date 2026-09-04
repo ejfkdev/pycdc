@@ -15,7 +15,7 @@ t = (1, [2, 3], {'k': 'v'})
 print(t[0], t[1][1], t[2]['k'])
 d = {'a': 1}
 d['b'] = d.get('a', 0) + 1
-print(d, d.get('z', 'miss'), 'a' in d)
+print(sorted(d.items()), d.get('z', 'miss'), 'a' in d)
 del d['a']
 print(sorted(d.items()))
 class Sub(object):

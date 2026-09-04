@@ -129,14 +129,14 @@ If the forward reference cannot be evaluated, raise an exception.
                     return getattr(builtins, arg)
                 if is_forwardref_format:
                     return self
-                raise NameError(_NAME_ERROR_MSG.format(name=arg), arg)
+                raise NameError(_NAME_ERROR_MSG.format(name=arg), name=arg)
         code = self.__forward_code__
         try:
             pass
         except Exception:
             if not is_forwardref_format:
                 raise
-        return eval(code, globals, locals)
+        return eval(code, globals=globals, locals=locals)
 
     def _evaluate(self, globalns, localns, type_params=_sentinel, *, recursive_guard):
         import typing
@@ -144,8 +144,8 @@ If the forward reference cannot be evaluated, raise an exception.
         if type_params is _sentinel:
             typing._deprecation_warning_for_no_type_params_passed('typing.ForwardRef._evaluate')
             type_params = ()
-        warnings._deprecated('ForwardRef._evaluate', '{name} is a private API and is retained for compatibility, but will be removed in Python 3.16. Use ForwardRef.evaluate() or typing.evaluate_forward_ref() instead.', (3, 16))
-        return typing.evaluate_forward_ref(self, globalns, localns, type_params, recursive_guard)
+        warnings._deprecated('ForwardRef._evaluate', '{name} is a private API and is retained for compatibility, but will be removed in Python 3.16. Use ForwardRef.evaluate() or typing.evaluate_forward_ref() instead.', remove=(3, 16))
+        return typing.evaluate_forward_ref(self, globals=globalns, locals=localns, type_params=type_params, _recursive_guard=recursive_guard)
 
     @property
     def __forward_arg__(self):
@@ -163,7 +163,7 @@ If the forward reference cannot be evaluated, raise an exception.
             names = self.__extra_names__
             if names:
                 visitor = _ExtraNameFixer(names)
-                ast_expr = ast.parse(resolved_str, 'eval').body
+                ast_expr = ast.parse(resolved_str, mode='eval').body
                 node = visitor.visit(ast_expr)
                 resolved_str = ast.unparse(node)
             self.__resolved_str_cache__ = resolved_str
@@ -183,11 +183,18 @@ If the forward reference cannot be evaluated, raise an exception.
     def __eq__(self, other):
         if not isinstance(other, ForwardRef):
             return NotImplemented
-        return self.__forward_arg__ == other.__forward_arg__ and self.__forward_module__ == other.__forward_module__ and self.__globals__ is other.__globals__ and self.__forward_is_class__ == other.__forward_is_class__ and self and self.__owner__ == other.__owner__ and (None if other.__extra_names__ else tuple(sorted(other.__extra_names__.items()))) == None
+        if self.__forward_arg__ == other.__forward_arg__:
+            if self.__forward_module__ == other.__forward_module__:
+                if self.__globals__ is other.__globals__:
+                    if self.__forward_is_class__ == other.__forward_is_class__:
+                        if {name: id(cell) for name, cell in self.__cell__.items()} == {name: id(cell) for name, cell in other.__cell__.items()} if isinstance(self.__cell__, dict) and isinstance(other.__cell__, dict) else self.__cell__ is other.__cell__:
+                            if self.__owner__ == other.__owner__:
+                                pass
+        return (tuple(sorted(self.__extra_names__.items())) if self.__extra_names__ else None) == (tuple(sorted(other.__extra_names__.items())) if other.__extra_names__ else None)
 
     def __hash__(self):
         if self.__extra_names__:
-            return hash((self.__forward_arg__, self.__forward_module__, id(self.__globals__), self.__forward_is_class__ if isinstance(self.__cell__, dict) else tuple(sorted([(name, id(cell)) for name, cell in self.__cell__.items()])), (id,), self.__owner__, tuple(sorted(self.__extra_names__.items()))))
+            return hash((self.__forward_arg__, self.__forward_module__, id(self.__globals__), self.__forward_is_class__, (tuple(sorted([(name, id(cell)) for name, cell in self.__cell__.items()])) if isinstance(self.__cell__, dict) else id(self.__cell__),), self.__owner__, tuple(sorted(self.__extra_names__.items()))))
         return None((None, None, None, None, None, None, None))
 
     def __or__(self, other):
@@ -291,7 +298,9 @@ class _Stringifier:
             new_extra_names.update(self.__extra_names__)
         if not extra_names is None:
             new_extra_names.update(extra_names)
-        stringifier = _Stringifier(node, self.__globals__, self.__owner__, self.__forward_is_class__, self.__stringifier_dict__, new_extra_names or None)
+        if not new_extra_names:
+            pass
+        stringifier = _Stringifier(node, self.__globals__, self.__owner__, self.__forward_is_class__, stringifier_dict=self.__stringifier_dict__, extra_names=None)
         self.__stringifier_dict__.stringifiers.append(stringifier)
         return stringifier
 
@@ -438,7 +447,7 @@ def _template_to_ast_literal(template, parsed):
             values.append(ast.Constant(value=part))
             continue
         str
-        interp = ast.Interpolation(str=part.expression, value=parsed[interp_count] if part.conversion else ord(part.conversion), conversion=-1 if part.format_spec else ast.Constant(value=part.format_spec), format_spec=None)
+        interp = ast.Interpolation(str=part.expression, value=parsed[interp_count], conversion=ord(part.conversion) if part.conversion else -1, format_spec=ast.Constant(value=part.format_spec) if part.format_spec else None)
         values.append(interp)
         interp_count += 1
     return ast.TemplateStr(values=values)
@@ -475,7 +484,7 @@ class _StringifierDict(dict):
         self.format = format
 
     def __missing__(self, key):
-        fwdref = _Stringifier(key, self.globals, self.owner, self.is_class, self)
+        fwdref = _Stringifier(key, globals=self.globals, owner=self.owner, is_class=self.is_class, stringifier_dict=self)
         self.stringifiers.append(fwdref)
         return fwdref
 
@@ -501,7 +510,7 @@ the value of type aliases and the bounds, constraints, and defaults of
 type parameter objects.
 '''
 
-    return call_annotate_function(evaluate, format, owner, True)
+    return call_annotate_function(evaluate, format, owner=owner, _is_evaluate=True)
 
 def call_annotate_function(annotate, format, *, owner=None, _is_evaluate=False):
     '''Call an __annotate__ function. __annotate__ functions are normally
@@ -537,7 +546,7 @@ def _build_closure(annotate, owner, is_class, stringifier_dict, *, allow_evaluat
         return (None, None)
     new_closure = []
     cell_dict = {}
-    for name, cell in zip(annotate.__code__.co_freevars, annotate.__closure__, True):
+    for name, cell in zip(annotate.__code__.co_freevars, annotate.__closure__, strict=True):
         cell_dict[name] = cell
         new_cell = None
         if allow_evaluation:
@@ -547,7 +556,7 @@ def _build_closure(annotate, owner, is_class, stringifier_dict, *, allow_evaluat
                 pass
             new_cell = cell
         if not new_cell is not None:
-            fwdref = _Stringifier(name, cell, owner, annotate.__globals__, is_class, stringifier_dict)
+            fwdref = _Stringifier(name, cell=cell, owner=owner, globals=annotate.__globals__, is_class=is_class, stringifier_dict=stringifier_dict)
             stringifier_dict.stringifiers.append(fwdref)
             new_cell = types.CellType(fwdref)
         new_closure.append(new_cell)
@@ -682,33 +691,31 @@ default, contingent on type(obj):
                 obj_locals = None
                 unwrap = obj
             else:
-                obj_globals = obj_locals = unwrap = None
+                obj_locals = unwrap = (obj_globals := None)
             if not unwrap is None:
                 _seen_ids = {id(unwrap)}
-                if hasattr(unwrap, '__wrapped__'):
+                while hasattr(unwrap, '__wrapped__'):
                     candidate = unwrap.__wrapped__
                     if id(candidate) in _seen_ids:
                         pass
                     else:
                         _seen_ids.add(id(candidate))
                         unwrap = candidate
-                elif sys.modules.get('functools'):
-                    functools = sys.modules.get('functools')
-                    if isinstance(unwrap, functools.partial):
-                        candidate = unwrap.func
-                        if id(candidate) in _seen_ids:
-                            pass
-                        else:
-                            _seen_ids.add(id(candidate))
-                            unwrap = candidate
+                        continue
+                if (functools := sys.modules.get('functools')) and isinstance(unwrap, functools.partial):
+                    candidate = unwrap.func
+                    if id(candidate) in _seen_ids:
+                        pass
+                    else:
+                        _seen_ids.add(id(candidate))
+                        unwrap = candidate
                 if hasattr(unwrap, '__globals__'):
                     obj_globals = unwrap.__globals__
             if not globals is not None:
                 globals = obj_globals
             if not locals is not None:
                 locals = obj_locals
-    if getattr(obj, '__type_params__', ()):
-        type_params = getattr(obj, '__type_params__', ())
+    if (type_params := getattr(obj, '__type_params__', ())):
         if not locals is not None:
             locals = {}
         locals = {param.__name__: param for param in type_params} | locals
@@ -760,7 +767,7 @@ May not return a fresh dictionary.
 
     annotate = getattr(obj, '__annotate__', None)
     if not annotate is None:
-        ann = call_annotate_function(annotate, format, obj)
+        ann = call_annotate_function(annotate, format, owner=obj)
         if not isinstance(ann, dict):
             raise ValueError(f'{obj!r}.__annotate__ returned a non-dict')
         return ann
@@ -792,8 +799,7 @@ class _ExtraNameFixer(ast.NodeTransformer):
         self.extra_names = extra_names
 
     def visit_Name(self, node: __classdict__.Name):
-        new_name = self.extra_names.get(node.id, _sentinel)
-        if self.extra_names.get(node.id, _sentinel) is not _sentinel:
+        if (new_name := self.extra_names.get(node.id, _sentinel)) is not _sentinel:
             node = ast.Name(id=type_repr(new_name))
         return node
 

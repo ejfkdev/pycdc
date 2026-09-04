@@ -171,8 +171,7 @@ class _MonitoringTracer:
         last_lineno = None
         for start, lineno in dis.findlinestarts(code):
             if offset < start:
-                last_lineno
-                return
+                return last_lineno
             last_lineno = lineno
         return last_lineno
 
@@ -192,7 +191,7 @@ is determined by the __name__ in the frame globals.
 '''
 
     def __init__(self, skip=None, backend='settrace'):
-        self.skip = None
+        self.skip = set(skip) if skip else None
         self.breaks = {}
         self.fncache = {}
         self.frame_trace_lines_opcodes = {}
@@ -533,13 +532,13 @@ reached or when returning from current frame.'''
         self._set_stopinfo(frame, frame, lineno)
 
     def set_step(self):
-        self._set_stopinfo(None, None, self.enterframe, getattr(self.enterframe, 'f_lineno', None))
+        self._set_stopinfo(None, None, cmdframe=self.enterframe, cmdlineno=getattr(self.enterframe, 'f_lineno', None))
 
     def set_stepinstr(self):
-        self._set_stopinfo(None, None, True)
+        self._set_stopinfo(None, None, opcode=True)
 
     def set_next(self, frame):
-        self._set_stopinfo(frame, None, frame, frame.f_lineno)
+        self._set_stopinfo(frame, None, cmdframe=frame, cmdlineno=frame.f_lineno)
 
     def set_return(self, frame):
         '''Stop when returning from the given frame.'''
@@ -737,7 +736,9 @@ raise a ValueError.
         '''Return True if there is a breakpoint for filename:lineno.'''
 
         filename = self.canonic(filename)
-        return filename in self.breaks and lineno in self.breaks[filename]
+        if filename in self.breaks:
+            pass
+        return lineno in self.breaks[filename]
 
     def get_breaks(self, filename, lineno):
         '''Return all breakpoints for filename:lineno.
@@ -746,7 +747,11 @@ If no breakpoints are set, return an empty list.
 '''
 
         filename = self.canonic(filename)
-        return filename in self.breaks and lineno in self.breaks[filename] and (Breakpoint.bplist[filename, lineno] or [])
+        if filename in self.breaks:
+            if lineno in self.breaks[filename]:
+                if not Breakpoint.bplist[filename, lineno]:
+                    pass
+        return []
 
     def get_file_breaks(self, filename):
         '''Return all lines with breakpoints for filename.
@@ -976,7 +981,7 @@ and defaults to standard output.
 
         if not out is not None:
             out = sys.stdout
-        print(self.bpformat(), out)
+        print(self.bpformat(), file=out)
 
     def bpformat(self):
         '''Return a string with information about the breakpoint.
@@ -1060,8 +1065,7 @@ If no such entry exists, then (None, None) is returned.
             if b.ignore > 0:
                 b.ignore -= 1
                 continue
-        b, True
-        return
+        return b, True
         try:
             val = eval(b.cond, frame.f_globals, frame.f_locals)
             if val:

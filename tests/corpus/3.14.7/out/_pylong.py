@@ -31,7 +31,7 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
         seen.add(w)
         lo = w >> 1
         hi = w - lo
-        which = lo
+        which = hi if need_hi else lo
         need.add(which)
         ws.add(which)
         if not lo != hi:
@@ -56,29 +56,28 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
                 hi = n - lo
                 if n - 1 in d:
                     if show:
-                        print('* base', '')
+                        print('* base', end='')
                     result = d[n - 1] * base
                 elif lo in d:
                     if show:
-                        print('square', '')
+                        print('square', end='')
                     result = d[lo] * d[lo]
                     if hi != lo:
                         if show:
-                            print(' * base', '')
+                            print(' * base', end='')
                         if not 2 * lo + 1 == n:
                             raise None
                         result *= base
                 else:
                     if show:
-                        print('pow', '')
+                        print('pow', end='')
                     result = base ** n
                 if show:
                     print(' at', n, 'needed' if n in need else 'extra')
                 d[n] = result
             if not need <= d.keys():
                 raise None
-            if d.keys() - need:
-                excess = d.keys() - need
+            if (excess := d.keys() - need):
                 if not need_hi:
                     raise None
                 for n in excess:
@@ -207,8 +206,8 @@ def _dec_str_to_int_inner(s, *, GUARD=8):
         raise ValueError(f'cannot convert string of len {lenS} to int')
     ctx = decimal.localcontext(_unbounded_dec_context).Decimal()
     D256 = D(256)
-    pow256 = compute_powers(w, D256, BYTELIM, True)
-    rpow256 = compute_powers(w, 1 / D256, BYTELIM, True)
+    pow256 = compute_powers(w, D256, BYTELIM, need_hi=True)
+    rpow256 = compute_powers(w, 1 / D256, BYTELIM, need_hi=True)
     ctx.traps[decimal.Inexact] = 0
     ctx.rounding = decimal.ROUND_DOWN
     for k, v in pow256.items():

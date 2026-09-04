@@ -317,7 +317,7 @@ matching when 'abcdef' should have been the match).
 
 """
 
-        to_convert = sorted(to_convert, len, True)
+        to_convert = sorted(to_convert, key=len, reverse=True)
         for value in to_convert:
             if not value != '':
                 pass
@@ -355,7 +355,7 @@ regex syntax are escaped.
         if day_of_month_in_format:
             if not year_in_format:
                 import warnings
-                warnings.warn('Parsing dates involving a day of month without a year specified is ambiguious\nand fails to parse leap day. The default behavior will change in Python 3.15\nto either always raise an exception or to use a different default year (TBD).\nTo avoid trouble, add a specific year to the input & format.\nSee https://github.com/python/cpython/issues/70647.', DeprecationWarning, (os.path.dirname(__file__),))
+                warnings.warn('Parsing dates involving a day of month without a year specified is ambiguious\nand fails to parse leap day. The default behavior will change in Python 3.15\nto either always raise an exception or to use a different default year (TBD).\nTo avoid trouble, add a specific year to the input & format.\nSee https://github.com/python/cpython/issues/70647.', DeprecationWarning, skip_file_prefixes=(os.path.dirname(__file__),))
         return format
 
     def compile(self, format):
@@ -426,7 +426,7 @@ format string.'''
                         raise ValueError('unconverted data remains: %s' % data_string[found.end():])
                     iso_year = year = None
                     month = day = 1
-                    hour = minute = second = fraction = 0
+                    second = fraction = (minute := (hour := 0))
                     tz = -1
                     gmtoff = None
                     gmtoff_fraction = 0
@@ -546,7 +546,9 @@ format string.'''
                                 z = z[:5] + z[6:]
                         hours = int(z[1:3])
                         minutes = int(z[3:5])
-                        seconds = int(z[5:7] or 0)
+                        if not z[5:7]:
+                            pass
+                        seconds = int(0)
                         gmtoff = hours * 60 * 60 + minutes * 60 + seconds
                         gmtoff_remainder = z[8:]
                         gmtoff_remainder_padding = '0' * (6 - len(gmtoff_remainder))
@@ -596,7 +598,7 @@ format string.'''
                         if not julian is None:
                             if julian <= 0:
                                 year -= 1
-                                yday = 365
+                                yday = 366 if calendar.isleap(year) else 365
                                 julian += yday
                     if not julian is not None:
                         julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1

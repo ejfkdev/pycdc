@@ -206,6 +206,8 @@ pub enum Expr {
         else_expr: ExprRef,
     },
     Await(ExprRef),
+    /// 3.8+ walrus: `(target := value)`
+    Named { target: ExprRef, value: ExprRef },
     Yield(Option<ExprRef>),
     YieldFrom(ExprRef),
     FString(Box<FString>),

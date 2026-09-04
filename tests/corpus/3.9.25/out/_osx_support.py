@@ -24,8 +24,8 @@ def _find_executable(executable, path=None):
     if not os.path.isfile(executable):
         for p in paths:
             f = os.path.join(p, executable)
-            f
-            return
+            if os.path.isfile(f):
+                return f
         return
     return executable
 

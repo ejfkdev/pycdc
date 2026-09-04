@@ -737,8 +737,7 @@ class RawConfigParser(MutableMapping):
         for key in self.sections():
             value = self[key]
             del self[key]
-            key, value
-            return
+            return key, value
         raise KeyError
 
     def optionxform(self, optionstr):

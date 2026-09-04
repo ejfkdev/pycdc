@@ -540,7 +540,7 @@ class FieldStorage:
         if not isinstance(first_line, bytes):
             raise ValueError('%s should return bytes, got %s' % (self.fp, type(first_line).__name__))
         self.bytes_read += len(first_line)
-        if first_line.strip() != b'--' + self.innerboundary and first_line:
+        while first_line.strip() != b'--' + self.innerboundary:
             first_line = self.fp.readline()
             self.bytes_read += len(first_line)
         max_num_fields = self.max_num_fields

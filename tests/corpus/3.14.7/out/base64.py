@@ -31,7 +31,7 @@ alternative alphabet for the '+' and '/' characters.  This allows an
 application to e.g. generate url or filesystem safe Base64 strings.
 """
 
-    encoded = binascii.b2a_base64(s, False)
+    encoded = binascii.b2a_base64(s, newline=False)
     if not altchars is None:
         if not len(altchars) == 2:
             raise None()
@@ -63,7 +63,7 @@ https://docs.python.org/3.11/library/binascii.html#binascii.a2b_base64
         if not len(altchars) == 2:
             raise None()
         s = s.translate(bytes.maketrans(altchars, b'+/'))
-    return binascii.a2b_base64(s, validate)
+    return binascii.a2b_base64(s, strict_mode=validate)
 
 def standard_b64encode(s):
     '''Encode bytes-like object s using the standard Base64 alphabet.
@@ -224,7 +224,7 @@ in the input.
     s = _bytes_from_decode_data(s)
     if casefold:
         s = s.upper()
-    if s.translate(None, b'0123456789ABCDEF'):
+    if s.translate(None, delete=b'0123456789ABCDEF'):
         raise binascii.Error('Non-base16 digit found')
     return binascii.unhexlify(s)
 
@@ -277,7 +277,7 @@ with ~>, they must not use a leading <~.
     if adobe:
         result = _A85START + result
     if wrapcol:
-        wrapcol = None(1, wrapcol)
+        wrapcol = max(2 if adobe else 1, wrapcol)
         chunks = [result[i:i + wrapcol] for i in range(0, len(result), wrapcol)]
         if adobe and len(chunks[-1]) + 2 > wrapcol:
             chunks.append(b'')
@@ -446,20 +446,16 @@ MAXBINSIZE = MAXLINESIZE // 4 * 3
 def encode(input, output):
     '''Encode a file; input and output are binary files.'''
 
-    if input.read(MAXBINSIZE):
-        s = input.read(MAXBINSIZE)
-        if len(s) < MAXBINSIZE:
-            if input.read(MAXBINSIZE - len(s)):
-                ns = input.read(MAXBINSIZE - len(s))
-                s += ns
+    while (s := input.read(MAXBINSIZE)):
+        while len(s) < MAXBINSIZE:
+            s += ns
         line = binascii.b2a_base64(s)
         output.write(line)
 
 def decode(input, output):
     '''Decode a file; input and output are binary files.'''
 
-    if input.readline():
-        line = input.readline()
+    while (line := input.readline()):
         s = binascii.a2b_base64(line)
         output.write(s)
 

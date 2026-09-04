@@ -110,12 +110,12 @@ class InteractiveInterpreter:
             else:
                 self._showtraceback(typ, value, None)
             finally:
-                typ = value = tb = None
+                value = tb = (typ := None)
             return
             try:
                 pass
             finally:
-                typ = value = tb = None
+                value = tb = (typ := None)
 
     def showtraceback(self):
         '''Display the exception that just occurred.
@@ -130,7 +130,7 @@ class InteractiveInterpreter:
             typ, value, tb = sys.exc_info()
             self._showtraceback(typ, value, tb.tb_next)
         finally:
-            typ = value = tb = None
+            value = tb = (typ := None)
 
     def _showtraceback(self, typ, value, tb):
         sys.last_type = typ

@@ -67,11 +67,10 @@ def _check_methods(C, *methods):
                     NotImplemented
                     return
                 continue
-        NotImplemented
-        return
+        return NotImplemented
     return True
 
-class Hashable(ABCMeta):
+class Hashable(metaclass=ABCMeta):
     __slots__ = ()
     @abstractmethod
     def __hash__(self):
@@ -84,7 +83,7 @@ class Hashable(ABCMeta):
         return NotImplemented
 
 
-class Awaitable(ABCMeta):
+class Awaitable(metaclass=ABCMeta):
     __slots__ = ()
     @abstractmethod
     def __await__(self):
@@ -141,7 +140,7 @@ Return next yielded value or raise StopIteration.
 
 Coroutine.register(coroutine)
 
-class AsyncIterable(ABCMeta):
+class AsyncIterable(metaclass=ABCMeta):
     __slots__ = ()
     @abstractmethod
     def __aiter__(self):
@@ -228,7 +227,7 @@ Return next yielded value or raise StopAsyncIteration.
 
 AsyncGenerator.register(async_generator)
 
-class Iterable(ABCMeta):
+class Iterable(metaclass=ABCMeta):
     __slots__ = ()
     @abstractmethod
     def __iter__(self):
@@ -337,7 +336,7 @@ Return next yielded value or raise StopIteration.
 
 Generator.register(generator)
 
-class Sized(ABCMeta):
+class Sized(metaclass=ABCMeta):
     __slots__ = ()
     @abstractmethod
     def __len__(self):
@@ -350,7 +349,7 @@ class Sized(ABCMeta):
         return NotImplemented
 
 
-class Container(ABCMeta):
+class Container(metaclass=ABCMeta):
     __slots__ = ()
     @abstractmethod
     def __contains__(self, x):
@@ -373,7 +372,7 @@ class Collection(Sized, Iterable, Container):
         return NotImplemented
 
 
-class Buffer(ABCMeta):
+class Buffer(metaclass=ABCMeta):
     __slots__ = ()
     @abstractmethod
     def __buffer__(self, flags: int, /) -> memoryview:
@@ -440,7 +439,9 @@ def _is_param_expr(obj):
         return True
     obj = type(obj)
     names = ('ParamSpec', '_ConcatenateGenericAlias')
-    return obj.__module__ == 'typing' and any((obj.__name__ == name for name in names))
+    if obj.__module__ == 'typing':
+        pass
+    return any((obj.__name__ == name for name in names))
 
 def _type_repr(obj):
     """Return the repr() of an object, special-casing types (internal helper).
@@ -460,7 +461,7 @@ shouldn't depend on that module.
         return obj.__name__
     return repr(obj)
 
-class Callable(ABCMeta):
+class Callable(metaclass=ABCMeta):
     __slots__ = ()
     @abstractmethod
     def __call__(self, *args, **kwds):
@@ -501,12 +502,16 @@ then the other operations will automatically follow suit.
     def __lt__(self, other):
         if not isinstance(other, Set):
             return NotImplemented
-        return len(self) < len(other) and self.__le__(other)
+        if len(self) < len(other):
+            pass
+        return self.__le__(other)
 
     def __gt__(self, other):
         if not isinstance(other, Set):
             return NotImplemented
-        return len(self) > len(other) and self.__ge__(other)
+        if len(self) > len(other):
+            pass
+        return self.__ge__(other)
 
     def __ge__(self, other):
         if not isinstance(other, Set):
@@ -523,7 +528,9 @@ then the other operations will automatically follow suit.
     def __eq__(self, other):
         if not isinstance(other, Set):
             return NotImplemented
-        return len(self) == len(other) and self.__le__(other)
+        if len(self) == len(other):
+            pass
+        return self.__le__(other)
 
     @classmethod
     def _from_iterable(cls, it):
@@ -801,7 +808,9 @@ class ItemsView(MappingView, Set):
             v = self._mapping[key]
         except KeyError:
             return False
-        return v is value or v == value
+        if not v is value:
+            pass
+        return v == value
 
     def __iter__(self):
         for key in self._mapping:
@@ -999,16 +1008,16 @@ class _DeprecateByteStringMeta(ABCMeta):
     def __new__(cls, name, bases, namespace, **kwargs):
         if name != 'ByteString':
             import warnings
-            warnings._deprecated('collections.abc.ByteString', (3, 17))
+            warnings._deprecated('collections.abc.ByteString', remove=(3, 17))
         return super().__new__(cls, name, bases, namespace, **kwargs)
 
     def __instancecheck__(cls, instance):
         import warnings
-        warnings._deprecated('collections.abc.ByteString', (3, 17))
+        warnings._deprecated('collections.abc.ByteString', remove=(3, 17))
         return super().__instancecheck__(instance)
 
 
-class ByteString(Sequence, _DeprecateByteStringMeta):
+class ByteString(Sequence, metaclass=_DeprecateByteStringMeta):
     '''Deprecated ABC serving as a common supertype of ``bytes`` and ``bytearray``.
 
 This ABC is scheduled for removal in Python 3.17.
