@@ -342,6 +342,10 @@ struct Ctx<'a> {
     pending_then: Vec<Vec<Stmt>>,
     pending_handlers: Vec<ExceptHandler>,
     pending_try_body: Vec<Vec<Stmt>>,
+    /// statement count of the enclosing block when a deferred 3.11+ try
+    /// body closed — the else region starts there; statements BEFORE the
+    /// mark are pre-try code and must not be stolen as orelse
+    pending_orelse_mark: Option<usize>,
     pending_try_handlers: Vec<Vec<ExceptHandler>>,
     pending_loop: Vec<(Option<ExprRef>, Option<ExprRef>, Option<ExprRef>, Vec<Stmt>, bool)>,
     pending_with: Vec<Vec<WithItem>>,
@@ -381,6 +385,13 @@ struct Ctx<'a> {
     /// folded handler: the None-store is held until the matching delete
     /// confirms it (a real `x = None` statement must not be swallowed)
     pending_as_cleanup: Option<String>,
+    /// except* (3.11+): post-try main flow sunk into the handler region
+    /// after the PREP_RERAISE_STAR epilogue's inline POP_EXCEPT — emitted
+    /// right after the Try statement
+    star_tail: Vec<Stmt>,
+    /// end offset of the star_tail span — the main walk skips it when the
+    /// resume is laid out after the chain (3.11)
+    star_tail_end: Option<usize>,
     held_cleanup_store: Option<(ExprRef, ExprRef)>,
     /// enclosing class names for private-name (PEP 8 mangling) restoration
     class_scope: Vec<String>,
@@ -503,7 +514,9 @@ pub fn decompile_in_scope(
                 all_handler_targets.push(e.target);
                 continue;
             }
-            let is_except = window.iter().any(|x| x.op == Op::CHECK_EXC_MATCH);
+            let is_except = window
+                .iter()
+                .any(|x| x.op == Op::CHECK_EXC_MATCH || x.op == Op::CHECK_EG_MATCH);
             handler_kind.insert(e.target, is_except);
             all_handler_targets.push(e.target);
         }
@@ -572,6 +585,7 @@ pub fn decompile_in_scope(
         pending_then: Vec::new(),
         pending_handlers: Vec::new(),
         pending_try_body: Vec::new(),
+        pending_orelse_mark: None,
         pending_try_handlers: Vec::new(),
         pending_loop: Vec::new(),
         pending_with: Vec::new(),
@@ -594,6 +608,8 @@ pub fn decompile_in_scope(
         closed_loop_tops: Vec::new(),
         while_true_loops: Vec::new(),
         pending_as_cleanup: None,
+        star_tail: Vec::new(),
+        star_tail_end: None,
         held_cleanup_store: None,
         class_scope: class_scope.to_vec(),
         inline_comp: None,
@@ -621,9 +637,42 @@ pub fn decompile_in_scope(
         // same ctx map, so include them (the main walk never reaches the
         // zone; pure-cleanup handlers were already dropped by the retain)
         let _ = handler_zone;
+        // handler-exit machinery covered by an enclosing finally (the
+        // clause's JUMP_BACKWARD_NO_INTERRUPT to the inline finally body,
+        // zero-depth POP_EXCEPT stubs) is not a nested try — drop ranges
+        // made entirely of cleanup/jump ops
+        let exit_frag = |e: &crate::code::ExceptionEntry| -> bool {
+            match ctx.idx_of.get(&e.start) {
+                Some(&si) => {
+                    let span: Vec<_> = ctx.instrs[si..]
+                        .iter()
+                        .take_while(|x| x.offset < e.end)
+                        .collect();
+                    // a single jump covered by the finally (the body-exit
+                    // JUMP_FORWARD of a 3.11 try/else) EXTENDS the region
+                    // — it is not droppable machinery
+                    span.len() > 1
+                        && span.iter().all(|x| {
+                            matches!(
+                                x.op,
+                                Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    | Op::COPY
+                                    | Op::SWAP
+                                    | Op::POP_EXCEPT
+                                    | Op::POP_TOP
+                                    | Op::RERAISE
+                                    | Op::NOP
+                                    | Op::NOT_TAKEN
+                            )
+                        })
+                }
+                None => false,
+            }
+        };
         let mut main_entries: Vec<_> = exc_entries
             .iter()
             .filter(|e| handler_kind.contains_key(&e.target))
+            .filter(|e| !exit_frag(e))
             .collect();
         main_entries.sort_by_key(|e| e.start);
         let mut regions: Vec<TryCtx> = Vec::new();
@@ -653,12 +702,23 @@ pub fn decompile_in_scope(
                 _ => false,
             }
         };
-        for e in main_entries {
+        // region extension must never swallow a LATER entry's protected
+        // range (overlapping region nesting breaks the tail order)
+        let mut all_starts: Vec<usize> = main_entries.iter().map(|e2| e2.start).collect();
+        all_starts.sort_unstable();
+        let other_start_after = |r: &TryCtx| -> Option<usize> {
+            all_starts.iter().copied().find(|s| *s > r.cover_end())
+        };
+        for e in &main_entries {
             let is_exc = handler_kind[&e.target];
             let mut bridged = false;
             let extends = regions
                 .last()
                 .map(|r| {
+                    let capped = other_start_after(r).map_or(false, |s| e.end > s);
+                    if capped {
+                        return false;
+                    }
                     if r.cover_end() == e.start {
                         return true;
                     }
@@ -707,6 +767,17 @@ pub fn decompile_in_scope(
                 regions.push(r);
             }
         }
+        if std::env::var("PYCDC_EG_DBG").is_ok() {
+            for e in &main_entries {
+                eprintln!("EG entry {} -> {} target {}", e.start, e.end, e.target);
+            }
+            for r in &regions {
+                eprintln!(
+                    "EG region start={} body_end={} region_end={} exc={:?} fin={:?}",
+                    r.start, r.body_end, r.region_end, r.except_handler, r.finally_handler
+                );
+            }
+        }
         // dedupe: keep regions with at least a body
         for r in regions {
             ctx.try_ctxs.insert(r.start, r);
@@ -726,6 +797,7 @@ pub fn decompile_in_scope(
                     type_: h.type_,
                     name: h.name,
                     body: h.body,
+                    is_star: false,
                 });
             }
         }
@@ -753,6 +825,7 @@ pub fn decompile_in_scope(
                     type_: h.type_,
                     name: h.name,
                     body: h.body,
+                    is_star: false,
                 });
             }
         }
@@ -852,8 +925,75 @@ impl<'a> Ctx<'a> {
                 // skip the whole chain region — the walk resumes after
                 // it (protected body continuation, another chain, or
                 // sunk post-try main flow)
-                self.close_blocks_at(pos);
-                let after = self.chain_extent(pos);
+                let mut after = self.chain_extent(pos);
+                // 3.11 star chains exit through a JUMP_FORWARD trampoline
+                // laid out after the dead stubs — skip over outward
+                // trampolines so the walk resumes at the real flow
+                loop {
+                    let tramp = self
+                        .idx_of
+                        .get(&after)
+                        .and_then(|&ti| self.instrs.get(ti))
+                        .map(|x| {
+                            matches!(x.op, Op::JUMP_FORWARD | Op::JUMP | Op::NOP | Op::NOT_TAKEN)
+                                && x.target.map_or(false, |t| t > x.offset)
+                        })
+                        .unwrap_or(false);
+                    if !tramp {
+                        break;
+                    }
+                    let ti = self.idx_of[&after];
+                    let t = self.instrs[ti].target.unwrap();
+                    if t <= after {
+                        break;
+                    }
+                    after = t;
+                }
+                // a try whose tail was deferred (3.11 star: the else
+                // region extends past the chain head) folds at its
+                // region_end. When the chain skip carries the walk past
+                // that point, retarget the tail to the resume offset —
+                // the inline-finally/else spans start there.
+                let defer_tail = self
+                    .pending_try_ctx
+                    .as_ref()
+                    .map_or(false, |tc| tc.region_end == pos);
+                if defer_tail {
+                    // the resume offset is where the epilogue's exit
+                    // trampoline lands (after POP_EXCEPT). chain_extent
+                    // may stop short at a body-stop (the protected
+                    // else/finally flow that FOLLOWS the chain) — find
+                    // the epilogue JUMP_FORWARD and use its target.
+                    let resume = self
+                        .idx_of
+                        .get(&pos)
+                        .and_then(|&hi| {
+                            let win: Vec<_> = self.instrs[hi..].iter().take(70).collect();
+                            // the epilogue marker first — clause-internal
+                            // JUMP_FORWARDs (cleanup hops) come before it
+                            let prep = win.iter().position(|x| {
+                                x.op == Op::PREP_RERAISE_STAR
+                                    || (x.op == Op::CALL_INTRINSIC_2 && x.arg == 1)
+                            })?;
+                            win[prep..]
+                                .iter()
+                                .find(|x| {
+                                    matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                                        && x.target.map_or(false, |t| t > x.offset)
+                                })
+                                .and_then(|x| x.target)
+                        })
+                        .filter(|t| *t > after)
+                        .unwrap_or(after);
+                    if resume > pos {
+                        if let Some(tc) = self.pending_try_ctx.as_mut() {
+                            tc.region_end = resume;
+                        }
+                        after = resume;
+                    }
+                } else {
+                    self.close_blocks_at(pos);
+                }
                 self.skip_until = Some(after);
                 past_chains = true;
             } else if let Some(zone) = self.handler_zone {
@@ -1150,16 +1290,142 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    /// True when the chain at instruction index `hi` dispatches except*
+    /// clauses (CHECK_EG_MATCH within the clause-head window).
+    fn is_star_dispatch(&self, hi: usize) -> bool {
+        self.instrs[hi..]
+            .iter()
+            .take(40)
+            .any(|x| x.op == Op::CHECK_EG_MATCH)
+    }
+
     /// Emit the else/finally structure of a completed try region and
     /// decompile the out-of-line handlers.
     fn emit_try_tail(&mut self, tc: TryCtx, pos: usize) {
+        // 3.11 except* + else + finally: the chain is laid out INLINE
+        // between the body's terminal JUMP_FORWARD and the else region,
+        // and the walk leaked body/else statements into the enclosing
+        // block — reconstruct every span by offset instead
+        let star_inline = tc.finally_handler.is_some()
+            && tc.except_handler.map_or(false, |h| {
+                self.idx_of
+                    .get(&h)
+                    .map_or(false, |&hi| self.is_star_dispatch(hi))
+            });
+        let body_jf = if star_inline && tc.region_end > tc.body_end {
+            // the body's terminal JF sits at body_end, possibly followed
+            // by padding before the chain head (region_end)
+            self.idx_of.get(&tc.body_end).and_then(|&bi| {
+                let mut jf_i = None;
+                for x in &self.instrs[bi..] {
+                    if x.offset >= tc.region_end {
+                        break;
+                    }
+                    if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP) {
+                        jf_i = Some(x);
+                        break;
+                    }
+                    if !matches!(x.op, Op::NOP | Op::NOT_TAKEN) {
+                        break;
+                    }
+                }
+                jf_i.and_then(|jf| {
+                    if jf.target.map_or(false, |t| t > jf.offset && t <= pos) {
+                        Some((jf.offset, jf.target.unwrap()))
+                    } else {
+                        None
+                    }
+                })
+            })
+        } else {
+            None
+        };
+        if std::env::var("PYCDC_EG_DBG").is_ok() {
+            eprintln!(
+                "EG tail tc start={} body_end={} region_end={} exc={:?} fin={:?} pos={} star_inline={} body_jf={:?}",
+                tc.start, tc.body_end, tc.region_end, tc.except_handler, tc.finally_handler, pos, star_inline, body_jf
+            );
+        }
+        if let Some((jf_off, else_at)) = body_jf {
+            // statements collected after the try opened (the body's last
+            // POP_TOP past the table range, the else region the walk
+            // crossed) belong to the spans we rebuild — drop them
+            let mark = self.pending_orelse_mark.take();
+            if let Some(top) = self.blocks.last_mut() {
+                if let Some(m) = mark {
+                    if m <= top.stmts.len() {
+                        top.stmts.truncate(m);
+                    }
+                }
+            }
+            // the span re-walks must not re-open this region's own Try
+            self.try_ctxs.remove(&tc.start);
+            // parse the out-of-line clauses FIRST: the span walks set
+            // skip_until (which region sub-walks would inherit and skip
+            // every instruction with)
+            let handlers = match tc.except_handler {
+                Some(h) => self.parse_except_dispatch(h),
+                None => Vec::new(),
+            };
+            let body = self.decompile_region(tc.start, jf_off);
+            let orelse = self.decompile_region(else_at, pos);
+            let mut stop = self
+                .instrs
+                .iter()
+                .skip_while(|i| i.offset < pos)
+                .find(|i| matches!(i.op, Op::RETURN_VALUE | Op::RETURN_CONST))
+                .map(|i| i.offset)
+                .unwrap_or(self.code.code.len());
+            // the inline finally ends where its exception-path duplicate
+            // (the finally handler chain) begins — 3.11 lays that chain
+            // BEFORE the flow's RETURN
+            if let Some(fh) = tc.finally_handler {
+                if fh > pos && fh < stop {
+                    stop = fh;
+                }
+            }
+            let finalbody = if stop > pos {
+                self.decompile_region(pos, stop)
+            } else {
+                Vec::new()
+            };
+            if self.skip_until.map_or(true, |s| s < stop) {
+                self.skip_until = Some(stop);
+            }
+            self.pending_nested_finally = None;
+            self.push_stmt(Stmt::Try {
+                body,
+                handlers,
+                orelse,
+                finalbody,
+            });
+            let star_tail = std::mem::take(&mut self.star_tail);
+            if !star_tail.is_empty() {
+                self.push_stmt_all(star_tail);
+                if let Some(se) = self.star_tail_end.take() {
+                    if self.skip_until.map_or(true, |s| s < se) {
+                        self.skip_until = Some(se);
+                    }
+                }
+            } else {
+                self.star_tail_end = None;
+            }
+            return;
+        }
         // `else:` clause exists only when the protected region extends past
         // the try body (finally covers body+else)
         let mut orelse = Vec::new();
         if tc.region_end > tc.body_end {
             if let Some(top) = self.blocks.last_mut() {
-                orelse = std::mem::take(&mut top.stmts);
+                let mark = self.pending_orelse_mark.take().unwrap_or(0);
+                orelse = if mark <= top.stmts.len() {
+                    top.stmts.split_off(mark)
+                } else {
+                    std::mem::take(&mut top.stmts)
+                };
             }
+        } else {
+            self.pending_orelse_mark = None;
         }
         // inline finally body (main flow): from pos until the flow's RETURN
         let stop = self
@@ -1218,6 +1484,19 @@ impl<'a> Ctx<'a> {
             orelse,
             finalbody,
         });
+        let star_tail = std::mem::take(&mut self.star_tail);
+        if !star_tail.is_empty() {
+            self.push_stmt_all(star_tail);
+            // 3.11 lays the resume out AFTER the chain(s): the main walk
+            // would re-execute it — skip past the span we just folded
+            if let Some(se) = self.star_tail_end.take() {
+                if self.skip_until.map_or(true, |s| s < se) {
+                    self.skip_until = Some(se);
+                }
+            }
+        } else {
+            self.star_tail_end = None;
+        }
     }
 
     /// Linearly decompile the instruction range [from, to), returning its
@@ -1232,6 +1511,9 @@ impl<'a> Ctx<'a> {
         );
         let saved_stack = std::mem::take(&mut self.stack);
         let saved_skip = self.skip_until;
+        // an outer walk's skip range must not swallow this region's
+        // instructions — the span walk starts with clean skip state
+        self.skip_until = None;
         let saved_line = self.cur_line;
         let saved_stores = std::mem::take(&mut self.pending_stores);
 
@@ -1309,29 +1591,90 @@ impl<'a> Ctx<'a> {
         // i.e. it is the ENCLOSING try's dispatch. Adjacency must be exact
         // (a chain followed by its try's sunk post-flow, then a finally
         // handler chain, is NOT nested inside that finally).
-        let nested = region_end > from
-            && self
-                .idx_of
-                .get(&region_end)
-                .and_then(|&ri| self.instrs.get(ri.wrapping_sub(1)))
-                .map(|p| p.op == Op::RERAISE)
-                .unwrap_or(false)
-            && self.chain_extent(from) == region_end
+        // chain adjacency: the instruction(s) before the next chain head
+        // are the previous chain's RERAISE stub — 3.11 inserts an exit
+        // trampoline (JUMP_FORWARD over the following chain) between them
+        let adj_reraise = self
+            .idx_of
+            .get(&region_end)
+            .map(|&ri| {
+                let mut p = ri;
+                let mut hops = 0;
+                loop {
+                    if p == 0 || hops > 4 {
+                        return false;
+                    }
+                    p -= 1;
+                    hops += 1;
+                    let prev = &self.instrs[p];
+                    if prev.op == Op::RERAISE {
+                        return true;
+                    }
+                    let outward_jf = matches!(
+                        prev.op,
+                        Op::JUMP_FORWARD | Op::JUMP | Op::NOP | Op::NOT_TAKEN
+                    ) && prev.target.map_or(true, |t| t >= region_end);
+                    if !outward_jf {
+                        return false;
+                    }
+                }
+            })
+            .unwrap_or(false);
+        let extent = self.chain_extent(from);
+        // instructions between the chain extent and the next head must be
+        // pure outward exit trampolines for the chains to count as nested
+        let tramp_gap = match self.idx_of.get(&extent) {
+            Some(&si) => {
+                let mut ok = true;
+                for x in &self.instrs[si..] {
+                    if x.offset >= region_end {
+                        break;
+                    }
+                    if !(matches!(
+                        x.op,
+                        Op::JUMP_FORWARD | Op::JUMP | Op::NOP | Op::NOT_TAKEN
+                    ) && x.target.map_or(true, |t| t >= region_end))
+                    {
+                        ok = false;
+                        break;
+                    }
+                }
+                ok
+            }
+            None => false,
+        };
+        let nested = region_end > from && adj_reraise && (extent == region_end || tramp_gap)
             && self
                 .idx_of
                 .get(&region_end)
                 .and_then(|&i| {
                     let is_dispatch = self.instrs.get(i).map(|x| x.op == Op::PUSH_EXC_INFO)
                         == Some(true)
-                        // a finally/cleanup chain (no CHECK_EXC_MATCH) is
+                        // a finally/cleanup chain (no CHECK_*_MATCH) is
                         // not an enclosing except dispatch
                         && self.instrs[i..]
                             .iter()
                             .take(40)
-                            .any(|x| x.op == Op::CHECK_EXC_MATCH);
+                            .any(|x| {
+                                x.op == Op::CHECK_EXC_MATCH || x.op == Op::CHECK_EG_MATCH
+                            });
                     Some(is_dispatch)
                 })
                 .unwrap_or(false);
+        if std::env::var("PYCDC_EG_DBG").is_ok() {
+            eprintln!(
+                "EG nested-check from={} region_end={} prev_reraise={} extent={} nested={}",
+                from,
+                region_end,
+                self.idx_of
+                    .get(&region_end)
+                    .and_then(|&ri| self.instrs.get(ri.wrapping_sub(1)))
+                    .map(|p| p.op == Op::RERAISE)
+                    .unwrap_or(false),
+                extent,
+                nested
+            );
+        }
         let mut pc = match self.idx_of.get(&from) {
             Some(&i) => i,
             None => return handlers,
@@ -1342,6 +1685,9 @@ impl<'a> Ctx<'a> {
         }
         pc += 1;
         let mut pattern: Option<ExprRef> = None;
+        // except* (3.11+): clauses match with CHECK_EG_MATCH and branch
+        // on POP_JUMP_IF_NONE; the star flag is per-clause
+        let mut star_clause = false;
         while pc < self.instrs.len() {
             let inst = self.instrs[pc];
             if inst.offset >= end
@@ -1358,7 +1704,16 @@ impl<'a> Ctx<'a> {
                     pc += 1;
                     continue;
                 }
-                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE => {
+                Op::CHECK_EG_MATCH => {
+                    pattern = self.sim_pattern(&mut pc, inst.offset);
+                    star_clause = true;
+                    pc += 1;
+                    continue;
+                }
+                Op::POP_JUMP_IF_FALSE
+                | Op::POP_JUMP_FORWARD_IF_FALSE
+                | Op::POP_JUMP_IF_NONE
+                | Op::POP_JUMP_FORWARD_IF_NONE => {
                     let next = inst.target.unwrap_or(end);
                     clause_offsets.push(inst.offset);
                     pc += 1;
@@ -1395,13 +1750,16 @@ impl<'a> Ctx<'a> {
                     if let Some(n) = &name {
                         self.pending_as_cleanup = Some(n.clone());
                     }
-                    let body = self.decompile_handler_body(&mut pc, next, region_end);
+                    let body =
+                        self.decompile_handler_body(&mut pc, next, region_end, star_clause);
                     self.pending_as_cleanup = saved_pac;
                     handlers.push(ExceptHandler {
                         type_: pattern.take(),
                         name: name.map(|n| Rc::new(Expr::Name(n)) as ExprRef),
                         body,
+                        is_star: star_clause,
                     });
+                    star_clause = false;
                     // everything up to the next clause (body + exception-
                     // path cleanup + its RERAISE) is consumed
                     if let Some(&ni) = self.idx_of.get(&next) {
@@ -1422,7 +1780,7 @@ impl<'a> Ctx<'a> {
                             break;
                         }
                         match nx.op {
-                            Op::CHECK_EXC_MATCH => {
+                            Op::CHECK_EXC_MATCH | Op::CHECK_EG_MATCH => {
                                 more = true;
                                 break;
                             }
@@ -1433,6 +1791,8 @@ impl<'a> Ctx<'a> {
                             | Op::COPY | Op::SWAP | Op::POP_TOP
                             | Op::POP_EXCEPT | Op::PUSH_EXC_INFO
                             | Op::NOP | Op::NOT_TAKEN
+                            | Op::LIST_APPEND | Op::CALL_INTRINSIC_2
+                            | Op::PREP_RERAISE_STAR
                             | Op::BUILD_TUPLE => {
                                 m += 1;
                             }
@@ -1500,7 +1860,9 @@ impl<'a> Ctx<'a> {
                         && !self.instrs[self.idx_of[&e.target]..]
                             .iter()
                             .take(40)
-                            .any(|x| x.op == Op::CHECK_EXC_MATCH)
+                            .any(|x| {
+                                x.op == Op::CHECK_EXC_MATCH || x.op == Op::CHECK_EG_MATCH
+                            })
                     {
                         fin_target = Some(e.target);
                         break;
@@ -1514,7 +1876,127 @@ impl<'a> Ctx<'a> {
             self.pending_nested_finally = Some(finalbody);
             return outer;
         }
+        if handlers.iter().any(|h| h.is_star) {
+            if let Some((excl, lim, span_end)) = self.star_resume_span(from) {
+                self.star_tail = self.decompile_region(excl, lim);
+                self.star_tail_end = Some(span_end);
+            }
+        }
         handlers
+    }
+
+    /// except* chain epilogue: `PREP_RERAISE_STAR; COPY 1;
+    /// POP_JUMP_IF_NOT_NONE stub; POP_TOP; POP_EXCEPT` — main flow
+    /// resumes right after that POP_EXCEPT and runs until the chain's
+    /// dead zero-depth stubs (`SWAP/COPY; POP_EXCEPT; RERAISE`).
+    /// Returns (resume_offset, limit_offset, span_end) where span_end is
+    /// the offset just past the limit instruction (for skipping the
+    /// resume in the main walk — 3.11 lays it out AFTER the chains).
+    fn star_resume_span(&self, head: usize) -> Option<(usize, usize, usize)> {
+        let mut i = self.idx_of.get(&head).copied()?;
+        let extent = self.chain_extent(head);
+        let mut prep = None;
+        while i < self.instrs.len() && self.instrs[i].offset < extent {
+            let ins = self.instrs[i];
+            if ins.op == Op::PREP_RERAISE_STAR
+                || (ins.op == Op::CALL_INTRINSIC_2 && ins.arg == 1)
+            {
+                prep = Some(i);
+                break;
+            }
+            i += 1;
+        }
+        let mut j = prep? + 1;
+        while j < self.instrs.len() && self.instrs[j].offset < extent {
+            if self.instrs[j].op == Op::POP_EXCEPT {
+                break;
+            }
+            j += 1;
+        }
+        if j >= self.instrs.len() || self.instrs[j].op != Op::POP_EXCEPT {
+            return None;
+        }
+        // walk from the epilogue's POP_EXCEPT through exit trampolines
+        // (3.11 jumps over the dead stubs and possibly over the enclosing
+        // chain to the out-of-line resume); guard against backward jumps
+        let mut r = j + 1;
+        let mut hops = 0;
+        let resume;
+        loop {
+            if r >= self.instrs.len() || hops > 8 {
+                return None;
+            }
+            let ins = self.instrs[r];
+            let is_tramp = matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP | Op::NOP | Op::NOT_TAKEN)
+                && ins.target.map_or(false, |t| t > ins.offset);
+            let is_stub = matches!(ins.op, Op::SWAP | Op::COPY)
+                && matches!(self.instrs.get(r + 1).map(|x| x.op), Some(Op::POP_EXCEPT))
+                && matches!(self.instrs.get(r + 2).map(|x| x.op), Some(Op::RERAISE));
+            if is_stub || ins.op == Op::PUSH_EXC_INFO {
+                return None;
+            }
+            // 3.11: the epilogue trampoline can jump straight to the
+            // resume PAST a finally chain that covers it — that finally
+            // is the try's own (folded as finalbody); stop before it
+            if is_tramp {
+                let t = ins.target.unwrap();
+                let t_is_covered_fin = self
+                    .exc_entries
+                    .iter()
+                    .any(|e| e.target == t && e.start != e.end)
+                    && self
+                        .idx_of
+                        .get(&t)
+                        .and_then(|&ti| self.instrs.get(ti))
+                        .map(|x| x.op == Op::PUSH_EXC_INFO)
+                        .unwrap_or(false);
+                if t_is_covered_fin {
+                    return None;
+                }
+            }
+            if is_tramp {
+                let t = ins.target.unwrap();
+                match self.idx_of.get(&t) {
+                    Some(&ti) => {
+                        r = ti;
+                        hops += 1;
+                        continue;
+                    }
+                    None => return None,
+                }
+            }
+            resume = ins.offset;
+            break;
+        }
+        let mut k = r;
+        while k < self.instrs.len() {
+            let ins = self.instrs[k];
+            if matches!(ins.op, Op::SWAP | Op::COPY)
+                && matches!(self.instrs.get(k + 1).map(|x| x.op), Some(Op::POP_EXCEPT))
+                && matches!(self.instrs.get(k + 2).map(|x| x.op), Some(Op::RERAISE))
+            {
+                break;
+            }
+            if ins.op == Op::PUSH_EXC_INFO {
+                break;
+            }
+            if matches!(ins.op, Op::RETURN_VALUE | Op::RETURN_CONST | Op::RERAISE) {
+                k += 1;
+                break;
+            }
+            k += 1;
+        }
+        let (lim, span_end) = if k < self.instrs.len() {
+            (self.instrs[k].offset, self.instrs[k].offset)
+        } else {
+            let e = self.instrs.last().map(|x| x.end()).unwrap_or(resume);
+            (e, e)
+        };
+        if lim > resume {
+            Some((resume, lim, span_end))
+        } else {
+            None
+        }
     }
 
     /// Build the pattern expression for an except clause: forward-simulate
@@ -1530,6 +2012,8 @@ impl<'a> Ctx<'a> {
                 Op::PUSH_EXC_INFO
                     | Op::POP_JUMP_IF_FALSE
                     | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_IF_NONE
+                    | Op::POP_JUMP_FORWARD_IF_NONE
                     | Op::RERAISE
                     | Op::JUMP_FORWARD
                     | Op::JUMP_BACKWARD
@@ -1537,6 +2021,8 @@ impl<'a> Ctx<'a> {
                     | Op::JUMP
                     | Op::POP_EXCEPT
                     | Op::CHECK_EXC_MATCH
+                    | Op::CHECK_EG_MATCH
+                    | Op::PREP_RERAISE_STAR
             ) {
                 break;
             }
@@ -1604,6 +2090,7 @@ impl<'a> Ctx<'a> {
         pc: &mut usize,
         next_clause: usize,
         region_end: usize,
+        is_star: bool,
     ) -> Vec<Stmt> {
         // the clause body runs to the next clause start (the mismatch
         // jump target is exactly that boundary in every 3.11+ layout)
@@ -1634,11 +2121,68 @@ impl<'a> Ctx<'a> {
             k += 1;
         }
         let Some(pi) = pop_idx else {
-            // a clause whose body never exits the except state (it ends
-            // in `raise`): the body runs to the clause limit
+            // No POP_EXCEPT terminator: either an except* clause (3.11+)
+            // or a plain clause body ending in `raise`. The body runs
+            // until the eager `as` cleanup (`LOAD None; STORE name;
+            // DELETE name`), which precedes the closing JUMP_FORWARD and
+            // the out-of-line exception-path cleanup stub. Cut there so
+            // neither leaks into the body.
+            let mut body_end = limit;
+            if is_star && self.pending_as_cleanup.is_none() {
+                // `except* E:` without `as`: the body ends at the
+                // group-append cleanup that feeds the PREP_RERAISE_STAR
+                // accumulator (3.12+: `LIST_APPEND 1` right after the
+                // as-cleanup; 3.11: a `LIST_APPEND 3` exception stub past
+                // the body's closing jump) — stop at the first one
+                let mut m = *pc;
+                while m < self.instrs.len() {
+                    let a = self.instrs[m].offset;
+                    if a >= limit {
+                        break;
+                    }
+                    if self.instrs[m].op == Op::LIST_APPEND {
+                        body_end = a;
+                        break;
+                    }
+                    m += 1;
+                }
+            }
+            if let Some(n) = self.pending_as_cleanup.clone() {
+                let mut m = *pc;
+                while m + 2 < self.instrs.len() {
+                    let a = self.instrs[m].offset;
+                    if a >= limit {
+                        break;
+                    }
+                    let store_match = matches!(
+                        self.instrs[m].op,
+                        Op::STORE_FAST | Op::STORE_NAME | Op::STORE_DEREF
+                    ) && self.store_del_name(m) == Some(n.clone());
+                    let del_match = matches!(
+                        self.instrs[m + 1].op,
+                        Op::DELETE_FAST | Op::DELETE_NAME | Op::DELETE_DEREF
+                    ) && self.store_del_name(m + 1) == Some(n.clone());
+                    if store_match && del_match {
+                        // cut before the eager `LOAD None` when present
+                        body_end = if m > 0 && self.instrs[m - 1].op == Op::LOAD_CONST {
+                            self.instrs[m - 1].offset
+                        } else {
+                            a
+                        };
+                        break;
+                    }
+                    m += 1;
+                }
+            }
             *pc = k;
-            return if limit > body_start {
-                self.decompile_region(body_start, limit)
+            if std::env::var("PYCDC_EG_DBG").is_ok() {
+                eprintln!(
+                    "EG no-pop body start={} end={} limit={} star={} pac={:?}",
+                    body_start, body_end, limit, is_star, self.pending_as_cleanup
+                );
+            }
+            return if body_end > body_start {
+                self.decompile_region(body_start, body_end)
             } else {
                 Vec::new()
             };
@@ -1766,6 +2310,12 @@ impl<'a> Ctx<'a> {
         let Some(&i) = self.idx_of.get(&from) else {
             return from;
         };
+        // except* chain: clauses match with CHECK_EG_MATCH and the
+        // epilogue re-raises via PREP_RERAISE_STAR
+        let is_star_chain = self.instrs[i..]
+            .iter()
+            .take(80)
+            .any(|x| x.op == Op::CHECK_EG_MATCH || x.op == Op::PREP_RERAISE_STAR);
         // a depth-0 entry inside the span whose target is another chain
         // head protects a REAL body laid out after this chain (a whole-
         // function try whose handler precedes its body) — stop before it
@@ -1859,6 +2409,32 @@ impl<'a> Ctx<'a> {
             }
             end = ins.end();
             if matches!(ins.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                // except*: the post-try resume is sunk BEFORE the chain's
+                // trailing zero-depth stubs — walk over the dead stub
+                // sequence so the extent reaches the adjacent chain head
+                if is_star_chain {
+                    let mut t = k + 1;
+                    let mut stub_end = end;
+                    while let Some(nx) = self.instrs.get(t) {
+                        if body_stops.contains(&nx.offset) {
+                            break;
+                        }
+                        match nx.op {
+                            Op::COPY
+                            | Op::SWAP
+                            | Op::POP_EXCEPT
+                            | Op::POP_TOP
+                            | Op::RERAISE
+                            | Op::NOP
+                            | Op::NOT_TAKEN => {
+                                stub_end = nx.end();
+                                t += 1;
+                            }
+                            _ => break,
+                        }
+                    }
+                    end = stub_end;
+                }
                 break;
             }
             if ins.op == Op::RERAISE {
@@ -1877,7 +2453,7 @@ impl<'a> Ctx<'a> {
                         break;
                     }
                     match nx.op {
-                        Op::CHECK_EXC_MATCH => {
+                        Op::CHECK_EXC_MATCH | Op::CHECK_EG_MATCH => {
                             cont = true;
                             break;
                         }
@@ -1893,7 +2469,12 @@ impl<'a> Ctx<'a> {
                         | Op::POP_TOP
                         | Op::RERAISE
                         | Op::NOP
-                        | Op::NOT_TAKEN => {
+                        | Op::NOT_TAKEN
+                        | Op::LIST_APPEND
+                        | Op::CALL_INTRINSIC_2
+                        | Op::PREP_RERAISE_STAR
+                        | Op::POP_JUMP_IF_NOT_NONE
+                        | Op::POP_JUMP_BACKWARD_IF_NOT_NONE => {
                             last_cleanup_end = Some(nx.end());
                             m += 1;
                             steps += 1;
@@ -1904,6 +2485,7 @@ impl<'a> Ctx<'a> {
                         | Op::LOAD_GLOBAL
                         | Op::LOAD_NAME
                         | Op::BUILD_TUPLE
+                        | Op::BUILD_LIST
                         | Op::EXTENDED_ARG => {
                             m += 1;
                             steps += 1;
@@ -1936,6 +2518,11 @@ impl<'a> Ctx<'a> {
                             | Op::RERAISE
                             | Op::NOP
                             | Op::NOT_TAKEN
+                            | Op::LIST_APPEND
+                            | Op::CALL_INTRINSIC_2
+                            | Op::PREP_RERAISE_STAR
+                            | Op::POP_JUMP_IF_NOT_NONE
+                            | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
                             | Op::JUMP_BACKWARD_NO_INTERRUPT => {
                                 tail_end = Some(nx.end());
                                 t += 1;
@@ -1997,7 +2584,18 @@ impl<'a> Ctx<'a> {
         let mut end = self.handler_region_end(from);
         for e in &self.exc_entries {
             if e.start > from && e.start < end && e.target > from {
-                end = e.start;
+                // only a NESTED chain head bounds the region — an
+                // except* clause body's lasti redirect targets in-chain
+                // cleanup (LIST_APPEND stubs), not another chain
+                let is_chain_head = self
+                    .idx_of
+                    .get(&e.target)
+                    .and_then(|&ti| self.instrs.get(ti))
+                    .map(|x| x.op == Op::PUSH_EXC_INFO)
+                    .unwrap_or(false);
+                if is_chain_head {
+                    end = e.start;
+                }
             }
         }
         end
@@ -2045,6 +2643,7 @@ impl<'a> Ctx<'a> {
                     type_: h.type_,
                     name: h.name,
                     body: h.body,
+                    is_star: false,
                 });
             }
             self.legacy_handler_end = None;
@@ -2163,6 +2762,7 @@ impl<'a> Ctx<'a> {
                             type_: h.type_,
                             name: h.name,
                             body: h.body,
+                            is_star: false,
                         });
                     }
                 }
@@ -2267,6 +2867,7 @@ impl<'a> Ctx<'a> {
                                 type_: h.type_,
                                 name: h.name,
                                 body: h.body,
+                                is_star: false,
                             });
                         }
                     }
@@ -2292,6 +2893,7 @@ impl<'a> Ctx<'a> {
                             type_: h.type_,
                             name: h.name,
                             body: h.body,
+                            is_star: false,
                         });
                     }
                 } else if self
@@ -2875,6 +3477,8 @@ impl<'a> Ctx<'a> {
                         self.pending_try_body.pop();
                         self.pending_try_body.push(body);
                         self.pending_try_ctx = Some(tc);
+                        self.pending_orelse_mark =
+                            self.blocks.last().map(|b| b.stmts.len());
                     } else {
                         self.emit_try_tail(tc, pos);
                     }
@@ -2989,6 +3593,7 @@ impl<'a> Ctx<'a> {
                     type_: b.handler_type.take(),
                     name: b.handler_name.take(),
                     body: std::mem::take(&mut b.stmts),
+                    is_star: false,
                 };
                 self.pending_handlers.push(handler);
             }
@@ -3169,6 +3774,23 @@ impl<'a> Ctx<'a> {
             .get(idx)
             .map(|n| sanitize_varname(n))
             .unwrap_or_else(|| format!("/*bad-local-{idx}*/"))
+    }
+
+    /// Target name of a STORE_*/DELETE_* instruction at `idx` (the
+    /// instruction index, not bytecode offset). None for non-store ops.
+    fn store_del_name(&self, idx: usize) -> Option<String> {
+        let ins = self.instrs.get(idx)?;
+        match ins.op {
+            Op::STORE_FAST | Op::DELETE_FAST => Some(self.local_name(ins.arg as usize)),
+            Op::STORE_NAME | Op::DELETE_NAME => Some(self.const_name(ins.arg as usize)),
+            Op::STORE_DEREF | Op::DELETE_DEREF => Some(
+                self.code
+                    .deref_name(ins.arg as usize)
+                    .unwrap_or("?")
+                    .to_string(),
+            ),
+            _ => None,
+        }
     }
 
     /// 2.6 comprehension accumulator temps (`_[1]` …) are compiler
@@ -4540,6 +5162,7 @@ impl<'a> Ctx<'a> {
                                 type_: h.type_,
                                 name: h.name,
                                 body: h.body,
+                                is_star: false,
                             });
                         }
                     }

@@ -424,8 +424,6 @@ format string.'''
                     raise ValueError("stray %% in format '%s'" % format) from None
                 bad_directive = bad_directive.replace('\\', '', 1)
                 raise ValueError(f"'{bad_directive!s}' is a bad directive in format '{format!s}'") from None
-                err = None
-                del err
             _regex_cache[format] = format_regex
     found = format_regex.match(data_string)
     if not found:

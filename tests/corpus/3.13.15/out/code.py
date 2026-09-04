@@ -294,71 +294,54 @@ a default message is printed.
                     None
                     sys.ps2 = '... '
                 if EOFError:
+                    None
+                    self.write('\n')
                     try:
                         pass
                     except KeyboardInterrupt:
-                        pass
-                    else:
-                        None
-                        self.write('\n')
+                        self.write('\nKeyboardInterrupt\n')
+                        self.resetbuffer()
+                        more = 0
                     finally:
-                        try:
-                            pass
-                        except KeyboardInterrupt:
-                            self.write('\nKeyboardInterrupt\n')
-                            self.resetbuffer()
-                            more = 0
                         if KeyboardInterrupt:
                             None
                             self.write('\nKeyboardInterrupt\n')
                             self.resetbuffer()
                             more = 0
-                            try:
-                                pass
-                            finally:
-                                if SystemExit:
+                        if SystemExit:
+                            e = None
+                            if self.local_exit:
+                                self.write('\n')
+                                try:
                                     e = None
-                                    if self.local_exit:
-                                        self.write('\n')
-                                        try:
-                                            e = None
-                                            del e
-                                        finally:
-                                            raise e
-                                            e = None
-                                            del e
-                                            try:
-                                                pass
-                                            finally:
-                                                if not _exit is None:
-                                                    builtins.exit = _exit
-                                                if not _quit is None:
-                                                    builtins.quit = _quit
-                                                if not exitmsg is not None:
-                                                    self.write('now exiting %s...\n' % self.__class__.__name__)
-        try:
-            pass
-        finally:
-            if SystemExit:
-                e = None
-                if self.local_exit:
-                    self.write('\n')
-                    try:
-                        e = None
-                        del e
-                    finally:
-                        raise e
-                        e = None
-                        del e
-                        try:
-                            pass
-                        finally:
-                            if not _exit is None:
-                                builtins.exit = _exit
-                            if not _quit is None:
-                                builtins.quit = _quit
-                            if not exitmsg is not None:
-                                self.write('now exiting %s...\n' % self.__class__.__name__)
+                                    del e
+                                finally:
+                                    raise e
+                                    e = None
+                                    del e
+                                    if not _exit is None:
+                                        builtins.exit = _exit
+                                    if not _quit is None:
+                                        builtins.quit = _quit
+                                    if not exitmsg is not None:
+                                        self.write('now exiting %s...\n' % self.__class__.__name__)
+        if SystemExit:
+            e = None
+            if self.local_exit:
+                self.write('\n')
+                try:
+                    e = None
+                    del e
+                finally:
+                    raise e
+                    e = None
+                    del e
+                    if not _exit is None:
+                        builtins.exit = _exit
+                    if not _quit is None:
+                        builtins.quit = _quit
+                    if not exitmsg is not None:
+                        self.write('now exiting %s...\n' % self.__class__.__name__)
 
     def push(self, line, filename=None, _symbol='single'):
         self.buffer.append(line)

@@ -136,6 +136,23 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             self.gen.throw(value)
         except StopIteration as exc:
             return exc is not value
+        except RuntimeError as exc:
+            if exc is value:
+                exc.__traceback__ = traceback
+                return False
+            if isinstance(value, StopIteration) and exc.__cause__ is value:
+                value.__traceback__ = traceback
+                exc = None
+                del exc
+                return False
+            raise
+            exc = None
+            del exc
+        except BaseException as exc:
+            if exc is not value:
+                raise
+            exc.__traceback__ = traceback
+            return False
         try:
             raise RuntimeError("generator didn't stop after throw()")
         finally:
@@ -150,12 +167,20 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
     async def __aenter__(self):
         del self.args, self.kwds, self.func
         try:
+            pass
+        except StopAsyncIteration:
+            raise RuntimeError("generator didn't yield") from None
+        try:
             return await anext(self.gen)
         except StopAsyncIteration:
             raise RuntimeError("generator didn't yield") from None
 
     async def __aexit__(self, typ, value, traceback):
         if not typ is not None:
+            try:
+                pass
+            except StopAsyncIteration:
+                return False
             try:
                 await anext(self.gen)
             except StopAsyncIteration:
@@ -165,9 +190,47 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         if not value is not None:
             value = typ()
         try:
+            pass
+        except StopAsyncIteration as exc:
+            return exc is not value
+        except RuntimeError as exc:
+            if exc is value:
+                exc.__traceback__ = traceback
+                return False
+            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                value.__traceback__ = traceback
+                exc = None
+                del exc
+                return False
+            raise
+            exc = None
+            del exc
+        except BaseException as exc:
+            if exc is not value:
+                raise
+            exc.__traceback__ = traceback
+            return False
+        try:
             await self.gen.athrow(value)
         except StopAsyncIteration as exc:
             return exc is not value
+        except RuntimeError as exc:
+            if exc is value:
+                exc.__traceback__ = traceback
+                return False
+            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                value.__traceback__ = traceback
+                exc = None
+                del exc
+                return False
+            raise
+            exc = None
+            del exc
+        except BaseException as exc:
+            if exc is not value:
+                raise
+            exc.__traceback__ = traceback
+            return False
         try:
             raise RuntimeError("generator didn't stop after athrow()")
         except StopAsyncIteration:
@@ -180,6 +243,23 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             pass
         except StopAsyncIteration as exc:
             return exc is not value
+        except RuntimeError as exc:
+            if exc is value:
+                exc.__traceback__ = traceback
+                return False
+            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                value.__traceback__ = traceback
+                exc = None
+                del exc
+                return False
+            raise
+            exc = None
+            del exc
+        except BaseException as exc:
+            if exc is not value:
+                raise
+            exc.__traceback__ = traceback
+            return False
 
 
 def contextmanager(func):
@@ -606,14 +686,23 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         pending_raise = False
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
-            # WARNING: unrecovered try/except structure
-            if is_sync:
-                cb_suppress = cb(*exc_details)
-            cb_suppress = await cb(*exc_details)
-            if cb_suppress:
-                suppressed_exc = True
-                pending_raise = False
-                exc_details = (None, None, None)
+            try:
+                # WARNING: unrecovered try/except structure
+                if is_sync:
+                    cb_suppress = cb(*exc_details)
+            except BaseException:
+                exc_details[1].__context__ = fixed_ctx
+                raise
+            try:
+                # WARNING: unrecovered try/except structure
+                cb_suppress = await cb(*exc_details)
+                if cb_suppress:
+                    suppressed_exc = True
+                    pending_raise = False
+                    exc_details = (None, None, None)
+            except BaseException:
+                exc_details[1].__context__ = fixed_ctx
+                raise
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__

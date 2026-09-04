@@ -109,35 +109,38 @@ class Cmd:
             except EOFError:
                 line = 'EOF'
         try:
-            if not intro is None:
-                self.intro = intro
-            if self.intro:
-                self.stdout.write(str(self.intro) + '\n')
-            stop = None
-            while not stop:
-                if self.cmdqueue:
-                    line = self.cmdqueue.pop(0)
-                elif self.use_rawinput:
-                    line = input(self.prompt)
-                else:
-                    self.stdout.write(self.prompt)
-                    self.stdout.flush()
-                    line = self.stdin.readline()
-                    if not len(line):
-                        line = 'EOF'
+            try:
+                if not intro is None:
+                    self.intro = intro
+                if self.intro:
+                    self.stdout.write(str(self.intro) + '\n')
+                stop = None
+                while not stop:
+                    if self.cmdqueue:
+                        line = self.cmdqueue.pop(0)
+                    elif self.use_rawinput:
+                        line = input(self.prompt)
                     else:
-                        line = line.rstrip('\r\n')
-                line = self.precmd(line)
-                stop = self.onecmd(line)
-                stop = self.postcmd(stop, line)
-        except:
-            if self.completekey:
-                try:
-                    import readline
-                except ImportError:
-                    pass
-                if ImportError:
-                    pass
+                        self.stdout.write(self.prompt)
+                        self.stdout.flush()
+                        line = self.stdin.readline()
+                        if not len(line):
+                            line = 'EOF'
+                        else:
+                            line = line.rstrip('\r\n')
+                    line = self.precmd(line)
+                    stop = self.onecmd(line)
+                    stop = self.postcmd(stop, line)
+            except:
+                if self.completekey:
+                    try:
+                        import readline
+                    except ImportError:
+                        pass
+                    if ImportError:
+                        pass
+        except ImportError:
+            pass
         self.postloop()
         if self.use_rawinput:
             if self.completekey:

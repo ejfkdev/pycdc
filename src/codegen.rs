@@ -514,6 +514,9 @@ impl Printer {
                 self.block(body);
                 for h in &handlers {
                     self.write("except");
+                    if h.is_star {
+                        self.write("*");
+                    }
                     if let Some(t) = &h.type_ {
                         self.write(" ");
                         self.expr(t, prec::OR);

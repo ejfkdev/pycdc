@@ -569,8 +569,14 @@ class Bdb:
         if isinstance(cmd, str):
             cmd = compile(cmd, '<string>', 'exec')
         sys.settrace(self.trace_dispatch)
-        self.quitting = True
-        sys.settrace(None)
+        try:
+            exec(cmd, globals, locals)
+        except BdbQuit:
+            pass
+        finally:
+            self.quitting = True
+            sys.settrace(None)
+        return True
 
     def runeval(self, expr, globals=None, locals=None):
         '''Debug an expression executed via the eval() function.
@@ -600,8 +606,15 @@ class Bdb:
         self.reset()
         sys.settrace(self.trace_dispatch)
         res = None
-        self.quitting = True
-        sys.settrace(None)
+        try:
+            res = func(*args, **kwds)
+        except BdbQuit:
+            pass
+        finally:
+            self.quitting = True
+            sys.settrace(None)
+            self.quitting = True
+            sys.settrace(None)
         return res
 
 

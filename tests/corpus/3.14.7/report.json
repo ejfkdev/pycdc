@@ -51,8 +51,8 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3957,
-   "ntotal": 4064,
+   "ndiff": 3994,
+   "ntotal": 4081,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_SMALL_INT', '')"
   },
   {
@@ -92,8 +92,8 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1461,
-   "ntotal": 1708,
+   "ndiff": 1472,
+   "ntotal": 1710,
    "detail": "line 176: orig ('NOP', '') | got ('LOAD_SMALL_INT', '')\nline 177: orig ('LOAD_SMALL_INT', '') | got ('LOAD_CONST', 'None')\nline 178: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'tempfile')"
   },
   {
@@ -186,7 +186,7 @@
    "module": "bdb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3112,
+   "ndiff": 3851,
    "ntotal": 4001,
    "detail": "line 31: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 35: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 36: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_SMALL_INT', '')"
   },
@@ -226,16 +226,16 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1150,
-   "ntotal": 1464,
-   "detail": "line 262: orig ('NOP', '') | got ('LOAD_GLOBAL', 'input + NULL')\nline 263: orig ('LOAD_GLOBAL', 'input + NULL') | got ('LOAD_FAST_BORROW', 'self')\nline 264: orig ('LOAD_FAST_BORROW', 'self') | got ('LOAD_ATTR', 'prompt')"
+   "ndiff": 1294,
+   "ntotal": 1492,
+   "detail": "line 167: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')\nline 168: orig ('LOAD_CONST', 'None') | got ('LOAD_SMALL_INT', '')\nline 169: orig ('IMPORT_NAME', 'readline') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1824,
-   "ntotal": 1870,
+   "ndiff": 1744,
+   "ntotal": 1790,
    "detail": "line 17: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 21: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'compile_command') | got ('LOAD_SMALL_INT', '')"
   },
   {
@@ -272,8 +272,8 @@
    "module": "contextlib",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2325,
-   "ntotal": 2414,
+   "ndiff": 2431,
+   "ntotal": 2538,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_SMALL_INT', '')"
   },
   {

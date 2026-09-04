@@ -233,6 +233,8 @@ pub struct ExceptHandler {
     pub type_: Option<ExprRef>,
     pub name: Option<ExprRef>,
     pub body: Vec<Stmt>,
+    /// 3.11+ except* (ExceptionGroup clause)
+    pub is_star: bool,
 }
 
 /// 3.10+ `match` statement patterns

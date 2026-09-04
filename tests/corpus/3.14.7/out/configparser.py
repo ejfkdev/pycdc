@@ -1266,11 +1266,12 @@ section proxies to find and use the implementation on the parser class.
     def __delitem__(self, key):
         try:
             try:
-                k = 'get' + (key or None)
+                pass
             except TypeError:
                 raise KeyError(key)
         except AttributeError:
             pass
+        k = 'get' + (key or None)
         del self._data[key]
         for inst in itertools.chain((self._parser,), self._parser.values()):
             try:

@@ -138,6 +138,23 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             self.gen.throw(value)
         except StopIteration as exc:
             return exc is not value
+        except RuntimeError as exc:
+            if exc is value:
+                exc.__traceback__ = traceback
+                return False
+            if isinstance(value, StopIteration) and exc.__cause__ is value:
+                value.__traceback__ = traceback
+                exc = None
+                del exc
+                return False
+            raise
+            exc = None
+            del exc
+        except BaseException as exc:
+            if exc is not value:
+                raise
+            exc.__traceback__ = traceback
+            return False
         try:
             raise RuntimeError("generator didn't stop after throw()")
         finally:
@@ -152,12 +169,20 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
     async def __aenter__(self):
         del self.args, self.kwds, self.func
         try:
+            pass
+        except StopAsyncIteration:
+            raise RuntimeError("generator didn't yield") from None
+        try:
             return await anext(self.gen)
         except StopAsyncIteration:
             raise RuntimeError("generator didn't yield") from None
 
     async def __aexit__(self, typ, value, traceback):
         if not typ is not None:
+            try:
+                pass
+            except StopAsyncIteration:
+                return False
             try:
                 await anext(self.gen)
             except StopAsyncIteration:
@@ -167,9 +192,47 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         if not value is not None:
             value = typ()
         try:
+            pass
+        except StopAsyncIteration as exc:
+            return exc is not value
+        except RuntimeError as exc:
+            if exc is value:
+                exc.__traceback__ = traceback
+                return False
+            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                value.__traceback__ = traceback
+                exc = None
+                del exc
+                return False
+            raise
+            exc = None
+            del exc
+        except BaseException as exc:
+            if exc is not value:
+                raise
+            exc.__traceback__ = traceback
+            return False
+        try:
             await self.gen.athrow(value)
         except StopAsyncIteration as exc:
             return exc is not value
+        except RuntimeError as exc:
+            if exc is value:
+                exc.__traceback__ = traceback
+                return False
+            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                value.__traceback__ = traceback
+                exc = None
+                del exc
+                return False
+            raise
+            exc = None
+            del exc
+        except BaseException as exc:
+            if exc is not value:
+                raise
+            exc.__traceback__ = traceback
+            return False
         try:
             raise RuntimeError("generator didn't stop after athrow()")
         except StopAsyncIteration:
@@ -182,6 +245,23 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             pass
         except StopAsyncIteration as exc:
             return exc is not value
+        except RuntimeError as exc:
+            if exc is value:
+                exc.__traceback__ = traceback
+                return False
+            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                value.__traceback__ = traceback
+                exc = None
+                del exc
+                return False
+            raise
+            exc = None
+            del exc
+        except BaseException as exc:
+            if exc is not value:
+                raise
+            exc.__traceback__ = traceback
+            return False
 
 
 def contextmanager(func):
@@ -621,23 +701,38 @@ method.'''
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
             try:
-                if not exc is not None:
-                    exc_details = (None, None, None)
-                else:
-                    exc_details = type(exc), exc, exc.__traceback__
-                if is_sync:
-                    cb_suppress = cb(*exc_details)
-                cb_suppress = await cb(*exc_details)
-                if cb_suppress:
-                    suppressed_exc = True
-                    pending_raise = False
-                    exc = None
-            except BaseException as new_exc:
-                _fix_exception_context(new_exc, exc)
-                pending_raise = True
-                exc = new_exc
-                new_exc = None
-                del new_exc
+                try:
+                    if not exc is not None:
+                        exc_details = (None, None, None)
+                    else:
+                        exc_details = type(exc), exc, exc.__traceback__
+                    if is_sync:
+                        cb_suppress = cb(*exc_details)
+                except BaseException as new_exc:
+                    _fix_exception_context(new_exc, exc)
+                    pending_raise = True
+                    exc = new_exc
+                    new_exc = None
+                    del new_exc
+            except BaseException:
+                exc.__context__ = fixed_ctx
+                raise
+            try:
+                try:
+                    cb_suppress = await cb(*exc_details)
+                    if cb_suppress:
+                        suppressed_exc = True
+                        pending_raise = False
+                        exc = None
+                except BaseException as new_exc:
+                    _fix_exception_context(new_exc, exc)
+                    pending_raise = True
+                    exc = new_exc
+                    new_exc = None
+                    del new_exc
+            except BaseException:
+                exc.__context__ = fixed_ctx
+                raise
         if pending_raise:
             try:
                 fixed_ctx = exc.__context__

@@ -309,20 +309,15 @@ a default message is printed.
                     sys.ps2 = '... '
                     delete_ps2_after = True
                 if EOFError:
+                    None
+                    self.write('\n')
                     try:
                         pass
                     except KeyboardInterrupt:
-                        pass
-                    else:
-                        None
-                        self.write('\n')
+                        self.write('\nKeyboardInterrupt\n')
+                        self.resetbuffer()
+                        more = 0
                     finally:
-                        try:
-                            pass
-                        except KeyboardInterrupt:
-                            self.write('\nKeyboardInterrupt\n')
-                            self.resetbuffer()
-                            more = 0
                         if KeyboardInterrupt:
                             None
                             self.write('\nKeyboardInterrupt\n')
@@ -342,19 +337,16 @@ a default message is printed.
                                             raise e
                                             e = None
                                             del e
-                                            try:
-                                                pass
-                                            finally:
-                                                if not _exit is None:
-                                                    builtins.exit = _exit
-                                                if not _quit is None:
-                                                    builtins.quit = _quit
-                                                if delete_ps1_after:
-                                                    del sys.ps1
-                                                if delete_ps2_after:
-                                                    del sys.ps2
-                                                if not exitmsg is not None:
-                                                    self.write('now exiting %s...\n' % self.__class__.__name__)
+                                            if not _exit is None:
+                                                builtins.exit = _exit
+                                            if not _quit is None:
+                                                builtins.quit = _quit
+                                            if delete_ps1_after:
+                                                del sys.ps1
+                                            if delete_ps2_after:
+                                                del sys.ps2
+                                            if not exitmsg is not None:
+                                                self.write('now exiting %s...\n' % self.__class__.__name__)
         try:
             pass
         finally:
@@ -369,19 +361,16 @@ a default message is printed.
                         raise e
                         e = None
                         del e
-                        try:
-                            pass
-                        finally:
-                            if not _exit is None:
-                                builtins.exit = _exit
-                            if not _quit is None:
-                                builtins.quit = _quit
-                            if delete_ps1_after:
-                                del sys.ps1
-                            if delete_ps2_after:
-                                del sys.ps2
-                            if not exitmsg is not None:
-                                self.write('now exiting %s...\n' % self.__class__.__name__)
+                        if not _exit is None:
+                            builtins.exit = _exit
+                        if not _quit is None:
+                            builtins.quit = _quit
+                        if delete_ps1_after:
+                            del sys.ps1
+                        if delete_ps2_after:
+                            del sys.ps2
+                        if not exitmsg is not None:
+                            self.write('now exiting %s...\n' % self.__class__.__name__)
         return SystemExit
 
     def push(self, line, filename=None, _symbol='single'):

@@ -98,64 +98,69 @@ sys.stdin and sys.stdout are used.
         self.preloop()
         if self.use_rawinput and self.completekey:
             try:
-                import readline
-                self.old_completer = readline.get_completer()
-                readline.set_completer(self.complete)
-                if readline.backend == 'editline':
-                    if self.completekey == 'tab':
-                        command_string = 'bind ^I rl_complete'
+                try:
+                    import readline
+                    self.old_completer = readline.get_completer()
+                    readline.set_completer(self.complete)
+                    if readline.backend == 'editline':
+                        if self.completekey == 'tab':
+                            command_string = 'bind ^I rl_complete'
+                        else:
+                            command_string = f'bind {self.completekey} rl_complete'
                     else:
-                        command_string = f'bind {self.completekey} rl_complete'
-                else:
-                    command_string = f'{self.completekey}: complete'
-                readline.parse_and_bind(command_string)
+                        command_string = f'{self.completekey}: complete'
+                    readline.parse_and_bind(command_string)
+                except ImportError:
+                    pass
             except EOFError:
                 line = 'EOF'
+        try:
+            try:
+                if not intro is None:
+                    self.intro = intro
+                if self.intro:
+                    self.stdout.write(str(self.intro) + '\n')
+            except:
+                if self.completekey:
+                    try:
+                        import readline
+                        readline.set_completer(self.old_completer)
+                    except ImportError:
+                        pass
+                    if ImportError:
+                        None
+        except ImportError:
+            pass
+        stop = None
+        while not stop:
+            try:
                 try:
-                    pass
+                    if self.cmdqueue:
+                        line = self.cmdqueue.pop(0)
+                    elif self.use_rawinput:
+                        line = input(self.prompt)
+                    else:
+                        self.stdout.write(self.prompt)
+                        self.stdout.flush()
+                        line = self.stdin.readline()
+                        if not len(line):
+                            line = 'EOF'
+                        else:
+                            line = line.rstrip('\r\n')
                 except:
                     if self.completekey:
                         try:
-                            try:
-                                import readline
-                                readline.set_completer(self.old_completer)
-                            except ImportError:
-                                pass
+                            import readline
+                            readline.set_completer(self.old_completer)
                         except ImportError:
                             pass
                         if ImportError:
                             None
-        try:
-            if not intro is None:
-                self.intro = intro
-            if self.intro:
-                self.stdout.write(str(self.intro) + '\n')
-            stop = None
-            while not stop:
-                if self.cmdqueue:
-                    line = self.cmdqueue.pop(0)
-                elif self.use_rawinput:
-                    line = input(self.prompt)
-                else:
-                    self.stdout.write(self.prompt)
-                    self.stdout.flush()
-                    line = self.stdin.readline()
-                    if not len(line):
-                        line = 'EOF'
-                    else:
-                        line = line.rstrip('\r\n')
-                line = self.precmd(line)
-                stop = self.onecmd(line)
-                stop = self.postcmd(stop, line)
-        except:
-            if self.completekey:
-                try:
-                    import readline
-                    readline.set_completer(self.old_completer)
-                except ImportError:
-                    pass
-                if ImportError:
-                    None
+            except ImportError:
+                pass
+            line = self.precmd(line)
+            stop = self.onecmd(line)
+            stop = self.postcmd(stop, line)
         self.postloop()
         if self.use_rawinput:
             if self.completekey:

@@ -200,6 +200,10 @@ class AsyncGenerator(AsyncIterator):
         '''
 
         try:
+            pass
+        except (GeneratorExit, StopAsyncIteration):
+            return
+        try:
             await self.athrow(GeneratorExit)
         except (GeneratorExit, StopAsyncIteration):
             return

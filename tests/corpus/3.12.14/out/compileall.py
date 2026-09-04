@@ -222,6 +222,18 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     err = None
                     del err
                     return success
+                except (SyntaxError, UnicodeError, OSError) as e:
+                    success = False
+                    if quiet >= 2:
+                        return success
+                    if quiet:
+                        print('*** Error compiling {!r}...'.format(fullname))
+                    else:
+                        print('*** ', end='')
+                    print(e.__class__.__name__ + ':', e)
+                    e = None
+                    del e
+                    return success
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
             try:
@@ -252,6 +264,18 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 print(msg)
                 err = None
                 del err
+                return success
+            except (SyntaxError, UnicodeError, OSError) as e:
+                success = False
+                if quiet >= 2:
+                    return success
+                if quiet:
+                    print('*** Error compiling {!r}...'.format(fullname))
+                else:
+                    print('*** ', end='')
+                print(e.__class__.__name__ + ':', e)
+                e = None
+                del e
                 return success
             if ok == 0:
                 success = False

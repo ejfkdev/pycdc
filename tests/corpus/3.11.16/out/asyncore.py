@@ -97,6 +97,8 @@ def readwrite(obj, flags):
         e = None
         del e
         return
+    except _reraised_exceptions:
+        raise
 
 def poll(timeout=0.0, map=None):
     if not map is not None:
@@ -470,6 +472,8 @@ def close_all(map=None, ignore_all=False):
                 raise
             x = None
             del x
+        except _reraised_exceptions:
+            raise
     map.clear()
 
 if os.name == 'posix':

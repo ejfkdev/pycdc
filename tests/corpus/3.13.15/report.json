@@ -39,8 +39,8 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3634,
-   "ntotal": 3732,
+   "ndiff": 3654,
+   "ntotal": 3739,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
   {
@@ -193,16 +193,16 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1130,
-   "ntotal": 1405,
-   "detail": "line 257: orig ('NOP', '') | got ('LOAD_GLOBAL', 'input + NULL')\nline 258: orig ('LOAD_GLOBAL', 'input + NULL') | got ('LOAD_FAST', 'self')\nline 259: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'prompt')"
+   "ndiff": 1173,
+   "ntotal": 1376,
+   "detail": "line 169: orig ('LOAD_CONST', '0') | got ('NOP', '')\nline 170: orig ('LOAD_CONST', 'None') | got ('LOAD_CONST', '0')\nline 171: orig ('IMPORT_NAME', 'readline') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1623,
-   "ntotal": 1665,
+   "ndiff": 1407,
+   "ntotal": 1449,
    "detail": "line 17: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 21: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
   {
@@ -242,8 +242,8 @@
    "module": "contextlib",
    "ast_detail": "diff at token 54: orig  body=[Return(value=Constant(value=None))] | dec  decorator_list=[Attribute(value=Name(id='abc'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2141,
-   "ntotal": 2204,
+   "ndiff": 2330,
+   "ntotal": 2404,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
   {

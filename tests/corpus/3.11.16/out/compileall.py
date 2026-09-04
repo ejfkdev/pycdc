@@ -99,9 +99,6 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
             with ProcessPoolExecutor(max_workers=workers) as executor:
                 results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes), files)
                 success = min(results, default=True)
-    for file in files:
-        if not compile_file(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes):
-            success = False
     return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
@@ -217,6 +214,18 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 err = None
                 del err, err
                 err = None
+            except (SyntaxError, UnicodeError, OSError) as e:
+                success = False
+                if quiet >= 2:
+                    return success
+                if quiet:
+                    print('*** Error compiling {!r}...'.format(fullname))
+                else:
+                    print('*** ', end='')
+                print(e.__class__.__name__ + ':', e)
+                e = None
+                del e, e
+                e = None
             if ok == 0:
                 success = False
     return success

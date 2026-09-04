@@ -79,13 +79,19 @@ class _MonitoringTracer:
                 ret = func(frame, *args)
                 if self._enabled and frame.f_trace:
                     self.update_local_events()
-                if self._disable_current_event and event not in (E.PY_THROW, E.PY_UNWIND, E.RAISE):
-                    self._disable_current_event = False
-                    return sys.monitoring.DISABLE
             except BaseException:
                 self.stop_trace()
                 sys._getframe().f_back.f_trace = None
                 raise
+            if self._disable_current_event:
+                try:
+                    if event not in (E.PY_THROW, E.PY_UNWIND, E.RAISE):
+                        self._disable_current_event = False
+                        return sys.monitoring.DISABLE
+                except BaseException:
+                    self.stop_trace()
+                    sys._getframe().f_back.f_trace = None
+                    raise
             self._disable_current_event = False
             return ret
 

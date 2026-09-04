@@ -224,6 +224,18 @@ hardlink_dupes: hardlink duplicated pyc files
                     err = None
                     del err
                     return success
+                except (SyntaxError, UnicodeError, OSError) as e:
+                    success = False
+                    if quiet >= 2:
+                        return success
+                    if quiet:
+                        print('*** Error compiling {!r}...'.format(fullname))
+                    else:
+                        print('*** ', end='')
+                    print(e.__class__.__name__ + ':', e)
+                    e = None
+                    del e
+                    return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     '''Byte-compile all module on sys.path.

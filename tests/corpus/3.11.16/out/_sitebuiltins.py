@@ -41,7 +41,6 @@ class _Printer(object):
                     data = fp.read()
             except OSError:
                 pass
-            break
         if not data:
             data = self.__data
         self.__lines = data.split('\n')
