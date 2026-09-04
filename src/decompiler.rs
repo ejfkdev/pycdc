@@ -10222,20 +10222,25 @@ impl<'a> Ctx<'a> {
         if jump_if_true && self.version.at_least(3, 12) {
             let ci_cur = self.cur_offset;
             // the body back edge: a backward jump onto a pure cond-expr
-            // top ending at this jump
-            let back_edge = self.instrs.iter().find(|ins| {
-                ins.is_backward
-                    && ins.offset > ci_cur
-                    && matches!(
-                        ins.op,
-                        Op::JUMP_BACKWARD
-                            | Op::JUMP_ABSOLUTE
-                            | Op::JUMP_BACKWARD_NO_INTERRUPT
-                    )
-                    && ins.target.map_or(false, |bt| {
-                        bt < ci_cur && self.is_cond_expr_top(bt, ci_cur)
-                    })
-            });
+            // top ending at this jump. A `continue` in the body matches
+            // too — the REAL back edge is the LAST one (the body end)
+            let back_edge = self
+                .instrs
+                .iter()
+                .filter(|ins| {
+                    ins.is_backward
+                        && ins.offset > ci_cur
+                        && matches!(
+                            ins.op,
+                            Op::JUMP_BACKWARD
+                                | Op::JUMP_ABSOLUTE
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                        )
+                        && ins.target.map_or(false, |bt| {
+                            bt < ci_cur && self.is_cond_expr_top(bt, ci_cur)
+                        })
+                })
+                .max_by_key(|ins| ins.offset);
             // the exit trampoline right after this jump
             let exit_jump = self
                 .idx_of
