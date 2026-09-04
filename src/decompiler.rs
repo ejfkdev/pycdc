@@ -6629,6 +6629,33 @@ impl<'a> Ctx<'a> {
                             return true;
                         }
                     }
+                    // py2.6 nested ternary: the then arm ends in a
+                    // forward jump to a merge M and the else arm is a
+                    // pure value region falling through to M — evaluate
+                    // both arms recursively and merge on the stack
+                    let tern = self.py2_ternary_at(ci, target);
+                    if let Some((then_start, else_start, merge)) = tern {
+                        let cond = self.pop_expr();
+                        self.region_result_expr = None;
+                        let _ = self.decompile_region(then_start, target);
+                        let then_val = self
+                            .region_result_expr
+                            .take()
+                            .unwrap_or_else(|| self.name_expr("???"));
+                        self.region_result_expr = None;
+                        let _ = self.decompile_region(else_start, merge);
+                        let else_val = self
+                            .region_result_expr
+                            .take()
+                            .unwrap_or_else(|| self.name_expr("???"));
+                        self.push(Rc::new(Expr::Ternary {
+                            cond,
+                            then_expr: then_val,
+                            else_expr: else_val,
+                        }));
+                        self.skip_until = Some(merge);
+                        return true;
+                    }
                     // if-statement shape: both paths discard the value
                     let cond = self.pop_expr();
                     let else_body = self
@@ -8006,6 +8033,48 @@ impl<'a> Ctx<'a> {
     /// chain ends when the region after a link's POP_TOP is no longer
     /// pure-value-then-peek-jump (that region is the THEN body). Returns
     /// (merged cond, then_start, else_body_start, else_pop_offset).
+    /// py2.6 ternary merge recognition at a value-preserving JUMP_IF_*:
+    /// `JIF target; POP; <then>; JF/JABS M; target: POP; <pure value>; M:`
+    /// — returns (then_start, else_start, merge).
+    fn py2_ternary_at(&self, ci: Option<usize>, target: usize) -> Option<(usize, usize, usize)> {
+        let ci = ci?;
+        let then_start = self.instrs.get(ci + 2)?.offset; // past the POP
+        if then_start >= target {
+            return None;
+        }
+        // then arm: pure ops ending in a forward jump to the merge
+        let mut merge = None;
+        for ins in self.instrs.iter() {
+            if ins.offset < then_start || ins.offset >= target {
+                continue;
+            }
+            if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE | Op::JUMP)
+                && ins.target.map_or(false, |t| t > target)
+            {
+                merge = ins.target;
+            }
+        }
+        let merge = merge?;
+        // else arm: POP at target, then pure value ops up to the merge
+        let ti = self.idx_of.get(&target)?;
+        if self.instrs.get(*ti)?.op != Op::POP_TOP {
+            return None;
+        }
+        let else_start = self.instrs.get(ti + 1)?.offset;
+        if else_start >= merge {
+            return None;
+        }
+        for ins in self.instrs.iter() {
+            if ins.offset < else_start || ins.offset >= merge {
+                continue;
+            }
+            if !is_pure_value_op(ins.op) {
+                return None;
+            }
+        }
+        Some((then_start, else_start, merge))
+    }
+
     fn py26_stmt_boolop_chain(
         &self,
         i0: usize,
