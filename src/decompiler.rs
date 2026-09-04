@@ -226,6 +226,11 @@ struct TryCtx {
     region_end: usize,
     except_handler: Option<usize>,
     finally_handler: Option<usize>,
+    /// 3.12+ zero-block finally with an early-exit (break) path: the
+    /// protected range splits into [start, body_end) and this second
+    /// fragment; the gap between them is the exit path's inlined finally
+    /// copy ending in the exit jump
+    split_body2: Option<(usize, usize)>,
 }
 
 impl TryCtx {
@@ -394,6 +399,9 @@ struct Ctx<'a> {
     /// end offset of the star_tail span — the main walk skips it when the
     /// resume is laid out after the chain (3.11)
     star_tail_end: Option<usize>,
+    /// last value left on the stack by the most recent decompile_region
+    /// (expression spans like a split-finally's if-condition)
+    region_result_expr: Option<ExprRef>,
     held_cleanup_store: Option<(ExprRef, ExprRef)>,
     /// enclosing class names for private-name (PEP 8 mangling) restoration
     class_scope: Vec<String>,
@@ -612,6 +620,7 @@ pub fn decompile_in_scope(
         pending_as_cleanup: None,
         star_tail: Vec::new(),
         star_tail_end: None,
+        region_result_expr: None,
         held_cleanup_store: None,
         class_scope: class_scope.to_vec(),
         inline_comp: None,
@@ -773,6 +782,7 @@ pub fn decompile_in_scope(
                     region_end: e.end,
                     except_handler: None,
                     finally_handler: None,
+                    split_body2: None,
                 };
                 if is_exc {
                     r.except_handler = Some(e.target);
@@ -782,14 +792,60 @@ pub fn decompile_in_scope(
                 regions.push(r);
             }
         }
-        if std::env::var("PYCDC_EG_DBG").is_ok() {
-            for e in &main_entries {
-                eprintln!("EG entry {} -> {} target {}", e.start, e.end, e.target);
+        // 3.12+ split finally (break-in-try): two finally-only fragments
+        // sharing one handler, the first ending at an exit-jump gap —
+        // merge them into ONE region so the walk never enters the gap
+        {
+            let mut i = 0;
+            while i + 1 < regions.len() {
+                let paired = {
+                    let (r1, r2) = (&regions[i], &regions[i + 1]);
+                    if r1.except_handler.is_none()
+                        && r1.finally_handler.is_some()
+                        && r1.finally_handler == r2.finally_handler
+                        && r2.start > r1.region_end
+                    {
+                        match ctx.idx_of.get(&r1.region_end) {
+                            Some(&gi) => {
+                                let exit = ctx.instrs[gi..]
+                                    .iter()
+                                    .take(40)
+                                    .find(|x| {
+                                        matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                                            && x.target.map_or(false, |t| t > x.offset)
+                                    });
+                                match exit {
+                                    Some(x) => {
+                                        let next_off = ctx
+                                            .instrs
+                                            .iter()
+                                            .find(|y| y.offset > x.offset)
+                                            .map(|y| y.offset);
+                                        next_off == Some(r2.start)
+                                    }
+                                    None => false,
+                                }
+                            }
+                            None => false,
+                        }
+                    } else {
+                        false
+                    }
+                };
+                if paired {
+                    let b2 = (regions[i + 1].start, regions[i + 1].body_end);
+                    regions[i].split_body2 = Some(b2);
+                    regions.remove(i + 1);
+                } else {
+                    i += 1;
+                }
             }
+        }
+        if std::env::var("PYCDC_EG_DBG").is_ok() {
             for r in &regions {
                 eprintln!(
-                    "EG region start={} body_end={} region_end={} exc={:?} fin={:?}",
-                    r.start, r.body_end, r.region_end, r.except_handler, r.finally_handler
+                    "EG region start={} body_end={} region_end={} exc={:?} fin={:?} split={:?}",
+                    r.start, r.body_end, r.region_end, r.except_handler, r.finally_handler, r.split_body2
                 );
             }
         }
@@ -1427,6 +1483,241 @@ impl<'a> Ctx<'a> {
             }
             return;
         }
+        // 3.12+ zero-block try/finally with an early exit (break) inside
+        // a loop: the protected range splits around the exit path's
+        // inlined finally copy —
+        //   [body1][exit: fin-copy + JF][body2 + fin-copy + back-edge]
+        // with both fragments covered by the same finally handler. The
+        // regular walk below would fold the whole span as one finally.
+        // Rebuild from spans: body1 + break + body2-minus-copy, and the
+        // finally from the out-of-line handler chain.
+        if tc.split_body2.is_some()
+            && tc.finally_handler.is_some()
+            && tc.except_handler.is_none()
+            && pos <= tc.body_end + (tc.body_end - tc.start)
+        {
+            let exit_jump = self.idx_of.get(&tc.body_end).and_then(|&gi| {
+                self.instrs[gi..]
+                    .iter()
+                    .take(40)
+                    .find(|x| {
+                        matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                            && x.target.map_or(false, |t| t > x.offset)
+                    })
+                    .map(|x| (x.offset, x.target.unwrap()))
+            });
+            if let Some((jf_off, exit_at)) = exit_jump {
+                if let Some((b2_start, b2_end)) = tc.split_body2 {
+                    // the span re-walks must not re-open this region
+                    self.try_ctxs.remove(&tc.start);
+                    self.try_ctxs.remove(&b2_start);
+                    let fin_head = tc.finally_handler.unwrap();
+                    let fin_stop = self
+                        .idx_of
+                        .get(&fin_head)
+                        .and_then(|&hi| {
+                            self.instrs[hi..]
+                                .iter()
+                                .take(120)
+                                .find(|x| x.op == Op::RERAISE)
+                                .map(|x| x.offset)
+                        })
+                        .unwrap_or(fin_head);
+                    // tail fin-copy of body2: walk back from the protected
+                    // range end while the instruction mirrors the handler
+                    // copy's tail (same opcode sequence), then step back
+                    // over the copy's statement POP_TOPs
+                    let frag = |a: usize, b: usize| -> bool {
+                        let (ai, bi) = match (self.idx_of.get(&a), self.idx_of.get(&b)) {
+                            (Some(&x), Some(&y)) => (x, y),
+                            _ => return false,
+                        };
+                        let ao = self.instrs[ai].op;
+                        let bo = self.instrs[bi].op;
+                        if ao != bo {
+                            return false;
+                        };
+                        !matches!(
+                            ao,
+                            Op::LOAD_CONST | Op::LOAD_GLOBAL | Op::LOAD_NAME
+                        ) || self.instrs[ai].arg == self.instrs[bi].arg
+                    };
+                    let mut back = 0usize;
+                    // the tail copy lives PAST the protected range (the
+                    // compiler excludes it from the entry); never walk
+                    // back into the body itself — a body statement can
+                    // opcode-mirror the copy
+                    let mut copy_start = b2_end;
+                    loop {
+                        let cand = fin_stop - 2 * (back + 1);
+                        let prev_b2 = self
+                            .instrs
+                            .iter()
+                            .rev()
+                            .find(|x| {
+                                x.offset < copy_start
+                                    && x.offset >= b2_end
+                                    && !matches!(x.op, Op::CACHE)
+                            })
+                            .map(|x| x.offset);
+                        match prev_b2 {
+                            Some(pb) if cand >= fin_head && frag(pb, cand) => {
+                                copy_start = pb;
+                                back += 1;
+                            }
+                            _ => break,
+                        }
+                    }
+                    if back == 0 {
+                        // no mirrored tail past the range end — probe the
+                        // last instructions INSIDE the range instead (some
+                        // versions protect the copy)
+                        let mut probe = b2_end;
+                        let mut pback = 0usize;
+                        loop {
+                            let cand = fin_stop - 2 * (pback + 1);
+                            let prev_b2 = self
+                                .instrs
+                                .iter()
+                                .rev()
+                                .find(|x| {
+                                    x.offset < probe
+                                        && x.offset >= b2_start
+                                        && !matches!(x.op, Op::CACHE)
+                                })
+                                .map(|x| x.offset);
+                            match prev_b2 {
+                                Some(pb) if cand >= fin_head && frag(pb, cand) => {
+                                    probe = pb;
+                                    pback += 1;
+                                }
+                                _ => break,
+                            }
+                        }
+                        // only accept if the mirror ran to the copy's
+                        // first instruction (fin_head+2's mirror): the
+                        // handler copy minus PUSH_EXC_INFO has a known
+                        // instruction count
+                        let n_copy = (fin_stop - fin_head) / 2 - 1;
+                        if pback == n_copy && pback > 0 {
+                            copy_start = probe;
+                        }
+                    }
+                    let trimmed = copy_start.min(b2_end);
+                    let fin_body = self.decompile_region(fin_head, fin_stop);
+                    // body1's terminal cond-jump aims at b2_start (the
+                    // split's else arm): the exit path (the gap) IS its
+                    // then arm — rebuild it as `if cond: break` and
+                    // append body2 as the fall-through
+                    let pre_cond = self
+                        .instrs
+                        .iter()
+                        .take_while(|x| x.offset < tc.body_end)
+                        .filter(|x| {
+                            matches!(
+                                x.op,
+                                Op::POP_JUMP_IF_FALSE
+                                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                                    | Op::POP_JUMP_IF_TRUE
+                                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                            ) && x.target == Some(b2_start)
+                        })
+                        .count();
+                    let cond_span = pre_cond == 1
+                        && self
+                            .instrs
+                            .iter()
+                            .filter(|x| {
+                                x.offset >= tc.start
+                                    && x.offset < tc.body_end
+                                    && matches!(
+                                        x.op,
+                                        Op::POP_JUMP_IF_FALSE
+                                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                                            | Op::POP_JUMP_IF_TRUE
+                                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                                    )
+                            })
+                            .count()
+                        == 1;
+                    let mut body = Vec::new();
+                    if cond_span {
+                        let cj = self
+                            .instrs
+                            .iter()
+                            .find(|x| {
+                                x.offset >= tc.start
+                                    && x.offset < tc.body_end
+                                    && matches!(
+                                        x.op,
+                                        Op::POP_JUMP_IF_FALSE
+                                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                                            | Op::POP_JUMP_IF_TRUE
+                                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                                    )
+                            })
+                            .map(|x| (x.offset, x.op))
+                            .unwrap();
+                        self.region_result_expr = None;
+                        let cond_stmts = self.decompile_region(tc.start, cj.0);
+                        let jump_if_true = matches!(
+                            cj.1,
+                            Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+                        );
+                        let mut cond_expr = self
+                            .region_result_expr
+                            .take()
+                            .or_else(|| {
+                                cond_stmts.into_iter().find_map(|s| match s {
+                                    Stmt::Expr(e) => Some(e),
+                                    _ => None,
+                                })
+                            })
+                            .unwrap_or_else(|| self.name_expr("???"));
+                        // PJIF_FALSE → b2_start: the then arm (the exit
+                        // path) runs when the cond is TRUE
+                        if jump_if_true {
+                            cond_expr = Rc::new(Expr::Unary {
+                                op: UnaryOp::Not,
+                                operand: cond_expr,
+                            });
+                        }
+                        body.push(Stmt::If {
+                            cond: cond_expr,
+                            body: vec![Stmt::Break],
+                            orelse: Vec::new(),
+                        });
+                    } else {
+                        body = self.decompile_region(tc.start, pos.min(tc.body_end));
+                        body.push(Stmt::Break);
+                    }
+                    body.extend(self.decompile_region(b2_start, trimmed.max(b2_start)));
+                    if std::env::var("PYCDC_EG_DBG").is_ok() {
+                        eprintln!(
+                            "EG splitfin [{}] body2=[{},{}) fin=[{},{}) exit={}",
+                            self.code.name, b2_start, trimmed, fin_head, fin_stop, exit_at
+                        );
+                    }
+                    self.pending_orelse_mark = None;
+                    let handlers = match tc.except_handler {
+                        Some(h) => self.parse_except_dispatch(h),
+                        None => Vec::new(),
+                    };
+                    self.push_stmt(Stmt::Try {
+                        body,
+                        handlers,
+                        orelse: Vec::new(),
+                        finalbody: fin_body,
+                    });
+                    // the walk resumes at the exit landing (loop end /
+                    // post-loop flow); the handler chain folds at its head
+                    if self.skip_until.map_or(true, |s| s < exit_at) {
+                        self.skip_until = Some(exit_at);
+                    }
+                    return;
+                }
+            }
+        }
         // `else:` clause exists only when the protected region extends past
         // the try body (finally covers body+else)
         let mut orelse = Vec::new();
@@ -1634,6 +1925,10 @@ impl<'a> Ctx<'a> {
         }
         let mut root = self.blocks.pop().unwrap();
         let stmts = std::mem::take(&mut root.stmts);
+        self.region_result_expr = match self.stack.last() {
+            Some(Sv::E(e)) => Some(e.clone()),
+            _ => None,
+        };
 
         self.blocks = saved_blocks;
         self.stack = saved_stack;
@@ -3615,7 +3910,13 @@ impl<'a> Ctx<'a> {
                                     Op::RETURN_VALUE | Op::RETURN_CONST
                                 )
                             });
-                    if cover > pos || return_at_edge {
+                    if tc.split_body2.is_some() {
+                        // split finally: the reconstruct rebuilds every
+                        // span — emit now, before the walk drifts into
+                        // the second protected fragment
+                        self.pending_try_body.pop();
+                        self.emit_try_tail(tc, pos);
+                    } else if cover > pos || return_at_edge {
                         self.pending_try_body.pop();
                         self.pending_try_body.push(body);
                         self.pending_try_ctx = Some(tc);
@@ -5674,6 +5975,26 @@ impl<'a> Ctx<'a> {
             // ---------- control flow ----------
             Op::JUMP_FORWARD => {
                 let target = inst.target.unwrap_or(inst.end());
+                // 3.12+ split finally: this is the exit path's jump out
+                // of the inlined finally copy — fold the deferred try
+                // here (position-based closing never reaches it under
+                // the body's open If). The If's then-region (the copy)
+                // is rebuilt from spans — discard it.
+                if self
+                    .pending_try_ctx
+                    .as_ref()
+                    .map_or(false, |tc| tc.split_body2.is_some())
+                {
+                    while matches!(
+                        self.blocks.last().map(|b| b.kind),
+                        Some(BlockType::If)
+                    ) {
+                        self.blocks.pop();
+                    }
+                    let tc = self.pending_try_ctx.take().unwrap();
+                    self.emit_try_tail(tc, inst.offset);
+                    return true;
+                }
                 let over_handlers = self
                     .legacy_try
                     .as_ref()
