@@ -876,7 +876,7 @@ class RawConfigParser(MutableMapping):
         e = None
         for lineno, line in enumerate(fp, start=1):
             comment_start = sys.maxsize
-            inline_prefixes = {-1: p for p in self._inline_comment_prefixes}
+            inline_prefixes = {p: -1 for p in self._inline_comment_prefixes}
             while comment_start == sys.maxsize:
                 if inline_prefixes:
                     next_prefixes = {}

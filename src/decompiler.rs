@@ -154,6 +154,8 @@ enum Sv {
 #[derive(Debug, Clone)]
 struct InlineComp {
     kind: CompKind,
+    /// offset where the comprehension's prologue begins (py2 nesting)
+    start: usize,
     #[allow(dead_code)]
     iter: ExprRef,
     /// offset just past the outermost END_FOR
@@ -283,6 +285,10 @@ struct Ctx<'a> {
     /// 2.6 compiler synthetic temps (`_[N]`): with-as targets and inline
     /// comprehension accumulators stash/reload through them
     py26_temps: HashMap<String, Sv>,
+    /// completed py2 inline comprehension regions [start, end]: a nested
+    /// comprehension's iterable can be one, and the outer detection scan
+    /// must hop over it
+    completed_comp_regions: Vec<(usize, usize)>,
     last_py26_temp: Option<String>,
     /// 3.3-3.7 swallowed `as`-cleanup wrappers: (SETUP offset, cleanup
     /// END_FINALLY offset) — that END_FINALLY must not be mistaken for
@@ -532,6 +538,7 @@ pub fn decompile_in_scope(
         legacy_nest: Vec::new(),
         legacy_nest_depth: 0,
         py26_temps: HashMap::new(),
+        completed_comp_regions: Vec::new(),
         last_py26_temp: None,
         as_cleanup_wrappers: Vec::new(),
         used_exc_info: false,
@@ -877,8 +884,23 @@ impl<'a> Ctx<'a> {
                     .map(|c| pos >= c.end && c.end != usize::MAX)
                     .unwrap_or(false);
                 if end_hit {
-                    // py2 FOR_ITER leaves the iterator on the stack at exit
-                    self.pop();
+                    // py2 FOR_ITER leaves the iterator on the stack at
+                    // exit — one leftover per generator for multi-for
+                    // comprehensions
+                    let npops = self
+                        .inline_comp
+                        .as_ref()
+                        .map(|c| {
+                            if self.version.major == 2 {
+                                c.for_iter_offsets.len().max(1)
+                            } else {
+                                1
+                            }
+                        })
+                        .unwrap_or(1);
+                    for _ in 0..npops {
+                        self.pop();
+                    }
                     self.finish_inline_comp();
                 }
             }
@@ -10873,16 +10895,17 @@ impl<'a> Ctx<'a> {
                 }
             }
             Op::MAP_ADD => {
-                // 3.x: value then key (key on top? CPython: MAP_ADD i:
-                // key = second, value = top for >=3.8; reversed for 3.0-3.7)
-                let (key, value) = if self.version.at_least(3, 8) || self.version.major == 2 {
+                // CPython operand order: 3.8+ pushes key then value
+                // (value on top); pre-3.8 (incl. py2.7 dict comps) pushes
+                // value then key (key on top)
+                let (key, value) = if self.version.at_least(3, 8) {
                     let value = self.pop_expr();
                     let key = self.pop_expr();
                     (key, value)
                 } else {
                     let key = self.pop_expr();
                     let value = self.pop_expr();
-                    (value, key)
+                    (key, value)
                 };
                 let len = self.stack.len();
                 let idx = len.saturating_sub(arg as usize);
@@ -11635,14 +11658,15 @@ impl<'a> Ctx<'a> {
                     elt.get_or_insert(item);
                 }
                 Op::MAP_ADD => {
-                    let (k, v) = if self.version.at_least(3, 8) || self.version.major == 2 {
+                    // 3.8+: value on top; pre-3.8 (incl. py2.7): key on top
+                    let (k, v) = if self.version.at_least(3, 8) {
                         let v = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
                         let k = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
                         (k, v)
                     } else {
                         let k = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
                         let v = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
-                        (v, k)
+                        (k, v)
                     };
                     key.get_or_insert(k);
                     elt.get_or_insert(v);
@@ -11650,6 +11674,101 @@ impl<'a> Ctx<'a> {
                 Op::YIELD_VALUE => {
                     let item = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
                     elt.get_or_insert(item);
+                }
+                // f-string building (3.6+; `'%s' % x` compiles to this on
+                // 3.11+, and comprehension elements may be f-strings)
+                Op::FORMAT_VALUE | Op::FORMAT_SIMPLE => {
+                    let conversion = match inst.arg & 0x3 {
+                        1 => Some('s'),
+                        2 => Some('r'),
+                        3 => Some('a'),
+                        _ => None,
+                    };
+                    let format_spec = if inst.op == Op::FORMAT_VALUE
+                        && inst.arg & 0x04 != 0
+                    {
+                        stack.pop()
+                    } else {
+                        None
+                    };
+                    let value = stack
+                        .pop()
+                        .unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                    let part = FStringPart::Value {
+                        value,
+                        conversion,
+                        format_spec: format_spec.map(|f| Box::new(expr_to_fstring(f))),
+                    };
+                    stack.push(Rc::new(Expr::FString(Box::new(FString {
+                        parts: vec![part],
+                    }))));
+                }
+                Op::FORMAT_WITH_SPEC => {
+                    let format_spec = stack.pop();
+                    let value = stack
+                        .pop()
+                        .unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                    let part = FStringPart::Value {
+                        value,
+                        conversion: None,
+                        format_spec: format_spec.map(|f| Box::new(expr_to_fstring(f))),
+                    };
+                    stack.push(Rc::new(Expr::FString(Box::new(FString {
+                        parts: vec![part],
+                    }))));
+                }
+                Op::CONVERT_VALUE => {
+                    let conversion = match inst.arg {
+                        1 => Some('s'),
+                        2 => Some('r'),
+                        3 => Some('a'),
+                        _ => None,
+                    };
+                    let value = stack
+                        .pop()
+                        .unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+                    let part = FStringPart::Value {
+                        value,
+                        conversion,
+                        format_spec: None,
+                    };
+                    stack.push(Rc::new(Expr::FString(Box::new(FString {
+                        parts: vec![part],
+                    }))));
+                }
+                Op::BUILD_STRING => {
+                    let n = inst.arg as usize;
+                    let mut parts_e: Vec<ExprRef> = Vec::with_capacity(n);
+                    for _ in 0..n {
+                        if let Some(p) = stack.pop() {
+                            parts_e.push(p);
+                        }
+                    }
+                    parts_e.reverse();
+                    let mut out_parts = Vec::new();
+                    for p in parts_e {
+                        match &*p {
+                            Expr::Const(o) => match &**o {
+                                PyObject::Str(s2) => {
+                                    out_parts.push(FStringPart::Literal(s2.clone()))
+                                }
+                                _ => out_parts.push(FStringPart::Value {
+                                    value: p.clone(),
+                                    conversion: None,
+                                    format_spec: None,
+                                }),
+                            },
+                            Expr::FString(fs) => out_parts.extend(fs.parts.iter().cloned()),
+                            _ => out_parts.push(FStringPart::Value {
+                                value: p.clone(),
+                                conversion: None,
+                                format_spec: None,
+                            }),
+                        }
+                    }
+                    stack.push(Rc::new(Expr::FString(Box::new(FString {
+                        parts: out_parts,
+                    }))));
                 }
                 Op::BINARY_OP => {
                     let rhs = stack.pop();
@@ -11924,6 +12043,22 @@ impl<'a> Ctx<'a> {
         while j > 0 && steps < 14 {
             j -= 1;
             steps += 1;
+            // hop over a completed nested comprehension region (py2: the
+            // outer comp's iterable was itself an inline comp)
+            let off = self.instrs[j].offset;
+            if let Some((rs, _)) = self
+                .completed_comp_regions
+                .iter()
+                .find(|(rs, re)| off >= *rs && off < *re)
+            {
+                let rs = *rs;
+                if let Some(&rj) = self.idx_of.get(&rs) {
+                    j = rj; // loop pre-decrements to the instruction BEFORE
+                            // the nested region — its own BUILD_x belongs
+                            // to the nested comp, not the outer one
+                    continue;
+                }
+            }
             let inst = &self.instrs[j];
             match inst.op {
                 // 3.13 places GET_ITER right before FOR_ITER; 3.12 places it
@@ -11998,6 +12133,26 @@ impl<'a> Ctx<'a> {
         None
     }
 
+    /// offset of the BUILD_x 0 that opened the current py2 comprehension
+    fn comp_prologue_start(&self) -> usize {
+        let Some(&ci) = self.idx_of.get(&self.cur_offset) else {
+            return self.cur_offset;
+        };
+        let mut j = ci;
+        let mut steps = 0;
+        while j > 0 && steps < 16 {
+            j -= 1;
+            steps += 1;
+            let ins = &self.instrs[j];
+            if matches!(ins.op, Op::BUILD_LIST | Op::BUILD_SET | Op::BUILD_MAP)
+                && (ins.arg == 0 || ins.op == Op::BUILD_MAP)
+            {
+                return ins.offset;
+            }
+        }
+        self.cur_offset
+    }
+
     fn start_inline_comp(&mut self, kind: CompKind, inst: &Instruction) {
         // the iterable is on top (GET_ITER kept it); consume it into the
         // generator model
@@ -12070,6 +12225,7 @@ impl<'a> Ctx<'a> {
         let cleared_all = cleared;
         self.inline_comp = Some(InlineComp {
             kind,
+            start: self.comp_prologue_start(),
             iter: iter.clone(),
             end: end_off,
             for_iter_offsets: for_offsets,
@@ -12136,16 +12292,26 @@ impl<'a> Ctx<'a> {
     /// Nested FOR_ITER inside an inline comprehension: complete the current
     /// generator and start a new one with the popped iterable.
     fn push_nested_comp_gen(&mut self) {
-        // additional generator of the same comprehension: the iterator stays
-        // on the stack (POP_ITER removes it at the loop end)
-        let iter = self
-            .stack
-            .last()
-            .and_then(|sv| match sv {
-                Sv::E(e) => Some(e.clone()),
-                _ => None,
-            })
-            .unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
+        // additional generator of the same comprehension.
+        // 3.12+: the iterator stays on the stack (POP_ITER removes it at
+        // the loop end). py2: there is no POP_ITER — the single end-of-comp
+        // pop covers only the outermost iterator, so consume this one here
+        // (start_inline_comp pushed it back for the target store)
+        let iter = if self.version.major == 2 {
+            self.pop_expr()
+        } else {
+            self.stack
+                .last()
+                .and_then(|sv| match sv {
+                    Sv::E(e) => Some(e.clone()),
+                    _ => None,
+                })
+                .unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())))
+        };
+        if self.version.major == 2 {
+            // keep the iterator available for the loop-target store flow
+            self.push(iter.clone());
+        }
         if let Some(comp) = &mut self.inline_comp {
             if let Some(done) = comp.cur.take() {
                 comp.gens.push(Comprehension {
@@ -12173,6 +12339,9 @@ impl<'a> Ctx<'a> {
         let Some(mut comp) = self.inline_comp.take() else {
             return;
         };
+        if self.version.major == 2 && comp.start < comp.end && comp.end != usize::MAX {
+            self.completed_comp_regions.push((comp.start, comp.end));
+        }
         if let Some(done) = comp.cur.take() {
             comp.gens.push(Comprehension {
                 target: done

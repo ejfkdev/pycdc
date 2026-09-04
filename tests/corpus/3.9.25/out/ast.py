@@ -776,7 +776,7 @@ class _Unparser(NodeVisitor):
             self.traverse(node.body)
 
     def visit_Module(self, node):
-        self._type_ignores = {'ignore': ignore.tag for ignore in node.type_ignores}
+        self._type_ignores = {ignore.lineno: f'ignore{ignore.tag}' for ignore in node.type_ignores}
         self._write_docstring_and_traverse_body(node)
         self._type_ignores.clear()
 

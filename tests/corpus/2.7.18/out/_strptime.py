@@ -112,7 +112,7 @@ class LocaleTime(object):
         date_time[1] = time.strftime('%x', time_tuple).lower()
         date_time[2] = time.strftime('%X', time_tuple).lower()
         replacement_pairs = [('%', '%%'), (self.f_weekday[2], '%A'), (self.f_month[3], '%B'), (self.a_weekday[2], '%a'), (self.a_month[3], '%b'), (self.am_pm[1], '%p'), ('1999', '%Y'), ('99', '%y'), ('22', '%H'), ('44', '%M'), ('55', '%S'), ('76', '%j'), ('17', '%d'), ('03', '%m'), ('3', '%m'), ('2', '%w'), ('10', '%I')]
-        [(tz, '%Z') for tz_values in self.timezone for tz in tz_values](self.timezone)
+        replacement_pairs.extend([(tz, '%Z') for tz_values in self.timezone for tz in tz_values])
         for offset, directive in (0, '%c'), (1, '%x'), (2, '%X'):
             current_format = date_time[offset]
             for old, new in replacement_pairs:

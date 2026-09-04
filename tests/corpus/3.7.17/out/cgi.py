@@ -174,7 +174,7 @@ def parse_multipart(fp, pdict, encoding='utf-8', errors='replace', separator='&'
     except KeyError:
         pass
     fs = FieldStorage(fp, headers=headers, encoding=encoding, errors=errors, environ={'REQUEST_METHOD': 'POST'}, separator=separator)
-    return {fs.getlist(k): k for k in fs}
+    return {k: fs.getlist(k) for k in fs}
 
 def _parseparam(s):
     while s[:1] == ';':

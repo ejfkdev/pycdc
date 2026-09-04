@@ -534,7 +534,7 @@ class _Line(str):
 Search for the earliest prefix at the beginning of the line or following a space.
 '''
 
-        if not '|'.join((')' for prefix in self.prefixes.inline)):
+        if not '|'.join((f'{re.escape(prefix)})' for prefix in self.prefixes.inline)):
             pass
         matcher = re.compile('(?!)')
         match = matcher.search(self)

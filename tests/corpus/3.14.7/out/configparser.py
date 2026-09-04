@@ -548,8 +548,8 @@ class _Line(str):
 
 class _CommentSpec:
     def __init__(self, full_prefixes, inline_prefixes):
-        full_patterns = (').*' for prefix in full_prefixes)
-        inline_patterns = ('.*)' for prefix in inline_prefixes)
+        full_patterns = (f'^({re.escape(prefix)}).*' for prefix in full_prefixes)
+        inline_patterns = (f'(^|\\s)({re.escape(prefix)}.*)' for prefix in inline_prefixes)
         self.pattern = re.compile('|'.join(itertools.chain(full_patterns, inline_patterns)))
 
     def strip(self, text):
