@@ -2764,9 +2764,17 @@ impl<'a> Ctx<'a> {
             BlockType::While => {
                 let cond = b.cond.take().unwrap_or_else(|| self.name_expr("True"));
                 let body = std::mem::take(&mut b.stmts);
-                if let Some(else_end) = b.loop_else_end {
+                // 3.8+ rotated while-else: the exhaustion exit (b.end)
+                // closed the body; the else region runs to loop_else_end
+                let probed = if b.loop_else_end.is_none() && pos == b.end {
+                    self.probe_for_else(pos)
+                } else {
+                    None
+                };
+                if let Some(else_end) = b.loop_else_end.or(probed) {
+                    let start = if pos == b.end { pos } else { b.end };
                     self.pending_loop.push((Some(cond), None, None, body, false));
-                    let else_blk = Block::new(BlockType::WhileElse, pos, else_end);
+                    let else_blk = Block::new(BlockType::WhileElse, start, else_end);
                     self.blocks.push(else_blk);
                 } else {
                     self.push_stmt(Stmt::While {
@@ -2838,9 +2846,26 @@ impl<'a> Ctx<'a> {
                 // parsed out-of-line; else/finally emission happens when the
                 // protected region ends (or immediately without finally)
                 if let Some(tc) = self.active_try.take() {
-                    self.pending_try_body.push(body);
+                    self.pending_try_body.push(body.clone());
                     let cover = tc.region_end;
-                    if cover > pos {
+                    // the region may end exactly at the RETURN that closes
+                    // the try body (`try: return v` where only the value
+                    // load is protected): defer so emit_return can place
+                    // the return INSIDE the body
+                    let return_at_edge = cover == pos
+                        && body.is_empty()
+                        && self
+                            .idx_of
+                            .get(&pos)
+                            .map_or(false, |&pi| {
+                                matches!(
+                                    self.instrs[pi].op,
+                                    Op::RETURN_VALUE | Op::RETURN_CONST
+                                )
+                            });
+                    if cover > pos || return_at_edge {
+                        self.pending_try_body.pop();
+                        self.pending_try_body.push(body);
                         self.pending_try_ctx = Some(tc);
                     } else {
                         self.emit_try_tail(tc, pos);
@@ -4850,6 +4875,31 @@ impl<'a> Ctx<'a> {
                     .legacy_try
                     .as_ref()
                     .map_or(false, |l| target > l.handler_start);
+                // a forward jump flying over an enclosing loop's
+                // exhaustion exit to a continuation no other jump
+                // targets is a `break` over a while/for-else region —
+                // record the else end so find_loop_exit can see it
+                // (mirrors the JUMP_ABSOLUTE registration)
+                if !over_handlers && target > self.cur_offset {
+                    for b in self.blocks.iter_mut().rev() {
+                        if matches!(b.kind, BlockType::While | BlockType::For) {
+                            if b.end < target && b.loop_else_end.is_none() {
+                                let others = self
+                                    .instrs
+                                    .iter()
+                                    .filter(|i| {
+                                        i.target == Some(target)
+                                            && i.offset != self.cur_offset
+                                    })
+                                    .count();
+                                if others == 0 {
+                                    b.loop_else_end = Some(target);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
                 if !over_handlers && self.find_loop_exit(target).is_some() {
                     self.push_stmt(Stmt::Break);
                     self.close_inner_blocks_to_loop();
@@ -6883,6 +6933,46 @@ impl<'a> Ctx<'a> {
             let jk = match jidx {
                 Some(x) => x,
                 None => {
+                    // 3.12+ guard chain landing: the region holds only the
+                    // NOT_TAKEN pad before the loop's back edge — this is
+                    // the continue trampoline of a folded guard chain
+                    // (`if g1 and g2: continue`); the real body resumes
+                    // after the trampoline
+                    if self.version.at_least(3, 12) && body_start == 0 {
+                        let mut pad = region_start;
+                        while matches!(
+                            self.instrs.get(pad).map(|x| x.op),
+                            Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+                        ) {
+                            pad += 1;
+                        }
+                        if let Some(ins) = self.instrs.get(pad) {
+                            if ins.is_backward
+                                && ins.target == Some(loop_top)
+                                && matches!(
+                                    ins.op,
+                                    Op::JUMP_BACKWARD
+                                        | Op::JUMP_ABSOLUTE
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                )
+                            {
+                                let mut k2 = pad + 1;
+                                while matches!(
+                                    self.instrs.get(k2).map(|x| x.op),
+                                    Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+                                ) {
+                                    k2 += 1;
+                                }
+                                if let Some(bins) = self.instrs.get(k2) {
+                                    return Some((
+                                        self.merge_guard_values(top_parts),
+                                        bins.offset,
+                                        ins.offset,
+                                    ));
+                                }
+                            }
+                        }
+                    }
                     // no further operand jump: the body starts right here
                     // (all operands short-circuit to the loop top and the
                     // body is a bare continue/break jump)
@@ -7377,6 +7467,480 @@ impl<'a> Ctx<'a> {
     /// to the next test (or the body) when it passes, and falls through
     /// to `NOT_TAKEN; JUMP_BACKWARD loop_top` (an inline continue) when
     /// it fails. Merge the guards into one And condition over the body.
+    /// Shape-B admission: the fall-through of `ci` must reach another
+    /// cond jump through pure value ops (a second chain link), and that
+    /// link must terminate the chain (pass-exit hop over a back
+    /// trampoline, jump onto the trampoline, or another advance link).
+    fn shape_b_admit(&self, ci: usize, target: usize) -> bool {
+        let is_cond_jump = |o: Op| {
+            matches!(
+                o,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+            )
+        };
+        let is_back_tramp = |ins: &Instruction| {
+            ins.is_backward
+                && matches!(
+                    ins.op,
+                    Op::JUMP_BACKWARD | Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD_NO_INTERRUPT
+                )
+        };
+        // fail trampoline at target?
+        let mut fi = match self.idx_of.get(&target) {
+            Some(&x) => x,
+            None => return false,
+        };
+        while matches!(
+            self.instrs.get(fi).map(|x| x.op),
+            Some(Op::POP_TOP) | Some(Op::NOP) | Some(Op::NOT_TAKEN)
+        ) {
+            fi += 1;
+        }
+        let Some(ftramp) = self.instrs.get(fi) else {
+            return false;
+        };
+        if !is_back_tramp(ftramp) {
+            return false;
+        }
+        let loop_top = match ftramp.target {
+            Some(t) => t,
+            None => return false,
+        };
+        // fall-through: second link region
+        let mut k = ci + 1;
+        while matches!(
+            self.instrs.get(k).map(|x| x.op),
+            Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+        ) {
+            k += 1;
+        }
+        let mut steps = 0;
+        loop {
+            let Some(ins) = self.instrs.get(k) else {
+                return false;
+            };
+            if is_cond_jump(ins.op) {
+                break;
+            }
+            if !is_pure_value_op(ins.op) || steps > 40 {
+                return false;
+            }
+            k += 1;
+            steps += 1;
+        }
+        // the second link must terminate the chain
+        let j2 = &self.instrs[k];
+        let t2 = match j2.target {
+            Some(t) => t,
+            None => return false,
+        };
+        let mut ti = match self.idx_of.get(&t2) {
+            Some(&x) => x,
+            None => return false,
+        };
+        while matches!(
+            self.instrs.get(ti).map(|x| x.op),
+            Some(Op::POP_TOP) | Some(Op::NOP) | Some(Op::NOT_TAKEN)
+        ) {
+            ti += 1;
+        }
+        let Some(tins) = self.instrs.get(ti) else {
+            return false;
+        };
+        // (a) jump lands on the trampoline (A and B: continue) — the
+        // second link's fall-through must ALSO be the trampoline, i.e.
+        // the chain truly terminates here; a guarded body on the
+        // fall-through (b10-style `if A or B: skip`) is not shape B
+        if is_back_tramp(tins) && tins.target == Some(loop_top) {
+            let mut ft2 = k + 1;
+            while matches!(
+                self.instrs.get(ft2).map(|x| x.op),
+                Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+            ) {
+                ft2 += 1;
+            }
+            return self.instrs.get(ft2).map_or(false, |x| {
+                (is_back_tramp(x) && x.target == Some(loop_top))
+                    || (matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                        && !x.is_backward
+                        && x.target.map_or(false, |t| t > x.offset))
+            });
+        }
+        // (b) jump lands on a pass-exit hop into the body
+        if matches!(tins.op, Op::JUMP_FORWARD | Op::JUMP)
+            && !tins.is_backward
+            && tins.target.map_or(false, |t| t > tins.offset)
+        {
+            return true;
+        }
+        // (c) jump lands on a further advance link (pure region + cond
+        //     jump), with THIS link's fall-through being the trampoline
+        let mut ft = k + 1;
+        while matches!(
+            self.instrs.get(ft).map(|x| x.op),
+            Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+        ) {
+            ft += 1;
+        }
+        if !self
+            .instrs
+            .get(ft)
+            .map_or(false, |x| is_back_tramp(x) && x.target == Some(loop_top))
+        {
+            return false;
+        }
+        let mut s = ti;
+        let mut st = 0;
+        loop {
+            let Some(ins) = self.instrs.get(s) else {
+                return false;
+            };
+            if is_cond_jump(ins.op) {
+                return ins.target.map_or(false, |t| {
+                    self.idx_of.get(&t).map_or(false, |&nx| {
+                        let mut m = nx;
+                        while matches!(
+                            self.instrs.get(m).map(|x| x.op),
+                            Some(Op::POP_TOP) | Some(Op::NOP) | Some(Op::NOT_TAKEN)
+                        ) {
+                            m += 1;
+                        }
+                        self.instrs.get(m).map_or(false, |y| {
+                            (is_back_tramp(y) && y.target == Some(loop_top))
+                                || (matches!(y.op, Op::JUMP_FORWARD | Op::JUMP)
+                                    && !y.is_backward)
+                        })
+                    })
+                });
+            }
+            if !is_pure_value_op(ins.op) || st > 40 {
+                return false;
+            }
+            s += 1;
+            st += 1;
+        }
+    }
+
+    /// Shape-B guard chain (3.14 statement chain-compare ifs and mixed
+    /// guard chains): the fail trampoline ([POP_TOP;] JUMP_BACKWARD
+    /// loop_top) sits at the guard jumps' TARGET and the chain advances on
+    /// fall-through; the final guard's pass-jump exits (optionally via a
+    /// JUMP_FORWARD hop) into the body. Each link contributes its operand
+    /// positively when the chain advances on TRUE, negated otherwise.
+    /// Fold collected guard-chain operands into one And condition,
+    /// flattening nested BoolOps of the same kind.
+    fn merge_guard_values(&self, parts: Vec<ExprRef>) -> ExprRef {
+        let mut flat = Vec::new();
+        for v in parts {
+            flatten_boolop(v, BoolOpKind::And, &mut flat);
+        }
+        if flat.len() == 1 {
+            flat.pop().unwrap()
+        } else {
+            Rc::new(Expr::BoolOp {
+                op: BoolOpKind::And,
+                values: flat,
+            })
+        }
+    }
+
+    fn try_guard_chain_fallthrough(
+        &self,
+        cond: &ExprRef,
+        jump_if_true: bool,
+        target: usize,
+    ) -> Option<(ExprRef, usize, usize)> {
+        let is_cond_jump = |o: Op| {
+            matches!(
+                o,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+            )
+        };
+        let jump_true =
+            |o: Op| matches!(o, Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE);
+        let is_back_tramp = |ins: &Instruction| {
+            ins.is_backward
+                && matches!(
+                    ins.op,
+                    Op::JUMP_BACKWARD | Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD_NO_INTERRUPT
+                )
+        };
+        let ci = *self.idx_of.get(&self.cur_offset)?;
+        // the jump target must hold the fail trampoline:
+        // [POP_TOP...] [pad] JUMP_BACKWARD loop_top
+        let mut fi = self.idx_of.get(&target).copied()?;
+        while matches!(
+            self.instrs.get(fi).map(|x| x.op),
+            Some(Op::POP_TOP) | Some(Op::NOP) | Some(Op::NOT_TAKEN)
+        ) {
+            fi += 1;
+        }
+        let ftramp = self.instrs.get(fi)?;
+        if !is_back_tramp(ftramp) {
+            return None;
+        }
+        let loop_top = ftramp.target?;
+        if !self.blocks.iter().any(|b| {
+            matches!(b.kind, BlockType::While | BlockType::For)
+                && (b.start == loop_top
+                    || (b.cond_end != usize::MAX && b.cond_end == loop_top))
+        }) {
+            return None;
+        }
+        // walk the links on the fall-through side
+        let mut values: Vec<ExprRef> = Vec::new();
+        // first link: the operand was already evaluated (cond); its jump
+        // goes to the fail trampoline, so the chain advances on
+        // fall-through: PJIF advances on TRUE (positive), PJIT on FALSE.
+        // A SINGLE-guard chain (`if c: continue`) instead tests the
+        // condition as-is regardless of jump polarity.
+        let mut q = ci + 1;
+        while matches!(
+            self.instrs.get(q).map(|x| x.op),
+            Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+        ) {
+            q += 1;
+        }
+        let another_link = matches!(
+            self.instrs.get(q).map(|x| x.op),
+            Some(Op::POP_JUMP_IF_FALSE)
+                | Some(Op::POP_JUMP_IF_TRUE)
+                | Some(Op::POP_JUMP_FORWARD_IF_FALSE)
+                | Some(Op::POP_JUMP_FORWARD_IF_TRUE)
+        );
+        values.push(if !another_link {
+            cond.clone()
+        } else if jump_if_true {
+            Rc::new(Expr::Unary { op: UnaryOp::Not, operand: cond.clone() })
+        } else {
+            cond.clone()
+        });
+        let mut next = ci + 1;
+        let mut body_start = None;
+        loop {
+            while matches!(
+                self.instrs.get(next).map(|x| x.op),
+                Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+            ) {
+                next += 1;
+            }
+            // this link's JUMP may lead straight to the trampoline
+            // (`A and B: continue` — both guards pass-jump into the same
+            // continue): the chain is complete, its body IS the continue
+            if let Some(ins) = self.instrs.get(next) {
+                if is_back_tramp(ins) && ins.target == Some(loop_top) {
+                    if !values.is_empty() {
+                        let mut k = next + 1;
+                        while matches!(
+                            self.instrs.get(k).map(|x| x.op),
+                            Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+                        ) {
+                            k += 1;
+                        }
+                        let bstart = self.instrs.get(k).map(|x| x.offset)?;
+                        let mut merged_values = Vec::new();
+                        for v in values.drain(..) {
+                            flatten_boolop(v, BoolOpKind::And, &mut merged_values);
+                        }
+                        let merged = Rc::new(Expr::BoolOp {
+                            op: BoolOpKind::And,
+                            values: merged_values,
+                        });
+                        return Some((
+                            merged as ExprRef,
+                            bstart,
+                            ins.offset,
+                        ));
+                    }
+                    break;
+                }
+                // pass-exit hop: a forward jump into the body (3.11 final
+                // link advances on fall-through straight into this hop)
+                if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP)
+                    && !ins.is_backward
+                    && ins.target.map_or(false, |t| t > ins.offset)
+                {
+                    body_start = Some(ins.target.unwrap());
+                    break;
+                }
+            }
+            // scan the operand region up to its cond jump
+            let region_start = next;
+            let mut jk = next;
+            while jk < self.instrs.len() {
+                let ins = &self.instrs[jk];
+                if is_cond_jump(ins.op) {
+                    break;
+                }
+                if !is_pure_value_op(ins.op) {
+                    return None;
+                }
+                jk += 1;
+            }
+            if jk >= self.instrs.len() || !is_cond_jump(self.instrs[jk].op) {
+                return None;
+            }
+            let mut jt = jk + 1;
+            while matches!(
+                self.instrs.get(jt).map(|x| x.op),
+                Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+            ) {
+                jt += 1;
+            }
+            let jins = &self.instrs[jk];
+            let jt_target = jins.target?;
+            let jtrue = jump_true(jins.op);
+            // simulate this link's operand region; a chained comparison
+            // reuses the shared middle operand left on the LIVE stack by
+            // the SWAP/COPY setup — the scratch sim underruns to `???`,
+            // repair it from the previous link's last operand
+            let sim_region = |slf: &Self, a: usize, b: usize| slf.sim_value_region(a, b);
+            let mut operand = sim_region(self, region_start, jk)?;
+            if let Some(prev) = values.last() {
+                operand = repair_chain_operand(prev, operand);
+            }
+            // classify the jump target: fail trampoline, pass exit, or
+            // another test region
+            let mut ti = self.idx_of.get(&jt_target).copied()?;
+            let mut pops = 0;
+            while matches!(
+                self.instrs.get(ti).map(|x| x.op),
+                Some(Op::POP_TOP) | Some(Op::NOP) | Some(Op::NOT_TAKEN)
+            ) {
+                ti += 1;
+                pops += 1;
+            }
+            let tins = self.instrs.get(ti)?;
+            if is_back_tramp(tins) && tins.target == Some(loop_top) {
+                // jump -> fail: chain advances on fall-through
+                values.push(if jtrue {
+                    Rc::new(Expr::Unary { op: UnaryOp::Not, operand })
+                } else {
+                    operand
+                });
+                next = jt;
+                continue;
+            }
+            if matches!(tins.op, Op::JUMP_FORWARD | Op::JUMP) && !tins.is_backward {
+                // jump -> pass exit (trampoline hop into the body)
+                values.push(if jtrue {
+                    operand
+                } else {
+                    Rc::new(Expr::Unary { op: UnaryOp::Not, operand })
+                });
+                let _ = pops;
+                body_start = Some(tins.target?);
+                break;
+            }
+            // jump -> next test region: advance through the jump; the
+            // fall-through of THIS link must then be the fail trampoline
+            let mut ft = jt;
+            while matches!(
+                self.instrs.get(ft).map(|x| x.op),
+                Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+            ) {
+                ft += 1;
+            }
+            let fins = self.instrs.get(ft)?;
+            if !(is_back_tramp(fins) && fins.target == Some(loop_top)) {
+                return None;
+            }
+            values.push(if jtrue {
+                operand
+            } else {
+                Rc::new(Expr::Unary { op: UnaryOp::Not, operand })
+            });
+            next = ti;
+        }
+        let bs = match body_start {
+            Some(x) => x,
+            None => return None,
+        };
+        // the fall-through after the LAST test is the continue trampoline;
+        // when the loop ends the walk the body may also be entered by
+        // fall-through — verify a back edge bounds the body
+        let Some(&bi) = self.idx_of.get(&bs) else {
+            return None;
+        };
+        let mut body_end = None;
+        for ins in self.instrs[bi..].iter() {
+            if ins.offset < bs {
+                continue;
+            }
+            if let Some(t) = ins.target {
+                if ins.is_backward && t == loop_top && is_back_tramp(ins) {
+                    body_end = Some(ins.offset);
+                    break;
+                }
+                if !ins.is_backward && self.find_loop_exit(t).is_some() {
+                    continue;
+                }
+                if !ins.is_backward {
+                    let inside = self
+                        .blocks
+                        .iter()
+                        .rev()
+                        .find(|b| {
+                            matches!(b.kind, BlockType::While | BlockType::For)
+                                && (b.start == loop_top
+                                    || (b.cond_end != usize::MAX && b.cond_end == loop_top))
+                        })
+                        .map_or(false, |b| t < b.end);
+                    if !inside {
+                        return None;
+                    }
+                }
+            }
+            if matches!(ins.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                body_end = Some(ins.end());
+                break;
+            }
+        }
+        let body_end = body_end?;
+        if body_end <= bs {
+            return None;
+        }
+        if values.is_empty() {
+            return None;
+        }
+        // fold adjacent Compare links sharing an operand into a single
+        // chained comparison (`i == j` + `j == 1` -> `i == j == 1`) so
+        // side-effecting middle operands are not re-evaluated
+        let mut folded: Vec<ExprRef> = Vec::new();
+        for v in values {
+            let mut done = false;
+            if let Some(last) = folded.last() {
+                if !matches!(&**last, Expr::Unary { .. })
+                    && !matches!(&*v, Expr::Unary { .. })
+                {
+                    if let Some(m) = merge_chain_compare(last, &v) {
+                        let n = folded.len();
+                        folded[n - 1] = m;
+                        done = true;
+                    }
+                }
+            }
+            if !done {
+                folded.push(v);
+            }
+        }
+        let merged: ExprRef = if folded.len() == 1 {
+            folded.pop().unwrap()
+        } else {
+            Rc::new(Expr::BoolOp {
+                op: BoolOpKind::And,
+                values: folded,
+            })
+        };
+        Some((merged, bs, body_end))
+    }
+
     fn try_guard_chain(&self, cond: &ExprRef, jump_if_true: bool, target: usize)
         -> Option<(ExprRef, usize, usize)>
     {
@@ -7391,11 +7955,13 @@ impl<'a> Ctx<'a> {
         };
         // the enclosing loop top: the trampoline's back-jump target
         let ci = *self.idx_of.get(&self.cur_offset)?;
-        if !matches!(self.instrs.get(ci + 1).map(|x| x.op), Some(Op::NOT_TAKEN)) {
-            return None;
-        }
+        // shape A's trampoline must be separated from the jump by real
+        // NOT_TAKEN padding (3.12+); a bare adjacent back jump is py2/3.11
+        // `if c: continue` and belongs to the historical machinery
+        let pad_present =
+            matches!(self.instrs.get(ci + 1).map(|x| x.op), Some(Op::NOT_TAKEN));
         let mut t = ci + 1;
-        while matches!(self.instrs.get(t).map(|x| x.op), Some(Op::NOT_TAKEN) | Some(Op::NOP)) {
+        while matches!(self.instrs.get(t).map(|x| x.op), Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)) {
             t += 1;
         }
         let tramp = self.instrs.get(t)?;
@@ -7404,10 +7970,21 @@ impl<'a> Ctx<'a> {
                 tramp.op,
                 Op::JUMP_BACKWARD | Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD_NO_INTERRUPT
             )
+            || !pad_present
         {
+            // shape B (3.11+ statement chain-compare ifs): the FAIL
+            // trampoline lives at this jump's TARGET ([POP_TOP;]
+            // JUMP_BACKWARD loop_top) and the chain advances on
+            // fall-through into ANOTHER test ending at a pass-exit hop.
+            // Strict admission: mid-chain guards (whose fall-through is a
+            // plain body) must fall back to the generic If nesting.
+            if self.shape_b_admit(ci, target) {
+                return self.try_guard_chain_fallthrough(cond, jump_if_true, target);
+            }
             return None;
         }
         let loop_top = tramp.target?;
+        let tramp_off = tramp.offset;
         if !self.blocks.iter().any(|b| {
             matches!(b.kind, BlockType::While | BlockType::For)
                 && (b.start == loop_top
@@ -7415,12 +7992,52 @@ impl<'a> Ctx<'a> {
         }) {
             return None;
         }
-        // walk the guard chain
+        // walk the guard chain. Shape A: the chain advances through the
+        // JUMP and the fall-through is the continue trampoline, so an
+        // operand contributes positively when its jump is PJIT (advances
+        // on true) and negated for PJIF — first link included.
         let mut values: Vec<ExprRef> = Vec::new();
-        let first = if jump_if_true {
-            cond.clone()
-        } else {
+        // does the chain continue past this jump (another test region) or
+        // does the jump exit into the body/break block? Continuing chains
+        // advance THROUGH the jump (PJIT = positive); an exiting single
+        // guard renders `if Not(cond): continue`-style with the jump side
+        // as the body (PJIT = negated).
+        let chain_continues = self
+            .idx_of
+            .get(&target)
+            .map_or(false, |&ti| {
+                let mut s = ti;
+                let mut steps = 0;
+                loop {
+                    let Some(ins) = self.instrs.get(s) else {
+                        return false;
+                    };
+                    if matches!(
+                        ins.op,
+                        Op::POP_JUMP_IF_FALSE
+                            | Op::POP_JUMP_IF_TRUE
+                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                    ) {
+                        return true;
+                    }
+                    if !is_pure_value_op(ins.op) || steps > 40 {
+                        return false;
+                    }
+                    s += 1;
+                    steps += 1;
+                }
+            });
+        let first = if chain_continues {
+            if jump_if_true {
+                cond.clone()
+            } else {
+                Rc::new(Expr::Unary { op: UnaryOp::Not, operand: cond.clone() })
+            }
+        } else if jump_if_true {
             Rc::new(Expr::Unary { op: UnaryOp::Not, operand: cond.clone() })
+        } else {
+            cond.clone()
         };
         flatten_boolop(first, BoolOpKind::And, &mut values);
         let mut next = target;
@@ -7444,6 +8061,14 @@ impl<'a> Ctx<'a> {
                 jk += 1;
             }
             if jk >= self.instrs.len() || !is_cond_jump(self.instrs[jk].op) {
+                if next == target {
+                    // the chain never advanced: every guard's pass side
+                    // exits through the fall-through continue trampoline
+                    // and the jump target is the LOOP-LEVEL body —
+                    // `if <guards>: continue` with the body outside
+                    let merged = self.merge_guard_values(std::mem::take(&mut values));
+                    return Some((merged, next, tramp_off));
+                }
                 body_start = next;
                 break;
             }
@@ -7484,6 +8109,8 @@ impl<'a> Ctx<'a> {
                 jins.op,
                 Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
             );
+            // the chain advances through this jump: PJIT -> operand true
+            // continues the chain (positive); PJIF -> negated
             values.push(if jt {
                 operand
             } else {
@@ -7580,10 +8207,68 @@ impl<'a> Ctx<'a> {
         // padding is mandatory: pre-3.14 `if c: continue` shapes have a
         // bare back jump after the operand jump and belong to the
         // historical machinery.
-        if self.version.at_least(3, 12) {
+        if self.version.at_least(3, 11) {
             if let Some((merged, body_start, body_end)) =
                 self.try_guard_chain(&cond, jump_if_true, target)
             {
+                if std::env::var("PYCDC_GC_DBG").is_ok() {
+                    eprintln!("GCDBG: guard-chain fire off={} jit={} target={} -> merged={:?} body=[{},{})",
+                        self.cur_offset, jump_if_true, target, merged, body_start, body_end);
+                }
+                if body_end <= body_start {
+                    // degenerate guard: the whole fall-through IS the
+                    // continue trampoline. When the pass-jump target is a
+                    // BREAK block (an exit jump, not the loop-level body),
+                    // keep the historical rendering: `if <pass cond>:
+                    // break` over the trampoline — the inverted-continue
+                    // form would drop the break entirely.
+                    let pass_is_break = jump_if_true
+                        && (self.find_loop_exit(target).is_some()
+                            || self
+                                .idx_of
+                                .get(&target)
+                                .and_then(|&ti| self.instrs.get(ti))
+                                .map_or(false, |ins| {
+                                    matches!(
+                                        ins.op,
+                                        Op::JUMP_FORWARD
+                                            | Op::JUMP
+                                            | Op::JUMP_ABSOLUTE
+                                            | Op::JUMP_BACKWARD
+                                    ) && ins
+                                        .target
+                                        .map_or(false, |t| {
+                                            t > ins.offset
+                                                && self.find_loop_exit(t).is_some()
+                                        })
+                                }));
+                    if pass_is_break {
+                        let c = simplify_not(merged.clone());
+                        self.push_stmt(Stmt::If {
+                            cond: c,
+                            body: vec![Stmt::Break],
+                            orelse: Vec::new(),
+                        });
+                        // resume past the break block's exit jump
+                        let after = self
+                            .idx_of
+                            .get(&target)
+                            .and_then(|&ti| self.instrs.get(ti))
+                            .and_then(|ins| ins.target)
+                            .unwrap_or(body_start);
+                        self.skip_until = Some(after);
+                        return;
+                    }
+                    // emit `if <merged>: continue` and resume at the
+                    // loop-level body that follows the trampoline
+                    self.push_stmt(Stmt::If {
+                        cond: merged,
+                        body: vec![Stmt::Continue],
+                        orelse: Vec::new(),
+                    });
+                    self.skip_until = Some(body_start);
+                    return;
+                }
                 let mut blk = Block::new(BlockType::If, body_start, body_end);
                 blk.cond = Some(merged);
                 blk.cond_set = true;
@@ -7884,10 +8569,14 @@ impl<'a> Ctx<'a> {
                         return;
                     }
                     if jump_if_true && self.blocks[i].cond_set {
-                        // 3.10+ rotated while back edge: closes the loop
-                        while self.blocks.len() > i {
+                        // 3.10+ rotated while back edge: close inner
+                        // blocks, then the loop EXACTLY ONCE — its close
+                        // may push a WhileElse continuation that must stay
+                        // open for the else region that follows
+                        while self.blocks.len() > i + 1 {
                             self.force_close_top(target);
                         }
+                        self.force_close_top(target);
                         return;
                     }
                     // backward cond jump to the loop top (`if c: break` /
@@ -8275,6 +8964,10 @@ impl<'a> Ctx<'a> {
     /// link falls back to the shared else-arm offset.
     fn chain_then_merge_from(&self, from: usize, target: usize) -> Option<usize> {
         let ci = self.idx_of.get(&from).copied()?;
+        // a consumer only ends the arm AFTER the link's comparison has
+        // been seen — a CALL inside the NEXT OPERAND's computation (e.g.
+        // `r = a() < b() < c()`) is part of the arm, not its merge
+        let mut link_done = false;
         for ins in self.instrs.iter().skip(ci) {
             if ins.offset >= target {
                 return None;
@@ -8303,6 +8996,10 @@ impl<'a> Ctx<'a> {
                 | Op::ROT_N
                 | Op::DUP_TOP
                 | Op::DUP_TOP_TWO => continue,
+                Op::COMPARE_OP | Op::IS_OP | Op::CONTAINS_OP => {
+                    link_done = true;
+                    continue;
+                }
                 // consumers of the link value end the arm right here —
                 // CALL is value-pure in general but eats the chain result
                 // as an argument, so it must not be scanned past
@@ -8320,7 +9017,12 @@ impl<'a> Ctx<'a> {
                 | Op::STORE_DEREF
                 | Op::STORE_ATTR
                 | Op::STORE_SUBSCR
-                | Op::STORE_GLOBAL => return Some(ins.offset),
+                | Op::STORE_GLOBAL => {
+                    if link_done {
+                        return Some(ins.offset);
+                    }
+                    continue;
+                }
                 op if is_pure_value_op(op) => continue,
                 _ => return Some(ins.offset),
             }
@@ -9586,11 +10288,47 @@ fn const_value_eq(a: &PyObject, b: &PyObject) -> bool {
 
 /// Merge `a op1 b` + `b op2 c` (sharing operand b) into a chained
 /// comparison `a op1 b op2 c`.
+/// A chained-comparison link simulated on a scratch stack starts from an
+/// empty stack, but the real stack still holds the shared middle operand
+/// (left there by the SWAP/COPY setup) — the sim's underflow placeholder
+/// `???` appears as the link's first operand. Replace it with the previous
+/// link's last operand.
+fn repair_chain_operand(prev: &ExprRef, sim: ExprRef) -> ExprRef {
+    fn is_placeholder(e: &ExprRef) -> bool {
+        matches!(&**e, Expr::Name(n) if n.contains("???"))
+    }
+    if !is_placeholder(&sim) {
+        // placeholder may sit inside a comparison
+        if let Expr::Compare { operands, ops } = &*sim {
+            if operands.first().map_or(false, is_placeholder) {
+                if let Expr::Compare { operands: po, .. } = &**prev {
+                    if let Some(shared) = po.last() {
+                        let mut fixed = operands.clone();
+                        fixed[0] = shared.clone();
+                        return Rc::new(Expr::Compare {
+                            operands: fixed,
+                            ops: ops.clone(),
+                        });
+                    }
+                }
+            }
+        }
+        return sim;
+    }
+    if let Expr::Compare { operands: po, .. } = &**prev {
+        if let Some(shared) = po.last() {
+            return shared.clone();
+        }
+    }
+    sim
+}
+
 fn merge_chain_compare(cond: &ExprRef, v: &ExprRef) -> Option<ExprRef> {
     let Expr::Compare { operands, ops } = &**cond else {
         return None;
     };
-    if operands.len() != 2 || ops.len() != 1 {
+    // the left side may already be a merged multi-operand chain
+    if operands.len() < 2 || ops.len() + 1 != operands.len() {
         return None;
     }
     let Expr::Compare { operands: o2, ops: ops2 } = &**v else {
@@ -9610,7 +10348,9 @@ fn merge_chain_compare(cond: &ExprRef, v: &ExprRef) -> Option<ExprRef> {
         (Expr::Attribute { value: v1, attr: a1 }, Expr::Attribute { value: v2, attr: a2 }) => {
             a1 == a2 && expr_eq(v1, v2)
         }
-        _ => false,
+        // calls/subscripts/etc: deep structural equality (side-effecting
+        // operands must not be duplicated across the merged chain)
+        _ => expr_eq(&operands[1], &o2[0]),
     };
     if !shared {
         return None;
@@ -9737,6 +10477,51 @@ fn expr_eq(a: &ExprRef, b: &ExprRef) -> bool {
         }
         (Expr::Subscript { value: v1, index: i1 }, Expr::Subscript { value: v2, index: i2 }) => {
             expr_eq(v1, v2) && expr_eq(i1, i2)
+        }
+        (Expr::Const(c1), Expr::Const(c2)) => Rc::ptr_eq(c1, c2) || const_value_eq(c1, c2),
+        (
+            Expr::Call {
+                func: f1,
+                args: a1,
+                keywords: k1,
+                star_args: s1,
+                star_kwargs: w1,
+            },
+            Expr::Call {
+                func: f2,
+                args: a2,
+                keywords: k2,
+                star_args: s2,
+                star_kwargs: w2,
+            },
+        ) => {
+            s1.is_none() == s2.is_none()
+                && w1.is_none() == w2.is_none()
+                && (s1.is_none() || expr_eq(s1.as_ref().unwrap(), s2.as_ref().unwrap()))
+                && (w1.is_none() || expr_eq(w1.as_ref().unwrap(), w2.as_ref().unwrap()))
+                && expr_eq(f1, f2)
+                && a1.len() == a2.len()
+                && a1.iter().zip(a2).all(|(x, y)| expr_eq(x, y))
+                && k1.len() == k2.len()
+                && k1.iter()
+                    .zip(k2)
+                    .all(|((n1, v1), (n2, v2))| n1 == n2 && expr_eq(v1, v2))
+        }
+        (
+            Expr::Binary { op: o1, left: l1, right: r1 },
+            Expr::Binary { op: o2, left: l2, right: r2 },
+        ) => o1 == o2 && expr_eq(l1, l2) && expr_eq(r1, r2),
+        (Expr::Unary { op: o1, operand: x1 }, Expr::Unary { op: o2, operand: x2 }) => {
+            o1 == o2 && expr_eq(x1, x2)
+        }
+        (Expr::Tuple(x1), Expr::Tuple(x2)) | (Expr::List(x1), Expr::List(x2)) => {
+            x1.len() == x2.len() && x1.iter().zip(x2).all(|(u, v)| expr_eq(u, v))
+        }
+        (Expr::Compare { operands: o1, ops: s1 }, Expr::Compare { operands: o2, ops: s2 }) => {
+            s1 == s2 && o1.len() == o2.len() && o1.iter().zip(o2).all(|(u, v)| expr_eq(u, v))
+        }
+        (Expr::BoolOp { op: o1, values: v1 }, Expr::BoolOp { op: o2, values: v2 }) => {
+            o1 == o2 && v1.len() == v2.len() && v1.iter().zip(v2).all(|(u, v)| expr_eq(u, v))
         }
         _ => Rc::ptr_eq(a, b),
     }
@@ -9952,12 +10737,33 @@ impl<'a> Ctx<'a> {
             && self.legacy_handler.is_none()
             && self.legacy_try.is_none()
         {
+            // 3.11 returns out of nested loops drop ONE iterator per
+            // enclosing loop: a run of SWAP/POP pairs precedes the RETURN
             let next_returns = self
                 .idx_of
                 .get(&self.cur_offset)
-                .and_then(|&pi| self.instrs.get(pi + 1))
-                .map_or(false, |nx| {
-                    matches!(nx.op, Op::RETURN_VALUE | Op::RETURN_CONST)
+                .map_or(false, |&pi| {
+                    let mut k = pi + 1;
+                    let mut steps = 0;
+                    while let Some(nx) = self.instrs.get(k) {
+                        if matches!(nx.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                            return true;
+                        }
+                        if !matches!(
+                            nx.op,
+                            Op::SWAP
+                                | Op::ROT_TWO
+                                | Op::POP_TOP
+                                | Op::NOP
+                                | Op::NOT_TAKEN
+                        ) || steps >= 8
+                        {
+                            return false;
+                        }
+                        k += 1;
+                        steps += 1;
+                    }
+                    false
                 });
             if next_returns {
                 return;
@@ -10672,6 +11478,49 @@ impl<'a> Ctx<'a> {
     }
 
     fn emit_return(&mut self, e: Option<ExprRef>) {
+        // 3.11+: the exception-table region often ends exactly at the
+        // RETURN that closes the try body (only the value computation is
+        // protected). If the pending body is empty and the value was
+        // computed inside the region, this return IS the try body — flush
+        // the chain first so the return lands inside it.
+        if self.version.at_least(3, 11)
+            && self.legacy_handler.is_none()
+            && matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
+        {
+            let at_region_edge = self
+                .pending_try_ctx
+                .as_ref()
+                .map_or(false, |tc| {
+                    self.cur_offset >= tc.start && self.cur_offset <= tc.region_end + 8
+                });
+            if at_region_edge
+                && self
+                    .pending_try_body
+                    .last()
+                    .map_or(false, |b| b.is_empty())
+                && !(self.code.name == "<module>"
+                    && match &e {
+                        None => true,
+                        Some(v) => matches!(&**v, Expr::Const(o) if matches!(&**o, PyObject::None)),
+                    })
+            {
+                if let Some(tc) = self.pending_try_ctx.take() {
+                    let at = self.cur_offset;
+                    let value = match e {
+                        Some(v) => match &*v {
+                            Expr::Const(o) if matches!(&**o, PyObject::None) => None,
+                            _ => Some(v),
+                        },
+                        None => None,
+                    };
+                    if let Some(body) = self.pending_try_body.last_mut() {
+                        body.push(Stmt::Return(value));
+                    }
+                    self.emit_try_tail(tc, at);
+                    return;
+                }
+            }
+        }
         // 3.8-3.10 function-tail try/finally: the inline finally body ends
         // with LOAD None; RETURN — the epilogue return. Flush the collected
         // try/finally first (the walk ends here), drop the return, and skip
@@ -10700,6 +11549,29 @@ impl<'a> Ctx<'a> {
         // success-path statements were redirected into finalbody; flush
         // the try so it lands BEFORE the return, skip the out-of-line
         // finally copy, and emit the return after it.
+        // 3.8-3.10: `try: return v; except ...` — the success-path return
+        // sits between the body's POP_BLOCK and the handler chain; it is
+        // the try body's last statement (its value load was protected).
+        // Route it into the collected body, not past the try.
+        if self.legacy_handler.is_none()
+            && self.cur_offset
+                < self.legacy_try.as_ref().map(|l| l.handler_start).unwrap_or(0)
+            && self.legacy_try.as_ref().map_or(false, |l| {
+                !l.has_finally && l.handlers.is_empty() && l.orelse.is_empty()
+            })
+        {
+            let value = match e {
+                Some(v) => match &*v {
+                    Expr::Const(o) if matches!(&**o, PyObject::None) => None,
+                    _ => Some(v),
+                },
+                None => None,
+            };
+            if let Some(l) = self.legacy_try.as_mut() {
+                l.body.push(Stmt::Return(value));
+            }
+            return;
+        }
         if self.legacy_handler.is_none()
             && self.legacy_try.as_ref().map_or(false, |l| {
                 l.has_finally
@@ -13812,15 +14684,45 @@ impl<'a> Ctx<'a> {
                     if let Some(e) = popped {
                         if let Expr::Const(o) = &*e {
                             if let PyObject::Code(c) = &**o {
-                                stack.push(Rc::new(Expr::Function(Rc::new(FunctionDef {
-                                    name: c.name.clone(),
-                                    code: c.clone(),
-                                    params: Parameters::empty(),
-                                    decorators: Vec::new(),
-                                    returns: None,
-                                    is_async: false,
-                                }))));
-                                handled = true;
+                                if c.name == "<lambda>" {
+                                    // lambda element inside a comprehension:
+                                    // build the real Lambda (params come from
+                                    // the code object; pre-3.13 defaults ride
+                                    // the MAKE_FUNCTION flags)
+                                    let c2 = c.clone();
+                                    let defaults_e = if inst.arg & 0x01 != 0 {
+                                        stack.pop()
+                                    } else {
+                                        None
+                                    };
+                                    let kwdefaults_e = if inst.arg & 0x02 != 0 {
+                                        stack.pop()
+                                    } else {
+                                        None
+                                    };
+                                    let params = self.build_params(
+                                        &c2,
+                                        defaults_e,
+                                        kwdefaults_e,
+                                        None,
+                                    );
+                                    let body = self.lambda_body(&c2);
+                                    stack.push(Rc::new(Expr::Lambda {
+                                        params: Box::new(params),
+                                        body,
+                                    }));
+                                    handled = true;
+                                } else {
+                                    stack.push(Rc::new(Expr::Function(Rc::new(FunctionDef {
+                                        name: c.name.clone(),
+                                        code: c.clone(),
+                                        params: Parameters::empty(),
+                                        decorators: Vec::new(),
+                                        returns: None,
+                                        is_async: false,
+                                    }))));
+                                    handled = true;
+                                }
                             }
                         }
                         if !handled {
