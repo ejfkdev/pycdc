@@ -145,11 +145,7 @@ class DictMixin:
             yield v
 
     def values(self):
-        _[1] = []
-        for _, v in self.iteritems():
-            pass
-        del _[1]
-        return _[1]
+        return [v for _, v in self.iteritems()]
 
     def items(self):
         return list(self.iteritems())

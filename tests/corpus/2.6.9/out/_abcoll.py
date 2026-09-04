@@ -330,18 +330,10 @@ class Mapping(Sized, Iterable, Container):
         return list(self)
 
     def items(self):
-        _[1] = []
-        for key in self:
-            pass
-        del _[1]
-        return _[1]
+        return [(key, self[key]) for key in self]
 
     def values(self):
-        _[1] = []
-        for key in self:
-            pass
-        del _[1]
-        return _[1]
+        return [self[key] for key in self]
 
     __hash__ = None
     def __eq__(self, other):

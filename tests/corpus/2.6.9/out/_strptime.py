@@ -85,30 +85,14 @@ class LocaleTime(object):
         return seq
 
     def __calc_weekday(self):
-        _[1] = []
-        for i in range(7):
-            pass
-        del _[1]
-        a_weekday = _[1]
-        _[2] = []
-        for i in range(7):
-            pass
-        del _[2]
-        f_weekday = _[2]
+        a_weekday = range(7)
+        f_weekday = range(7)
         self.a_weekday = a_weekday
         self.f_weekday = f_weekday
 
     def __calc_month(self):
-        _[1] = []
-        for i in range(13):
-            pass
-        del _[1]
-        a_month = _[1]
-        _[2] = []
-        for i in range(13):
-            pass
-        del _[2]
-        f_month = _[2]
+        a_month = range(13)
+        f_month = range(13)
         self.a_month = a_month
         self.f_month = f_month
 
@@ -126,12 +110,7 @@ class LocaleTime(object):
         date_time[1] = time.strftime('%x', time_tuple).lower()
         date_time[2] = time.strftime('%X', time_tuple).lower()
         replacement_pairs = [('%', '%%'), (self.f_weekday[2], '%A'), (self.f_month[3], '%B'), (self.a_weekday[2], '%a'), (self.a_month[3], '%b'), (self.am_pm[1], '%p'), ('1999', '%Y'), ('99', '%y'), ('22', '%H'), ('44', '%M'), ('55', '%S'), ('76', '%j'), ('17', '%d'), ('03', '%m'), ('3', '%m'), ('2', '%w'), ('10', '%I')]
-        _[1] = []
-        for tz_values in self.timezone:
-            for tz in tz_values:
-                pass
-        del _[1]
-        [](_[1])
+        replacement_pairs.extend([(tz, '%Z') for tz_values in self.timezone for tz in tz_values])
         for offset, directive in (0, '%c'), (1, '%x'), (2, '%X'):
             current_format = date_time[offset]
             for old, new in replacement_pairs:

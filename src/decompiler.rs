@@ -4521,6 +4521,20 @@ impl<'a> Ctx<'a> {
             | Op::LOAD_FAST_AND_CLEAR
             | Op::LOAD_FAST_BORROW => {
                 let n = self.local_name(arg as usize);
+                // 2.6 function-level inline comprehension: the `_[N]`
+                // accumulator is a FAST local — same handling as the
+                // module-level STORE_NAME variant
+                if self.is_comp_temp_name(&n) {
+                    if self.inline_comp.is_some() {
+                        return true;
+                    }
+                    if let Some(v) = self.py26_temps.get(&n).cloned() {
+                        self.stack.push(v);
+                    } else {
+                        self.push(self.name_expr(n));
+                    }
+                    return true;
+                }
                 self.push(self.name_expr(n));
                 true
             }
@@ -4541,6 +4555,12 @@ impl<'a> Ctx<'a> {
             }
             Op::STORE_FAST | Op::STORE_FAST_MAYBE_NULL => {
                 let n = self.local_name(arg as usize);
+                if self.is_comp_temp_name(&n) {
+                    let v = self.pop_store_value();
+                    self.py26_temps.insert(n.clone(), v);
+                    self.last_py26_temp = Some(n);
+                    return true;
+                }
                 if self.walrus_at_name(inst, &n) {
                     let val = self.pop_expr();
                     self.pop(); // the duplicated original
@@ -4578,6 +4598,10 @@ impl<'a> Ctx<'a> {
             }
             Op::DELETE_FAST => {
                 let n = self.local_name(arg as usize);
+                if self.is_comp_temp_name(&n) {
+                    self.py26_temps.remove(&n);
+                    return true;
+                }
                 self.emit_delete(self.name_expr(n));
                 true
             }
@@ -17271,6 +17295,12 @@ impl<'a> Ctx<'a> {
                 Op::STORE_NAME
                     if self.version.major == 2
                         && self.const_name(inst.arg as usize).starts_with("_[") =>
+                {
+                    continue;
+                }
+                Op::STORE_FAST
+                    if self.version.major == 2
+                        && self.local_name(inst.arg as usize).starts_with("_[") =>
                 {
                     continue;
                 }

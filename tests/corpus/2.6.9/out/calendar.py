@@ -40,11 +40,7 @@ class _localized_month:
     def __getitem__(self, i):
         funcs = self._months[i]
         if isinstance(i, slice):
-            _[1] = []
-            for f in funcs:
-                pass
-            del _[1]
-            return _[1]
+            return [f(self.format) for f in funcs]
         return funcs(self.format)
 
     def __len__(self):
@@ -59,11 +55,7 @@ class _localized_day:
     def __getitem__(self, i):
         funcs = self._days[i]
         if isinstance(i, slice):
-            _[1] = []
-            for f in funcs:
-                pass
-            del _[1]
-            return _[1]
+            return [f(self.format) for f in funcs]
         return funcs(self.format)
 
     def __len__(self):
@@ -179,11 +171,7 @@ class Calendar(object):
         """
 
         dates = list(self.itermonthdates(year, month))
-        _[1] = []
-        for i in range(0, len(dates), 7):
-            pass
-        del _[1]
-        return _[1]
+        return [dates[i:i + 7] for i in range(0, len(dates), 7)]
 
     def monthdays2calendar(self, year, month):
         """
@@ -194,11 +182,7 @@ class Calendar(object):
         """
 
         days = list(self.itermonthdays2(year, month))
-        _[1] = []
-        for i in range(0, len(days), 7):
-            pass
-        del _[1]
-        return _[1]
+        return [days[i:i + 7] for i in range(0, len(days), 7)]
 
     def monthdayscalendar(self, year, month):
         """
@@ -207,11 +191,7 @@ class Calendar(object):
         """
 
         days = list(self.itermonthdays(year, month))
-        _[1] = []
-        for i in range(0, len(days), 7):
-            pass
-        del _[1]
-        return _[1]
+        return [days[i:i + 7] for i in range(0, len(days), 7)]
 
     def yeardatescalendar(self, year, width=3):
         '''
@@ -221,16 +201,10 @@ class Calendar(object):
         days. Days are datetime.date objects.
         '''
 
-        _[1] = []
         for i in range(January, January + 12):
             pass
-        del _[1]
-        months = _[1]
-        _[2] = []
-        for i in range(0, len(months), width):
-            pass
-        del _[2]
-        return _[2]
+        months = []
+        return [months[i:i + width] for i in range(0, len(months), width)]
 
     def yeardays2calendar(self, year, width=3):
         '''
@@ -240,16 +214,10 @@ class Calendar(object):
         zero.
         '''
 
-        _[1] = []
         for i in range(January, January + 12):
             pass
-        del _[1]
-        months = _[1]
-        _[2] = []
-        for i in range(0, len(months), width):
-            pass
-        del _[2]
-        return _[2]
+        months = []
+        return [months[i:i + width] for i in range(0, len(months), width)]
 
     def yeardayscalendar(self, year, width=3):
         '''
@@ -258,16 +226,10 @@ class Calendar(object):
         Day numbers outside this month are zero.
         '''
 
-        _[1] = []
         for i in range(January, January + 12):
             pass
-        del _[1]
-        months = _[1]
-        _[2] = []
-        for i in range(0, len(months), width):
-            pass
-        del _[2]
-        return _[2]
+        months = []
+        return [months[i:i + width] for i in range(0, len(months), width)]
 
 
 class TextCalendar(Calendar):
@@ -533,10 +495,7 @@ class LocaleTextCalendar(TextCalendar):
         self.locale = locale
 
     def formatweekday(self, day, width):
-        with TimeEncoding(self.locale):
-            _[1] = TimeEncoding(self.locale).__enter__()
-            del _[1]
-            encoding = _[1]
+        with TimeEncoding(self.locale) as encoding:
             if width >= 9:
                 names = day_name
             else:
@@ -547,10 +506,7 @@ class LocaleTextCalendar(TextCalendar):
             return name[:width].center(width)
 
     def formatmonthname(self, theyear, themonth, width, withyear=True):
-        with TimeEncoding(self.locale):
-            _[1] = TimeEncoding(self.locale).__enter__()
-            del _[1]
-            encoding = _[1]
+        with TimeEncoding(self.locale) as encoding:
             s = month_name[themonth]
             if encoding is not None:
                 s = s.decode(encoding)
@@ -574,20 +530,14 @@ class LocaleHTMLCalendar(HTMLCalendar):
         self.locale = locale
 
     def formatweekday(self, day):
-        with TimeEncoding(self.locale):
-            _[1] = TimeEncoding(self.locale).__enter__()
-            del _[1]
-            encoding = _[1]
+        with TimeEncoding(self.locale) as encoding:
             s = day_abbr[day]
             if encoding is not None:
                 s = s.decode(encoding)
             return '<th class="%s">%s</th>' % (self.cssclasses[day], s)
 
     def formatmonthname(self, theyear, themonth, withyear=True):
-        with TimeEncoding(self.locale):
-            _[1] = TimeEncoding(self.locale).__enter__()
-            del _[1]
-            encoding = _[1]
+        with TimeEncoding(self.locale) as encoding:
             s = month_name[themonth]
             if encoding is not None:
                 s = s.decode(encoding)

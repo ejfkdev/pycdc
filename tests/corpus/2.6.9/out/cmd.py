@@ -232,12 +232,7 @@ class Cmd:
 
     def completenames(self, text, *ignored):
         dotext = 'do_' + text
-        _[1] = []
-        for a in self.get_names():
-            if a.startswith(dotext):
-                continue
-        del _[1]
-        return _[1]
+        return [a[3:] for a in self.get_names() if a.startswith(dotext)]
 
     def complete(self, text, state):
         """Return the next possible completion for 'text'.
@@ -343,12 +338,7 @@ class Cmd:
         if not list:
             self.stdout.write('<empty>\n')
             return
-        _[1] = []
-        for i in range(len(list)):
-            if not isinstance(list[i], str):
-                continue
-        del _[1]
-        nonstrings = _[1]
+        nonstrings = [i for i in range(len(list)) if isinstance(list[i], str)]
         if nonstrings:
             raise TypeError('list[i] not a string for i in %s' % ', '.join(map(str, nonstrings)))
         size = len(list)

@@ -523,16 +523,8 @@ class ConfigParser(RawConfigParser):
         if '__name__' in options:
             options.remove('__name__')
         if raw:
-            _[1] = []
-            for option in options:
-                pass
-            del _[1]
-            return _[1]
-        _[2] = []
-        for option in options:
-            pass
-        del _[2]
-        return _[2]
+            return [(option, d[option]) for option in options]
+        return [(option, self._interpolate(section, option, d[option], d)) for option in options]
 
     def _interpolate(self, section, option, rawval, vars):
         value = rawval

@@ -431,11 +431,7 @@ def compact_traceback():
         tb = tb.tb_next
     del tb
     file, function, line = tbinfo[-1]
-    _[1] = []
-    for x in tbinfo:
-        pass
-    del _[1]
-    info = [](_[1])
+    info = ' '.join(['[%s|%s|%s]' % x for x in tbinfo])
     return (file, function, line), t, v, info
 
 def close_all(map=None, ignore_all=False):

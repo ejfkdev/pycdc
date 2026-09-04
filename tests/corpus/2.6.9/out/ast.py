@@ -78,11 +78,7 @@ def dump(node, annotate_fields=True, include_attributes=False):
 
     def _format(node):
         if isinstance(node, AST):
-            _[1] = []
-            for a, b in iter_fields(node):
-                pass
-            del _[1]
-            fields = _[1]
+            fields = [(a, _format(b)) for a, b in iter_fields(node)]
             rv = '%s(%s' % (node.__class__.__name__, ', '.join(('%s=%s' % field for field in fields) if annotate_fields else (b for a, b in fields)))
             if include_attributes:
                 if node._attributes:
@@ -90,7 +86,6 @@ def dump(node, annotate_fields=True, include_attributes=False):
                         pass
                     rv += ', ' if ', ' else ' '
                     rv += ', '.join(('%s=%s' % (a, _format(getattr(node, a))) for a in node._attributes))
-                []
             return rv + ')'
         if isinstance(node, list):
             return '[%s]' % ', '.join((_format(x) for x in node))
