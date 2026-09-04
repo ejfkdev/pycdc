@@ -14,13 +14,13 @@ import urlparse
 from warnings import filterwarnings
 from warnings import catch_warnings
 from warnings import warn
-catch_warnings().__enter__()
-if sys.py3kwarning:
-    filterwarnings('ignore', '.*mimetools has been removed', DeprecationWarning)
-import mimetools
-if sys.py3kwarning:
-    filterwarnings('ignore', '.*rfc822 has been removed', DeprecationWarning)
-import rfc822
+with catch_warnings():
+    if sys.py3kwarning:
+        filterwarnings('ignore', '.*mimetools has been removed', DeprecationWarning)
+    import mimetools
+    if sys.py3kwarning:
+        filterwarnings('ignore', '.*rfc822 has been removed', DeprecationWarning)
+    import rfc822
 try:
     from cStringIO import StringIO
 except ImportError:

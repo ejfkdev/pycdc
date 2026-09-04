@@ -24,10 +24,10 @@ import time
 import socket
 from warnings import filterwarnings
 from warnings import catch_warnings
-catch_warnings().__enter__()
-if sys.py3kwarning:
-    filterwarnings('ignore', '.*mimetools has been removed', DeprecationWarning)
-import mimetools
+with catch_warnings():
+    if sys.py3kwarning:
+        filterwarnings('ignore', '.*mimetools has been removed', DeprecationWarning)
+    import mimetools
 import SocketServer
 DEFAULT_ERROR_MESSAGE = '<head>\n<title>Error response</title>\n</head>\n<body>\n<h1>Error response</h1>\n<p>Error code %(code)d.\n<p>Message: %(message)s.\n<p>Error code explanation: %(code)s = %(explain)s.\n</body>\n'
 DEFAULT_ERROR_CONTENT_TYPE = 'text/html'

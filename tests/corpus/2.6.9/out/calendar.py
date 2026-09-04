@@ -32,11 +32,7 @@ February = 2
 mdays = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
 class _localized_month:
-    _[1] = []
-    for i in range(12):
-        pass
-    del _[1]
-    _months = _[1]
+    _months = [datetime.date(2001, i + 1, 1).strftime for i in range(12)]
     _months.insert(0, (lambda x: ''))
     def __init__(self, format):
         self.format = format
@@ -56,11 +52,7 @@ class _localized_month:
 
 
 class _localized_day:
-    _[1] = []
-    for i in range(7):
-        pass
-    del _[1]
-    _days = _[1]
+    _days = [datetime.date(2001, 1, i + 1).strftime for i in range(7)]
     def __init__(self, format):
         self.format = format
 
@@ -541,28 +533,30 @@ class LocaleTextCalendar(TextCalendar):
         self.locale = locale
 
     def formatweekday(self, day, width):
-        _[1] = TimeEncoding(self.locale).__enter__()
-        del _[1]
-        encoding = _[1]
-        if width >= 9:
-            names = day_name
-        else:
-            names = day_abbr
-        name = names[day]
-        if encoding is not None:
-            name = name.decode(encoding)
-        return name[:width].center(width)
+        with TimeEncoding(self.locale):
+            _[1] = TimeEncoding(self.locale).__enter__()
+            del _[1]
+            encoding = _[1]
+            if width >= 9:
+                names = day_name
+            else:
+                names = day_abbr
+            name = names[day]
+            if encoding is not None:
+                name = name.decode(encoding)
+            return name[:width].center(width)
 
     def formatmonthname(self, theyear, themonth, width, withyear=True):
-        _[1] = TimeEncoding(self.locale).__enter__()
-        del _[1]
-        encoding = _[1]
-        s = month_name[themonth]
-        if encoding is not None:
-            s = s.decode(encoding)
-        if withyear:
-            s = '%s %r' % (s, theyear)
-        return s.center(width)
+        with TimeEncoding(self.locale):
+            _[1] = TimeEncoding(self.locale).__enter__()
+            del _[1]
+            encoding = _[1]
+            s = month_name[themonth]
+            if encoding is not None:
+                s = s.decode(encoding)
+            if withyear:
+                s = '%s %r' % (s, theyear)
+            return s.center(width)
 
 
 class LocaleHTMLCalendar(HTMLCalendar):
@@ -580,24 +574,26 @@ class LocaleHTMLCalendar(HTMLCalendar):
         self.locale = locale
 
     def formatweekday(self, day):
-        _[1] = TimeEncoding(self.locale).__enter__()
-        del _[1]
-        encoding = _[1]
-        s = day_abbr[day]
-        if encoding is not None:
-            s = s.decode(encoding)
-        return '<th class="%s">%s</th>' % (self.cssclasses[day], s)
+        with TimeEncoding(self.locale):
+            _[1] = TimeEncoding(self.locale).__enter__()
+            del _[1]
+            encoding = _[1]
+            s = day_abbr[day]
+            if encoding is not None:
+                s = s.decode(encoding)
+            return '<th class="%s">%s</th>' % (self.cssclasses[day], s)
 
     def formatmonthname(self, theyear, themonth, withyear=True):
-        _[1] = TimeEncoding(self.locale).__enter__()
-        del _[1]
-        encoding = _[1]
-        s = month_name[themonth]
-        if encoding is not None:
-            s = s.decode(encoding)
-        if withyear:
-            s = '%s %s' % (s, theyear)
-        return '<tr><th colspan="7" class="month">%s</th></tr>' % s
+        with TimeEncoding(self.locale):
+            _[1] = TimeEncoding(self.locale).__enter__()
+            del _[1]
+            encoding = _[1]
+            s = month_name[themonth]
+            if encoding is not None:
+                s = s.decode(encoding)
+            if withyear:
+                s = '%s %s' % (s, theyear)
+            return '<tr><th colspan="7" class="month">%s</th></tr>' % s
 
 
 c = TextCalendar()

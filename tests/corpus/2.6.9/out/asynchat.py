@@ -142,10 +142,10 @@ class async_chat(asyncore.dispatcher):
     def initiate_send(self):
         while self.producer_fifo:
             try:
-                catch_warnings().__enter__()
-                if py3kwarning:
-                    filterwarnings('ignore', '.*buffer', DeprecationWarning)
-                data = buffer(first, 0, obs)
+                with catch_warnings():
+                    if py3kwarning:
+                        filterwarnings('ignore', '.*buffer', DeprecationWarning)
+                    data = buffer(first, 0, obs)
             except TypeError:
                 data = first.more()
                 if data:

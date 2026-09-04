@@ -4,11 +4,7 @@ import re
 import struct
 import binascii
 __all__ = ['encode', 'decode', 'encodestring', 'decodestring', 'b64encode', 'b64decode', 'b32encode', 'b32decode', 'b16encode', 'b16decode', 'standard_b64encode', 'standard_b64decode', 'urlsafe_b64encode', 'urlsafe_b64decode']
-_[1] = []
-for _x in range(256):
-    pass
-del _[1]
-_translation = _[1]
+_translation = [chr(_x) for _x in range(256)]
 EMPTYSTRING = ''
 
 def _translate(s, altchars):
@@ -94,16 +90,8 @@ def urlsafe_b64decode(s):
 _b32alphabet = {0: 'A', 9: 'J', 18: 'S', 27: '3', 1: 'B', 10: 'K', 19: 'T', 28: '4', 2: 'C', 11: 'L', 20: 'U', 29: '5', 3: 'D', 12: 'M', 21: 'V', 30: '6', 4: 'E', 13: 'N', 22: 'W', 31: '7', 5: 'F', 14: 'O', 23: 'X', 6: 'G', 15: 'P', 24: 'Y', 7: 'H', 16: 'Q', 25: 'Z', 8: 'I', 17: 'R', 26: '2'}
 _b32tab = _b32alphabet.items()
 _b32tab.sort()
-_[2] = []
-for k, v in _b32tab:
-    pass
-del _[2]
-_b32tab = _[2]
-_[3] = []
-for k, v in _b32alphabet.items():
-    pass
-del _[3]
-_b32rev = [](_[3])
+_b32tab = [v for k, v in _b32tab]
+_b32rev = dict([(v, long(k)) for k, v in _b32alphabet.items()])
 
 def b32encode(s):
     '''Encode a string using Base32.

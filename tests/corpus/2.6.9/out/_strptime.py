@@ -253,25 +253,25 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
     '''Return a time struct based on the input string and the format string.'''
 
     global _TimeRE_cache
-    _cache_lock.__enter__()
-    if _getlang() != _TimeRE_cache.locale_time.lang:
-        _TimeRE_cache = TimeRE()
-        _regex_cache.clear()
-    if len(_regex_cache) > _CACHE_MAX_SIZE:
-        _regex_cache.clear()
-    locale_time = _TimeRE_cache.locale_time
-    format_regex = _regex_cache.get(format)
-    if not format_regex:
-        try:
-            format_regex = _TimeRE_cache.compile(format)
-        except KeyError, err:
-            bad_directive = err.args[0]
-            if bad_directive == '\\':
-                bad_directive = '%'
-            raise ValueError("'%s' is a bad directive in format '%s'" % (bad_directive, format))
-        except IndexError:
-            raise ValueError("stray %% in format '%s'" % format)
-        _regex_cache[format] = format_regex
+    with _cache_lock:
+        if _getlang() != _TimeRE_cache.locale_time.lang:
+            _TimeRE_cache = TimeRE()
+            _regex_cache.clear()
+        if len(_regex_cache) > _CACHE_MAX_SIZE:
+            _regex_cache.clear()
+        locale_time = _TimeRE_cache.locale_time
+        format_regex = _regex_cache.get(format)
+        if not format_regex:
+            try:
+                format_regex = _TimeRE_cache.compile(format)
+            except KeyError, err:
+                bad_directive = err.args[0]
+                if bad_directive == '\\':
+                    bad_directive = '%'
+                raise ValueError("'%s' is a bad directive in format '%s'" % (bad_directive, format))
+            except IndexError:
+                raise ValueError("stray %% in format '%s'" % format)
+            _regex_cache[format] = format_regex
     found = format_regex.match(data_string)
     if not found:
         raise ValueError('time data %r does not match format %r' % (data_string, format))
@@ -383,3 +383,4 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
 def _strptime_time(data_string, format='%a %b %d %H:%M:%S %Y'):
     return _strptime(data_string, format)[0]
 
+# WARNING: Decompyle incomplete

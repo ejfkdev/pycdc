@@ -280,6 +280,10 @@ struct Ctx<'a> {
     /// py2 implicit-as store there binds an extra exception placeholder
     /// instead of capturing the clause name
     legacy_nest_depth: usize,
+    /// 2.6 compiler synthetic temps (`_[N]`): with-as targets and inline
+    /// comprehension accumulators stash/reload through them
+    py26_temps: HashMap<String, Sv>,
+    last_py26_temp: Option<String>,
     /// 3.3-3.7 swallowed `as`-cleanup wrappers: (SETUP offset, cleanup
     /// END_FINALLY offset) — that END_FINALLY must not be mistaken for
     /// the chain end, and the setup's normal-exit POP_BLOCK belongs to
@@ -527,6 +531,8 @@ pub fn decompile_in_scope(
         async_for_guard: None,
         legacy_nest: Vec::new(),
         legacy_nest_depth: 0,
+        py26_temps: HashMap::new(),
+        last_py26_temp: None,
         as_cleanup_wrappers: Vec::new(),
         used_exc_info: false,
         pending_gen_code: None,
@@ -3106,6 +3112,12 @@ impl<'a> Ctx<'a> {
             .unwrap_or_else(|| format!("/*bad-local-{idx}*/"))
     }
 
+    /// 2.6 comprehension accumulator temps (`_[1]` …) are compiler
+    /// synthetic names — no source statement ever references them
+    fn is_comp_temp_name(&self, n: &str) -> bool {
+        self.version.major == 2 && n.starts_with("_[") && n.ends_with(']')
+    }
+
     fn push_stmt(&mut self, stmt: Stmt) {
         // any other statement flushes a pending same-line store group first
         // to preserve source order
@@ -3237,6 +3249,20 @@ impl<'a> Ctx<'a> {
             }
             Op::LOAD_NAME => {
                 let n = self.const_name(arg as usize);
+                // 2.6 synthetic temp: inside an inline comprehension the
+                // accumulator reload is tracked by the comp model; outside
+                // (with-as target) the stashed value is reloaded
+                if self.is_comp_temp_name(&n) {
+                    if self.inline_comp.is_some() {
+                        return true;
+                    }
+                    if let Some(v) = self.py26_temps.get(&n).cloned() {
+                        self.stack.push(v);
+                    } else {
+                        self.push(self.name_expr(n));
+                    }
+                    return true;
+                }
                 self.push(self.name_expr(n));
                 true
             }
@@ -3358,6 +3384,14 @@ impl<'a> Ctx<'a> {
             }
             Op::STORE_NAME => {
                 let n = self.const_name(arg as usize);
+                // 2.6 inline comprehension accumulator stash (`_[N]`):
+                // synthetic name, no source statement
+                if self.is_comp_temp_name(&n) {
+                    let v = self.pop_store_value();
+                    self.py26_temps.insert(n.clone(), v);
+                    self.last_py26_temp = Some(n);
+                    return true;
+                }
                 if self.walrus_at_name(inst, &n) {
                     let val = self.pop_expr();
                     self.pop(); // the duplicated original
@@ -3373,6 +3407,10 @@ impl<'a> Ctx<'a> {
             }
             Op::DELETE_NAME => {
                 let n = self.const_name(arg as usize);
+                if self.is_comp_temp_name(&n) {
+                    self.py26_temps.remove(&n);
+                    return true;
+                }
                 self.emit_delete(self.name_expr(n));
                 true
             }
@@ -5361,6 +5399,44 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::SETUP_FINALLY => {
+                // 2.6 with statement: the enter result was stashed in a
+                // synthetic temp and the setup targets WITH_CLEANUP:
+                //   ctx; DUP_TOP; LOAD_ATTR __exit__; ROT_TWO;
+                //   LOAD_ATTR __enter__; CALL 0; STORE _[N];
+                //   SETUP_FINALLY -> WITH_CLEANUP; LOAD _[N]; DELETE; [STORE as]
+                if self.version.major == 2
+                    && inst.target.map_or(false, |t| {
+                        self.idx_of
+                            .get(&t)
+                            .map_or(false, |&ti| self.instrs[ti].op == Op::WITH_CLEANUP)
+                    })
+                {
+                    // the bound __exit__ sits on the stack; its receiver is
+                    // the context manager. The no-as form POP_TOPs it right
+                    // here instead of stashing it.
+                    let exit_e = self.pop_expr();
+                    let ctx_e = match &*exit_e {
+                        Expr::Attribute { value, .. } => value.clone(),
+                        _ => exit_e,
+                    };
+                    self.with_exits += 1;
+                    let item = WithItem {
+                        ctx: ctx_e,
+                        target: None,
+                    };
+                    let start = inst.end();
+                    let end = inst.target.unwrap_or(usize::MAX);
+                    let mut wb = Block::new(BlockType::With, start, end);
+                    wb.with_item = Some(item);
+                    self.blocks.push(wb);
+                    // the stashed enter result reloads as the placeholder
+                    // so the following store becomes the `as` target
+                    let ph = Sv::E(self.name_expr(WITH_RESULT_PLACEHOLDER));
+                    for (_, v) in self.py26_temps.iter_mut() {
+                        *v = ph.clone();
+                    }
+                    return true;
+                }
                 // <=3.10 async-for wrapper: SETUP_FINALLY targeting
                 // END_ASYNC_FOR is loop machinery, not a source-level
                 // try/finally — swallow it (GET_ANEXT opens the loop)
@@ -9066,6 +9142,30 @@ impl<'a> Ctx<'a> {
                     self.push_stmt(Stmt::Expr(e));
                     return;
                 }
+                // 2.6 `with ctx:` (no as): the enter result is POP_TOPped
+                // right before the with's SETUP_FINALLY — the With block
+                // already represents the statement
+                if self.version.major == 2 {
+                    let is_enter_call = matches!(&*e, Expr::Call { func, .. }
+                        if matches!(&**func, Expr::Attribute { attr, .. } if attr == "__enter__"));
+                    if is_enter_call {
+                        let next_is_with_setup = self
+                            .idx_of
+                            .get(&self.cur_offset)
+                            .and_then(|&pi| self.instrs.get(pi + 1))
+                            .map_or(false, |nx| {
+                                nx.op == Op::SETUP_FINALLY
+                                    && nx.target.map_or(false, |t| {
+                                        self.idx_of.get(&t).map_or(false, |&ti| {
+                                            self.instrs[ti].op == Op::WITH_CLEANUP
+                                        })
+                                    })
+                            });
+                        if next_is_with_setup {
+                            return;
+                        }
+                    }
+                }
                 // a with-result value discarded: `with ctx:` without as
                 if let Expr::Name(n) = &*e {
                     if n == WITH_RESULT_PLACEHOLDER || n == "/*generator*/" {
@@ -11796,8 +11896,7 @@ impl<'a> Ctx<'a> {
     fn detect_inline_comp(&self) -> Option<CompKind> {
         // PEP 709 inline comprehensions (3.12+) and py2.7 module-level
         // list/set/dict comprehensions share the same shape
-        let inline_era = self.version.at_least(3, 12)
-            || (self.version.major == 2 && self.version.at_least(2, 7));
+        let inline_era = self.version.at_least(3, 12) || self.version.major == 2;
         if !inline_era {
             return None;
         }
@@ -11838,11 +11937,19 @@ impl<'a> Ctx<'a> {
                 | Op::BUILD_LIST
                 | Op::DUP_TOP
                 | Op::COPY => {
+                    // 2.6 stashes the accumulator in a synthetic `_[N]`
+                    // name between BUILD_LIST and the loop
                     if matches!(inst.op, Op::BUILD_LIST | Op::BUILD_TUPLE) && inst.arg == 0 {
                         // empty collection build = comprehension accumulator
                         kind = Some(CompKind::List);
                         break;
                     }
+                    continue;
+                }
+                Op::STORE_NAME
+                    if self.version.major == 2
+                        && self.const_name(inst.arg as usize).starts_with("_[") =>
+                {
                     continue;
                 }
                 Op::BUILD_SET if inst.arg == 0 => {
