@@ -92,8 +92,8 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1549,
-   "ntotal": 1755,
+   "ndiff": 1494,
+   "ntotal": 1708,
    "detail": "line 168: orig ('LOAD_FAST_BORROW', 'executable') | got ('LOAD_CONST', 'None')\nline 176: orig ('NOP', '') | got ('LOAD_SMALL_INT', '')\nline 177: orig ('LOAD_SMALL_INT', '') | got ('LOAD_CONST', 'None')"
   },
   {
@@ -108,8 +108,8 @@
    "module": "_py_warnings",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2819,
-   "ntotal": 3195,
+   "ndiff": 2825,
+   "ntotal": 3197,
    "detail": "line 322: orig ('LOAD_GLOBAL', '_wm') | got ('NOP', '')\nline 323: orig ('LOAD_ATTR', 'filters') | got ('LOAD_GLOBAL', '_wm')\nline 324: orig ('RETURN_VALUE', '') | got ('LOAD_ATTR', 'filters')"
   },
   {
@@ -186,7 +186,7 @@
    "module": "bdb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3868,
+   "ndiff": 3907,
    "ntotal": 4001,
    "detail": "line 31: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 35: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 36: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_SMALL_INT', '')"
   },
@@ -226,8 +226,8 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1145,
-   "ntotal": 1451,
+   "ndiff": 1147,
+   "ntotal": 1452,
    "detail": "line 262: orig ('NOP', '') | got ('LOAD_GLOBAL', 'input + NULL')\nline 263: orig ('LOAD_GLOBAL', 'input + NULL') | got ('LOAD_FAST_BORROW', 'self')\nline 264: orig ('LOAD_FAST_BORROW', 'self') | got ('LOAD_ATTR', 'prompt')"
   },
   {

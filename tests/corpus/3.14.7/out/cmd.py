@@ -393,6 +393,8 @@ Columns are separated by two spaces (one was not legible enough).
                 totwidth += colwidth + 2
                 if not totwidth > displaywidth:
                     pass
+                else:
+                    break
             if not totwidth <= displaywidth:
                 pass
         nrows = len(list)

@@ -3527,7 +3527,23 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::LOAD_COMMON_CONSTANT => {
-                // 3.14+: 0 = None (other constants not emitted by compilers)
+                // 3.14+: 0 = None; 3/4 = built-in all/any, emitted only by
+                // the inline all/any-genexpr optimization guard:
+                //   <all>; COPY 1; LOAD_COMMON_CONSTANT all; IS_OP 0;
+                //   PJIF Lslow; NOT_TAKEN; POP_TOP; <inline genexpr loop
+                //   with early exits>; Lslow: PUSH_NULL; <genexpr>;
+                //   CALL 0; CALL 1  — both paths merge with one value.
+                // Divert to the slow path: it renders the plain
+                // `all(<genexpr>)` call via the existing machinery.
+                if (arg == 3 || arg == 4) && self.version.at_least(3, 14) {
+                    if let Some(slow) = self.inline_all_any_slow_path(arg == 3) {
+                        // drop the COPY 1 duplicate; the slow path expects
+                        // just the callable
+                        self.pop();
+                        self.skip_until = Some(slow);
+                        return true;
+                    }
+                }
                 if arg == 0 {
                     self.push(Rc::new(Expr::Const(Rc::new(PyObject::None))));
                 } else {
@@ -4947,14 +4963,44 @@ impl<'a> Ctx<'a> {
                 // the ENTIRE then-region of a just-opened If — let the
                 // fused-continue machinery below record the Continue and
                 // the close-time normalizer flip it to `if c: break`
+                // 3.14 `if c: break`: the PJIT hops over a break block
+                // whose head is a jump to the loop EXIT — a plain continue
+                // guard's back edge targets the loop top instead and must
+                // keep the fused-continue path.
+                let break_hop_target = match self.idx_of.get(&self.cur_offset) {
+                    Some(&bi0) => {
+                        let mut bj = bi0 + 1;
+                        while matches!(
+                            self.instrs.get(bj).map(|x| x.op),
+                            Some(Op::POP_TOP) | Some(Op::NOP) | Some(Op::NOT_TAKEN)
+                        ) {
+                            bj += 1;
+                        }
+                        match self.instrs.get(bj) {
+                            Some(j)
+                                if matches!(
+                                    j.op,
+                                    Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+                                ) && !j.is_backward =>
+                            {
+                                j.target
+                            }
+                            _ => None,
+                        }
+                    }
+                    None => None,
+                };
                 let degenerate_break_fusion = self
                     .blocks
                     .last()
                     .map(|t| {
                         t.kind == BlockType::If
-                            && t.start == self.cur_offset
                             && t.stmts.is_empty()
                             && t.short_circuit.is_none()
+                            && (t.start == self.cur_offset
+                                || (self.padding_only_between(t.start, self.cur_offset)
+                                    && break_hop_target
+                                        .map_or(false, |bt| self.find_loop_exit(bt).is_some())))
                     })
                     .unwrap_or(false);
                 if !degenerate_break_fusion
@@ -6186,6 +6232,86 @@ impl<'a> Ctx<'a> {
     /// `J1: PJIT L; <a-false rhs> J0: PJIF E; L: <rhs c> J2: PJIF E; then; E:`
     /// where J1's target region also ends in a cond jump to the same E.
     /// Returns the merged (cond, then_end) when the pattern matches.
+    /// 3.14 inline all/any guard: validate the fast-path shape and return
+    /// the slow-path (generic call) offset. `is_all` selects the expected
+    /// builtin constant index (3 = all, 4 = any).
+    fn inline_all_any_slow_path(&self, is_all: bool) -> Option<usize> {
+        let ci = self.idx_of.get(&self.cur_offset).copied()?;
+        // guard: COPY 1 before, IS_OP 0 + forward PJIF after
+        if self.instrs.get(ci.wrapping_sub(1)).map(|x| (x.op, x.arg))
+            != Some((Op::COPY, 1))
+        {
+            return None;
+        }
+        let isop = self.instrs.get(ci + 1)?;
+        if isop.op != Op::IS_OP || isop.arg != 0 {
+            return None;
+        }
+        let pjif = self.instrs.get(ci + 2)?;
+        if pjif.op != Op::POP_JUMP_IF_FALSE {
+            return None;
+        }
+        let slow = pjif.target?;
+        if slow <= pjif.offset {
+            return None;
+        }
+        let &si = self.idx_of.get(&slow)?;
+        if self.instrs.get(si).map(|x| x.op) != Some(Op::PUSH_NULL) {
+            return None;
+        }
+        // slow path: PUSH_NULL; LOAD_CONST <genexpr code>; MAKE_FUNCTION;
+        // <iterable>; GET_ITER; CALL 0; CALL 1
+        let lc = self.instrs.get(si + 1)?;
+        if lc.op != Op::LOAD_CONST {
+            return None;
+        }
+        match self.code.consts.get(lc.arg as usize).map(|o| &**o) {
+            Some(PyObject::Code(c)) if c.name == "<genexpr>" => {}
+            _ => return None,
+        }
+        if self.instrs.get(si + 2).map(|x| x.op) != Some(Op::MAKE_FUNCTION) {
+            return None;
+        }
+        let mut k = si + 3;
+        let mut saw_get_iter = false;
+        let mut call0 = None;
+        while let Some(ins) = self.instrs.get(k) {
+            match ins.op {
+                Op::GET_ITER => saw_get_iter = true,
+                Op::CALL if ins.arg == 0 => {
+                    call0 = Some(k);
+                    break;
+                }
+                op if is_pure_value_op(op) => {}
+                _ => return None,
+            }
+            k += 1;
+        }
+        let c0 = call0?;
+        if !saw_get_iter {
+            return None;
+        }
+        if self.instrs.get(c0 + 1).map(|x| (x.op, x.arg)) != Some((Op::CALL, 1)) {
+            return None;
+        }
+        // fast path [guard end, slow): must hold the inline generator loop
+        let fast_start = ci + 3;
+        let mut saw_for_iter = false;
+        for ins in self.instrs.iter().skip(fast_start) {
+            if ins.offset >= slow {
+                break;
+            }
+            if ins.op == Op::FOR_ITER {
+                saw_for_iter = true;
+            }
+        }
+        if !saw_for_iter {
+            return None;
+        }
+        let _ = is_all;
+        Some(slow)
+    }
+
     /// py2.6 statement boolop chain fold. Every link compiles to
     /// `JUMP_IF_* L; POP_TOP` (the peek-jump keeps the operand for the
     /// escape path, the POP drops it on fall-through):
@@ -8008,6 +8134,24 @@ impl<'a> Ctx<'a> {
             && matches!(self.instrs.get(i + 1).map(|x| x.op), Some(Op::POP_TOP))
     }
 
+    /// True when every instruction in [from, to) is compiler padding
+    /// (NOT_TAKEN/NOP/CACHE) — 3.14 pads `if c: break` trampolines with
+    /// NOT_TAKEN between the block start and its back edge.
+    fn padding_only_between(&self, from: usize, to: usize) -> bool {
+        if from >= to {
+            return false;
+        }
+        let (Some(&a), Some(&b)) = (self.idx_of.get(&from), self.idx_of.get(&to)) else {
+            return false;
+        };
+        (a..b).all(|k| {
+            matches!(
+                self.instrs[k].op,
+                Op::NOT_TAKEN | Op::NOP | Op::CACHE
+            )
+        })
+    }
+
     /// Arm a skip for a value-merge block's false-path region. py2.6
     /// chained comparisons close at (or after) the else arm's own offset,
     /// leaving `skip_until = else_end` stale — the `ROT_TWO; POP_TOP`
@@ -8661,6 +8805,8 @@ impl<'a> Ctx<'a> {
                     | Op::POP_JUMP_FORWARD_IF_TRUE
                     | Op::JUMP_IF_FALSE_OR_POP
                     | Op::JUMP_IF_TRUE_OR_POP
+                    | Op::POP_JUMP_IF_NONE
+                    | Op::POP_JUMP_IF_NOT_NONE
             )
         };
         // loop tops claimed by rotated-while cond jumps (section 6 handles
@@ -8674,6 +8820,27 @@ impl<'a> Ctx<'a> {
                     | Op::JUMP_BACKWARD_NO_INTERRUPT
             )
         };
+        // rotated whiles whose exit test PRECEDES the back edge in layout
+        // (3.14 walrus-while: `<cond expr>; PJIF_NONE exit; NOT_TAKEN;
+        // <body>; JUMP_BACKWARD top`): the back edge lies outside [cj, t),
+        // so scan the region BEFORE the exit jump as well
+        for (ci, cj) in self.instrs.iter().enumerate() {
+            if !is_cond_jump(cj.op) || cj.target.map_or(true, |t| t <= cj.offset) {
+                continue;
+            }
+            for ins in &self.instrs[..ci] {
+                if ins.is_backward
+                    && back_ops(ins.op)
+                    && ins.target.map_or(false, |bt| {
+                        bt < ins.offset && self.is_cond_expr_top(bt, cj.offset)
+                    })
+                {
+                    if let Some(bt) = ins.target {
+                        claimed.push(bt);
+                    }
+                }
+            }
+        }
         for (ci, cj) in self.instrs.iter().enumerate() {
             if !is_cond_jump(cj.op) {
                 continue;

@@ -445,11 +445,7 @@ def _template_to_ast_literal(template, parsed):
 def _template_to_ast(template):
     '''Make a best-effort conversion of a `template` instance to an AST.'''
 
-    if any is None:
-        for _ in (part.expression() == '' for part in template.interpolations):
-            if not (part.expression() == '' for part in template.interpolations):
-                pass
-    if False((part.expression() == '' for part in template.interpolations)):
+    if any((part.expression() == '' for part in template.interpolations)):
         return _template_to_ast_constructor(template)
     try:
         if tuple is None:

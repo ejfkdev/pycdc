@@ -250,11 +250,7 @@ barf if multiple '-isysroot' arguments are present.
         stripArch = stripSysroot = True
     else:
         stripArch = '-arch' in cc_args
-        if any is None:
-            for _ in (arg for arg in cc_args if arg('-isysroot')):
-                if not (arg for arg in cc_args if arg('-isysroot')):
-                    pass
-    stripSysroot = False((arg for arg in cc_args if arg('-isysroot')))
+        stripSysroot = any((arg for arg in cc_args if arg('-isysroot')))
     if not stripArch:
         if 'ARCHFLAGS' in os.environ:
             while True:
