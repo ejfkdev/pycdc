@@ -245,10 +245,9 @@ class Cmd:
             compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
         try:
-            pass
+            return self.completion_matches[state]
         except IndexError:
             return
-        return self.completion_matches[state]
 
     def get_names(self):
         return dir(self.__class__)

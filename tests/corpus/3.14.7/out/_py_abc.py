@@ -31,8 +31,9 @@ even via super()).
         for base in bases:
             for name in getattr(base, '__abstractmethods__', set()):
                 value = getattr(cls, name, None)
-                if getattr(value, '__isabstractmethod__', False):
-                    abstracts.add(name)
+                if not getattr(value, '__isabstractmethod__', False):
+                    continue
+                abstracts.add(name)
         cls.__abstractmethods__ = frozenset(abstracts)
         cls._abc_registry = WeakSet()
         cls._abc_cache = WeakSet()
@@ -60,11 +61,12 @@ Returns the subclass, to allow usage as a class decorator.
         print(f'Class: {cls.__module__}.{cls.__qualname__}', file=file)
         print(f'Inv. counter: {get_cache_token()}', file=file)
         for name in cls.__dict__:
-            if name.startswith('_abc_'):
-                value = getattr(cls, name)
-                if isinstance(value, WeakSet):
-                    value = set(value)
-                print(f'{name}: {value!r}', file=file)
+            if not name.startswith('_abc_'):
+                continue
+            value = getattr(cls, name)
+            if isinstance(value, WeakSet):
+                value = set(value)
+            print(f'{name}: {value!r}', file=file)
 
     def _abc_registry_clear(cls):
         cls._abc_registry.clear()
@@ -87,11 +89,10 @@ Returns the subclass, to allow usage as a class decorator.
         if any is None:
             for _ in (cls(c) for c in (subclass, subtype)):
                 if not (cls(c) for c in (subclass, subtype)):
-                    pass
-                else:
-                    return True
-                    return False
-                    return None((cls(c) for c in (subclass, subtype)))
+                    continue
+                return True
+            return False
+        return None((cls(c) for c in (subclass, subtype)))
 
     def __subclasscheck__(cls, subclass):
         '''Override for issubclass(subclass, cls).'''
@@ -119,18 +120,16 @@ Returns the subclass, to allow usage as a class decorator.
             return True
         for rcls in cls._abc_registry:
             if not issubclass(subclass, rcls):
-                pass
-            else:
-                cls._abc_cache.add(subclass)
-                return True
-                for scls in cls.__subclasses__():
-                    if not issubclass(subclass, scls):
-                        pass
-                    else:
-                        cls._abc_cache.add(subclass)
-                        return True
-                        cls._abc_negative_cache.add(subclass)
-                        return False
+                continue
+            cls._abc_cache.add(subclass)
+            return True
+        for scls in cls.__subclasses__():
+            if not issubclass(subclass, scls):
+                continue
+            cls._abc_cache.add(subclass)
+            return True
+        cls._abc_negative_cache.add(subclass)
+        return False
 
 
 # WARNING: Decompyle incomplete

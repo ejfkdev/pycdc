@@ -19,8 +19,9 @@ class WeakSet:
     def __iter__(self):
         for itemref in self.data.copy():
             item = itemref()
-            if item is not None:
-                yield item
+            if not item is not None:
+                continue
+            yield item
 
     def __len__(self):
         return len(self.data)

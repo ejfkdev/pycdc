@@ -53,7 +53,6 @@ def _maybe_compile(compiler, source, filename, symbol):
     except SyntaxError:
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
-        return
         if 'incomplete input' in str(e):
             None(None, None, None)
             return
@@ -61,6 +60,7 @@ def _maybe_compile(compiler, source, filename, symbol):
         del e
         try:
             compiler(source + '\n', filename, symbol)
+            return
         except SyntaxError as e:
             pass
     None(None, None, None)

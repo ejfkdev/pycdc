@@ -170,11 +170,8 @@ def _parseparam(s):
     while s[:1] == ';':
         s = s[1:]
         end = s.find(';')
-        if end > 0 and (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
+        while end > 0 and (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
             end = s.find(';', end + 1)
-            if end > 0:
-                if not (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
-                    pass
         if end < 0:
             end = len(s)
         f = s[:end]
@@ -541,12 +538,9 @@ class FieldStorage:
         if not isinstance(first_line, bytes):
             raise ValueError(f'{self.fp!s} should return bytes, got {type(first_line).__name__!s}')
         self.bytes_read += len(first_line)
-        if first_line.strip() != b'--' + self.innerboundary and first_line:
+        while first_line.strip() != b'--' + self.innerboundary and first_line:
             first_line = self.fp.readline()
             self.bytes_read += len(first_line)
-            if first_line.strip() != b'--' + self.innerboundary:
-                if not first_line:
-                    pass
         max_num_fields = self.max_num_fields
         if not max_num_fields is None:
             max_num_fields -= len(self.list)
@@ -599,18 +593,16 @@ class FieldStorage:
 
         self.file = self.make_file()
         todo = self.length
-        if todo >= 0:
-            while todo > 0:
-                data = self.fp.read(min(todo, self.bufsize))
-                if not isinstance(data, bytes):
-                    raise ValueError(f'{self.fp!s} should return bytes, got {type(data).__name__!s}')
-                self.bytes_read += len(data)
-                if not data:
-                    self.done = -1
-                    return
-                self.file.write(data)
-                todo = todo - len(data)
-            return
+        while todo >= 0 and todo > 0:
+            data = self.fp.read(min(todo, self.bufsize))
+            if not isinstance(data, bytes):
+                raise ValueError(f'{self.fp!s} should return bytes, got {type(data).__name__!s}')
+            self.bytes_read += len(data)
+            if not data:
+                self.done = -1
+                return
+            self.file.write(data)
+            todo = todo - len(data)
 
     def read_lines(self):
         '''Internal: read lines until EOF or outerboundary.'''

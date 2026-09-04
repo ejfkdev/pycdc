@@ -192,7 +192,8 @@ def main():
                     except EnvironmentError:
                         print('Error reading file list {}'.format(args.flist))
                         return False
-            success = False
+            else:
+                success = False
             return success
         else:
             return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)

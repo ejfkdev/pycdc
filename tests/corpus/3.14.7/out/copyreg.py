@@ -59,7 +59,7 @@ def _reduce_ex(self, proto):
             else:
                 new = base.__new__
                 if not new.__self__ is base:
-                    pass
+                    continue
     base = object
     if base is object:
         state = None
@@ -85,14 +85,14 @@ def _reduce_ex(self, proto):
     return _reconstructor, args
 
 def __newobj__(cls, *args):
-    return cls.__new__(*[cls, *args])
+    return cls.__new__(cls, *args)
 
 def __newobj_ex__(cls, args, kwargs):
     '''Used by pickle protocol 4, instead of __newobj__ to allow classes with
 keyword-only arguments to be pickled correctly.
 '''
 
-    return cls.__new__(*[cls, *args], **kwargs)
+    return cls.__new__(cls, *args, **kwargs)
 
 def _slotnames(cls):
     """Return a list of slot names for a given class.
@@ -112,22 +112,22 @@ defined.)
     if not hasattr(cls, '__slots__'):
         pass
     for c in cls.__mro__:
-        if '__slots__' in c.__dict__:
-            slots = c.__dict__['__slots__']
-            if isinstance(slots, str):
-                slots = (slots,)
-            for name in slots:
-                if name in ('__dict__', '__weakref__'):
-                    continue
-                if name.startswith('__'):
-                    if not name.endswith('__'):
-                        stripped = c.__name__.lstrip('_')
-                        if stripped:
-                            names.append(f'_{stripped!s}{name!s}')
-                            continue
-                names.append(name)
-            names.append(name)
+        if not '__slots__' in c.__dict__:
             continue
+        slots = c.__dict__['__slots__']
+        if isinstance(slots, str):
+            slots = (slots,)
+        for name in slots:
+            if name in ('__dict__', '__weakref__'):
+                continue
+            if name.startswith('__'):
+                if not name.endswith('__'):
+                    stripped = c.__name__.lstrip('_')
+                    if stripped:
+                        names.append(f'_{stripped!s}{name!s}')
+                        continue
+            names.append(name)
+        names.append(name)
     try:
         cls.__slotnames__ = names
     finally:

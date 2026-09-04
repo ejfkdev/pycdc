@@ -86,7 +86,8 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
         else:
             for file in files:
                 pass
-    success = False
+            else:
+                success = False
     return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1):
@@ -236,7 +237,8 @@ def main():
                                 pass
                             success = True
                             success = False
-            success = False
+            else:
+                success = False
             return success
         return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)
     except KeyboardInterrupt:

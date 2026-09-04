@@ -48,8 +48,7 @@ def _check_methods(C, *methods):
         for B in mro:
             if method in B.__dict__:
                 if B.__dict__[method] is None:
-                    NotImplemented
-                    return
+                    return NotImplemented
                 continue
         return NotImplemented
     return True
@@ -593,9 +592,8 @@ class Mapping(Collection):
     def get(self, key, default=None):
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
 
-        return self[key]
         try:
-            pass
+            return self[key]
         except KeyError:
             return default
 
@@ -767,9 +765,8 @@ class MutableMapping(Mapping):
     def setdefault(self, key, default=None):
         '''D.setdefault(k[,d]) -> D.get(k,d), also set D[k]=d if k not in D'''
 
-        return self[key]
         try:
-            pass
+            return self[key]
         except KeyError:
             self[key] = default
         return default

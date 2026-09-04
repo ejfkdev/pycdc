@@ -7,21 +7,13 @@ bytes_types = bytes, bytearray
 
 def _bytes_from_decode_data(s):
     if isinstance(s, str):
-        try:
-            try:
-                pass
-            except UnicodeEncodeError:
-                raise ValueError('string argument should contain only ASCII characters')
-        except TypeError:
-            raise TypeError('argument should be a bytes-like object or ASCII string, not %r' % s.__class__.__name__) from None
         return s.encode('ascii')
     if isinstance(s, bytes_types):
         return s
     try:
-        pass
+        return memoryview(s).tobytes()
     except TypeError:
         raise TypeError('argument should be a bytes-like object or ASCII string, not %r' % s.__class__.__name__) from None
-    return memoryview(s).tobytes()
 
 def b64encode(s, altchars=None):
     """Encode the bytes-like object s using Base64 and return a bytes object.
@@ -397,10 +389,9 @@ The result is returned as a bytes object.
             except TypeError:
                 for j, c in enumerate(chunk):
                     if not _b85dec[c] is None:
-                        pass
-                    else:
-                        raise ValueError('bad base85 character at position %d' % (i + j)) from None
-                        raise
+                        continue
+                    raise ValueError('bad base85 character at position %d' % (i + j)) from None
+                raise
         except struct./*bad-name-24*/:
             raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
         try:
@@ -431,10 +422,9 @@ The result is returned as a bytes object.
     s = _bytes_from_decode_data(s)
     s = s.translate(_z85_decode_translation)
     try:
-        pass
+        return b85decode(s)
     except ValueError as e:
         raise ValueError(e.args[0].replace('base85', 'z85')) from None
-    return b85decode(s)
 
 MAXLINESIZE = 76
 MAXBINSIZE = MAXLINESIZE // 4 * 3
@@ -496,22 +486,20 @@ def main():
         if o == '-u':
             func = decode
         if not o == '-h':
-            pass
-        else:
-            print(usage)
-            return
-            if args and args[0] != '-':
-                with open(args[0], 'rb') as f:
-                    func(f, sys.stdout.buffer)
-                return
-            if sys.stdin.isatty():
-                import io
-                data = sys.stdin.buffer.read()
-                buffer = io.BytesIO(data)
-            else:
-                buffer = sys.stdin.buffer
-            func(buffer, sys.stdout.buffer)
-            return
+            continue
+        print(usage)
+        return
+    if args and args[0] != '-':
+        with open(args[0], 'rb') as f:
+            func(f, sys.stdout.buffer)
+        return
+    if sys.stdin.isatty():
+        import io
+        data = sys.stdin.buffer.read()
+        buffer = io.BytesIO(data)
+    else:
+        buffer = sys.stdin.buffer
+    func(buffer, sys.stdout.buffer)
 
 if __name__ == '__main__':
     main()

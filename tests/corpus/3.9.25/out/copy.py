@@ -191,10 +191,9 @@ d[list] = _deepcopy_list
 def _deepcopy_tuple(x, memo, deepcopy=deepcopy):
     y = [deepcopy(a, memo) for a in x]
     try:
-        pass
+        return memo[id(x)]
     except KeyError:
         pass
-    return memo[id(x)]
     for k, j in zip(x, y):
         if k is not j:
             y = tuple(y)

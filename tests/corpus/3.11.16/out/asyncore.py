@@ -48,12 +48,11 @@ except NameError:
 
 def _strerror(err):
     try:
-        pass
+        return os.strerror(err)
     except (ValueError, OverflowError, NameError):
         if err in errorcode:
             return errorcode[err]
         return 'Unknown error %s' % err
-    return os.strerror(err)
 
 class ExitNow(Exception):
     pass
@@ -176,13 +175,11 @@ def loop(timeout=30.0, use_poll=False, map=None, count=None):
             poll_fun(timeout, map)
         return
         return
-    if map:
-        while count > 0:
-            poll_fun(timeout, map)
-            count = count - 1
-            if map:
-                pass
-        return
+    while map and count > 0:
+        poll_fun(timeout, map)
+        count = count - 1
+        if map:
+            pass
 
 class dispatcher:
     debug = False

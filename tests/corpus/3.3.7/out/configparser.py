@@ -476,7 +476,7 @@ class RawConfigParser(MutableMapping):
     OPTCRE_NV = re.compile(_OPT_NV_TMPL.format(delim='=|:'), re.VERBOSE)
     NONSPACECRE = re.compile('\\S')
     BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True, '0': False, 'no': False, 'false': False, 'off': False}
-    def __init__(self=None, defaults=None, dict_type=None, allow_no_value=None, *, delimiters, comment_prefixes, inline_comment_prefixes, strict, empty_lines_in_values, default_section, interpolation):
+    def __init__(self, defaults=None, dict_type=_default_dict, allow_no_value=False, *, delimiters=('=', ':'), comment_prefixes=('#', ';'), inline_comment_prefixes=None, strict=True, empty_lines_in_values=True, default_section=DEFAULTSECT, interpolation=_UNSET):
         self._dict = dict_type
         self._sections = self._dict()
         self._defaults = self._dict()
@@ -630,7 +630,7 @@ class RawConfigParser(MutableMapping):
         warnings.warn("This method will be removed in future versions.  Use 'parser.read_file()' instead.", DeprecationWarning, stacklevel=2)
         self.read_file(fp, source=filename)
 
-    def get(self=None, section=None, option=None, *, raw, vars, fallback):
+    def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
         """Get an option value for a given section.
 
         If `vars' is provided, it must be a dictionary. The option is looked up
@@ -668,9 +668,9 @@ class RawConfigParser(MutableMapping):
         return self._interpolation.before_get(self, section, option, value, d)
 
     def _get(self, section, conv, option, **kwargs):
-        return self.get(section(option, kwargs))
+        return conv(self.get(section, option, **kwargs))
 
-    def getint(self=None, section=None, option=None, *, raw, vars, fallback):
+    def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
         if fallback is _UNSET:
             raise
         else:
@@ -680,7 +680,7 @@ class RawConfigParser(MutableMapping):
         except (NoSectionError, NoOptionError):
             pass
 
-    def getfloat(self=None, section=None, option=None, *, raw, vars, fallback):
+    def getfloat(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
         if fallback is _UNSET:
             raise
         else:
@@ -690,7 +690,7 @@ class RawConfigParser(MutableMapping):
         except (NoSectionError, NoOptionError):
             pass
 
-    def getboolean(self=None, section=None, option=None, *, raw, vars, fallback):
+    def getboolean(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
         if fallback is _UNSET:
             raise
         else:
@@ -1000,7 +1000,7 @@ class RawConfigParser(MutableMapping):
             raise ValueError('Not a boolean: %s' % value)
         return self.BOOLEAN_STATES[value.lower()]
 
-    def _validate_value_types(self=None, *, section, option, value):
+    def _validate_value_types(self, *, section='', option='', value=''):
         '''Raises a TypeError for non-string values.
 
         The only legal non-string value if we allow valueless
@@ -1083,16 +1083,16 @@ class SectionProxy(MutableMapping):
             return self._parser.options(self._name)
         return self._parser.defaults()
 
-    def get(self=None, option=None, fallback=None, *, raw, vars):
+    def get(self, option, fallback=None, *, raw=False, vars=None):
         return self._parser.get(self._name, option, raw=raw, vars=vars, fallback=fallback)
 
-    def getint(self=None, option=None, fallback=None, *, raw, vars):
+    def getint(self, option, fallback=None, *, raw=False, vars=None):
         return self._parser.getint(self._name, option, raw=raw, vars=vars, fallback=fallback)
 
-    def getfloat(self=None, option=None, fallback=None, *, raw, vars):
+    def getfloat(self, option, fallback=None, *, raw=False, vars=None):
         return self._parser.getfloat(self._name, option, raw=raw, vars=vars, fallback=fallback)
 
-    def getboolean(self=None, option=None, fallback=None, *, raw, vars):
+    def getboolean(self, option, fallback=None, *, raw=False, vars=None):
         return self._parser.getboolean(self._name, option, raw=raw, vars=vars, fallback=fallback)
 
     @property

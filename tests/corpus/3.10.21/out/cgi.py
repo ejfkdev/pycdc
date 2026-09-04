@@ -413,6 +413,7 @@ class FieldStorage:
     def __del__(self):
         try:
             self.file.close()
+            return
         except AttributeError:
             return
 
@@ -542,12 +543,9 @@ class FieldStorage:
         if not isinstance(first_line, bytes):
             raise ValueError('%s should return bytes, got %s' % (self.fp, type(first_line).__name__))
         self.bytes_read += len(first_line)
-        if first_line.strip() != b'--' + self.innerboundary and first_line:
+        while first_line.strip() != b'--' + self.innerboundary and first_line:
             first_line = self.fp.readline()
             self.bytes_read += len(first_line)
-            if first_line.strip() != b'--' + self.innerboundary:
-                if not first_line:
-                    pass
         max_num_fields = self.max_num_fields
         if max_num_fields is not None:
             max_num_fields -= len(self.list)
@@ -600,18 +598,16 @@ class FieldStorage:
 
         self.file = self.make_file()
         todo = self.length
-        if todo >= 0:
-            while todo > 0:
-                data = self.fp(min(todo, self.bufsize))
-                if not isinstance(data, bytes):
-                    raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))
-                self.bytes_read += len(data)
-                if not data:
-                    self.done = -1
-                    return
-                self.file.write(data)
-                todo = todo - len(data)
-            return
+        while todo >= 0 and todo > 0:
+            data = self.fp(min(todo, self.bufsize))
+            if not isinstance(data, bytes):
+                raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))
+            self.bytes_read += len(data)
+            if not data:
+                self.done = -1
+                return
+            self.file.write(data)
+            todo = todo - len(data)
 
     def read_lines(self):
         '''Internal: read lines until EOF or outerboundary.'''
@@ -775,6 +771,7 @@ def test(environ=os.environ):
         print_arguments()
         print_form(form)
         print_environ(environ)
+        return
     except:
         print_exception()
 

@@ -8,18 +8,17 @@ bytes_types = bytes, bytearray
 
 def _bytes_from_decode_data(s):
     if isinstance(s, str):
-        return s.encode('ascii')
-    try:
         pass
+    try:
+        return s.encode('ascii')
     except UnicodeEncodeError:
         raise ValueError('string argument should contain only ASCII characters')
     if isinstance(s, bytes_types):
         return s
     try:
-        pass
+        return memoryview(s).tobytes()
     except TypeError:
         raise TypeError('argument should be a bytes-like object or ASCII string, not %r' % s.__class__.__name__) from None
-    return memoryview(s).tobytes()
 
 def b64encode(s, altchars=None):
     """Encode the bytes-like object s using Base64 and return a bytes object.

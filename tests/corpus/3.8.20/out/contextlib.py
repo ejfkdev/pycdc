@@ -93,9 +93,8 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
 
     def __enter__(self):
         del self.args, self.kwds, self.func
-        return next(self.gen)
         try:
-            pass
+            return next(self.gen)
         except StopIteration:
             raise RuntimeError("generator didn't yield") from None
 
@@ -130,9 +129,8 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
     '''Helper for @asynccontextmanager.'''
 
     async def __aenter__(self):
-        return await self.gen.__anext__()
         try:
-            pass
+            return await self.gen.__anext__()
         except StopAsyncIteration:
             raise RuntimeError("generator didn't yield") from None
 

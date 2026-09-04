@@ -39,7 +39,7 @@ class DecompressReader(io.RawIOBase):
         self._size = -1
         self._decomp_factory = decomp_factory
         self._decomp_args = decomp_args
-        self._decompressor = self._decomp_factory(*(), **self._decomp_args)
+        self._decompressor = self._decomp_factory(**self._decomp_args)
         self._trailing_error = trailing_error
 
     def close(self):
@@ -67,7 +67,7 @@ class DecompressReader(io.RawIOBase):
                 rawblock = self._decompressor.unused_data or self._fp.read(BUFFER_SIZE)
                 if not rawblock:
                     break
-            self._decompressor = self._decomp_factory(*(), **self._decomp_args)
+            self._decompressor = self._decomp_factory(**self._decomp_args)
             try:
                 data = self._decompressor.decompress(rawblock, size)
             except self./*bad-name-22*/:
@@ -98,7 +98,7 @@ class DecompressReader(io.RawIOBase):
         self._fp.seek(0)
         self._eof = False
         self._pos = 0
-        self._decompressor = self._decomp_factory(*(), **self._decomp_args)
+        self._decompressor = self._decomp_factory(**self._decomp_args)
 
     def seek(self, offset, whence=io.SEEK_SET):
         if whence == io.SEEK_SET:

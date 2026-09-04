@@ -322,6 +322,7 @@ matching when 'abcdef' should have been the match).
         for value in to_convert:
             if not value != '':
                 continue
+            break
         else:
             return ''
         regex = '|'.join((re_escape(stuff) for stuff in to_convert))
@@ -444,10 +445,9 @@ format string.'''
     if locale_time.LC_alt_digits:
         def parse_int(s):
             try:
-                pass
+                return locale_time.LC_alt_digits.index(s)
             except ValueError:
                 return int(s)
-            return locale_time.LC_alt_digits.index(s)
 
     else:
         parse_int = int

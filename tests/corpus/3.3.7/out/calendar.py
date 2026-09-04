@@ -599,10 +599,10 @@ def main(args):
         optdict = dict(encoding=encoding, css=options.css)
         write = sys.stdout.buffer.write
         if len(args) == 1:
-            cal.formatyearpage(datetime.date.today().year(optdict))
+            write(cal.formatyearpage(datetime.date.today().year, **optdict))
         else:
             if len(args) == 2:
-                cal.formatyearpage(int(args[1])(optdict))
+                write(cal.formatyearpage(int(args[1]), **optdict))
             else:
                 parser.error('incorrect number of arguments')
                 sys.exit(1)
@@ -615,11 +615,11 @@ def main(args):
                 optdict['c'] = options.spacing
                 optdict['m'] = options.months
             if len(args) == 1:
-                result = datetime.date.today().year(optdict)
+                result = cal.formatyear(datetime.date.today().year, **optdict)
             elif len(args) == 2:
-                result = int(args[1])(optdict)
+                result = cal.formatyear(int(args[1]), **optdict)
             elif len(args) == 3:
-                result = int(args[1])(int(args[2]), optdict)
+                result = cal.formatmonth(int(args[1]), int(args[2]), **optdict)
             else:
                 parser.error('incorrect number of arguments')
                 sys.exit(1)

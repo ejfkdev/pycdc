@@ -70,22 +70,10 @@ class InteractiveInterpreter:
             return False
 
     def runcode(self, code):
-        '''Execute a code object.
-
-        When an exception occurs, self.showtraceback() is called to
-        display a traceback.  All exceptions are caught except
-        SystemExit, which is reraised.
-
-        A note about KeyboardInterrupt: this exception may occur
-        elsewhere in this code, and may not always be caught.  The
-        caller should be prepared to deal with it.
-
-        '''
-
-        return
         self.showtraceback()
         try:
             exec(code, self.locals)
+            return
         except SystemExit:
             raise
 
@@ -133,7 +121,6 @@ class InteractiveInterpreter:
         sys.last_type, sys.last_value, last_tb = ei = sys.exc_info()
         sys.last_traceback = last_tb
         last_tb = ei = None
-        return
         last_tb = ei = None
 
     def write(self, data):

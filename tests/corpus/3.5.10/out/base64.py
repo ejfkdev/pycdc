@@ -244,7 +244,7 @@ def _85encode(b, chars, chars2, pad=False, foldnuls=False, foldspaces=False):
         chunks[-1] = chunks[-1][:-padding]
     return b''.join(chunks)
 
-def a85encode(b=None, *, foldspaces, wrapcol, pad, adobe):
+def a85encode(b, *, foldspaces=False, wrapcol=0, pad=False, adobe=False):
     '''Encode bytes-like object b using Ascii85 and return a bytes object.
 
     foldspaces is an optional flag that uses the special short sequence 'y'
@@ -280,7 +280,7 @@ def a85encode(b=None, *, foldspaces, wrapcol, pad, adobe):
         result += _A85END
     return result
 
-def a85decode(b=None, *, foldspaces, adobe, ignorechars):
+def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
     '''Decode the Ascii85 encoded bytes-like object or ASCII string b.
 
     foldspaces is a flag that specifies whether the 'y' short sequence should be

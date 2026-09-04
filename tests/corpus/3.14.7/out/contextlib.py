@@ -120,10 +120,9 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
     def __enter__(self):
         del self.args, self.kwds, self.func
         try:
-            pass
+            return next(self.gen)
         except StopIteration:
             raise RuntimeError("generator didn't yield") from None
-        return next(self.gen)
 
     def __exit__(self, typ, value, traceback):
         if not typ is not None:
@@ -153,10 +152,9 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
     async def __aenter__(self):
         del self.args, self.kwds, self.func
         try:
-            pass
+            return await anext(self.gen)
         except StopAsyncIteration:
             raise RuntimeError("generator didn't yield") from None
-        return await anext(self.gen)
 
     async def __aexit__(self, typ, value, traceback):
         if not typ is not None:
@@ -441,7 +439,7 @@ returns the result of the __enter__ method.
 Cannot suppress exceptions.
 '''
 
-        _exit_wrapper = self._create_cb_wrapper(*[callback, *args], **kwds)
+        _exit_wrapper = self._create_cb_wrapper(callback, *args, **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper)
         return callback
@@ -588,7 +586,7 @@ to the method instead of the object itself).
 Cannot suppress exceptions.
 '''
 
-        _exit_wrapper = self._create_async_cb_wrapper(*[callback, *args], **kwds)
+        _exit_wrapper = self._create_async_cb_wrapper(callback, *args, **kwds)
         _exit_wrapper.__wrapped__ = callback
         self._push_exit_callback(_exit_wrapper, False)
         return callback

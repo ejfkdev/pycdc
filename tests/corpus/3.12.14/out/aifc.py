@@ -147,31 +147,27 @@ _AIFC_version = 2726318400
 
 def _read_long(file):
     try:
-        pass
+        return struct.unpack('>l', file.read(4))[0]
     except struct./*bad-name-6*/:
         raise EOFError from None
-    return struct.unpack('>l', file.read(4))[0]
 
 def _read_ulong(file):
     try:
-        pass
+        return struct.unpack('>L', file.read(4))[0]
     except struct./*bad-name-6*/:
         raise EOFError from None
-    return struct.unpack('>L', file.read(4))[0]
 
 def _read_short(file):
     try:
-        pass
+        return struct.unpack('>h', file.read(2))[0]
     except struct./*bad-name-6*/:
         raise EOFError from None
-    return struct.unpack('>h', file.read(2))[0]
 
 def _read_ushort(file):
     try:
-        pass
+        return struct.unpack('>H', file.read(2))[0]
     except struct./*bad-name-6*/:
         raise EOFError from None
-    return struct.unpack('>H', file.read(2))[0]
 
 def _read_string(file):
     length = ord(file.read(1))

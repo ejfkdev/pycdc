@@ -65,14 +65,6 @@ If the forward reference cannot be evaluated, raise an exception.
                 is_forwardref_format = True
         raise NotImplementedError(format)
         if isinstance(self.__cell__, types.CellType):
-            try:
-                try:
-                    pass
-                except ValueError:
-                    pass
-            except Exception:
-                if not is_forwardref_format:
-                    raise
             return self.__cell__.cell_contents
         if not owner is not None:
             owner = self.__owner__
@@ -108,9 +100,16 @@ If the forward reference cannot be evaluated, raise an exception.
             for cell_name, cell in self.__cell__.items():
                 try:
                     try:
-                        cell_value = cell.cell_contents
-                    except ValueError:
                         pass
+                    except ValueError:
+                        try:
+                            try:
+                                cell_value = cell.cell_contents
+                            except ValueError:
+                                pass
+                        except Exception:
+                            if not is_forwardref_format:
+                                raise
                 except Exception:
                     if not is_forwardref_format:
                         raise
@@ -131,11 +130,10 @@ If the forward reference cannot be evaluated, raise an exception.
                 raise NameError(_NAME_ERROR_MSG.format(name=arg), name=arg)
         code = self.__forward_code__
         try:
-            pass
+            return eval(code, globals=globals, locals=locals)
         except Exception:
             if not is_forwardref_format:
                 raise
-        return eval(code, globals=globals, locals=locals)
 
     def _evaluate(self, globalns, localns, type_params=_sentinel, *, recursive_guard):
         import typing
@@ -451,7 +449,7 @@ def _template_to_ast(template):
         if tuple is None:
             for _ in (('mode',).body for part in template.interpolations):
                 pass
-        parsed = None((('mode',).body for part in template.interpolations))
+        parsed = (None,)((('mode',).body for part in template.interpolations))
     except SyntaxError:
         return _template_to_ast_constructor(template)
     return _template_to_ast_literal(template, parsed)
@@ -479,9 +477,11 @@ class _StringifierDict(dict):
             if isinstance(obj.__ast_node__, str):
                 obj.__arg__ = obj.__ast_node__
                 obj.__ast_node__ = None
-            if cell_dict is not None:
-                if obj.__cell__ is None:
-                    obj.__cell__ = cell_dict
+            if not cell_dict is not None:
+                continue
+            if not obj.__cell__ is None:
+                continue
+            obj.__cell__ = cell_dict
 
     def create_unique_name(self):
         name = f'__annotationlib_name_{self.next_id}__'
@@ -521,10 +521,9 @@ on the generated ForwardRef objects.
     if format == Format.VALUE_WITH_FAKE_GLOBALS:
         raise ValueError('The VALUE_WITH_FAKE_GLOBALS format is for internal use only')
     try:
-        pass
+        return annotate(format)
     except NotImplementedError:
         pass
-    return annotate(format)
 
 def _build_closure(annotate, owner, is_class, stringifier_dict, *, allow_evaluation):
     if not annotate.__closure__:
@@ -564,10 +563,9 @@ This is useful in metaclass ``__new__`` methods to retrieve the annotate functio
 '''
 
     try:
-        pass
+        return obj['__annotate__']
     except KeyError:
         return obj.get('__annotate_func__', None)
-    return obj['__annotate__']
 
 def get_annotations(obj, *, globals=None, locals=None, eval_str=False, format=Format.VALUE):
     '''Compute the annotations dict for an object.

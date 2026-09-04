@@ -44,7 +44,7 @@ def _maybe_compile(compiler, source, filename, symbol, flags):
     for line in source.split('\n'):
         line = line.strip()
         if not line[0] != '#':
-            pass
+            continue
     if symbol != 'eval':
         source = 'pass'
     with warnings.catch_warnings():
@@ -105,8 +105,9 @@ with the statement in force.'''
         if flags & PyCF_ONLY_AST:
             return codeob
         for feature in _features:
-            if codeob.co_flags & feature.compiler_flag:
-                self.flags |= feature.compiler_flag
+            if not codeob.co_flags & feature.compiler_flag:
+                continue
+            self.flags |= feature.compiler_flag
         return codeob
 
 

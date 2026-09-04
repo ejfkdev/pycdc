@@ -168,10 +168,12 @@ class TimeRE(dict):
         to_convert = sorted(to_convert, key=len, reverse=True)
         for value in to_convert:
             if value != '':
-                pass
-            else:
-                continue
-        return ''
+                break
+        else:
+            return ''
+        regex = '|'.join((re_escape(stuff) for stuff in to_convert))
+        regex = '(?P<%s>%s' % (directive, regex)
+        return '%s)' % regex
 
     def pattern(self, format):
         '''Return regex pattern for the format string.

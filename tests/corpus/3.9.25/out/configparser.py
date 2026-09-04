@@ -695,21 +695,20 @@ class RawConfigParser(MutableMapping):
 
     def _get_conv(self, section, option, conv, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
         try:
-            pass
+            return self._get(section, conv, option, **{'raw': raw, 'vars': vars, **kwargs})
         except (NoSectionError, NoOptionError):
             if fallback is _UNSET:
                 raise
             return fallback
-        return self._get(section, conv, option, **kwargs)
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(section, option, int, **kwargs)
+        return self._get_conv(section, option, int, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
 
     def getfloat(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(section, option, float, **kwargs)
+        return self._get_conv(section, option, float, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
 
     def getboolean(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(section, option, self._convert_to_boolean, **kwargs)
+        return self._get_conv(section, option, self._convert_to_boolean, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
 
     def items(self, section=_UNSET, raw=False, vars=None):
         """Return a list of (name, value) tuples for each option in a section.
@@ -1144,7 +1143,7 @@ class SectionProxy(MutableMapping):
 
         if not _impl:
             _impl = self._parser.get
-        return _impl(self._name, option, **kwargs)
+        return _impl(self._name, option, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
 
 
 class ConverterMapping(MutableMapping):

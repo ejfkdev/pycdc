@@ -90,10 +90,9 @@ by the SGML/HTML and XHTML parsers.'''
                     raise AssertionError("unexpected '[' char in declaration")
                     raise AssertionError('unexpected %r char in declaration' % rawdata[j])
             if not j < 0:
-                pass
-            else:
-                return j
-                return -1
+                continue
+            return j
+        return -1
 
     def parse_marked_section(self, i, report=1):
         rawdata = self.rawdata

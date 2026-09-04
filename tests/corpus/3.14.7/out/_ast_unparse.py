@@ -34,15 +34,14 @@ class _Precedence:
     ATOM = auto()
     def next(self):
         try:
-            pass
+            return self.__class__(self + 1)
         except ValueError:
             return self
-        return self.__class__(self + 1)
 
 
 _SINGLE_QUOTES = ("'", '"')
 _MULTI_QUOTES = ('"""', "'''")
-_ALL_QUOTES = [*_SINGLE_QUOTES, *_MULTI_QUOTES]
+_ALL_QUOTES = *_SINGLE_QUOTES, *_MULTI_QUOTES
 
 class Unparser(NodeVisitor):
     '''Methods in this class recursively traverse an AST and
@@ -734,7 +733,7 @@ Returns the tuple (string literal to write, possible quote types).
         self.set_precedence(_Precedence.TUPLE, node.target)
         self.traverse(node.target)
         self.write(' in ')
-        self.set_precedence(*[_Precedence.TEST.next(), node.iter, *node.ifs])
+        self.set_precedence(_Precedence.TEST.next(), node.iter, *node.ifs)
         self.traverse(node.iter)
         for if_clause in node.ifs:
             self.write(' if ')
@@ -813,7 +812,7 @@ Returns the tuple (string literal to write, possible quote types).
     cmpops = {'Eq': '==', 'NotEq': '!=', 'Lt': '<', 'LtE': '<=', 'Gt': '>', 'GtE': '>=', 'Is': 'is', 'IsNot': 'is not', 'In': 'in', 'NotIn': 'not in'}
     def visit_Compare(self, node):
         with self.require_parens(_Precedence.CMP, node):
-            self.set_precedence(*[_Precedence.CMP.next(), node.left, *node.comparators])
+            self.set_precedence(_Precedence.CMP.next(), node.left, *node.comparators)
             self.traverse(node.left)
             for o, e in zip(node.ops, node.comparators):
                 self.write(' ' + self.cmpops[o.__class__.__name__] + ' ')
@@ -919,8 +918,9 @@ Returns the tuple (string literal to write, possible quote types).
             if d:
                 self.write('=')
                 self.traverse(d)
-            if index == len(node.posonlyargs):
-                self.write(', /')
+            if not index == len(node.posonlyargs):
+                continue
+            self.write(', /')
         if node.vararg or node.kwonlyargs:
             if first:
                 first = False
@@ -936,9 +936,10 @@ Returns the tuple (string literal to write, possible quote types).
             for a, d in zip(node.kwonlyargs, node.kw_defaults):
                 self.write(', ')
                 self.traverse(a)
-                if d:
-                    self.write('=')
-                    self.traverse(d)
+                if not d:
+                    continue
+                self.write('=')
+                self.traverse(d)
         if node.kwarg:
             if first:
                 first = False
@@ -965,7 +966,7 @@ Returns the tuple (string literal to write, possible quote types).
             with self.buffered() as buffer:
                 self.traverse(node.args)
         if buffer:
-            self.write(*[' ', *buffer])
+            self.write(' ', *buffer)
         self.write(': ')
         self.set_precedence(_Precedence.TEST, node.body)
         self.traverse(node.body)
@@ -1057,7 +1058,7 @@ Returns the tuple (string literal to write, possible quote types).
 
     def visit_MatchOr(self, node):
         with self.require_parens(_Precedence.BOR, node):
-            self.set_precedence(*[_Precedence.BOR.next(), *node.patterns])
+            self.set_precedence(_Precedence.BOR.next(), *node.patterns)
             self.interleave((lambda: self.write(' | ')), self.traverse, node.patterns)
 
 

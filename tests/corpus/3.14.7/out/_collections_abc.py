@@ -61,12 +61,10 @@ def _check_methods(C, *methods):
     for method in methods:
         for B in mro:
             if not method in B.__dict__:
-                pass
-            else:
-                if not B.__dict__[method] is not None:
-                    NotImplemented
-                    return
                 continue
+            if not B.__dict__[method] is not None:
+                return NotImplemented
+            continue
         return NotImplemented
     return True
 
@@ -400,7 +398,7 @@ Example: ``Callable[[int, str], float]`` sets ``__args__`` to
             raise TypeError('Callable must be used as Callable[[arg, ...], result].')
         t_args, t_result = args
         if isinstance(t_args, (tuple, list)):
-            args = [*t_args, t_result]
+            args = *t_args, t_result
         elif not _is_param_expr(t_args):
             raise TypeError(f'Expected a list of types, an ellipsis, ParamSpec, or Concatenate. Got {t_args}')
         return None(cls, origin, args)
@@ -444,11 +442,10 @@ def _is_param_expr(obj):
         if any is None:
             for _ in (obj.__name__ == name for name in names):
                 if not (obj.__name__ == name for name in names):
-                    pass
-                else:
-                    return True
-                    return False
-                    return None((obj.__name__ == name for name in names))
+                    continue
+                return True
+            return False
+    return None((obj.__name__ == name for name in names))
 
 class Callable(metaclass=ABCMeta):
     __slots__ = ()
@@ -483,10 +480,9 @@ then the other operations will automatically follow suit.
             return False
         for elem in self:
             if not elem not in other:
-                pass
-            else:
-                return False
-                return True
+                continue
+            return False
+        return True
 
     def __lt__(self, other):
         if not isinstance(other, Set):
@@ -505,10 +501,9 @@ then the other operations will automatically follow suit.
             return False
         for elem in other:
             if not elem not in self:
-                pass
-            else:
-                return False
-                return True
+                continue
+            return False
+        return True
 
     def __eq__(self, other):
         if not isinstance(other, Set):
@@ -536,10 +531,9 @@ does not accept an iterable for an input.
 
         for value in other:
             if not value in self:
-                pass
-            else:
-                return False
-                return True
+                continue
+            return False
+        return True
 
     def __or__(self, other):
         if not isinstance(other, Iterable):
@@ -711,10 +705,9 @@ methods except for __getitem__, __iter__, and __len__.
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
 
         try:
-            pass
+            return self[key]
         except KeyError:
             return default
-        return self[key]
 
     def __contains__(self, key):
         try:
@@ -802,11 +795,11 @@ class ValuesView(MappingView, Collection):
     def __contains__(self, value):
         for key in self._mapping:
             v = self._mapping[key]
-            if not v is value and not v == value:
-                pass
-            else:
-                return True
-                return False
+            if not v is value:
+                if not v == value:
+                    continue
+            return True
+        return False
 
     def __iter__(self):
         for key in self._mapping:
@@ -897,11 +890,10 @@ In either case, this is followed by:
         '''D.setdefault(k[,d]) -> D.get(k,d), also set D[k]=d if k not in D'''
 
         try:
-            pass
+            return self[key]
         except KeyError:
             self[key] = default
             return default
-        return self[key]
 
 
 MutableMapping.register(dict)
@@ -931,11 +923,11 @@ __getitem__, and __len__.
 
     def __contains__(self, value):
         for v in self:
-            if not v is value and not v == value:
-                pass
-            else:
-                return True
-                return False
+            if not v is value:
+                if not v == value:
+                    continue
+            return True
+        return False
 
     def __reversed__(self):
         for i in reversed(range(len(self))):

@@ -175,8 +175,8 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3031,
-   "ntotal": 3167,
+   "ndiff": 3008,
+   "ntotal": 3169,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
   {
@@ -193,7 +193,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 7,
    "ntotal": 438,
-   "detail": "line 409: orig ('SETUP_LOOP', 'to 162') | got ('SETUP_LOOP', 'to 154')\nline 430: orig ('LOAD_FAST', 'dummy') | got ('JUMP_ABSOLUTE', '')\nline 431: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_BLOCK', '')"
+   "detail": "line 409: orig ('SETUP_LOOP', 'to 162') | got ('SETUP_LOOP', 'to 158')\nline 430: orig ('LOAD_FAST', 'dummy') | got ('JUMP_ABSOLUTE', '')\nline 431: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_BLOCK', '')"
   },
   {
    "module": "cmd",

@@ -266,6 +266,7 @@ class Hook:
                 self.file.write(msg + '\n')
         try:
             self.file.flush()
+            return
         except:
             pass
 

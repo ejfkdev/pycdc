@@ -46,11 +46,10 @@ except NameError:
     socket_map = {}
 
 def _strerror(err):
-    return os.strerror(err)
     if err in errorcode:
         return errorcode[err]
     try:
-        pass
+        return os.strerror(err)
     except (ValueError, OverflowError, NameError):
         pass
     return 'Unknown error %s' % err
@@ -61,31 +60,30 @@ class ExitNow(Exception):
 _reraised_exceptions = ExitNow, KeyboardInterrupt, SystemExit
 
 def read(obj):
-    return
     obj.handle_error()
     try:
         obj.handle_read_event()
+        return
     except _reraised_exceptions:
         raise
 
 def write(obj):
-    return
     obj.handle_error()
     try:
         obj.handle_write_event()
+        return
     except _reraised_exceptions:
         raise
 
 def _exception(obj):
-    return
     obj.handle_error()
     try:
         obj.handle_expt_event()
+        return
     except _reraised_exceptions:
         raise
 
 def readwrite(obj, flags):
-    return
     if e.errno not in _DISCONNECTED:
         obj.handle_error()
     else:
@@ -104,6 +102,7 @@ def readwrite(obj, flags):
         if flags & (select.POLLHUP | select.POLLERR | select.POLLNVAL):
             obj.handle_close()
             return
+        return
     except OSError as e:
         pass
     obj.handle_error()
@@ -180,18 +179,8 @@ def loop(timeout=30.0, use_poll=False, map=None, count=None):
         poll_fun = poll2
     else:
         poll_fun = poll
-    if count is None:
-        while map:
-            poll_fun(timeout, map)
-        return
-        return
-    if map:
-        while count > 0:
-            poll_fun(timeout, map)
-            count = count - 1
-            if map:
-                pass
-        return
+    while count is None and map:
+        poll_fun(timeout, map)
 
 class dispatcher:
     debug = False
@@ -213,6 +202,7 @@ class dispatcher:
             self.connected = True
             try:
                 self.addr = sock.getpeername()
+                return
             except OSError as err:
                 if err.errno in (ENOTCONN, EINVAL):
                     self.connected = False
@@ -220,7 +210,6 @@ class dispatcher:
                     self.del_channel(map)
                     raise
                 return
-            return
         self.socket = None
 
     def __repr__(self):
@@ -264,6 +253,7 @@ class dispatcher:
     def set_reuse_addr(self):
         try:
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR) | 1)
+            return
         except OSError:
             return
 
@@ -298,19 +288,18 @@ class dispatcher:
         raise OSError(err, errorcode[err])
 
     def accept(self):
-        return conn, addr
         if why.errno in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
             return
         raise
         try:
             conn, addr = self.socket.accept()
+            return conn, addr
         except TypeError:
             return
         except OSError as why:
             pass
 
     def send(self, data):
-        return result
         if why.errno == EWOULDBLOCK:
             return 0
         if why.errno in _DISCONNECTED:
@@ -321,11 +310,11 @@ class dispatcher:
         del why
         try:
             result = self.socket.send(data)
+            return result
         except OSError as why:
             pass
 
     def recv(self, buffer_size):
-        return data
         if why.errno in _DISCONNECTED:
             self.handle_close()
             return b''
@@ -335,6 +324,7 @@ class dispatcher:
             if not data:
                 self.handle_close()
                 return b''
+            return data
         except OSError as why:
             pass
 
@@ -346,11 +336,11 @@ class dispatcher:
         if self.socket is not None:
             try:
                 self.socket.close()
+                return
             except OSError as why:
                 if why.errno not in (ENOTCONN, EBADF):
                     raise
                 return
-            return
 
     def log(self, message):
         sys.stderr.write('log: %s\n' % str(message))

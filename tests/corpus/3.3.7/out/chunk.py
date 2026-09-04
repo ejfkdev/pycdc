@@ -155,17 +155,18 @@ class Chunk:
         while self.size_read < self.chunksize:
             n = min(8192, self.chunksize - self.size_read)
             dummy = self.read(n)
-        raise EOFError
-        try:
-            n = self.chunksize - self.size_read
-            if self.align:
-                if self.chunksize & 1:
-                    n = n + 1
-            self.file.seek(n, 1)
-            self.size_read = self.size_read + n
-            return
-        except IOError:
-            pass
+        else:
+            raise EOFError
+            try:
+                n = self.chunksize - self.size_read
+                if self.align:
+                    if self.chunksize & 1:
+                        n = n + 1
+                self.file.seek(n, 1)
+                self.size_read = self.size_read + n
+                return
+            except IOError:
+                pass
 
 
 # WARNING: Decompyle incomplete

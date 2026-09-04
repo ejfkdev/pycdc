@@ -498,7 +498,7 @@ class RawConfigParser(MutableMapping):
     OPTCRE_NV = re.compile(_OPT_NV_TMPL.format(delim='=|:'), re.VERBOSE)
     NONSPACECRE = re.compile('\\S')
     BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True, '0': False, 'no': False, 'false': False, 'off': False}
-    def __init__(self=None, defaults=None, dict_type=None, allow_no_value=None, *, delimiters, comment_prefixes, inline_comment_prefixes, strict, empty_lines_in_values, default_section, interpolation, converters):
+    def __init__(self, defaults=_UNSET, dict_type='converters', allow_no_value=_UNSET, *, delimiters, comment_prefixes, inline_comment_prefixes, strict, empty_lines_in_values, default_section, interpolation, converters):
         self._dict = dict_type
         self._sections = self._dict()
         self._defaults = self._dict()
@@ -656,7 +656,7 @@ class RawConfigParser(MutableMapping):
         warnings.warn("This method will be removed in future versions.  Use 'parser.read_file()' instead.", DeprecationWarning, stacklevel=2)
         self.read_file(fp, source=filename)
 
-    def get(self=None, section=None, option=None, *, raw, vars, fallback):
+    def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
         """Get an option value for a given section.
 
         If `vars' is provided, it must be a dictionary. The option is looked up
@@ -694,24 +694,24 @@ class RawConfigParser(MutableMapping):
         return self._interpolation.before_get(self, section, option, value, d)
 
     def _get(self, section, conv, option, **kwargs):
-        return self.get(section(option, kwargs))
+        return conv(self.get(section, option, **kwargs))
 
-    def _get_conv(self=None, section=None, option=None, conv=None, *, raw, vars, fallback, **kwargs):
+    def _get_conv(self, section, option, conv, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
         try:
-            return section(conv, option, 'raw', 'vars', kwargs)
+            return self._get(raw, 'vars', vars, conv, 'raw', **kwargs)
         except (NoSectionError, NoOptionError):
             if fallback is _UNSET:
                 raise
             return fallback
 
-    def getint(self=None, section=None, option=None, *, raw, vars, fallback, **kwargs):
-        return section(option, int, 'raw', 'vars', 'fallback', kwargs)
+    def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
+        return self._get_conv(vars, 'fallback', fallback, option, 'raw', 'vars', **kwargs)
 
-    def getfloat(self=None, section=None, option=None, *, raw, vars, fallback, **kwargs):
-        return section(option, float, 'raw', 'vars', 'fallback', kwargs)
+    def getfloat(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
+        return self._get_conv(vars, 'fallback', fallback, option, 'raw', 'vars', **kwargs)
 
-    def getboolean(self=None, section=None, option=None, *, raw, vars, fallback, **kwargs):
-        return section(option, self._convert_to_boolean, 'raw', 'vars', 'fallback', kwargs)
+    def getboolean(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
+        return self._get_conv(vars, 'fallback', fallback, option, 'raw', 'vars', **kwargs)
 
     def items(self, section=_UNSET, raw=False, vars=None):
         """Return a list of (name, value) tuples for each option in a section.
@@ -1012,7 +1012,7 @@ class RawConfigParser(MutableMapping):
             raise ValueError('Not a boolean: %s' % value)
         return self.BOOLEAN_STATES[value.lower()]
 
-    def _validate_value_types(self=None, *, section, option, value):
+    def _validate_value_types(self, *, section='', option='', value=''):
         '''Raises a TypeError for non-string values.
 
         The only legal non-string value if we allow valueless
@@ -1111,7 +1111,7 @@ class SectionProxy(MutableMapping):
     def name(self):
         return self._name
 
-    def get(self=None, option=None, fallback=None, *, raw, vars, _impl, **kwargs):
+    def get(self, option, fallback=None, *, raw, vars, _impl, **kwargs):
         '''Get an option value.
 
         Unless `fallback` is provided, `None` will be returned if the option
@@ -1121,7 +1121,7 @@ class SectionProxy(MutableMapping):
 
         if not _impl:
             _impl = self._parser.get
-        return self._name(option, 'raw', 'vars', 'fallback', kwargs)
+        return _impl('fallback', fallback, option, raw=raw, vars=vars, **kwargs)
 
 
 class ConverterMapping(MutableMapping):

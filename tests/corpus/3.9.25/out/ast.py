@@ -633,10 +633,9 @@ class _Precedence(IntEnum):
     ATOM = auto()
     def next(self):
         try:
-            pass
+            return self.__class__(self + 1)
         except ValueError:
             return self
-        return self.__class__(self + 1)
 
 
 _SINGLE_QUOTES = ("'", '"')

@@ -245,13 +245,13 @@ def main():
                         success = False
             success = False
             return success
+        return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
     except KeyboardInterrupt:
         if args.quiet < 2:
             print('\n[interrupted]')
         return False
     else:
         return True
-    return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
 
 if __name__ == '__main__':
     exit_status = int(not main())

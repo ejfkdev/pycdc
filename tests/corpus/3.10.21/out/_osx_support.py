@@ -82,10 +82,10 @@ def _get_system_version_tuple():
         if osx_version:
             try:
                 _SYSTEM_VERSION_TUPLE = tuple((int(i) for i in osx_version.split('.')))
+                return _SYSTEM_VERSION_TUPLE
             except ValueError:
                 _SYSTEM_VERSION_TUPLE = ()
                 return _SYSTEM_VERSION_TUPLE
-            return _SYSTEM_VERSION_TUPLE
     return _SYSTEM_VERSION_TUPLE
 
 def _remove_original_values(_config_vars):

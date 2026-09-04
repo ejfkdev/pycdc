@@ -63,10 +63,9 @@ def can_colorize(*, file=None):
         '''Exception-safe environment retrieval. See gh-128636.'''
 
         try:
-            pass
+            return os.environ.get(k, fallback)
         except Exception:
             return fallback
-        return os.environ.get(k, fallback)
 
     if not file is not None:
         file = sys.stdout
@@ -93,10 +92,9 @@ def can_colorize(*, file=None):
         except (ImportError, AttributeError):
             return False
     try:
-        pass
+        return os.isatty(file.fileno())
     except OSError:
         if hasattr(file, 'isatty'):
             hasattr(file, 'isatty')
         return file.isatty()
-    return os.isatty(file.fileno())
 

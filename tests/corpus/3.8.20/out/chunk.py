@@ -153,7 +153,7 @@ class Chunk:
         if self.closed:
             raise ValueError('I/O operation on closed file')
         if self.seekable:
-            return
+            pass
         try:
             n = self.chunksize - self.size_read
             if self.align:
@@ -161,6 +161,7 @@ class Chunk:
                     n = n + 1
             self.file.seek(n, 1)
             self.size_read = self.size_read + n
+            return
         except OSError:
             pass
         while self.size_read < self.chunksize:

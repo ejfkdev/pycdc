@@ -39,10 +39,9 @@ class _GlobalContext(_Context):
     @property
     def _filters(self):
         try:
-            pass
+            return _wm.filters
         except AttributeError:
             return []
-        return _wm.filters
 
 
 _global_context = _GlobalContext()
@@ -52,10 +51,9 @@ def _get_context():
     if not _use_context:
         return _global_context
     try:
-        pass
+        return _wm._warnings_context.get()
     except LookupError:
         return _global_context
-    return _wm._warnings_context.get()
 
 def _set_context(context):
     if not _use_context:
@@ -153,9 +151,10 @@ def _formatwarnmsg_impl(msg):
                         line = None
                 except Exception:
                     line = None
-                if line:
-                    line = line.strip()
-                    s += '    %s\n' % line
+                if not line:
+                    continue
+                line = line.strip()
+                s += '    %s\n' % line
             return s
         if suggest_tracemalloc:
             s += f'{category}: Enable tracemalloc to get the object allocation traceback\n'
@@ -308,10 +307,9 @@ def _getaction(action):
         return 'default'
     for a in ('default', 'always', 'all', 'ignore', 'module', 'once', 'error'):
         if not a.startswith(action):
-            pass
-        else:
-            return a
-            raise _wm._OptionError(f'invalid action: {action!r}')
+            continue
+        return a
+    raise _wm._OptionError(f'invalid action: {action!r}')
 
 def _getcategory(category):
     if not category:
@@ -343,11 +341,10 @@ def _is_filename_to_skip(filename, skip_file_prefixes):
     if any is None:
         for _ in (filename(prefix) for prefix in skip_file_prefixes):
             if not (filename(prefix) for prefix in skip_file_prefixes):
-                pass
-            else:
-                return True
-                return False
-                return None((filename(prefix) for prefix in skip_file_prefixes))
+                continue
+            return True
+        return False
+    return None((filename(prefix) for prefix in skip_file_prefixes))
 
 def _is_internal_frame(frame):
     '''Signal whether the frame is an internal CPython implementation detail.'''
@@ -386,21 +383,21 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
         for x in range(stacklevel - 1):
             frame = _next_external_frame(frame, skip_file_prefixes)
             if not frame is None:
-                pass
-            else:
-                raise ValueError
-                globals = frame.f_globals
-                filename = frame.f_code.co_filename
-                lineno = frame.f_lineno
-                if '__name__' in globals:
-                    module = globals['__name__']
-                else:
-                    module = '<string>'
-                registry = globals.setdefault('__warningregistry__', {})
-                _wm.warn_explicit(message, category, filename, lineno, module, registry, globals, source=source)
-                return
+                continue
+            raise ValueError
     except ValueError:
-        pass
+        globals = sys.__dict__
+        filename = '<sys>'
+        lineno = 0
+    globals = frame.f_globals
+    filename = frame.f_code.co_filename
+    lineno = frame.f_lineno
+    if '__name__' in globals:
+        module = globals['__name__']
+    else:
+        module = '<string>'
+    registry = globals.setdefault('__warningregistry__', {})
+    _wm.warn_explicit(message, category, filename, lineno, module, registry, globals, source=source)
 
 def warn_explicit(message, category, filename, lineno, module=None, registry=None, module_globals=None, source=None):
     lineno = int(lineno)
@@ -427,9 +424,15 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
         action, msg, cat, mod, ln = item
         if not msg is None:
             if msg.match(text) and issubclass(category, cat):
-                if not ln == 0 and not lineno == ln:
+                if not mod is None and not mod.match(module):
                     pass
-    action = _wm.defaultaction
+                else:
+                    if not ln == 0:
+                        if not lineno == ln:
+                            continue
+                    break
+    else:
+        action = _wm.defaultaction
     if action == 'ignore':
         None(None, None, None)
         return
@@ -632,7 +635,7 @@ See PEP 702 for details.
                 if cls is arg:
                     _wm.warn(msg, category=category, stacklevel=stacklevel + 1)
                 if original_new is not object.__new__:
-                    return original_new(*[cls, *args], **kwargs)
+                    return original_new(cls, *args, **kwargs)
                 if cls.__init__ is object.__init__:
                     if args or kwargs:
                         raise TypeError(f'{cls.__name__}() takes no arguments')

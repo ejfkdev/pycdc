@@ -109,10 +109,9 @@ class Cmd:
         if self.use_rawinput:
             if self.completekey:
                 try:
-                    pass
+                    return
                 except ImportError:
                     return
-                return
                 return
 
     def precmd(self, line):
@@ -154,11 +153,8 @@ class Cmd:
             else:
                 return None, None, line
         i, n = 0, len(line)
-        if i < n and line[i] in self.identchars:
+        while i < n and line[i] in self.identchars:
             i = i + 1
-            if i < n:
-                if not line[i] in self.identchars:
-                    pass
         cmd, arg = line[:i], line[i:].strip()
         return cmd, arg, line
 
@@ -185,9 +181,9 @@ class Cmd:
             return self.default(line)
         try:
             func = getattr(self, 'do_' + cmd)
+            return func(arg)
         except AttributeError:
             return self.default(line)
-        return func(arg)
 
     def emptyline(self):
         '''Called when an empty line is entered in response to the prompt.
@@ -242,10 +238,9 @@ class Cmd:
             compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
         try:
-            pass
+            return self.completion_matches[state]
         except IndexError:
             return
-        return self.completion_matches[state]
 
     def get_names(self):
         return dir(self.__class__)
@@ -345,12 +340,11 @@ class Cmd:
                 if totwidth > displaywidth:
                     break
             if totwidth <= displaywidth:
-                pass
-            else:
-                continue
-        nrows = len(list)
-        ncols = 1
-        colwidths = [0]
+                break
+        else:
+            nrows = len(list)
+            ncols = 1
+            colwidths = [0]
         for row in range(nrows):
             texts = []
             for col in range(ncols):

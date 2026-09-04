@@ -129,9 +129,9 @@ def _slotnames(cls):
             continue
     try:
         cls.__slotnames__ = names
+        return names
     except:
         pass
-    return names
     return names
 
 _extension_registry = {}

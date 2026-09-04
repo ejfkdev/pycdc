@@ -145,30 +145,26 @@ class Error(Exception):
 _AIFC_version = 2726318400
 
 def _read_long(file):
-    return struct.unpack('>l', file.read(4))[0]
     try:
-        pass
+        return struct.unpack('>l', file.read(4))[0]
     except struct.error:
         raise EOFError from None
 
 def _read_ulong(file):
-    return struct.unpack('>L', file.read(4))[0]
     try:
-        pass
+        return struct.unpack('>L', file.read(4))[0]
     except struct.error:
         raise EOFError from None
 
 def _read_short(file):
-    return struct.unpack('>h', file.read(2))[0]
     try:
-        pass
+        return struct.unpack('>h', file.read(2))[0]
     except struct.error:
         raise EOFError from None
 
 def _read_ushort(file):
-    return struct.unpack('>H', file.read(2))[0]
     try:
-        pass
+        return struct.unpack('>H', file.read(2))[0]
     except struct.error:
         raise EOFError from None
 

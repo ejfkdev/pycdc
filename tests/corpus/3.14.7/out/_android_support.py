@@ -38,12 +38,11 @@ class TextLogStream(io.TextIOWrapper):
         with self._lock:
             for line in s.splitlines(keepends=True):
                 if not line:
-                    pass
-                else:
-                    chunk = line[:MAX_CHARS_PER_WRITE]
-                    line = line[MAX_CHARS_PER_WRITE:]
-                    self._write_chunk(chunk)
                     continue
+                chunk = line[:MAX_CHARS_PER_WRITE]
+                line = line[MAX_CHARS_PER_WRITE:]
+                self._write_chunk(chunk)
+                continue
         return len(s)
 
     def _write_chunk(self, s):

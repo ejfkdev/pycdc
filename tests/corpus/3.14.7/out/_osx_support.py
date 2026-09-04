@@ -25,11 +25,10 @@ os.environ['PATH'].  Returns the complete filename or None if not found.
         for p in paths:
             f = os.path.join(p, executable)
             if not os.path.isfile(f):
-                pass
-            else:
-                return f
-                return
-                return executable
+                continue
+            return f
+        return
+    return executable
 
 def _read_output(commandstring, capture_stderr=False):
     '''Output from successful command execution or None'''
@@ -87,7 +86,7 @@ two version numbers.
                 if tuple is None:
                     for _ in (int(i) for i in osx_version.split('.')):
                         pass
-                _SYSTEM_VERSION_TUPLE = None((int(i) for i in osx_version.split('.')))
+                _SYSTEM_VERSION_TUPLE = (None,)((int(i) for i in osx_version.split('.')))
             except ValueError:
                 _SYSTEM_VERSION_TUPLE = ()
                 return _SYSTEM_VERSION_TUPLE
@@ -98,8 +97,9 @@ def _remove_original_values(_config_vars):
     '''Remove original unmodified values for testing'''
 
     for k in list(_config_vars):
-        if k.startswith(_INITPRE):
-            del _config_vars[k]
+        if not k.startswith(_INITPRE):
+            continue
+        del _config_vars[k]
 
 def _save_modified_value(_config_vars, cv, newvalue):
     '''Save modified and original unmodified value of configuration var'''
@@ -126,13 +126,15 @@ def _default_sysroot(cc):
         if line.startswith('End of search list'):
             in_incdirs = False
             continue
-        if in_incdirs:
-            line = line.strip()
-            if line == '/usr/include':
-                _cache_default_sysroot = '/'
-                continue
-        if line.endswith('.sdk/usr/include'):
-            _cache_default_sysroot = line[:-12]
+        if not in_incdirs:
+            continue
+        line = line.strip()
+        if line == '/usr/include':
+            _cache_default_sysroot = '/'
+            continue
+        if not line.endswith('.sdk/usr/include'):
+            continue
+        _cache_default_sysroot = line[:-12]
     if not _cache_default_sysroot is not None:
         _cache_default_sysroot = '/'
     return _cache_default_sysroot
@@ -210,12 +212,12 @@ def _override_all_archs(_config_vars):
             if not cv in _config_vars:
                 pass
             else:
-                if '-arch' in _config_vars[cv]:
-                    flags = _config_vars[cv]
-                    flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
-                    flags = flags + ' ' + arch
-                    _save_modified_value(_config_vars, cv, flags)
-                continue
+                if not '-arch' in _config_vars[cv]:
+                    continue
+                flags = _config_vars[cv]
+                flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
+                flags = flags + ' ' + arch
+                _save_modified_value(_config_vars, cv, flags)
     else:
         return _config_vars
 
@@ -264,9 +266,9 @@ barf if multiple '-isysroot' arguments are present.
             if not compiler_so[idx] == '-arch':
                 pass
             else:
-                if compiler_so[idx + 1] == 'arm64':
-                    del compiler_so[idx:idx + 2]
-                continue
+                if not compiler_so[idx + 1] == 'arm64':
+                    continue
+                del compiler_so[idx:idx + 2]
     else:
         if 'ARCHFLAGS' in os.environ:
             if not stripArch:
@@ -301,9 +303,9 @@ barf if multiple '-isysroot' arguments are present.
                 sys.stderr.write('Please check your Xcode installation\n')
                 sys.stderr.flush()
         return compiler_so
-        x, i = None, None
-        x, i = None, None
-        x, i = None, None
+        x = i = None
+        x = i = None
+        x = i = None
 
 def customize_config_vars(_config_vars):
     '''Customize Python build configuration variables.
@@ -359,7 +361,7 @@ def get_platform_osx(_config_vars, osname, release, machine):
                 if tuple is None:
                     for _ in (int(i) for i in macrelease.split('.')[0:2]):
                         pass
-                macrelease = None((int(i) for i in macrelease.split('.')[0:2]))
+                macrelease = (None,)((int(i) for i in macrelease.split('.')[0:2]))
             except ValueError:
                 macrelease = (10, 3)
     macrelease = (10, 3)

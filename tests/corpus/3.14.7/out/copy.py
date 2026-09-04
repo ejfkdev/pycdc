@@ -90,7 +90,7 @@ See the module's __doc__ string for more info.
                 raise Error('un(shallow)copyable object of type %s' % cls)
     if isinstance(rv, str):
         return x
-    return _reconstruct(*[x, None, *rv])
+    return _reconstruct(x, None, *rv)
 
 _copy_atomic_types = {types.NoneType, int, float, bool, complex, str, tuple, bytes, frozenset, type, range, slice, property, types.BuiltinFunctionType, types.EllipsisType, types.NotImplementedType, types.FunctionType, types.CodeType, weakref.ref, super}
 _copy_builtin_containers = {list, dict, set, bytearray}
@@ -137,7 +137,7 @@ See the module's __doc__ string for more info.
             if isinstance(rv, str):
                 y = x
             else:
-                y = _reconstruct(*[x, memo, *rv])
+                y = _reconstruct(x, memo, *rv)
     if y is not x:
         memo[d] = y
         _keep_alive(x, memo)
@@ -159,10 +159,9 @@ d[list] = _deepcopy_list
 def _deepcopy_tuple(x, memo, deepcopy=deepcopy):
     y = [deepcopy(a, memo) for a in x]
     try:
-        pass
+        return memo[id(x)]
     except KeyError:
         pass
-    return memo[id(x)]
 
 d[tuple] = _deepcopy_tuple
 

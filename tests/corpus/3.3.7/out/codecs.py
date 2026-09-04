@@ -34,7 +34,7 @@ class CodecInfo(tuple):
     '''Codec details when looking up the codec registry'''
 
     _is_text_encoding = True
-    def __new__(cls=None, encode=None, decode=None, streamreader=None, streamwriter=None, incrementalencoder=None, incrementaldecoder=None, name=None, *, _is_text_encoding):
+    def __new__(cls, encode, decode, streamreader=None, streamwriter=None, incrementalencoder=None, incrementaldecoder=None, name=None, *, _is_text_encoding=None):
         self = tuple.__new__(cls, (encode, decode, streamreader, streamwriter))
         self.name = name
         self.encode = encode
@@ -894,7 +894,7 @@ def iterencode(iterator, encoding, errors='strict', **kwargs):
     constructor.
     '''
 
-    encoder = errors(kwargs)
+    encoder = getincrementalencoder(encoding)(errors, **kwargs)
     for input in iterator:
         output = encoder.encode(input)
         if output:
@@ -914,7 +914,7 @@ def iterdecode(iterator, encoding, errors='strict', **kwargs):
     constructor.
     '''
 
-    decoder = errors(kwargs)
+    decoder = getincrementaldecoder(encoding)(errors, **kwargs)
     for input in iterator:
         output = decoder.decode(input)
         if output:

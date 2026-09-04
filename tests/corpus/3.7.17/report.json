@@ -201,7 +201,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 7,
    "ntotal": 439,
-   "detail": "line 410: orig ('SETUP_LOOP', 'to 162') | got ('SETUP_LOOP', 'to 154')\nline 431: orig ('LOAD_FAST', 'dummy') | got ('JUMP_ABSOLUTE', '')\nline 432: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_BLOCK', '')"
+   "detail": "line 410: orig ('SETUP_LOOP', 'to 162') | got ('SETUP_LOOP', 'to 158')\nline 431: orig ('LOAD_FAST', 'dummy') | got ('JUMP_ABSOLUTE', '')\nline 432: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_BLOCK', '')"
   },
   {
    "module": "cmd",
@@ -241,7 +241,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 760,
    "ntotal": 1112,
-   "detail": "line 240: orig ('JUMP_FORWARD', 'to 80') | got ('JUMP_FORWARD', 'to 38')\nline 324: orig ('JUMP_FORWARD', 'to 242') | got ('JUMP_FORWARD', 'to 216')\nline 325: orig ('SETUP_LOOP', 'to 242') | got ('SETUP_LOOP', 'to 216')"
+   "detail": "line 240: orig ('JUMP_FORWARD', 'to 80') | got ('JUMP_FORWARD', 'to 38')\nline 324: orig ('JUMP_FORWARD', 'to 242') | got ('JUMP_FORWARD', 'to 220')\nline 325: orig ('SETUP_LOOP', 'to 242') | got ('SETUP_LOOP', 'to 220')"
   },
   {
    "module": "configparser",
@@ -273,7 +273,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 346,
    "ntotal": 540,
-   "detail": "line 169: orig ('SETUP_LOOP', 'to 56') | got ('SETUP_LOOP', 'to 40')\nline 174: orig ('FOR_ITER', 'to 50') | got ('FOR_ITER', 'to 38')\nline 181: orig ('LOAD_FAST', 'base') | got ('JUMP_ABSOLUTE', '')"
+   "detail": "line 169: orig ('SETUP_LOOP', 'to 56') | got ('SETUP_LOOP', 'to 44')\nline 174: orig ('FOR_ITER', 'to 50') | got ('FOR_ITER', 'to 38')\nline 181: orig ('LOAD_FAST', 'base') | got ('JUMP_ABSOLUTE', '')"
   },
   {
    "module": "crypt",

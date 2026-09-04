@@ -39,7 +39,7 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3630,
+   "ndiff": 3634,
    "ntotal": 3732,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -47,7 +47,7 @@
    "module": "_colorize",
    "ast_detail": "diff at token 8: orig  If(test=Constant(value=False) | dec  ClassDef(name='ANSIColors'",
    "verdict": "SIG-DIFF",
-   "ndiff": 316,
+   "ndiff": 317,
    "ntotal": 338,
    "detail": "line 18: orig ('NOP', '') | got ('LOAD_BUILD_CLASS', '')\nline 19: orig ('LOAD_BUILD_CLASS', '') | got ('PUSH_NULL', '')\nline 20: orig ('PUSH_NULL', '') | got ('LOAD_CONST', '<code ANSIColors>')"
   },
@@ -116,8 +116,8 @@
    "module": "_strptime",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2788,
-   "ntotal": 2941,
+   "ndiff": 2756,
+   "ntotal": 2946,
    "detail": "line 49: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 53: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 54: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {
@@ -193,7 +193,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1129,
+   "ndiff": 1130,
    "ntotal": 1405,
    "detail": "line 257: orig ('NOP', '') | got ('LOAD_GLOBAL', 'input + NULL')\nline 258: orig ('LOAD_GLOBAL', 'input + NULL') | got ('LOAD_FAST', 'self')\nline 259: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'prompt')"
   },
@@ -234,15 +234,15 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4206,
-   "ntotal": 4503,
+   "ndiff": 4213,
+   "ntotal": 4521,
    "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "contextlib",
    "ast_detail": "diff at token 54: orig  body=[Return(value=Constant(value=None))] | dec  decorator_list=[Attribute(value=Name(id='abc'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2133,
+   "ndiff": 2141,
    "ntotal": 2204,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
@@ -250,7 +250,7 @@
    "module": "copy",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 677,
+   "ndiff": 684,
    "ntotal": 916,
    "detail": "line 228: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, None)')\nline 229: orig ('LOAD_CONST', '(None, None, None)') | got ('LOAD_NAME', 'deepcopy')\nline 230: orig ('LOAD_NAME', 'deepcopy') | got ('LOAD_CONST', \"('deepcopy',)\")"
   },
@@ -258,7 +258,7 @@
    "module": "copyreg",
    "ast_detail": "diff at token 31: orig  If(test=Compare(left=Name(id='constructor_ob' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 404,
+   "ndiff": 400,
    "ntotal": 627,
    "detail": "line 190: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L7')\nline 197: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L3')\nline 198: orig ('LOAD_FAST', 'base') | got ('JUMP_BACKWARD', 'to L2')"
   },
@@ -266,8 +266,8 @@
    "module": "csv",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1680,
-   "ntotal": 1727,
+   "ndiff": 1692,
+   "ntotal": 1729,
    "detail": "line 13: orig ('LOAD_CONST', \"('Error', 'writer', 'reader', 'register_dialect', 'unregister_dialect', 'get_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 17: orig ('IMPORT_FROM', 'writer') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'writer') | got ('LOAD_CONST', '0')"
   },
   {

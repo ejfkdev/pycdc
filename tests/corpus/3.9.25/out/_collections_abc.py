@@ -56,8 +56,7 @@ def _check_methods(C, *methods):
         for B in mro:
             if method in B.__dict__:
                 if B.__dict__[method] is None:
-                    NotImplemented
-                    return
+                    return NotImplemented
                 continue
         return NotImplemented
     return True
@@ -375,12 +374,11 @@ class _CallableGenericAlias(GenericAlias):
     __slots__ = ()
     def __new__(cls, origin, args):
         try:
-            pass
+            return cls.__create_ga(origin, args)
         except TypeError as exc:
             import warnings
             warnings.warn(f'{str(exc)} (This will raise a TypeError in Python 3.10.)', DeprecationWarning)
             return GenericAlias(origin, args)
-        return cls.__create_ga(origin, args)
 
     @classmethod
     def __create_ga(cls, origin, args):
@@ -678,10 +676,9 @@ class Mapping(Collection):
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
 
         try:
-            pass
+            return self[key]
         except KeyError:
             return default
-        return self[key]
 
     def __contains__(self, key):
         try:
@@ -853,10 +850,9 @@ class MutableMapping(Mapping):
         '''D.setdefault(k[,d]) -> D.get(k,d), also set D[k]=d if k not in D'''
 
         try:
-            pass
+            return self[key]
         except KeyError:
             self[key] = default
-        return self[key]
         return default
 
 
@@ -1011,4 +1007,3 @@ class MutableSequence(Sequence):
 
 MutableSequence.register(list)
 MutableSequence.register(bytearray)
-# WARNING: Decompyle incomplete

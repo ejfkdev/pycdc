@@ -201,6 +201,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                                 actual = chandle.read(12)
                             if not expect != actual:
                                 continue
+                            break
                         else:
                             return success
                     except OSError:

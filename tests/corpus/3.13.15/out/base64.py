@@ -8,21 +8,13 @@ bytes_types = bytes, bytearray
 
 def _bytes_from_decode_data(s):
     if isinstance(s, str):
-        try:
-            try:
-                pass
-            except UnicodeEncodeError:
-                raise ValueError('string argument should contain only ASCII characters')
-        except TypeError:
-            raise TypeError('argument should be a bytes-like object or ASCII string, not %r' % s.__class__.__name__) from None
         return s.encode('ascii')
     if isinstance(s, bytes_types):
         return s
     try:
-        pass
+        return memoryview(s).tobytes()
     except TypeError:
         raise TypeError('argument should be a bytes-like object or ASCII string, not %r' % s.__class__.__name__) from None
-    return memoryview(s).tobytes()
 
 def b64encode(s, altchars=None):
     """Encode the bytes-like object s using Base64 and return a bytes object.
@@ -428,10 +420,9 @@ The result is returned as a bytes object.
     s = _bytes_from_decode_data(s)
     s = s.translate(_z85_decode_translation)
     try:
-        pass
+        return b85decode(s)
     except ValueError as e:
         raise ValueError(e.args[0].replace('base85', 'z85')) from None
-    return b85decode(s)
 
 MAXLINESIZE = 76
 MAXBINSIZE = MAXLINESIZE // 4 * 3

@@ -61,13 +61,12 @@ def check_output(cmd, **kwargs):
         cmd = ' '.join(cmd)
     cmd = f'{cmd} >{tmp_filename}'
     try:
-        pass
+        return stdout
     except OSError:
         return stdout
     try:
         os.unlink(tmp_filename)
     except OSError:
         pass
-    return stdout
 
 # WARNING: Decompyle incomplete

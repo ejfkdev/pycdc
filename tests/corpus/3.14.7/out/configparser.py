@@ -770,21 +770,20 @@ The section DEFAULT is special.
 
     def _get_conv(self, section, option, conv, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
         try:
-            pass
+            return self._get(section, conv, option, **{'raw': raw, 'vars': vars, **kwargs})
         except (NoSectionError, NoOptionError):
             if fallback is _UNSET:
                 raise
             return fallback
-        return self._get(section, conv, option, **kwargs)
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(section, option, int, **kwargs)
+        return self._get_conv(section, option, int, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
 
     def getfloat(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(section, option, float, **kwargs)
+        return self._get_conv(section, option, float, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
 
     def getboolean(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(section, option, self._convert_to_boolean, **kwargs)
+        return self._get_conv(section, option, self._convert_to_boolean, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
 
     def items(self, section=_UNSET, raw=False, vars=None):
         '''Return a list of (name, value) tuples for each option in a section.
@@ -878,8 +877,9 @@ preserved when writing the configuration back.
         if UNNAMED_SECTION in self._sections and self._sections[UNNAMED_SECTION]:
             self._write_section(fp, UNNAMED_SECTION, self._sections[UNNAMED_SECTION].items(), d, unnamed=True)
         for section in self._sections:
-            if not section is UNNAMED_SECTION:
-                self._write_section(fp, section, self._sections[section].items(), d)
+            if section is UNNAMED_SECTION:
+                continue
+            self._write_section(fp, section, self._sections[section].items(), d)
 
     def _write_section(self, fp, section_name, section_items, delimiter, unnamed=False):
         """Write a single section to the specified 'fp'."""
@@ -1103,10 +1103,8 @@ delimiters or that begins with the section header pattern'''
             raise InvalidWriteError(f'Cannot write key {key}; begins with section pattern')
         for delim in self._delimiters:
             if not delim in key:
-                pass
-            else:
-                raise InvalidWriteError(f'Cannot write key {key}; contains delimiter {delim}')
-                return
+                continue
+            raise InvalidWriteError(f'Cannot write key {key}; contains delimiter {delim}')
 
     def _validate_value_types(self, *, section='', option='', value=''):
         '''Raises a TypeError for illegal non-string values.
@@ -1225,7 +1223,7 @@ is not found.
 
         if not _impl:
             _impl = self._parser.get
-        return _impl(self._name, option, **kwargs)
+        return _impl(self._name, option, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
 
 
 class ConverterMapping(MutableMapping):
@@ -1243,8 +1241,9 @@ section proxies to find and use the implementation on the parser class.
         for getter in dir(self._parser):
             m = self.GETTERCRE.match(getter)
             if m:
-                if callable(getattr(self._parser, getter)):
-                    self._data[m.group('name')] = None
+                if not callable(getattr(self._parser, getter)):
+                    continue
+            self._data[m.group('name')] = None
 
     def __getitem__(self, key):
         return self._data[key]

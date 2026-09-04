@@ -638,10 +638,9 @@ class _Precedence(IntEnum):
     ATOM = auto()
     def next(self):
         try:
-            pass
+            return self.__class__(self + 1)
         except ValueError:
             return self
-        return self.__class__(self + 1)
 
 
 _SINGLE_QUOTES = ("'", '"')
@@ -1027,13 +1026,12 @@ class _Unparser(NodeVisitor):
         self.traverse(node.test)
         with self.block():
             self.traverse(node.body)
-        if node.orelse and len(node.orelse) == 1:
-            while isinstance(node.orelse[0], If):
-                node = node.orelse[0]
-                self.fill('elif ')
-                self.traverse(node.test)
-                with self.block():
-                    self.traverse(node.body)
+        while node.orelse and len(node.orelse) == 1 and isinstance(node.orelse[0], If):
+            node = node.orelse[0]
+            self.fill('elif ')
+            self.traverse(node.test)
+            with self.block():
+                self.traverse(node.body)
         if node.orelse:
             self.fill('else')
             with self.block():

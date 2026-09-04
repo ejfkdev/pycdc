@@ -63,8 +63,7 @@ def _check_methods(C, *methods):
             if not method in B.__dict__:
                 continue
             if not B.__dict__[method] is not None:
-                NotImplemented
-                return
+                return NotImplemented
             continue
         return NotImplemented
     return True
@@ -399,7 +398,7 @@ Example: ``Callable[[int, str], float]`` sets ``__args__`` to
             raise TypeError('Callable must be used as Callable[[arg, ...], result].')
         t_args, t_result = args
         if isinstance(t_args, (tuple, list)):
-            args = [*t_args, t_result]
+            args = *t_args, t_result
         elif not _is_param_expr(t_args):
             raise TypeError(f'Expected a list of types, an ellipsis, ParamSpec, or Concatenate. Got {t_args}')
         return super().__new__(cls, origin, args)
@@ -715,10 +714,9 @@ methods except for __getitem__, __iter__, and __len__.
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
 
         try:
-            pass
+            return self[key]
         except KeyError:
             return default
-        return self[key]
 
     def __contains__(self, key):
         try:
@@ -901,11 +899,10 @@ In either case, this is followed by:
         '''D.setdefault(k[,d]) -> D.get(k,d), also set D[k]=d if k not in D'''
 
         try:
-            pass
+            return self[key]
         except KeyError:
             self[key] = default
             return default
-        return self[key]
 
 
 MutableMapping.register(dict)
@@ -1087,4 +1084,3 @@ Raise ValueError if the value is not present.
 
 MutableSequence.register(list)
 MutableSequence.register(bytearray)
-# WARNING: Decompyle incomplete

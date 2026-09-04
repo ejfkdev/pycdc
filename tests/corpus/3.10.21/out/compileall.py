@@ -187,7 +187,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             pass
         if tail == '.py':
             if not force:
-                return success
+                pass
             try:
                 mtime = int(os.stat(fullname).st_mtime)
                 expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
@@ -196,9 +196,9 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                         actual = chandle.read(12)
                     stripdir.split(None, None, None)
                     if expect != actual:
-                        pass
-                    else:
-                        continue
+                        break
+                else:
+                    return success
             except OSError:
                 pass
             if not quiet:
@@ -334,11 +334,11 @@ def main():
                 if not compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
                     success = False
             return success
+        return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
     except KeyboardInterrupt:
         if args.quiet < 2:
             print('\n[interrupted]')
         return False
-    return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
 
 if __name__ == '__main__':
     exit_status = int(not main())

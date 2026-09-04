@@ -770,10 +770,10 @@ def open(filename, mode='r', encoding=None, errors='strict', buffering=-1):
         info = lookup(encoding)
         srw = StreamReaderWriter(file, info.streamreader, info.streamwriter, errors)
         srw.encoding = encoding
+        return srw
     except:
         file.close()
         raise
-    return srw
 
 def EncodedFile(file, data_encoding, file_encoding=None, errors='strict'):
     """ Return a wrapped version of file which provides transparent

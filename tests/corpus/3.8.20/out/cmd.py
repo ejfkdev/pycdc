@@ -238,9 +238,8 @@ class Cmd:
                 compfunc = self.completedefault
             compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
-        return self.completion_matches[state]
         try:
-            pass
+            return self.completion_matches[state]
         except IndexError:
             return
 

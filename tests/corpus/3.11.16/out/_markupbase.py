@@ -166,11 +166,8 @@ class ParserBase:
             else:
                 if c == ']':
                     j = j + 1
-                    if j < n and rawdata[j].isspace():
+                    while j < n and rawdata[j].isspace():
                         j = j + 1
-                        if j < n:
-                            if not rawdata[j].isspace():
-                                pass
                     if j < n:
                         if rawdata[j] == '>':
                             return j

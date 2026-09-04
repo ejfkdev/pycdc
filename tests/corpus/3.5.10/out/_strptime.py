@@ -239,8 +239,9 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
     global _TimeRE_cache
     for index, arg in enumerate([data_string, format]):
         pass
-    msg = 'strptime() argument {} must be str, not {}'
-    raise TypeError(msg.format(index, type(arg)))
+    else:
+        msg = 'strptime() argument {} must be str, not {}'
+        raise TypeError(msg.format(index, type(arg)))
     with _cache_lock:
         locale_time = _TimeRE_cache.locale_time
         if _getlang() != locale_time.lang or time.tzname != locale_time.tzname or time.daylight != locale_time.daylight:
@@ -354,29 +355,31 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                     year = 1900
             if julian is None and week_of_year != -1:
                 if weekday is not None:
-                    week_starts_Mon = True if week_of_year_start == 0 else False
-                    julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
-                    if julian <= 0:
-                        year -= 1
-                        yday = 366 if calendar.isleap(year) else 365
-                        julian += yday
-            if julian is None:
-                julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
-            else:
-                datetime_result = datetime_date.fromordinal(julian - 1 + datetime_date(year, 1, 1).toordinal())
-                year = datetime_result.year
-                month = datetime_result.month
-                day = datetime_result.day
-            if weekday is None:
-                weekday = datetime_date(year, month, day).weekday()
-            tzname = found_dict.get('Z')
-            if tzoffset is not None:
-                gmtoff = tzoffset * 60
-            else:
-                gmtoff = None
-            if leap_year_fix:
-                year = 1900
-            return (year, month, day, hour, minute, second, weekday, julian, tz, tzname, gmtoff), fraction
+                    if week_of_year_start == 0:
+                        break
+    week_starts_Mon = False
+    julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
+    if julian <= 0:
+        year -= 1
+        yday = 366 if calendar.isleap(year) else 365
+        julian += yday
+    if julian is None:
+        julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
+    else:
+        datetime_result = datetime_date.fromordinal(julian - 1 + datetime_date(year, 1, 1).toordinal())
+        year = datetime_result.year
+        month = datetime_result.month
+        day = datetime_result.day
+    if weekday is None:
+        weekday = datetime_date(year, month, day).weekday()
+    tzname = found_dict.get('Z')
+    if tzoffset is not None:
+        gmtoff = tzoffset * 60
+    else:
+        gmtoff = None
+    if leap_year_fix:
+        year = 1900
+    return (year, month, day, hour, minute, second, weekday, julian, tz, tzname, gmtoff), fraction
 
 def _strptime_time(data_string, format='%a %b %d %H:%M:%S %Y'):
     '''Return a time struct based on the input string and the

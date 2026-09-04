@@ -766,11 +766,11 @@ def open(filename, mode='r', encoding=None, errors='strict', buffering=-1):
     file = builtins.open(filename, mode, buffering)
     if encoding is None:
         return file
-    return srw
     try:
         info = lookup(encoding)
         srw = StreamReaderWriter(file, info.streamreader, info.streamwriter, errors)
         srw.encoding = encoding
+        return srw
     except:
         file.close()
         raise

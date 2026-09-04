@@ -44,8 +44,9 @@ def _reduce_ex(self, proto):
     for base in self.__class__.__mro__:
         if hasattr(base, '__flags__'):
             pass
-    # WARNING: break outside loop (unrecovered structure)
-    base = object
+    else:
+        # WARNING: break outside loop (unrecovered structure)
+        base = object
     if base is object:
         state = None
     else:

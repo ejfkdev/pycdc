@@ -64,8 +64,7 @@ class Queue:
 
     def full(self):
         self.mutex.acquire()
-        self.maxsize == (0 < self.maxsize and self._qsize)()
-        n = None
+        n = 0 < self.maxsize == self._qsize()
         self.mutex.release()
         return n
 
@@ -170,4 +169,3 @@ class LifoQueue(Queue):
         return self.queue.pop()
 
 
-# WARNING: Decompyle incomplete

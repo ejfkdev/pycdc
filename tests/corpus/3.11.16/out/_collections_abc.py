@@ -56,9 +56,10 @@ def _check_methods(C, *methods):
         for B in mro:
             if method in B.__dict__:
                 if not B.__dict__[method] is not None:
-                    NotImplemented
-                    return
-        return NotImplemented
+                    return NotImplemented
+                break
+        else:
+            return NotImplemented
     return True
 
 class Hashable(metaclass=ABCMeta):
@@ -691,10 +692,9 @@ class Mapping(Collection):
         '''D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'''
 
         try:
-            pass
+            return self[key]
         except KeyError:
             return default
-        return self[key]
 
     def __contains__(self, key):
         try:
@@ -870,10 +870,9 @@ class MutableMapping(Mapping):
         '''D.setdefault(k[,d]) -> D.get(k,d), also set D[k]=d if k not in D'''
 
         try:
-            pass
+            return self[key]
         except KeyError:
             self[key] = default
-        return self[key]
 
 
 MutableMapping.register(dict)
@@ -1035,4 +1034,3 @@ class MutableSequence(Sequence):
 
 MutableSequence.register(list)
 MutableSequence.register(bytearray)
-# WARNING: Decompyle incomplete

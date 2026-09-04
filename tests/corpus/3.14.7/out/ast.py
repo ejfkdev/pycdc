@@ -170,10 +170,11 @@ will be omitted from the output for better readability.
                     except AttributeError:
                         pass
                     if not value is not None:
-                        if getattr(cls, name, ...) is not None:
-                            value, simple = _format(value, level)
-                            allsimple = allsimple and simple
-                            args.append(f'{name!s}={value!s}')
+                        if not getattr(cls, name, ...) is not None:
+                            continue
+                    value, simple = _format(value, level)
+                    allsimple = allsimple and simple
+                    args.append(f'{name!s}={value!s}')
             if allsimple and len(args) <= 3:
                 return f'{node.__class__.__name__!s}({', '.join(args)!s})', not args
             return f'{node.__class__.__name__!s}({prefix!s}{sep.join(args)!s})', False
@@ -252,9 +253,11 @@ location in a file.
             continue
         if 'lineno' in child._attributes:
             child.lineno = getattr(child, 'lineno', 0) + n
-        if 'end_lineno' in child._attributes:
-            if (end_lineno := getattr(child, 'end_lineno', 0)) is not None:
-                child.end_lineno = end_lineno + n
+        if not 'end_lineno' in child._attributes:
+            continue
+        if not (end_lineno := getattr(child, 'end_lineno', 0)) is not None:
+            continue
+        child.end_lineno = end_lineno + n
     return node
 
 def iter_fields(node):
@@ -279,10 +282,12 @@ and all items of fields that are lists of nodes.
         if isinstance(field, AST):
             yield field
             continue
-        if isinstance(field, list):
-            for item in field:
-                if isinstance(item, AST):
-                    yield item
+        if not isinstance(field, list):
+            continue
+        for item in field:
+            if not isinstance(item, AST):
+                continue
+            yield item
 
 def get_docstring(node, clean=True):
     '''
@@ -407,11 +412,10 @@ might differ in whitespace or similar details.
                 return False
             for a_item, b_item in zip(a, b):
                 if _compare(a_item, b_item):
-                    pass
-                else:
-                    return False
-                    return True
-                    return type(a) is type(b) and a == b
+                    continue
+                return False
+            return True
+        return type(a) is type(b) and a == b
 
     def _compare_fields(a, b):
         if a._fields != b._fields:
@@ -424,10 +428,9 @@ might differ in whitespace or similar details.
             if a_field is sentinel or b_field is sentinel:
                 return False
             if _compare(a_field, b_field):
-                pass
-            else:
-                return False
-                return True
+                continue
+            return False
+        return True
 
     def _compare_attributes(a, b):
         if a._attributes != b._attributes:
@@ -438,10 +441,9 @@ might differ in whitespace or similar details.
             if a_attr is sentinel and b_attr is sentinel:
                 continue
             if not a_attr != b_attr:
-                pass
-            else:
-                return False
-                return True
+                continue
+            return False
+        return True
 
     if type(a) is not type(b):
         return False
@@ -485,11 +487,13 @@ allows modifications.
         for field, value in iter_fields(node):
             if isinstance(value, list):
                 for item in value:
-                    if isinstance(item, AST):
-                        self.visit(item)
+                    if not isinstance(item, AST):
+                        continue
+                    self.visit(item)
                 continue
-            if isinstance(value, AST):
-                self.visit(value)
+            if not isinstance(value, AST):
+                continue
+            self.visit(value)
 
 
 class NodeTransformer(NodeVisitor):
@@ -543,11 +547,12 @@ Usually you use the transformer like this::
                     new_values.append(value)
                 old_value[slice(None, None, None)] = new_values
                 continue
-            if isinstance(old_value, AST):
-                new_node = self.visit(old_value)
-                if not new_node is not None:
-                    delattr(node, field)
-                    continue
+            if not isinstance(old_value, AST):
+                continue
+            new_node = self.visit(old_value)
+            if not new_node is not None:
+                delattr(node, field)
+                continue
             setattr(node, field, new_node)
         return node
 

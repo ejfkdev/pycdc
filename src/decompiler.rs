@@ -365,6 +365,9 @@ struct Ctx<'a> {
     /// py2 `if` statement: offset of the else-branch POP_TOP absorbed by
     /// the JUMP_IF_FALSE/TRUE rewrite (it must not pop a real value)
     py2_else_pop_at: Option<usize>,
+    /// 3.5: BUILD_MAP_UNPACK_WITH_CALL set the with-call flag — the next
+    /// CALL_FUNCTION_KW 0 pops the merged dict as **kwargs
+    pending_star_kw_call: bool,
     /// loop tops whose loop already closed via their back edge: later dead
     /// back edges to the same top are padding, not `continue`
     closed_loop_tops: Vec<usize>,
@@ -583,6 +586,7 @@ pub fn decompile_in_scope(
         skip_until: None,
         broken_loop_top: None,
         py2_else_pop_at: None,
+        pending_star_kw_call: false,
         closed_loop_tops: Vec::new(),
         while_true_loops: Vec::new(),
         pending_as_cleanup: None,
@@ -4082,7 +4086,15 @@ impl<'a> Ctx<'a> {
             | Op::BUILD_MAP_UNPACK
             | Op::BUILD_MAP_UNPACK_WITH_CALL
             | Op::BUILD_TUPLE_UNPACK_WITH_CALL => {
-                let items = self.pop_n_exprs(arg as usize);
+                // 3.5: BUILD_MAP_UNPACK_WITH_CALL packs a with-call flag
+                // into the high byte (258 = 2 dicts | 0x100); the count is
+                // always the low byte. When set, the following
+                // CALL_FUNCTION_KW 0 consumes the merged dict as **kwargs.
+                let count = (arg & 0xFF) as usize;
+                if inst.op == Op::BUILD_MAP_UNPACK_WITH_CALL && arg & 0x100 != 0 {
+                    self.pending_star_kw_call = true;
+                }
+                let items = self.pop_n_exprs(count);
                 let for_call = matches!(
                     inst.op,
                     Op::BUILD_TUPLE_UNPACK | Op::BUILD_TUPLE_UNPACK_WITH_CALL
@@ -4105,6 +4117,15 @@ impl<'a> Ctx<'a> {
                 let e = match inst.op {
                     Op::BUILD_LIST_UNPACK => Expr::List(out),
                     Op::BUILD_SET_UNPACK => Expr::Set(out),
+                    // 3.5-3.8 `{**a, **b}` / call kwargs: a dict display
+                    // with starred merge entries
+                    Op::BUILD_MAP_UNPACK | Op::BUILD_MAP_UNPACK_WITH_CALL => {
+                        Expr::Dict(
+                            out.iter()
+                                .map(|s| (s.clone(), self.name_expr("")))
+                                .collect(),
+                        )
+                    }
                     _ => Expr::Tuple(out),
                 };
                 self.push(Rc::new(e));
@@ -4274,11 +4295,28 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::CALL_FUNCTION_KW => {
+                if self.pending_star_kw_call {
+                    // 3.5 `f(**a, **b)`: BUILD_MAP_UNPACK_WITH_CALL left
+                    // the merged dict on top; this call's arg is 0
+                    self.pending_star_kw_call = false;
+                    let kw = self.pop_expr();
+                    let func = self.pop_expr();
+                    let (kws, star_kw) = flatten_ex_kwargs(kw);
+                    self.push(Rc::new(Expr::Call {
+                        func,
+                        args: Vec::new(),
+                        keywords: kws,
+                        star_args: None,
+                        star_kwargs: star_kw,
+                    }));
+                    return true;
+                }
                 if self.version.at_least(3, 6) {
                     let names = self.pop_expr();
                     self.call_function_py(arg as usize, Some(names), false);
                 } else {
-                    self.call_function_py(arg as usize, None, false);
+                    // py2/3.0-3.5: the **kwargs dict rides on top
+                    self.call_function_py2_kw(arg as usize);
                 }
                 true
             }
@@ -4373,18 +4411,14 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 let (pos, star) = flatten_ex_args(args);
-                let star_kw = match kwargs_opt {
-                    Some(kw) => {
-                        let (mut keywords, star_kw) = flatten_ex_kwargs(kw);
-                        let _ = &mut keywords;
-                        star_kw
-                    }
-                    None => None,
+                let (ex_kws, star_kw) = match kwargs_opt {
+                    Some(kw) => flatten_ex_kwargs(kw),
+                    None => (Vec::new(), None),
                 };
                 self.push(Rc::new(Expr::Call {
                     func,
                     args: pos,
-                    keywords: Vec::new(),
+                    keywords: ex_kws,
                     star_args: star,
                     star_kwargs: star_kw,
                 }));
@@ -6193,6 +6227,17 @@ impl<'a> Ctx<'a> {
                     // the intrinsic leaves a result that POP_TOP discards
                     self.push(Rc::new(Expr::Const(Rc::new(PyObject::None))));
                 }
+                // 3.12+: INTRINSIC_LIST_TO_TUPLE (6) converts the
+                // star-unpack build list into a tuple display
+                if inst.op == Op::CALL_INTRINSIC_1 && arg == 6 {
+                    let e = self.pop_expr();
+                    let t = match &*e {
+                        Expr::List(items) => Expr::Tuple(items.clone()),
+                        other => Expr::Tuple(vec![Rc::new(other.clone())]),
+                    };
+                    self.push(Rc::new(t));
+                    return true;
+                }
                 // all other intrinsics are value-preserving pass-throughs
                 true
             }
@@ -7467,6 +7512,140 @@ impl<'a> Ctx<'a> {
     /// to the next test (or the body) when it passes, and falls through
     /// to `NOT_TAKEN; JUMP_BACKWARD loop_top` (an inline continue) when
     /// it fails. Merge the guards into one And condition over the body.
+    /// All instructions between the current cond jump and the exit are
+    /// pure value ops or forward cond jumps (a multi-jump `and` condition),
+    /// followed by the loop body and the duplicated rotated condition.
+    fn is_rotated_multijump_while(&self, ci: usize, ti: usize, body_top: usize) -> bool {
+        let mut k = ci + 1;
+        // remaining initial condition tests
+        loop {
+            let Some(ins) = self.instrs.get(k) else {
+                return false;
+            };
+            if ins.offset >= body_top {
+                break;
+            }
+            if matches!(
+                ins.op,
+                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+            ) {
+                // every remaining initial test must exit the loop: either
+                // to the same label, or (module-level 3.10 duplicates the
+                // epilogue per exit) to its own `LOAD None; RETURN` stub
+                let ok = match ins.target {
+                    Some(t2) if t2 == self.instrs[ti].offset => true,
+                    Some(t2) => self
+                        .idx_of
+                        .get(&t2)
+                        .map_or(false, |&xi| {
+                            matches!(
+                                self.instrs[xi].op,
+                                Op::LOAD_CONST | Op::RETURN_CONST
+                            ) && (matches!(
+                                self.instrs.get(xi + 1).map(|x| x.op),
+                                Some(Op::RETURN_VALUE) | Some(Op::RETURN_CONST)
+                            ) || matches!(self.instrs[xi].op, Op::RETURN_CONST))
+                        }),
+                    None => false,
+                };
+                if !ok {
+                    return false;
+                }
+            } else if !is_pure_value_op(ins.op) {
+                return false;
+            }
+            k += 1;
+        }
+        // body: no backward jumps other than the rotated back edge itself;
+        // stop AT the back edge (the fall-through past it is the loop
+        // exit epilogue, which may legitimately hold a RETURN)
+        while k < ti {
+            let Some(ins) = self.instrs.get(k) else {
+                return false;
+            };
+            if ins.is_backward {
+                return ins.target == Some(body_top)
+                    && matches!(
+                        ins.op,
+                        Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_BACKWARD_IF_TRUE
+                    );
+            }
+            k += 1;
+        }
+        false
+    }
+
+    /// Merge the remaining forward cond-jump tests between `ci` and the
+    /// body top into one And condition (all operands evaluated left to
+    /// right, each false-exiting to the same label).
+    fn merge_forward_cond_chain(&self, ci: usize, target: usize) -> Option<ExprRef> {
+        let &xi0 = self.idx_of.get(&target)?;
+        let exit_off = self.instrs[xi0].offset;
+        let mut values: Vec<ExprRef> = Vec::new();
+        let mut k = ci + 1;
+        let mut region_start = k;
+        while let Some(ins) = self.instrs.get(k) {
+            if matches!(
+                ins.op,
+                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+            ) {
+                // the test must exit the loop (shared label or its own
+                // `LOAD None; RETURN` epilogue stub)
+                let ok = match ins.target {
+                    Some(t2) if t2 == exit_off => true,
+                    Some(t2) => self
+                        .idx_of
+                        .get(&t2)
+                        .map_or(false, |&xi| {
+                            matches!(
+                                self.instrs[xi].op,
+                                Op::LOAD_CONST | Op::RETURN_CONST
+                            ) && (matches!(
+                                self.instrs.get(xi + 1).map(|x| x.op),
+                                Some(Op::RETURN_VALUE) | Some(Op::RETURN_CONST)
+                            ) || matches!(self.instrs[xi].op, Op::RETURN_CONST))
+                        }),
+                    None => false,
+                };
+                if !ok {
+                    return None;
+                }
+                let operand = match self.sim_value_region(region_start, k) {
+                    Some(o) => o,
+                    None => {
+                        return None;
+                    }
+                };
+                values.push(operand);
+                k += 1;
+                // skip NOT_TAKEN padding
+                while matches!(
+                    self.instrs.get(k).map(|x| x.op),
+                    Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+                ) {
+                    k += 1;
+                }
+                region_start = k;
+                continue;
+            }
+            if !is_pure_value_op(ins.op) {
+                break;
+            }
+            k += 1;
+        }
+        if values.is_empty() {
+            return None;
+        }
+        let mut flat = Vec::new();
+        for v in values {
+            flatten_boolop(v, BoolOpKind::And, &mut flat);
+        }
+        Some(Rc::new(Expr::BoolOp {
+            op: BoolOpKind::And,
+            values: flat,
+        }))
+    }
+
     /// Shape-B admission: the fall-through of `ci` must reach another
     /// cond jump through pure value ops (a second chain link), and that
     /// link must terminate the chain (pass-exit hop over a back
@@ -8211,10 +8390,6 @@ impl<'a> Ctx<'a> {
             if let Some((merged, body_start, body_end)) =
                 self.try_guard_chain(&cond, jump_if_true, target)
             {
-                if std::env::var("PYCDC_GC_DBG").is_ok() {
-                    eprintln!("GCDBG: guard-chain fire off={} jit={} target={} -> merged={:?} body=[{},{})",
-                        self.cur_offset, jump_if_true, target, merged, body_start, body_end);
-                }
                 if body_end <= body_start {
                     // degenerate guard: the whole fall-through IS the
                     // continue trampoline. When the pass-jump target is a
@@ -8656,6 +8831,44 @@ impl<'a> Ctx<'a> {
                             blk.cond_end = cond_end;
                             blk.jump_if_true = jump_if_true;
                             self.blocks.push(blk);
+                            return;
+                        }
+                        // rotated while with a MULTI-JUMP condition (3.10/
+                        // 3.11 `while (x := f()) and g:`): the initial
+                        // tests each exit-jump here, and the duplicated
+                        // tail condition's backward TRUE-jump re-enters at
+                        // the body top (t lies between this jump and the
+                        // exit). Claim it: cond = the whole initial test
+                        // chain, body = [t, target).
+                        if !jump_if_true
+                            && inst.is_backward
+                            && matches!(
+                                inst.op,
+                                Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_BACKWARD_IF_TRUE
+                            )
+                            && t > self.cur_next
+                            && t < target
+                            && self.is_rotated_multijump_while(ci, ti, t)
+                        {
+                            let mut blk = Block::new(BlockType::While, t, target);
+                            let mut merged = cond.clone();
+                            let mc = self.merge_forward_cond_chain(ci, target);
+                            if let Some(c2) = mc {
+                                let mut flat = Vec::new();
+                                flatten_boolop(cond.clone(), BoolOpKind::And, &mut flat);
+                                flatten_boolop(c2, BoolOpKind::And, &mut flat);
+                                merged = Rc::new(Expr::BoolOp {
+                                    op: BoolOpKind::And,
+                                    values: flat,
+                                });
+                            }
+                            blk.cond = Some(merged);
+                            blk.cond_set = true;
+                            blk.cond_end = self.cur_next;
+                            self.blocks.push(blk);
+                            // skip the remaining initial-condition tests;
+                            // resume at the body top
+                            self.skip_until = Some(t);
                             return;
                         }
                     }
@@ -10390,6 +10603,14 @@ fn flatten_ex_args(e: ExprRef) -> (Vec<ExprRef>, Option<ExprRef>) {
     let mut star = None;
     let items: Vec<ExprRef> = match &*e {
         Expr::Tuple(v) => v.clone(),
+        // 3.14 CALL_FUNCTION_EX: the empty args slot is a CONST tuple
+        Expr::Const(o) => match &**o {
+            PyObject::Tuple(v) => v
+                .iter()
+                .map(|it| Rc::new(Expr::Const(it.clone())) as ExprRef)
+                .collect(),
+            _ => return (Vec::new(), Some(e.clone())),
+        },
         // a bare (non-tuple) operand is the whole unpacked iterable:
         // `f(*args)` pushes args directly with no BUILD_TUPLE
         other => return (Vec::new(), Some(Rc::new(other.clone()))),
@@ -10418,13 +10639,24 @@ fn flatten_ex_args(e: ExprRef) -> (Vec<ExprRef>, Option<ExprRef>) {
 fn flatten_ex_kwargs(e: ExprRef) -> (Vec<(Option<String>, ExprRef)>, Option<ExprRef>) {
     match &*e {
         Expr::Dict(entries) => {
-            let mut kws = Vec::new();
-            let mut star = None;
-            for (k, v) in entries {
-                if let Expr::Starred(inner) = &**k {
-                    star = Some(inner.clone());
-                    continue;
+            let starred: usize = entries
+                .iter()
+                .filter(|(k, _)| matches!(&**k, Expr::Starred(_)))
+                .count();
+            if starred == 1 && entries.len() == 1 {
+                // `f(**a)` — the single star is the whole kwargs
+                if let Expr::Starred(inner) = &*entries[0].0 {
+                    return (Vec::new(), Some(inner.clone()));
                 }
+            }
+            if starred > 0 {
+                // mixed or multiple stars: keep the merged dict whole so
+                // the source ordering (later wins) is preserved —
+                // rendered as `f(**{...})`
+                return (Vec::new(), Some(e.clone()));
+            }
+            let mut kws = Vec::new();
+            for (k, v) in entries {
                 let name = match &**k {
                     Expr::Const(o) => match &**o {
                         PyObject::Str(s) => Some(s.clone()),
@@ -10437,7 +10669,7 @@ fn flatten_ex_kwargs(e: ExprRef) -> (Vec<(Option<String>, ExprRef)>, Option<Expr
                 };
                 kws.push((name, v.clone()));
             }
-            (kws, star)
+            (kws, None)
         }
         Expr::Starred(inner) => (Vec::new(), Some(inner.clone())),
         other => (Vec::new(), Some(Rc::new(other.clone()))),
@@ -11604,6 +11836,19 @@ impl<'a> Ctx<'a> {
         // module-level implicit `return None` is synthetic (3.12+ even emits
         // RETURN_CONST None at the end of every top-level branch)
         if value.is_none() && self.code.name == "<module>" {
+            // a `break` inside a MODULE-level loop compiles to
+            // LOAD None; RETURN (the loop exit IS the module return):
+            // with a loop block still open this is a break, not the
+            // synthetic end-of-module return
+            if self
+                .blocks
+                .iter()
+                .any(|b| matches!(b.kind, BlockType::While | BlockType::For))
+            {
+                self.push_stmt(Stmt::Break);
+                self.close_inner_blocks_to_loop();
+                return;
+            }
             // When it terminates an if-branch, it replaces the classic
             // JUMP_FORWARD-over-else: mark the else region as running to
             // the end of the module stream.
@@ -11821,6 +12066,37 @@ impl<'a> Ctx<'a> {
             keywords,
             star_args: Some(star),
             star_kwargs: None,
+        }));
+    }
+
+    /// py2/3.0-3.5 CALL_FUNCTION_KW: [callable, pos*na, (name,val)*nk,
+    /// kwdict] — the **kwargs dict always rides on top
+    fn call_function_py2_kw(&mut self, argc: usize) {
+        let kwargs = self.pop_expr();
+        let (npos, nkw) = (argc & 0xFF, (argc >> 8) & 0xFF);
+        let args = self.pop_n_exprs(npos as usize);
+        let mut keywords = Vec::new();
+        for _ in 0..nkw {
+            let v = self.pop_expr();
+            let k = self.pop_expr();
+            let ks = match &*k {
+                Expr::Const(o) => match &**o {
+                    PyObject::Str(s) => Some(s.clone()),
+                    PyObject::Bytes(b) => Some(String::from_utf8_lossy(b).into_owned()),
+                    _ => None,
+                },
+                _ => None,
+            };
+            keywords.push((ks, v));
+        }
+        keywords.reverse();
+        let func = self.pop_callable();
+        self.push(Rc::new(Expr::Call {
+            func,
+            args,
+            keywords,
+            star_args: None,
+            star_kwargs: Some(kwargs),
         }));
     }
 
@@ -12103,8 +12379,16 @@ impl<'a> Ctx<'a> {
             // <= 3.5: defaults are individual stack values; MAKE_CLOSURE
             // (py2.1+/3.3-3.5) pushes the closure tuple ABOVE the defaults:
             // [defaults..., closure, code, qualname]
-            // <=3.5: MAKE_FUNCTION arg = number of defaults on the stack
-            let ndefaults = flags as usize;
+            // py2: MAKE_FUNCTION arg = number of defaults on the stack.
+            // 3.0-3.5: arg = ndefaults | (nkwdefault_pairs << 8) — the
+            // kwdefault name/value pairs sit BELOW the positional defaults
+            // and must be consumed even though the legacy signature has no
+            // slot for them
+            let (ndefaults, nkw_pairs) = if self.version.major >= 3 {
+                ((flags & 0xFF) as usize, (flags >> 8) as usize)
+            } else {
+                (flags as usize, 0usize)
+            };
             if inst.op == Op::MAKE_CLOSURE {
                 let _closure = self.pop_expr();
             }
@@ -12113,7 +12397,18 @@ impl<'a> Ctx<'a> {
                 defaults.push(self.pop_expr());
             }
             defaults.reverse();
-            params = self.build_params_legacy(&code_obj, defaults);
+            let mut kw_pairs: Vec<(String, ExprRef)> = Vec::new();
+            for _ in 0..nkw_pairs {
+                let v = self.pop_expr();
+                let n = self.pop_expr();
+                if let Expr::Const(o) = &*n {
+                    if let PyObject::Str(s) = &**o {
+                        kw_pairs.push((s.clone(), v));
+                    }
+                }
+            }
+            kw_pairs.reverse();
+            params = self.build_params_legacy(&code_obj, defaults, kw_pairs);
         }
 
         // decorators: 2.6-3.5 applied via MAKE_FUNCTION wrapper calls;
@@ -12374,7 +12669,12 @@ impl<'a> Ctx<'a> {
         params
     }
 
-    fn build_params_legacy(&mut self, code: &Rc<CodeObject>, defaults: Vec<ExprRef>) -> Parameters {
+    fn build_params_legacy(
+        &mut self,
+        code: &Rc<CodeObject>,
+        defaults: Vec<ExprRef>,
+        kw_pairs: Vec<(String, ExprRef)>,
+    ) -> Parameters {
         let argcount = code.arg_count as usize;
         let kwonly = code.kwonly_arg_count as usize;
         let varargs = code.has_varargs();
@@ -12392,7 +12692,8 @@ impl<'a> Ctx<'a> {
                 name: n.clone(),
                 annotation: None,
             });
-            params.kw_defaults.push(None);
+            let d = kw_pairs.iter().find(|(k, _)| k == n).map(|(_, v)| v.clone());
+            params.kw_defaults.push(d);
             idx += 1;
         }
         if varargs {

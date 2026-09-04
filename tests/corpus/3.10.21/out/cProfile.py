@@ -138,11 +138,11 @@ def main():
             with io.open_code(progname) as fp:
                 code = compile(fp.read(), progname, 'exec')
         globs = {'__file__': progname, '__name__': '__main__', '__package__': None, '__cached__': None}
-        return parser
         exc = None
         del exc
         try:
             runctx(code, globs, None, options.outfile, options.sort)
+            return parser
         except BrokenPipeError:
             exc = None
             sys.stdout = None

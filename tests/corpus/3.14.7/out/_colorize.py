@@ -64,9 +64,10 @@ class ANSIColors:
 ColorCodes = set()
 NoColors = ANSIColors()
 for attr, code in ANSIColors.__dict__.items():
-    if not attr.startswith('__'):
-        ColorCodes.add(code)
-        setattr(NoColors, attr, '')
+    if attr.startswith('__'):
+        continue
+    ColorCodes.add(code)
+    setattr(NoColors, attr, '')
 
 class ThemeSection(Mapping[str, str]):
     '''A mixin/base class for theme sections.
@@ -86,14 +87,14 @@ methods.
         for color_name in self.__dataclass_fields__:
             color_state[color_name] = getattr(self, color_name)
         color_state.update(kwargs)
-        return type(self)(*(), **color_state)
+        return type(self)(**color_state)
 
     @classmethod
     def no_colors(cls) -> __classdict__:
         color_state = {}
         for color_name in cls.__dataclass_fields__:
             color_state[color_name] = ''
-        return cls(*(), **color_state)
+        return cls(**color_state)
 
     def __getitem__(self, key: __classdict__) -> __classdict__:
         return self._name_to_value(key)
@@ -327,10 +328,9 @@ def can_colorize(*, file: IO[str] | IO[bytes] | None=None) -> bool:
         '''Exception-safe environment retrieval. See gh-128636.'''
 
         try:
-            pass
+            return os.environ.get(k, fallback)
         except Exception:
             return fallback
-        return os.environ.get(k, fallback)
 
     if not file is not None:
         file = sys.stdout
@@ -357,12 +357,11 @@ def can_colorize(*, file: IO[str] | IO[bytes] | None=None) -> bool:
         except (ImportError, AttributeError):
             return False
     try:
-        pass
+        return os.isatty(file.fileno())
     except OSError:
         if hasattr(file, 'isatty'):
             hasattr(file, 'isatty')
         return file.isatty()
-    return os.isatty(file.fileno())
 
 default_theme = Theme()
 theme_no_color = default_theme.no_colors()

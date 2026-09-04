@@ -39,7 +39,7 @@ class DecompressReader(io.RawIOBase):
         self._size = -1
         self._decomp_factory = decomp_factory
         self._decomp_args = decomp_args
-        self._decompressor = self._decomp_factory(*(), **self._decomp_args)
+        self._decompressor = self._decomp_factory(**self._decomp_args)
         self._trailing_error = trailing_error
 
     def close(self):
@@ -68,7 +68,7 @@ class DecompressReader(io.RawIOBase):
                 rawblock = self._decompressor.unused_data or self._fp(BUFFER_SIZE)
                 if not rawblock:
                     break
-            self._decompressor = self._decomp_factory(*(), **self._decomp_args)
+            self._decompressor = self._decomp_factory(**self._decomp_args)
             if self._decompressor.needs_input:
                 rawblock = self._fp(BUFFER_SIZE)
                 if not rawblock:
@@ -100,7 +100,7 @@ class DecompressReader(io.RawIOBase):
         self._fp.seek(0)
         self._eof = False
         self._pos = 0
-        self._decompressor = self._decomp_factory(*(), **self._decomp_args)
+        self._decompressor = self._decomp_factory(**self._decomp_args)
 
     def seek(self, offset, whence=io.SEEK_SET):
         if whence == io.SEEK_SET:
@@ -108,9 +108,8 @@ class DecompressReader(io.RawIOBase):
         elif whence == io.SEEK_CUR:
             offset = self._pos + offset
         elif whence == io.SEEK_END:
-            if self._size < 0 and self.read(io.DEFAULT_BUFFER_SIZE):
-                if not self.read(io.DEFAULT_BUFFER_SIZE):
-                    pass
+            while self._size < 0 and self.read(io.DEFAULT_BUFFER_SIZE):
+                pass
             offset = self._size + offset
         else:
             raise ValueError('Invalid value for whence: {}'.format(whence))

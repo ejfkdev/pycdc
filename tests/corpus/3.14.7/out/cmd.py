@@ -294,10 +294,9 @@ Otherwise try to call complete_<command> to get list of completions.
         compfunc = self.completenames
         self.completion_matches = compfunc(text, line, begidx, endidx)
         try:
-            pass
+            return self.completion_matches[state]
         except IndexError:
             return
-        return self.completion_matches[state]
 
     def get_names(self):
         return dir(self.__class__)
@@ -330,8 +329,9 @@ Otherwise try to call complete_<command> to get list of completions.
         cmds_undoc = []
         topics = set()
         for name in names:
-            if name[:slice(5, None, None)] == 'help_':
-                topics.add(name[5])
+            if not name[:slice(5, None, None)] == 'help_':
+                continue
+            topics.add(name[5])
         names.sort()
         prevname = ''
         for name in names:
@@ -392,14 +392,15 @@ Columns are separated by two spaces (one was not legible enough).
                 colwidths.append(colwidth)
                 totwidth += colwidth + 2
                 if not totwidth > displaywidth:
-                    pass
-                else:
-                    break
+                    continue
+                break
             if not totwidth <= displaywidth:
-                pass
-        nrows = len(list)
-        ncols = 1
-        colwidths = [0]
+                continue
+            break
+        else:
+            nrows = len(list)
+            ncols = 1
+            colwidths = [0]
         for row in range(nrows):
             texts = []
             for col in range(ncols):

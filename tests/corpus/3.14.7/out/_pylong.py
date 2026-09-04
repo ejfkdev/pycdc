@@ -26,15 +26,17 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
     while ws:
         w = ws.pop()
         if not w in seen:
-            if not w <= more_than:
-                seen.add(w)
-                lo = w >> 1
-                hi = w - lo
-                which = hi if need_hi else lo
-                need.add(which)
-                ws.add(which)
-                if lo != hi:
-                    ws.add(w - which)
+            if w <= more_than:
+                continue
+        seen.add(w)
+        lo = w >> 1
+        hi = w - lo
+        which = hi if need_hi else lo
+        need.add(which)
+        ws.add(which)
+        if not lo != hi:
+            continue
+        ws.add(w - which)
     cands = need.copy()
     extra = set()
     while cands:

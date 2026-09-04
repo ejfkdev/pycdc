@@ -44,8 +44,9 @@ class _MonitoringTracer:
         for event, cb_name in self.EVENT_CALLBACK_MAP.items():
             callback = self.callback_wrapper(getattr(self, f'{cb_name}_callback'), event)
             sys.monitoring.register_callback(self._tool_id, event, callback)
-            if event != E.INSTRUCTION:
-                all_events |= event
+            if not event != E.INSTRUCTION:
+                continue
+            all_events |= event
         self.update_local_events()
         sys.monitoring.set_events(self._tool_id, self.GLOBAL_EVENTS)
         self._enabled = True
@@ -75,7 +76,7 @@ class _MonitoringTracer:
                 return
             try:
                 frame = sys._getframe().f_back
-                ret = func(*[frame, *args])
+                ret = func(frame, *args)
                 if self._enabled and frame.f_trace:
                     self.update_local_events()
                 if self._disable_current_event and event not in (E.PY_THROW, E.PY_UNWIND, E.RAISE):
@@ -408,10 +409,9 @@ Return self.trace_dispatch to continue tracing in this scope.
             return False
         for pattern in self.skip:
             if not fnmatch.fnmatch(module_name, pattern):
-                pass
-            else:
-                return True
-                return False
+                continue
+            return True
+        return False
 
     def stop_here(self, frame):
         '''Return True if frame is below the starting frame in the stack.'''
@@ -466,10 +466,9 @@ Must implement in derived classes or get NotImplementedError.
             return False
         for lineno in self.breaks[filename]:
             if not self._lineno_in_frame(lineno, frame):
-                pass
-            else:
-                return True
-                return False
+                continue
+            return True
+        return False
 
     def _lineno_in_frame(self, lineno, frame):
         """Return True if the line number is in the frame's code object.
@@ -712,8 +711,9 @@ If none were set, return an error message.
         if not self.breaks:
             return 'There are no breakpoints'
         for bp in Breakpoint.bpbynumber:
-            if bp:
-                bp.deleteMe()
+            if not bp:
+                continue
+            bp.deleteMe()
         self.breaks = {}
 
     def get_bpbynumber(self, arg):

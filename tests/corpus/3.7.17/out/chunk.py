@@ -167,7 +167,8 @@ class Chunk:
         while self.size_read < self.chunksize:
             n = min(8192, self.chunksize - self.size_read)
             dummy = self.read(n)
-        raise EOFError
+        else:
+            raise EOFError
 
 
 # WARNING: Decompyle incomplete
