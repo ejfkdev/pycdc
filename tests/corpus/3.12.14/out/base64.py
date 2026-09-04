@@ -137,16 +137,16 @@ def _b32encode(alphabet, s):
         c = from_bytes(s[i:i + 5])
         encoded += b32tab2[c >> 30] + b32tab2[c >> 20 & 1023] + b32tab2[c >> 10 & 1023] + b32tab2[c & 1023]
     if leftover == 1:
-        b'======'[encoded:-6] = None
+        encoded[-6:] = b'======'
         return bytes(encoded)
     if leftover == 2:
-        b'===='[encoded:-4] = None
+        encoded[-4:] = b'===='
         return bytes(encoded)
     if leftover == 3:
-        b'==='[encoded:-3] = None
+        encoded[-3:] = b'==='
         return bytes(encoded)
     if leftover == 4:
-        b'='[encoded:-1] = None
+        encoded[-1:] = b'='
     return bytes(encoded)
 
 def _b32decode(alphabet, s, casefold=False, map01=None):
@@ -181,7 +181,7 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
         acc <<= 5 * padchars
         last = acc.to_bytes(5)
         leftover = (43 - 5 * padchars) // 8
-        last[:leftover][decoded:-5] = None
+        decoded[-5:] = last[:leftover]
     return bytes(decoded)
 
 def b32encode(s):

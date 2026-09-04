@@ -297,7 +297,7 @@ class MutableString(UserString, collections.MutableSequence):
         return self
 
     def insert(self, index, value):
-        value[index:index] = self
+        self[index:index] = value
 
 
 if __name__ == '__main__':

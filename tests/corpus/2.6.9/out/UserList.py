@@ -7,9 +7,9 @@ class UserList(collections.MutableSequence):
         self.data = []
         if initlist is not None:
             if type(initlist) == type(self.data):
-                initlist[:] = self.data
+                self.data[:] = initlist
             elif isinstance(initlist, UserList):
-                initlist.data[:][:] = self.data
+                self.data[:] = initlist.data[:]
             else:
                 self.data = list(initlist)
 
@@ -67,11 +67,11 @@ class UserList(collections.MutableSequence):
         i = max(i, 0)
         j = max(j, 0)
         if isinstance(other, UserList):
-            other.data[i:j] = self.data
+            self.data[i:j] = other.data
         elif isinstance(other, type(self.data)):
-            other[i:j] = self.data
+            self.data[i:j] = other
         else:
-            list(other)[i:j] = self.data
+            self.data[i:j] = list(other)
 
     def __delslice__(self, i, j):
         i = max(i, 0)

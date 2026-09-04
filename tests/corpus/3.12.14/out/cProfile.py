@@ -127,7 +127,7 @@ def main():
         parser.print_usage()
         sys.exit(2)
     options, args = parser.parse_args()
-    args[sys.argv:] = None
+    sys.argv[:] = args
     if not options.outfile is None:
         options.outfile = os.path.abspath(options.outfile)
     if len(args) > 0:

@@ -155,7 +155,7 @@ def main():
         parser.print_usage()
         sys.exit(2)
     options, args = parser.parse_args()
-    args[:] = sys.argv
+    sys.argv[:] = args
     if len(sys.argv) > 0:
         sys.path.insert(0, os.path.dirname(sys.argv[0]))
         run('execfile(%r)' % (sys.argv[0],), options.outfile, options.sort)

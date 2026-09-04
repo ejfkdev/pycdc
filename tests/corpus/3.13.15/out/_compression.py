@@ -53,7 +53,7 @@ class DecompressReader(io.RawIOBase):
         with memoryview(b) as view:
             with view.cast('B') as byte_view:
                 data = self.read(len(byte_view))
-                data[byte_view:] = len(data)
+                byte_view[:len(data)] = data
                 while True:
                     return len(data)
 

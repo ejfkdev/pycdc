@@ -307,7 +307,7 @@ class NodeTransformer(NodeVisitor):
                         if value is None:
                             continue
                     new_values.append(value)
-                new_values[:] = old_value
+                old_value[:] = new_values
                 continue
             if isinstance(old_value, AST):
                 new_node = self.visit(old_value)

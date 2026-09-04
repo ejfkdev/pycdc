@@ -7208,9 +7208,11 @@ impl<'a> Ctx<'a> {
                     index: mk(Some(start), Some(stop)),
                 }));
             }
+            // py2 STORE_SLICE+n: the assigned VALUE is pushed FIRST —
+            // stack bottom..top is [value, seq, start?, stop?]
             Op::STORE_SLICE_0 => {
-                let val = self.pop_expr();
                 let seq = self.pop_expr();
+                let val = self.pop_expr();
                 let target = Rc::new(Expr::Subscript {
                     value: seq,
                     index: mk(None, None),
@@ -7219,8 +7221,8 @@ impl<'a> Ctx<'a> {
             }
             Op::STORE_SLICE_1 => {
                 let start = self.pop_expr();
-                let val = self.pop_expr();
                 let seq = self.pop_expr();
+                let val = self.pop_expr();
                 let target = Rc::new(Expr::Subscript {
                     value: seq,
                     index: mk(Some(start), None),
@@ -7229,8 +7231,8 @@ impl<'a> Ctx<'a> {
             }
             Op::STORE_SLICE_2 => {
                 let stop = self.pop_expr();
-                let val = self.pop_expr();
                 let seq = self.pop_expr();
+                let val = self.pop_expr();
                 let target = Rc::new(Expr::Subscript {
                     value: seq,
                     index: mk(None, Some(stop)),
@@ -7240,8 +7242,8 @@ impl<'a> Ctx<'a> {
             Op::STORE_SLICE_3 => {
                 let stop = self.pop_expr();
                 let start = self.pop_expr();
-                let val = self.pop_expr();
                 let seq = self.pop_expr();
+                let val = self.pop_expr();
                 let target = Rc::new(Expr::Subscript {
                     value: seq,
                     index: mk(Some(start), Some(stop)),
@@ -7249,12 +7251,12 @@ impl<'a> Ctx<'a> {
                 self.emit_store(target, val);
             }
             Op::STORE_SLICE => {
-                // 3.12+: [seq, start?, stop?, value]? CPython: value TOS,
-                // then stop, start, seq
-                let val = self.pop_expr();
+                // 3.12+: the value is pushed FIRST — stack bottom..top is
+                // [value, seq, start, stop], so stop pops first
                 let stop = self.pop_expr();
                 let start = self.pop_expr();
                 let seq = self.pop_expr();
+                let val = self.pop_expr();
                 let target = Rc::new(Expr::Subscript {
                     value: seq,
                     index: mk(none_if_const_none(start), none_if_const_none(stop)),

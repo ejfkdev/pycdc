@@ -156,7 +156,7 @@ def main():
         parser.print_usage()
         sys.exit(2)
     options, args = parser.parse_args()
-    args[:] = sys.argv
+    sys.argv[:] = args
     if len(args) > 0:
         progname = args[0]
         sys.path.insert(0, os.path.dirname(progname))
