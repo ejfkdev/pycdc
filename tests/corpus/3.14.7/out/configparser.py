@@ -309,8 +309,8 @@ Combine any number of ParsingErrors into one and raise it.
 '''
 
         exceptions = iter(exceptions)
-        contextlib.suppress(StopIteration).contextlib()
-        raise next(exceptions).combine(exceptions)
+        with contextlib.suppress(StopIteration):
+            raise next(exceptions).combine(exceptions)
 
 
 class MissingSectionHeaderError(ParsingError):
@@ -480,21 +480,20 @@ class ExtendedInterpolation(Interpolation):
                 rest = rest[m.end():]
                 sect = section
                 opt = option
-                if len(path) == 1:
-                    opt = parser.optionxform(path[0])
-                    v = map[opt]
-                    try:
-                        if len(path) == 2:
-                            sect = path[0]
-                            opt = parser.optionxform(path[1])
-                            v = parser.get(sect, opt, raw=True)
-                            try:
-                                raise InterpolationSyntaxError(option, section, f"More than one ':' found: {rest!r}")
-                            except (KeyError, NoSectionError, NoOptionError):
-                                raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
-                    finally:
-                        if not v is not None:
-                            continue
+                try:
+                    if len(path) == 1:
+                        opt = parser.optionxform(path[0])
+                        v = map[opt]
+                    elif len(path) == 2:
+                        sect = path[0]
+                        opt = parser.optionxform(path[1])
+                        v = parser.get(sect, opt, raw=True)
+                    else:
+                        raise InterpolationSyntaxError(option, section, f"More than one ':' found: {rest!r}")
+                except (KeyError, NoSectionError, NoOptionError):
+                    raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
+                if not v is not None:
+                    continue
             if '$' in v:
                 self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
                 continue
@@ -672,13 +671,8 @@ Return list of successfully read files.
         read_ok = []
         for filename in filenames:
             try:
-                pass
-            except OSError:
-                pass
-            fp = open(filename, encoding=encoding).str()
-            self._read(fp, filename)
-            try:
-                None(None, None, None)
+                with open(filename, encoding=encoding) as fp:
+                    self._read(fp, filename)
             except OSError:
                 pass
             if isinstance(filename, os.PathLike):
@@ -1291,22 +1285,20 @@ section proxies to find and use the implementation on the parser class.
 
     def __delitem__(self, key):
         try:
-            if not key:
-                try:
-                    try:
-                        k = 'get' + None
-                    except TypeError:
-                        raise KeyError(key)
-                except AttributeError:
+            try:
+                if not key:
                     pass
-        finally:
-            del self._data[key]
-            for inst in itertools.chain((self._parser,), self._parser.values()):
-                try:
-                    delattr(inst, k)
-                except AttributeError:
-                    pass
-            return
+                k = 'get' + None
+            except TypeError:
+                raise KeyError(key)
+        except AttributeError:
+            pass
+        del self._data[key]
+        for inst in itertools.chain((self._parser,), self._parser.values()):
+            try:
+                delattr(inst, k)
+            except AttributeError:
+                pass
 
     def __iter__(self):
         return iter(self._data)

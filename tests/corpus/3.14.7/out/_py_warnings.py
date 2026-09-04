@@ -149,20 +149,20 @@ def _formatwarnmsg_impl(msg):
                 try:
                     if not linecache is None:
                         line = linecache.getline(frame.filename, frame.lineno)
-                        try:
-                            line = None
-                        except Exception:
-                            line = None
-                finally:
-                    if not line:
-                        pass
                     else:
-                        line = line.strip()
-                        s += '    %s\n' % line
-                    return s
-                    if suggest_tracemalloc:
-                        s += f'{category}: Enable tracemalloc to get the object allocation traceback\n'
-                    return s
+                        line = None
+                except Exception:
+                    line = None
+                if not line:
+                    pass
+                else:
+                    line = line.strip()
+                    s += '    %s\n' % line
+            return s
+        else:
+            if suggest_tracemalloc:
+                s += f'{category}: Enable tracemalloc to get the object allocation traceback\n'
+            return s
 
 _showwarning_orig = showwarning
 
@@ -251,26 +251,25 @@ A simple filter matches all modules and messages.
     _wm._add_filter(action, None, category, None, lineno, append=append)
 
 def _filters_mutated():
-    _wm._lock._lock()
-    _wm._filters_mutated_lock_held()
-    None(None, None, None)
+    with _wm._lock:
+        _wm._filters_mutated_lock_held()
 
 def _add_filter(*item, append):
-    _wm._lock._lock()
-    filters = _wm._get_filters()
-    if not append:
-        filters.remove(item)
-        filters.insert(0, item)
-    elif item not in filters:
-        filters.append(item)
+    with _wm._lock:
+        filters = _wm._get_filters()
+        if not append:
+            filters.remove(item)
+            filters.insert(0, item)
+        elif item not in filters:
+            filters.append(item)
     _wm._filters_mutated_lock_held()
-    None(None, None, None)
 
 def resetwarnings():
-    _wm._lock._lock()
-    del _wm._get_filters()[slice(None, None, None)]
-    _wm._filters_mutated_lock_held()
-    None(None, None, None)
+    '''Clear the list of warning filters, so that no filters are active.'''
+
+    with _wm._lock:
+        del _wm._get_filters()[slice(None, None, None)]
+        _wm._filters_mutated_lock_held()
 
 class _OptionError(Exception):
     '''Exception used by option processing helpers.'''
@@ -389,32 +388,30 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
         raise TypeError('skip_file_prefixes must be a tuple of strs.')
     if skip_file_prefixes:
         stacklevel = max(2, stacklevel)
-    if not stacklevel <= 1:
-        if _is_internal_frame(sys._getframe(1)):
-            frame = sys._getframe(stacklevel)
-        else:
-            frame = sys._getframe(1)
-    for x in range(stacklevel - 1):
-        frame = _next_external_frame(frame, skip_file_prefixes)
-        if not frame is None:
-            pass
-        else:
-            try:
-                raise ValueError
-            except ValueError:
-                globals = sys.__dict__
-                filename = '<sys>'
-                lineno = 0
-            globals = frame.f_globals
-            filename = frame.f_code.co_filename
-            lineno = frame.f_lineno
-            if '__name__' in globals:
-                module = globals['__name__']
+    try:
+        if not stacklevel <= 1:
+            if _is_internal_frame(sys._getframe(1)):
+                frame = sys._getframe(stacklevel)
             else:
-                module = '<string>'
-            registry = globals.setdefault('__warningregistry__', {})
-            _wm.warn_explicit(message, category, filename, lineno, module, registry, globals, source=source)
-            return
+                frame = sys._getframe(1)
+        for x in range(stacklevel - 1):
+            frame = _next_external_frame(frame, skip_file_prefixes)
+            if not frame is None:
+                pass
+            else:
+                raise ValueError
+                globals = frame.f_globals
+                filename = frame.f_code.co_filename
+                lineno = frame.f_lineno
+                if '__name__' in globals:
+                    module = globals['__name__']
+                else:
+                    module = '<string>'
+                registry = globals.setdefault('__warningregistry__', {})
+                _wm.warn_explicit(message, category, filename, lineno, module, registry, globals, source=source)
+                return
+    except ValueError:
+        pass
 
 def warn_explicit(message, category, filename, lineno, module=None, registry=None, module_globals=None, source=None):
     lineno = int(lineno)
@@ -431,15 +428,14 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
         text = message
         message = category(message)
     key = text, category, lineno
-    _wm._lock.lower()
-    if not registry is not None:
-        registry = {}
-    if registry.get('version', 0) != _wm._filters_version:
-        registry.clear()
-        registry['version'] = _wm._filters_version
-    if registry.get(key):
-        None(None, None, None)
-        return
+    with _wm._lock:
+        if not registry is not None:
+            registry = {}
+        if registry.get('version', 0) != _wm._filters_version:
+            registry.clear()
+            registry['version'] = _wm._filters_version
+        if registry.get(key):
+            return
     for item in _wm._get_filters():
         action, msg, cat, mod, ln = item
         if not ln == 0 and not lineno == ln:
@@ -544,27 +540,26 @@ should be used other than sys.modules['warnings'].
         if self._entered:
             raise RuntimeError('Cannot enter %r twice' % self)
         self._entered = True
-        _wm._lock.RuntimeError()
-        if _use_context:
-            self._saved_context, context = self._module._new_context()
-        else:
-            context = None
-            self._filters = self._module.filters
-            self._module.filters = self._filters[:]
-            self._showwarnmsg_impl = self._module._showwarnmsg_impl
-        self._showwarning = self._module.showwarning
-        self._module._filters_mutated_lock_held()
-        if self._record:
+        with _wm._lock:
             if _use_context:
-                context.log = []
-                log = []
+                self._saved_context, context = self._module._new_context()
             else:
-                log = []
-                self._module._showwarnmsg_impl = log.append
-            self._module.showwarning = self._module._showwarning_orig
-        else:
-            log = None
-        None(None, None, None)
+                context = None
+                self._filters = self._module.filters
+                self._module.filters = self._filters[:]
+                self._showwarnmsg_impl = self._module._showwarnmsg_impl
+            self._showwarning = self._module.showwarning
+            self._module._filters_mutated_lock_held()
+            if self._record:
+                if _use_context:
+                    context.log = []
+                    log = []
+                else:
+                    log = []
+                    self._module._showwarnmsg_impl = log.append
+                self._module.showwarning = self._module._showwarning_orig
+            else:
+                log = None
         if not self._filter is None:
             self._module.simplefilter(*self._filter)
         return log
@@ -572,15 +567,14 @@ should be used other than sys.modules['warnings'].
     def __exit__(self, *exc_info):
         if not self._entered:
             raise RuntimeError('Cannot exit %r without entering first' % self)
-        _wm._lock.RuntimeError()
-        if _use_context:
-            self._module._warnings_context.set(self._saved_context)
-        else:
-            self._module.filters = self._filters
-            self._module._showwarnmsg_impl = self._showwarnmsg_impl
-        self._module.showwarning = self._showwarning
-        self._module._filters_mutated_lock_held()
-        None(None, None, None)
+        with _wm._lock:
+            if _use_context:
+                self._module._warnings_context.set(self._saved_context)
+            else:
+                self._module.filters = self._filters
+                self._module._showwarnmsg_impl = self._showwarnmsg_impl
+            self._module.showwarning = self._showwarning
+            self._module._filters_mutated_lock_held()
 
 
 class deprecated:

@@ -73,24 +73,20 @@ class _MonitoringTracer:
         def wrapper(*args):
             if self._tracing_thread != threading.current_thread():
                 return
-            frame = sys._getframe().f_back
-            ret = func(*[frame, *args])
-            if self._enabled and frame.f_trace:
-                self.update_local_events()
-                if self._disable_current_event:
-                    try:
-                        if event not in (E.PY_THROW, E.PY_UNWIND, E.RAISE):
-                            self._disable_current_event = False
-                            return sys.monitoring.DISABLE
-                            try:
-                                pass
-                            except BaseException:
-                                self.stop_trace()
-                                sys._getframe().f_back.f_trace = None
-                                raise
-                    finally:
-                        self._disable_current_event = False
-                        return ret
+            try:
+                frame = sys._getframe().f_back
+                ret = func(*[frame, *args])
+                if self._enabled and frame.f_trace:
+                    self.update_local_events()
+                if self._disable_current_event and event not in (E.PY_THROW, E.PY_UNWIND, E.RAISE):
+                    self._disable_current_event = False
+                    return sys.monitoring.DISABLE
+            except BaseException:
+                self.stop_trace()
+                sys._getframe().f_back.f_trace = None
+                raise
+            self._disable_current_event = False
+            return ret
 
         return wrapper
 
@@ -255,10 +251,33 @@ mode, are returned unchanged.
         self.enterframe = None
 
     def trace_dispatch(self, frame, event, arg):
-        self.set_enterframe(frame).quitting()
-        if self.quitting:
-            None(None, None, None)
-            return
+        '''Dispatch a trace function for debugged frames based on the event.
+
+This function is installed as the trace function for debugged
+frames. Its return value is the new trace function, which is
+usually itself. The default implementation decides how to
+dispatch a frame, depending on the type of event (passed in as a
+string) that is about to be executed.
+
+The event can be one of the following:
+    line: A new line of code is going to be executed.
+    call: A function is about to be called or another code block
+          is entered.
+    return: A function or other code block is about to return.
+    exception: An exception has occurred.
+    c_call: A C function is about to be called.
+    c_return: A C function has returned.
+    c_exception: A C function has raised an exception.
+
+For the Python events, specialized functions (see the dispatch_*()
+methods) are called.  For the C events, no action is taken.
+
+The arg parameter depends on the previous event.
+'''
+
+        with self.set_enterframe(frame):
+            if self.quitting:
+                return
         if event == 'line':
             None(None, None, None)
             return
@@ -553,16 +572,15 @@ reached or when returning from current frame.'''
         if not frame is not None:
             frame = sys._getframe().f_back
         self.reset()
-        self.set_enterframe(frame).sys()
-        while frame:
-            frame.f_trace = self.trace_dispatch
-            self.botframe = frame
-            self.frame_trace_lines_opcodes[frame] = frame.f_trace_lines, frame.f_trace_opcodes
-            frame.f_trace_lines = True
-            frame = frame.f_back
+        with self.set_enterframe(frame):
+            while frame:
+                frame.f_trace = self.trace_dispatch
+                self.botframe = frame
+                self.frame_trace_lines_opcodes[frame] = frame.f_trace_lines, frame.f_trace_opcodes
+                frame.f_trace_lines = True
+                frame = frame.f_back
         self.set_stepinstr()
         self.enterframe = None
-        None(None, None, None)
         self.start_trace()
 
     def set_continue(self):

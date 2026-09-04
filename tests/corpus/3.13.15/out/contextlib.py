@@ -91,8 +91,8 @@ class AsyncContextDecorator(object):
         @wraps(func)
         async def inner(*args, **kwds):
             async with self._recreate_cm():
-                await None(None, None)
-                return
+                pass
+            await None(None, None)
 
         return inner
 
@@ -156,18 +156,10 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             pass
         except StopAsyncIteration:
             raise RuntimeError("generator didn't yield") from None
-        try:
-            pass
-        except StopAsyncIteration:
-            raise RuntimeError("generator didn't yield") from None
         return await anext(self.gen)
 
     async def __aexit__(self, typ, value, traceback):
         if not typ is not None:
-            try:
-                pass
-            except StopAsyncIteration:
-                return False
             try:
                 await anext(self.gen)
             except StopAsyncIteration:
@@ -177,10 +169,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         if not value is not None:
             value = typ()
         try:
-            pass
-        except StopAsyncIteration as exc:
-            return exc is not value
-        try:
             await self.gen.athrow(value)
         except StopAsyncIteration as exc:
             return exc is not value
@@ -189,8 +177,13 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         except StopAsyncIteration:
             return False
         finally:
+            await self.gen.aclose()
             if StopAsyncIteration:
                 None
+        try:
+            pass
+        except StopAsyncIteration as exc:
+            return exc is not value
 
 
 def contextmanager(func):
@@ -640,13 +633,6 @@ method.'''
                     exc_details = type(exc), exc, exc.__traceback__
                 if is_sync:
                     cb_suppress = cb(*exc_details)
-            except BaseException as new_exc:
-                _fix_exception_context(new_exc, exc)
-                pending_raise = True
-                exc = new_exc
-                new_exc = None
-                del new_exc
-            try:
                 cb_suppress = await cb(*exc_details)
                 if cb_suppress:
                     suppressed_exc = True

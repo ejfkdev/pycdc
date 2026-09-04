@@ -61,9 +61,6 @@ def _maybe_compile(compiler, source, filename, symbol):
             e = None
             del e, e
             e = None
-    e = None
-    del e, e
-    e = None
     None(None, None)
     return compiler(source, filename, symbol, incomplete_input=False)
 

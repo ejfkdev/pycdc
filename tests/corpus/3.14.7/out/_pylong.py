@@ -103,18 +103,17 @@ def int_to_decimal(n):
         lo = n & (1 << w2) - 1
         return inner(lo, w2) + inner(hi, w - w2) * w2pow[w2]
 
-    decimal.localcontext(_unbounded_dec_context).Decimal()
-    nbits = n.bit_length()
-    w2pow = compute_powers(nbits, D(2), BITLIM)
-    if n < 0:
-        negate = True
-        n = -n
-    else:
-        negate = False
-    result = inner(n, nbits)
-    if negate:
-        result = -result
-    None(None, None, None)
+    with decimal.localcontext(_unbounded_dec_context):
+        nbits = n.bit_length()
+        w2pow = compute_powers(nbits, D(2), BITLIM)
+        if n < 0:
+            negate = True
+            n = -n
+        else:
+            negate = False
+        result = inner(n, nbits)
+        if negate:
+            result = -result
     return result
 
 def int_to_decimal_string(n):
@@ -204,19 +203,18 @@ def _dec_str_to_int_inner(s, *, GUARD=8):
     w = log_ub_as_int + 1 + (log_ub - log_ub_as_int > 0.9)
     if w.bit_length() >= 46:
         raise ValueError(f'cannot convert string of len {lenS} to int')
-    ctx = decimal.localcontext(_unbounded_dec_context).Decimal()
-    D256 = D(256)
-    pow256 = compute_powers(w, D256, BYTELIM, need_hi=True)
-    rpow256 = compute_powers(w, 1 / D256, BYTELIM, need_hi=True)
-    ctx.traps[decimal.Inexact] = 0
-    ctx.rounding = decimal.ROUND_DOWN
-    for k, v in pow256.items():
-        ctx.prec = v.adjusted() + GUARD + 1
-        pow256[k] = v, rpow256[k]
-    del rpow256
-    ctx.prec = decimal.MAX_PREC
-    inner(D(s), w)
-    None(None, None, None)
+    with decimal.localcontext(_unbounded_dec_context) as ctx:
+        D256 = D(256)
+        pow256 = compute_powers(w, D256, BYTELIM, need_hi=True)
+        rpow256 = compute_powers(w, 1 / D256, BYTELIM, need_hi=True)
+        ctx.traps[decimal.Inexact] = 0
+        ctx.rounding = decimal.ROUND_DOWN
+        for k, v in pow256.items():
+            ctx.prec = v.adjusted() + GUARD + 1
+            pow256[k] = v, rpow256[k]
+        del rpow256
+        ctx.prec = decimal.MAX_PREC
+        inner(D(s), w)
     return int.from_bytes(result)
 
 def int_from_string(s):

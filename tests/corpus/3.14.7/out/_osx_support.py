@@ -37,12 +37,12 @@ def _read_output(commandstring, capture_stderr=False):
     import contextlib
     import tempfile
     fp = tempfile.NamedTemporaryFile()
-    fp = contextlib.closing(fp).tempfile()
-    if capture_stderr:
-        cmd = f"{commandstring!s} >'{fp.name!s}' 2>&1"
-    else:
-        cmd = f"{commandstring!s} 2>/dev/null >'{fp.name!s}'"
-    None(None, None, None)
+    with contextlib.closing(fp) as fp:
+        if capture_stderr:
+            cmd = f"{commandstring!s} >'{fp.name!s}' 2>&1"
+        else:
+            cmd = f"{commandstring!s} 2>/dev/null >'{fp.name!s}'"
+    fp.read().decode('utf-8').strip() if not os.system(cmd) else None
 
 def _find_build_tool(toolname):
     '''Find a build tool on current path or using xcrun'''
@@ -88,16 +88,14 @@ two version numbers.
         if osx_version:
             try:
                 if tuple is None:
-                    try:
-                        for _ in (int(i) for i in osx_version.split('.')):
-                            pass
-                        _SYSTEM_VERSION_TUPLE = None((int(i) for i in osx_version.split('.')))
-                    except ValueError:
-                        _SYSTEM_VERSION_TUPLE = ()
-                        return _SYSTEM_VERSION_TUPLE
-            finally:
+                    for _ in (int(i) for i in osx_version.split('.')):
+                        pass
+                _SYSTEM_VERSION_TUPLE = None((int(i) for i in osx_version.split('.')))
+            except ValueError:
+                _SYSTEM_VERSION_TUPLE = ()
                 return _SYSTEM_VERSION_TUPLE
-                return _SYSTEM_VERSION_TUPLE
+            return _SYSTEM_VERSION_TUPLE
+    return _SYSTEM_VERSION_TUPLE
 
 def _remove_original_values(_config_vars):
     '''Remove original unmodified values for testing'''
@@ -374,43 +372,41 @@ def get_platform_osx(_config_vars, osname, release, machine):
         if macrelease:
             try:
                 if tuple is None:
-                    try:
-                        for _ in (int(i) for i in macrelease.split('.')[0:2]):
-                            pass
-                        macrelease = None((int(i) for i in macrelease.split('.')[0:2]))
-                    except ValueError:
-                        macrelease = (10, 3)
-            finally:
+                    for _ in (int(i) for i in macrelease.split('.')[0:2]):
+                        pass
+                macrelease = None((int(i) for i in macrelease.split('.')[0:2]))
+            except ValueError:
                 macrelease = (10, 3)
-                if macrelease >= (10, 4) and '-arch' in cflags.strip():
-                    machine = 'fat'
-                    archs = re.findall('-arch\\s+(\\S+)', cflags)
-                    archs = tuple(sorted(set(archs)))
-                    if len(archs) == 1:
-                        machine = archs[0]
-                    elif archs == ('arm64', 'x86_64'):
-                        machine = 'universal2'
-                    elif archs == ('i386', 'ppc'):
-                        machine = 'fat'
-                    elif archs == ('i386', 'x86_64'):
-                        machine = 'intel'
-                    elif archs == ('i386', 'ppc', 'x86_64'):
-                        machine = 'fat3'
-                    elif archs == ('ppc64', 'x86_64'):
-                        machine = 'fat64'
-                    else:
-                        if archs == ('i386', 'ppc', 'ppc64', 'x86_64'):
-                            machine = 'universal'
-                        else:
-                            raise ValueError(f"Don't know machine value for archs={archs!r}")
-                        if machine == 'i386':
-                            if sys.maxsize >= 4294967296:
-                                machine = 'x86_64'
-                        elif machine in ('PowerPC', 'Power_Macintosh'):
-                            if sys.maxsize >= 4294967296:
-                                machine = 'ppc64'
-                            else:
-                                machine = 'ppc'
-                return osname, release, machine
+    macrelease = (10, 3)
+    if macrelease >= (10, 4) and '-arch' in cflags.strip():
+        machine = 'fat'
+        archs = re.findall('-arch\\s+(\\S+)', cflags)
+        archs = tuple(sorted(set(archs)))
+        if len(archs) == 1:
+            machine = archs[0]
+        elif archs == ('arm64', 'x86_64'):
+            machine = 'universal2'
+        elif archs == ('i386', 'ppc'):
+            machine = 'fat'
+        elif archs == ('i386', 'x86_64'):
+            machine = 'intel'
+        elif archs == ('i386', 'ppc', 'x86_64'):
+            machine = 'fat3'
+        elif archs == ('ppc64', 'x86_64'):
+            machine = 'fat64'
+        else:
+            if archs == ('i386', 'ppc', 'ppc64', 'x86_64'):
+                machine = 'universal'
+            else:
+                raise ValueError(f"Don't know machine value for archs={archs!r}")
+            if machine == 'i386':
+                if sys.maxsize >= 4294967296:
+                    machine = 'x86_64'
+            elif machine in ('PowerPC', 'Power_Macintosh'):
+                if sys.maxsize >= 4294967296:
+                    machine = 'ppc64'
+                else:
+                    machine = 'ppc'
+    return osname, release, machine
 
 # WARNING: Decompyle incomplete

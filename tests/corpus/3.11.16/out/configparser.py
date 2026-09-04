@@ -600,15 +600,11 @@ class RawConfigParser(MutableMapping):
             try:
                 with open(filename, encoding=encoding) as fp:
                     self._read(fp, filename)
-                    try:
-                        pass
-                    except OSError:
-                        pass
-            finally:
-                if isinstance(filename, os.PathLike):
-                    filename = os.fspath(filename)
-                read_ok.append(filename)
-                continue
+            except OSError:
+                pass
+            if isinstance(filename, os.PathLike):
+                filename = os.fspath(filename)
+            read_ok.append(filename)
         return read_ok
 
     def read_file(self, f, source=None):

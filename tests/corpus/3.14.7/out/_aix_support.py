@@ -9,12 +9,12 @@ def _read_cmd_output(commandstring, capture_stderr=False):
     import os
     import contextlib
     fp = open(f'/tmp/_aix_support.{os.getpid()!s}', 'w+b')
-    fp = contextlib.closing(fp).contextlib()
-    if capture_stderr:
-        cmd = f"{commandstring!s} >'{fp.name!s}' 2>&1"
-    else:
-        cmd = f"{commandstring!s} 2>/dev/null >'{fp.name!s}'"
-    None(None, None, None)
+    with contextlib.closing(fp) as fp:
+        if capture_stderr:
+            cmd = f"{commandstring!s} >'{fp.name!s}' 2>&1"
+        else:
+            cmd = f"{commandstring!s} 2>/dev/null >'{fp.name!s}'"
+    fp.read() if not os.system(cmd) else None
 
 def _aix_tag(vrtl, bd):
     _sz = 32 if sys.maxsize == 2147483647 else 64

@@ -266,7 +266,11 @@ class Hook:
             if not self.logdir is None:
                 suffix = ['.txt', '.html'][self.format == 'html']
                 fd, path = tempfile.mkstemp(suffix=suffix, dir=self.logdir)
-                with os.fdopen(fd, 'w') as file:
+                try:
+                    with os.fdopen(fd, 'w') as file:
+                        file.write(doc)
+                finally:
+                    file = None
                     file.write(doc)
                     try:
                         pass
@@ -301,38 +305,33 @@ class Hook:
             try:
                 with os.fdopen(fd, 'w') as file:
                     file.write(doc)
-                    try:
-                        pass
-                    finally:
-                        if not None:
-                            try:
-                                pass
-                            finally:
-                                try:
-                                    msg = '%s contains the description of this error.' % path
-                                finally:
-                                    msg = 'Tried to save traceback to %s, but failed.' % path
-                                    if self.format == 'html':
-                                        self.file.write('<p>%s</p>\n' % msg)
-                                    else:
-                                        self.file.write(msg + '\n')
-                                    try:
-                                        self.file.flush()
-                                    finally:
-                                        return
             finally:
+                file = None
+                file.write(doc)
                 try:
-                    msg = '%s contains the description of this error.' % path
+                    pass
                 finally:
-                    msg = 'Tried to save traceback to %s, but failed.' % path
-                    if self.format == 'html':
-                        self.file.write('<p>%s</p>\n' % msg)
-                    else:
-                        self.file.write(msg + '\n')
-                    try:
-                        self.file.flush()
-                    finally:
-                        return
+                    if not None:
+                        try:
+                            pass
+                        finally:
+                            try:
+                                msg = '%s contains the description of this error.' % path
+                            finally:
+                                msg = 'Tried to save traceback to %s, but failed.' % path
+                                if self.format == 'html':
+                                    self.file.write('<p>%s</p>\n' % msg)
+                                else:
+                                    self.file.write(msg + '\n')
+                                try:
+                                    self.file.flush()
+                                finally:
+                                    return
+            try:
+                None
+                msg = '%s contains the description of this error.' % path
+            finally:
+                msg = 'Tried to save traceback to %s, but failed.' % path
                 if self.format == 'html':
                     self.file.write('<p>%s</p>\n' % msg)
                 else:
@@ -341,7 +340,14 @@ class Hook:
                     self.file.flush()
                 finally:
                     return
-                return
+        if self.format == 'html':
+            self.file.write('<p>%s</p>\n' % msg)
+        else:
+            self.file.write(msg + '\n')
+        try:
+            self.file.flush()
+        finally:
+            return
 
 
 handler = Hook().handle

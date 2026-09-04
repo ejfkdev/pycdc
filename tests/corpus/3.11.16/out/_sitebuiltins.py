@@ -39,12 +39,9 @@ class _Printer(object):
             try:
                 with open(filename, encoding='utf-8') as fp:
                     data = fp.read()
-                    try:
-                        pass
-                    except OSError:
-                        pass
-            finally:
-                break
+            except OSError:
+                pass
+            break
         if not data:
             data = self.__data
         self.__lines = data.split('\n')

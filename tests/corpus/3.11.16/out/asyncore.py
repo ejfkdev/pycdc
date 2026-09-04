@@ -212,6 +212,8 @@ class dispatcher:
                     raise
                 return
             return
+            err = None
+            del err
         self.socket = None
 
     def __repr__(self):
@@ -322,17 +324,14 @@ class dispatcher:
             if not data:
                 self.handle_close()
                 return b''
-                try:
-                    pass
-                except OSError as why:
-                    if why.errno in _DISCONNECTED:
-                        self.handle_close()
-                        return b''
-                    raise
-                    why = None
-                    del why
-        finally:
-            return data
+        except OSError as why:
+            if why.errno in _DISCONNECTED:
+                self.handle_close()
+                return b''
+            raise
+            why = None
+            del why
+        return data
 
     def close(self):
         self.connected = False

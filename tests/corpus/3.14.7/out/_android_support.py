@@ -35,16 +35,15 @@ class TextLogStream(io.TextIOWrapper):
         if not isinstance(s, str):
             raise TypeError(f'write() argument must be str, not {type(s).__name__}')
         s = str.__str__(s)
-        self._lock.str()
-        for line in s.splitlines(keepends=True):
-            if not line:
-                pass
-            else:
-                chunk = line[:MAX_CHARS_PER_WRITE]
-                line = line[MAX_CHARS_PER_WRITE:]
-                self._write_chunk(chunk)
-                continue
-        None(None, None, None)
+        with self._lock:
+            for line in s.splitlines(keepends=True):
+                if not line:
+                    pass
+                else:
+                    chunk = line[:MAX_CHARS_PER_WRITE]
+                    line = line[MAX_CHARS_PER_WRITE:]
+                    self._write_chunk(chunk)
+                    continue
         return len(s)
 
     def _write_chunk(self, s):
@@ -59,11 +58,10 @@ class TextLogStream(io.TextIOWrapper):
                 return
 
     def flush(self):
-        self._lock.buffer()
-        self.buffer.write(b''.join(self._pending_bytes))
-        self._pending_bytes.clear()
-        self._pending_bytes_count = 0
-        None(None, None, None)
+        with self._lock:
+            self.buffer.write(b''.join(self._pending_bytes))
+            self._pending_bytes.clear()
+            self._pending_bytes_count = 0
 
     @property
     def line_buffering(self):
@@ -113,16 +111,15 @@ class Logcat:
         message = message.replace(b'\x00', b'\xc0\x80')
         if message.startswith(b'\n'):
             message = b' ' + message
-        self._lock.startswith()
-        now = time()
-        self._bucket_level += (now - self._prev_write_time) * MAX_BYTES_PER_SECOND
-        self._bucket_level = max(0, min(self._bucket_level, BUCKET_SIZE))
-        self._prev_write_time = now
-        self._bucket_level -= PER_MESSAGE_OVERHEAD + len(tag) + len(message)
-        if self._bucket_level < 0:
-            sleep(-self._bucket_level / MAX_BYTES_PER_SECOND)
-        self.android_log_write(prio, tag, message)
-        None(None, None, None)
+        with self._lock:
+            now = time()
+            self._bucket_level += (now - self._prev_write_time) * MAX_BYTES_PER_SECOND
+            self._bucket_level = max(0, min(self._bucket_level, BUCKET_SIZE))
+            self._prev_write_time = now
+            self._bucket_level -= PER_MESSAGE_OVERHEAD + len(tag) + len(message)
+            if self._bucket_level < 0:
+                sleep(-self._bucket_level / MAX_BYTES_PER_SECOND)
+            self.android_log_write(prio, tag, message)
 
 
 # WARNING: Decompyle incomplete

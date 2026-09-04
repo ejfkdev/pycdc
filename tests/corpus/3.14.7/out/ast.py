@@ -356,27 +356,25 @@ be padded with spaces to match its original position.
         if not node.end_lineno is None:
             if not node.end_col_offset is not None:
                 return
-                try:
-                    lineno = node.lineno - 1
-                    end_lineno = node.end_lineno - 1
-                    col_offset = node.col_offset
-                    end_col_offset = node.end_col_offset
-                except AttributeError:
-                    return
-    finally:
-        lines = _splitlines_no_ff(source, maxlines=end_lineno + 1)
-        if end_lineno == lineno:
-            return lines[lineno].encode()[col_offset:end_col_offset].decode()
-        if padded:
-            padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
-        else:
-            padding = ''
-        first = padding + lines[lineno].encode()[col_offset:].decode()
-        last = lines[end_lineno].encode()[:end_col_offset].decode()
-        lines = lines[lineno + 1:end_lineno]
-        lines.insert(0, first)
-        lines.append(last)
-        return ''.join(lines)
+    except AttributeError:
+        return
+    lineno = node.lineno - 1
+    end_lineno = node.end_lineno - 1
+    col_offset = node.col_offset
+    end_col_offset = node.end_col_offset
+    lines = _splitlines_no_ff(source, maxlines=end_lineno + 1)
+    if end_lineno == lineno:
+        return lines[lineno].encode()[col_offset:end_col_offset].decode()
+    if padded:
+        padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
+    else:
+        padding = ''
+    first = padding + lines[lineno].encode()[col_offset:].decode()
+    last = lines[end_lineno].encode()[:end_col_offset].decode()
+    lines = lines[lineno + 1:end_lineno]
+    lines.insert(0, first)
+    lines.append(last)
+    return ''.join(lines)
 
 def walk(node):
     """
@@ -627,9 +625,8 @@ def main(args=None):
         source = sys.stdin.buffer.read()
     else:
         name = args.infile
-        infile = open(args.infile, 'rb').sys()
-        source = infile.read()
-        None(None, None, None)
+        with open(args.infile, 'rb') as infile:
+            source = infile.read()
     feature_version = None
     if args.feature_version:
         try:

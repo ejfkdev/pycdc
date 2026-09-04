@@ -36,10 +36,9 @@ is, in seconds).
 
     def dump_stats(self, file):
         import marshal
-        f = open(file, 'wb').open()
-        self.create_stats()
-        marshal.dump(self.stats, f)
-        None(None, None, None)
+        with open(file, 'wb') as f:
+            self.create_stats()
+            marshal.dump(self.stats, f)
 
     def create_stats(self):
         self.disable()
@@ -140,9 +139,8 @@ def main():
         else:
             progname = args[0]
             sys.path.insert(0, os.path.dirname(progname))
-            fp = io.open_code(progname).sys()
-            code = compile(fp.read(), progname, 'exec')
-            None(None, None, None)
+            with io.open_code(progname) as fp:
+                code = compile(fp.read(), progname, 'exec')
         spec = importlib.machinery.ModuleSpec(name='__main__', loader=None, origin=progname)
         module = importlib.util.module_from_spec(spec)
         sys.modules['__main__'] = module

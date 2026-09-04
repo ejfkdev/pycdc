@@ -215,9 +215,8 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         return False
 
     def visit_FunctionType(self, node):
-        self.delimit('(', ')').interleave()
-        self.interleave((lambda: self.write(', ')), self.traverse, node.argtypes)
-        None(None, None, None)
+        with self.delimit('(', ')'):
+            self.interleave((lambda: self.write(', ')), self.traverse, node.argtypes)
         self.write(' -> ')
         self.traverse(node.returns)
 
@@ -227,12 +226,11 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.traverse(node.value)
 
     def visit_NamedExpr(self, node):
-        self.require_parens(_Precedence.NAMED_EXPR, node)._Precedence()
-        self.set_precedence(_Precedence.ATOM, node.target, node.value)
-        self.traverse(node.target)
-        self.write(' := ')
-        self.traverse(node.value)
-        None(None, None, None)
+        with self.require_parens(_Precedence.NAMED_EXPR, node):
+            self.set_precedence(_Precedence.ATOM, node.target, node.value)
+            self.traverse(node.target)
+            self.write(' := ')
+            self.traverse(node.value)
 
     def visit_Import(self, node):
         self.fill('import ')
@@ -269,9 +267,8 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.fill()
         if not node.simple:
             pass
-        self.delimit_if('(', ')', isinstance(node.target, Name)).delimit_if()
-        self.traverse(node.target)
-        None(None, None, None)
+        with self.delimit_if('(', ')', isinstance(node.target, Name)):
+            self.traverse(node.target)
         self.write(': ')
         self.traverse(node.annotation)
         if node.value:
@@ -316,31 +313,28 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.interleave((lambda: self.write(', ')), self.write, node.names)
 
     def visit_Await(self, node):
-        self.require_parens(_Precedence.AWAIT, node)._Precedence()
-        self.write('await')
-        if node.value:
-            self.write(' ')
-            self.set_precedence(_Precedence.ATOM, node.value)
-            self.traverse(node.value)
-        None(None, None, None)
+        with self.require_parens(_Precedence.AWAIT, node):
+            self.write('await')
+            if node.value:
+                self.write(' ')
+                self.set_precedence(_Precedence.ATOM, node.value)
+                self.traverse(node.value)
 
     def visit_Yield(self, node):
-        self.require_parens(_Precedence.YIELD, node)._Precedence()
-        self.write('yield')
-        if node.value:
-            self.write(' ')
-            self.set_precedence(_Precedence.ATOM, node.value)
-            self.traverse(node.value)
-        None(None, None, None)
+        with self.require_parens(_Precedence.YIELD, node):
+            self.write('yield')
+            if node.value:
+                self.write(' ')
+                self.set_precedence(_Precedence.ATOM, node.value)
+                self.traverse(node.value)
 
     def visit_YieldFrom(self, node):
-        self.require_parens(_Precedence.YIELD, node)._Precedence()
-        self.write('yield from ')
-        if not node.value:
-            raise ValueError("Node can't be used without a value attribute.")
-        self.set_precedence(_Precedence.ATOM, node.value)
-        self.traverse(node.value)
-        None(None, None, None)
+        with self.require_parens(_Precedence.YIELD, node):
+            self.write('yield from ')
+            if not node.value:
+                raise ValueError("Node can't be used without a value attribute.")
+            self.set_precedence(_Precedence.ATOM, node.value)
+            self.traverse(node.value)
 
     def visit_Raise(self, node):
         self.fill('raise')
@@ -357,21 +351,18 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
 
     def do_visit_try(self, node):
         self.fill('try', allow_semicolon=False)
-        self.block().block()
-        self.traverse(node.body)
-        None(None, None, None)
+        with self.block():
+            self.traverse(node.body)
         for ex in node.handlers:
             self.traverse(ex)
         if node.orelse:
             self.fill('else', allow_semicolon=False)
-            self.block().block()
-            self.traverse(node.orelse)
-            None(None, None, None)
+            with self.block():
+                self.traverse(node.orelse)
         if node.finalbody:
             self.fill('finally', allow_semicolon=False)
-            self.block().block()
-            self.traverse(node.finalbody)
-            None(None, None, None)
+            with self.block():
+                self.traverse(node.finalbody)
             return
 
     def visit_Try(self, node):
@@ -400,9 +391,8 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         if node.name:
             self.write(' as ')
             self.write(node.name)
-        self.block()._in_try_star()
-        self.traverse(node.body)
-        None(None, None, None)
+        with self.block():
+            self.traverse(node.body)
 
     def visit_ClassDef(self, node):
         self.maybe_newline()
@@ -414,24 +404,22 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             self._type_params_helper(node.type_params)
         if not node.bases:
             pass
-        self.delimit_if('(', ')', condition=node.keywords).decorator_list()
-        comma = False
-        for e in node.bases:
-            if comma:
-                self.write(', ')
-            else:
-                comma = True
-            self.traverse(e)
-        for e in node.keywords:
-            if comma:
-                self.write(', ')
-            else:
-                comma = True
-            self.traverse(e)
-        None(None, None, None)
-        self.block().decorator_list()
-        self._write_docstring_and_traverse_body(node)
-        None(None, None, None)
+        with self.delimit_if('(', ')', condition=node.keywords):
+            comma = False
+            for e in node.bases:
+                if comma:
+                    self.write(', ')
+                else:
+                    comma = True
+                self.traverse(e)
+            for e in node.keywords:
+                if comma:
+                    self.write(', ')
+                else:
+                    comma = True
+                self.traverse(e)
+        with self.block():
+            self._write_docstring_and_traverse_body(node)
 
     def visit_FunctionDef(self, node):
         self._function_helper(node, 'def')
@@ -448,22 +436,19 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.fill(def_str, allow_semicolon=False)
         if hasattr(node, 'type_params'):
             self._type_params_helper(node.type_params)
-        self.delimit('(', ')').decorator_list()
-        self.traverse(node.args)
-        None(None, None, None)
+        with self.delimit('(', ')'):
+            self.traverse(node.args)
         if node.returns:
             self.write(' -> ')
             self.traverse(node.returns)
-        self.block(extra=self.get_type_comment(node)).decorator_list()
-        self._write_docstring_and_traverse_body(node)
-        None(None, None, None)
+        with self.block(extra=self.get_type_comment(node)):
+            self._write_docstring_and_traverse_body(node)
 
     def _type_params_helper(self, type_params):
         if not type_params is None:
             if len(type_params) > 0:
-                self.delimit('[', ']').delimit()
-                self.interleave((lambda: self.write(', ')), self.traverse, type_params)
-                None(None, None, None)
+                with self.delimit('[', ']'):
+                    self.interleave((lambda: self.write(', ')), self.traverse, type_params)
                 return
             return
 
@@ -510,62 +495,53 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.traverse(node.target)
         self.write(' in ')
         self.traverse(node.iter)
-        self.block(extra=self.get_type_comment(node)).set_precedence()
-        self.traverse(node.body)
-        None(None, None, None)
+        with self.block(extra=self.get_type_comment(node)):
+            self.traverse(node.body)
         if node.orelse:
             self.fill('else', allow_semicolon=False)
-            self.block().set_precedence()
-            self.traverse(node.orelse)
-            None(None, None, None)
+            with self.block():
+                self.traverse(node.orelse)
             return
 
     def visit_If(self, node):
         self.fill('if ', allow_semicolon=False)
         self.traverse(node.test)
-        self.block().traverse()
-        self.traverse(node.body)
-        None(None, None, None)
+        with self.block():
+            self.traverse(node.body)
         while node.orelse:
             node = node.orelse[0]
             self.fill('elif ', allow_semicolon=False)
             self.traverse(node.test)
-            self.block().traverse()
-            self.traverse(node.body)
-            None(None, None, None)
+            with self.block():
+                self.traverse(node.body)
         if node.orelse:
             self.fill('else', allow_semicolon=False)
-            self.block().traverse()
-            self.traverse(node.orelse)
-            None(None, None, None)
+            with self.block():
+                self.traverse(node.orelse)
             return
 
     def visit_While(self, node):
         self.fill('while ', allow_semicolon=False)
         self.traverse(node.test)
-        self.block().traverse()
-        self.traverse(node.body)
-        None(None, None, None)
+        with self.block():
+            self.traverse(node.body)
         if node.orelse:
             self.fill('else', allow_semicolon=False)
-            self.block().traverse()
-            self.traverse(node.orelse)
-            None(None, None, None)
+            with self.block():
+                self.traverse(node.orelse)
             return
 
     def visit_With(self, node):
         self.fill('with ', allow_semicolon=False)
         self.interleave((lambda: self.write(', ')), self.traverse, node.items)
-        self.block(extra=self.get_type_comment(node)).interleave()
-        self.traverse(node.body)
-        None(None, None, None)
+        with self.block(extra=self.get_type_comment(node)):
+            self.traverse(node.body)
 
     def visit_AsyncWith(self, node):
         self.fill('async with ', allow_semicolon=False)
         self.interleave((lambda: self.write(', ')), self.traverse, node.items)
-        self.block(extra=self.get_type_comment(node)).interleave()
-        self.traverse(node.body)
-        None(None, None, None)
+        with self.block(extra=self.get_type_comment(node)):
+            self.traverse(node.body)
 
     def _str_literal_helper(self, string, *, quote_types=_ALL_QUOTES, escape_special_whitespace=False):
         '''Helper for writing string literals, minimizing escapes.
@@ -643,9 +619,8 @@ Returns the tuple (string literal to write, possible quote types).
         self.write(prefix)
         fstring_parts = []
         for value in values:
-            buffer = self.buffered().buffered()
-            self._write_ftstring_inner(value)
-            None(None, None, None)
+            with self.buffered() as buffer:
+                self._write_ftstring_inner(value)
             fstring_parts.append((''.join(buffer), isinstance(value, Constant)))
         self._ftstring_helper(fstring_parts)
 
@@ -683,20 +658,19 @@ Returns the tuple (string literal to write, possible quote types).
         return unparser.visit(inner)
 
     def _write_interpolation(self, node, use_str_attr=False):
-        self.delimit('{', '}').str()
-        if use_str_attr:
-            expr = node.str
-        else:
-            expr = self._unparse_interpolation_value(node.value)
-        if expr.startswith('{'):
-            self.write(' ')
+        with self.delimit('{', '}'):
+            if use_str_attr:
+                expr = node.str
+            else:
+                expr = self._unparse_interpolation_value(node.value)
+            if expr.startswith('{'):
+                self.write(' ')
         self.write(expr)
         if node.conversion != -1:
             self.write(f'!{chr(node.conversion)}')
         if node.format_spec:
             self.write(':')
             self._write_ftstring_inner(node.format_spec, is_format_spec=True)
-        None(None, None, None)
 
     def visit_FormattedValue(self, node):
         self._write_interpolation(node)
@@ -722,9 +696,8 @@ Returns the tuple (string literal to write, possible quote types).
     def visit_Constant(self, node):
         value = node.value
         if isinstance(value, tuple):
-            self.delimit('(', ')').isinstance()
-            self.items_view(self._write_constant, value)
-            None(None, None, None)
+            with self.delimit('(', ')'):
+                self.items_view(self._write_constant, value)
             return
         if value is ...:
             self.write('...')
@@ -734,39 +707,34 @@ Returns the tuple (string literal to write, possible quote types).
         self._write_constant(node.value)
 
     def visit_List(self, node):
-        self.delimit('[', ']').interleave()
-        self.interleave((lambda: self.write(', ')), self.traverse, node.elts)
-        None(None, None, None)
+        with self.delimit('[', ']'):
+            self.interleave((lambda: self.write(', ')), self.traverse, node.elts)
 
     def visit_ListComp(self, node):
-        self.delimit('[', ']').traverse()
-        self.traverse(node.elt)
-        for gen in node.generators:
-            self.traverse(gen)
-        None(None, None, None)
+        with self.delimit('[', ']'):
+            self.traverse(node.elt)
+            for gen in node.generators:
+                self.traverse(gen)
 
     def visit_GeneratorExp(self, node):
-        self.delimit('(', ')').traverse()
-        self.traverse(node.elt)
-        for gen in node.generators:
-            self.traverse(gen)
-        None(None, None, None)
+        with self.delimit('(', ')'):
+            self.traverse(node.elt)
+            for gen in node.generators:
+                self.traverse(gen)
 
     def visit_SetComp(self, node):
-        self.delimit('{', '}').traverse()
-        self.traverse(node.elt)
-        for gen in node.generators:
-            self.traverse(gen)
-        None(None, None, None)
+        with self.delimit('{', '}'):
+            self.traverse(node.elt)
+            for gen in node.generators:
+                self.traverse(gen)
 
     def visit_DictComp(self, node):
-        self.delimit('{', '}').traverse()
-        self.traverse(node.key)
-        self.write(': ')
-        self.traverse(node.value)
-        for gen in node.generators:
-            self.traverse(gen)
-        None(None, None, None)
+        with self.delimit('{', '}'):
+            self.traverse(node.key)
+            self.write(': ')
+            self.traverse(node.value)
+            for gen in node.generators:
+                self.traverse(gen)
 
     def visit_comprehension(self, node):
         if node.is_async:
@@ -783,21 +751,19 @@ Returns the tuple (string literal to write, possible quote types).
             self.traverse(if_clause)
 
     def visit_IfExp(self, node):
-        self.require_parens(_Precedence.TEST, node)._Precedence()
-        self.set_precedence(_Precedence.TEST.next(), node.body, node.test)
-        self.traverse(node.body)
-        self.write(' if ')
-        self.traverse(node.test)
-        self.write(' else ')
-        self.set_precedence(_Precedence.TEST, node.orelse)
-        self.traverse(node.orelse)
-        None(None, None, None)
+        with self.require_parens(_Precedence.TEST, node):
+            self.set_precedence(_Precedence.TEST.next(), node.body, node.test)
+            self.traverse(node.body)
+            self.write(' if ')
+            self.traverse(node.test)
+            self.write(' else ')
+            self.set_precedence(_Precedence.TEST, node.orelse)
+            self.traverse(node.orelse)
 
     def visit_Set(self, node):
         if node.elts:
-            self.delimit('{', '}').delimit()
-            self.interleave((lambda: self.write(', ')), self.traverse, node.elts)
-            None(None, None, None)
+            with self.delimit('{', '}'):
+                self.interleave((lambda: self.write(', ')), self.traverse, node.elts)
             return
         self.write('{*()}')
 
@@ -816,29 +782,26 @@ Returns the tuple (string literal to write, possible quote types).
                 return
             write_key_value_pair(k, v)
 
-        self.delimit('{', '}').interleave()
-        self.interleave((lambda: self.write(', ')), write_item, zip(node.keys, node.values))
-        None(None, None, None)
+        with self.delimit('{', '}'):
+            self.interleave((lambda: self.write(', ')), write_item, zip(node.keys, node.values))
 
     def visit_Tuple(self, node):
         if not len(node.elts) == 0:
             pass
-        self.delimit_if('(', ')', self.get_precedence(node) > _Precedence.TUPLE).len()
-        self.items_view(self.traverse, node.elts)
-        None(None, None, None)
+        with self.delimit_if('(', ')', self.get_precedence(node) > _Precedence.TUPLE):
+            self.items_view(self.traverse, node.elts)
 
     unop = {'Invert': '~', 'Not': 'not', 'UAdd': '+', 'USub': '-'}
     unop_precedence = {'not': _Precedence.NOT, '~': _Precedence.FACTOR, '+': _Precedence.FACTOR, '-': _Precedence.FACTOR}
     def visit_UnaryOp(self, node):
         operator = self.unop[node.op.__class__.__name__]
         operator_precedence = self.unop_precedence[operator]
-        self.require_parens(operator_precedence, node).op()
-        self.write(operator)
-        if operator_precedence is not _Precedence.FACTOR:
-            self.write(' ')
-        self.set_precedence(operator_precedence, node.operand)
-        self.traverse(node.operand)
-        None(None, None, None)
+        with self.require_parens(operator_precedence, node):
+            self.write(operator)
+            if operator_precedence is not _Precedence.FACTOR:
+                self.write(' ')
+            self.set_precedence(operator_precedence, node.operand)
+            self.traverse(node.operand)
 
     binop = {'Add': '+', 'Sub': '-', 'Mult': '*', 'MatMult': '@', 'Div': '/', 'Mod': '%', 'LShift': '<<', 'RShift': '>>', 'BitOr': '|', 'BitXor': '^', 'BitAnd': '&', 'FloorDiv': '//', 'Pow': '**'}
     binop_precedence = {'+': _Precedence.ARITH, '-': _Precedence.ARITH, '*': _Precedence.TERM, '@': _Precedence.TERM, '/': _Precedence.TERM, '%': _Precedence.TERM, '<<': _Precedence.SHIFT, '>>': _Precedence.SHIFT, '|': _Precedence.BOR, '^': _Precedence.BXOR, '&': _Precedence.BAND, '//': _Precedence.TERM, '**': _Precedence.POWER}
@@ -846,29 +809,27 @@ Returns the tuple (string literal to write, possible quote types).
     def visit_BinOp(self, node):
         operator = self.binop[node.op.__class__.__name__]
         operator_precedence = self.binop_precedence[operator]
-        self.require_parens(operator_precedence, node).op()
-        if operator in self.binop_rassoc:
-            left_precedence = operator_precedence.next()
-            right_precedence = operator_precedence
-        else:
-            left_precedence = operator_precedence
-            right_precedence = operator_precedence.next()
-        self.set_precedence(left_precedence, node.left)
-        self.traverse(node.left)
-        self.write(f' {operator} ')
-        self.set_precedence(right_precedence, node.right)
-        self.traverse(node.right)
-        None(None, None, None)
+        with self.require_parens(operator_precedence, node):
+            if operator in self.binop_rassoc:
+                left_precedence = operator_precedence.next()
+                right_precedence = operator_precedence
+            else:
+                left_precedence = operator_precedence
+                right_precedence = operator_precedence.next()
+            self.set_precedence(left_precedence, node.left)
+            self.traverse(node.left)
+            self.write(f' {operator} ')
+            self.set_precedence(right_precedence, node.right)
+            self.traverse(node.right)
 
     cmpops = {'Eq': '==', 'NotEq': '!=', 'Lt': '<', 'LtE': '<=', 'Gt': '>', 'GtE': '>=', 'Is': 'is', 'IsNot': 'is not', 'In': 'in', 'NotIn': 'not in'}
     def visit_Compare(self, node):
-        self.require_parens(_Precedence.CMP, node)._Precedence()
-        self.set_precedence(*[_Precedence.CMP.next(), node.left, *node.comparators])
-        self.traverse(node.left)
-        for o, e in zip(node.ops, node.comparators):
-            self.write(' ' + self.cmpops[o.__class__.__name__] + ' ')
-            self.traverse(e)
-        None(None, None, None)
+        with self.require_parens(_Precedence.CMP, node):
+            self.set_precedence(*[_Precedence.CMP.next(), node.left, *node.comparators])
+            self.traverse(node.left)
+            for o, e in zip(node.ops, node.comparators):
+                self.write(' ' + self.cmpops[o.__class__.__name__] + ' ')
+                self.traverse(e)
 
     boolops = {'And': 'and', 'Or': 'or'}
     boolop_precedence = {'and': _Precedence.AND, 'or': _Precedence.OR}
@@ -881,10 +842,9 @@ Returns the tuple (string literal to write, possible quote types).
             self.set_precedence(operator_precedence, node)
             self.traverse(node)
 
-        self.require_parens(operator_precedence, node).op()
-        s = f' {operator} '
-        self.interleave((lambda: self.write(s)), increasing_level_traverse, node.values)
-        None(None, None, None)
+        with self.require_parens(operator_precedence, node):
+            s = f' {operator} '
+            self.interleave((lambda: self.write(s)), increasing_level_traverse, node.values)
 
     def visit_Attribute(self, node):
         self.set_precedence(_Precedence.ATOM, node.value)
@@ -897,21 +857,20 @@ Returns the tuple (string literal to write, possible quote types).
     def visit_Call(self, node):
         self.set_precedence(_Precedence.ATOM, node.func)
         self.traverse(node.func)
-        self.delimit('(', ')')._Precedence()
-        comma = False
-        for e in node.args:
-            if comma:
-                self.write(', ')
-            else:
-                comma = True
-            self.traverse(e)
-        for e in node.keywords:
-            if comma:
-                self.write(', ')
-            else:
-                comma = True
-            self.traverse(e)
-        None(None, None, None)
+        with self.delimit('(', ')'):
+            comma = False
+            for e in node.args:
+                if comma:
+                    self.write(', ')
+                else:
+                    comma = True
+                self.traverse(e)
+            for e in node.keywords:
+                if comma:
+                    self.write(', ')
+                else:
+                    comma = True
+                self.traverse(e)
 
     def visit_Subscript(self, node):
         def is_non_empty_tuple(slice_value):
@@ -921,12 +880,11 @@ Returns the tuple (string literal to write, possible quote types).
 
         self.set_precedence(_Precedence.ATOM, node.value)
         self.traverse(node.value)
-        self.delimit('[', ']')._Precedence()
-        if is_non_empty_tuple(node.slice):
-            self.items_view(self.traverse, node.slice.elts)
-        else:
-            self.traverse(node.slice)
-        None(None, None, None)
+        with self.delimit('[', ']'):
+            if is_non_empty_tuple(node.slice):
+                self.items_view(self.traverse, node.slice.elts)
+            else:
+                self.traverse(node.slice)
 
     def visit_Starred(self, node):
         self.write('*')
@@ -950,10 +908,9 @@ Returns the tuple (string literal to write, possible quote types).
     def visit_Match(self, node):
         self.fill('match ', allow_semicolon=False)
         self.traverse(node.subject)
-        self.block().traverse()
-        for case in node.cases:
-            self.traverse(case)
-        None(None, None, None)
+        with self.block():
+            for case in node.cases:
+                self.traverse(case)
 
     def visit_arg(self, node):
         self.write(node.arg)
@@ -1022,17 +979,15 @@ Returns the tuple (string literal to write, possible quote types).
         self.traverse(node.value)
 
     def visit_Lambda(self, node):
-        self.require_parens(_Precedence.TEST, node)._Precedence()
-        self.write('lambda')
-        buffer = self.buffered()._Precedence()
-        self.traverse(node.args)
-        None(None, None, None)
+        with self.require_parens(_Precedence.TEST, node):
+            self.write('lambda')
+            with self.buffered() as buffer:
+                self.traverse(node.args)
         if buffer:
             self.write(*[' ', *buffer])
         self.write(': ')
         self.set_precedence(_Precedence.TEST, node.body)
         self.traverse(node.body)
-        None(None, None, None)
 
     def visit_alias(self, node):
         self.write(node.name)
@@ -1053,9 +1008,8 @@ Returns the tuple (string literal to write, possible quote types).
         if node.guard:
             self.write(' if ')
             self.traverse(node.guard)
-        self.block().traverse()
-        self.traverse(node.body)
-        None(None, None, None)
+        with self.block():
+            self.traverse(node.body)
 
     def visit_MatchValue(self, node):
         self.traverse(node.value)
@@ -1064,9 +1018,8 @@ Returns the tuple (string literal to write, possible quote types).
         self._write_constant(node.value)
 
     def visit_MatchSequence(self, node):
-        self.delimit('[', ']').interleave()
-        self.interleave((lambda: self.write(', ')), self.traverse, node.patterns)
-        None(None, None, None)
+        with self.delimit('[', ']'):
+            self.interleave((lambda: self.write(', ')), self.traverse, node.patterns)
 
     def visit_MatchStar(self, node):
         name = node.name
@@ -1081,33 +1034,31 @@ Returns the tuple (string literal to write, possible quote types).
             self.write(': ')
             self.traverse(p)
 
-        self.delimit('{', '}').keys()
-        keys = node.keys
-        self.interleave((lambda: self.write(', ')), write_key_pattern_pair, zip(keys, node.patterns, strict=True))
-        rest = node.rest
-        if not rest is None:
-            if keys:
-                self.write(', ')
-            self.write(f'**{rest}')
-        None(None, None, None)
+        with self.delimit('{', '}'):
+            keys = node.keys
+            self.interleave((lambda: self.write(', ')), write_key_pattern_pair, zip(keys, node.patterns, strict=True))
+            rest = node.rest
+            if not rest is None:
+                if keys:
+                    self.write(', ')
+                self.write(f'**{rest}')
 
     def visit_MatchClass(self, node):
         self.set_precedence(_Precedence.ATOM, node.cls)
         self.traverse(node.cls)
-        self.delimit('(', ')')._Precedence()
-        patterns = node.patterns
-        self.interleave((lambda: self.write(', ')), self.traverse, patterns)
-        attrs = node.kwd_attrs
-        if attrs:
-            def write_attr_pattern(pair):
-                attr, pattern = pair
-                self.write(f'{attr}=')
-                self.traverse(pattern)
+        with self.delimit('(', ')'):
+            patterns = node.patterns
+            self.interleave((lambda: self.write(', ')), self.traverse, patterns)
+            attrs = node.kwd_attrs
+            if attrs:
+                def write_attr_pattern(pair):
+                    attr, pattern = pair
+                    self.write(f'{attr}=')
+                    self.traverse(pattern)
 
-            if patterns:
-                self.write(', ')
-            self.interleave((lambda: self.write(', ')), write_attr_pattern, zip(attrs, node.kwd_patterns, strict=True))
-        None(None, None, None)
+                if patterns:
+                    self.write(', ')
+                self.interleave((lambda: self.write(', ')), write_attr_pattern, zip(attrs, node.kwd_patterns, strict=True))
 
     def visit_MatchAs(self, node):
         name = node.name
@@ -1118,17 +1069,15 @@ Returns the tuple (string literal to write, possible quote types).
         if not pattern is not None:
             self.write(node.name)
             return
-        self.require_parens(_Precedence.TEST, node).pattern()
-        self.set_precedence(_Precedence.BOR, node.pattern)
-        self.traverse(node.pattern)
-        self.write(f' as {node.name}')
-        None(None, None, None)
+        with self.require_parens(_Precedence.TEST, node):
+            self.set_precedence(_Precedence.BOR, node.pattern)
+            self.traverse(node.pattern)
+            self.write(f' as {node.name}')
 
     def visit_MatchOr(self, node):
-        self.require_parens(_Precedence.BOR, node)._Precedence()
-        self.set_precedence(*[_Precedence.BOR.next(), *node.patterns])
-        self.interleave((lambda: self.write(' | ')), self.traverse, node.patterns)
-        None(None, None, None)
+        with self.require_parens(_Precedence.BOR, node):
+            self.set_precedence(*[_Precedence.BOR.next(), *node.patterns])
+            self.interleave((lambda: self.write(' | ')), self.traverse, node.patterns)
 
 
 # WARNING: Decompyle incomplete

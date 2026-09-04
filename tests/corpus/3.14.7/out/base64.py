@@ -502,9 +502,8 @@ def main():
             print(usage)
             return
             if args and args[0] != '-':
-                f = open(args[0], 'rb').getopt()
-                func(f, sys.stdout.buffer)
-                None(None, None, None)
+                with open(args[0], 'rb') as f:
+                    func(f, sys.stdout.buffer)
                 return
             if sys.stdin.isatty():
                 import io

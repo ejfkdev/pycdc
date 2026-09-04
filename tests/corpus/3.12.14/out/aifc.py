@@ -474,7 +474,9 @@ class Aifc_read:
                 name = _read_string(chunk)
                 if not pos and not name:
                     pass
-        finally:
+        except EOFError:
+            w = f'Warning: MARK chunk contains only {len(self._markers)!s} marker{'' if len(self._markers) == 1 else 's'!s} instead of {nmarkers!s}'
+            warnings.warn(w)
             return
 
 

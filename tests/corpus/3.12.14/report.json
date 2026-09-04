@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 5,
-  "SIG-DIFF": 31,
-  "INCOMPLETE": 4
+  "SIG-DIFF": 30,
+  "INCOMPLETE": 5
  },
  "results": [
   {
@@ -27,8 +27,8 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3613,
-   "ntotal": 3699,
+   "ndiff": 3576,
+   "ntotal": 3688,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
   {
@@ -80,8 +80,8 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 33: orig  body=[Return(value=BinOp(left=Constant(value='Use %s() or %s to exit') | dec  body=[Return(value=JoinedStr(values=[Constant(value='Use ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 261,
-   "ntotal": 383,
+   "ndiff": 285,
+   "ntotal": 375,
    "detail": "line 85: orig ('POP_TOP', '') | got ('LOAD_GLOBAL', 'NULL + SystemExit')\nline 86: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'code')\nline 87: orig ('LOAD_GLOBAL', 'NULL + SystemExit') | got ('CALL', '')"
   },
   {
@@ -178,8 +178,8 @@
    "module": "cgitb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1109,
-   "ntotal": 1510,
+   "ndiff": 1194,
+   "ntotal": 1598,
    "detail": "line 231: orig ('FOR_ITER', 'to 444') | got ('FOR_ITER', 'to 446')\nline 242: orig ('POP_JUMP_IF_FALSE', 'to 140') | got ('POP_JUMP_IF_FALSE', 'to 142')\nline 243: orig ('POP_TOP', '') | got ('LOAD_FAST', 'vars')"
   },
   {
@@ -191,16 +191,16 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1310,
-   "ntotal": 1483,
+   "ndiff": 1004,
+   "ntotal": 1328,
    "detail": "line 158: orig ('POP_JUMP_IF_FALSE', 'to 248') | got ('POP_JUMP_IF_FALSE', 'to 250')\nline 161: orig ('POP_JUMP_IF_FALSE', 'to 248') | got ('POP_JUMP_IF_FALSE', 'to 250')\nline 163: orig ('LOAD_CONST', '0') | got ('NOP', '')"
   },
   {
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 814,
-   "ntotal": 843,
+   "ndiff": 826,
+   "ntotal": 855,
    "detail": "line 13: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 17: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
   {
@@ -225,25 +225,22 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1435,
-   "ntotal": 1501,
-   "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
+   "verdict": "INCOMPLETE",
+   "detail": "SyntaxError: invalid syntax"
   },
   {
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3395,
-   "ntotal": 4482,
+   "ndiff": 12204,
+   "ntotal": 13284,
    "detail": "line 850: orig ('POP_JUMP_IF_FALSE', 'to 654') | got ('POP_JUMP_IF_FALSE', 'to 662')\nline 977: orig ('POP_JUMP_IF_FALSE', 'to 652') | got ('POP_JUMP_IF_FALSE', 'to 650')\nline 978: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 652')"
   },
   {
    "module": "contextlib",
    "ast_detail": "diff at token 63: orig  body=[Return(value=Constant(value=None))] | dec  body=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2111,
+   "ndiff": 2129,
    "ntotal": 2190,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },

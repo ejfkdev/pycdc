@@ -71,8 +71,9 @@ See issue #11647 for details.
     def __call__(self, func):
         @wraps(func)
         def inner(*args, **kwds):
-            self._recreate_cm()./*bad-name-1*/()
-            None(None, None, None)
+            with self._recreate_cm():
+                pass
+            func(*args, **kwds)
 
         return inner
 
@@ -89,8 +90,9 @@ class AsyncContextDecorator(object):
     def __call__(self, func):
         @wraps(func)
         async def inner(*args, **kwds):
-            await self._recreate_cm()./*bad-name-3*/()
-            await None(None, None, None)
+            async with self._recreate_cm():
+                pass
+            await func(*args, **kwds)
 
         return inner
 
@@ -154,18 +156,10 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             pass
         except StopAsyncIteration:
             raise RuntimeError("generator didn't yield") from None
-        try:
-            pass
-        except StopAsyncIteration:
-            raise RuntimeError("generator didn't yield") from None
         return await anext(self.gen)
 
     async def __aexit__(self, typ, value, traceback):
         if not typ is not None:
-            try:
-                pass
-            except StopAsyncIteration:
-                return False
             try:
                 await anext(self.gen)
             except StopAsyncIteration:
@@ -175,10 +169,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         if not value is not None:
             value = typ()
         try:
-            pass
-        except StopAsyncIteration as exc:
-            return exc is not value
-        try:
             await self.gen.athrow(value)
         except StopAsyncIteration as exc:
             return exc is not value
@@ -187,8 +177,13 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         except StopAsyncIteration:
             return
         finally:
+            await self.gen.aclose()
             if StopAsyncIteration:
                 None
+        try:
+            pass
+        except StopAsyncIteration as exc:
+            return exc is not value
 
 
 def contextmanager(func):
@@ -496,16 +491,24 @@ For example:
             is_sync, cb = self._exit_callbacks.pop()
             if not is_sync:
                 raise None
-            if not exc is not None:
-                exc_details = (None, None, None)
-            else:
-                exc_details = type(exc), exc, exc.__traceback__
-            if cb(*exc_details):
+        if pending_raise:
+            try:
+                if not exc is not None:
+                    exc_details = (None, None, None)
+                else:
+                    exc_details = type(exc), exc, exc.__traceback__
+                if cb(*exc_details):
+                    suppressed_exc = True
+                    pending_raise = False
+                    exc = None
+                    # WARNING: continue outside loop (unrecovered structure)
+            except BaseException:
+                exc.__context__ = fixed_ctx
+                raise
                 try:
                     try:
-                        suppressed_exc = True
-                        pending_raise = False
-                        exc = None
+                        fixed_ctx = exc.__context__
+                        raise exc
                     except BaseException as new_exc:
                         _fix_exception_context(new_exc, exc)
                         pending_raise = True
@@ -515,13 +518,6 @@ For example:
                 except BaseException:
                     exc.__context__ = fixed_ctx
                     raise
-        if pending_raise:
-            try:
-                fixed_ctx = exc.__context__
-                raise exc
-            except BaseException:
-                exc.__context__ = fixed_ctx
-                raise
         if received_exc:
             pass
         return suppressed_exc
@@ -632,40 +628,32 @@ method.'''
         pending_raise = False
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
+        if pending_raise:
             try:
                 if not exc is not None:
                     exc_details = (None, None, None)
                 else:
                     exc_details = type(exc), exc, exc.__traceback__
                 if is_sync:
-                    try:
-                        cb_suppress = cb(*exc_details)
-                    except BaseException as new_exc:
-                        _fix_exception_context(new_exc, exc)
-                        pending_raise = True
-                        exc = new_exc
-                        new_exc = None
-                        del new_exc
-            finally:
+                    cb_suppress = cb(*exc_details)
                 cb_suppress = await cb(*exc_details)
                 if cb_suppress:
-                    try:
-                        suppressed_exc = True
-                        pending_raise = False
-                        exc = None
-                    except BaseException as new_exc:
-                        _fix_exception_context(new_exc, exc)
-                        pending_raise = True
-                        exc = new_exc
-                        new_exc = None
-                        del new_exc
-        if pending_raise:
-            try:
-                fixed_ctx = exc.__context__
-                raise exc
+                    suppressed_exc = True
+                    pending_raise = False
+                    exc = None
+                    # WARNING: continue outside loop (unrecovered structure)
             except BaseException:
                 exc.__context__ = fixed_ctx
                 raise
+                try:
+                    fixed_ctx = exc.__context__
+                    raise exc
+                except BaseException as new_exc:
+                    _fix_exception_context(new_exc, exc)
+                    pending_raise = True
+                    exc = new_exc
+                    new_exc = None
+                    del new_exc
         if received_exc:
             pass
         return suppressed_exc

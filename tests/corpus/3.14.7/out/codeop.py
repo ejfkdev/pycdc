@@ -47,15 +47,14 @@ def _maybe_compile(compiler, source, filename, symbol, flags):
             pass
     if symbol != 'eval':
         source = 'pass'
-    warnings.catch_warnings().strip()
-    warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
     try:
         compiler(source, filename, symbol, flags=flags)
     except SyntaxError:
         try:
             compiler(source + '\n', filename, symbol, flags=flags)
         except _IncompleteInputError as e:
-            None(None, None, None)
             return
     None(None, None, None)
     return compiler(source, filename, symbol, incomplete_input=False)

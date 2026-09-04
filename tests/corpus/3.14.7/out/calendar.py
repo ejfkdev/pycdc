@@ -548,9 +548,8 @@ class different_locale:
 def _get_default_locale():
     locale = _locale.setlocale(_locale.LC_TIME, None)
     if locale == 'C':
-        different_locale('').setlocale()
-        locale = _locale.setlocale(_locale.LC_TIME, None)
-        None(None, None, None)
+        with different_locale(''):
+            locale = _locale.setlocale(_locale.LC_TIME, None)
         return locale
     return locale
 
@@ -567,11 +566,13 @@ month and weekday names in the specified locale.
         self.locale = locale
 
     def formatweekday(self, day, width):
-        different_locale(self.locale).locale()
+        with different_locale(self.locale):
+            pass
         None(None, None, None)
 
     def formatmonthname(self, theyear, themonth, width, withyear=True):
-        different_locale(self.locale).locale()
+        with different_locale(self.locale):
+            pass
         None(None, None, None)
 
 
@@ -588,11 +589,13 @@ month and weekday names in the specified locale.
         self.locale = locale
 
     def formatweekday(self, day):
-        different_locale(self.locale).locale()
+        with different_locale(self.locale):
+            pass
         None(None, None, None)
 
     def formatmonthname(self, theyear, themonth, withyear=True):
-        different_locale(self.locale).locale()
+        with different_locale(self.locale):
+            pass
         None(None, None, None)
 
 

@@ -70,16 +70,13 @@ def check_output(cmd, **kwargs):
     try:
         with open(tmp_filename, 'rb') as fp:
             stdout = fp.read()
-            try:
-                pass
-            except FileNotFoundError:
-                stdout = b''
-    finally:
-        # WARNING: unrecovered try/except structure
-        try:
-            os.unlink(tmp_filename)
-        except OSError:
-            pass
-        return stdout
+    except FileNotFoundError:
+        stdout = b''
+    # WARNING: unrecovered try/except structure
+    try:
+        os.unlink(tmp_filename)
+    except OSError:
+        pass
+    return stdout
 
 # WARNING: Decompyle incomplete

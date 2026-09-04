@@ -248,6 +248,10 @@ struct Ctx<'a> {
     pending_async_with_ctx: Option<ExprRef>,
     /// the END_SEND after an await yield must not pop
     skip_end_send: bool,
+    /// the with-exit recognizer just swallowed an async-with __aexit__
+    /// call: the following GET_AWAITABLE..YIELD_VALUE protocol has no
+    /// awaitable left and must be dropped without a stack underflow
+    with_exit_await_drop: bool,
     pending_gen_code: Option<std::rc::Rc<crate::code::CodeObject>>,
     recent_code_const: Option<std::rc::Rc<crate::code::CodeObject>>,
     /// pending kw names for the next CALL (3.11/3.12 KW_NAMES)
@@ -433,17 +437,24 @@ pub fn decompile_in_scope(
     let mut all_handler_targets: Vec<usize> = Vec::new();
     for e in &exc_entries {
         if let Some(&hi) = idx_of.get(&e.target) {
+            // anchor classification at the handler head: a 40-insn window
+            // from a CLEANUP_THROW/END_ASYNC_FOR trampoline can run through
+            // main flow into a LATER async-with's WITH_EXCEPT_START,
+            // misclassifying the stub and dragging handler_zone forward
+            // (truncating the walk). Real with-handlers always start with
+            // PUSH_EXC_INFO.
+            if instrs.get(hi).map(|x| x.op) != Some(Op::PUSH_EXC_INFO) {
+                continue;
+            }
             let window: Vec<_> = instrs.iter().skip(hi).take(40).collect();
             if window.iter().any(|x| x.op == Op::WITH_EXCEPT_START) {
                 with_regions.insert(e.start, e.end);
                 all_handler_targets.push(e.target);
                 continue;
             }
-            if instrs.get(hi).map(|x| x.op) == Some(Op::PUSH_EXC_INFO) {
-                let is_except = window.iter().any(|x| x.op == Op::CHECK_EXC_MATCH);
-                handler_kind.insert(e.target, is_except);
-                all_handler_targets.push(e.target);
-            }
+            let is_except = window.iter().any(|x| x.op == Op::CHECK_EXC_MATCH);
+            handler_kind.insert(e.target, is_except);
+            all_handler_targets.push(e.target);
         }
     }
     // handler zone: everything from the first handler target that covers
@@ -476,6 +487,7 @@ pub fn decompile_in_scope(
         await_mode: false,
         pending_async_with_ctx: None,
         skip_end_send: false,
+        with_exit_await_drop: false,
         pending_gen_code: None,
         recent_code_const: None,
         last_kw_names: Vec::new(),
@@ -553,16 +565,66 @@ pub fn decompile_in_scope(
             .collect();
         main_entries.sort_by_key(|e| e.start);
         let mut regions: Vec<TryCtx> = Vec::new();
+        // 3.12+ resume protocols split a protected range in two: the
+        // YIELD_VALUE suspension point is covered by an entry targeting a
+        // CLEANUP_THROW trampoline (dropped from classification), so the
+        // two halves of ONE source-level try arrive as separate entries
+        // with the same handler — bridge the protocol-only gap instead of
+        // opening a duplicate try
+        let protocol_only = |from: usize, to: usize| -> bool {
+            match (ctx.idx_of.get(&from), ctx.idx_of.get(&to)) {
+                (Some(&fi), Some(&ti)) => ctx.instrs[fi..ti].iter().all(|x| {
+                    matches!(
+                        x.op,
+                        Op::YIELD_VALUE
+                            | Op::RESUME
+                            | Op::RESUME_CHECK
+                            | Op::SEND
+                            | Op::END_SEND
+                            | Op::CLEANUP_THROW
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                            | Op::LOAD_CONST
+                            | Op::NOP
+                            | Op::NOT_TAKEN
+                    )
+                }),
+                _ => false,
+            }
+        };
         for e in main_entries {
             let is_exc = handler_kind[&e.target];
+            let mut bridged = false;
             let extends = regions
                 .last()
-                .map(|r| r.cover_end() == e.start)
+                .map(|r| {
+                    if r.cover_end() == e.start {
+                        return true;
+                    }
+                    let same_handler = if is_exc {
+                        r.except_handler == Some(e.target)
+                    } else {
+                        r.finally_handler == Some(e.target)
+                    };
+                    let b = same_handler
+                        && e.start > r.cover_end()
+                        && protocol_only(r.cover_end(), e.start);
+                    if b {
+                        bridged = true;
+                    }
+                    b
+                })
                 .unwrap_or(false);
             if extends {
                 let r = regions.last_mut().unwrap();
                 if is_exc {
                     r.except_handler.get_or_insert(e.target);
+                    if bridged {
+                        // the protocol gap is part of the try body (the
+                        // await statement finishes after the suspension
+                        // point) — extend the body, not an else region
+                        r.body_end = e.end;
+                        r.region_end = e.end;
+                    }
                 } else {
                     r.finally_handler.get_or_insert(e.target);
                     r.region_end = e.end;
@@ -647,7 +709,10 @@ impl<'a> Ctx<'a> {
                 self.skip_until = Some(after);
                 past_chains = true;
             } else if let Some(zone) = self.handler_zone {
-                if pos >= zone && !past_chains {
+                // a protected body may legitimately START inside the zone
+                // (its handler chain was laid out before it) — the main
+                // walk must open the try there instead of breaking
+                if pos >= zone && !past_chains && !self.try_ctxs.contains_key(&pos) {
                     break;
                 }
             }
@@ -822,6 +887,9 @@ impl<'a> Ctx<'a> {
             let prev = self.prev_op;
             self.prev_op_at_exec = prev;
             if !self.exec(&inst) {
+                if std::env::var("PYCDC_TRACE").is_ok() {
+                    eprintln!("AW BREAK at {} {:?}", pos, inst.op);
+                }
                 break;
             }
             // keep prev_op meaningful across transparent ops
@@ -854,10 +922,17 @@ impl<'a> Ctx<'a> {
             self.emit_try_tail(tc, pos);
         }
         if let Some(tc) = self.try_ctxs.get(&pos).cloned() {
-            let mut blk = Block::new(BlockType::Try, pos, tc.body_end);
-            blk.finally_target = tc.except_handler.or(tc.finally_handler);
-            self.active_try = Some(tc);
-            self.blocks.push(blk);
+            // a protocol-continuation shadow (3.12+ await inside try: the
+            // exception table splits the protected range around the
+            // YIELD_VALUE suspension point) only extends the previous
+            // body — its statements flow into the pending body and the
+            // tail already emitted at the first fragment must not repeat
+            if self.active_try.is_none() || tc.body_end <= pos {
+                let mut blk = Block::new(BlockType::Try, pos, tc.body_end);
+                blk.finally_target = tc.except_handler.or(tc.finally_handler);
+                self.active_try = Some(tc);
+                self.blocks.push(blk);
+            }
         }
     }
 
@@ -969,6 +1044,9 @@ impl<'a> Ctx<'a> {
             self.open_exception_blocks(pos);
             self.close_blocks_at(pos);
             if !self.exec(&inst) {
+                if std::env::var("PYCDC_TRACE").is_ok() {
+                    eprintln!("AW BREAK at {} {:?}", pos, inst.op);
+                }
                 break;
             }
             if !matches!(inst.op, Op::NOT_TAKEN | Op::NOP | Op::CACHE) {
@@ -1516,7 +1594,12 @@ impl<'a> Ctx<'a> {
         // table closure: entries targeting this chain, plus entries whose
         // range lies inside the covered span (clause bodies and cleanup
         // redirects), transitively — the chain's code is scattered with
-        // inline clause bodies that the canonical op scan cannot cross
+        // inline clause bodies that the canonical op scan cannot cross.
+        // The span can never reach a body stop: that is main-flow code
+        // following the chain (e.g. the try body after an async-with
+        // cleanup handler), even when in-chain entries redirect to
+        // far-away dead-end handlers (StopIteration intrinsics).
+        let stop_cap = body_stops.iter().filter(|s| **s > from).min().copied();
         let mut table_end = from;
         loop {
             let mut grew = false;
@@ -1534,6 +1617,9 @@ impl<'a> Ctx<'a> {
                         [e.end, if self.chain_heads.contains(&e.target) { from } else { e.target }];
                     for cand in cands {
                         if cand > table_end && cand > from {
+                            if stop_cap.map_or(false, |cap| cand >= cap) {
+                                continue;
+                            }
                             table_end = cand;
                             grew = true;
                         }
@@ -1613,13 +1699,73 @@ impl<'a> Ctx<'a> {
                     break;
                 }
                 if !cont {
-                    if let Some(lce) = last_cleanup_end {
-                        end = lce;
+                    // walk the trailing dead cleanup tail (COPY/POP_EXCEPT/
+                    // RERAISE zero-depth-finally padding) so the extent
+                    // covers it; stop at anything that is not tail padding
+                    let mut t = m;
+                    let mut tail_end = last_cleanup_end;
+                    while let Some(nx) = self.instrs.get(t) {
+                        if body_stops.contains(&nx.offset) {
+                            break;
+                        }
+                        match nx.op {
+                            Op::COPY
+                            | Op::SWAP
+                            | Op::POP_EXCEPT
+                            | Op::POP_TOP
+                            | Op::RERAISE
+                            | Op::NOP
+                            | Op::NOT_TAKEN
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT => {
+                                tail_end = Some(nx.end());
+                                t += 1;
+                            }
+                            _ => break,
+                        }
+                    }
+                    if let Some(te) = tail_end {
+                        end = te;
                     }
                     break;
                 }
             }
             k += 1;
+        }
+        // the op scan stopping at a body stop already bounds the extent;
+        // otherwise a table closure with no body stop (tail-most chain)
+        // must not ride depth-0 lasti redirects to far-away dead-end
+        // handlers (StopIterationError intrinsics) past the chain's own
+        // trailing cleanup. The chain's normal-exit JUMP_FORWARDs target
+        // exactly the main-flow resume point — cap the closure there.
+        if stop_cap.is_none() {
+            let mut exit_cap = usize::MAX;
+            let mut k2 = i;
+            while k2 < self.instrs.len() {
+                let ins = &self.instrs[k2];
+                if body_stops.contains(&ins.offset) {
+                    break;
+                }
+                if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP) {
+                    if let Some(t) = ins.target {
+                        if t > ins.offset && t > from && t < exit_cap {
+                            exit_cap = t;
+                        }
+                    }
+                }
+                if ins.op == Op::RERAISE && k2 + 1 < self.instrs.len() {
+                    let nx = &self.instrs[k2 + 1];
+                    if nx.op == Op::PUSH_EXC_INFO {
+                        break;
+                    }
+                }
+                if matches!(ins.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                    break;
+                }
+                k2 += 1;
+            }
+            if exit_cap < usize::MAX {
+                table_end = table_end.min(exit_cap);
+            }
         }
         end.max(table_end)
     }
@@ -2493,6 +2639,9 @@ impl<'a> Ctx<'a> {
                 }
                 None => {
                     self.clean = false;
+                    if std::env::var("PYCDC_TRACE").is_ok() {
+                        eprintln!("AW UNDERFLOW pop_expr at {} in {:?}", self.cur_offset, self.code.name);
+                    }
                     return Rc::new(Expr::Const(Rc::new(PyObject::None)));
                 }
             }
@@ -2983,7 +3132,96 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::LOAD_SPECIAL => {
-                let attr = self.const_name(arg as usize);
+                // 3.14: the arg indexes a fixed special-method table
+                // ['__enter__','__exit__','__aenter__','__aexit__'],
+                // NOT co_names
+                let attr = ["__enter__", "__exit__", "__aenter__", "__aexit__"]
+                    .get(arg as usize)
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| self.const_name(arg as usize));
+                // 3.14 with header (BEFORE_WITH/BEFORE_ASYNC_WITH are gone):
+                //   ctx; COPY 1; LOAD_SPECIAL __exit__; SWAP 2; SWAP 3;
+                //   LOAD_SPECIAL __enter__; CALL 0; [GET_AWAITABLE..END_SEND]
+                // Recognize it at the exit special: swallow the whole
+                // header, open the With block, and leave the enter-result
+                // placeholder for the `as` store / POP_TOP.
+                if self.version.at_least(3, 14)
+                    && (attr == "__exit__" || attr == "__aexit__")
+                    && self
+                        .idx_of
+                        .get(&inst.offset)
+                        .and_then(|&si| self.instrs.get(si - 1))
+                        .map_or(false, |p| p.op == Op::COPY && p.arg == 1)
+                {
+                    let is_async = attr == "__aexit__";
+                    let ctx_e = self.pop_expr();
+                    let _dup = self.pop_expr(); // the COPY 1 duplicate
+                    self.with_exits += 1;
+                    // stand-in for the __exit__ pair the VM keeps under the
+                    // body: 3.14 CALL pops [callable, NULL] marker-first, so
+                    // model both slots — the exit CALL then finds the
+                    // None-const callable the swallow recognizer expects
+                    self.push(Rc::new(Expr::Const(Rc::new(PyObject::None))));
+                    self.stack.push(Sv::Null);
+                    let item = WithItem {
+                        ctx: ctx_e,
+                        target: None,
+                    };
+                    let start = self.cur_offset;
+                    let end = self
+                        .with_regions
+                        .get(&start)
+                        .copied()
+                        .or_else(|| {
+                            // the protected body starts after the enter
+                            // protocol (async) or enter CALL (sync): take
+                            // the first with region at/after the header
+                            self.with_regions
+                                .iter()
+                                .filter(|(k, _)| **k >= start)
+                                .min_by_key(|(k, _)| *k)
+                                .map(|(_, v)| *v)
+                        })
+                        .unwrap_or(usize::MAX);
+                    let mut wb = Block::new(BlockType::With, start, end);
+                    wb.is_async = is_async;
+                    wb.with_item = Some(item);
+                    self.blocks.push(wb);
+                    self.push(self.name_expr(WITH_RESULT_PLACEHOLDER));
+                    // skip the SWAPs, enter special + CALL, and (async) the
+                    // await protocol; stop AT the instruction that consumes
+                    // the enter result (STORE as-target / POP_TOP) or at the
+                    // body's first instruction
+                    if let Some(&si) = self.idx_of.get(&inst.offset) {
+                        let mut saw_enter_call = false;
+                        let mut skip_to = None;
+                        for k in si + 1..self.instrs.len().min(si + 26) {
+                            match self.instrs[k].op {
+                                Op::END_SEND => {
+                                    skip_to = Some(self.instrs[k].end());
+                                    break;
+                                }
+                                Op::CALL if saw_enter_call => {}
+                                Op::CALL => saw_enter_call = true,
+                                Op::STORE_FAST
+                                | Op::STORE_NAME
+                                | Op::STORE_DEREF
+                                | Op::POP_TOP
+                                    if saw_enter_call || !is_async =>
+                                {
+                                    skip_to = Some(self.instrs[k].offset);
+                                    break;
+                                }
+                                Op::RETURN_VALUE | Op::RETURN_CONST => break,
+                                _ => {}
+                            }
+                        }
+                        if let Some(st) = skip_to {
+                            self.skip_until = Some(st);
+                        }
+                    }
+                    return true;
+                }
                 let value = self.pop_expr();
                 self.push(Rc::new(Expr::Attribute { value, attr }));
                 true
@@ -3761,6 +3999,14 @@ impl<'a> Ctx<'a> {
                     self.await_mode = false;
                     self.skip_end_send = true;
                     self.pop(); // sent value
+                    // the with-exit recognizer swallowed the async-with
+                    // __aexit__ call, so nothing awaitable is left — the
+                    // whole protocol is desugaring residue; drop it
+                    // without underflowing the value stack
+                    if self.with_exit_await_drop {
+                        self.with_exit_await_drop = false;
+                        return true;
+                    }
                     let coro = self.pop_expr();
                     match &*coro {
                         // async with: awaiting __aenter__/__aexit__ results
@@ -3771,6 +4017,11 @@ impl<'a> Ctx<'a> {
                                 self.push(coro);
                             }
                         }
+                        // the __aexit__ call of an async with was swallowed
+                        // by the with-exit recognizer, so the awaited value
+                        // underflows to Const(None) — `await None` is never
+                        // real code; drop the whole protocol value
+                        Expr::Const(o) if matches!(&**o, PyObject::None) => {}
                         _ => self.push(Rc::new(Expr::Await(coro))),
                     }
                     return true;
@@ -3913,7 +4164,61 @@ impl<'a> Ctx<'a> {
                 true
             }
             // <=3.10: the YIELD_FROM opcode arm models the delegation
-            Op::GET_ITER | Op::GET_YIELD_FROM_ITER | Op::GET_AITER | Op::GET_ANEXT => true,
+            Op::GET_ANEXT => {
+                // 3.10+ async-for loop top:
+                //   GET_ANEXT; LOAD sent; SEND L; YIELD_VALUE; RESUME;
+                //   JUMP_BACKWARD_NO_INTERRUPT; L: END_SEND; STORE target
+                // Open the async For block and skip the resume protocol;
+                // the back edge (JUMP_BACKWARD to this offset) closes the
+                // loop and skips the CLEANUP_THROW/END_ASYNC_FOR tail.
+                let iter = self.pop_expr();
+                let mut proto_end = None;
+                if let Some(&ai) = self.idx_of.get(&inst.offset) {
+                    for k in ai + 1..self.instrs.len().min(ai + 12) {
+                        match self.instrs[k].op {
+                            Op::END_SEND => {
+                                proto_end = Some(self.instrs[k].end());
+                                break;
+                            }
+                            Op::STORE_FAST
+                            | Op::STORE_NAME
+                            | Op::STORE_DEREF
+                            | Op::YIELD_FROM => break,
+                            _ => {}
+                        }
+                    }
+                }
+                // like FOR_ITER: keep the iterator on the stack so the
+                // loop-target STORE pops it (awaiting_for_target reroutes
+                // it into the block header) instead of underflowing. With
+                // the protocol skipped the STORE is the very next executed
+                // instruction; without a skip (3.11 has no END_SEND) the
+                // resume ops run inline and would leak a second value.
+                if proto_end.is_some() {
+                    self.push(iter.clone());
+                }
+                let mut exit = usize::MAX;
+                if let Some(&ai) = self.idx_of.get(&inst.offset) {
+                    for ins in self.instrs.iter().skip(ai + 1) {
+                        if ins.op == Op::END_ASYNC_FOR {
+                            exit = ins.offset;
+                            break;
+                        }
+                    }
+                }
+                let mut fb = Block::new(BlockType::For, inst.offset, exit);
+                fb.cond_end = inst.end();
+                fb.iter = Some(iter);
+                fb.is_async = true;
+                fb.cond_set = true;
+                self.blocks.push(fb);
+                self.awaiting_for_target = true;
+                if let Some(pe) = proto_end {
+                    self.skip_until = Some(pe);
+                }
+                true
+            }
+            Op::GET_ITER | Op::GET_YIELD_FROM_ITER | Op::GET_AITER => true,
             Op::END_ASYNC_FOR => {
                 self.pop();
                 true
@@ -4506,6 +4811,18 @@ impl<'a> Ctx<'a> {
                         .with_regions
                         .get(&start)
                         .copied()
+                        .or_else(|| {
+                            // the __aenter__ await protocol (GET_AWAITABLE
+                            // ..SEND..END_SEND, possibly a CLEANUP_THROW
+                            // trampoline) sits between BEFORE_ASYNC_WITH and
+                            // the protected body, so the body's exception
+                            // entry starts AFTER inst.end() — scan forward
+                            self.instrs
+                                .iter()
+                                .skip_while(|x| x.offset < start)
+                                .take(20)
+                                .find_map(|x| self.with_regions.get(&x.offset).copied())
+                        })
                         .unwrap_or(usize::MAX);
                     let mut wb = Block::new(BlockType::With, start, end);
                     wb.is_async = true;
@@ -4643,8 +4960,20 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::CLEANUP_THROW => {
-                self.pop();
-                self.pop();
+                // 3.12+ await/resume protocols embed a CLEANUP_THROW
+                // trampoline right before END_SEND (throw path of the
+                // suspended YIELD_VALUE); the linear walk falls through
+                // it and its pops would eat the protocol's live stack
+                // (e.g. the async-with __aenter__ result placeholder).
+                // Dead padding in that position — skip it.
+                let next_is_end_send = self
+                    .idx_of
+                    .get(&self.cur_next)
+                    .map_or(false, |&ni| self.instrs[ni].op == Op::END_SEND);
+                if !(next_is_end_send && self.skip_end_send) {
+                    self.pop();
+                    self.pop();
+                }
                 true
             }
             Op::CALL_FINALLY => {
@@ -7282,6 +7611,33 @@ impl<'a> Ctx<'a> {
                         }
                     }
                     self.closed_loop_tops.push(b.start);
+                    // async-for: the back edge is followed by the
+                    // CLEANUP_THROW paths and END_ASYNC_FOR — dead for the
+                    // linear walk, skip to the continuation
+                    let is_async_for = b.is_async
+                        && matches!(b.kind, BlockType::For);
+                    if is_async_for {
+                        if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
+                            for ins in self.instrs.iter().skip(ci + 1) {
+                                if ins.op == Op::END_ASYNC_FOR {
+                                    self.skip_until = Some(ins.end());
+                                    break;
+                                }
+                                if !matches!(
+                                    ins.op,
+                                    Op::CLEANUP_THROW
+                                        | Op::JUMP_BACKWARD
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                        | Op::JUMP_ABSOLUTE
+                                        | Op::POP_TOP
+                                        | Op::NOP
+                                        | Op::NOT_TAKEN
+                                ) {
+                                    break;
+                                }
+                            }
+                        }
+                    }
                     // close everything above the loop, then the loop itself
                     // exactly once — its close may push a continuation block
                     // (ForElse) that must stay open for the following region
@@ -9011,17 +9367,38 @@ impl<'a> Ctx<'a> {
         // normal with exit: the compiler calls the stored __exit__ with
         // (None, None, None); our model does not keep __exit__ on the stack,
         // so recognize and swallow the call
+        let none_args =
+            pos_args.iter().all(|a| matches!(&**a, Expr::Const(o) if matches!(&**o, PyObject::None)));
+        let func_is_none = matches!(&*func, Expr::Const(o) if matches!(&**o, PyObject::None));
+        let func_is_underflow =
+            matches!(&*func, Expr::Name(n) if n.contains("underflow"));
+        let marker_is_none_slot = match &marker {
+            None | Some(Sv::Null) => true,
+            Some(Sv::E(m)) => matches!(&**m, Expr::Const(o) if matches!(&**o, PyObject::None)),
+            Some(_) => false,
+        };
         if self.with_exits > 0
             && keywords.is_empty()
-            && marker.is_none()
-            && pos_args.iter().all(|a| matches!(&**a, Expr::Const(o) if matches!(&**o, PyObject::None)))
-            && matches!(&*func, Expr::Const(o) if matches!(&**o, PyObject::None))
-                || (self.with_exits > 0
-                    && keywords.is_empty()
-                    && pos_args.iter().all(|a| matches!(&**a, Expr::Const(o) if matches!(&**o, PyObject::None)))
-                    && matches!(&*func, Expr::Name(n) if n.contains("underflow")))
+            && marker_is_none_slot
+            && none_args
+            && (func_is_none || func_is_underflow)
         {
             self.with_exits -= 1;
+            // async with (3.11+): the __aexit__ result is awaited right
+            // after the swallowed call — the protocol has no awaitable on
+            // our modeled stack, so drop it cleanly (no underflow)
+            let next_awaitable = self
+                .idx_of
+                .get(&self.cur_offset)
+                .map_or(false, |&ci| {
+                    self.instrs[ci + 1..]
+                        .iter()
+                        .take(3)
+                        .any(|nx| nx.op == Op::GET_AWAITABLE)
+                });
+            if next_awaitable {
+                self.with_exit_await_drop = true;
+            }
             return;
         }
 

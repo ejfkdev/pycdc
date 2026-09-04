@@ -463,14 +463,12 @@ def _template_to_ast(template):
         return _template_to_ast_constructor(template)
     try:
         if tuple is None:
-            try:
-                for _ in (('mode',).body for part in template.interpolations):
-                    pass
-                parsed = None((('mode',).body for part in template.interpolations))
-            except SyntaxError:
-                return _template_to_ast_constructor(template)
-    finally:
-        return _template_to_ast_literal(template, parsed)
+            for _ in (('mode',).body for part in template.interpolations):
+                pass
+        parsed = None((('mode',).body for part in template.interpolations))
+    except SyntaxError:
+        return _template_to_ast_constructor(template)
+    return _template_to_ast_literal(template, parsed)
 
 class _StringifierDict(dict):
     def __init__(self, namespace, *, globals=None, owner=None, is_class=False, format):

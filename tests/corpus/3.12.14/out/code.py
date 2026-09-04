@@ -99,21 +99,18 @@ class InteractiveInterpreter:
         '''
 
         try:
-            msg, (dummy_filename, lineno, offset, line) = value.args
+            typ, value, tb = sys.exc_info()
+            if filename and typ is SyntaxError:
+                msg, (dummy_filename, lineno, offset, line) = value.args
+                value = SyntaxError(msg, (filename, lineno, offset, line))
         finally:
             try:
-                typ, value, tb = sys.exc_info()
-                if filename and typ is SyntaxError:
-                    value = SyntaxError(msg, (filename, lineno, offset, line))
+                msg, (dummy_filename, lineno, offset, line) = value.args
             except ValueError:
                 pass
             else:
+                value = SyntaxError(msg, (filename, lineno, offset, line))
                 self._showtraceback(typ, value, None)
-            finally:
-                value = tb = (typ := None)
-            return
-            try:
-                pass
             finally:
                 value = tb = (typ := None)
 

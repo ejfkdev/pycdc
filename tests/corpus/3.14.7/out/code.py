@@ -257,43 +257,32 @@ a default message is printed.
                 _quit = builtins.quit
                 builtins.quit = Quitter('quit')
         try:
-            if more:
-                try:
+            while True:
+                if more:
                     prompt = sys.ps2
+                else:
                     prompt = sys.ps1
-                except KeyboardInterrupt:
-                    self.write('\nKeyboardInterrupt\n')
-                    self.resetbuffer()
-                    more = 0
+                line = self.raw_input(prompt)
+                more = self.push(line)
         finally:
             try:
-                while True:
-                    try:
-                        continue
-                    finally:
-                        try:
-                            try:
-                                line = self.raw_input(prompt)
-                            except EOFError:
-                                self.write('\n')
-                        except KeyboardInterrupt:
-                            self.write('\nKeyboardInterrupt\n')
-                            self.resetbuffer()
-                            more = 0
-                        finally:
-                            if not _exit is None:
-                                builtins.exit = _exit
-                            if not _quit is None:
-                                builtins.quit = _quit
-                            if delete_ps1_after:
-                                del sys.ps1
-                            if delete_ps2_after:
-                                del sys.ps2
-                            if not exitmsg is not None:
-                                self.write('now exiting %s...\n' % self.__class__.__name__)
-                            if exitmsg != '':
-                                self.write('%s\n' % exitmsg)
-                        more = self.push(line)
+                if more:
+                    prompt = sys.ps2
+                else:
+                    prompt = sys.ps1
+            except KeyboardInterrupt:
+                self.write('\nKeyboardInterrupt\n')
+                self.resetbuffer()
+                more = 0
+            try:
+                try:
+                    line = self.raw_input(prompt)
+                except EOFError:
+                    self.write('\n')
+            except KeyboardInterrupt:
+                self.write('\nKeyboardInterrupt\n')
+                self.resetbuffer()
+                more = 0
             finally:
                 if not _exit is None:
                     builtins.exit = _exit
@@ -305,26 +294,95 @@ a default message is printed.
                     del sys.ps2
                 if not exitmsg is not None:
                     self.write('now exiting %s...\n' % self.__class__.__name__)
-                try:
-                    pass
-                finally:
-                    if not _exit is None:
-                        builtins.exit = _exit
-                    if not _quit is None:
-                        builtins.quit = _quit
-                    if delete_ps1_after:
-                        del sys.ps1
-                    if delete_ps2_after:
-                        del sys.ps2
-                    if not exitmsg is not None:
-                        self.write('now exiting %s...\n' % self.__class__.__name__)
-                    if exitmsg != '':
-                        self.write('%s\n' % exitmsg)
-            return _exit
-            if exitmsg != '':
-                self.write('%s\n' % exitmsg)
-                return
-            return
+                if exitmsg != '':
+                    self.write('%s\n' % exitmsg)
+            more = self.push(line)
+            try:
+                pass
+            finally:
+                if AttributeError:
+                    None
+                    sys.ps1 = '>>> '
+                    delete_ps1_after = True
+                if AttributeError:
+                    None
+                    sys.ps2 = '... '
+                    delete_ps2_after = True
+                if EOFError:
+                    try:
+                        pass
+                    except KeyboardInterrupt:
+                        pass
+                    else:
+                        None
+                        self.write('\n')
+                    finally:
+                        try:
+                            pass
+                        except KeyboardInterrupt:
+                            self.write('\nKeyboardInterrupt\n')
+                            self.resetbuffer()
+                            more = 0
+                        if KeyboardInterrupt:
+                            None
+                            self.write('\nKeyboardInterrupt\n')
+                            self.resetbuffer()
+                            more = 0
+                            try:
+                                pass
+                            finally:
+                                if SystemExit:
+                                    e = None
+                                    if self.local_exit:
+                                        self.write('\n')
+                                        try:
+                                            e = None
+                                            del e
+                                        finally:
+                                            raise e
+                                            e = None
+                                            del e
+                                            try:
+                                                pass
+                                            finally:
+                                                if not _exit is None:
+                                                    builtins.exit = _exit
+                                                if not _quit is None:
+                                                    builtins.quit = _quit
+                                                if delete_ps1_after:
+                                                    del sys.ps1
+                                                if delete_ps2_after:
+                                                    del sys.ps2
+                                                if not exitmsg is not None:
+                                                    self.write('now exiting %s...\n' % self.__class__.__name__)
+        try:
+            pass
+        finally:
+            if SystemExit:
+                e = None
+                if self.local_exit:
+                    self.write('\n')
+                    try:
+                        e = None
+                        del e
+                    finally:
+                        raise e
+                        e = None
+                        del e
+                        try:
+                            pass
+                        finally:
+                            if not _exit is None:
+                                builtins.exit = _exit
+                            if not _quit is None:
+                                builtins.quit = _quit
+                            if delete_ps1_after:
+                                del sys.ps1
+                            if delete_ps2_after:
+                                del sys.ps2
+                            if not exitmsg is not None:
+                                self.write('now exiting %s...\n' % self.__class__.__name__)
+        return SystemExit
 
     def push(self, line, filename=None, _symbol='single'):
         self.buffer.append(line)
@@ -403,3 +461,4 @@ if __name__ == '__main__':
     else:
         banner = None
     interact(banner)
+# WARNING: Decompyle incomplete

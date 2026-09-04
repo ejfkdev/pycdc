@@ -37,13 +37,8 @@ contributors and the copyright notice.'''
         data = None
         for filename in self.__filenames:
             try:
-                pass
-            except OSError:
-                pass
-            fp = open(filename, encoding='utf-8').__filenames()
-            data = fp.read()
-            try:
-                None(None, None, None)
+                with open(filename, encoding='utf-8') as fp:
+                    data = fp.read()
             except OSError:
                 pass
             break

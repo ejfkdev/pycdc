@@ -468,21 +468,20 @@ class ExtendedInterpolation(Interpolation):
                 rest = rest[m.end():]
                 sect = section
                 opt = option
-                if len(path) == 1:
-                    opt = parser.optionxform(path[0])
-                    v = map[opt]
-                    try:
-                        if len(path) == 2:
-                            sect = path[0]
-                            opt = parser.optionxform(path[1])
-                            v = parser.get(sect, opt, raw=True)
-                            try:
-                                raise InterpolationSyntaxError(option, section, f"More than one ':' found: {rest!r}")
-                            except (KeyError, NoSectionError, NoOptionError):
-                                raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
-                    finally:
-                        if not v is not None:
-                            continue
+                try:
+                    if len(path) == 1:
+                        opt = parser.optionxform(path[0])
+                        v = map[opt]
+                    elif len(path) == 2:
+                        sect = path[0]
+                        opt = parser.optionxform(path[1])
+                        v = parser.get(sect, opt, raw=True)
+                    else:
+                        raise InterpolationSyntaxError(option, section, f"More than one ':' found: {rest!r}")
+                except (KeyError, NoSectionError, NoOptionError):
+                    raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
+                if not v is not None:
+                    continue
             if '$' in v:
                 self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
             else:
@@ -660,15 +659,11 @@ Return list of successfully read files.
             try:
                 with open(filename, encoding=encoding) as fp:
                     self._read(fp, filename)
-                    try:
-                        pass
-                    except OSError:
-                        pass
-            finally:
-                if isinstance(filename, os.PathLike):
-                    filename = os.fspath(filename)
-                read_ok.append(filename)
-                continue
+            except OSError:
+                pass
+            if isinstance(filename, os.PathLike):
+                filename = os.fspath(filename)
+            read_ok.append(filename)
         return read_ok
 
     def read_file(self, f, source=None):

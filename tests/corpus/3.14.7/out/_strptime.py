@@ -394,29 +394,28 @@ format string.'''
         else:
             msg = 'strptime() argument {} must be str, not {}'
             raise TypeError(msg.format(index, type(arg)))
-            _cache_lock.isinstance()
-            locale_time = _TimeRE_cache.locale_time
-            if _getlang() != locale_time.lang or time.tzname != locale_time.tzname or time.daylight != locale_time.daylight:
-                _TimeRE_cache = TimeRE()
-                _regex_cache.clear()
+            with _cache_lock:
                 locale_time = _TimeRE_cache.locale_time
-            if len(_regex_cache) > _CACHE_MAX_SIZE:
-                _regex_cache.clear()
-            format_regex = _regex_cache.get(format)
-            if not format_regex:
-                try:
-                    format_regex = _TimeRE_cache.compile(format)
-                except KeyError as err:
-                    bad_directive = err.args[0]
-                    bad_directive = bad_directive.replace('\\s', '')
-                    if not bad_directive:
-                        raise ValueError("stray %% in format '%s'" % format) from None
-                    bad_directive = bad_directive.replace('\\', '', 1)
-                    raise ValueError(f"'{bad_directive!s}' is a bad directive in format '{format!s}'") from None
-                    err = None
-                    del err
-                _regex_cache[format] = format_regex
-            None(None, None, None)
+                if _getlang() != locale_time.lang or time.tzname != locale_time.tzname or time.daylight != locale_time.daylight:
+                    _TimeRE_cache = TimeRE()
+                    _regex_cache.clear()
+                    locale_time = _TimeRE_cache.locale_time
+                if len(_regex_cache) > _CACHE_MAX_SIZE:
+                    _regex_cache.clear()
+                format_regex = _regex_cache.get(format)
+                if not format_regex:
+                    try:
+                        format_regex = _TimeRE_cache.compile(format)
+                    except KeyError as err:
+                        bad_directive = err.args[0]
+                        bad_directive = bad_directive.replace('\\s', '')
+                        if not bad_directive:
+                            raise ValueError("stray %% in format '%s'" % format) from None
+                        bad_directive = bad_directive.replace('\\', '', 1)
+                        raise ValueError(f"'{bad_directive!s}' is a bad directive in format '{format!s}'") from None
+                        err = None
+                        del err
+                    _regex_cache[format] = format_regex
             found = format_regex.match(data_string)
             if not found:
                 raise ValueError(f'time data {data_string!r} does not match format {format!r}')
@@ -657,4 +656,3 @@ format string.'''
     tz = _parse_tz(tzname, gmtoff, gmtoff_fraction)
     return cls(*[*args, tz])
 
-# WARNING: Decompyle incomplete
