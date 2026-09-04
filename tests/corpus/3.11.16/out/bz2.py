@@ -284,4 +284,3 @@ def decompress(data):
         data = decomp.unused_data
     return b''.join(results)
 
-# WARNING: Decompyle incomplete

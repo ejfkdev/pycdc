@@ -94,7 +94,7 @@ class Chunk:
                 self.skip()
             finally:
                 self.closed = True
-            return True
+            return
 
     def isatty(self):
         if self.closed:

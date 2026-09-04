@@ -200,7 +200,6 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             self._write_docstring_and_traverse_body(node)
         finally:
             self._type_ignores.clear()
-        return self
 
     def visit_Interactive(self, node):
         self._in_interactive = True
@@ -208,7 +207,6 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             self._write_docstring_and_traverse_body(node)
         finally:
             self._in_interactive = False
-        return False
 
     def visit_FunctionType(self, node):
         with self.delimit('(', ')'):
@@ -364,7 +362,6 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             self.do_visit_try(node)
         finally:
             self._in_try_star = prev_in_try_star
-        return self
 
     def visit_TryStar(self, node):
         prev_in_try_star = self._in_try_star
@@ -373,7 +370,6 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             self.do_visit_try(node)
         finally:
             self._in_try_star = prev_in_try_star
-        return self
 
     def visit_ExceptHandler(self, node):
         self.fill('except*' if self._in_try_star else 'except', allow_semicolon=False)

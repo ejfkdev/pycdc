@@ -1085,7 +1085,6 @@ class ConfigParser(RawConfigParser):
             self.read_dict({self.default_section: defaults})
         finally:
             self._interpolation = hold_interpolation
-        return hold_interpolation
 
 
 class SafeConfigParser(ConfigParser):

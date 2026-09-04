@@ -978,7 +978,6 @@ section names. Please note that comments get stripped off when reading configura
             ParsingError._raise_all(self._read_inner(fp, fpname))
         finally:
             self._join_multiline_values()
-        return self
 
     def _read_inner(self, fp, fpname):
         st = _ReadState()
@@ -1164,7 +1163,6 @@ Does not perform interpolation for backwards compatibility.
             self.read_dict({self.default_section: defaults})
         finally:
             self._interpolation = hold_interpolation
-        return self
 
 
 class SectionProxy(MutableMapping):

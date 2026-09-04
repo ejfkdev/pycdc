@@ -150,7 +150,7 @@
    "module": "bdb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2441,
+   "ndiff": 2430,
    "ntotal": 2548,
    "detail": "line 17: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 21: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -202,7 +202,7 @@
    "module": "chunk",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 319,
+   "ndiff": 318,
    "ntotal": 489,
    "detail": "line 154: orig ('LOAD_CONST', 'True') | got ('JUMP_FORWARD', 'to 512')\nline 155: orig ('LOAD_FAST', 'self') | got ('PUSH_EXC_INFO', '')\nline 156: orig ('STORE_ATTR', 'seekable') | got ('LOAD_GLOBAL', 'AttributeError')"
   },
@@ -254,8 +254,8 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2997,
-   "ntotal": 4757,
+   "ndiff": 3013,
+   "ntotal": 4756,
    "detail": "line 1597: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 270') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 268')\nline 1630: orig ('JUMP_FORWARD', 'to 266') | got ('JUMP_FORWARD', 'to 264')\nline 1656: orig ('JUMP_FORWARD', 'to 270') | got ('LOAD_FAST', 'depth')"
   },
   {

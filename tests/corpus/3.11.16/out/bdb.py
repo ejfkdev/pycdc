@@ -571,7 +571,6 @@ class Bdb:
         finally:
             self.quitting = True
             sys.settrace(None)
-        return True
 
     def runeval(self, expr, globals=None, locals=None):
         '''Debug an expression executed via the eval() function.

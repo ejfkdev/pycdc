@@ -1458,6 +1458,42 @@ impl<'a> Ctx<'a> {
                 stop = fh;
             }
         }
+        // a `return` sunk past the inline finally evaluates its value
+        // AFTER the finally bodies — the value loads belong to the RETURN
+        // the main walk emits, not to the finally region
+        if tc.finally_handler.is_some() && stop > pos {
+            if let Some(&ri) = self
+                .instrs
+                .iter()
+                .position(|x| x.offset == stop)
+                .as_ref()
+                .and_then(|_| self.idx_of.get(&stop))
+            {
+                let mut v = ri;
+                while v > 0 {
+                    let pv = &self.instrs[v - 1];
+                    if pv.offset < pos {
+                        break;
+                    }
+                    if matches!(
+                        pv.op,
+                        Op::LOAD_CONST
+                            | Op::LOAD_FAST
+                            | Op::LOAD_NAME
+                            | Op::LOAD_GLOBAL
+                            | Op::LOAD_DEREF
+                            | Op::LOAD_SMALL_INT
+                    ) {
+                        v -= 1;
+                    } else {
+                        break;
+                    }
+                }
+                if v < ri && self.instrs[v].offset > pos {
+                    stop = self.instrs[v].offset;
+                }
+            }
+        }
         let mut finalbody = if tc.finally_handler.is_some() && stop > pos {
             let body = self.decompile_region(pos, stop);
             // main pass must not re-execute the inline finally body
