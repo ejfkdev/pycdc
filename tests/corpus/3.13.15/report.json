@@ -47,8 +47,8 @@
    "module": "_colorize",
    "ast_detail": "diff at token 8: orig  If(test=Constant(value=False) | dec  ClassDef(name='ANSIColors'",
    "verdict": "SIG-DIFF",
-   "ndiff": 317,
-   "ntotal": 338,
+   "ndiff": 328,
+   "ntotal": 351,
    "detail": "line 18: orig ('NOP', '') | got ('LOAD_BUILD_CLASS', '')\nline 19: orig ('LOAD_BUILD_CLASS', '') | got ('PUSH_NULL', '')\nline 20: orig ('PUSH_NULL', '') | got ('LOAD_CONST', '<code ANSIColors>')"
   },
   {
@@ -193,16 +193,16 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1173,
-   "ntotal": 1376,
+   "ndiff": 1230,
+   "ntotal": 1428,
    "detail": "line 169: orig ('LOAD_CONST', '0') | got ('NOP', '')\nline 170: orig ('LOAD_CONST', 'None') | got ('LOAD_CONST', '0')\nline 171: orig ('IMPORT_NAME', 'readline') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1407,
-   "ntotal": 1449,
+   "ndiff": 1205,
+   "ntotal": 1250,
    "detail": "line 17: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 21: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
   {
@@ -234,16 +234,16 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4213,
-   "ntotal": 4521,
+   "ndiff": 4184,
+   "ntotal": 4543,
    "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "contextlib",
    "ast_detail": "diff at token 54: orig  body=[Return(value=Constant(value=None))] | dec  decorator_list=[Attribute(value=Name(id='abc'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2330,
-   "ntotal": 2404,
+   "ndiff": 2404,
+   "ntotal": 2485,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
   {

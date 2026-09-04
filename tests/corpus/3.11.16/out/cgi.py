@@ -782,6 +782,7 @@ def test(environ=os.environ):
         finally:
             print_exception()
             return
+        return
     print('<H1>Second try with a small maxlen...</H1>')
     maxlen = 50
     try:

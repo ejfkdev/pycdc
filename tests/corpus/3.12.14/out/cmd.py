@@ -145,10 +145,23 @@ class Cmd:
         if self.use_rawinput:
             if self.completekey:
                 try:
-                    import readline
-                    readline.set_completer(self.old_completer)
+                    try:
+                        import readline
+                        readline.set_completer(self.old_completer)
+                    except:
+                        if self.completekey:
+                            try:
+                                try:
+                                    import readline
+                                    readline.set_completer(self.old_completer)
+                                except ImportError:
+                                    return
+                            except ImportError:
+                                pass
+                            if ImportError:
+                                None
                 except ImportError:
-                    return
+                    pass
                 return
             return
 

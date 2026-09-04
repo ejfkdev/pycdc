@@ -289,6 +289,7 @@ class Hook:
                                 self.file.flush()
                             finally:
                                 return
+                            return
         if self.display:
             if plain:
                 doc = pydoc.html.escape(doc)
@@ -323,6 +324,7 @@ class Hook:
                             self.file.flush()
                         finally:
                             return
+                        return
             try:
                 None
                 msg = '%s contains the description of this error.' % path
@@ -336,6 +338,7 @@ class Hook:
                     self.file.flush()
                 finally:
                     return
+                return
             if self.format == 'html':
                 self.file.write('<p>%s</p>\n' % msg)
             else:

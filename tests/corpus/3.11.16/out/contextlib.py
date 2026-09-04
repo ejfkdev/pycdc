@@ -511,16 +511,13 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
                 if not self._exit_callbacks:
                     pass
                 if pending_raise:
-                    try:
-                        fixed_ctx = exc_details[1].__context__
-                        raise exc_details[1]
-                    except BaseException:
-                        exc_details[1].__context__ = fixed_ctx
-                        raise
-                    if BaseException:
-                        None
-                        exc_details[1].__context__ = fixed_ctx
-                        raise
+                    pass
+                try:
+                    fixed_ctx = exc_details[1].__context__
+                    raise exc_details[1]
+                except BaseException:
+                    exc_details[1].__context__ = fixed_ctx
+                    raise
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__
@@ -649,16 +646,13 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
                 if not self._exit_callbacks:
                     pass
                 if pending_raise:
-                    try:
-                        fixed_ctx = exc_details[1].__context__
-                        raise exc_details[1]
-                    except BaseException:
-                        exc_details[1].__context__ = fixed_ctx
-                        raise
-                    if BaseException:
-                        None
-                        exc_details[1].__context__ = fixed_ctx
-                        raise
+                    pass
+                try:
+                    fixed_ctx = exc_details[1].__context__
+                    raise exc_details[1]
+                except BaseException:
+                    exc_details[1].__context__ = fixed_ctx
+                    raise
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__

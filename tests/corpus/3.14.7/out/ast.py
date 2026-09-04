@@ -142,6 +142,7 @@ will be omitted from the output for better readability.
                         value = getattr(node, name)
                     except AttributeError:
                         keywords = True
+                        continue
                 except AttributeError:
                     pass
                 if not value is not None and not getattr(cls, name, ...) is not None:

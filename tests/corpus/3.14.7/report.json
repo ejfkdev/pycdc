@@ -108,8 +108,8 @@
    "module": "_py_warnings",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2699,
-   "ntotal": 3293,
+   "ndiff": 2755,
+   "ntotal": 3348,
    "detail": "line 373: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 389: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 541: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')"
   },
   {
@@ -226,16 +226,16 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1294,
-   "ntotal": 1492,
+   "ndiff": 1364,
+   "ntotal": 1550,
    "detail": "line 167: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')\nline 168: orig ('LOAD_CONST', 'None') | got ('LOAD_SMALL_INT', '')\nline 169: orig ('IMPORT_NAME', 'readline') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1744,
-   "ntotal": 1790,
+   "ndiff": 1507,
+   "ntotal": 1551,
    "detail": "line 17: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 21: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'compile_command') | got ('LOAD_SMALL_INT', '')"
   },
   {
@@ -272,8 +272,8 @@
    "module": "contextlib",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2431,
-   "ntotal": 2538,
+   "ndiff": 2555,
+   "ntotal": 2629,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_SMALL_INT', '')"
   },
   {

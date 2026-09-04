@@ -153,11 +153,6 @@ class Bdb:
                 self.user_return(frame, arg)
             finally:
                 self.frame_returning = None
-                self.frame_returning = None
-                if self.quitting:
-                    raise BdbQuit
-                if self.stopframe is frame and self.stoplineno != -1:
-                    self._set_stopinfo(None, None)
             if self.quitting:
                 raise BdbQuit
             if self.stopframe is frame and self.stoplineno != -1:
@@ -611,8 +606,6 @@ class Bdb:
         except BdbQuit:
             pass
         finally:
-            self.quitting = True
-            sys.settrace(None)
             self.quitting = True
             sys.settrace(None)
         return res

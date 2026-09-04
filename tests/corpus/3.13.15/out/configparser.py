@@ -729,10 +729,15 @@ The section DEFAULT is special.
 '''
 
         try:
-            d = self._unify_values(section, vars)
-        except NoSectionError:
+            try:
+                d = self._unify_values(section, vars)
+            except NoSectionError:
+                if fallback is _UNSET:
+                    raise
+                return fallback
+        except KeyError:
             if fallback is _UNSET:
-                raise
+                raise NoOptionError(option, section)
             return fallback
         option = self.optionxform(option)
         try:

@@ -127,8 +127,28 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
     def __exit__(self, typ, value, traceback):
         if not typ is not None:
             try:
-                next(self.gen)
-            except StopIteration:
+                try:
+                    next(self.gen)
+                except StopIteration:
+                    return False
+            except StopIteration as exc:
+                return exc is not value
+            except RuntimeError as exc:
+                if exc is value:
+                    exc.__traceback__ = traceback
+                    return False
+                if isinstance(value, StopIteration) and exc.__cause__ is value:
+                    value.__traceback__ = traceback
+                    exc = None
+                    del exc
+                    return False
+                raise
+                exc = None
+                del exc
+            except BaseException as exc:
+                if exc is not value:
+                    raise
+                exc.__traceback__ = traceback
                 return False
             # WARNING: unrecovered try/except structure
             raise RuntimeError("generator didn't stop")

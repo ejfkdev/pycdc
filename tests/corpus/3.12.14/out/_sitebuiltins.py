@@ -17,7 +17,6 @@ class Quitter(object):
             sys.stdin.close()
         finally:
             raise SystemExit(code)
-            raise SystemExit(code)
 
 
 class _Printer(object):

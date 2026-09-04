@@ -491,6 +491,8 @@ class Aifc_write:
                 raise
                 if f.endswith('.aiff'):
                     self._aifc = 0
+                    return
+                return
             if f.endswith('.aiff'):
                 self._aifc = 0
                 return

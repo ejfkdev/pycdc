@@ -979,9 +979,6 @@ class RawConfigParser(MutableMapping):
                 continue
         finally:
             self._join_multiline_values()
-            self._join_multiline_values()
-            if e:
-                raise e
         if e:
             raise e
 

@@ -22,9 +22,6 @@ class Popen:
                     os.execv(self._cmd[0], self._cmd)
             finally:
                 os._exit(1)
-                os._exit(1)
-                _, status = os.waitpid(pid, 0)
-                self.returncode = os.waitstatus_to_exitcode(status)
         _, status = os.waitpid(pid, 0)
         self.returncode = os.waitstatus_to_exitcode(status)
         return self.returncode
@@ -77,7 +74,10 @@ def check_output(cmd, **kwargs):
         stdout = b''
     try:
         # WARNING: unrecovered try/except structure
-        os.unlink(tmp_filename)
+        try:
+            os.unlink(tmp_filename)
+        except OSError:
+            pass
     except OSError:
         pass
     return stdout

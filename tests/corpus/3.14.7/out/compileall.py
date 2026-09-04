@@ -304,10 +304,15 @@ def main():
                 parser.error('-d cannot be used in combination with -s or -p')
     if args.flist:
         try:
-            with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
-                for line in f:
-                    compile_dests.append(line.strip())
-        except OSError:
+            try:
+                with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
+                    for line in f:
+                        compile_dests.append(line.strip())
+            except OSError:
+                if args.quiet < 2:
+                    pass
+                return False
+        except KeyboardInterrupt:
             if args.quiet < 2:
                 pass
             return False

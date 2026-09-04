@@ -86,11 +86,16 @@ def can_colorize(*, file=None):
         return False
     if sys.platform == 'win32':
         try:
-            import nt
-            if not nt._supports_virtual_terminal():
+            try:
+                import nt
+                if not nt._supports_virtual_terminal():
+                    return False
+            except (ImportError, AttributeError):
                 return False
-        except (ImportError, AttributeError):
-            return False
+        except OSError:
+            if hasattr(file, 'isatty'):
+                pass
+            return file.isatty()
     try:
         return os.isatty(file.fileno())
     except OSError:

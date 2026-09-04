@@ -191,16 +191,16 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1122,
-   "ntotal": 1340,
+   "ndiff": 1210,
+   "ntotal": 1391,
    "detail": "line 158: orig ('POP_JUMP_IF_FALSE', 'to 248') | got ('POP_JUMP_IF_FALSE', 'to 250')\nline 161: orig ('POP_JUMP_IF_FALSE', 'to 248') | got ('POP_JUMP_IF_FALSE', 'to 250')\nline 163: orig ('LOAD_CONST', '0') | got ('NOP', '')"
   },
   {
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 826,
-   "ntotal": 855,
+   "ndiff": 880,
+   "ntotal": 904,
    "detail": "line 13: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 17: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
   {
@@ -232,16 +232,16 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 12240,
-   "ntotal": 13312,
+   "ndiff": 12265,
+   "ntotal": 13336,
    "detail": "line 850: orig ('POP_JUMP_IF_FALSE', 'to 654') | got ('POP_JUMP_IF_FALSE', 'to 662')\nline 977: orig ('POP_JUMP_IF_FALSE', 'to 652') | got ('POP_JUMP_IF_FALSE', 'to 650')\nline 978: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 652')"
   },
   {
    "module": "contextlib",
    "ast_detail": "diff at token 63: orig  body=[Return(value=Constant(value=None))] | dec  body=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2238,
-   "ntotal": 2309,
+   "ndiff": 2325,
+   "ntotal": 2396,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
   {

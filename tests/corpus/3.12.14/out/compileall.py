@@ -349,18 +349,28 @@ def main():
                 parser.error('-d cannot be used in combination with -s or -p')
     if args.flist:
         try:
-            with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
-                for line in f:
-                    compile_dests.append(line.strip())
-        except OSError:
+            try:
+                with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
+                    for line in f:
+                        compile_dests.append(line.strip())
+            except OSError:
+                if args.quiet < 2:
+                    print('Error reading file list {}'.format(args.flist))
+                return False
+        except KeyboardInterrupt:
             if args.quiet < 2:
-                print('Error reading file list {}'.format(args.flist))
+                print('\n[interrupted]')
             return False
         try:
-            pass
-        except OSError:
+            try:
+                pass
+            except OSError:
+                if args.quiet < 2:
+                    print('Error reading file list {}'.format(args.flist))
+                return False
+        except KeyboardInterrupt:
             if args.quiet < 2:
-                print('Error reading file list {}'.format(args.flist))
+                print('\n[interrupted]')
             return False
     if args.invalidation_mode:
         ivl_mode = args.invalidation_mode.replace('-', '_').upper()

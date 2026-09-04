@@ -194,7 +194,13 @@ class InteractiveConsole(InteractiveInterpreter):
 
         try:
             try:
-                sys.ps1
+                try:
+                    try:
+                        sys.ps1
+                    except AttributeError:
+                        sys.ps1 = '>>> '
+                except AttributeError:
+                    sys.ps2 = '... '
             except EOFError:
                 self.write('\n')
         except KeyboardInterrupt:
@@ -203,7 +209,10 @@ class InteractiveConsole(InteractiveInterpreter):
             more = 0
         try:
             try:
-                sys.ps2
+                try:
+                    sys.ps2
+                except AttributeError:
+                    sys.ps2 = '... '
             except EOFError:
                 self.write('\n')
         except KeyboardInterrupt:

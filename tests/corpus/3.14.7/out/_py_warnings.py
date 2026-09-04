@@ -111,8 +111,16 @@ def _formatwarnmsg_impl(msg):
     if not msg.line is not None:
         try:
             try:
-                import linecache
-                line = linecache.getline(msg.filename, msg.lineno)
+                try:
+                    try:
+                        import linecache
+                        line = linecache.getline(msg.filename, msg.lineno)
+                    except Exception:
+                        line = None
+                        linecache = None
+                except Exception:
+                    suggest_tracemalloc = False
+                    tb = None
             except Exception:
                 suggest_tracemalloc = False
                 tb = None
@@ -133,8 +141,12 @@ def _formatwarnmsg_impl(msg):
             line = None
         try:
             try:
-                suggest_tracemalloc = not tracemalloc.is_tracing()
-                tb = tracemalloc.get_object_traceback(msg.source)
+                try:
+                    suggest_tracemalloc = not tracemalloc.is_tracing()
+                    tb = tracemalloc.get_object_traceback(msg.source)
+                except Exception:
+                    suggest_tracemalloc = False
+                    tb = None
             except Exception:
                 suggest_tracemalloc = False
                 tb = None
@@ -276,6 +288,7 @@ def _processoptions(args):
             print('Invalid -W option ignored:', msg, file=sys.stderr)
             msg = None
             del msg
+            continue
 
 def _setoption(arg):
     parts = arg.split(':')

@@ -394,6 +394,7 @@ class dispatcher:
             self_repr = '<__repr__(self) failed for object at %0x>' % id(self)
             self.log_info(f'uncaptured python exception, closing channel {self_repr!s} ({t!s}:{v!s} {tbinfo!s})', 'error')
             self.handle_close()
+            return
         self.log_info(f'uncaptured python exception, closing channel {self_repr!s} ({t!s}:{v!s} {tbinfo!s})', 'error')
         self.handle_close()
 
@@ -472,6 +473,7 @@ def close_all(map=None, ignore_all=False):
                 raise
             x = None
             del x
+            continue
         except _reraised_exceptions:
             raise
     map.clear()

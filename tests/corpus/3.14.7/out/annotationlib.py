@@ -104,7 +104,10 @@ If the forward reference cannot be evaluated, raise an exception.
                     except ValueError:
                         try:
                             try:
-                                cell_value = cell.cell_contents
+                                try:
+                                    cell_value = cell.cell_contents
+                                except ValueError:
+                                    pass
                             except ValueError:
                                 pass
                         except Exception:

@@ -166,6 +166,7 @@ class async_chat(asyncore.dispatcher):
                         self.producer_fifo.appendleft(data)
                     else:
                         del self.producer_fifo[0]
+                    continue
                 if isinstance(data, str) and self.use_encoding:
                     data = bytes(data, self.encoding)
                 try:

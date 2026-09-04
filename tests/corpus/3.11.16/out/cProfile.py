@@ -84,7 +84,6 @@ class Profile(_lsprof.Profiler):
             exec(cmd, globals, locals)
         finally:
             self.disable()
-            self.disable()
         return self
 
     def runcall(self, func, /, *args, **kw):

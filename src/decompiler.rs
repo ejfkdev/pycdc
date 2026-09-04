@@ -324,7 +324,9 @@ struct Ctx<'a> {
     pending_nested_finally: Option<Vec<Stmt>>,
     /// inner try's clauses in a nested-chain wrap, consumed by the next
     /// emit_try_tail (which nests the region body inside an inner Try)
-    nested_inner_handlers: Option<Vec<ExceptHandler>>,
+    /// nested-chain wrap stack (3.11+): each adjacent enclosed chain
+    /// pushes its clauses; emit_try_tail wraps innermost-last outward
+    nested_inner_handlers: Vec<Vec<ExceptHandler>>,
     /// pre-3.11 try awaiting its out-of-line handler chain
     legacy_try: Option<LegacyTry>,
     /// pre-3.11 except clause being collected
@@ -575,7 +577,7 @@ pub fn decompile_in_scope(
         active_try: None,
         pending_try_ctx: None,
         pending_nested_finally: None,
-        nested_inner_handlers: None,
+        nested_inner_handlers: Vec::new(),
         legacy_try: None,
         legacy_handler: None,
         legacy_handler_end: None,
@@ -648,23 +650,36 @@ pub fn decompile_in_scope(
                         .iter()
                         .take_while(|x| x.offset < e.end)
                         .collect();
-                    // a single jump covered by the finally (the body-exit
-                    // JUMP_FORWARD of a 3.11 try/else) EXTENDS the region
-                    // — it is not droppable machinery
-                    span.len() > 1
-                        && span.iter().all(|x| {
-                            matches!(
-                                x.op,
-                                Op::JUMP_BACKWARD_NO_INTERRUPT
-                                    | Op::COPY
-                                    | Op::SWAP
-                                    | Op::POP_EXCEPT
-                                    | Op::POP_TOP
-                                    | Op::RERAISE
-                                    | Op::NOP
-                                    | Op::NOT_TAKEN
-                            )
-                        })
+                    // an empty range or a lone jump EXTENDS a region (the
+                    // body-exit JUMP_FORWARD of a 3.11 try/else is covered
+                    // by the finally) — not droppable machinery; anything
+                    // else made purely of cleanup ops is handler exit glue
+                    if span.is_empty() {
+                        return false;
+                    }
+                    if span.len() == 1
+                        && matches!(
+                            span[0].op,
+                            Op::JUMP_FORWARD
+                                | Op::JUMP
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                        )
+                    {
+                        return false;
+                    }
+                    span.iter().all(|x| {
+                        matches!(
+                            x.op,
+                            Op::JUMP_BACKWARD_NO_INTERRUPT
+                                | Op::COPY
+                                | Op::SWAP
+                                | Op::POP_EXCEPT
+                                | Op::POP_TOP
+                                | Op::RERAISE
+                                | Op::NOP
+                                | Op::NOT_TAKEN
+                        )
+                    })
                 }
                 None => false,
             }
@@ -1342,8 +1357,8 @@ impl<'a> Ctx<'a> {
         };
         if std::env::var("PYCDC_EG_DBG").is_ok() {
             eprintln!(
-                "EG tail tc start={} body_end={} region_end={} exc={:?} fin={:?} pos={} star_inline={} body_jf={:?}",
-                tc.start, tc.body_end, tc.region_end, tc.except_handler, tc.finally_handler, pos, star_inline, body_jf
+                "EG tail [{}] tc start={} body_end={} region_end={} exc={:?} fin={:?} pos={} star_inline={} body_jf={:?}",
+                self.code.name, tc.start, tc.body_end, tc.region_end, tc.except_handler, tc.finally_handler, pos, star_inline, body_jf
             );
         }
         if let Some((jf_off, else_at)) = body_jf {
@@ -1428,13 +1443,21 @@ impl<'a> Ctx<'a> {
             self.pending_orelse_mark = None;
         }
         // inline finally body (main flow): from pos until the flow's RETURN
-        let stop = self
+        let mut stop = self
             .instrs
             .iter()
             .skip_while(|i| i.offset < pos)
             .find(|i| matches!(i.op, Op::RETURN_VALUE | Op::RETURN_CONST))
             .map(|i| i.offset)
             .unwrap_or(self.code.code.len());
+        // 3.11 lays the exception-path duplicate (the finally handler
+        // chain) BEFORE the RETURN — bound the inline body at its head so
+        // the duplicate does not fold twice
+        if let Some(fh) = tc.finally_handler {
+            if fh > pos && fh < stop {
+                stop = fh;
+            }
+        }
         let mut finalbody = if tc.finally_handler.is_some() && stop > pos {
             let body = self.decompile_region(pos, stop);
             // main pass must not re-execute the inline finally body
@@ -1459,14 +1482,20 @@ impl<'a> Ctx<'a> {
         let mut body = self.pending_try_body.pop().unwrap_or_default();
         // nested-chain wrap: this region's body IS the inner try's body —
         // nest it, and adopt the enclosing finally parsed alongside
-        if let Some(ih) = self.nested_inner_handlers.take() {
-            let inner = Stmt::Try {
-                body: std::mem::take(&mut body),
-                handlers: ih,
-                orelse: Vec::new(),
-                finalbody: Vec::new(),
-            };
-            body = vec![inner];
+        if !self.nested_inner_handlers.is_empty() {
+            // the recursive parse descends OUTWARD: the first pushed
+            // level holds the innermost chain's clauses (they protect the
+            // shared body) — wrap in push order so each level becomes the
+            // next one's body
+            for ih in self.nested_inner_handlers.drain(..) {
+                let inner = Stmt::Try {
+                    body: std::mem::take(&mut body),
+                    handlers: ih,
+                    orelse: Vec::new(),
+                    finalbody: Vec::new(),
+                };
+                body = vec![inner];
+            }
             if let Some(fin) = self.pending_nested_finally.take() {
                 if finalbody.is_empty() {
                     finalbody = fin;
@@ -1601,7 +1630,7 @@ impl<'a> Ctx<'a> {
                 let mut p = ri;
                 let mut hops = 0;
                 loop {
-                    if p == 0 || hops > 4 {
+                    if p == 0 || hops > 8 {
                         return false;
                     }
                     p -= 1;
@@ -1614,7 +1643,20 @@ impl<'a> Ctx<'a> {
                         prev.op,
                         Op::JUMP_FORWARD | Op::JUMP | Op::NOP | Op::NOT_TAKEN
                     ) && prev.target.map_or(true, |t| t >= region_end);
-                    if !outward_jf {
+                    // 3.12: a sunk post-try resume (straight-line loads
+                    // ending in RETURN) can sit between the stubs and the
+                    // enclosing chain head
+                    let resume_load = matches!(
+                        prev.op,
+                        Op::LOAD_FAST
+                            | Op::LOAD_NAME
+                            | Op::LOAD_CONST
+                            | Op::LOAD_GLOBAL
+                            | Op::LOAD_DEREF
+                            | Op::RETURN_VALUE
+                            | Op::RETURN_CONST
+                    );
+                    if !outward_jf && !resume_load {
                         return false;
                     }
                 }
@@ -1663,8 +1705,8 @@ impl<'a> Ctx<'a> {
                 .unwrap_or(false);
         if std::env::var("PYCDC_EG_DBG").is_ok() {
             eprintln!(
-                "EG nested-check from={} region_end={} prev_reraise={} extent={} nested={}",
-                from,
+                "EG nested-check [{}] from={} region_end={} prev_reraise={} extent={} nested={}",
+                self.code.name, from,
                 region_end,
                 self.idx_of
                     .get(&region_end)
@@ -1843,7 +1885,7 @@ impl<'a> Ctx<'a> {
             let _ = handlers.split_off(outer_idx);
             // the clauses below the boundary are the INNER try's handlers;
             // emit_try_tail builds `Try { body: [inner try], .. }` from them
-            self.nested_inner_handlers = Some(handlers);
+            self.nested_inner_handlers.push(handlers);
             let outer = self.parse_except_dispatch(region_end);
             // enclosing finally: entries past the outer chain whose target
             // is a non-except (finally) handler
@@ -2177,8 +2219,8 @@ impl<'a> Ctx<'a> {
             *pc = k;
             if std::env::var("PYCDC_EG_DBG").is_ok() {
                 eprintln!(
-                    "EG no-pop body start={} end={} limit={} star={} pac={:?}",
-                    body_start, body_end, limit, is_star, self.pending_as_cleanup
+                    "EG no-pop [{}] body start={} end={} limit={} star={} pac={:?}",
+                    self.code.name, body_start, body_end, limit, is_star, self.pending_as_cleanup
                 );
             }
             return if body_end > body_start {
@@ -2222,6 +2264,11 @@ impl<'a> Ctx<'a> {
         // the body region over the cleanup to include that RETURN.
         let mut body_end = self.instrs[pi].offset;
         let mut k2 = pi + 1;
+        // a handler ending in `continue` exits through a JUMP_BACKWARD to
+        // the enclosing loop top (out-of-line handlers have no other
+        // backward exits except finally-flow JBNI, which never targets a
+        // loop block)
+        let mut trail_continue = false;
         // skip cleanup: [LOAD_CONST None; STORE; DELETE], closing jump
         while k2 < self.instrs.len() {
             let c = &self.instrs[k2];
@@ -2242,6 +2289,16 @@ impl<'a> Ctx<'a> {
                 | Op::JUMP
                 | Op::JUMP_NO_INTERRUPT
                 | Op::RERAISE => {
+                    if matches!(c.op, Op::JUMP_BACKWARD | Op::JUMP_ABSOLUTE | Op::JUMP)
+                        && c.target.map_or(false, |t| {
+                            self.blocks.iter().any(|b| {
+                                matches!(b.kind, BlockType::While | BlockType::For)
+                                    && (b.start == t || b.cond_end == t)
+                            })
+                        })
+                    {
+                        trail_continue = true;
+                    }
                     k2 += 1;
                     break;
                 }
@@ -2280,11 +2337,15 @@ impl<'a> Ctx<'a> {
             }
         }
         *pc = k2;
-        if body_end > body_start {
+        let mut body = if body_end > body_start {
             self.decompile_region(body_start, body_end)
         } else {
             Vec::new()
+        };
+        if trail_continue {
+            body.push(Stmt::Continue);
         }
+        body
     }
 
     /// End of a handler region: the next PUSH_EXC_INFO handler start.
@@ -2409,32 +2470,31 @@ impl<'a> Ctx<'a> {
             }
             end = ins.end();
             if matches!(ins.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
-                // except*: the post-try resume is sunk BEFORE the chain's
-                // trailing zero-depth stubs — walk over the dead stub
-                // sequence so the extent reaches the adjacent chain head
-                if is_star_chain {
-                    let mut t = k + 1;
-                    let mut stub_end = end;
-                    while let Some(nx) = self.instrs.get(t) {
-                        if body_stops.contains(&nx.offset) {
-                            break;
-                        }
-                        match nx.op {
-                            Op::COPY
-                            | Op::SWAP
-                            | Op::POP_EXCEPT
-                            | Op::POP_TOP
-                            | Op::RERAISE
-                            | Op::NOP
-                            | Op::NOT_TAKEN => {
-                                stub_end = nx.end();
-                                t += 1;
-                            }
-                            _ => break,
-                        }
+                // the post-try resume can be sunk BEFORE the chain's
+                // trailing machinery (mismatch RERAISE + zero-depth
+                // stubs) — walk over that dead sequence so the extent
+                // reaches the adjacent chain head (nesting adjacency)
+                let mut t = k + 1;
+                let mut stub_end = end;
+                while let Some(nx) = self.instrs.get(t) {
+                    if body_stops.contains(&nx.offset) {
+                        break;
                     }
-                    end = stub_end;
+                    match nx.op {
+                        Op::COPY
+                        | Op::SWAP
+                        | Op::POP_EXCEPT
+                        | Op::POP_TOP
+                        | Op::RERAISE
+                        | Op::NOP
+                        | Op::NOT_TAKEN => {
+                            stub_end = nx.end();
+                            t += 1;
+                        }
+                        _ => break,
+                    }
                 }
+                end = stub_end;
                 break;
             }
             if ins.op == Op::RERAISE {
@@ -2529,6 +2589,52 @@ impl<'a> Ctx<'a> {
                             }
                             _ => break,
                         }
+                    }
+                    // 3.12: the post-try resume (straight-line loads
+                    // ending in RETURN) is sunk between this chain's
+                    // stubs and the enclosing chain head — span it so
+                    // nesting adjacency holds. Stop AT the RETURN; a
+                    // following chain head bounds the walk anyway.
+                    let mut u = t;
+                    let mut span = None;
+                    let mut nops = 0;
+                    while let Some(nx) = self.instrs.get(u) {
+                        if body_stops.contains(&nx.offset) {
+                            break;
+                        }
+                        match nx.op {
+                            Op::NOP | Op::NOT_TAKEN => {
+                                nops += 1;
+                                u += 1;
+                            }
+                            Op::LOAD_FAST
+                            | Op::LOAD_NAME
+                            | Op::LOAD_CONST
+                            | Op::LOAD_GLOBAL
+                            | Op::LOAD_DEREF => {
+                                nops += 1;
+                                u += 1;
+                            }
+                            Op::RETURN_VALUE | Op::RETURN_CONST => {
+                                // only a resume SUNK BETWEEN chains counts:
+                                // an enclosing chain head must follow it
+                                // (otherwise this is the function's real
+                                // post-finally tail)
+                                let next_is_head = self
+                                    .instrs
+                                    .get(u + 1)
+                                    .map_or(false, |nx2| nx2.op == Op::PUSH_EXC_INFO);
+                                if nops > 0 && nops <= 4 && next_is_head {
+                                    span = Some(nx.end());
+                                }
+                                u += 1;
+                                break;
+                            }
+                            _ => break,
+                        }
+                    }
+                    if let Some(se) = span {
+                        tail_end = Some(se);
                     }
                     if let Some(te) = tail_end {
                         end = te;
