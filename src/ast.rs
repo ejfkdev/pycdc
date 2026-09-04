@@ -235,6 +235,43 @@ pub struct ExceptHandler {
     pub body: Vec<Stmt>,
 }
 
+/// 3.10+ `match` statement patterns
+#[derive(Debug, Clone)]
+pub enum Pattern {
+    /// literal or dotted-name value pattern (`case 3:`, `case Color.RED:`)
+    Value(ExprRef),
+    /// capture pattern (`case x:`)
+    Capture(String),
+    /// wildcard (`case _:`)
+    Wildcard,
+    /// `case p1 | p2:`
+    Or(Vec<Pattern>),
+    /// `case [a, b]` / `case (a, b)`; `star` is the `*rest` element with
+    /// the number of items that follow it
+    Sequence {
+        items: Vec<Pattern>,
+        star: Option<(Box<Pattern>, usize)>,
+    },
+    /// `case {'k': v, **rest}`
+    Mapping {
+        items: Vec<(ExprRef, Pattern)>,
+        rest: Option<String>,
+    },
+    /// `case Point(x, y=q)`
+    Class {
+        cls: ExprRef,
+        patterns: Vec<Pattern>,
+        keywords: Vec<(String, Pattern)>,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct MatchCase {
+    pub pattern: Pattern,
+    pub guard: Option<ExprRef>,
+    pub body: Vec<Stmt>,
+}
+
 #[derive(Debug, Clone)]
 pub struct WithItem {
     pub ctx: ExprRef,
@@ -332,6 +369,11 @@ pub enum Stmt {
         star_kwargs: Option<ExprRef>,
         decorators: Vec<ExprRef>,
         body: Vec<Stmt>,
+    },
+    /// 3.10+ `match subject: case ...:`
+    Match {
+        subject: ExprRef,
+        cases: Vec<MatchCase>,
     },
     /// Fallback for bytecode we could not model; keeps the disassembly text
     /// so output stays informative (graceful degradation).

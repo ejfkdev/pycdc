@@ -425,9 +425,10 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
             return
     for item in _wm._get_filters():
         action, msg, cat, mod, ln = item
-        if issubclass(category, cat):
-            if not ln == 0 and not lineno == ln:
-                pass
+        if not msg is None:
+            if msg.match(text) and issubclass(category, cat):
+                if not ln == 0 and not lineno == ln:
+                    pass
     action = _wm.defaultaction
     if action == 'ignore':
         None(None, None, None)

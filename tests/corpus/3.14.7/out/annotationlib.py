@@ -56,14 +56,14 @@ Constructor arguments:
 If the forward reference cannot be evaluated, raise an exception.
 '''
 
-        if format == Format.STRING:
-            return self.__resolved_str__
-        if None == Format.VALUE:
-            is_forwardref_format = False
-        elif None == Format.FORWARDREF:
-            is_forwardref_format = True
-        else:
-            raise NotImplementedError(format)
+        match format:
+            case Format.STRING:
+                return self.__resolved_str__
+            case Format.VALUE:
+                is_forwardref_format = False
+            case Format.FORWARDREF:
+                is_forwardref_format = True
+        raise NotImplementedError(format)
         if isinstance(self.__cell__, types.CellType):
             try:
                 try:
@@ -623,30 +623,25 @@ default, contingent on type(obj):
 
     if eval_str and format != Format.VALUE:
         raise ValueError('eval_str=True is only supported with format=Format.VALUE')
-    if format == Format.VALUE:
-        ann = _get_dunder_annotations(obj)
-        if not ann is not None:
+    match format:
+        case Format.VALUE:
+            ann = _get_dunder_annotations(obj)
+            if not ann is not None:
+                ann = _get_and_call_annotate(obj, format)
+        case Format.FORWARDREF:
+            try:
+                ann = _get_dunder_annotations(obj)
+            except Exception:
+                pass
+            if not ann is None:
+                return dict(ann)
+        case Format.STRING:
             ann = _get_and_call_annotate(obj, format)
-    elif None == Format.FORWARDREF:
-        try:
-            ann = _get_dunder_annotations(obj)
-        except Exception:
-            pass
-        if not ann is None:
-            return dict(ann)
-        ann = _get_and_call_annotate(obj, format)
-        if not ann is not None:
-            ann = _get_dunder_annotations(obj)
-    elif None == Format.STRING:
-        ann = _get_and_call_annotate(obj, format)
-        if not ann is None:
-            return dict(ann)
-        ann = _get_dunder_annotations(obj)
-        if not ann is None:
-            return annotations_to_string(ann)
-            if None == Format.VALUE_WITH_FAKE_GLOBALS:
-                raise ValueError('The VALUE_WITH_FAKE_GLOBALS format is for internal use only')
-            raise ValueError(f'Unsupported format {format!r}')
+            if not ann is None:
+                return dict(ann)
+        case Format.VALUE_WITH_FAKE_GLOBALS:
+            raise ValueError('The VALUE_WITH_FAKE_GLOBALS format is for internal use only')
+    raise ValueError(f'Unsupported format {format!r}')
     if not ann is not None:
         if isinstance(obj, type) or callable(obj):
             return {}

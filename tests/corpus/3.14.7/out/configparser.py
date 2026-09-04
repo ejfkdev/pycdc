@@ -837,10 +837,9 @@ The section DEFAULT is never returned because it cannot be removed.
 If the specified `section` is None or an empty string, DEFAULT is
 assumed. If the specified `section` does not exist, returns False.'''
 
-        if section:
-            if section == self.default_section:
-                option = self.optionxform(option)
-                return option in self._defaults
+        if not section or section == self.default_section:
+            option = self.optionxform(option)
+            return option in self._defaults
         if section not in self._sections:
             return False
         option = self.optionxform(option)
@@ -851,14 +850,13 @@ assumed. If the specified `section` does not exist, returns False.'''
 
         if value:
             value = self._interpolation.before_set(self, section, option, value)
-        if section:
-            if section == self.default_section:
-                sectdict = self._defaults
-            else:
-                try:
-                    sectdict = self._sections[section]
-                except KeyError:
-                    raise NoSectionError(section) from None
+        if not section or section == self.default_section:
+            sectdict = self._defaults
+        else:
+            try:
+                sectdict = self._sections[section]
+            except KeyError:
+                raise NoSectionError(section) from None
         sectdict[self.optionxform(option)] = value
 
     def write(self, fp, space_around_delimiters=True):
@@ -901,14 +899,13 @@ preserved when writing the configuration back.
     def remove_option(self, section, option):
         '''Remove an option.'''
 
-        if section:
-            if section == self.default_section:
-                sectdict = self._defaults
-            else:
-                try:
-                    sectdict = self._sections[section]
-                except KeyError:
-                    raise NoSectionError(section) from None
+        if not section or section == self.default_section:
+            sectdict = self._defaults
+        else:
+            try:
+                sectdict = self._sections[section]
+            except KeyError:
+                raise NoSectionError(section) from None
         option = self.optionxform(option)
         existed = option in sectdict
         if existed:

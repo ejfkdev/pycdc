@@ -41,13 +41,9 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
         w = max(cands)
         cands.remove(w)
         lo = w >> 1
-        if not w - 1 not in cands:
-            pass
-        else:
-            if lo not in cands:
-                extra.add(lo)
-                cands.add(lo)
-            continue
+        if lo > more_than and w - 1 not in cands and lo not in cands:
+            extra.add(lo)
+            cands.add(lo)
     if not need_hi:
         if extra:
             raise None

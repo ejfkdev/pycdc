@@ -343,18 +343,21 @@ regex syntax are escaped.
         year_in_format = False
         day_of_month_in_format = False
         def repl(m):
-            nonlocal year_in_format
+            nonlocal year_in_format, day_of_month_in_format
             format_char = m[1]
-            if format_char == 'Y':
-                pass
-            elif format_char == 'y':
-                pass
-            elif format_char == 'G':
-                pass
-            else:
-                format_char
-            format_char
-            year_in_format = True
+            match format_char:
+                case 'Y':
+                    year_in_format = True
+                    return self[format_char]
+                case 'y':
+                    year_in_format = True
+                    return self[format_char]
+                case 'G':
+                    year_in_format = True
+                    return self[format_char]
+                case 'd':
+                    day_of_month_in_format = True
+                    return self[format_char]
             return self[format_char]
 
         format = re_sub('%[-_0^#]*[0-9]*([OE]?\\\\?.?)', repl, format)

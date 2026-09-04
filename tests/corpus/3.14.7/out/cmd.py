@@ -335,7 +335,7 @@ Otherwise try to call complete_<command> to get list of completions.
         names.sort()
         prevname = ''
         for name in names:
-            if not name == prevname:
+            if name[:slice(3, None, None)] == 'do_' and not name == prevname:
                 prevname = name
                 cmd = name[3]
                 if cmd in topics:

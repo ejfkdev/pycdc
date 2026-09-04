@@ -4155,6 +4155,9 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::DUP_TOP => {
+                if self.try_parse_match() {
+                    return true;
+                }
                 if let Some(sv) = self.stack.last().cloned() {
                     self.stack.push(sv);
                 } else if self
@@ -4220,6 +4223,9 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::COPY => {
+                if arg == 1 && self.try_parse_match() {
+                    return true;
+                }
                 let n = arg as usize;
                 let len = self.stack.len();
                 if len >= n && n > 0 {
@@ -6110,12 +6116,15 @@ impl<'a> Ctx<'a> {
                 true
             }
 
-            // ---------- match (3.10+) — not yet supported ----------
-            Op::GET_LEN
-            | Op::MATCH_KEYS
-            | Op::MATCH_MAPPING
-            | Op::MATCH_SEQUENCE
-            | Op::MATCH_CLASS => {
+            // ---------- match (3.10+) ----------
+            Op::MATCH_MAPPING | Op::MATCH_SEQUENCE | Op::MATCH_CLASS => {
+                if self.try_parse_match() {
+                    return true;
+                }
+                self.unimplemented(inst, "match/case");
+                true
+            }
+            Op::GET_LEN | Op::MATCH_KEYS => {
                 self.unimplemented(inst, "match/case");
                 true
             }
@@ -7189,6 +7198,16 @@ impl<'a> Ctx<'a> {
                 Op::LOAD_FAST | Op::LOAD_FAST_CHECK | Op::LOAD_FAST_BORROW => {
                     st.push(self.name_expr(self.local_name(arg)));
                 }
+                Op::LOAD_FAST_LOAD_FAST | Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW => {
+                    st.push(self.name_expr(self.local_name(((arg >> 4) & 0xF) as usize)));
+                    st.push(self.name_expr(self.local_name((arg & 0xF) as usize)));
+                }
+                Op::STORE_FAST_LOAD_FAST => {
+                    // capture store that re-pushes the loaded name (the
+                    // value stored is the region's incoming TOS)
+                    pop1(&mut st);
+                    st.push(self.name_expr(self.local_name((arg & 0xF) as usize)));
+                }
                 Op::LOAD_NAME | Op::LOAD_GLOBAL | Op::STORE_FAST => {
                     if ins.op == Op::STORE_FAST {
                         return None;
@@ -7338,6 +7357,8 @@ impl<'a> Ctx<'a> {
                 Op::TO_BOOL
                 | Op::NOP
                 | Op::NOT_TAKEN
+                | Op::CACHE
+                | Op::EXTENDED_ARG
                 | Op::COPY
                 | Op::PUSH_NULL
                 | Op::PRECALL
@@ -12144,6 +12165,1090 @@ fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
         }
     }
     body
+}
+
+
+// =====================  match/case (3.10+)  =====================
+
+impl<'a> Ctx<'a> {
+    /// 3.10+ match statement entry: at a case-head instruction with the
+    /// subject on the value stack, parse the whole match region, emit it
+    /// as one statement and skip the walked bytecode.
+    fn try_parse_match(&mut self) -> bool {
+        if !self.version.at_least(3, 10) {
+            return false;
+        }
+        let Some(&ci) = self.idx_of.get(&self.cur_offset) else {
+            return false;
+        };
+        let head_ok = self.match_case_head_at(ci);
+        if !head_ok {
+            return false;
+        }
+        // the subject must already be evaluated
+        if !matches!(self.stack.last(), Some(Sv::E(_))) {
+            return false;
+        }
+        // parse on a trial basis: the region parser must consume at least
+        // one case and produce a bounded end offset
+        let subject = match self.stack.last() {
+            Some(Sv::E(e)) => e.clone(),
+            _ => return false,
+        };
+        let Some((stmt, end_off)) = self.parse_match_region(subject, ci) else {
+            return false;
+        };
+        self.pop();
+        self.flush_pending_stores();
+        self.push_stmt(stmt);
+        self.skip_until = Some(end_off);
+        true
+    }
+
+    /// True when `instrs[i..]` begins a match case head: an optional
+    /// subject-preserving dup, then a recognizable pattern test.
+    fn match_case_head_at(&self, i: usize) -> bool {
+        let mut k = i;
+        // last-case value tests consume the subject directly (no dup)
+        let mut dup_seen = false;
+        while matches!(
+            self.instrs.get(k).map(|x| x.op),
+            Some(Op::DUP_TOP) | Some(Op::COPY)
+        ) {
+            if matches!(self.instrs.get(k).map(|x| x.op), Some(Op::COPY))
+                && self.instrs[k].arg != 1
+            {
+                break;
+            }
+            dup_seen = true;
+            k += 1;
+        }
+        let _ = dup_seen;
+        matches!(
+            self.instrs.get(k).map(|x| x.op),
+            Some(Op::MATCH_SEQUENCE) | Some(Op::MATCH_MAPPING)
+        ) || self.match_class_head_at(k)
+            || self.match_value_head_at(k)
+    }
+
+    /// `LOAD cls...; LOAD_CONST <names tuple>; MATCH_CLASS` at k
+    fn match_class_head_at(&self, k: usize) -> bool {
+        let mut j = k;
+        let mut steps = 0;
+        while let Some(ins) = self.instrs.get(j) {
+            if ins.op == Op::MATCH_CLASS {
+                return j > k
+                    && matches!(self.instrs.get(j - 1).map(|x| x.op), Some(Op::LOAD_CONST))
+                    && self
+                        .code
+                        .consts
+                        .get(self.instrs[j - 1].arg as usize)
+                        .map_or(false, |c| matches!(&**c, PyObject::Tuple(_)));
+            }
+            if !is_pure_value_op(ins.op) || steps > 8 {
+                return false;
+            }
+            j += 1;
+            steps += 1;
+        }
+        false
+    }
+
+    /// `<pure value ops>; COMPARE_OP ==; PJIF` at k (a value-pattern test)
+    fn match_value_head_at(&self, k: usize) -> bool {
+        let mut j = k;
+        let mut steps = 0;
+        while let Some(ins) = self.instrs.get(j) {
+            if matches!(
+                ins.op,
+                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+            ) {
+                // the instruction before (through padding) must be
+                // COMPARE_OP ==
+                return j > k
+                    && self.match_prev_real(j).map_or(false, |pj| {
+                        matches!(self.instrs[pj].op, Op::COMPARE_OP)
+                            && cmp_from_index(compare_op_index(
+                                self.instrs[pj].arg as u32,
+                                self.version,
+                            )) == CmpOp::Eq
+                    });
+            }
+            if !is_pure_value_op(ins.op) || steps > 24 {
+                return false;
+            }
+            j += 1;
+            steps += 1;
+        }
+        false
+    }
+
+    /// Index of the previous non-padding instruction before `j`.
+    fn match_prev_real(&self, j: usize) -> Option<usize> {
+        let mut k = j;
+        while k > 0 {
+            k -= 1;
+            if !matches!(
+                self.instrs[k].op,
+                Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG
+            ) {
+                return Some(k);
+            }
+        }
+        None
+    }
+
+    /// Advance past compiler padding.
+    fn match_skip_pad(&self, i: &mut usize) {
+        while matches!(
+            self.instrs.get(*i).map(|x| x.op),
+            Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE) | Some(Op::EXTENDED_ARG)
+        ) {
+            *i += 1;
+        }
+    }
+
+    /// Parse one pattern test starting at `i` (after the case-head dups).
+    /// Returns (pattern, fail_offset, next_idx).
+    fn parse_match_pattern(
+        &mut self,
+        i: usize,
+        boundary: Option<usize>,
+    ) -> Option<(Pattern, usize, usize)> {
+        let ins = self.instrs.get(i)?;
+        match ins.op {
+            Op::MATCH_SEQUENCE => self.parse_match_sequence(i),
+            Op::MATCH_MAPPING => self.parse_match_mapping(i),
+            _ => {
+                if self.match_class_head_at(i) {
+                    self.parse_match_class(i)
+                } else {
+                    self.parse_match_value(i, boundary)
+                }
+            }
+        }
+    }
+
+    /// One or more `COPY/DUP; <value>; CMP ==; PJIF` arms. Or-arms chain:
+    /// an arm's fail target that is itself a case head continues the OR.
+    fn parse_match_value(
+        &mut self,
+        i0: usize,
+        boundary: Option<usize>,
+    ) -> Option<(Pattern, usize, usize)> {
+        let mut arms: Vec<Pattern> = Vec::new();
+        let mut i = i0;
+        let mut fail;
+        let mut body_start: Option<usize> = None;
+        loop {
+            self.match_skip_pad(&mut i);
+            // optional per-arm subject dup
+            while matches!(
+                self.instrs.get(i).map(|x| x.op),
+                Some(Op::DUP_TOP) | Some(Op::COPY)
+            ) && (self.instrs[i].op == Op::DUP_TOP || self.instrs[i].arg == 1)
+            {
+                i += 1;
+                self.match_skip_pad(&mut i);
+            }
+            // scan the value region up to its terminating cond jump
+            let region_start = i;
+            let mut j = i;
+            let mut jidx = None;
+            while let Some(ins) = self.instrs.get(j) {
+                if matches!(
+                    ins.op,
+                    Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+                ) && j > region_start
+                    && self.match_prev_real(j).map_or(false, |pj| {
+                        pj >= region_start
+                            && matches!(self.instrs[pj].op, Op::COMPARE_OP)
+                            && cmp_from_index(compare_op_index(
+                                self.instrs[pj].arg as u32,
+                                self.version,
+                            )) == CmpOp::Eq
+                    })
+                {
+                    jidx = Some(j);
+                    break;
+                }
+                if !is_pure_value_op(ins.op) {
+                    return None;
+                }
+                j += 1;
+                if j - i > 24 {
+                    return None;
+                }
+            }
+            let jk = jidx?;
+            // the region ends at the COMPARE_OP; the pattern value is its
+            // left operand (the subject side stays unconsumed)
+            let cmp_idx = self.match_prev_real(jk)?;
+            let value = self.sim_value_region(region_start, cmp_idx)?;
+            arms.push(Pattern::Value(value));
+            fail = self.instrs[jk].target?;
+            i = jk + 1;
+            // 3.11+ or-arms: arm success jumps to a shared success block
+            // (POP cleanups then the case body); record the first one as
+            // the body start
+            self.match_skip_pad(&mut i);
+            if let Some(ins) = self.instrs.get(i) {
+                if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP)
+                    && ins.target.map_or(false, |t| t > ins.offset)
+                {
+                    if body_start.is_none() {
+                        body_start = Some(ins.target.unwrap());
+                    }
+                    i += 1;
+                }
+            }
+            // another or-arm?
+            let Some(&fi) = self.idx_of.get(&fail) else {
+                break;
+            };
+            let mut fk = fi;
+            self.match_skip_pad(&mut fk);
+            // An or-arm's fail target stays INSIDE this case's span
+            // (before the next case head / cleanup boundary); a fail
+            // target AT the boundary is the next case.
+            let within = match boundary {
+                Some(b) => self.instrs[fk].offset < b,
+                None => false,
+            };
+            let continues = within
+                && self.instrs[fk].offset > self.instrs[jk].offset
+                && self.match_case_head_at(fk);
+            if !continues {
+                break;
+            }
+            i = fk;
+            fail = 0;
+        }
+        if arms.is_empty() {
+            return None;
+        }
+        let pattern = if arms.len() == 1 {
+            arms.pop().unwrap()
+        } else {
+            Pattern::Or(arms)
+        };
+        if let Some(bs) = body_start {
+            if let Some(&bi) = self.idx_of.get(&bs) {
+                return Some((pattern, fail, bi));
+            }
+        }
+        Some((pattern, fail, i))
+    }
+
+    /// Sequence pattern: MATCH_SEQUENCE; PJIF; GET_LEN; n; CMP; PJIF;
+    /// UNPACK_SEQUENCE/UNPACK_EX; per-element literal tests + capture
+    /// stores.
+    fn parse_match_sequence(&mut self, i0: usize) -> Option<(Pattern, usize, usize)> {
+        let mut i = i0 + 1;
+        self.match_skip_pad(&mut i);
+        // first PJIF (type test)
+        if !matches!(
+            self.instrs.get(i).map(|x| x.op),
+            Some(Op::POP_JUMP_IF_FALSE) | Some(Op::POP_JUMP_FORWARD_IF_FALSE)
+        ) {
+            return None;
+        }
+        let fail = self.instrs[i].target?;
+        i += 1;
+        self.match_skip_pad(&mut i);
+        // GET_LEN; n; CMP (== fixed length / >= star); PJIF same fail
+        if self.instrs.get(i).map(|x| x.op) != Some(Op::GET_LEN) {
+            return None;
+        }
+        i += 1;
+        self.match_skip_pad(&mut i);
+        let star_len = match self.instrs.get(i).map(|x| x.op) {
+            Some(Op::LOAD_CONST) => false,
+            Some(Op::LOAD_SMALL_INT) => false,
+            _ => return None,
+        };
+        let _ = star_len;
+        let len_ins = self.instrs[i];
+        let min_len = if len_ins.op == Op::LOAD_SMALL_INT {
+            len_ins.arg as usize
+        } else {
+            match &*self.code.consts.get(len_ins.arg as usize)?.clone() {
+                PyObject::Int(v) => (*v).max(0) as usize,
+                _ => return None,
+            }
+        };
+        i += 1;
+        self.match_skip_pad(&mut i);
+        let star = match self.instrs.get(i).map(|x| x.op) {
+            Some(Op::COMPARE_OP) => {
+                let c = cmp_from_index(compare_op_index(self.instrs[i].arg as u32, self.version));
+                match c {
+                    CmpOp::GtE => true,
+                    CmpOp::Eq => false,
+                    _ => return None,
+                }
+            }
+            _ => return None,
+        };
+        i += 1;
+        self.match_skip_pad(&mut i);
+        if !matches!(
+            self.instrs.get(i).map(|x| x.op),
+            Some(Op::POP_JUMP_IF_FALSE) | Some(Op::POP_JUMP_FORWARD_IF_FALSE)
+        ) {
+            return None;
+        }
+        if self.instrs[i].target? != fail {
+            return None;
+        }
+        i += 1;
+        self.match_skip_pad(&mut i);
+        // unpack + element handling
+        let mut items: Vec<Pattern> = Vec::new();
+        let mut star_pat: Option<(Pattern, usize)> = None;
+        match self.instrs.get(i).map(|x| x.op) {
+            Some(Op::UNPACK_SEQUENCE) => {
+                let n = self.instrs[i].arg as usize;
+                i += 1;
+                let mut elem_done = 0usize;
+                while elem_done < n {
+                    elem_done += 1;
+                    self.match_skip_pad(&mut i);
+                    match self.instrs.get(i)?.op {
+                        Op::STORE_FAST | Op::STORE_FAST_MAYBE_NULL | Op::STORE_NAME => {
+                            let name = if self.instrs[i].op == Op::STORE_NAME {
+                                self.const_name(self.instrs[i].arg as usize)
+                            } else {
+                                self.local_name(self.instrs[i].arg as usize)
+                            };
+                            i += 1;
+                            items.push(if name == "_" {
+                                Pattern::Wildcard
+                            } else {
+                                Pattern::Capture(name)
+                            });
+                        }
+                        Op::STORE_FAST_LOAD_FAST => {
+                            // capture that also re-loads (guard follows)
+                            let name =
+                                self.local_name(((self.instrs[i].arg >> 4) & 0xF) as usize);
+                            i += 1;
+                            items.push(Pattern::Capture(name));
+                        }
+                        Op::STORE_FAST_STORE_FAST => {
+                            // 3.13+ paired store: consumes TWO elements.
+                            // The loop counts elements, so handle the pair
+                            // by pushing both and bumping the counter.
+                            let a = self.local_name(((self.instrs[i].arg >> 4) & 0xF) as usize);
+                            let b = self.local_name((self.instrs[i].arg & 0xF) as usize);
+                            i += 1;
+                            items.push(if a == "_" {
+                                Pattern::Wildcard
+                            } else {
+                                Pattern::Capture(a)
+                            });
+                            items.push(if b == "_" {
+                                Pattern::Wildcard
+                            } else {
+                                Pattern::Capture(b)
+                            });
+                            elem_done += 1;
+                        }
+                        _ => {
+                            // literal element: <value>; CMP ==; PJIF fail
+                            let region_start = i;
+                            let mut j = i;
+                            let mut jk = None;
+                            while let Some(ins) = self.instrs.get(j) {
+                                if matches!(
+                                    ins.op,
+                                    Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+                                ) {
+                                    jk = Some(j);
+                                    break;
+                                }
+                                if !is_pure_value_op(ins.op) {
+                                    return None;
+                                }
+                                j += 1;
+                            }
+                            let jk = match jk {
+                                Some(x) => x,
+                                None => {
+                                    return None;
+                                }
+                            };
+                            if self.instrs[jk].target? != fail {
+                                return None;
+                            }
+                            let Some(cmp_idx2) = self.match_prev_real(jk) else {
+                                return None;
+                            };
+                            let value = self.sim_value_region(region_start, cmp_idx2)?;
+                            items.push(Pattern::Value(value));
+                            i = jk + 1;
+                        }
+                    }
+                }
+            }
+            Some(Op::UNPACK_EX) => {
+                let arg = self.instrs[i].arg as usize;
+                let before = arg & 0xFF;
+                let after = arg >> 8;
+                i += 1;
+                let total = before + 1 + after;
+                let mut names: Vec<String> = Vec::new();
+                while names.len() < total {
+                    self.match_skip_pad(&mut i);
+                    let op = self.instrs.get(i)?.op;
+                    let name = match op {
+                        Op::STORE_FAST | Op::STORE_FAST_MAYBE_NULL => {
+                            let n = self.local_name(self.instrs[i].arg as usize);
+                            i += 1;
+                            n
+                        }
+                        Op::STORE_NAME => {
+                            let n = self.const_name(self.instrs[i].arg as usize);
+                            i += 1;
+                            n
+                        }
+                        Op::STORE_FAST_STORE_FAST => {
+                            let a = self.local_name(((self.instrs[i].arg >> 4) & 0xF) as usize);
+                            let b = self.local_name((self.instrs[i].arg & 0xF) as usize);
+                            i += 1;
+                            names.push(a);
+                            b
+                        }
+                        Op::STORE_FAST_LOAD_FAST => {
+                            let a = self.local_name(((self.instrs[i].arg >> 4) & 0xF) as usize);
+                            i += 1;
+                            names.push(a.clone());
+                            a
+                        }
+                        _ => return None,
+                    };
+                    names.push(name);
+                }
+                if names.len() != total {
+                    return None;
+                }
+                for (idx, name) in names.into_iter().enumerate() {
+                    let pat = if name == "_" {
+                        Pattern::Wildcard
+                    } else {
+                        Pattern::Capture(name)
+                    };
+                    if idx == before {
+                        star_pat = Some((pat, after));
+                    } else {
+                        items.push(pat);
+                    }
+                }
+                let _ = min_len;
+            }
+            _ => {
+                return None;
+            }
+        }
+        let pat = Pattern::Sequence {
+            items,
+            star: star_pat.map(|(p, a)| (Box::new(p), a)),
+        };
+        // 3.11+ or-arm: success jumps to the shared body block
+        self.match_skip_pad(&mut i);
+        if let Some(ins) = self.instrs.get(i) {
+            if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP)
+                && ins.target.map_or(false, |t| t > ins.offset)
+            {
+                if let Some(&bi) = self.idx_of.get(&ins.target.unwrap()) {
+                    return Some((pat, fail, bi));
+                }
+            }
+        }
+        Some((pat, fail, i))
+    }
+
+    /// Mapping pattern: MATCH_MAPPING; PJIF; GET_LEN; n; CMP >=; PJIF;
+    /// LOAD_CONST keys; MATCH_KEYS; then version-specific value
+    /// extraction; capture stores follow the value tests.
+    fn parse_match_mapping(&mut self, i0: usize) -> Option<(Pattern, usize, usize)> {
+        let mut i = i0 + 1;
+        self.match_skip_pad(&mut i);
+        if !matches!(
+            self.instrs.get(i).map(|x| x.op),
+            Some(Op::POP_JUMP_IF_FALSE) | Some(Op::POP_JUMP_FORWARD_IF_FALSE)
+        ) {
+            return None;
+        }
+        let fail = self.instrs[i].target?;
+        i += 1;
+        self.match_skip_pad(&mut i);
+        if self.instrs.get(i).map(|x| x.op) != Some(Op::GET_LEN) {
+            return None;
+        }
+        i += 1;
+        self.match_skip_pad(&mut i);
+        let len_ins = self.instrs.get(i)?;
+        let nkeys = if len_ins.op == Op::LOAD_SMALL_INT {
+            len_ins.arg as usize
+        } else if len_ins.op == Op::LOAD_CONST {
+            self.code.consts.get(len_ins.arg as usize)?.as_int()? as usize
+        } else {
+            return None;
+        };
+        i += 1;
+        self.match_skip_pad(&mut i);
+        if self.instrs.get(i).map(|x| x.op) != Some(Op::COMPARE_OP) {
+            return None;
+        }
+        i += 1;
+        self.match_skip_pad(&mut i);
+        if !matches!(
+            self.instrs.get(i).map(|x| x.op),
+            Some(Op::POP_JUMP_IF_FALSE) | Some(Op::POP_JUMP_FORWARD_IF_FALSE)
+        ) {
+            return None;
+        }
+        i += 1;
+        self.match_skip_pad(&mut i);
+        // LOAD_CONST keys tuple; MATCH_KEYS
+        if self.instrs.get(i).map(|x| x.op) != Some(Op::LOAD_CONST) {
+            return None;
+        }
+        let keys: Vec<ExprRef> =
+            match &**self.code.consts.get(self.instrs[i].arg as usize)? {
+                PyObject::Tuple(items) => items
+                    .iter()
+                    .map(|it| Rc::new(Expr::Const(it.clone())) as ExprRef)
+                    .collect(),
+                _ => return None,
+            };
+        i += 1;
+        self.match_skip_pad(&mut i);
+        if self.instrs.get(i).map(|x| x.op) != Some(Op::MATCH_KEYS) {
+            return None;
+        }
+        i += 1;
+        self.match_skip_pad(&mut i);
+        // keys-result test: 3.10 PJIF; 3.12+ COPY 1; POP_JUMP_IF_NONE
+        if matches!(
+            self.instrs.get(i).map(|x| x.op),
+            Some(Op::COPY) | Some(Op::DUP_TOP)
+        ) {
+            i += 1;
+            self.match_skip_pad(&mut i);
+        }
+        if !matches!(
+            self.instrs.get(i).map(|x| x.op),
+            Some(Op::POP_JUMP_IF_FALSE)
+                | Some(Op::POP_JUMP_IF_NONE)
+                | Some(Op::POP_JUMP_FORWARD_IF_NONE)
+        ) {
+            return None;
+        }
+        i += 1;
+        self.match_skip_pad(&mut i);
+        // scan forward: collect capture stores until the subject POP_TOP
+        // that precedes the body; everything else is extraction boilerplate
+        let mut caps: Vec<String> = Vec::new();
+        let mut scan = 0;
+        let mut saw_dict_without = false;
+        let body_start;
+        loop {
+            let ins = self.instrs.get(i).copied()?;
+            scan += 1;
+            if scan > 60 {
+                return None;
+            }
+            match ins.op {
+                Op::STORE_FAST | Op::STORE_FAST_MAYBE_NULL => {
+                    caps.push(self.local_name(ins.arg as usize));
+                    i += 1;
+                }
+                Op::STORE_NAME => {
+                    caps.push(self.const_name(ins.arg as usize));
+                    i += 1;
+                }
+                Op::STORE_FAST_STORE_FAST => {
+                    caps.push(self.local_name(((ins.arg >> 4) & 0xF) as usize));
+                    caps.push(self.local_name((ins.arg & 0xF) as usize));
+                    i += 1;
+                }
+                Op::STORE_FAST_LOAD_FAST => {
+                    caps.push(self.local_name(((ins.arg >> 4) & 0xF) as usize));
+                    i += 1;
+                }
+                Op::POP_TOP if !caps.is_empty() => {
+                    while matches!(self.instrs.get(i).map(|x| x.op), Some(Op::POP_TOP)) {
+                        i += 1;
+                    }
+                    self.match_skip_pad(&mut i);
+                    body_start = i;
+                    break;
+                }
+                Op::RETURN_VALUE | Op::RETURN_CONST | Op::RAISE_VARARGS => return None,
+                Op::COPY_DICT_WITHOUT_KEYS => {
+                    // 3.10 extraction: key values first, the rest dict last
+                    saw_dict_without = true;
+                    i += 1;
+                }
+                _ => i += 1,
+            }
+        }
+        // first nkeys captures are the key values (source order); an extra
+        // one is the **rest binding (it precedes them in 3.12+ stores)
+        let rest;
+        let value_caps;
+        if caps.len() == nkeys {
+            rest = None;
+            value_caps = caps;
+        } else if caps.len() == nkeys + 1 {
+            if saw_dict_without {
+                // 3.10: per-key SUBSCR extraction stores the key values
+                // first and the **rest dict last
+                rest = caps.pop();
+            } else {
+                // 3.11+: dict-shuffle stores the **rest first
+                rest = Some(caps.remove(0));
+            }
+            value_caps = caps;
+        } else {
+            return None;
+        }
+        let mut items: Vec<(ExprRef, Pattern)> = Vec::new();
+        for (k, name) in keys.into_iter().zip(value_caps) {
+            items.push((
+                k,
+                if name == "_" {
+                    Pattern::Wildcard
+                } else {
+                    Pattern::Capture(name)
+                },
+            ));
+        }
+        let rest = rest.map(|r| if r == "_" { "_".to_string() } else { r });
+        let pat = Pattern::Mapping { items, rest };
+        // 3.11+ or-arm: success jumps to the shared body block
+        let mut mi = body_start;
+        self.match_skip_pad(&mut mi);
+        if let Some(ins) = self.instrs.get(mi) {
+            if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP)
+                && ins.target.map_or(false, |t| t > ins.offset)
+            {
+                if let Some(&bi) = self.idx_of.get(&ins.target.unwrap()) {
+                    return Some((pat, fail, bi));
+                }
+            }
+        }
+        Some((pat, fail, body_start))
+    }
+
+    /// Class pattern: `LOAD cls; LOAD_CONST names; MATCH_CLASS n;
+    /// COPY; PJIF_NONE|PJIF; UNPACK_SEQUENCE n; capture stores`.
+    fn parse_match_class(&mut self, i0: usize) -> Option<(Pattern, usize, usize)> {
+        let mut i = i0;
+        let cls_start = i;
+        while self.instrs.get(i).map(|x| x.op) != Some(Op::MATCH_CLASS) {
+            if !is_pure_value_op(self.instrs.get(i)?.op) {
+                return None;
+            }
+            i += 1;
+        }
+        let mc = self.instrs[i];
+        let names_ins = self.instrs.get(i - 1)?;
+        if names_ins.op != Op::LOAD_CONST {
+            return None;
+        }
+        let kw_names: Vec<String> =
+            match &**self.code.consts.get(names_ins.arg as usize)? {
+                PyObject::Tuple(items) => items
+                    .iter()
+                    .map(|it| match &**it {
+                        PyObject::Str(s) => Some(s.clone()),
+                        _ => None,
+                    })
+                    .collect::<Option<Vec<_>>>()?,
+                _ => return None,
+            };
+        let cls = self.sim_value_region(cls_start, i - 1)?;
+        // MATCH_CLASS arg = POSITIONAL pattern count in every version;
+        // the names tuple holds the keyword names
+        let mc_arg = mc.arg as usize;
+        let nattr_total = mc_arg + kw_names.len();
+        let npos = nattr_total.saturating_sub(kw_names.len());
+        i += 1;
+        self.match_skip_pad(&mut i);
+        // 3.12+: COPY 1; POP_JUMP_IF_NONE; 3.10: PJIF directly
+        if matches!(
+            self.instrs.get(i).map(|x| x.op),
+            Some(Op::COPY) | Some(Op::DUP_TOP)
+        ) {
+            i += 1;
+            self.match_skip_pad(&mut i);
+        }
+        let fail;
+        match self.instrs.get(i).map(|x| x.op) {
+            Some(Op::POP_JUMP_IF_NONE)
+            | Some(Op::POP_JUMP_FORWARD_IF_NONE)
+            | Some(Op::POP_JUMP_IF_FALSE)
+            | Some(Op::POP_JUMP_FORWARD_IF_FALSE) => {
+                fail = self.instrs[i].target?;
+                i += 1;
+            }
+            _ => return None,
+        }
+        self.match_skip_pad(&mut i);
+        let mut captures: Vec<String> = Vec::new();
+        if self.instrs.get(i).map(|x| x.op) == Some(Op::UNPACK_SEQUENCE) {
+            if self.instrs[i].arg as usize != nattr_total {
+                return None;
+            }
+            i += 1;
+            while captures.len() < nattr_total {
+                self.match_skip_pad(&mut i);
+                let ins = self.instrs.get(i).copied()?;
+                match ins.op {
+                    Op::STORE_FAST | Op::STORE_FAST_MAYBE_NULL => {
+                        captures.push(self.local_name(ins.arg as usize));
+                        i += 1;
+                    }
+                    Op::STORE_NAME => {
+                        captures.push(self.const_name(ins.arg as usize));
+                        i += 1;
+                    }
+                    Op::STORE_FAST_STORE_FAST => {
+                        captures.push(self.local_name(((ins.arg >> 4) & 0xF) as usize));
+                        captures.push(self.local_name((ins.arg & 0xF) as usize));
+                        i += 1;
+                    }
+                    Op::STORE_FAST_LOAD_FAST => {
+                        captures.push(self.local_name(((ins.arg >> 4) & 0xF) as usize));
+                        i += 1;
+                    }
+                    _ => return None,
+                }
+            }
+        } else if nattr_total > 0 && !self.version.at_least(3, 12) {
+            // 3.10/3.11 per-attribute extraction:
+            //   [DUP_TOP; LOAD_CONST idx; BINARY_SUBSCR; ROT_*; POP_TOP;]*
+            //   STORE name  — attributes in positional-then-keyword order
+            while captures.len() < nattr_total {
+                self.match_skip_pad(&mut i);
+                let ins = self.instrs.get(i).copied()?;
+                match ins.op {
+                    Op::STORE_FAST | Op::STORE_FAST_MAYBE_NULL => {
+                        captures.push(self.local_name(ins.arg as usize));
+                        i += 1;
+                    }
+                    Op::STORE_NAME => {
+                        captures.push(self.const_name(ins.arg as usize));
+                        i += 1;
+                    }
+                    Op::DUP_TOP
+                    | Op::LOAD_CONST
+                    | Op::LOAD_SMALL_INT
+                    | Op::BINARY_SUBSCR
+                    | Op::ROT_TWO
+                    | Op::ROT_THREE
+                    | Op::ROT_FOUR
+                    | Op::ROT_N
+                    | Op::SWAP
+                    | Op::COPY
+                    | Op::POP_TOP => i += 1,
+                    _ => return None,
+                }
+            }
+        } else if nattr_total == 0 {
+            // bare `case int():` — no attribute extraction
+        } else {
+            return None;
+        }
+        if captures.len() != nattr_total {
+            return None;
+        }
+        let cap = |n: String| {
+            if n == "_" {
+                Pattern::Wildcard
+            } else {
+                Pattern::Capture(n)
+            }
+        };
+        let patterns: Vec<Pattern> = captures.iter().take(npos).cloned().map(cap).collect();
+        let keywords: Vec<(String, Pattern)> = kw_names
+            .into_iter()
+            .zip(captures.into_iter().skip(npos))
+            .map(|(k, v)| (k, cap(v)))
+            .collect();
+        let pat = Pattern::Class { cls, patterns, keywords };
+        // 3.11+ or-arm: success jumps to the shared body block
+        self.match_skip_pad(&mut i);
+        if let Some(ins) = self.instrs.get(i) {
+            if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP)
+                && ins.target.map_or(false, |t| t > ins.offset)
+            {
+                if let Some(&bi) = self.idx_of.get(&ins.target.unwrap()) {
+                    return Some((pat, fail, bi));
+                }
+            }
+        }
+        Some((pat, fail, i))
+    }
+
+    /// Optional guard after a pattern: `<value region>; [TO_BOOL]; PJIF
+    /// fail; [NOT_TAKEN]`. Returns (guard, next_idx).
+    fn parse_match_guard(&mut self, i0: usize, fail: usize) -> Option<(Option<ExprRef>, usize)> {
+        let mut i = i0;
+        self.match_skip_pad(&mut i);
+        // a capture store may have re-pushed the bound value for the guard
+        // (STORE_FAST_LOAD_FAST): include it so the sim sees the name
+        let mut region_start = i;
+        if let Some(p) = self.match_prev_real(i) {
+            if p < i && self.instrs[p].op == Op::STORE_FAST_LOAD_FAST {
+                region_start = p;
+            }
+        }
+        let mut j = i;
+        let mut jk = None;
+        while let Some(ins) = self.instrs.get(j) {
+            if matches!(
+                ins.op,
+                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+            ) {
+                jk = Some(j);
+                break;
+            }
+            if matches!(
+                ins.op,
+                Op::STORE_FAST
+                    | Op::STORE_FAST_MAYBE_NULL
+                    | Op::STORE_NAME
+                    | Op::STORE_GLOBAL
+                    | Op::STORE_DEREF
+                    | Op::STORE_SUBSCR
+                    | Op::STORE_ATTR
+                    | Op::STORE_FAST_STORE_FAST
+                    | Op::STORE_FAST_LOAD_FAST
+                    | Op::UNPACK_SEQUENCE
+                    | Op::UNPACK_EX
+            ) || (!matches!(ins.op, Op::TO_BOOL) && !is_pure_value_op(ins.op))
+            {
+                return Some((None, i0));
+            }
+            j += 1;
+            if j - i > 40 {
+                return Some((None, i0));
+            }
+        }
+        let jk = match jk {
+            Some(x) => x,
+            None => return Some((None, i0)),
+        };
+        let gfail = self.instrs[jk].target?;
+        // the guard's fail target is the case fail label, or (3.10) the
+        // instruction right after it (the subject-cleanup POP the
+        // pattern-fail path still needs was already consumed)
+        let ok = gfail == fail
+            || self
+                .idx_of
+                .get(&fail)
+                .and_then(|&fi| self.instrs.get(fi + 1))
+                .map_or(false, |nx| nx.offset == gfail);
+        if !ok {
+            return Some((None, i0));
+        }
+        let cmp_idx = match self.match_prev_real(jk) {
+            Some(x) => x,
+            None => return Some((None, i0)),
+        };
+        let _ = cmp_idx;
+        match self.sim_value_region(region_start, jk) {
+            Some(guard) => Some((Some(guard), jk + 1)),
+            None => Some((None, i0)),
+        }
+    }
+
+    /// Parse a whole match statement whose first case head is at index
+    /// `i0`, with `subject` already evaluated. Returns the statement and
+    /// the offset just past the match.
+    fn parse_match_region(&mut self, subject: ExprRef, i0: usize) -> Option<(Stmt, usize)> {
+        let mut cases: Vec<MatchCase> = Vec::new();
+        let mut i = i0;
+        let mut end_idx = None;
+        while i < self.instrs.len() {
+            self.match_skip_pad(&mut i);
+            if i >= self.instrs.len() {
+                break;
+            }
+            // wildcard case: POP_TOP then the body (no pattern test)
+        // failure-cleanup pops landing here (the last case's fail target)
+        // are not statements — step over them
+        while self.instrs[i].op == Op::POP_TOP
+            && self.targets.contains(&self.instrs[i].offset)
+        {
+            i += 1;
+            self.match_skip_pad(&mut i);
+            if i >= self.instrs.len() {
+                break;
+            }
+        }
+        if i >= self.instrs.len() {
+            break;
+        }
+        if self.instrs[i].op == Op::POP_TOP && !self.targets.contains(&self.instrs[i].offset) {
+                let mut bs = i + 1;
+                self.match_skip_pad(&mut bs);
+                let body = self.parse_match_case_body(bs)?;
+                cases.push(MatchCase {
+                    pattern: Pattern::Wildcard,
+                    guard: None,
+                    body: body.0,
+                });
+                end_idx = Some(body.1);
+                break;
+            }
+            if !self.match_case_head_at(i) {
+                break;
+            }
+            // consume case-head dups
+            let mut k = i;
+            while matches!(
+                self.instrs.get(k).map(|x| x.op),
+                Some(Op::DUP_TOP) | Some(Op::COPY)
+            ) && (self.instrs[k].op == Op::DUP_TOP || self.instrs[k].arg == 1)
+            {
+                k += 1;
+                self.match_skip_pad(&mut k);
+            }
+            // scan for the next case boundary: the first jump-targeted
+            // offset after this head that itself starts a case head. For a
+            // single-pattern case this is the NEXT case (fail jumps there);
+            // for an or-pattern it is the second arm (the case's own span
+            // ends before it, so the fail target never reaches it).
+            let mut boundary = None;
+            {
+                let mut s = k + 1;
+                while s < self.instrs.len() {
+                    let soff = self.instrs[s].offset;
+                    if self.targets.contains(&soff) && self.match_case_head_at(s) {
+                        boundary = Some(soff);
+                        break;
+                    }
+                    s += 1;
+                }
+            }
+            let (pattern, fail, after_pat) = self.parse_match_pattern(k, boundary)?;
+            // 3.11+ shared or-success block: after_pat already points at
+            // the cleanup POPs preceding the body
+            let shared_success = self
+                .idx_of
+                .get(&self.instrs[after_pat].offset)
+                .map_or(false, |_| {
+                    self.instrs[after_pat].op == Op::POP_TOP
+                        && self.targets.contains(&self.instrs[after_pat].offset)
+                        && after_pat > k
+                });
+            let (guard, after_guard) = if shared_success {
+                (None, after_pat)
+            } else {
+                self.parse_match_guard(after_pat, fail)?
+            };
+            let mut bs = after_guard;
+            if shared_success {
+                while matches!(self.instrs.get(bs).map(|x| x.op), Some(Op::POP_TOP)) {
+                    bs += 1;
+                }
+                self.match_skip_pad(&mut bs);
+            }
+            self.match_skip_pad(&mut bs);
+            // subject POP_TOP before the body
+            if self.instrs.get(bs).map(|x| x.op) == Some(Op::POP_TOP) {
+                bs += 1;
+                self.match_skip_pad(&mut bs);
+            }
+            let body = self.parse_match_case_body(bs)?;
+            cases.push(MatchCase {
+                pattern,
+                guard,
+                body: body.0,
+            });
+            // next case head: at the fail label, past cleanup pops/jumps
+            let Some(&fi) = self.idx_of.get(&fail) else {
+                break;
+            };
+            let mut nk = fi;
+            loop {
+                self.match_skip_pad(&mut nk);
+                match self.instrs.get(nk).map(|x| x.op) {
+                    Some(Op::POP_TOP) => nk += 1,
+                    Some(Op::JUMP_FORWARD) | Some(Op::JUMP) | Some(Op::JUMP_ABSOLUTE) => {
+                        let t = self.instrs[nk].target?;
+                        if t <= self.instrs[nk].offset {
+                            break;
+                        }
+                        let Some(&ti) = self.idx_of.get(&t) else {
+                            break;
+                        };
+                        nk = ti;
+                    }
+                    _ => break,
+                }
+            }
+            if nk >= self.instrs.len() {
+                break;
+            }
+            if !self.match_case_head_at(nk)
+                && self.instrs[nk].op != Op::POP_TOP
+            {
+                end_idx = Some(nk);
+                break;
+            }
+            if self.instrs[nk].offset <= self.instrs[i].offset {
+                break;
+            }
+            i = nk;
+        }
+        if cases.is_empty() {
+            return None;
+        }
+        let end_off = match end_idx {
+            Some(e) => self.instrs.get(e).map(|x| x.offset),
+            None => None,
+        }
+        .or_else(|| self.instrs.last().map(|x| x.end()))?;
+        Some((Stmt::Match { subject, cases }, end_off))
+    }
+
+    /// A case body runs to its RETURN/RAISE or its forward jump out of the
+    /// match. Returns (statements, index after the body).
+    fn parse_match_case_body(&mut self, from_idx: usize) -> Option<(Vec<Stmt>, usize)> {
+        let mut j = from_idx;
+        while j < self.instrs.len() {
+            let ins = self.instrs[j];
+            match ins.op {
+                Op::RETURN_VALUE | Op::RETURN_CONST | Op::RAISE_VARARGS => {
+                    let to = ins.end();
+                    let stmts = self.decompile_region(self.instrs[from_idx].offset, to);
+                    return Some((stmts, j + 1));
+                }
+                Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE => {
+                    if let Some(t) = ins.target {
+                        if t > ins.offset {
+                            let to = ins.end();
+                            let stmts =
+                                self.decompile_region(self.instrs[from_idx].offset, to);
+                            let Some(&ti) = self.idx_of.get(&t) else {
+                                return Some((stmts, j + 1));
+                            };
+                            return Some((stmts, ti));
+                        }
+                    }
+                    return None;
+                }
+                _ => j += 1,
+            }
+        }
+        None
+    }
 }
 
 // =====================  comprehensions  =====================

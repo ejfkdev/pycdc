@@ -108,15 +108,15 @@
    "module": "_py_warnings",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2825,
-   "ntotal": 3197,
+   "ndiff": 2832,
+   "ntotal": 3209,
    "detail": "line 322: orig ('LOAD_GLOBAL', '_wm') | got ('NOP', '')\nline 323: orig ('LOAD_ATTR', 'filters') | got ('LOAD_GLOBAL', '_wm')\nline 324: orig ('RETURN_VALUE', '') | got ('LOAD_ATTR', 'filters')"
   },
   {
    "module": "_pylong",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1367,
+   "ndiff": 1288,
    "ntotal": 1531,
    "detail": "line 147: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')\nline 149: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'w, more_than') | got ('JUMP_BACKWARD', 'to L1')\nline 150: orig ('COMPARE_OP', 'bool(<=)') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'w, more_than')"
   },
@@ -132,7 +132,7 @@
    "module": "_strptime",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3090,
+   "ndiff": 3089,
    "ntotal": 3196,
    "detail": "line 49: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 53: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 54: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_SMALL_INT', '')"
   },
@@ -173,8 +173,8 @@
    "module": "ast",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1854,
-   "ntotal": 2512,
+   "ndiff": 2242,
+   "ntotal": 2516,
    "detail": "line 9: orig ('LOAD_CONST', \"('<unknown>', 'exec')\") | got ('NOP', '')\nline 10: orig ('LOAD_CONST', \"'type_comments'\") | got ('LOAD_CONST', \"('<unknown>', 'exec')\")\nline 11: orig ('LOAD_CONST', 'False') | got ('LOAD_CONST', \"'type_comments'\")"
   },
   {
@@ -186,7 +186,7 @@
    "module": "bdb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3907,
+   "ndiff": 3863,
    "ntotal": 4001,
    "detail": "line 31: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 35: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 36: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_SMALL_INT', '')"
   },
@@ -226,8 +226,8 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1147,
-   "ntotal": 1452,
+   "ndiff": 1158,
+   "ntotal": 1464,
    "detail": "line 262: orig ('NOP', '') | got ('LOAD_GLOBAL', 'input + NULL')\nline 263: orig ('LOAD_GLOBAL', 'input + NULL') | got ('LOAD_FAST_BORROW', 'self')\nline 264: orig ('LOAD_FAST_BORROW', 'self') | got ('LOAD_ATTR', 'prompt')"
   },
   {

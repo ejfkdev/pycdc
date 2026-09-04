@@ -964,9 +964,8 @@ recommended.
                 v = self[i]
             except IndexError:
                 raise ValueError
-            if not v is value:
-                if v == value:
-                    return i
+            if v is value or v == value:
+                return i
             i += 1
         raise ValueError
 

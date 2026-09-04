@@ -299,9 +299,8 @@ this way.
             except KeyError:
                 pass
             if key:
-                if not delimiters is None:
-                    if key in delimiters:
-                        delims[key] = delims.get(key, 0) + 1
+                if delimiters is None or key in delimiters:
+                    delims[key] = delims.get(key, 0) + 1
             try:
                 n = groupindex['space'] - 1
             except KeyError:

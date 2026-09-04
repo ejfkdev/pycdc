@@ -477,9 +477,8 @@ For example:
         def _fix_exception_context(new_exc, old_exc):
             while True:
                 exc_context = new_exc.__context__
-                if not exc_context is None:
-                    if exc_context is old_exc:
-                        return
+                if exc_context is None or exc_context is old_exc:
+                    return
                 if exc_context is frame_exc:
                     break
                 new_exc = exc_context
@@ -612,9 +611,8 @@ method.'''
         def _fix_exception_context(new_exc, old_exc):
             while True:
                 exc_context = new_exc.__context__
-                if not exc_context is None:
-                    if exc_context is old_exc:
-                        return
+                if exc_context is None or exc_context is old_exc:
+                    return
                 if exc_context is frame_exc:
                     break
                 new_exc = exc_context

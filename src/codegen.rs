@@ -149,6 +149,107 @@ impl Printer {
         }
     }
 
+    /// Render a match pattern (3.10+).
+    fn pattern(&mut self, p: &Pattern) {
+        match p {
+            Pattern::Value(e) => self.expr(e, 0),
+            Pattern::Capture(n) => self.write(n),
+            Pattern::Wildcard => self.write("_"),
+            Pattern::Or(pats) => {
+                for (i, q) in pats.iter().enumerate() {
+                    if i > 0 {
+                        self.write(" | ");
+                    }
+                    self.pattern(q);
+                }
+            }
+            Pattern::Sequence { items, star } => {
+                self.write("[");
+                let star_at = star
+                    .as_ref()
+                    .map(|(_, after)| items.len() - after)
+                    .unwrap_or(items.len() + 1);
+                let mut idx = 0;
+                let mut first = true;
+                for it in items {
+                    if idx == star_at {
+                        if !first {
+                            self.write(", ");
+                        }
+                        first = false;
+                        if let Some((sp, _)) = star {
+                            self.write("*");
+                            self.pattern(sp);
+                        }
+                    }
+                    if !first {
+                        self.write(", ");
+                    }
+                    first = false;
+                    self.pattern(it);
+                    idx += 1;
+                }
+                if idx == star_at {
+                    if !first {
+                        self.write(", ");
+                    }
+                    if let Some((sp, _)) = star {
+                        self.write("*");
+                        self.pattern(sp);
+                    }
+                }
+                self.write("]");
+            }
+            Pattern::Mapping { items, rest } => {
+                self.write("{");
+                let mut first = true;
+                for (k, v) in items {
+                    if !first {
+                        self.write(", ");
+                    }
+                    first = false;
+                    self.expr(k, 0);
+                    self.write(": ");
+                    self.pattern(v);
+                }
+                if let Some(r) = rest {
+                    if !first {
+                        self.write(", ");
+                    }
+                    self.write("**");
+                    self.write(r);
+                }
+                self.write("}");
+            }
+            Pattern::Class {
+                cls,
+                patterns,
+                keywords,
+            } => {
+                self.expr(cls, 0);
+                self.write("(");
+                let mut first = true;
+                for p2 in patterns {
+                    if !first {
+                        self.write(", ");
+                    }
+                    first = false;
+                    self.pattern(p2);
+                }
+                for (k, v) in keywords {
+                    if !first {
+                        self.write(", ");
+                    }
+                    first = false;
+                    self.write(k);
+                    self.write("=");
+                    self.pattern(v);
+                }
+                self.write(")");
+            }
+        }
+    }
+
     fn block(&mut self, stmts: &[Stmt]) {
         self.indent += 1;
         if stmts.is_empty() {
@@ -573,6 +674,25 @@ impl Printer {
                 self.newline();
                 self.func_body(body);
                 self.newline();
+            }
+            Stmt::Match { subject, cases } => {
+                self.write("match ");
+                self.expr(subject, 0);
+                self.write(":");
+                self.newline();
+                self.indent += 1;
+                for c in cases {
+                    self.write("case ");
+                    self.pattern(&c.pattern);
+                    if let Some(g) = &c.guard {
+                        self.write(" if ");
+                        self.expr(g, 0);
+                    }
+                    self.write(":");
+                    self.newline();
+                    self.block(&c.body);
+                }
+                self.indent -= 1;
             }
             Stmt::Unimplemented(text) => {
                 self.write_line(text);

@@ -169,21 +169,20 @@ self.user_return(). Raise BdbQuit if self.quitting is set.
 Return self.trace_dispatch to continue tracing in this scope.
 '''
 
-        if not self.stop_here(frame):
-            if frame == self.returnframe:
-                if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
-                    return self.trace_dispatch
-                try:
-                    self.frame_returning = frame
-                    self.user_return(frame, arg)
-                finally:
-                    self.frame_returning = None
-                    if self.quitting:
-                        raise BdbQuit
-                    if self.stopframe is frame and self.stoplineno != -1:
-                        self._set_stopinfo(None, None)
-                    if self.stoplineno != -1:
-                        self._set_caller_tracefunc(frame)
+        if self.stop_here(frame) or frame == self.returnframe:
+            if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
+                return self.trace_dispatch
+            try:
+                self.frame_returning = frame
+                self.user_return(frame, arg)
+            finally:
+                self.frame_returning = None
+                if self.quitting:
+                    raise BdbQuit
+                if self.stopframe is frame and self.stoplineno != -1:
+                    self._set_stopinfo(None, None)
+                if self.stoplineno != -1:
+                    self._set_caller_tracefunc(frame)
 
     def dispatch_exception(self, frame, arg):
         '''Invoke user function and return trace function for exception event.
