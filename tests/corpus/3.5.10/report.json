@@ -29,7 +29,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 388: orig  ctx=Load()))])) | dec  ctx=Load()))]))]",
+   "ast_detail": "diff at token 389: orig  Try(body=[Assign(targets=[Name(id='data' | dec  Continue()]",
    "verdict": "SIG-DIFF",
    "ndiff": 192,
    "ntotal": 490,
@@ -41,7 +41,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 472: orig  orelse=[If(test=Compare(left=Name(id='c' | dec  orelse=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 484: orig  If(test=Compare(left=Name(id='c' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 969,
    "ntotal": 1394,
@@ -65,7 +65,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1460: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
+   "ast_detail": "diff at token 1463: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
    "verdict": "SIG-DIFF",
    "ndiff": 1748,
    "ntotal": 1850,
@@ -101,7 +101,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 757: orig  body=[While(test=BoolOp(op=And() | dec  body=[While(test=Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 765: orig  body=[While(test=BoolOp(op=And() | dec  body=[While(test=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
    "ndiff": 189,
    "ntotal": 916,
@@ -109,7 +109,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 425: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 427: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2188,
    "ntotal": 2253,
@@ -117,7 +117,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 1065: orig  value=ListComp(elt=IfExp(test=BoolOp(op=And() | dec  value=ListComp(elt=BinOp(left=BinOp(left=Subscript(value=Name(id='chars2'",
+   "ast_detail": "diff at token 1091: orig  value=ListComp(elt=IfExp(test=BoolOp(op=And() | dec  value=ListComp(elt=BinOp(left=BinOp(left=Subscript(value=Name(id='chars2'",
    "verdict": "SIG-DIFF",
    "ndiff": 991,
    "ntotal": 1970,
@@ -141,7 +141,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 990: orig  body=[If(test=Compare(left=Str(s='t') | dec  body=[If(test=BoolOp(op=Or()",
+   "ast_detail": "diff at token 1002: orig  body=[If(test=Compare(left=Str(s='t') | dec  body=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
    "ndiff": 782,
    "ntotal": 899,
@@ -161,7 +161,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 872: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='end'",
+   "ast_detail": "diff at token 972: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='end'",
    "verdict": "SIG-DIFF",
    "ndiff": 2910,
    "ntotal": 3049,
@@ -181,7 +181,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 248: orig  body=[Try(body=[Assign(targets=[Name(id='line' | dec  body=[Pass()]",
+   "ast_detail": "diff at token 248: orig  body=[Try(body=[Assign(targets=[Name(id='line' | dec  body=[Continue()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1025,
    "ntotal": 1310,
@@ -209,7 +209,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 155: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
+   "ast_detail": "diff at token 157: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
    "verdict": "SIG-DIFF",
    "ndiff": 794,
    "ntotal": 1027,
@@ -217,7 +217,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 2154: orig  kw_defaults=[Tuple(elts=[Str(s='=') | dec  kw_defaults=[None",
+   "ast_detail": "diff at token 2172: orig  kw_defaults=[Tuple(elts=[Str(s='=') | dec  kw_defaults=[None",
    "verdict": "SIG-DIFF",
    "ndiff": 4152,
    "ntotal": 4295,
@@ -237,7 +237,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 410: orig  orelse=[For(target=Name(id='c' | dec  orelse=[])",
+   "ast_detail": "diff at token 418: orig  body=[Pass() | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 337,
    "ntotal": 525,
@@ -249,7 +249,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1484: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Call(func=Name(id='len'",
+   "ast_detail": "diff at token 1509: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
    "ndiff": 1626,
    "ntotal": 1660,

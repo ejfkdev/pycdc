@@ -21,7 +21,7 @@
   },
   {
    "module": "_bootsubprocess",
-   "ast_detail": "diff at token 347: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 358: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 87,
    "ntotal": 398,
@@ -49,7 +49,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 452: orig  orelse=[If(test=Compare(left=Name(id='decltype' | dec  orelse=[Assert(test=Compare(left=Name(id='decltype'",
+   "ast_detail": "diff at token 463: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 1018,
    "ntotal": 1455,
@@ -105,7 +105,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 247: orig  ops=[Eq() | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 250: orig  ops=[Eq() | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 2997,
    "ntotal": 3700,
@@ -113,7 +113,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 492: orig  Break()] | dec  Return()]",
+   "ast_detail": "diff at token 500: orig  Break()] | dec  Return()]",
    "verdict": "SIG-DIFF",
    "ndiff": 127,
    "ntotal": 882,
@@ -149,7 +149,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 160: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
+   "ast_detail": "diff at token 166: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
    "verdict": "SIG-DIFF",
    "ndiff": 844,
    "ntotal": 879,
@@ -157,7 +157,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 477: orig  Try(body=[Return(value=Call(func=Name(id='func' | dec  Try(body=[Pass()]",
+   "ast_detail": "diff at token 312: orig  body=[Continue()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
    "ndiff": 294,
    "ntotal": 742,
@@ -173,7 +173,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 689: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Call(func=Name(id='len'",
+   "ast_detail": "diff at token 803: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
    "ndiff": 3010,
    "ntotal": 3176,
@@ -181,7 +181,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 492: orig  value=BinOp(left=Constant(value='<a href=\"file://%s\">%s</a>') | dec  value=JoinedStr(values=[Constant(value='<a href=\"file://')",
+   "ast_detail": "diff at token 498: orig  value=BinOp(left=Constant(value='<a href=\"file://%s\">%s</a>') | dec  value=JoinedStr(values=[Constant(value='<a href=\"file://')",
    "verdict": "SIG-DIFF",
    "ndiff": 1211,
    "ntotal": 1591,
@@ -233,7 +233,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 135: orig  orelse=[If(test=BoolOp(op=And() | dec  orelse=[])",
+   "ast_detail": "diff at token 223: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Name(id='ddir'",
    "verdict": "SIG-DIFF",
    "ndiff": 1491,
    "ntotal": 1572,
@@ -257,7 +257,7 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 778: orig  finalbody=[]) | dec  finalbody=[])]",
+   "ast_detail": "diff at token 829: orig  finalbody=[]) | dec  finalbody=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 696,
    "ntotal": 997,
@@ -273,7 +273,7 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 212: orig  orelse=[If(test=Compare(left=Attribute(value=Name(id='method' | dec  orelse=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 221: orig  If(test=Compare(left=Attribute(value=Name(id='method' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 157,
    "ntotal": 492,
@@ -281,7 +281,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1394: orig  orelse=[Assign(targets=[Subscript(value=Name(id='modes' | dec  orelse=[])",
+   "ast_detail": "diff at token 965: orig  body=[Continue()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
    "ndiff": 1740,
    "ntotal": 1775,

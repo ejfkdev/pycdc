@@ -69,7 +69,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 140: orig  right=Constant(value=1))))] | dec  right=Constant(value=1))))",
+   "ast_detail": "diff at token 404: orig  ctx=Load())]))] | dec  ctx=Load())]))",
    "verdict": "SIG-DIFF",
    "ndiff": 876,
    "ntotal": 1254,
@@ -161,7 +161,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 149: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
+   "ast_detail": "diff at token 152: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
    "verdict": "SIG-DIFF",
    "ndiff": 441,
    "ntotal": 842,
@@ -245,7 +245,7 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 647: orig  body=[Pass()])]) | dec  body=[Pass()])])])",
+   "ast_detail": "diff at token 687: orig  body=[Pass()])]) | dec  body=[Pass()])])])",
    "verdict": "SIG-DIFF",
    "ndiff": 679,
    "ntotal": 916,
@@ -261,7 +261,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 393: orig  ctx=Load()))] | dec  ctx=Load()))",
+   "ast_detail": "diff at token 846: orig  Try(body=[Assign(targets=[Name(id='n' | dec  Try(body=[Try(body=[Assign(targets=[Name(id='n'",
    "verdict": "SIG-DIFF",
    "ndiff": 1689,
    "ntotal": 1726,

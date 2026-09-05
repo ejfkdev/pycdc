@@ -29,7 +29,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 388: orig  ctx=Load()))])) | dec  ctx=Load()))]))]",
+   "ast_detail": "diff at token 389: orig  Try(body=[Assign(targets=[Name(id='data' | dec  Continue()]",
    "verdict": "SIG-DIFF",
    "ndiff": 195,
    "ntotal": 497,
@@ -41,7 +41,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 496: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
+   "ast_detail": "diff at token 508: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
    "ndiff": 978,
    "ntotal": 1433,
@@ -65,7 +65,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1558: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
+   "ast_detail": "diff at token 1561: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
    "verdict": "SIG-DIFF",
    "ndiff": 1987,
    "ntotal": 2094,
@@ -93,7 +93,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 480: orig  body=[AugAssign(target=Name(id='rv' | dec  body=[If(test=Name(id='fields'",
+   "ast_detail": "diff at token 492: orig  body=[AugAssign(target=Name(id='rv' | dec  body=[If(test=Name(id='fields'",
    "verdict": "SIG-DIFF",
    "ndiff": 303,
    "ntotal": 1021,
@@ -101,7 +101,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 865: orig  Try(body=[Assign(targets=[Name(id='num_sent' | dec  If(test=Name(id='num_sent'",
+   "ast_detail": "diff at token 874: orig  Try(body=[Assign(targets=[Name(id='num_sent' | dec  If(test=Name(id='num_sent'",
    "verdict": "SIG-DIFF",
    "ndiff": 65,
    "ntotal": 812,
@@ -109,7 +109,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 425: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 427: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2142,
    "ntotal": 2251,
@@ -117,7 +117,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 805: orig  comparators=[Set(elts=[Num(n=0) | dec  comparators=[Call(func=Name(id='frozenset'",
+   "ast_detail": "diff at token 823: orig  comparators=[Set(elts=[Num(n=0) | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
    "ndiff": 1184,
    "ntotal": 1949,
@@ -141,7 +141,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 997: orig  body=[If(test=Compare(left=Str(s='t') | dec  body=[If(test=BoolOp(op=Or()",
+   "ast_detail": "diff at token 1009: orig  body=[If(test=Compare(left=Str(s='t') | dec  body=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
    "ndiff": 769,
    "ntotal": 884,
@@ -161,7 +161,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 879: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='end'",
+   "ast_detail": "diff at token 997: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='end'",
    "verdict": "SIG-DIFF",
    "ndiff": 3025,
    "ntotal": 3171,
@@ -181,7 +181,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 513: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='i'",
+   "ast_detail": "diff at token 476: orig  ctx=Load()))) | dec  ctx=Load())))]",
    "verdict": "SIG-DIFF",
    "ndiff": 764,
    "ntotal": 1317,
@@ -197,7 +197,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1245: orig  orelse=[Raise(exc=None | dec  orelse=[])])]",
+   "ast_detail": "diff at token 1244: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 259,
    "ntotal": 2153,
@@ -213,7 +213,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 167: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
+   "ast_detail": "diff at token 169: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
    "verdict": "SIG-DIFF",
    "ndiff": 820,
    "ntotal": 1036,
@@ -221,7 +221,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 3169: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(arg=None",
+   "ast_detail": "diff at token 3189: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(arg=None",
    "verdict": "SIG-DIFF",
    "ndiff": 3901,
    "ntotal": 4337,
@@ -241,7 +241,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 410: orig  orelse=[For(target=Name(id='c' | dec  orelse=[])",
+   "ast_detail": "diff at token 418: orig  body=[Pass() | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 352,
    "ntotal": 542,
@@ -253,7 +253,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1491: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Call(func=Name(id='len'",
+   "ast_detail": "diff at token 1516: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
    "ndiff": 1641,
    "ntotal": 1679,

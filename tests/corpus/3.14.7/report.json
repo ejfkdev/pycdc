@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 7,
-  "SIG-DIFF": 32,
-  "AST-PASS": 1
+  "SIG-DIFF": 31,
+  "AST-PASS": 2
  },
  "results": [
   {
@@ -69,7 +69,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 140: orig  right=Constant(value=1))))] | dec  right=Constant(value=1))))",
+   "ast_detail": "diff at token 352: orig  ctx=Load())))] | dec  ctx=Load())))",
    "verdict": "SIG-DIFF",
    "ndiff": 950,
    "ntotal": 1352,
@@ -165,7 +165,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 213: orig  body=[Return(value=UnaryOp(op=UAdd() | dec  body=[Return(value=Name(id='operand'",
+   "ast_detail": "diff at token 229: orig  body=[Return(value=UnaryOp(op=UAdd() | dec  body=[Return(value=Name(id='operand'",
    "verdict": "SIG-DIFF",
    "ndiff": 2052,
    "ntotal": 2531,
@@ -181,7 +181,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 309: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 310: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 3823,
    "ntotal": 4001,
@@ -189,15 +189,11 @@
   },
   {
    "module": "bisect",
-   "ast_detail": "diff at token 105: orig  ctx=Load()))] | dec  ctx=Load()))])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 133,
-   "ntotal": 269,
-   "detail": "line 136: orig ('NOP', '') | got ('LOAD_FAST_BORROW', 'lo')\nline 137: orig ('LOAD_FAST_BORROW', 'lo') | got ('RETURN_VALUE', '')\nline 138: orig ('RETURN_VALUE', '') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'lo, hi')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 151: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
+   "ast_detail": "diff at token 154: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
    "verdict": "SIG-DIFF",
    "ndiff": 823,
    "ntotal": 885,
@@ -281,7 +277,7 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 524: orig  body=[Pass()])]) | dec  body=[Pass()])])])",
+   "ast_detail": "diff at token 564: orig  body=[Pass()])]) | dec  body=[Pass()])])])",
    "verdict": "SIG-DIFF",
    "ndiff": 353,
    "ntotal": 874,

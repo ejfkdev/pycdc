@@ -2,8 +2,8 @@
  "2.6.9": {
   "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
   "counts": {
-   "SIG-DIFF": 29,
-   "AST-PASS": 11
+   "SIG-DIFF": 27,
+   "AST-PASS": 13
   }
  },
  "2.7.18": {
@@ -49,8 +49,8 @@
   "interp": "/opt/homebrew/bin/python3.14",
   "counts": {
    "PASS": 7,
-   "SIG-DIFF": 32,
-   "AST-PASS": 1
+   "SIG-DIFF": 31,
+   "AST-PASS": 2
   }
  },
  "3.3.7": {

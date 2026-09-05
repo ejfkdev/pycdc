@@ -490,6 +490,60 @@ TERMINATORS = tuple(
      if t is not None])
 
 
+def _flatten_node(s):
+    """Recurse into statement-holding fields (the walk-based passes in
+    dump() never reach nested If bodies)."""
+    for field in ('body', 'orelse', 'finalbody'):
+        val = getattr(s, field, None)
+        if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
+            setattr(s, field, flatten_terminating_else(val))
+    for h in getattr(s, 'handlers', None) or []:
+        if getattr(h, 'body', None):
+            h.body = flatten_terminating_else(h.body)
+    return s
+
+
+def flatten_terminating_else(stmts):
+    """3.14 tail sinking: `if c: A else: B` followed by a trailing
+    terminator T compiles to `if c: A; T` with B laid out sequentially
+    and T repeated after it. Canonicalize the source shape INTO the sunk
+    shape: sink the enclosing body's trailing Return/Raise into every
+    non-terminating then-arm that has an else, releasing the else as
+    sequential statements. Deterministic and semantically exact (T
+    terminates, so the copy inside the then-arm cannot fall through)."""
+    if not stmts:
+        return stmts
+    tail = stmts[-1]
+    if isinstance(tail, (ast.Return, ast.Raise)):
+        changed = True
+        while changed:
+            changed = False
+            out = []
+            for s in stmts:
+                if (isinstance(s, ast.If) and s.orelse and s.body
+                        and not isinstance(s.body[-1], (ast.Return, ast.Raise))):
+                    body = list(s.body) + [tail]
+                    orelse = list(s.orelse)
+                    out.append(ast.If(test=s.test, body=body, orelse=[]))
+                    out.extend(orelse)
+                    changed = True
+                else:
+                    out.append(s)
+            stmts = out
+    # loop-tail if/else: compilers render the then arm's exit as a
+    # `continue` and lay the else out as fall-through (bisect's binary
+    # search loops) - canonicalize the source shape into it
+    if (isinstance(tail, ast.If) and tail.orelse and tail.body
+            and not isinstance(tail.body[-1], (ast.Return, ast.Raise,
+                                               ast.Continue))):
+        stmts = list(stmts[:-1])
+        body = list(tail.body) + [ast.Continue()]
+        orelse = list(tail.orelse)
+        stmts.append(ast.If(test=tail.test, body=body, orelse=[]))
+        stmts.extend(orelse)
+    return [_flatten_node(s) for s in stmts]
+
+
 def strip_noop_continues(stmts, at_loop_tail):
     """Canonicalize loop-tail artifacts decompilers emit:
     - statements after a terminator in the same body are dead -> drop
@@ -498,10 +552,14 @@ def strip_noop_continues(stmts, at_loop_tail):
     An empty handler/branch body canonicalizes to [Pass]."""
     out = []
     terminated = False
-    for s in stmts:
+    n = len(stmts)
+    for idx, s in enumerate(stmts):
         if terminated:
             continue
-        s = visit_noop_node(s, at_loop_tail)
+        # only the LAST statement of a loop-tail body falls through to
+        # the back edge - a continue in an earlier statement (or inside
+        # a mid-list if) is real control flow
+        s = visit_noop_node(s, at_loop_tail and idx == n - 1)
         if isinstance(s, ast.Continue):
             if at_loop_tail:
                 continue  # no-op: the loop iterates anyway
@@ -678,7 +736,8 @@ def dump(src):
         for field in ('body', 'orelse', 'finalbody'):
             val = getattr(node, field, None)
             if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
-                setattr(node, field, merge_nested_ifs(val))
+                setattr(node, field,
+                        flatten_terminating_else(merge_nested_ifs(val)))
         # a docstring-only body normalizes to empty; the source may have
         # carried a redundant `pass` after it (no bytecode) - canonicalize
         # an empty statement body to [Pass()] on both sides

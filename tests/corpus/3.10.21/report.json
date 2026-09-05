@@ -17,7 +17,7 @@
   },
   {
    "module": "_bootsubprocess",
-   "ast_detail": "diff at token 87: orig  keywords=[]))])] | dec  keywords=[]))",
+   "ast_detail": "diff at token 89: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 270,
    "ntotal": 364,
@@ -45,7 +45,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 171: orig  right=Constant(value=1))))] | dec  right=Constant(value=1))))",
+   "ast_detail": "diff at token 463: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 948,
    "ntotal": 1362,
@@ -53,7 +53,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 213: orig  Return(value=IfExp(test=UnaryOp(op=Not() | dec  Expr(value=Call(func=IfExp(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 202: orig  Return(value=IfExp(test=UnaryOp(op=Not() | dec  Return()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1138,
    "ntotal": 1428,
@@ -105,7 +105,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 235: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 238: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 1812,
    "ntotal": 3104,
@@ -113,7 +113,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 362: orig  ops=[Eq() | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 376: orig  ops=[Eq() | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 7557,
    "ntotal": 7968,
@@ -137,7 +137,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 534: orig  value=Constant(value=b'======'))] | dec  value=Constant(value=b'======'))",
+   "ast_detail": "diff at token 808: orig  comparators=[Set(elts=[Constant(value=0) | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
    "ndiff": 1086,
    "ntotal": 1933,
@@ -145,7 +145,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 565: orig  orelse=[])] | dec  orelse=[])",
+   "ast_detail": "diff at token 1060: orig  Continue()] | dec  Return()]",
    "verdict": "SIG-DIFF",
    "ndiff": 2323,
    "ntotal": 2441,
@@ -165,7 +165,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 265: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 274: orig  Continue()] | dec  Return()]",
    "verdict": "SIG-DIFF",
    "ndiff": 743,
    "ntotal": 830,
@@ -189,7 +189,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 535: orig  While(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='end'",
+   "ast_detail": "diff at token 649: orig  While(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='end'",
    "verdict": "SIG-DIFF",
    "ndiff": 2811,
    "ntotal": 2915,
@@ -197,7 +197,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 148: orig  orelse=[])] | dec  orelse=[])",
+   "ast_detail": "diff at token 149: orig  Continue()] | dec  Return(value=Tuple(elts=[Constant(value=None)",
    "verdict": "SIG-DIFF",
    "ndiff": 1004,
    "ntotal": 1432,
@@ -249,7 +249,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 135: orig  orelse=[If(test=BoolOp(op=And() | dec  orelse=[])",
+   "ast_detail": "diff at token 391: orig  value=Constant(value=True))]))]) | dec  value=Constant(value=True))]))",
    "verdict": "SIG-DIFF",
    "ndiff": 1420,
    "ntotal": 1512,
@@ -257,7 +257,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 2219: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 2239: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 2085,
    "ntotal": 4289,
@@ -273,7 +273,7 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 803: orig  Break()] | dec  Return(value=Name(id='y'",
+   "ast_detail": "diff at token 854: orig  Break()] | dec  Return(value=Name(id='y'",
    "verdict": "SIG-DIFF",
    "ndiff": 344,
    "ntotal": 913,
@@ -289,7 +289,7 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 359: orig  Try(body=[Assign(targets=[Name(id='result' | dec  Raise()]",
+   "ast_detail": "diff at token 371: orig  Try(body=[Assign(targets=[Name(id='result' | dec  Raise()]",
    "verdict": "SIG-DIFF",
    "ndiff": 57,
    "ntotal": 452,
