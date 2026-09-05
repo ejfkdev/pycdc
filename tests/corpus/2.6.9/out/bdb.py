@@ -89,9 +89,17 @@ class Bdb:
         return self.trace_dispatch
 
     def stop_here(self, frame):
-        if frame is self.stopframe and self.stoplineno == -1:
-            return False
-        return frame.f_lineno >= self.stoplineno
+        if frame is self.stopframe:
+            if self.stoplineno == -1:
+                return False
+            return frame.f_lineno >= self.stoplineno
+        while frame is not None:
+            if frame is not self.stopframe:
+                if frame is self.botframe:
+                    return True
+                frame = frame.f_back
+                continue
+        return False
 
     def break_here(self, frame):
         filename = self.canonic(frame.f_code.co_filename)
@@ -425,11 +433,12 @@ class Breakpoint:
             print >>out, '\tstop only if %s' % (self.cond,)
         if self.ignore:
             print >>out, '\tignore next %d hits' % self.ignore
-        if self.hits and self.hits > 1:
-            ss = 's'
-        else:
-            ss = ''
-        print >>out, '\tbreakpoint already hit %d time%s' % (self.hits, ss)
+        if self.hits:
+            if self.hits > 1:
+                ss = 's'
+            else:
+                ss = ''
+            print >>out, '\tbreakpoint already hit %d time%s' % (self.hits, ss)
 
 
 def checkfuncname(b, frame):

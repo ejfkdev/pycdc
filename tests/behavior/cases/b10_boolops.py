@@ -51,3 +51,31 @@ while not (while_val <= 0):
         print('inner cond at', while_val)
 print('done', while_val)
 print((1 == 1) != (2 == 3), (1 < 2) == True)
+
+# nested if/else inside an if without else — py2.6 peek-jump chain fold
+# must NOT merge this into `if a and b: X else: Y` (regression: the
+# merged else fires when the outer condition is false)
+def nest(a, b, log):
+    if a:
+        if b:
+            log.append('both')
+        else:
+            log.append('a-only')
+    log.append('end')
+    return log
+
+print(nest(1, 1, []), nest(1, 0, []), nest(0, 0, []))
+
+def nest_raise(x, fallback):
+    if x is None:
+        if fallback is not None:
+            x = fallback
+        else:
+            raise ValueError('missing')
+    return x
+
+print(nest_raise('given', None), nest_raise(None, 'fb'))
+try:
+    nest_raise(None, None)
+except ValueError:
+    print('VE')

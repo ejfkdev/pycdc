@@ -288,7 +288,7 @@ class dispatcher:
         try:
             conn, addr = self.socket.accept()
         except TypeError:
-            return
+            pass
         except OSError as why:
             pass
         else:

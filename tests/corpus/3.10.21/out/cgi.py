@@ -413,9 +413,8 @@ class FieldStorage:
     def __del__(self):
         try:
             self.file.close()
-            return
         except AttributeError:
-            return
+            pass
 
     def __enter__(self):
         return self
@@ -768,7 +767,6 @@ def test(environ=os.environ):
         print_arguments()
         print_form(form)
         print_environ(environ)
-        return
     except:
         print_exception()
     try:

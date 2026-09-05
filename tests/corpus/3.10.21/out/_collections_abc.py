@@ -121,7 +121,7 @@ class Coroutine(Awaitable):
         try:
             self.throw(GeneratorExit)
         except (GeneratorExit, StopIteration):
-            return
+            pass
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -203,7 +203,7 @@ class AsyncGenerator(AsyncIterator):
         try:
             await self.athrow(GeneratorExit)
         except (GeneratorExit, StopAsyncIteration):
-            return
+            pass
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -314,7 +314,7 @@ class Generator(Iterator):
         try:
             self.throw(GeneratorExit)
         except (GeneratorExit, StopIteration):
-            return
+            pass
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -687,7 +687,7 @@ class MutableSet(Set):
             while True:
                 self.pop()
         except KeyError:
-            return
+            pass
 
     def __ior__(self, it):
         for value in it:
@@ -897,7 +897,7 @@ class MutableMapping(Mapping):
             while True:
                 self.popitem()
         except KeyError:
-            return
+            pass
 
     def update(self, other=(), /, **kwds):
         ''' D.update([E, ]**F) -> None.  Update D from mapping/iterable E and F.
@@ -951,7 +951,7 @@ class Sequence(Reversible, Collection):
                 yield v
                 i += 1
         except IndexError:
-            return
+            pass
 
     def __contains__(self, value):
         for v in self:
@@ -1044,7 +1044,7 @@ class MutableSequence(Sequence):
             while True:
                 self.pop()
         except IndexError:
-            return
+            pass
 
     def reverse(self):
         '''S.reverse() -- reverse *IN PLACE*'''

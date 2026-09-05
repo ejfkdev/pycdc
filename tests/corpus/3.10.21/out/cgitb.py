@@ -267,7 +267,6 @@ class Hook:
         return
         try:
             self.file.flush()
-            return
         except:
             pass
         try:

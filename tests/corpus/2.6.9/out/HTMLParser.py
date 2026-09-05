@@ -111,26 +111,28 @@ class HTMLParser(markupbase.ParserBase):
             if i == n:
                 break
             startswith = rawdata.startswith
-            if startswith('<', i) and starttagopen.match(rawdata, i):
-                k = self.parse_starttag(i)
-            elif startswith('</', i):
-                k = self.parse_endtag(i)
-            elif startswith('<!--', i):
-                k = self.parse_comment(i)
-            elif startswith('<?', i):
-                k = self.parse_pi(i)
-            elif startswith('<!', i):
-                k = self.parse_declaration(i)
-            elif i + 1 < n:
-                self.handle_data('<')
-                k = i + 1
-            else:
-                break
-            if k < 0 and end:
-                self.error('EOF in middle of construct')
-            break
-            i = self.updatepos(i, k)
-            continue
+            if startswith('<', i):
+                if starttagopen.match(rawdata, i):
+                    k = self.parse_starttag(i)
+                elif startswith('</', i):
+                    k = self.parse_endtag(i)
+                elif startswith('<!--', i):
+                    k = self.parse_comment(i)
+                elif startswith('<?', i):
+                    k = self.parse_pi(i)
+                elif startswith('<!', i):
+                    k = self.parse_declaration(i)
+                elif i + 1 < n:
+                    self.handle_data('<')
+                    k = i + 1
+                else:
+                    break
+                if k < 0:
+                    if end:
+                        self.error('EOF in middle of construct')
+                    break
+                i = self.updatepos(i, k)
+                continue
             if startswith('&#', i):
                 match = charref.match(rawdata, i)
                 if match:
@@ -209,12 +211,13 @@ class HTMLParser(markupbase.ParserBase):
             next = rawdata[j:j + 1]
             if next == '>':
                 return j + 1
-            if next == '/' and rawdata.startswith('/>', j):
-                return j + 2
-            if rawdata.startswith('/', j):
-                return -1
-            self.updatepos(i, j + 1)
-            self.error('malformed empty start tag')
+            if next == '/':
+                if rawdata.startswith('/>', j):
+                    return j + 2
+                if rawdata.startswith('/', j):
+                    return -1
+                self.updatepos(i, j + 1)
+                self.error('malformed empty start tag')
             if next == '':
                 return -1
             if next in 'abcdefghijklmnopqrstuvwxyz=/ABCDEFGHIJKLMNOPQRSTUVWXYZ':

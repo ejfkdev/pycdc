@@ -278,10 +278,11 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
     error_content_type = DEFAULT_ERROR_CONTENT_TYPE
     def send_response(self, code, message=None):
         self.log_request(code)
-        if message is None and code in self.responses:
-            message = self.responses[code][0]
-        else:
-            message = ''
+        if message is None:
+            if code in self.responses:
+                message = self.responses[code][0]
+            else:
+                message = ''
         if self.request_version != 'HTTP/0.9':
             self.wfile.write('%s %d %s\r\n' % (self.protocol_version, code, message))
         self.send_header('Server', self.version_string())
@@ -292,10 +293,11 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
 
         if self.request_version != 'HTTP/0.9':
             self.wfile.write('%s: %s\r\n' % (keyword, value))
-        if keyword.lower() == 'connection' and value.lower() == 'close':
-            self.close_connection = 1
-        elif value.lower() == 'keep-alive':
-            self.close_connection = 0
+        if keyword.lower() == 'connection':
+            if value.lower() == 'close':
+                self.close_connection = 1
+            elif value.lower() == 'keep-alive':
+                self.close_connection = 0
 
     def end_headers(self):
         '''Send the blank line ending the MIME headers.'''

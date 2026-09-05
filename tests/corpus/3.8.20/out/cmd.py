@@ -242,7 +242,7 @@ class Cmd:
         try:
             return self.completion_matches[state]
         except IndexError:
-            return
+            pass
 
     def get_names(self):
         return dir(self.__class__)
@@ -267,7 +267,6 @@ class Cmd:
                 except AttributeError:
                     pass
                 self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
-                return
             else:
                 func()
         else:

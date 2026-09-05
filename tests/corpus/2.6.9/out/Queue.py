@@ -34,9 +34,10 @@ class Queue:
         self.all_tasks_done.acquire()
         try:
             unfinished = self.unfinished_tasks - 1
-            if unfinished <= 0 and unfinished < 0:
-                raise ValueError('task_done() called too many times')
-            self.all_tasks_done.notify_all()
+            if unfinished <= 0:
+                if unfinished < 0:
+                    raise ValueError('task_done() called too many times')
+                self.all_tasks_done.notify_all()
             self.unfinished_tasks = unfinished
         finally:
             self.all_tasks_done.release()
@@ -70,11 +71,12 @@ class Queue:
     def put(self, item, block=True, timeout=None):
         self.not_full.acquire()
         try:
-            if self.maxsize > 0 and (block or self._qsize() == self.maxsize):
-                raise Full
-            if timeout is None:
-                while self._qsize() == self.maxsize:
-                    self.not_full.wait()
+            if self.maxsize > 0:
+                if block or self._qsize() == self.maxsize:
+                    raise Full
+                if timeout is None:
+                    while self._qsize() == self.maxsize:
+                        self.not_full.wait()
             self._put(item)
             self.unfinished_tasks += 1
             self.not_empty.notify()
@@ -93,9 +95,10 @@ class Queue:
     def get(self, block=True, timeout=None):
         self.not_empty.acquire()
         try:
-            if block or self._qsize():
-                raise Empty
-            if timeout is None:
+            if not block:
+                if not self._qsize():
+                    raise Empty
+            elif timeout is None:
                 while not self._qsize():
                     self.not_empty.wait()
                 else:

@@ -448,10 +448,21 @@ class ForkingMixIn:
     def process_request(self, request, client_address):
         self.collect_children()
         pid = os.fork()
-        if pid and self.active_children is None:
-            self.active_children = []
-        self.active_children.append(pid)
-        self.close_request(request)
+        if pid:
+            if self.active_children is None:
+                self.active_children = []
+            self.active_children.append(pid)
+            self.close_request(request)
+            return
+        try:
+            self.handle_error(request, client_address)
+        finally:
+            os._exit(1)
+        try:
+            self.finish_request(request, client_address)
+            os._exit(0)
+        except:
+            return
 
 
 class ThreadingMixIn:

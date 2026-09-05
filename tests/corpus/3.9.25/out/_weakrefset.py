@@ -45,7 +45,7 @@ class WeakSet:
             try:
                 item = pop()
             except IndexError:
-                return
+                pass
             else:
                 discard(item)
 

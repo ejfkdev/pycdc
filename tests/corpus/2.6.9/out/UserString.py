@@ -86,14 +86,20 @@ class UserString(collections.Sequence):
         return self.data.count(sub, start, end)
 
     def decode(self, encoding=None, errors=None):
-        if encoding and errors:
-            return self.__class__(self.data.decode(encoding, errors))
-        return self.__class__(self.data.decode(encoding))
+        if encoding:
+            if errors:
+                return self.__class__(self.data.decode(encoding, errors))
+            return self.__class__(self.data.decode(encoding))
+        else:
+            return self.__class__(self.data.decode())
 
     def encode(self, encoding=None, errors=None):
-        if encoding and errors:
-            return self.__class__(self.data.encode(encoding, errors))
-        return self.__class__(self.data.encode(encoding))
+        if encoding:
+            if errors:
+                return self.__class__(self.data.encode(encoding, errors))
+            return self.__class__(self.data.encode(encoding))
+        else:
+            return self.__class__(self.data.encode())
 
     def endswith(self, suffix, start=0, end=sys.maxint):
         return self.data.endswith(suffix, start, end)
@@ -221,23 +227,25 @@ class MutableString(UserString, collections.MutableSequence):
 
     __hash__ = None
     def __setitem__(self, index, sub):
-        if isinstance(index, slice) and isinstance(sub, UserString):
-            sub = sub.data
-        if not isinstance(sub, basestring):
-            sub = str(sub)
-        start, stop, step = index.indices(len(self.data))
-        if step == -1:
-            start, stop = stop + 1, start + 1
-            sub = sub[::-1]
-        if step != 1:
-            raise TypeError('invalid step in slicing assignment')
-        start = min(start, stop)
-        self.data = self.data[:start] + sub + self.data[stop:]
-        if index < 0:
-            index += len(self.data)
-        if index < 0 or index >= len(self.data):
-            raise IndexError
-        self.data = self.data[:index] + sub + self.data[index + 1:]
+        if isinstance(index, slice):
+            if isinstance(sub, UserString):
+                sub = sub.data
+            if not isinstance(sub, basestring):
+                sub = str(sub)
+            start, stop, step = index.indices(len(self.data))
+            if step == -1:
+                start, stop = stop + 1, start + 1
+                sub = sub[::-1]
+            if step != 1:
+                raise TypeError('invalid step in slicing assignment')
+            start = min(start, stop)
+            self.data = self.data[:start] + sub + self.data[stop:]
+        else:
+            if index < 0:
+                index += len(self.data)
+            if index < 0 or index >= len(self.data):
+                raise IndexError
+            self.data = self.data[:index] + sub + self.data[index + 1:]
 
     def __delitem__(self, index):
         if isinstance(index, slice):

@@ -6650,7 +6650,33 @@ impl<'a> Ctx<'a> {
                     .as_ref()
                     .map_or(false, |h| h.pop_seen);
                 let e = self.pop_expr();
-                self.emit_return(Some(e));
+                // handler-side copy of the sunk 3.10 tail terminator:
+                // drop the return, fold the handler without it
+                let handler_sunk = defer_fold
+                    && matches!(&*e, Expr::Const(o) if matches!(&**o, PyObject::None))
+                    && {
+                        let mut m = match self.idx_of.get(&self.cur_offset) {
+                            Some(&i) => i + 1,
+                            None => 0,
+                        };
+                        while matches!(
+                            self.instrs.get(m).map(|x| x.op),
+                            Some(Op::NOP) | Some(Op::CACHE) | Some(Op::NOT_TAKEN)
+                        ) {
+                            m += 1;
+                        }
+                        matches!(
+                            self.instrs.get(m).map(|x| x.op),
+                            Some(Op::RERAISE) | Some(Op::END_FINALLY) | None
+                        ) || self
+                            .legacy_handler_end
+                            .map_or(false, |he| {
+                                self.instrs.get(m).map_or(false, |x| x.offset >= he)
+                            })
+                    };
+                if !handler_sunk {
+                    self.emit_return(Some(e));
+                }
                 if defer_fold {
                     self.flush_pending_stores();
                     if let Some(h) = self.legacy_handler.take() {
@@ -9190,8 +9216,9 @@ impl<'a> Ctx<'a> {
         if self.instrs.get(t0i).map(|x| x.op) != Some(Op::POP_TOP) {
             return None;
         }
-        // pending = (operand, link polarity) pairs awaiting the tail
-        let mut pending: Vec<(ExprRef, bool)> = vec![(first, jump_if_true)];
+        // pending = (operand, link polarity, escape target) triples
+        // awaiting the tail
+        let mut pending: Vec<(ExprRef, bool, usize)> = vec![(first, jump_if_true, target)];
         let mut last_target = target;
         let mut k = i0 + 1;
         // POP_TOP dropping operand 0 on fall-through
@@ -9260,17 +9287,40 @@ impl<'a> Ctx<'a> {
             }
             if !more {
                 // this link was the statement jump: its fall-through POP
-                // was just consumed; the operand is the chain tail
+                // was just consumed; the operand is the chain tail.
+                // Coherence check: in a real boolop chain every JIF link
+                // escapes to the SAME else/end pop and every JIT link to
+                // the SAME body pop (at most one distinct JIT target, and
+                // it is not the tail's escape). A nested `if a: (if b: X
+                // else: Y)` mimics a chain locally — its inner JIF escapes
+                // to its own else arm instead — and is rejected here.
+                let coherent = pending.iter().all(|(_, j, t)| {
+                    if *j == ljit {
+                        *t == lt
+                    } else {
+                        true
+                    }
+                }) && pending
+                    .iter()
+                    .filter(|(_, j, _)| *j != ljit)
+                    .fold(Some(0usize), |acc, (_, _, t)| match acc {
+                        Some(x) if x == 0 || x == *t => Some(*t),
+                        _ => None,
+                    })
+                    .map_or(false, |t| t != lt);
+                if !coherent {
+                    return None;
+                }
                 tail = operand;
                 last_target = lt;
                 break;
             }
-            pending.push((operand, ljit));
+            pending.push((operand, ljit, lt));
         }
         // fold right-associatively from the tail: cond = tail, then each
         // pending (operand, polarity) wraps it — And for JIF, Or for JIT
         let mut cond = tail;
-        for (operand, jit) in pending.into_iter().rev() {
+        for (operand, jit, _) in pending.into_iter().rev() {
             let kind = if jit { BoolOpKind::Or } else { BoolOpKind::And };
             let mut values = Vec::new();
             flatten_boolop(operand, kind, &mut values);
@@ -15463,7 +15513,95 @@ impl<'a> Ctx<'a> {
         self.push_stmt(Stmt::Delete(vec![target]));
     }
 
+    /// 3.10 tail-position try: the compiler sinks the implicit
+    /// function/module terminator `return None` into BOTH the success
+    /// path (just before handler_start) and each handler exit
+    /// (POP_EXCEPT; LOAD None; RETURN), with no shared merge tail.
+    /// Neither copy is a source statement: the success-path copy at
+    /// module level would even be a `return` outside function. Detect
+    /// the pair: a None return here plus a None return after
+    /// POP_EXCEPT in the handler chain.
+    fn sunk_tail_terminator(&self, ret_offset: usize, is_none_value: bool) -> bool {
+        if !is_none_value
+            || !self.version.at_least(3, 10)
+            || self.code.is_generator()
+            || self.code.is_async_generator()
+        {
+            return false;
+        }
+        let Some(l) = self.legacy_try.as_ref() else {
+            return false;
+        };
+        if l.has_finally || ret_offset >= l.handler_start {
+            return false;
+        }
+        // next meaningful instruction after this return must be the
+        // handler head (a truly last statement is followed by code end)
+        let mut k = match self.idx_of.get(&ret_offset) {
+            Some(&i) => i + 1,
+            None => return false,
+        };
+        while matches!(
+            self.instrs.get(k).map(|x| x.op),
+            Some(Op::NOP) | Some(Op::CACHE) | Some(Op::EXTENDED_ARG)
+        ) {
+            k += 1;
+        }
+        if self.instrs.get(k).map(|x| x.offset) != Some(l.handler_start) {
+            return false;
+        }
+        // handler chain must contain a POP_EXCEPT; LOAD None; RETURN arm
+        let mut m = k;
+        let mut pops = 0;
+        let mut prev_none = false;
+        while let Some(ins) = self.instrs.get(m) {
+            match ins.op {
+                Op::POP_EXCEPT => {
+                    pops += 1;
+                    prev_none = false;
+                }
+                Op::LOAD_CONST => {
+                    let is_none = matches!(
+                        self.code.consts.get(ins.arg as usize).map(|o| &**o),
+                        Some(PyObject::None)
+                    );
+                    if is_none {
+                        prev_none = true;
+                    }
+                }
+                Op::RETURN_VALUE | Op::RETURN_CONST => {
+                    if pops > 0 && prev_none {
+                        return true;
+                    }
+                    prev_none = false;
+                }
+                Op::SETUP_FINALLY => break,
+                _ => {
+                    if !matches!(
+                        ins.op,
+                        Op::NOP | Op::CACHE | Op::EXTENDED_ARG | Op::NOT_TAKEN
+                    ) {
+                        prev_none = false;
+                    }
+                }
+            }
+            m += 1;
+        }
+        false
+    }
+
     fn emit_return(&mut self, e: Option<ExprRef>) {
+        // 3.10 sunk tail terminator: drop both implicit copies (this
+        // arm) and let the chain fold at its RERAISE
+        let is_none_value = match &e {
+            None => true,
+            Some(v) => matches!(&**v, Expr::Const(o) if matches!(&**o, PyObject::None)),
+        };
+        if self.legacy_handler.is_none()
+            && self.sunk_tail_terminator(self.cur_offset, is_none_value)
+        {
+            return;
+        }
         // 3.11+: the exception-table region often ends exactly at the
         // RETURN that closes the try body (only the value computation is
         // protected). If the pending body is empty and the value was

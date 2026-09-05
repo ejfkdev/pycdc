@@ -247,10 +247,11 @@ class SimpleXMLRPCDispatcher:
         Returns a list of the methods supported by the server."""
 
         methods = self.funcs.keys()
-        if self.instance is not None and hasattr(self.instance, '_listMethods'):
-            methods = remove_duplicates(methods + self.instance._listMethods())
-        elif not hasattr(self.instance, '_dispatch'):
-            methods = remove_duplicates(methods + list_public_methods(self.instance))
+        if self.instance is not None:
+            if hasattr(self.instance, '_listMethods'):
+                methods = remove_duplicates(methods + self.instance._listMethods())
+            elif not hasattr(self.instance, '_dispatch'):
+                methods = remove_duplicates(methods + list_public_methods(self.instance))
         methods.sort()
         return methods
 
@@ -273,8 +274,8 @@ class SimpleXMLRPCDispatcher:
         method = None
         if method_name in self.funcs:
             method = self.funcs[method_name]
-        else:
-            if self.instance is not None and hasattr(self.instance, '_methodHelp'):
+        if self.instance is not None:
+            if hasattr(self.instance, '_methodHelp'):
                 return self.instance._methodHelp(method_name)
             if not hasattr(self.instance, '_dispatch'):
                 pass
@@ -337,15 +338,19 @@ class SimpleXMLRPCDispatcher:
         try:
             func = self.funcs[method]
         except KeyError:
-            if self.instance is not None and hasattr(self.instance, '_dispatch'):
-                return self.instance._dispatch(method, params)
+            if self.instance is not None:
+                if hasattr(self.instance, '_dispatch'):
+                    return self.instance._dispatch(method, params)
+            if func is not None:
+                pass
+            raise Exception('method "%s" is not supported' % method)
+            return
             try:
                 func = resolve_dotted_attribute(self.instance, method, self.allow_dotted_names)
             except AttributeError:
                 pass
-        if func is not None:
-            return func(*params)
-        raise Exception('method "%s" is not supported' % method)
+            else:
+                return func(*params)
 
 
 class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):

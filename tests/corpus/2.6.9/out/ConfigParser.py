@@ -292,16 +292,18 @@ class RawConfigParser:
 
     def get(self, section, option):
         opt = self.optionxform(option)
-        if section not in self._sections and section != DEFAULTSECT:
-            raise NoSectionError(section)
-        if opt in self._defaults:
-            return self._defaults[opt]
-        raise NoOptionError(option, section)
-        if opt in self._sections[section]:
-            return self._sections[section][opt]
-        if opt in self._defaults:
-            return self._defaults[opt]
-        raise NoOptionError(option, section)
+        if section not in self._sections:
+            if section != DEFAULTSECT:
+                raise NoSectionError(section)
+            if opt in self._defaults:
+                return self._defaults[opt]
+            raise NoOptionError(option, section)
+        else:
+            if opt in self._sections[section]:
+                return self._sections[section][opt]
+            if opt in self._defaults:
+                return self._defaults[opt]
+            raise NoOptionError(option, section)
 
     def items(self, section):
         try:

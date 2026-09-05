@@ -62,7 +62,6 @@ _reraised_exceptions = ExitNow, KeyboardInterrupt, SystemExit
 def read(obj):
     try:
         obj.handle_read_event()
-        return
     except _reraised_exceptions:
         raise
     except:
@@ -71,7 +70,6 @@ def read(obj):
 def write(obj):
     try:
         obj.handle_write_event()
-        return
     except _reraised_exceptions:
         raise
     except:
@@ -80,7 +78,6 @@ def write(obj):
 def _exception(obj):
     try:
         obj.handle_expt_event()
-        return
     except _reraised_exceptions:
         raise
     except:
@@ -254,9 +251,8 @@ class dispatcher:
     def set_reuse_addr(self):
         try:
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR) | 1)
-            return
         except OSError:
-            return
+            pass
 
     def readable(self):
         return True
@@ -295,7 +291,7 @@ class dispatcher:
             conn, addr = self.socket.accept()
             return conn, addr
         except TypeError:
-            return
+            pass
         except OSError as why:
             pass
 

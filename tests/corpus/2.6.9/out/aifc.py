@@ -402,38 +402,39 @@ class Aifc_read:
                 chunk.chunksize = chunk.chunksize + length
                 chunk.file.seek(-1, 1)
             self._compname = _read_string(chunk)
-            try:
-                import audioop
-            except ImportError:
-                if self._comptype != 'NONE' and self._comptype == 'G722':
-                    pass
-            else:
-                self._convert = self._adpcm2lin
-                self._framesize = self._framesize // 4
-                return
-            try:
-                import cl
-            except ImportError:
-                if self._comptype == 'ULAW':
-                    pass
+            if self._comptype != 'NONE':
                 try:
                     import audioop
-                    self._convert = self._ulaw2lin
-                    self._framesize = self._framesize // 2
-                    return
                 except ImportError:
-                    pass
-                raise Error('cannot read compressed AIFF-C files')
-            if self._comptype == 'ULAW':
-                scheme = cl.G711_ULAW
-                self._framesize = self._framesize // 2
-            elif self._comptype == 'ALAW':
-                scheme = cl.G711_ALAW
-                self._framesize = self._framesize // 2
-            else:
-                raise Error('unsupported compression type')
-            self._decomp = cl.OpenDecompressor(scheme)
-            self._convert = self._decomp_data
+                    if self._comptype == 'G722':
+                        pass
+                else:
+                    self._convert = self._adpcm2lin
+                    self._framesize = self._framesize // 4
+                    return
+                try:
+                    import cl
+                except ImportError:
+                    if self._comptype == 'ULAW':
+                        pass
+                    try:
+                        import audioop
+                        self._convert = self._ulaw2lin
+                        self._framesize = self._framesize // 2
+                        return
+                    except ImportError:
+                        pass
+                    raise Error('cannot read compressed AIFF-C files')
+                if self._comptype == 'ULAW':
+                    scheme = cl.G711_ULAW
+                    self._framesize = self._framesize // 2
+                elif self._comptype == 'ALAW':
+                    scheme = cl.G711_ALAW
+                    self._framesize = self._framesize // 2
+                else:
+                    raise Error('unsupported compression type')
+                self._decomp = cl.OpenDecompressor(scheme)
+                self._convert = self._decomp_data
         else:
             self._comptype = 'NONE'
             self._compname = 'not compressed'
@@ -646,21 +647,22 @@ class Aifc_write:
         return data
 
     def _ensure_header_written(self, datasize):
-        if self._nframeswritten or self._comptype in ('ULAW', 'ALAW') and self._sampwidth:
-            self._sampwidth = 2
-        if self._sampwidth != 2:
-            raise Error('sample width must be 2 when compressing with ULAW or ALAW')
-        if self._comptype == 'G722' and self._sampwidth:
-            self._sampwidth = 2
-        if self._sampwidth != 2:
-            raise Error('sample width must be 2 when compressing with G7.22 (ADPCM)')
-        if not self._nchannels:
-            raise Error('# channels not specified')
-        if not self._sampwidth:
-            raise Error('sample width not specified')
-        if not self._framerate:
-            raise Error('sampling rate not specified')
-        self._write_header(datasize)
+        if not self._nframeswritten:
+            if self._comptype in ('ULAW', 'ALAW') and self._sampwidth:
+                self._sampwidth = 2
+            if self._sampwidth != 2:
+                raise Error('sample width must be 2 when compressing with ULAW or ALAW')
+            if self._comptype == 'G722' and self._sampwidth:
+                self._sampwidth = 2
+            if self._sampwidth != 2:
+                raise Error('sample width must be 2 when compressing with G7.22 (ADPCM)')
+            if not self._nchannels:
+                raise Error('# channels not specified')
+            if not self._sampwidth:
+                raise Error('sample width not specified')
+            if not self._framerate:
+                raise Error('sampling rate not specified')
+            self._write_header(datasize)
 
     def _init_compression(self):
         import sys
@@ -707,14 +709,15 @@ class Aifc_write:
         self._datalength = self._nframes * self._nchannels * self._sampwidth
         if self._datalength & 1:
             self._datalength = self._datalength + 1
-        if self._aifc and self._comptype in ('ULAW', 'ALAW'):
-            self._datalength = self._datalength // 2
-            if self._datalength & 1:
-                self._datalength = self._datalength + 1
-        if self._comptype == 'G722':
-            self._datalength = (self._datalength + 3) // 4
-            if self._datalength & 1:
-                self._datalength = self._datalength + 1
+        if self._aifc:
+            if self._comptype in ('ULAW', 'ALAW'):
+                self._datalength = self._datalength // 2
+                if self._datalength & 1:
+                    self._datalength = self._datalength + 1
+            if self._comptype == 'G722':
+                self._datalength = (self._datalength + 3) // 4
+                if self._datalength & 1:
+                    self._datalength = self._datalength + 1
         self._form_length_pos = self._file.tell()
         commlength = self._write_form_length(self._datalength)
         if self._aifc:
@@ -794,10 +797,11 @@ class Aifc_write:
 
 
 def open(f, mode=None):
-    if mode is None and hasattr(f, 'mode'):
-        mode = f.mode
-    else:
-        mode = 'rb'
+    if mode is None:
+        if hasattr(f, 'mode'):
+            mode = f.mode
+        else:
+            mode = 'rb'
     if mode in ('r', 'rb'):
         return Aifc_read(f)
     if mode in ('w', 'wb'):

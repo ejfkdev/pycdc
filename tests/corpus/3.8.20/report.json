@@ -23,7 +23,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 297: orig  body=Yield(value=None)) | dec  body=Yield(value=Constant(value=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 3009,
+   "ndiff": 3002,
    "ntotal": 3084,
    "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -125,18 +125,18 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 391: orig  type_comment=None)] | dec  type_comment=None)",
+   "ast_detail": "diff at token 300: orig  body=[Return(value=None)]) | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 273,
+   "ndiff": 528,
    "ntotal": 810,
-   "detail": "line 334: orig ('JUMP_FORWARD', 'to 282') | got ('JUMP_ABSOLUTE', '')\nline 413: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_IF_FALSE', '')\nline 414: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_FAST', 'index')"
+   "detail": "line 227: orig ('JUMP_FORWARD', 'to 86') | got ('JUMP_FORWARD', 'to 84')\nline 236: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 84')\nline 237: orig ('RETURN_VALUE', '') | got ('DUP_TOP', '')"
   },
   {
    "module": "asyncore",
    "ast_detail": "diff at token 80: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='os' | dec  body=[If(test=Compare(left=Name(id='err'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2119,
-   "ntotal": 2213,
+   "ndiff": 2130,
+   "ntotal": 2212,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -219,7 +219,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 200: orig  body=[Try(body=[Import(names=[alias(name='readline' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1070,
+   "ndiff": 1071,
    "ntotal": 1305,
    "detail": "line 219: orig ('SETUP_FINALLY', 'to 320') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 221: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -271,7 +271,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 86: orig  body=[Return(value=Constant(value=None | dec  body=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1502,
+   "ndiff": 1507,
    "ntotal": 1827,
    "detail": "line 296: orig ('LOAD_DEREF', 'func') | got ('LOAD_FAST', 'func')\nline 298: orig ('LOAD_CLOSURE', 'func') | got ('LOAD_CLOSURE', 'self')\nline 299: orig ('LOAD_CLOSURE', 'self') | got ('BUILD_TUPLE', '')"
   },

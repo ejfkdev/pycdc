@@ -56,10 +56,11 @@ def lookup(name, frame, locals):
         return 'global', frame.f_globals[name]
     if '__builtins__' in frame.f_globals:
         builtins = frame.f_globals['__builtins__']
-        if type(builtins) is type({}) and name in builtins:
-            return 'builtin', builtins[name]
-    if hasattr(builtins, name):
-        return 'builtin', getattr(builtins, name)
+        if type(builtins) is type({}):
+            if name in builtins:
+                return 'builtin', builtins[name]
+        elif hasattr(builtins, name):
+            return 'builtin', getattr(builtins, name)
     return None, __UNDEF__
 
 def scanvars(reader, frame, locals):
@@ -71,10 +72,13 @@ def scanvars(reader, frame, locals):
     for ttype, token, start, end, line in tokenize.generate_tokens(reader):
         if ttype == tokenize.NEWLINE:
             break
-        if ttype == tokenize.NAME and token not in keyword.kwlist and lasttoken == '.' and parent is not __UNDEF__:
-            value = getattr(parent, token, __UNDEF__)
-            vars.append((prefix + token, prefix, value))
-            continue
+        if ttype == tokenize.NAME:
+            if token not in keyword.kwlist:
+                if lasttoken == '.':
+                    if parent is not __UNDEF__:
+                        value = getattr(parent, token, __UNDEF__)
+                        vars.append((prefix + token, prefix, value))
+                        continue
         lasttoken = token
     return vars
 
@@ -132,14 +136,15 @@ def html(einfo, context=5):
             if name in done:
                 continue
             done[name] = 1
-            if value is not __UNDEF__ and where in ('global', 'builtin'):
-                name = '<em>%s</em> ' % where + strong(name)
-            elif where == 'local':
-                name = strong(name)
-            else:
-                name = where + strong(name.split('.')[-1])
-            dump.append('%s&nbsp;= %s' % (name, pydoc.html.repr(value)))
-            continue
+            if value is not __UNDEF__:
+                if where in ('global', 'builtin'):
+                    name = '<em>%s</em> ' % where + strong(name)
+                elif where == 'local':
+                    name = strong(name)
+                else:
+                    name = where + strong(name.split('.')[-1])
+                dump.append('%s&nbsp;= %s' % (name, pydoc.html.repr(value)))
+                continue
             dump.append(name + ' <em>undefined</em>')
         rows.append('<tr><td>%s</td></tr>' % small(grey(', '.join(dump))))
         frames.append('\n<table width="100%%" cellspacing=0 cellpadding=0 border=0>\n%s</table>' % '\n'.join(rows))
@@ -200,12 +205,13 @@ def text(einfo, context=5):
             if name in done:
                 continue
             done[name] = 1
-            if value is not __UNDEF__ and where == 'global':
-                name = 'global ' + name
-            if where != 'local':
-                name = where + name.split('.')[-1]
-            dump.append('%s = %s' % (name, pydoc.text.repr(value)))
-            continue
+            if value is not __UNDEF__:
+                if where == 'global':
+                    name = 'global ' + name
+                if where != 'local':
+                    name = where + name.split('.')[-1]
+                dump.append('%s = %s' % (name, pydoc.text.repr(value)))
+                continue
             dump.append(name + ' undefined')
         rows.append('\n'.join(dump))
         frames.append('\n%s\n' % '\n'.join(rows))
@@ -244,12 +250,14 @@ class Hook:
             import traceback
             doc = ''.join(traceback.format_exception(*info))
             plain = True
-        if self.display and plain:
-            doc = doc.replace('&', '&amp;').replace('<', '&lt;')
-            self.file.write('<pre>' + doc + '</pre>\n')
+        if self.display:
+            if plain:
+                doc = doc.replace('&', '&amp;').replace('<', '&lt;')
+                self.file.write('<pre>' + doc + '</pre>\n')
+            else:
+                self.file.write(doc + '\n')
         else:
-            self.file.write(doc + '\n')
-        self.file.write('<p>A problem occurred in a Python script.\n')
+            self.file.write('<p>A problem occurred in a Python script.\n')
         if self.logdir is not None:
             import os
             import tempfile

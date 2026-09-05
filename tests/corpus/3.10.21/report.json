@@ -67,7 +67,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 51: orig  body=[Try(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='sys' | dec  body=[Raise(exc=Call(func=Name(id='SystemExit'",
    "verdict": "SIG-DIFF",
-   "ndiff": 285,
+   "ndiff": 281,
    "ntotal": 369,
    "detail": "line 72: orig ('SETUP_FINALLY', 'to 22') | got ('LOAD_GLOBAL', 'SystemExit')\nline 73: orig ('LOAD_GLOBAL', 'sys') | got ('LOAD_FAST', 'code')\nline 74: orig ('LOAD_ATTR', 'stdin') | got ('CALL_FUNCTION', '')"
   },
@@ -95,9 +95,9 @@
    "module": "_weakrefset",
    "ast_detail": "diff at token 103: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 27,
+   "ndiff": 575,
    "ntotal": 922,
-   "detail": "line 488: orig ('SETUP_FINALLY', 'to 32') | got ('LOAD_FAST', 'item')\nline 489: orig ('LOAD_FAST', 'self') | got ('LOAD_CONST', 'None')\nline 490: orig ('LOAD_ATTR', 'data') | got ('IS_OP', '')"
+   "detail": "line 333: orig ('JUMP_FORWARD', 'to 50') | got ('JUMP_FORWARD', 'to 48')\nline 336: orig ('JUMP_IF_NOT_EXC_MATCH', 'to 48') | got ('JUMP_IF_NOT_EXC_MATCH', 'to 46')\nline 341: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 56')"
   },
   {
    "module": "abc",
@@ -115,17 +115,17 @@
    "module": "ast",
    "ast_detail": "diff at token 334: orig  values=[Call(func=Name(id='isinstance' | dec  values=[BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 7462,
-   "ntotal": 7854,
+   "ndiff": 7480,
+   "ntotal": 7852,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "asynchat",
    "ast_detail": "diff at token 210: orig  body=[Try(body=[Assign(targets=[Name(id='data' | dec  body=[While(test=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 571,
+   "ndiff": 566,
    "ntotal": 808,
-   "detail": "line 228: orig ('SETUP_FINALLY', 'to 18') | got ('LOAD_FAST', 'self')\nline 229: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'ac_in_buffer')\nline 230: orig ('LOAD_METHOD', 'recv') | got ('POP_JUMP_IF_FALSE', 'to 442')"
+   "detail": "line 228: orig ('SETUP_FINALLY', 'to 18') | got ('LOAD_FAST', 'self')\nline 229: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'ac_in_buffer')\nline 230: orig ('LOAD_METHOD', 'recv') | got ('POP_JUMP_IF_FALSE', 'to 438')"
   },
   {
    "module": "asyncore",
@@ -207,15 +207,15 @@
    "module": "chunk",
    "ast_detail": "diff at token 93: orig  If(test=Name(id='inclheader' | dec  Assign(targets=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 310,
-   "ntotal": 447,
+   "ndiff": 313,
+   "ntotal": 446,
    "detail": "line 122: orig ('LOAD_FAST', 'inclheader') | got ('LOAD_FAST', 'self')\nline 123: orig ('POP_JUMP_IF_FALSE', 'to 142') | got ('LOAD_ATTR', 'chunksize')\nline 124: orig ('LOAD_FAST', 'self') | got ('LOAD_CONST', '8')"
   },
   {
    "module": "cmd",
    "ast_detail": "diff at token 142: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1100,
+   "ndiff": 1101,
    "ntotal": 1324,
    "detail": "line 179: orig ('POP_JUMP_IF_FALSE', 'to 90') | got ('POP_JUMP_IF_FALSE', 'to 22')\nline 182: orig ('POP_JUMP_IF_FALSE', 'to 90') | got ('POP_JUMP_IF_FALSE', 'to 22')\nline 183: orig ('SETUP_FINALLY', 'to 72') | got ('NOP', '')"
   },

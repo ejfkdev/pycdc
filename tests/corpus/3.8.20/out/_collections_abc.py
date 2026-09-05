@@ -797,7 +797,7 @@ class Sequence(Reversible, Collection):
                 yield v
                 i += 1
         except IndexError:
-            return
+            pass
 
     def __contains__(self, value):
         for v in self:

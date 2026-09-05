@@ -63,11 +63,12 @@ error = tuple(_errors)
 def open(file, flag='r', mode=438):
     from whichdb import whichdb
     result = whichdb(file)
-    if result is None and ('c' in flag or 'n' in flag):
-        mod = _defaultmod
-    else:
-        raise error("need 'c' or 'n' flag to open new db")
-    if result == '':
+    if result is None:
+        if 'c' in flag or 'n' in flag:
+            mod = _defaultmod
+        else:
+            raise error("need 'c' or 'n' flag to open new db")
+    elif result == '':
         raise error('db type could not be determined')
     else:
         mod = __import__(result)

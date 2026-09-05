@@ -392,13 +392,16 @@ class BaseCookie(dict):
                 break
             K, V = match.group('key'), match.group('val')
             i = match.end(0)
-            if K[0] == '$' and M:
-                M[K[1:]] = V
-            if K.lower() in Morsel._reserved and M:
-                M[K] = _unquote(V)
-            rval, cval = self.value_decode(V)
-            self.__set(K, rval, cval)
-            M = self[K]
+            if K[0] == '$':
+                if M:
+                    M[K[1:]] = V
+            elif K.lower() in Morsel._reserved:
+                if M:
+                    M[K] = _unquote(V)
+            else:
+                rval, cval = self.value_decode(V)
+                self.__set(K, rval, cval)
+                M = self[K]
 
 
 class SimpleCookie(BaseCookie):

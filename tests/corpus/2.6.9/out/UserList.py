@@ -5,12 +5,13 @@ import collections
 class UserList(collections.MutableSequence):
     def __init__(self, initlist=None):
         self.data = []
-        if initlist is not None and type(initlist) == type(self.data):
-            self.data[:] = initlist
-        elif isinstance(initlist, UserList):
-            self.data[:] = initlist.data[:]
-        else:
-            self.data = list(initlist)
+        if initlist is not None:
+            if type(initlist) == type(self.data):
+                self.data[:] = initlist
+            elif isinstance(initlist, UserList):
+                self.data[:] = initlist.data[:]
+            else:
+                self.data = list(initlist)
 
     def __repr__(self):
         return repr(self.data)

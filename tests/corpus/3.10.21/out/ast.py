@@ -353,7 +353,7 @@ def get_source_segment(source, node, *, padded=False):
             col_offset = node.col_offset
             end_col_offset = node.end_col_offset
         except AttributeError:
-            return
+            pass
         else:
             lines = _splitlines_no_ff(source)
             return lines[lineno].encode()[col_offset:end_col_offset].decode()
@@ -665,7 +665,7 @@ class _Unparser(NodeVisitor):
         try:
             f(next(seq))
         except StopIteration:
-            return
+            pass
         for x in seq:
             inter()
             f(x)

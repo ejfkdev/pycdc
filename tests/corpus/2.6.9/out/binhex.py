@@ -254,8 +254,8 @@ class _Hqxdecoderengine:
 
         decdata = ''
         wtd = totalwtd
-        while True:
-            if wtd > 0 and self.eof:
+        while wtd > 0:
+            if self.eof:
                 return decdata
             wtd = (wtd + 2) // 3 * 4
             data = self.ifp.read(wtd)

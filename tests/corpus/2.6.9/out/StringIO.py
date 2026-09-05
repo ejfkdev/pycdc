@@ -177,14 +177,16 @@ class StringIO:
             self.buflist.append('\x00' * (spos - slen))
             slen = spos
         newpos = spos + len(s)
-        if spos < slen and self.buflist:
-            self.buf += ''.join(self.buflist)
-        self.buflist = [self.buf[:spos], s, self.buf[newpos:]]
-        self.buf = ''
-        if newpos > slen:
+        if spos < slen:
+            if self.buflist:
+                self.buf += ''.join(self.buflist)
+            self.buflist = [self.buf[:spos], s, self.buf[newpos:]]
+            self.buf = ''
+            if newpos > slen:
+                slen = newpos
+        else:
+            self.buflist.append(s)
             slen = newpos
-        self.buflist.append(s)
-        slen = newpos
         self.len = slen
         self.pos = newpos
 

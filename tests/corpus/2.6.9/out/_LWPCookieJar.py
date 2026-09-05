@@ -88,10 +88,11 @@ class LWPCookieJar(FileCookieJar):
         return '\n'.join(r + [''])
 
     def save(self, filename=None, ignore_discard=False, ignore_expires=False):
-        if filename is None and self.filename is not None:
-            filename = self.filename
-        else:
-            raise ValueError(MISSING_FILENAME_TEXT)
+        if filename is None:
+            if self.filename is not None:
+                filename = self.filename
+            else:
+                raise ValueError(MISSING_FILENAME_TEXT)
         f = open(filename, 'w')
         try:
             f.write('#LWP-Cookies-2.0\n')
@@ -129,10 +130,11 @@ class LWPCookieJar(FileCookieJar):
                             lc = None
                         if lc in value_attrs or lc in boolean_attrs:
                             k = lc
-                        if k in boolean_attrs and v is None:
-                            v = True
-                        standard[k] = v
-                        continue
+                        if k in boolean_attrs:
+                            if v is None:
+                                v = True
+                            standard[k] = v
+                            continue
                         if k in value_attrs:
                             standard[k] = v
                             continue

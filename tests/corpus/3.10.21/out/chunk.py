@@ -75,7 +75,6 @@ class Chunk:
             pass
         except (AttributeError, OSError):
             self.seekable = False
-            return
         else:
             self.seekable = True
 
@@ -165,7 +164,6 @@ class Chunk:
                     n = n + 1
             self.file.seek(n, 1)
             self.size_read = self.size_read + n
-            return
         except OSError:
             pass
         while self.size_read < self.chunksize:

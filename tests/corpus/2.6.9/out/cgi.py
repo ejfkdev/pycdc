@@ -111,12 +111,14 @@ def parse(fp=None, environ=os.environ, keep_blank_values=0, strict_parsing=0):
             qs = fp.read(clength)
         else:
             qs = ''
-        if 'QUERY_STRING' in environ and qs:
-            qs = qs + '&'
-        qs = qs + environ['QUERY_STRING']
-        if sys.argv[1:] and qs:
-            qs = qs + '&'
-        qs = qs + sys.argv[1]
+        if 'QUERY_STRING' in environ:
+            if qs:
+                qs = qs + '&'
+            qs = qs + environ['QUERY_STRING']
+        if sys.argv[1:]:
+            if qs:
+                qs = qs + '&'
+            qs = qs + sys.argv[1]
         environ['QUERY_STRING'] = qs
     elif 'QUERY_STRING' in environ:
         qs = environ['QUERY_STRING']
@@ -179,9 +181,12 @@ def parse_multipart(fp, pdict):
             clength = headers.getheader('content-length')
             if clength:
                 continue
-        if bytes > 0 and maxlen and bytes > maxlen:
-            raise ValueError('Maximum content length exceeded')
-        data = fp.read(bytes)
+        if bytes > 0:
+            if maxlen and bytes > maxlen:
+                raise ValueError('Maximum content length exceeded')
+            data = fp.read(bytes)
+            continue
+        data = ''
         lines = []
         while True:
             line = fp.readline()
@@ -201,15 +206,16 @@ def parse_multipart(fp, pdict):
             continue
         if data is None:
             continue
-        if bytes < 0 and lines:
-            line = lines[-1]
-            if line[-2:] == '\r\n':
-                line = line[:-2]
-            if line[-1:] == '\n':
-                line = line[:-1]
-            lines[-1] = line
-            data = ''.join(lines)
-            continue
+        if bytes < 0:
+            if lines:
+                line = lines[-1]
+                if line[-2:] == '\r\n':
+                    line = line[:-2]
+                if line[-1:] == '\n':
+                    line = line[:-1]
+                lines[-1] = line
+                data = ''.join(lines)
+                continue
         line = headers['content-disposition']
         if not line:
             continue
@@ -363,15 +369,16 @@ class FieldStorage:
         if 'REQUEST_METHOD' in environ:
             method = environ['REQUEST_METHOD'].upper()
         self.qs_on_post = None
-        if method == 'GET' or method == 'HEAD' and 'QUERY_STRING' in environ:
-            qs = environ['QUERY_STRING']
-        elif sys.argv[1:]:
-            qs = sys.argv[1]
-        else:
-            qs = ''
-        fp = StringIO(qs)
-        if headers is None:
-            headers = {'content-type': 'application/x-www-form-urlencoded'}
+        if method == 'GET' or method == 'HEAD':
+            if 'QUERY_STRING' in environ:
+                qs = environ['QUERY_STRING']
+            elif sys.argv[1:]:
+                qs = sys.argv[1]
+            else:
+                qs = ''
+            fp = StringIO(qs)
+            if headers is None:
+                headers = {'content-type': 'application/x-www-form-urlencoded'}
         if headers is None:
             headers = {}
             if method == 'POST':
@@ -805,8 +812,12 @@ class FormContent(FormContentDict):
             return self.dict[key]
 
     def indexed_value(self, key, location):
-        if key in self.dict and len(self.dict[key]) > location:
-            return self.dict[key][location]
+        if key in self.dict:
+            if len(self.dict[key]) > location:
+                return self.dict[key][location]
+            return
+        else:
+            return
 
     def value(self, key):
         if key in self.dict:

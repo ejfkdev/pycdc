@@ -142,7 +142,7 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             try:
                 await self.gen.__anext__()
             except StopAsyncIteration:
-                return
+                pass
             else:
                 raise RuntimeError("generator didn't stop")
         else:

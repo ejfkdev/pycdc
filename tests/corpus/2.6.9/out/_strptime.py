@@ -291,12 +291,13 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
         if group_key == 'I':
             hour = int(found_dict['I'])
             ampm = found_dict.get('p', '').lower()
-            if ampm in ('', locale_time.am_pm[0]) and hour == 12:
-                hour = 0
-        elif ampm == locale_time.am_pm[1] and hour != 12:
-            hour += 12
-        continue
-        if group_key == 'M':
+            if ampm in ('', locale_time.am_pm[0]):
+                if hour == 12:
+                    hour = 0
+            if ampm == locale_time.am_pm[1]:
+                if hour != 12:
+                    hour += 12
+        elif group_key == 'M':
             minute = int(found_dict['M'])
             continue
         if group_key == 'S':
@@ -331,15 +332,19 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
         elif group_key == 'Z':
             found_zone = found_dict['Z'].lower()
             for value, tz_values in enumerate(locale_time.timezone):
-                if found_zone in tz_values and time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                    break
-                else:
-                    tz = value
-                    break
+                if found_zone in tz_values:
+                    if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
+                        break
+                    else:
+                        tz = value
+                        break
             else:
                 continue
-    week_starts_Mon = True if julian == -1 and week_of_year != -1 and weekday != -1 and week_of_year_start == 0 else False
-    julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
+    if julian == -1:
+        if week_of_year != -1:
+            if weekday != -1:
+                week_starts_Mon = True if week_of_year_start == 0 else False
+                julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
     if julian == -1:
         julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
     else:

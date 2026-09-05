@@ -60,8 +60,9 @@ def literal_eval(node_or_string):
             return list(map(_convert, node.elts))
         if isinstance(node, Dict):
             return dict(((_convert(k), _convert(v)) for k, v in zip(node.keys, node.values)))
-        if isinstance(node, Name) and node.id in _safe_names:
-            return _safe_names[node.id]
+        if isinstance(node, Name):
+            if node.id in _safe_names:
+                return _safe_names[node.id]
         raise ValueError('malformed string')
 
     return _convert(node_or_string)
@@ -184,10 +185,13 @@ def get_docstring(node, clean=True):
 
     if not isinstance(node, (FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
-    if node.body and isinstance(node.body[0], Expr) and isinstance(node.body[0].value, Str) and clean:
-        import inspect
-        return inspect.cleandoc(node.body[0].value.s)
-    return node.body[0].value.s
+    if node.body:
+        if isinstance(node.body[0], Expr):
+            if isinstance(node.body[0].value, Str):
+                if clean:
+                    import inspect
+                    return inspect.cleandoc(node.body[0].value.s)
+                return node.body[0].value.s
 
 def walk(node):
     """

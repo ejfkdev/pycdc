@@ -170,10 +170,11 @@ class Cmd:
             return None, None, line
         if line[0] == '?':
             line = 'help ' + line[1:]
-        elif line[0] == '!' and hasattr(self, 'do_shell'):
-            line = 'shell ' + line[1:]
-        else:
-            return None, None, line
+        if line[0] == '!':
+            if hasattr(self, 'do_shell'):
+                line = 'shell ' + line[1:]
+            else:
+                return None, None, line
         i, n = 0, len(line)
         while i < n and line[i] in self.identchars:
             i = i + 1
@@ -305,8 +306,9 @@ class Cmd:
         names.sort()
         prevname = ''
         for name in names:
-            if name[:3] == 'do_' and name == prevname:
-                continue
+            if name[:3] == 'do_':
+                if name == prevname:
+                    continue
             prevname = name
             cmd = name[3:]
             if cmd in help:

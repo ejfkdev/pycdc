@@ -69,7 +69,7 @@ class async_chat(asyncore.dispatcher):
         try:
             data = self.recv(self.ac_in_buffer_size)
         except BlockingIOError:
-            return
+            pass
         except OSError as why:
             self.handle_error()
             return
@@ -173,7 +173,6 @@ class async_chat(asyncore.dispatcher):
                         num_sent = self.send(data)
                     except OSError:
                         self.handle_error()
-                        return
                     else:
                         self.producer_fifo[0] = first[num_sent:]
                 else:

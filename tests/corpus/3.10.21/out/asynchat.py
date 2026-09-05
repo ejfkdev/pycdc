@@ -73,10 +73,9 @@ class async_chat(asyncore.dispatcher):
                 try:
                     data = self.recv(self.ac_in_buffer_size)
                 except BlockingIOError:
-                    return
+                    pass
                 except OSError:
                     self.handle_error()
-                    return
                 else:
                     data = bytes(str, self.encoding)
                     if isinstance(data, str) and self.use_encoding:
@@ -154,7 +153,6 @@ class async_chat(asyncore.dispatcher):
             pass
         except OSError:
             self.handle_error()
-            return
         else:
             self.producer_fifo[0] = first[num_sent:]
             return

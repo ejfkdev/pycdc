@@ -82,10 +82,11 @@ class MozillaCookieJar(FileCookieJar):
             raise LoadError('invalid Netscape format cookies file %r: %r' % (filename, line))
 
     def save(self, filename=None, ignore_discard=False, ignore_expires=False):
-        if filename is None and self.filename is not None:
-            filename = self.filename
-        else:
-            raise ValueError(MISSING_FILENAME_TEXT)
+        if filename is None:
+            if self.filename is not None:
+                filename = self.filename
+            else:
+                raise ValueError(MISSING_FILENAME_TEXT)
         f = open(filename, 'w')
         try:
             f.write(self.header)
