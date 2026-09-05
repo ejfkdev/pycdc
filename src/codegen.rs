@@ -1453,6 +1453,13 @@ impl Printer {
                 } else if quote.starts_with(ch) && (s.ends_with(quote) || s.contains(&q3)) {
                     body.push('\\');
                     body.push(ch);
+                } else if ch != '\n'
+                    && ch != '\t'
+                    && ((ch as u32) < 0x20 || ch as u32 == 0x7f)
+                {
+                    // escape control chars (null, etc.) that would be
+                    // invalid as raw bytes inside a source string
+                    body.push_str(&format!("\\x{:02x}", ch as u32));
                 } else {
                     body.push(ch);
                 }

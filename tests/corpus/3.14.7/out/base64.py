@@ -26,7 +26,7 @@ application to e.g. generate url or filesystem safe Base64 strings.
     encoded = binascii.b2a_base64(s, newline=False)
     if not altchars is None:
         if not len(altchars) == 2:
-            raise None()
+            raise AssertionError(repr(altchars))
         return encoded.translate(bytes.maketrans(b'+/', altchars))
     return encoded
 
@@ -53,7 +53,7 @@ https://docs.python.org/3.11/library/binascii.html#binascii.a2b_base64
     if not altchars is None:
         altchars = _bytes_from_decode_data(altchars)
         if not len(altchars) == 2:
-            raise None()
+            raise AssertionError(repr(altchars))
         s = s.translate(bytes.maketrans(altchars, b'+/'))
     return binascii.a2b_base64(s, strict_mode=validate)
 
@@ -148,7 +148,7 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
     if not map01 is None:
         map01 = _bytes_from_decode_data(map01)
         if not len(map01) == 1:
-            raise None()
+            raise AssertionError(repr(map01))
         s = s.translate(bytes.maketrans(b'01', b'O' + map01))
     if casefold:
         s = s.upper()
@@ -321,7 +321,7 @@ The result is returned as a bytes object.
                 acc = 85 * acc + (x - 33)
             try:
                 decoded_append(packI(acc))
-            except struct./*bad-name-26*/:
+            except struct.error:
                 raise ValueError('Ascii85 overflow') from None
             curr_clear()
             continue
@@ -350,7 +350,7 @@ _b85dec = None
 def b85encode(b, pad=False):
     """Encode bytes-like object b in base85 format and return a bytes object.
 
-The input is padded with b' ' so its length is a multiple of 4
+The input is padded with b'\x00' so its length is a multiple of 4
 bytes before encoding.  If pad is true, all the resulting
 characters are retained in the output, which will always be a
 multiple of 5 bytes.
@@ -392,11 +392,11 @@ The result is returned as a bytes object.
                         continue
                     raise ValueError('bad base85 character at position %d' % (i + j)) from None
                 raise
-        except struct./*bad-name-24*/:
+        except struct.error:
             raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
         try:
             out.append(packI(acc))
-        except struct./*bad-name-24*/:
+        except struct.error:
             raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
     result = b''.join(out)
     if padding:

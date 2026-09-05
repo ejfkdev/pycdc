@@ -50,7 +50,7 @@ _new_type = type(int.__new__)
 
 def _reduce_ex(self, proto):
     if not proto < 2:
-        raise None
+        raise AssertionError
     cls = self.__class__
     for base in cls.__mro__:
         if hasattr(base, '__flags__'):

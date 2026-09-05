@@ -3,8 +3,7 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 5,
-  "SIG-DIFF": 30,
-  "INCOMPLETE": 5
+  "SIG-DIFF": 35
  },
  "results": [
   {
@@ -41,8 +40,11 @@
   },
   {
    "module": "_compression",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: invalid syntax"
+   "ast_detail": "",
+   "verdict": "SIG-DIFF",
+   "ndiff": 209,
+   "ntotal": 571,
+   "detail": "line 307: orig ('POP_JUMP_IF_FALSE', 'to 366') | got ('POP_JUMP_IF_FALSE', 'to 240')\nline 322: orig ('JUMP_FORWARD', 'to 566') | got ('JUMP_FORWARD', 'to 366')\nline 338: orig ('LOAD_FAST', 'rawblock') | got ('LOAD_FAST_CHECK', 'rawblock')"
   },
   {
    "module": "_markupbase",
@@ -118,13 +120,19 @@
   },
   {
    "module": "aifc",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: invalid syntax"
+   "ast_detail": "",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2747,
+   "ntotal": 3367,
+   "detail": "line 519: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 520: orig ('COPY', '') | got ('POP_JUMP_IF_FALSE', 'to 128')\nline 521: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },
   {
    "module": "base64",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: invalid syntax"
+   "ast_detail": "",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1685,
+   "ntotal": 1936,
+   "detail": "line 70: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 72: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 217: orig ('POP_JUMP_IF_FALSE', 'to 70') | got ('POP_JUMP_IF_FALSE', 'to 68')"
   },
   {
    "module": "bdb",
@@ -184,8 +192,11 @@
   },
   {
    "module": "chunk",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: invalid syntax"
+   "ast_detail": "",
+   "verdict": "SIG-DIFF",
+   "ndiff": 355,
+   "ntotal": 470,
+   "detail": "line 99: orig ('LOAD_FAST', 'struct') | got ('NOP', '')\nline 100: orig ('LOAD_ATTR', 'NULL|self + unpack_from') | got ('LOAD_FAST', 'struct')\nline 101: orig ('LOAD_FAST', 'strflag') | got ('LOAD_ATTR', 'NULL|self + unpack_from')"
   },
   {
    "module": "cmd",
@@ -225,8 +236,11 @@
   },
   {
    "module": "compileall",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: invalid syntax"
+   "ast_detail": "",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1625,
+   "ntotal": 1697,
+   "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "configparser",

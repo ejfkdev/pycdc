@@ -67,7 +67,7 @@ class Chunk:
         try:
             try:
                 self.chunksize = struct.unpack_from(strflag + 'L', file.read(4))[0]
-            except struct./*bad-name-20*/:
+            except struct.error:
                 raise EOFError from None
         except (AttributeError, OSError):
             self.seekable = False

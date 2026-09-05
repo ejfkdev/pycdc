@@ -48,7 +48,7 @@ by the SGML/HTML and XHTML parsers.'''
         rawdata = self.rawdata
         j = i + 2
         if not rawdata[i:j] == '<!':
-            raise None()
+            raise AssertionError('unexpected call to parse_declaration')
         if rawdata[j:j + 1] == '>':
             return j + 1
         if rawdata[j:j + 1] in ('-', ''):
@@ -97,7 +97,7 @@ by the SGML/HTML and XHTML parsers.'''
     def parse_marked_section(self, i, report=1):
         rawdata = self.rawdata
         if not rawdata[i:i + 3] == '<![':
-            raise None()
+            raise AssertionError('unexpected call to parse_marked_section()')
         sectName, j = self._scan_name(i + 3, i)
         if j < 0:
             return j

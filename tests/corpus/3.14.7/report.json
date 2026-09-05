@@ -3,8 +3,7 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 6,
-  "SIG-DIFF": 32,
-  "INCOMPLETE": 2
+  "SIG-DIFF": 34
  },
  "results": [
   {
@@ -39,7 +38,7 @@
    "module": "_ast_unparse",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 6868,
+   "ndiff": 6888,
    "ntotal": 7127,
    "detail": "line 11: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')\nline 12: orig ('LOAD_CONST', \"('NodeVisitor',)\") | got ('LOAD_SMALL_INT', '')\nline 13: orig ('IMPORT_NAME', 'ast') | got ('LOAD_CONST', \"('NodeVisitor',)\")"
   },
@@ -47,8 +46,8 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4028,
-   "ntotal": 4112,
+   "ndiff": 3991,
+   "ntotal": 4114,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_SMALL_INT', '')"
   },
   {
@@ -65,7 +64,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 2,
    "ntotal": 492,
-   "detail": "line 290: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 314: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')"
+   "detail": "line 290: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_NAME', 'AssertionError')\nline 314: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_NAME', 'AssertionError')"
   },
   {
    "module": "_ios_support",
@@ -79,9 +78,9 @@
    "module": "_markupbase",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 952,
+   "ndiff": 951,
    "ntotal": 1352,
-   "detail": "line 212: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 213: orig ('LOAD_CONST', \"'unexpected call to parse_declaration'\") | got ('PUSH_NULL', '')\nline 293: orig ('POP_JUMP_IF_FALSE', 'to L19') | got ('POP_JUMP_IF_FALSE', 'to L18')"
+   "detail": "line 212: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError + NULL')\nline 293: orig ('POP_JUMP_IF_FALSE', 'to L19') | got ('POP_JUMP_IF_FALSE', 'to L18')\nline 351: orig ('JUMP_FORWARD', 'to L17') | got ('JUMP_FORWARD', 'to L16')"
   },
   {
    "module": "_opcode_metadata",
@@ -91,25 +90,25 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1472,
-   "ntotal": 1710,
+   "ndiff": 1498,
+   "ntotal": 1714,
    "detail": "line 176: orig ('NOP', '') | got ('LOAD_SMALL_INT', '')\nline 177: orig ('LOAD_SMALL_INT', '') | got ('LOAD_CONST', 'None')\nline 178: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'tempfile')"
   },
   {
    "module": "_py_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 265,
-   "ntotal": 634,
-   "detail": "line 367: orig ('COPY', '') | got ('POP_JUMP_IF_NOT_NONE', 'to L7')\nline 368: orig ('LOAD_COMMON_CONSTANT', '<built-in function any>') | got ('NOT_TAKEN', '')\nline 369: orig ('IS_OP', 'is') | got ('LOAD_FAST_BORROW', 'cls')"
+   "ndiff": 263,
+   "ntotal": 636,
+   "detail": "line 367: orig ('COPY', '') | got ('LOAD_GLOBAL', 'any')\nline 368: orig ('LOAD_COMMON_CONSTANT', '<built-in function any>') | got ('IS_OP', 'is')\nline 369: orig ('IS_OP', 'is') | got ('POP_JUMP_IF_FALSE', 'to L7')"
   },
   {
    "module": "_py_warnings",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2758,
-   "ntotal": 3349,
-   "detail": "line 373: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 389: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 541: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')"
+   "ndiff": 2766,
+   "ntotal": 3351,
+   "detail": "line 373: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')\nline 389: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')\nline 541: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')"
   },
   {
    "module": "_pylong",
@@ -167,7 +166,7 @@
    "module": "annotationlib",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4033,
+   "ndiff": 3745,
    "ntotal": 4129,
    "detail": "line 56: orig ('LOAD_NAME', 'type') | got ('NOP', '')\nline 57: orig ('PUSH_NULL', '') | got ('LOAD_NAME', 'type')\nline 58: orig ('LOAD_CONST', \"('',)\") | got ('PUSH_NULL', '')"
   },
@@ -181,14 +180,17 @@
   },
   {
    "module": "base64",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: source code string cannot contain null bytes"
+   "ast_detail": "",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1851,
+   "ntotal": 2149,
+   "detail": "line 265: orig ('NOP', '') | got ('LOAD_FAST_BORROW', 's')\nline 266: orig ('LOAD_FAST_BORROW', 's') | got ('LOAD_ATTR', 'encode + NULL|self')\nline 267: orig ('LOAD_ATTR', 'encode + NULL|self') | got ('LOAD_CONST', \"'ascii'\")"
   },
   {
    "module": "bdb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3849,
+   "ndiff": 3823,
    "ntotal": 4001,
    "detail": "line 31: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 35: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 36: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_SMALL_INT', '')"
   },
@@ -262,8 +264,11 @@
   },
   {
    "module": "compileall",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: invalid syntax"
+   "ast_detail": "",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1327,
+   "ntotal": 1666,
+   "detail": "line 279: orig ('POP_JUMP_IF_NONE', 'to L2') | got ('POP_JUMP_IF_NONE', 'to L1')\nline 285: orig ('POP_JUMP_IF_NONE', 'to L2') | got ('POP_JUMP_IF_NONE', 'to L1')\nline 292: orig ('POP_JUMP_IF_NONE', 'to L3') | got ('POP_JUMP_IF_NONE', 'to L2')"
   },
   {
    "module": "configparser",
@@ -295,7 +300,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 452,
    "ntotal": 691,
-   "detail": "line 211: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L3')\nline 228: orig ('LOAD_FAST_BORROW', 'base') | got ('JUMP_BACKWARD', 'to L2')"
+   "detail": "line 211: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L3')\nline 228: orig ('LOAD_FAST_BORROW', 'base') | got ('JUMP_BACKWARD', 'to L2')"
   }
  ]
 }

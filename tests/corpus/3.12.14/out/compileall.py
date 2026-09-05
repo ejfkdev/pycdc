@@ -206,7 +206,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                             return success
                     except OSError:
                         pass
-                except py_compile./*bad-name-86*/ as err:
+                except py_compile.PyCompileError as err:
                     success = False
                     if quiet >= 2:
                         return success
@@ -249,7 +249,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                         continue
                     os.unlink(cfile)
                     os.link(previous_cfile, cfile)
-            except py_compile./*bad-name-86*/ as err:
+            except py_compile.PyCompileError as err:
                 success = False
                 if quiet >= 2:
                     return success

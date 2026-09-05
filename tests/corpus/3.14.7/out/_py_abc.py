@@ -86,7 +86,7 @@ Returns the subclass, to allow usage as a class decorator.
             if cls._abc_negative_cache_version == ABCMeta._abc_invalidation_counter and subclass in cls._abc_negative_cache:
                 return False
             return cls.__subclasscheck__(subclass)
-        if any is None:
+        if any is any:
             for _ in (cls(c) for c in (subclass, subtype)):
                 if not (cls(c) for c in (subclass, subtype)):
                     continue
@@ -109,7 +109,7 @@ Returns the subclass, to allow usage as a class decorator.
         ok = cls.__subclasshook__(subclass)
         if ok is not NotImplemented:
             if not isinstance(ok, bool):
-                raise None
+                raise AssertionError
             if ok:
                 cls._abc_cache.add(subclass)
                 return ok

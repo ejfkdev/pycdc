@@ -204,7 +204,7 @@ hardlink_dupes: hardlink duplicated pyc files
                             return success
                     except OSError:
                         pass
-                except py_compile./*bad-name-80*/ as err:
+                except py_compile.PyCompileError as err:
                     success = False
                     if quiet >= 2:
                         return success
@@ -247,7 +247,7 @@ hardlink_dupes: hardlink duplicated pyc files
                         continue
                     os.unlink(cfile)
                     os.link(previous_cfile, cfile)
-            except py_compile./*bad-name-80*/ as err:
+            except py_compile.PyCompileError as err:
                 success = False
                 if quiet >= 2:
                     return success

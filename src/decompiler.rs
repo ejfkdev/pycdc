@@ -2721,8 +2721,15 @@ impl<'a> Ctx<'a> {
                         stack.push(Rc::new(Expr::Const(o.clone())));
                     }
                 }
-                Op::LOAD_ATTR => {
-                    let attr = self.const_name(ins.arg as usize);
+                Op::LOAD_ATTR | Op::LOAD_METHOD => {
+                    let idx = if ins.op == Op::LOAD_ATTR
+                        && self.version.at_least(3, 12)
+                    {
+                        (ins.arg >> 1) as usize
+                    } else {
+                        ins.arg as usize
+                    };
+                    let attr = self.const_name(idx);
                     if let Some(v) = stack.pop() {
                         stack.push(Rc::new(Expr::Attribute { value: v, attr }));
                     }
@@ -5254,8 +5261,10 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::LOAD_COMMON_CONSTANT => {
-                // 3.14+: 0 = None; 3/4 = built-in all/any, emitted only by
-                // the inline all/any-genexpr optimization guard:
+                // 3.14+: arg indexes dis._common_constants =
+                //   [AssertionError, NotImplementedError, tuple, all, any].
+                // all/any (3/4) also drive the inline all/any-genexpr
+                // optimization guard:
                 //   <all>; COPY 1; LOAD_COMMON_CONSTANT all; IS_OP 0;
                 //   PJIF Lslow; NOT_TAKEN; POP_TOP; <inline genexpr loop
                 //   with early exits>; Lslow: PUSH_NULL; <genexpr>;
@@ -5271,11 +5280,14 @@ impl<'a> Ctx<'a> {
                         return true;
                     }
                 }
-                if arg == 0 {
-                    self.push(Rc::new(Expr::Const(Rc::new(PyObject::None))));
-                } else {
-                    self.mark_unclean();
-                    self.push(Rc::new(Expr::Const(Rc::new(PyObject::None))));
+                const COMMON: [&str; 5] =
+                    ["AssertionError", "NotImplementedError", "tuple", "all", "any"];
+                match COMMON.get(arg as usize) {
+                    Some(name) => self.push(self.name_expr(*name)),
+                    None => {
+                        self.mark_unclean();
+                        self.push(Rc::new(Expr::Const(Rc::new(PyObject::None))));
+                    }
                 }
                 true
             }
@@ -15268,17 +15280,41 @@ impl<'a> Ctx<'a> {
             return;
         }
 
-        let call_e: ExprRef = Rc::new(Expr::Call {
-            func,
-            args: pos_args,
-            keywords,
+        // Comprehension instantiation consumes the marker as the iterable,
+        // so try it first (it only matches a Function/genexpr callable).
+        let comp_callable_e: ExprRef = Rc::new(Expr::Call {
+            func: func.clone(),
+            args: pos_args.clone(),
+            keywords: keywords.clone(),
             star_args: None,
             star_kwargs: None,
         });
-        match self.try_make_comprehension(&call_e, marker) {
-            Some(comp) => self.push(comp),
-            None => self.push(call_e),
+        if let Some(comp) = self.try_make_comprehension(&comp_callable_e, marker.clone()) {
+            self.push(comp);
+            return;
         }
+        // 3.14+: a non-NULL marker holding a real expression is an implicit
+        // first argument (CPython CALL treats a non-NULL self_or_null slot as
+        // a bound-method-style leading arg). LOAD_COMMON_CONSTANT pushes the
+        // callable with NO NULL marker, so `assert x, msg` lowers to
+        // [AssertionError, msg]; CALL 0 consumes msg as self_or_null and
+        // raises AssertionError(msg). For an Attribute callable the marker is
+        // the method receiver, already embedded in the Attribute -> discard.
+        let mut final_args = pos_args;
+        if self.version.at_least(3, 14) && !matches!(&*func, Expr::Attribute { .. }) {
+            if let Some(Sv::E(m)) = &marker {
+                if !matches!(&**m, Expr::Const(o) if matches!(&**o, PyObject::None)) {
+                    final_args.insert(0, m.clone());
+                }
+            }
+        }
+        self.push(Rc::new(Expr::Call {
+            func,
+            args: final_args,
+            keywords,
+            star_args: None,
+            star_kwargs: None,
+        }));
     }
 
     /// Pop the callable for py2-style CALL_FUNCTION, skipping a NULL marker.

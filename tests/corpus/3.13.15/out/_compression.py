@@ -70,7 +70,7 @@ class DecompressReader(io.RawIOBase):
             self._decompressor = self._decomp_factory(**self._decomp_args)
             try:
                 data = self._decompressor.decompress(rawblock, size)
-            except self./*bad-name-22*/:
+            except self._trailing_error:
                 pass
         if self._decompressor.needs_input:
             rawblock = self._fp.read(BUFFER_SIZE)

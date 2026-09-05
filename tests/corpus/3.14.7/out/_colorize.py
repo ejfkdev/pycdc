@@ -1,6 +1,6 @@
 def __annotate__(format, /):
     if format > 2:
-        raise None
+        raise NotImplementedError
     if 0 in __conditional_annotations__:
         {}['_theme'] = Theme
     return {}
@@ -107,7 +107,7 @@ methods.
 
     def __annotate_func__(format, /):
         if format > 2:
-            raise None
+            raise NotImplementedError
         # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
         pass
         # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @30
@@ -146,7 +146,7 @@ class Argparse(ThemeSection):
     reset = ANSIColors.RESET
     def __annotate_func__(format, /):
         if format > 2:
-            raise None
+            raise NotImplementedError
         # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
         pass
         {}['usage'] = __classdict__
@@ -204,7 +204,7 @@ class Syntax(ThemeSection):
     reset = ANSIColors.RESET
     def __annotate_func__(format, /):
         if format > 2:
-            raise None
+            raise NotImplementedError
         # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
         pass
         {}['prompt'] = __classdict__
@@ -253,7 +253,7 @@ class Traceback(ThemeSection):
     reset = ANSIColors.RESET
     def __annotate_func__(format, /):
         if format > 2:
-            raise None
+            raise NotImplementedError
         # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
         pass
         {}['type'] = __classdict__
@@ -290,7 +290,7 @@ class Unittest(ThemeSection):
     reset = ANSIColors.RESET
     def __annotate_func__(format, /):
         if format > 2:
-            raise None
+            raise NotImplementedError
         # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
         pass
         {}['passed'] = __classdict__
@@ -343,7 +343,7 @@ and possible, and empty strings otherwise.
 
     def __annotate_func__(format, /):
         if format > 2:
-            raise None
+            raise NotImplementedError
         # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
         pass
         {}['argparse'] = __classdict__

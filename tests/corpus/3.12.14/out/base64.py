@@ -318,7 +318,7 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
             acc = 85 * acc + (x - 33)
         try:
             decoded_append(packI(acc))
-        except struct./*bad-name-26*/:
+        except struct.error:
             raise ValueError('Ascii85 overflow') from None
         curr_clear()
     if x == 122:
@@ -385,11 +385,11 @@ def b85decode(b):
                         continue
                     raise ValueError('bad base85 character at position %d' % (i + j)) from None
                 raise
-        except struct./*bad-name-24*/:
+        except struct.error:
             raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
         try:
             out.append(packI(acc))
-        except struct./*bad-name-24*/:
+        except struct.error:
             raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
     result = b''.join(out)
     if padding:

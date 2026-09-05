@@ -3,8 +3,7 @@
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
   "PASS": 9,
-  "SIG-DIFF": 28,
-  "INCOMPLETE": 3
+  "SIG-DIFF": 31
  },
  "results": [
   {
@@ -57,8 +56,11 @@
   },
   {
    "module": "_compression",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: invalid syntax"
+   "ast_detail": "",
+   "verdict": "SIG-DIFF",
+   "ndiff": 227,
+   "ntotal": 589,
+   "detail": "line 232: orig ('STORE_FAST_LOAD_FAST', 'view, view') | got ('STORE_FAST', 'view')\nline 233: orig ('LOAD_ATTR', 'cast + NULL|self') | got ('LOAD_FAST', 'view')\nline 234: orig ('LOAD_CONST', \"'B'\") | got ('LOAD_ATTR', 'cast + NULL|self')"
   },
   {
    "module": "_ios_support",
@@ -142,8 +144,11 @@
   },
   {
    "module": "base64",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: source code string cannot contain null bytes"
+   "ast_detail": "",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1801,
+   "ntotal": 2100,
+   "detail": "line 260: orig ('NOP', '') | got ('LOAD_FAST', 's')\nline 261: orig ('LOAD_FAST', 's') | got ('LOAD_ATTR', 'encode + NULL|self')\nline 262: orig ('LOAD_ATTR', 'encode + NULL|self') | got ('LOAD_CONST', \"'ascii'\")"
   },
   {
    "module": "bdb",
@@ -223,8 +228,11 @@
   },
   {
    "module": "compileall",
-   "verdict": "INCOMPLETE",
-   "detail": "SyntaxError: invalid syntax"
+   "ast_detail": "",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1611,
+   "ntotal": 1686,
+   "detail": "line 49: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 51: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "configparser",

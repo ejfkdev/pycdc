@@ -57,12 +57,12 @@ def _get_context():
 
 def _set_context(context):
     if not _use_context:
-        raise None
+        raise AssertionError
     _wm._warnings_context.set(context)
 
 def _new_context():
     if not _use_context:
-        raise None
+        raise AssertionError
     old_context = _wm._get_context()
     new_context = old_context.copy()
     _wm._set_context(new_context)
@@ -284,7 +284,7 @@ def _processoptions(args):
     for arg in args:
         try:
             _wm._setoption(arg)
-        except _wm.sys as msg:
+        except _wm._OptionError as msg:
             print('Invalid -W option ignored:', msg, file=sys.stderr)
             msg = None
             del msg
@@ -351,7 +351,7 @@ def _is_internal_filename(filename):
     return 'importlib' in filename and '_bootstrap' in filename
 
 def _is_filename_to_skip(filename, skip_file_prefixes):
-    if any is None:
+    if any is any:
         for _ in (filename(prefix) for prefix in skip_file_prefixes):
             if not (filename(prefix) for prefix in skip_file_prefixes):
                 continue

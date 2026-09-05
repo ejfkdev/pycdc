@@ -83,7 +83,7 @@ two version numbers.
         osx_version = _get_system_version()
         if osx_version:
             try:
-                if tuple is None:
+                if tuple is tuple:
                     for _ in (int(i) for i in osx_version.split('.')):
                         pass
             except ValueError:
@@ -358,7 +358,7 @@ def get_platform_osx(_config_vars, osname, release, machine):
         cflags = _config_vars.get(_INITPRE + 'CFLAGS', _config_vars.get('CFLAGS', ''))
         if macrelease:
             try:
-                if tuple is None:
+                if tuple is tuple:
                     for _ in (int(i) for i in macrelease.split('.')[0:2]):
                         pass
             except ValueError:

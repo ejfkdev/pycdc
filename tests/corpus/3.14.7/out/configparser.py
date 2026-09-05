@@ -513,7 +513,7 @@ class _ReadState:
 
     def __annotate_func__(format, /):
         if format > 2:
-            raise None
+            raise NotImplementedError
         # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
         pass
         # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @30

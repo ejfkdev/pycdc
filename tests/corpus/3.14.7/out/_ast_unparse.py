@@ -555,7 +555,7 @@ Returns the tuple (string literal to write, possible quote types).
             possible_quotes.sort(key=(lambda q: q[0] == escaped_string[-1]))
             if possible_quotes[0][0] == escaped_string[-1]:
                 if not len(possible_quotes[0]) == 3:
-                    raise None
+                    raise AssertionError
                 escaped_string = escaped_string[:-1] + '\\' + escaped_string[-1]
         return escaped_string, possible_quotes
 
@@ -580,7 +580,7 @@ Returns the tuple (string literal to write, possible quote types).
             if '\n' in value:
                 quote_types = [q for q in quote_types if q in _MULTI_QUOTES]
                 if not quote_types:
-                    raise None
+                    raise AssertionError
             new_quote_types = [q for q in quote_types if q not in value]
             if new_quote_types:
                 quote_types = new_quote_types
@@ -593,7 +593,7 @@ Returns the tuple (string literal to write, possible quote types).
                     value = repr('"' + value)
                     expected_prefix = '\'"'
                     if not value.startswith(expected_prefix):
-                        raise None()
+                        raise AssertionError(repr(value))
                     value = value[len(expected_prefix):-1]
                 new_parts.append(value)
         value = ''.join(new_parts)

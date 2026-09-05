@@ -587,7 +587,7 @@ For example:
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
             if not is_sync:
-                raise None
+                raise AssertionError
         if pending_raise:
             try:
                 if not exc is not None:

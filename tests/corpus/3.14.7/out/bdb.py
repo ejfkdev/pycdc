@@ -285,31 +285,31 @@ The arg parameter depends on the previous event.
             if self.quitting:
                 return
         if event == 'line':
-            None(None, None, None)
+            None(self.dispatch_line(frame), None, None, None)
             return
         if event == 'call':
-            None(None, None, None)
+            None(self.dispatch_call(frame, arg), None, None, None)
             return
         if event == 'return':
-            None(None, None, None)
+            None(self.dispatch_return(frame, arg), None, None, None)
             return
         if event == 'exception':
-            None(None, None, None)
+            None(self.dispatch_exception(frame, arg), None, None, None)
             return
         if event == 'c_call':
-            None(None, None, None)
+            None(self.trace_dispatch, None, None, None)
             return
         if event == 'c_exception':
-            None(None, None, None)
+            None(self.trace_dispatch, None, None, None)
             return
         if event == 'c_return':
-            None(None, None, None)
+            None(self.trace_dispatch, None, None, None)
             return
         if event == 'opcode':
-            None(None, None, None)
+            None(self.dispatch_opcode(frame, arg), None, None, None)
             return
         print('bdb.Bdb.dispatch: unknown debugging event:', repr(event))
-        None(None, None, None)
+        None(self.trace_dispatch, None, None, None)
 
     def dispatch_line(self, frame):
         '''Invoke user function and return trace function for line event.

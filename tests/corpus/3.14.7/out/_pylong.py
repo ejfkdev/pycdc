@@ -48,7 +48,7 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
             cands.add(lo)
     if not need_hi:
         if extra:
-            raise None
+            raise AssertionError
     d = {}
     for n in sorted(need | extra):
         lo = n >> 1
@@ -65,7 +65,7 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
                 if show:
                     print(' * base', end='')
                 if not 2 * lo + 1 == n:
-                    raise None
+                    raise AssertionError
                 result *= base
         else:
             if show:
@@ -75,10 +75,10 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
             print(' at', n, 'needed' if n in need else 'extra')
         d[n] = result
     if not need <= d.keys():
-        raise None
+        raise AssertionError
     if (excess := d.keys() - need):
         if not need_hi:
-            raise None
+            raise AssertionError
         for n in excess:
             del d[n]
     return d
@@ -167,7 +167,7 @@ def _dec_str_to_int_inner(s, *, GUARD=8):
     D = decimal.Decimal
     result = bytearray()
     if not GUARD > 0:
-        raise None
+        raise AssertionError
     def inner(n, w):
         if w <= BYTELIM:
             result.extend(int(str(n)).to_bytes(w))
@@ -181,7 +181,7 @@ def _dec_str_to_int_inner(s, *, GUARD=8):
         hi = hi.to_integral_value()
         lo = n - hi * p256
         if not lo >= 0:
-            raise None
+            raise AssertionError
         count = 0
         if lo >= p256:
             count = 1

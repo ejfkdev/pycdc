@@ -443,7 +443,7 @@ def _is_param_expr(obj):
     obj = type(obj)
     names = ('ParamSpec', '_ConcatenateGenericAlias')
     if obj.__module__ == 'typing':
-        if any is None:
+        if any is any:
             for _ in (obj.__name__ == name for name in names):
                 if not (obj.__name__ == name for name in names):
                     continue

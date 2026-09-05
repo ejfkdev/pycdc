@@ -209,13 +209,13 @@ If the forward reference cannot be evaluated, raise an exception.
 
 # UNIMPLEMENTED: unknown opcode: BUILD_TEMPLATE  @154
 pass
-_Template = type(())
+_Template = type(('',), ())
 
 class _Stringifier:
     __slots__ = _SLOTS
     def __init__(self, node, globals=None, owner=None, is_class=False, cell=None, *, stringifier_dict, extra_names=None):
         if not isinstance(node, (ast.AST, str)):
-            raise None
+            raise AssertionError
         self.__arg__ = None
         self.__forward_is_argument__ = False
         self.__forward_is_class__ = is_class
@@ -314,7 +314,7 @@ class _Stringifier:
         else:
             other, extra_names = self.__convert_to_ast_getitem(other)
         if not isinstance(other, ast.AST):
-            raise None()
+            raise AssertionError(repr(other))
         return self.__make_new(ast.Subscript(self.__get_ast(), other), extra_names)
 
     def __getattr__(self, attr):
@@ -452,7 +452,7 @@ def _template_to_ast(template):
     if any((part.expression() == '' for part in template.interpolations)):
         return _template_to_ast_constructor(template)
     try:
-        if tuple is None:
+        if tuple is tuple:
             for _ in (('mode',).body for part in template.interpolations):
                 pass
     except SyntaxError:
