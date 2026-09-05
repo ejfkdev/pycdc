@@ -148,11 +148,10 @@ cargo build                                                 # 重新嵌入
   内联 async 推导式、async 生成器 asend/athrow 协议、3.7 SETUP_EXCEPT 守卫式
   async-for 的 break+else 组合。
 - 推导式元素中的三元表达式（`[a if c else b for ...]`）在部分旧版本可能错位。
-- 链式比较（`a == b == c`）：值位、if 条件的 and 形（3.8–3.14，3.12+ 经 SCC 回退）与
-  or 形（`if 链 or x[ or y]:`，经 try_merge_or_cond 蹦床续扫 + 链块折叠）均已支持，切片
-  操作数亦正确（BUILD_SLICE/SLICE_0..3 已纳入纯值 op）。已知缺口：**链 or 链**
-  （`(a==b==c) or (d==e==f)`，两操作数都是链）在 3.8–3.10 因小块复制布局（第二链的
-  link 出口词法位置先于合并 body，违反前向出口假设）仍错乱（HTMLParser 引号判定惯用形）。
+- 链式比较（`a == b == c`）：值位、if 条件的 and 形（3.8–3.14，3.12+ 经 SCC 回退）、
+  or 形（`if 链 or x[ or y]:`）与 **链 or 链**（`(a==b==c) or (d==e==f)`，含 3.8–3.10
+  小块复制布局与 py2 值形 JFOP/JTFOP 短路）、elif 上下文、切片操作数（含 3.14
+  const-slice 的 marshal 引用序修复）均已支持（b23_boolchain 13/13 全绿）。
 - py2.6：函数级内联列表推导（`_[N]` FAST 累加器）已支持；「if 内嵌 if + 同级 elif +
   尾部悬挂 return」的深嵌套形状可能丢失后续分支。
 - Python 1.x 可加载 marshal，但未附带 opcode 表。
