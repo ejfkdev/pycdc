@@ -300,10 +300,9 @@ class Sniffer:
             threshold = 0.9
             if len(delims) == 0 and consistency >= threshold:
                 for k, v in modeList:
-                    if v[0] > 0 and v[1] > 0:
-                        if v[1] / total >= consistency:
-                            if delimiters is None or k in delimiters:
-                                delims[k] = v
+                    if v[0] > 0 and v[1] > 0 and v[1] / total >= consistency:
+                        if delimiters is None or k in delimiters:
+                            delims[k] = v
                 consistency -= 0.01
                 if len(delims) == 0:
                     if not consistency >= threshold:

@@ -71,17 +71,16 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
         raise ValueError('workers must be greater or equal to 0')
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels, ddir=ddir)
     success = 1
-    if workers is not None and workers != 1:
-        if ProcessPoolExecutor is not None:
-            workers = workers or None
-            with ProcessPoolExecutor(max_workers=workers) as executor:
-                results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize), files)
-                success = min(results, default=1)
+    if workers is not None and workers != 1 and ProcessPoolExecutor is not None:
+        workers = workers or None
+        with ProcessPoolExecutor(max_workers=workers) as executor:
+            results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize), files)
+            success = min(results, default=1)
+    else:
+        for file in files:
+            pass
         else:
-            for file in files:
-                pass
-            else:
-                success = 0
+            success = 0
     return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1):

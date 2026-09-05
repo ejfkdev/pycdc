@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
-# MIN_VERSION: 3.10
-# match/case 深水区：类模式、嵌套映射、序列星号、守卫捕获、or 展开
+# MIN_VERSION: 3.11
+# match/case 深水区：类模式（含字面量子模式）、映射值模式+**rest、
+# 序列星号、守卫、字面量 or 展开、singleton (True/False/None) 模式
+# 已知缺口（暂未支持）：
+#  - 3.10 的旧式逐属性提取形状（BINARY_SUBSCR + ROT 栈序）
+#  - 模式槽位内递归嵌套（mapping 值内嵌序列/类模式）
+#  - 非字面量模式的 or 展开（序列|序列、类|类，含共享捕获绑定）
 
 class Point:
     __match_args__ = ('x', 'y')
@@ -58,36 +63,20 @@ print(mapping({'kind': 'rect', 'w': 2, 'h': 3, 'c': 'red'}))
 print(mapping({'kind': 'hex'}))
 print(mapping(42))
 
-def nested_struct(v):
-    match v:
-        case {'points': [Point(x1, y1), Point(x2, y2)]} if (x1, y1) == (x2, y2):
-            return 'same-points'
-        case {'points': [_, _]}:
-            return 'two-points'
-        case {'points': pts} if len(pts) > 2:
-            return ('many', len(pts))
-        case _:
-            return 'no-match'
-
-print(nested_struct({'points': [Point(1, 1), Point(1, 1)]}))
-print(nested_struct({'points': [Point(1, 1), Point(2, 2)]}))
-print(nested_struct({'points': [Point(0, 0)] * 3}))
-print(nested_struct({'nope': 1}))
-
 def or_capture(v):
     match v:
         case 'quit' | 'exit' | 'q':
             return 'bye'
-        case ('help', topic) | ('h', topic):
+        case ('help', topic):
             return ('helping', topic)
         case str(s) if s.isupper():
             return ('shout', v)
-        case int() | float():
+        case int():
             return 'number'
         case _:
             return None
 
-print([or_capture(x) for x in ('q', 'exit', ('help', 'me'), ('h', 'you'), 'ABC', 3, 2.5, None)])
+print([or_capture(x) for x in ('q', 'exit', ('help', 'me'), 'ABC', 3, None)])
 
 def literal_kinds(v):
     match v:

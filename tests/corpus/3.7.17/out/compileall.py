@@ -74,17 +74,16 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
         workers = 1
     files_and_ddirs = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels, ddir=ddir)
     success = True
-    if workers is not None and workers != 1:
-        if ProcessPoolExecutor is not None:
-            workers = workers or None
-            with ProcessPoolExecutor(max_workers=workers) as executor:
-                results = executor.map(partial(_compile_file_tuple, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode), files_and_ddirs)
-                success = min(results, default=True)
+    if workers is not None and workers != 1 and ProcessPoolExecutor is not None:
+        workers = workers or None
+        with ProcessPoolExecutor(max_workers=workers) as executor:
+            results = executor.map(partial(_compile_file_tuple, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode), files_and_ddirs)
+            success = min(results, default=True)
+    else:
+        for file, dfile in files_and_ddirs:
+            pass
         else:
-            for file, dfile in files_and_ddirs:
-                pass
-            else:
-                success = False
+            success = False
     return success
 
 def _compile_file_tuple(file_and_dfile, **kwargs):

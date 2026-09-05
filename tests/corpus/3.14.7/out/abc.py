@@ -37,7 +37,7 @@ Deprecated, use 'classmethod' with 'abstractmethod' instead:
     __isabstractmethod__ = True
     def __init__(self, callable):
         callable.__isabstractmethod__ = True
-        None(callable)
+        super().__init__(callable)
 
 
 class abstractstaticmethod(staticmethod):
@@ -56,7 +56,7 @@ Deprecated, use 'staticmethod' with 'abstractmethod' instead:
     __isabstractmethod__ = True
     def __init__(self, callable):
         callable.__isabstractmethod__ = True
-        None(callable)
+        super().__init__(callable)
 
 
 class abstractproperty(property):
@@ -181,4 +181,3 @@ inheritance.
 
     __slots__ = ()
 
-# WARNING: Decompyle incomplete

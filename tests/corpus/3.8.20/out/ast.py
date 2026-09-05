@@ -271,10 +271,9 @@ def _splitlines_no_ff(source):
         c = source[idx]
         next_line += c
         idx += 1
-        if c == '\r' and idx < len(source):
-            if source[idx] == '\n':
-                next_line += '\n'
-                idx += 1
+        if c == '\r' and idx < len(source) and source[idx] == '\n':
+            next_line += '\n'
+            idx += 1
         if c in '\r\n':
             lines.append(next_line)
             next_line = ''

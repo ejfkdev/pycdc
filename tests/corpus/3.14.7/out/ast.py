@@ -87,11 +87,10 @@ Caution: A complex expression can overflow the C stack and cause a crash.
             return list(map(_convert, node.elts))
         if isinstance(node, Set):
             return set(map(_convert, node.elts))
-        if isinstance(node, Call) and isinstance(node.func, Name):
-            if node.func.id == 'set':
-                if node.args == node.keywords:
-                    if node.keywords == []:
-                        return set()
+        if isinstance(node, Call) and isinstance(node.func, Name) and node.func.id == 'set':
+            if node.args == node.keywords:
+                if node.keywords == []:
+                    return set()
         if isinstance(node, Dict):
             if len(node.keys) != len(node.values):
                 _raise_malformed_node(node)

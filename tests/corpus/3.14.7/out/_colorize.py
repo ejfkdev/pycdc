@@ -80,7 +80,7 @@ methods.
         name_to_value = {}
         for color_name in self.__dataclass_fields__:
             name_to_value[color_name] = getattr(self, color_name)
-        None('_name_to_value', name_to_value.__getitem__)
+        super().__setattr__('_name_to_value', name_to_value.__getitem__)
 
     def copy_with(self, **kwargs: __classdict__) -> __classdict__:
         color_state = {}

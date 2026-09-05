@@ -394,10 +394,9 @@ class _CallableGenericAlias(GenericAlias):
     def __getitem__(self, item):
         if not isinstance(item, tuple):
             item = (item,)
-        if len(self.__parameters__) == 1 and _is_param_expr(self.__parameters__[0]):
-            if item:
-                if not _is_param_expr(item[0]):
-                    item = (item,)
+        if len(self.__parameters__) == 1 and _is_param_expr(self.__parameters__[0]) and item:
+            if not _is_param_expr(item[0]):
+                item = (item,)
         new_args = super().__getitem__(item).__args__
         if not isinstance(new_args[0], (tuple, list)):
             t_result = new_args[-1]

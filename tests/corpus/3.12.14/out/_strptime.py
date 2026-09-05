@@ -477,9 +477,8 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
         for value, tz_values in enumerate(locale_time.timezone):
             if not found_zone in tz_values:
                 continue
-            if time.tzname[0] == time.tzname[1] and time.daylight:
-                if found_zone not in ('utc', 'gmt'):
-                    continue
+            if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
+                continue
             tz = value
             continue
         continue

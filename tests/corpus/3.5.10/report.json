@@ -75,7 +75,7 @@
    "module": "_strptime",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1534,
+   "ndiff": 1532,
    "ntotal": 1848,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -119,8 +119,8 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2177,
-   "ntotal": 2237,
+   "ndiff": 2178,
+   "ntotal": 2238,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {

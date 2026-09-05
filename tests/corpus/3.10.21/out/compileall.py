@@ -40,10 +40,9 @@ def _walk_dir(dir, maxlevels, quiet=0):
         if not os.path.isdir(fullname):
             yield fullname
             continue
-        if maxlevels > 0 and name != os.curdir:
-            if name != os.pardir and os.path.isdir(fullname):
-                if not os.path.islink(fullname):
-                    yield from _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
+        if maxlevels > 0 and name != os.curdir and name != os.pardir and os.path.isdir(fullname):
+            if not os.path.islink(fullname):
+                yield from _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     '''Byte-compile all modules in the given directory tree.
@@ -163,9 +162,8 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         mo = rx.search(fullname)
         if mo:
             return success
-    if limit_sl_dest is not None and os.path.islink(fullname):
-        if Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
-            return success
+    if limit_sl_dest is not None and os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
+        return success
     opt_cfiles = {}
     try:
         for index, opt_level in enumerate(optimize):

@@ -19,7 +19,7 @@ class SystemLog(io.TextIOWrapper):
             raise TypeError(f'write() argument must be str, not {type(s).__name__}')
         s = str.__str__(s)
         for line in s.splitlines(keepends=True):
-            None(line)
+            super().write(line)
         return len(s)
 
 
@@ -45,4 +45,3 @@ class LogStream(io.RawIOBase):
         return len(b)
 
 
-# WARNING: Decompyle incomplete

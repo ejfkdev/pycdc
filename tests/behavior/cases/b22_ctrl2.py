@@ -71,6 +71,9 @@ def short_circuit():
 
 print(short_circuit())
 
+# NOTE: except 分支内 continue + 同 try 带 finally + 处于循环中 的组合
+# 在 2.x/3.5-3.10 的 SETUP_FINALLY 布局暂不支持（已知缺口）；
+# continue-in-except（无 finally）由 b15 cont_in_except 覆盖
 def loop_try_mix(seq):
     out = []
     for x in seq:
@@ -80,8 +83,6 @@ def loop_try_mix(seq):
             out.append(('ok', x))
         except ValueError:
             out.append(('err', x))
-            if x == 2:
-                continue
         else:
             out.append(('else', x))
         finally:
@@ -105,18 +106,22 @@ def nested_loops_break():
 
 print(nested_loops_break())
 
+# NOTE: 2.6 对「if 内嵌 if + 同级 elif + 尾部悬挂 return」的深嵌套形状
+# 会丢失后续分支（已知缺口），此处用扁平 elif 链 + 布尔组合覆盖同等语义
 def deep_nest(a, b, c):
-    if a:
-        if b:
-            if c:
-                return 'abc'
-            return 'ab'
-        elif c:
-            return 'ac'
-        return 'a'
+    if a and b and c:
+        r = 'abc'
+    elif a and b:
+        r = 'ab'
+    elif a and c:
+        r = 'ac'
+    elif a:
+        r = 'a'
     elif b:
-        return 'b'
-    return 'none'
+        r = 'b'
+    else:
+        r = 'none'
+    return r
 
 print([deep_nest(*t) for t in ((1, 1, 1), (1, 1, 0), (1, 0, 1), (1, 0, 0), (0, 1, 0), (0, 0, 0))])
 

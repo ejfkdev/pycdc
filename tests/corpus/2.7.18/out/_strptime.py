@@ -323,35 +323,26 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             found_zone = found_dict['Z'].lower()
             for value, tz_values in enumerate(locale_time.timezone):
                 if found_zone in tz_values:
-                    if time.tzname[0] == time.tzname[1] and time.daylight:
-                        if found_zone not in ('utc', 'gmt'):
-                            break
-                        else:
-                            tz = value
-                            break
-                else:
-                    break
-                    break
-                    leap_year_fix = False
-                    if year is None and month == 2:
-                        if day == 29:
-                            year = 1904
-                            leap_year_fix = True
-                        elif year is None:
-                            year = 1900
-                    if julian is None and week_of_year != -1:
-                        if weekday is not None:
-                            if week_of_year_start == 0:
-                                break
-        else:
-            week_starts_Mon = False
-            julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
-            if julian <= 0:
-                year -= 1
-                if calendar.isleap(year):
-                    break
-    yday = 365
-    julian += yday
+                    if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
+                        break
+                    else:
+                        tz = value
+                        break
+            else:
+                continue
+    leap_year_fix = False
+    if year is None and month == 2 and day == 29:
+        year = 1904
+        leap_year_fix = True
+    elif year is None:
+        year = 1900
+    if julian is None and week_of_year != -1 and weekday is not None:
+        week_starts_Mon = True if week_of_year_start == 0 else False
+        julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
+        if julian <= 0:
+            year -= 1
+            yday = 366 if calendar.isleap(year) else 365
+            julian += yday
     if julian is None:
         julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
     else:

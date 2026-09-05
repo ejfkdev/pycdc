@@ -177,7 +177,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             for item in node:
                 self.traverse(item)
             return
-        None(node)
+        super().visit(node)
 
     def visit(self, node):
         '''Outputs a source code string that, if converted back to an ast

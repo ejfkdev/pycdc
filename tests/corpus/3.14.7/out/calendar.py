@@ -561,12 +561,12 @@ month and weekday names in the specified locale.
     def formatweekday(self, day, width):
         with different_locale(self.locale):
             pass
-        None(None, None, None)
+        super().formatweekday(day, width)
 
     def formatmonthname(self, theyear, themonth, width, withyear=True):
         with different_locale(self.locale):
             pass
-        None(None, None, None)
+        super().formatmonthname(theyear, themonth, width, withyear)
 
 
 class LocaleHTMLCalendar(HTMLCalendar):
@@ -584,12 +584,12 @@ month and weekday names in the specified locale.
     def formatweekday(self, day):
         with different_locale(self.locale):
             pass
-        None(None, None, None)
+        super().formatweekday(day)
 
     def formatmonthname(self, theyear, themonth, withyear=True):
         with different_locale(self.locale):
             pass
-        None(None, None, None)
+        super().formatmonthname(theyear, themonth, withyear)
 
 
 class _CLIDemoCalendar(TextCalendar):
@@ -616,11 +616,10 @@ Returns a single week in a string (no newline).
 Return a month's calendar string (multi-line).
 """
 
-        if self.highlight_day and self.highlight_day.year == theyear:
-            if self.highlight_day.month == themonth:
-                highlight_day = self.highlight_day.day
-            else:
-                highlight_day = None
+        if self.highlight_day and self.highlight_day.year == theyear and self.highlight_day.month == themonth:
+            highlight_day = self.highlight_day.day
+        else:
+            highlight_day = None
         w = max(2, w)
         l = max(1, l)
         s = self.formatmonthname(theyear, themonth, 7 * (w + 1) - 1)
@@ -656,11 +655,10 @@ Returns a year's calendar as a multi-line string.
             headers = (header for k in months)
             a(formatstring(headers, colwidth, c).rstrip())
             a('\n' * l)
-            if self.highlight_day and self.highlight_day.year == theyear:
-                if self.highlight_day.month in months:
-                    month_pos = months.index(self.highlight_day.month)
-                else:
-                    month_pos = None
+            if self.highlight_day and self.highlight_day.year == theyear and self.highlight_day.month in months:
+                month_pos = months.index(self.highlight_day.month)
+            else:
+                month_pos = None
             height = max((len(cal) for cal in row))
             for j in range(height):
                 weeks = []

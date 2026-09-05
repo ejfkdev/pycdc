@@ -443,38 +443,37 @@ class RawConfigParser:
                 continue
             if line.split(None, 1)[0].lower() == 'rem' and line[0] in 'rR':
                 continue
-            if line[0].isspace() and cursect is not None:
-                if optname:
-                    value = line.strip()
-                    if value:
-                        cursect[optname].append(value)
-                else:
-                    mo = self.SECTCRE.match(line)
-                    if mo:
-                        sectname = mo.group('header')
-                        if sectname in self._sections:
-                            cursect = self._sections[sectname]
-                        elif sectname == DEFAULTSECT:
-                            cursect = self._defaults
-                        else:
-                            cursect = self._dict()
-                            cursect['__name__'] = sectname
-                            self._sections[sectname] = cursect
-                        optname = None
-                    elif cursect is None:
-                        raise MissingSectionHeaderError(fpname, lineno, line)
+            if line[0].isspace() and cursect is not None and optname:
+                value = line.strip()
+                if value:
+                    cursect[optname].append(value)
+            else:
+                mo = self.SECTCRE.match(line)
+                if mo:
+                    sectname = mo.group('header')
+                    if sectname in self._sections:
+                        cursect = self._sections[sectname]
+                    elif sectname == DEFAULTSECT:
+                        cursect = self._defaults
                     else:
-                        mo = self._optcre.match(line)
-                        if mo:
-                            optname, vi, optval = mo.group('option', 'vi', 'value')
-                            optname = self.optionxform(optname.rstrip())
-                            if optval is not None:
-                                if vi in ('=', ':') and ';' in optval:
-                                    pos = optval.find(';')
-                                    if pos != -1:
-                                        if optval[pos - 1].isspace():
-                                            optval = optval[:pos]
-                                            continue
+                        cursect = self._dict()
+                        cursect['__name__'] = sectname
+                        self._sections[sectname] = cursect
+                    optname = None
+                elif cursect is None:
+                    raise MissingSectionHeaderError(fpname, lineno, line)
+                else:
+                    mo = self._optcre.match(line)
+                    if mo:
+                        optname, vi, optval = mo.group('option', 'vi', 'value')
+                        optname = self.optionxform(optname.rstrip())
+                        if optval is not None:
+                            if vi in ('=', ':') and ';' in optval:
+                                pos = optval.find(';')
+                                if pos != -1:
+                                    if optval[pos - 1].isspace():
+                                        optval = optval[:pos]
+                                        continue
             optval = optval.strip()
             if optval == '""':
                 optval = ''

@@ -667,7 +667,7 @@ See PEP 702 for details.
             else:
                 def __init_subclass__(cls, *args, **kwargs):
                     _wm.warn(msg, category=category, stacklevel=stacklevel + 1)
-                    return super().__init_subclass__(*args, **kwargs)
+                    return super(arg, cls).__init_subclass__(*args, **kwargs)
 
             arg.__init_subclass__ = classmethod(__init_subclass__)
             arg.__deprecated__ = msg

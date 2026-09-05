@@ -405,11 +405,11 @@ Example: ``Callable[[int, str], float]`` sets ``__args__`` to
             args = *t_args, t_result
         elif not _is_param_expr(t_args):
             raise TypeError(f'Expected a list of types, an ellipsis, ParamSpec, or Concatenate. Got {t_args}')
-        return None(cls, origin, args)
+        return super().__new__(cls, origin, args)
 
     def __repr__(self):
         if len(self.__args__) == 2 and _is_param_expr(self.__args__[0]):
-            return None()
+            return super().__repr__()
         from annotationlib import type_repr
         return f'collections.abc.Callable[[{', '.join([type_repr(a) for a in self.__args__[:-1]])}], {type_repr(self.__args__[-1])}]'
 
@@ -423,7 +423,7 @@ Example: ``Callable[[int, str], float]`` sets ``__args__`` to
     def __getitem__(self, item):
         if not isinstance(item, tuple):
             item = (item,)
-        new_args = None(item).__args__
+        new_args = super().__getitem__(item).__args__
         if not isinstance(new_args[0], (tuple, list)):
             t_result = new_args[-1]
             t_args = new_args[:-1]
@@ -987,7 +987,7 @@ class _DeprecateByteStringMeta(ABCMeta):
     def __instancecheck__(cls, instance):
         import warnings
         warnings._deprecated('collections.abc.ByteString', remove=(3, 17))
-        return None(instance)
+        return super().__instancecheck__(instance)
 
 
 class ByteString(Sequence, metaclass=_DeprecateByteStringMeta):

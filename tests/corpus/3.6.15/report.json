@@ -119,8 +119,8 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2140,
-   "ntotal": 2235,
+   "ndiff": 2145,
+   "ntotal": 2236,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {

@@ -791,10 +791,9 @@ class Aifc_write:
             self._file.write(b'\x00')
         else:
             datalength = self._datawritten
-        if datalength == self._datalength and self._nframes == self._nframeswritten:
-            if self._marklength == 0:
-                self._file.seek(curpos, 0)
-                return
+        if datalength == self._datalength and self._nframes == self._nframeswritten and self._marklength == 0:
+            self._file.seek(curpos, 0)
+            return
         self._file.seek(self._form_length_pos, 0)
         dummy = self._write_form_length(datalength)
         self._file.seek(self._nframes_pos, 0)

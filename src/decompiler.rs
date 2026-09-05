@@ -1969,7 +1969,7 @@ impl<'a> Ctx<'a> {
                             }
                             match self.instrs.get(si0 + sn) {
                                 Some(s)
-                                    if s.op == f.op
+                                    if op_family_eq(s.op, f.op)
                                         && (!matches!(
                                             s.op,
                                             Op::LOAD_CONST | Op::LOAD_GLOBAL
@@ -3674,9 +3674,145 @@ impl<'a> Ctx<'a> {
                     if self.legacy_handler.is_some() {
                         self.flush_pending_stores();
                     }
-                    // a handler whose exit jump heads to an enclosing
-                    // loop top ends in `continue` — the jump itself is
-                    // the loop's back edge and folds nothing
+                    // 3.8-3.10 `continue` inside an except handler of a
+                    // try/except/finally in a loop: the continue path is
+                    // POP_EXCEPT; POP_BLOCK; <inline finally copy>;
+                    // JABS loop-top. Fold the copy, end the case with a
+                    // Continue, and resume at the handler's normal exit.
+                    if let Some(&pi) = self.idx_of.get(&self.cur_offset) {
+                        let mut q = pi + 1;
+                        if self.instrs.get(q).map(|x| x.op) == Some(Op::POP_BLOCK) {
+                            q += 1;
+                            let fin_from = self.instrs.get(q).map(|x| x.offset);
+                            let mut jb = None;
+                            while let Some(x) = self.instrs.get(q) {
+                                if (x.op == Op::JUMP_ABSOLUTE && x.is_backward)
+                                    || matches!(
+                                        x.op,
+                                        Op::JUMP_BACKWARD
+                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    )
+                                {
+                                    jb = Some((x.end(), x.target));
+                                    break;
+                                }
+                                if x.op == Op::RERAISE || x.op == Op::END_FINALLY {
+                                    break;
+                                }
+                                q += 1;
+                            }
+                            let jb_is_loop_top = jb.map_or(false, |(_, t)| {
+                                t.map_or(false, |t| {
+                                    self.blocks.iter().any(|b| {
+                                        matches!(
+                                            b.kind,
+                                            BlockType::While | BlockType::For
+                                        ) && (b.start == t || b.cond_end == t)
+                                    })
+                                })
+                            });
+                            if jb_is_loop_top {
+                                // the enclosing finally chain: either the
+                                // active legacy record or the still-open
+                                // outer Try block's handler (its close
+                                // POP_BLOCK comes later in the layout)
+                                let fh = self
+                                    .legacy_try
+                                    .as_ref()
+                                    .and_then(|l| {
+                                        if l.has_finally {
+                                            Some(l.handler_start)
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .or_else(|| {
+                                        self.blocks.iter().rev().find_map(|b| {
+                                            if b.kind == BlockType::Try
+                                                && b.end > self.cur_offset
+                                            {
+                                                Some(b.end)
+                                            } else {
+                                                None
+                                            }
+                                        })
+                                    });
+                                if let Some(fh) = fh {
+                                    // decompile the inline copy and fold
+                                    // the OUTER finally chain with it
+                                    let jbe = jb.unwrap().0;
+                                    let fin_stmts = match fin_from {
+                                        Some(ff) if jbe > ff => {
+                                            self.decompile_region(ff, jbe)
+                                        }
+                                        _ => Vec::new(),
+                                    };
+                                    if let Some(l) = self.legacy_try.take() {
+                                        let inner = Stmt::Try {
+                                            body: l.body,
+                                            handlers: l.handlers,
+                                            orelse: l.orelse,
+                                            finalbody: fin_stmts,
+                                        };
+                                        let outer = Stmt::Try {
+                                            body: vec![inner],
+                                            handlers: Vec::new(),
+                                            orelse: Vec::new(),
+                                            finalbody: self
+                                                .decompile_region(
+                                                    fh,
+                                                    self.idx_of
+                                                        .get(&fh)
+                                                        .and_then(|&hi| {
+                                                            self.instrs[hi..]
+                                                                .iter()
+                                                                .take(200)
+                                                                .find(|x| {
+                                                                    matches!(
+                                                                        x.op,
+                                                                        Op::RERAISE
+                                                                            | Op::END_FINALLY
+                                                                    )
+                                                                })
+                                                                .map(|x| x.offset)
+                                                        })
+                                                        .unwrap_or(fh),
+                                                ),
+                                        };
+                                        self.push_stmt(outer);
+                                    }
+                                    // the open handler's clause becomes
+                                    // the continue path; close it and any
+                                    // If left open inside it
+                                    if let Some(mut h) = self.legacy_handler.take() {
+                                        while self.blocks.last().map_or(
+                                            false,
+                                            |t| t.kind == BlockType::If,
+                                        ) {
+                                            let e = self
+                                                .blocks
+                                                .last()
+                                                .map(|t| t.end)
+                                                .unwrap_or(0);
+                                            self.force_close_top(e);
+                                        }
+                                        h.body.push(Stmt::Continue);
+                                        if let Some(lt) = self.legacy_try.as_mut() {
+                                            lt.handlers.push(ExceptHandler {
+                                                type_: h.type_,
+                                                name: h.name,
+                                                body: h.body,
+                                                is_star: false,
+                                            });
+                                        }
+                                    }
+                                    self.legacy_handler_end = None;
+                                    self.skip_until = Some(jbe);
+                                    return;
+                                }
+                            }
+                        }
+                    }
                     let add_cont = self
                         .idx_of
                         .get(&self.cur_next)
@@ -5185,17 +5321,54 @@ impl<'a> Ctx<'a> {
                     arg as usize
                 };
                 let attr = self.unmangle(&self.const_name(idx));
-                let _attr_name = self.pop_expr();
-                let _cls = self.pop_expr();
-                let _self_e = self.pop_expr();
+                // stack: [super-global, class, self] — the attribute name
+                // lives in co_names (arg), not on the stack
+                let self_e = self.pop_expr();
+                let cls = self.pop_expr();
+                let sup = self.pop_expr();
+                // two-arg form `super(C, self).m` vs zero-arg `super().m`
+                let sup_call = match &*sup {
+                    Expr::Name(n) if n == "super" => {
+                        let is_zero_arg = matches!(&*cls, Expr::Name(cn) if cn.starts_with("__class"))
+                            || matches!(&*cls, Expr::Const(_));
+                        if is_zero_arg {
+                            Rc::new(Expr::Call {
+                                func: sup,
+                                args: Vec::new(),
+                                keywords: Vec::new(),
+                                star_args: None,
+                                star_kwargs: None,
+                            }) as ExprRef
+                        } else {
+                            Rc::new(Expr::Call {
+                                func: sup,
+                                args: vec![cls, self_e],
+                                keywords: Vec::new(),
+                                star_args: None,
+                                star_kwargs: None,
+                            }) as ExprRef
+                        }
+                    }
+                    _ => self.name_expr("super()"),
+                };
                 let e: ExprRef = Rc::new(Expr::Attribute {
-                    value: self.name_expr("super()"),
+                    value: sup_call,
                     attr,
                 });
-                if self.version.at_least(3, 12) && arg & 1 != 0 {
-                    self.stack.push(Sv::Null);
+                if arg & 1 != 0 {
+                    // loaded method: mirror the LOAD_ATTR marker order
+                    if self.version.at_least(3, 14) {
+                        self.push(e);
+                        self.stack.push(Sv::Null);
+                    } else if self.version.at_least(3, 12) {
+                        self.stack.push(Sv::Null);
+                        self.push(e);
+                    } else {
+                        self.push(e);
+                    }
+                } else {
+                    self.push(e);
                 }
-                self.push(e);
                 true
             }
             Op::LOAD_SPECIAL => {
@@ -10995,7 +11168,7 @@ impl<'a> Ctx<'a> {
                 && top.short_circuit.is_none()
                 && top.jump_if_true == jump_if_true
                 && top.stmts.is_empty()
-                && self.is_pure_value_region(top.start, self.cur_offset)
+                && self.is_split_cond_region(top.start, self.cur_offset, target, jump_if_true)
         });
         if split_cond {
             if let Some(top) = self.blocks.last_mut() {
@@ -11606,6 +11779,45 @@ impl<'a> Ctx<'a> {
                 return true;
             }
             if !is_pure_value_op(ins.op) {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Like is_pure_value_region but tolerates the already-merged chain
+    /// cond jumps (same polarity, same target) and padding — `if a and b
+    /// and c:` has the first PJIF inside the [a, b, c) value region
+    fn is_split_cond_region(
+        &self,
+        from: usize,
+        to: usize,
+        target: usize,
+        jump_if_true: bool,
+    ) -> bool {
+        let Some(&fi) = self.idx_of.get(&from) else {
+            return false;
+        };
+        for ins in self.instrs.iter().skip(fi) {
+            if ins.offset >= to {
+                return true;
+            }
+            if matches!(ins.op, Op::NOT_TAKEN | Op::NOP | Op::CACHE) {
+                continue;
+            }
+            let same_chain_cj = matches!(
+                ins.op,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+            ) && ins.target == Some(target)
+                && jump_if_true
+                    == matches!(
+                        ins.op,
+                        Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+                    );
+            if !is_pure_value_op(ins.op) && !same_chain_cj {
                 return false;
             }
         }
@@ -13446,6 +13658,21 @@ fn flatten_boolop(e: ExprRef, kind: BoolOpKind, out: &mut Vec<ExprRef>) {
 }
 
 const WITH_RESULT_PLACEHOLDER: &str = "/*with-result*/";
+
+/// Opcode equivalence modulo the LOAD_FAST borrow/check variants (3.13+
+/// emits LOAD_FAST_BORROW inline where out-of-line copies keep LOAD_FAST)
+fn op_family_eq(a: Op, b: Op) -> bool {
+    fn fam(o: Op) -> Op {
+        match o {
+            Op::LOAD_FAST_BORROW | Op::LOAD_FAST_CHECK | Op::LOAD_FAST_AND_CLEAR => {
+                Op::LOAD_FAST
+            }
+            Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW => Op::LOAD_FAST_LOAD_FAST,
+            x => x,
+        }
+    }
+    fam(a) == fam(b)
+}
 
 /// Shallow structural equality used for augmented-assign target matching.
 fn expr_eq(a: &ExprRef, b: &ExprRef) -> bool {
@@ -16176,6 +16403,13 @@ impl<'a> Ctx<'a> {
 
     /// `<pure value ops>; COMPARE_OP ==; PJIF` at k (a value-pattern test)
     fn match_value_head_at(&self, k: usize) -> bool {
+        // `case None:` — the head is the NOT_NONE jump itself
+        if matches!(
+            self.instrs.get(k).map(|x| x.op),
+            Some(Op::POP_JUMP_IF_NOT_NONE) | Some(Op::POP_JUMP_FORWARD_IF_NOT_NONE)
+        ) {
+            return true;
+        }
         let mut j = k;
         let mut steps = 0;
         while let Some(ins) = self.instrs.get(j) {
@@ -16184,17 +16418,19 @@ impl<'a> Ctx<'a> {
                 Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
             ) {
                 // the instruction before (through padding) must be
-                // COMPARE_OP ==
+                // COMPARE_OP == or an identity IS_OP (singletons)
                 return j > k
                     && self.match_prev_real(j).map_or(false, |pj| {
-                        matches!(self.instrs[pj].op, Op::COMPARE_OP)
+                        (matches!(self.instrs[pj].op, Op::COMPARE_OP)
                             && cmp_from_index(compare_op_index(
                                 self.instrs[pj].arg as u32,
                                 self.version,
-                            )) == CmpOp::Eq
+                            )) == CmpOp::Eq)
+                            || (self.instrs[pj].op == Op::IS_OP
+                                && self.instrs[pj].arg == 0)
                     });
             }
-            if !is_pure_value_op(ins.op) || steps > 24 {
+            if (!is_pure_value_op(ins.op) && ins.op != Op::IS_OP) || steps > 24 {
                 return false;
             }
             j += 1;
@@ -16291,6 +16527,44 @@ impl<'a> Ctx<'a> {
                 i += 1;
                 self.match_skip_pad(&mut i);
             }
+            // `case None:` — the test IS the jump (3.10+)
+            if matches!(
+                self.instrs.get(i).map(|x| x.op),
+                Some(Op::POP_JUMP_IF_NOT_NONE) | Some(Op::POP_JUMP_FORWARD_IF_NOT_NONE)
+            ) {
+                arms.push(Pattern::Value(Rc::new(Expr::Const(Rc::new(
+                    PyObject::None,
+                )))));
+                fail = self.instrs[i].target?;
+                i += 1;
+                self.match_skip_pad(&mut i);
+                if let Some(ins) = self.instrs.get(i) {
+                    if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP)
+                        && ins.target.map_or(false, |t| t > ins.offset)
+                    {
+                        if body_start.is_none() {
+                            body_start = Some(ins.target.unwrap());
+                        }
+                        i += 1;
+                    }
+                }
+                let Some(&fi) = self.idx_of.get(&fail) else {
+                    break;
+                };
+                let mut fk = fi;
+                self.match_skip_pad(&mut fk);
+                let within = match boundary {
+                    Some(b) => self.instrs[fk].offset < b,
+                    None => false,
+                };
+                let continues = within && self.match_case_head_at(fk);
+                if !continues {
+                    break;
+                }
+                i = fk;
+                fail = 0;
+                continue;
+            }
             // scan the value region up to its terminating cond jump
             let region_start = i;
             let mut j = i;
@@ -16302,17 +16576,21 @@ impl<'a> Ctx<'a> {
                 ) && j > region_start
                     && self.match_prev_real(j).map_or(false, |pj| {
                         pj >= region_start
-                            && matches!(self.instrs[pj].op, Op::COMPARE_OP)
-                            && cmp_from_index(compare_op_index(
-                                self.instrs[pj].arg as u32,
-                                self.version,
-                            )) == CmpOp::Eq
+                            && (matches!(self.instrs[pj].op, Op::COMPARE_OP)
+                                && cmp_from_index(compare_op_index(
+                                    self.instrs[pj].arg as u32,
+                                    self.version,
+                                )) == CmpOp::Eq
+                                // singleton patterns (True/False) test
+                                // by identity
+                                || (self.instrs[pj].op == Op::IS_OP
+                                    && self.instrs[pj].arg == 0))
                     })
                 {
                     jidx = Some(j);
                     break;
                 }
-                if !is_pure_value_op(ins.op) {
+                if !is_pure_value_op(ins.op) && self.instrs[j].op != Op::IS_OP {
                     return None;
                 }
                 j += 1;
@@ -16524,7 +16802,20 @@ impl<'a> Ctx<'a> {
                                     return None;
                                 }
                             };
-                            if self.instrs[jk].target? != fail {
+                            // later element checks may jump PAST the fail
+                            // POP_TOP straight to the next case head
+                            let tgt = self.instrs[jk].target?;
+                            let fail_ok = tgt == fail
+                                || self
+                                    .idx_of
+                                    .get(&fail)
+                                    .map_or(false, |&fi| {
+                                        self.instrs[fi].end() == tgt
+                                            || (tgt > fail
+                                                && tgt
+                                                    <= self.instrs[fi].end() + 2)
+                                    });
+                            if !fail_ok {
                                 return None;
                             }
                             let Some(cmp_idx2) = self.match_prev_real(jk) else {
@@ -17021,22 +17312,36 @@ impl<'a> Ctx<'a> {
         } else if nattr_total > 0 && !self.version.at_least(3, 12) {
             // 3.10/3.11 per-attribute extraction:
             //   [DUP_TOP; LOAD_CONST idx; BINARY_SUBSCR; ROT_*; POP_TOP;]*
-            //   STORE name  — attributes in positional-then-keyword order
-            while captures.len() < nattr_total {
+            //   STORE name / literal CMP check — attributes in
+            // positional-then-keyword order
+            let mut slot = 0usize;
+            while slot < nattr_total {
                 self.match_skip_pad(&mut i);
                 let ins = self.instrs.get(i).copied()?;
                 match ins.op {
                     Op::STORE_FAST | Op::STORE_FAST_MAYBE_NULL => {
-                        captures.push(self.local_name(ins.arg as usize));
+                        slots[slot] = Some(cap(self.local_name(ins.arg as usize)));
+                        slot += 1;
                         i += 1;
                     }
                     Op::STORE_NAME => {
-                        captures.push(self.const_name(ins.arg as usize));
+                        slots[slot] = Some(cap(self.const_name(ins.arg as usize)));
+                        slot += 1;
+                        i += 1;
+                    }
+                    Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE => {
+                        // inline literal check of the extracted attribute
+                        let lit = self.match_prev_value_const(i)?;
+                        slots[slot] = Some(Pattern::Value(lit));
+                        slot += 1;
                         i += 1;
                     }
                     Op::DUP_TOP
                     | Op::LOAD_CONST
                     | Op::LOAD_SMALL_INT
+                    | Op::LOAD_GLOBAL
+                    | Op::LOAD_NAME
+                    | Op::COMPARE_OP
                     | Op::BINARY_SUBSCR
                     | Op::ROT_TWO
                     | Op::ROT_THREE
@@ -17987,6 +18292,33 @@ impl<'a> Ctx<'a> {
                             stack.push(e);
                         }
                     }
+                }
+                Op::CALL_FUNCTION_VAR | Op::CALL_FUNCTION_VAR_KW => {
+                    // <=3.4 `f(*t)`: [callable, pos..., *args] (+ **kw
+                    // below *args for VAR_KW); pre-3.6 argc encoding
+                    let npos = (inst.arg & 0xFF) as usize;
+                    let underflow = || Rc::new(Expr::Name("?".to_string()));
+                    let star = stack.pop().unwrap_or_else(underflow);
+                    let star_kw = if inst.op == Op::CALL_FUNCTION_VAR_KW {
+                        stack.pop()
+                    } else {
+                        None
+                    };
+                    let mut args = Vec::new();
+                    for _ in 0..npos {
+                        if let Some(a) = stack.pop() {
+                            args.push(a);
+                        }
+                    }
+                    args.reverse();
+                    let func = stack.pop().unwrap_or_else(underflow);
+                    stack.push(Rc::new(Expr::Call {
+                        func,
+                        args,
+                        keywords: Vec::new(),
+                        star_args: Some(star),
+                        star_kwargs: star_kw,
+                    }));
                 }
                 Op::CALL_FUNCTION_EX => {
                     // `f(*t)` / `f(*a, **k)` element: [callable(+marker),

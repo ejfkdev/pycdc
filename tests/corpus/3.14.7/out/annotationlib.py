@@ -462,7 +462,7 @@ def _template_to_ast(template):
 
 class _StringifierDict(dict):
     def __init__(self, namespace, *, globals=None, owner=None, is_class=False, format):
-        None(namespace)
+        super().__init__(namespace)
         self.namespace = namespace
         self.globals = globals
         self.owner = owner

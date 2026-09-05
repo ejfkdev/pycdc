@@ -89,10 +89,9 @@ def literal_eval(node_or_string):
             return list(map(_convert, node.elts))
         if isinstance(node, Set):
             return set(map(_convert, node.elts))
-        if isinstance(node, Call) and isinstance(node.func, Name):
-            if node.func.id == 'set':
-                if node.args == node.keywords == []:
-                    return set()
+        if isinstance(node, Call) and isinstance(node.func, Name) and node.func.id == 'set':
+            if node.args == node.keywords == []:
+                return set()
         if isinstance(node, Dict):
             if len(node.keys) != len(node.values):
                 _raise_malformed_node(node)
@@ -309,10 +308,9 @@ def _splitlines_no_ff(source):
         c = source[idx]
         next_line += c
         idx += 1
-        if c == '\r' and idx < len(source):
-            if source[idx] == '\n':
-                next_line += '\n'
-                idx += 1
+        if c == '\r' and idx < len(source) and source[idx] == '\n':
+            next_line += '\n'
+            idx += 1
         if c in '\r\n':
             lines.append(next_line)
             next_line = ''

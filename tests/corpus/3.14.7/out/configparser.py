@@ -281,7 +281,7 @@ class ParsingError(Error):
     '''Raised when a configuration file does not follow legal syntax.'''
 
     def __init__(self, source, *args):
-        None(f'Source contains parsing errors: {source!r}')
+        super().__init__(f'Source contains parsing errors: {source!r}')
         self.source = source
         self.errors = []
         self.args = (source,)
@@ -549,7 +549,7 @@ class _ReadState:
 class _Line(str):
     __slots__ = ('clean', 'has_comments')
     def __new__(cls, val, *args, **kwargs):
-        return None(cls, val)
+        return super().__new__(cls, val)
 
     def __init__(self, val, comments):
         trimmed = val.strip()
@@ -814,7 +814,7 @@ The section DEFAULT is special.
 '''
 
         if section is _UNSET:
-            return None()
+            return super().items()
         d = self._defaults.copy()
         try:
             d.update(self._sections[section])
@@ -1155,11 +1155,11 @@ class ConfigParser(RawConfigParser):
     _DEFAULT_INTERPOLATION = BasicInterpolation()
     def set(self, section, option, value=None):
         self._validate_value_types(option=option, value=value)
-        None(section, option, value)
+        super().set(section, option, value)
 
     def add_section(self, section):
         self._validate_value_types(section=section)
-        None(section)
+        super().add_section(section)
 
     def _read_defaults(self, defaults):
         '''Reads the defaults passed in the initializer, implicitly converting

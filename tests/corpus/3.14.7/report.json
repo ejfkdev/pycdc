@@ -2,8 +2,8 @@
  "version": "3.14.7",
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
-  "PASS": 5,
-  "SIG-DIFF": 33,
+  "PASS": 6,
+  "SIG-DIFF": 32,
   "INCOMPLETE": 2
  },
  "results": [
@@ -33,17 +33,13 @@
   },
   {
    "module": "_apple_support",
-   "ast_detail": "",
-   "verdict": "SIG-DIFF",
-   "ndiff": 200,
-   "ntotal": 277,
-   "detail": "line 74: orig ('LOAD_FAST_BORROW', '__class__') | got ('LOAD_CONST', '<code write>')\nline 75: orig ('BUILD_TUPLE', '') | got ('MAKE_FUNCTION', '')\nline 76: orig ('LOAD_CONST', '<code write>') | got ('STORE_NAME', 'write')"
+   "verdict": "PASS"
   },
   {
    "module": "_ast_unparse",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 6817,
+   "ndiff": 6868,
    "ntotal": 7127,
    "detail": "line 11: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')\nline 12: orig ('LOAD_CONST', \"('NodeVisitor',)\") | got ('LOAD_SMALL_INT', '')\nline 13: orig ('IMPORT_NAME', 'ast') | got ('LOAD_CONST', \"('NodeVisitor',)\")"
   },
@@ -51,16 +47,16 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3999,
-   "ntotal": 4085,
+   "ndiff": 4028,
+   "ntotal": 4112,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_SMALL_INT', '')"
   },
   {
    "module": "_colorize",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1616,
-   "ntotal": 1725,
+   "ndiff": 1657,
+   "ntotal": 1734,
    "detail": "line 1: orig ('MAKE_CELL', '__conditional_annotations__') | got ('RESUME', '')\nline 2: orig ('RESUME', '') | got ('LOAD_CONST', '<code __annotate__>')\nline 3: orig ('LOAD_CONST', '<code __annotate__>') | got ('MAKE_FUNCTION', '')"
   },
   {
@@ -111,8 +107,8 @@
    "module": "_py_warnings",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2755,
-   "ntotal": 3348,
+   "ndiff": 2758,
+   "ntotal": 3349,
    "detail": "line 373: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 389: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 541: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')"
   },
   {
@@ -163,15 +159,15 @@
    "module": "abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 433,
-   "ntotal": 482,
+   "ndiff": 459,
+   "ntotal": 500,
    "detail": "line 33: orig ('LOAD_CONST', \"('get_cache_token', '_abc_init', '_abc_register', '_abc_instancecheck', '_abc_subcla | got ('LOAD_CONST', \"('get_cache_token',)\")\nline 37: orig ('IMPORT_FROM', '_abc_init') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', '_abc_init') | got ('LOAD_SMALL_INT', '')"
   },
   {
    "module": "annotationlib",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4034,
+   "ndiff": 4033,
    "ntotal": 4129,
    "detail": "line 56: orig ('LOAD_NAME', 'type') | got ('NOP', '')\nline 57: orig ('PUSH_NULL', '') | got ('LOAD_NAME', 'type')\nline 58: orig ('LOAD_CONST', \"('',)\") | got ('PUSH_NULL', '')"
   },
@@ -192,7 +188,7 @@
    "module": "bdb",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3851,
+   "ndiff": 3849,
    "ntotal": 4001,
    "detail": "line 31: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 35: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 36: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_SMALL_INT', '')"
   },
@@ -224,7 +220,7 @@
    "module": "calendar",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2203,
+   "ndiff": 1951,
    "ntotal": 4326,
    "detail": "line 13: orig ('LOAD_CONST', \"('IntEnum', 'global_enum')\") | got ('LOAD_CONST', \"('IntEnum',)\")\nline 17: orig ('IMPORT_FROM', 'global_enum') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'global_enum') | got ('LOAD_SMALL_INT', '')"
   },
@@ -273,8 +269,8 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4872,
-   "ntotal": 5073,
+   "ndiff": 3875,
+   "ntotal": 5115,
    "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_SMALL_INT', '')"
   },
   {
