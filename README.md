@@ -148,6 +148,10 @@ cargo build                                                 # 重新嵌入
   内联 async 推导式、async 生成器 asend/athrow 协议、3.7 SETUP_EXCEPT 守卫式
   async-for 的 break+else 组合。
 - 推导式元素中的三元表达式（`[a if c else b for ...]`）在部分旧版本可能错位。
+- 链式比较（`a == b == c`，内部为短路 And 链）单独使用已正确还原（含切片操作数，见
+  is_pure_value_op 的 BUILD_SLICE/SLICE_0..3）；但作为 `or`/`and` 的**操作数**时
+  （`(a==b==c) or (d==e)`），嵌套短路块（And 链嵌于 Or）的合并会错乱成 `if a==b: if not
+  b==c: ...` 的嵌套 if（行为可能偏离）。简单比较的 or/and（`(a==b) or (c==d)`）正常。
 - py2.6：函数级内联列表推导（`_[N]` FAST 累加器）已支持；「if 内嵌 if + 同级 elif +
   尾部悬挂 return」的深嵌套形状可能丢失后续分支。
 - Python 1.x 可加载 marshal，但未附带 opcode 表。
