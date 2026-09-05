@@ -164,7 +164,7 @@ class XMLRPCDocGenerator:
                 method = method_info
             else:
                 if not 0:
-                    raise AssertionError('Could not find method in self.functions and no instance installed')
+                    raise AssertionError, 'Could not find method in self.functions and no instance installed'
                 methods[method_name] = method
         documenter = ServerHTMLDoc()
         documentation = documenter.docserver(self.server_name, self.server_documentation, methods)

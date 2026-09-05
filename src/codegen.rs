@@ -569,13 +569,26 @@ impl Printer {
                 self.newline();
                 self.block(body);
             }
-            Stmt::Raise { exc, cause } => {
+            Stmt::Raise {
+                exc,
+                cause,
+                py2_inst,
+                py2_tb,
+            } => {
                 match exc {
                     None => self.write("raise"),
                     Some(e) => {
                         self.write("raise ");
                         self.expr(e, 0);
-                        if let Some(c) = cause {
+                        if let Some(i) = py2_inst {
+                            // py2 native triple/pair form
+                            self.write(", ");
+                            self.expr(i, 0);
+                            if let Some(t) = py2_tb {
+                                self.write(", ");
+                                self.expr(t, 0);
+                            }
+                        } else if let Some(c) = cause {
                             if self.version.major >= 3 {
                                 self.write(" from ");
                                 self.expr(c, 0);

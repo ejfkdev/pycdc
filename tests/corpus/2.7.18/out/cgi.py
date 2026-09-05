@@ -104,7 +104,7 @@ def parse(fp=None, environ=os.environ, keep_blank_values=0, strict_parsing=0):
         if ctype == 'application/x-www-form-urlencoded':
             clength = int(environ['CONTENT_LENGTH'])
             if maxlen and clength > maxlen:
-                raise ValueError('Maximum content length exceeded')
+                raise ValueError, 'Maximum content length exceeded'
             qs = fp.read(clength)
         else:
             qs = ''
@@ -165,7 +165,7 @@ def parse_multipart(fp, pdict):
     if 'boundary' in pdict:
         boundary = pdict['boundary']
     if not valid_boundary(boundary):
-        raise ValueError('Invalid boundary in multipart form: %r' % (boundary,))
+        raise ValueError, 'Invalid boundary in multipart form: %r' % (boundary,)
     nextpart = '--' + boundary
     lastpart = '--' + boundary + '--'
     partdict = {}
@@ -180,7 +180,7 @@ def parse_multipart(fp, pdict):
                 continue
         if bytes > 0:
             if maxlen and bytes > maxlen:
-                raise ValueError('Maximum content length exceeded')
+                raise ValueError, 'Maximum content length exceeded'
             data = fp.read(bytes)
             continue
         data = ''
@@ -422,7 +422,7 @@ class FieldStorage:
             except ValueError:
                 pass
             if maxlen and clen > maxlen:
-                raise ValueError('Maximum content length exceeded')
+                raise ValueError, 'Maximum content length exceeded'
         self.length = clen
         self.list = None
         self.file = None
@@ -444,7 +444,7 @@ class FieldStorage:
 
     def __getattr__(self, name):
         if name != 'value':
-            raise AttributeError(name)
+            raise AttributeError, name
         if self.file:
             self.file.seek(0)
             value = self.file.read()
@@ -459,14 +459,14 @@ class FieldStorage:
         '''Dictionary style indexing.'''
 
         if self.list is None:
-            raise TypeError('not indexable')
+            raise TypeError, 'not indexable'
         found = []
         for item in self.list:
             if item.name == key:
                 found.append(item)
             continue
         if not found:
-            raise KeyError(key)
+            raise KeyError, key
         if len(found) == 1:
             return found[0]
         return found
@@ -508,21 +508,21 @@ class FieldStorage:
         '''Dictionary style keys() method.'''
 
         if self.list is None:
-            raise TypeError('not indexable')
+            raise TypeError, 'not indexable'
         return list(set((item.name for item in self.list)))
 
     def has_key(self, key):
         '''Dictionary style has_key() method.'''
 
         if self.list is None:
-            raise TypeError('not indexable')
+            raise TypeError, 'not indexable'
         return any((item.name == key for item in self.list))
 
     def __contains__(self, key):
         '''Dictionary style __contains__ method.'''
 
         if self.list is None:
-            raise TypeError('not indexable')
+            raise TypeError, 'not indexable'
         return any((item.name == key for item in self.list))
 
     def __len__(self):
@@ -549,7 +549,7 @@ class FieldStorage:
 
         ib = self.innerboundary
         if not valid_boundary(ib):
-            raise ValueError('Invalid boundary in multipart form: %r' % (ib,))
+            raise ValueError, 'Invalid boundary in multipart form: %r' % (ib,)
         self.list = []
         if self.qs_on_post:
             query = urlparse.parse_qsl(self.qs_on_post, self.keep_blank_values, self.strict_parsing, self.max_num_fields)
@@ -754,7 +754,7 @@ class SvFormContentDict(FormContentDict):
 
     def __getitem__(self, key):
         if len(self.dict[key]) > 1:
-            raise IndexError('expecting a single value')
+            raise IndexError, 'expecting a single value'
         return self.dict[key][0]
 
     def getlist(self, key):

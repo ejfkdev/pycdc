@@ -357,6 +357,9 @@ pub enum Stmt {
     Raise {
         exc: Option<ExprRef>,
         cause: Option<ExprRef>,
+        /// py2 `raise T, I[, B]`: instance and traceback slots (None on py3)
+        py2_inst: Option<ExprRef>,
+        py2_tb: Option<ExprRef>,
     },
     Assert {
         test: ExprRef,

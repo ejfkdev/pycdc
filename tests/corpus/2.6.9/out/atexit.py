@@ -31,7 +31,7 @@ def _run_exitfuncs():
             exc_info = sys.exc_info()
             continue
     if exc_info is not None:
-        raise exc_info[0](exc_info[1])
+        raise exc_info[0], exc_info[1], exc_info[2]
 
 def register(func, *targs, **kargs):
     _exithandlers.append((func, targs, kargs))

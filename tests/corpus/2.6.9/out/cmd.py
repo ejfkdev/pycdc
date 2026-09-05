@@ -301,25 +301,25 @@ class Cmd:
                 if name[:5] == 'help_':
                     help[name[5:]] = 1
                     continue
-        names.sort()
-        prevname = ''
-        for name in names:
-            if name[:3] == 'do_':
-                if name == prevname:
-                    continue
-            prevname = name
-            cmd = name[3:]
-            if cmd in help:
-                cmds_doc.append(cmd)
-                del help[cmd]
-            elif getattr(self, name).__doc__:
-                cmds_doc.append(cmd)
-            else:
-                cmds_undoc.append(cmd)
-        self.stdout.write('%s\n' % str(self.doc_leader))
-        self.print_topics(self.doc_header, cmds_doc, 15, 80)
-        self.print_topics(self.misc_header, help.keys(), 15, 80)
-        self.print_topics(self.undoc_header, cmds_undoc, 15, 80)
+            names.sort()
+            prevname = ''
+            for name in names:
+                if name[:3] == 'do_':
+                    if name == prevname:
+                        continue
+                prevname = name
+                cmd = name[3:]
+                if cmd in help:
+                    cmds_doc.append(cmd)
+                    del help[cmd]
+                elif getattr(self, name).__doc__:
+                    cmds_doc.append(cmd)
+                else:
+                    cmds_undoc.append(cmd)
+            self.stdout.write('%s\n' % str(self.doc_leader))
+            self.print_topics(self.doc_header, cmds_doc, 15, 80)
+            self.print_topics(self.misc_header, help.keys(), 15, 80)
+            self.print_topics(self.undoc_header, cmds_undoc, 15, 80)
 
     def print_topics(self, header, cmds, cmdlen, maxcol):
         if cmds:
@@ -341,7 +341,7 @@ class Cmd:
             return
         nonstrings = [i for i in range(len(list)) if isinstance(list[i], str)]
         if nonstrings:
-            raise TypeError('list[i] not a string for i in %s' % ', '.join(map(str, nonstrings)))
+            raise TypeError, 'list[i] not a string for i in %s' % ', '.join(map(str, nonstrings))
         size = len(list)
         if size == 1:
             self.stdout.write('%s\n' % str(list[0]))

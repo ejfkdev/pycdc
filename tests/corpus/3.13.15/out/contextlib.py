@@ -727,6 +727,8 @@ method.'''
                         exc_details = type(exc), exc, exc.__traceback__
                     if is_sync:
                         cb_suppress = cb(*exc_details)
+                    else:
+                        cb_suppress = await cb(*exc_details)
                 except BaseException as new_exc:
                     _fix_exception_context(new_exc, exc)
                     pending_raise = True
@@ -734,20 +736,10 @@ method.'''
             except BaseException:
                 exc.__context__ = fixed_ctx
                 raise
-            try:
-                try:
-                    cb_suppress = await cb(*exc_details)
-                    if cb_suppress:
-                        suppressed_exc = True
-                        pending_raise = False
-                        exc = None
-                except BaseException as new_exc:
-                    _fix_exception_context(new_exc, exc)
-                    pending_raise = True
-                    exc = new_exc
-            except BaseException:
-                exc.__context__ = fixed_ctx
-                raise
+            if cb_suppress:
+                suppressed_exc = True
+                pending_raise = False
+                exc = None
         if pending_raise:
             try:
                 fixed_ctx = exc.__context__

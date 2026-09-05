@@ -67,7 +67,7 @@ class Play_Audio_sgi:
                 break
                 continue
         else:
-            raise error('bad output rate')
+            raise error, 'bad output rate'
 
     def setsampwidth(self, width):
         for raw, cooked in self.sampwidthlist:
@@ -83,7 +83,7 @@ class Play_Audio_sgi:
                 self.config.setwidth(AL.SAMPLE_16)
                 self.converter = self.ulaw2lin
             else:
-                raise error('bad sample width')
+                raise error, 'bad sample width'
 
     def setnchannels(self, nchannels):
         for raw, cooked in self.nchannelslist:
@@ -93,11 +93,11 @@ class Play_Audio_sgi:
                 break
                 continue
         else:
-            raise error('bad # of channels')
+            raise error, 'bad # of channels'
 
     def writeframes(self, data):
         if not (self.inited_outrate and self.inited_nchannels):
-            raise error('params not specified')
+            raise error, 'params not specified'
         if not self.port:
             import al
             import AL
@@ -152,7 +152,7 @@ class Play_Audio_sun:
 
     def writeframes(self, data):
         if not (self.inited_outrate and self.inited_width and self.inited_nchannels):
-            raise error('params not specified')
+            raise error, 'params not specified'
         if not self.port:
             import sunaudiodev
             import SUNAUDIODEV
@@ -203,7 +203,7 @@ def AudioDev():
             try:
                 import Audio_mac
             except ImportError:
-                raise error('no audio device')
+                raise error, 'no audio device'
 
 def test(fn=None):
     import sys

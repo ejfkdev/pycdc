@@ -115,23 +115,24 @@ def _slotnames(cls):
     names = []
     if not hasattr(cls, '__slots__'):
         pass
-    for c in cls.__mro__:
-        if '__slots__' in c.__dict__:
-            slots = c.__dict__['__slots__']
-            if isinstance(slots, str):
-                slots = (slots,)
-            for name in slots:
-                if name in ('__dict__', '__weakref__'):
-                    continue
-                if name.startswith('__'):
-                    if not name.endswith('__'):
-                        stripped = c.__name__.lstrip('_')
-                        if stripped:
-                            names.append(f'_{stripped!s}{name!s}')
-                            continue
+    else:
+        for c in cls.__mro__:
+            if '__slots__' in c.__dict__:
+                slots = c.__dict__['__slots__']
+                if isinstance(slots, str):
+                    slots = (slots,)
+                for name in slots:
+                    if name in ('__dict__', '__weakref__'):
+                        continue
+                    if name.startswith('__'):
+                        if not name.endswith('__'):
+                            stripped = c.__name__.lstrip('_')
+                            if stripped:
+                                names.append(f'_{stripped!s}{name!s}')
+                                continue
+                    names.append(name)
                 names.append(name)
-            names.append(name)
-            continue
+                continue
     try:
         cls.__slotnames__ = names
     except:

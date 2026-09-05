@@ -305,24 +305,24 @@ class Cmd:
             for name in names:
                 if name[:5] == 'help_':
                     help[name[5:]] = 1
-        names.sort()
-        prevname = ''
-        for name in names:
-            if name[:3] == 'do_' or name == prevname:
-                continue
-            prevname = name
-            cmd = name[3:]
-            if cmd in help:
-                cmds_doc.append(cmd)
-                del help[cmd]
-            elif getattr(self, name).__doc__:
-                cmds_doc.append(cmd)
-            else:
-                cmds_undoc.append(cmd)
-        self.stdout.write('%s\n' % str(self.doc_leader))
-        self.print_topics(self.doc_header, cmds_doc, 15, 80)
-        self.print_topics(self.misc_header, list(help.keys()), 15, 80)
-        self.print_topics(self.undoc_header, cmds_undoc, 15, 80)
+            names.sort()
+            prevname = ''
+            for name in names:
+                if name[:3] == 'do_' or name == prevname:
+                    continue
+                prevname = name
+                cmd = name[3:]
+                if cmd in help:
+                    cmds_doc.append(cmd)
+                    del help[cmd]
+                elif getattr(self, name).__doc__:
+                    cmds_doc.append(cmd)
+                else:
+                    cmds_undoc.append(cmd)
+            self.stdout.write('%s\n' % str(self.doc_leader))
+            self.print_topics(self.doc_header, cmds_doc, 15, 80)
+            self.print_topics(self.misc_header, list(help.keys()), 15, 80)
+            self.print_topics(self.undoc_header, cmds_undoc, 15, 80)
 
     def print_topics(self, header, cmds, cmdlen, maxcol):
         if cmds:

@@ -47,8 +47,8 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 220: orig  body=Yield()))])) | dec  body=Yield(value=Constant(value=None))))]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 4028,
-   "ntotal": 4120,
+   "ndiff": 4025,
+   "ntotal": 4121,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_SMALL_INT', '')"
   },
   {
@@ -275,15 +275,15 @@
    "module": "contextlib",
    "ast_detail": "diff at token 54: orig  body=[Return()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2346,
-   "ntotal": 2414,
+   "ndiff": 2397,
+   "ntotal": 2465,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_SMALL_INT', '')"
   },
   {
    "module": "copy",
    "ast_detail": "diff at token 524: orig  body=[Pass()])]) | dec  body=[Pass()])])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 350,
+   "ndiff": 353,
    "ntotal": 874,
    "detail": "line 512: orig ('JUMP_FORWARD', 'to L4') | got ('LOAD_CONST', 'None')\nline 513: orig ('RERAISE', '') | got ('RETURN_VALUE', '')\nline 514: orig ('COPY', '') | got ('RERAISE', '')"
   },

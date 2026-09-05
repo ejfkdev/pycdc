@@ -730,6 +730,8 @@ method.'''
                         exc_details = type(exc), exc, exc.__traceback__
                     if is_sync:
                         cb_suppress = cb(*exc_details)
+                    else:
+                        cb_suppress = await cb(*exc_details)
                 except BaseException as new_exc:
                     _fix_exception_context(new_exc, exc)
                     pending_raise = True
@@ -740,30 +742,29 @@ method.'''
             except BaseException:
                 exc.__context__ = fixed_ctx
                 raise
-        if pending_raise:
-            try:
-                cb_suppress = await cb(*exc_details)
-                if cb_suppress:
-                    suppressed_exc = True
-                    pending_raise = False
-                    exc = None
-                    # WARNING: continue outside loop (unrecovered structure)
-            except BaseException:
-                exc.__context__ = fixed_ctx
-                raise
+            if cb_suppress:
                 try:
                     try:
-                        fixed_ctx = exc.__context__
-                        raise exc
+                        suppressed_exc = True
+                        pending_raise = False
+                        exc = None
                     except BaseException as new_exc:
                         _fix_exception_context(new_exc, exc)
                         pending_raise = True
                         exc = new_exc
                         new_exc = None
                         del new_exc
+                        continue
                 except BaseException:
                     exc.__context__ = fixed_ctx
                     raise
+        if pending_raise:
+            try:
+                fixed_ctx = exc.__context__
+                raise exc
+            except BaseException:
+                exc.__context__ = fixed_ctx
+                raise
         return received_exc and suppressed_exc
 
 

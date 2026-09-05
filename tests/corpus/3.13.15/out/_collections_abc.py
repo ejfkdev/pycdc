@@ -892,10 +892,10 @@ In either case, this is followed by:
         if isinstance(other, Mapping):
             for key in other:
                 self[key] = other[key]
+        elif hasattr(other, 'keys'):
+            for key in other.keys():
+                self[key] = other[key]
         else:
-            if hasattr(other, 'keys'):
-                for key in other.keys():
-                    self[key] = other[key]
             for key, value in other:
                 self[key] = value
         for key, value in kwds.items():

@@ -96,32 +96,6 @@ def _slotnames(cls):
     names = []
     if not hasattr(cls, '__slots__'):
         pass
-    else:
-        for c in cls.__mro__:
-            if '__slots__' in c.__dict__:
-                slots = c.__dict__['__slots__']
-                if isinstance(slots, str):
-                    slots = (slots,)
-                for name in slots:
-                    if name in ('__dict__', '__weakref__'):
-                        continue
-                    continue
-                    if name.startswith('__'):
-                        if not name.endswith('__'):
-                            stripped = c.__name__.lstrip('_')
-                            if stripped:
-                                names.append('_%s%s' % (stripped, name))
-                            else:
-                                names.append(name)
-                        else:
-                            names.append(name)
-                    else:
-                        break
-                        try:
-                            cls.__slotnames__ = names
-                        except:
-                            pass
-                        return names
 
 _extension_registry = {}
 _inverted_registry = {}

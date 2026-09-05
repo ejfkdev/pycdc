@@ -25,7 +25,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 994,
    "ntotal": 1411,
-   "detail": "line 36: orig ('LOAD_CONST', '<code object ParserBase at 0x102a70db0, file \"/Users/e/.pyen') | got ('LOAD_CONST', '<code object ParserBase at 0x102574d20, file \"/Users/e/Docum')\nline 53: orig ('LOAD_CONST', '<code object __init__ at 0x102a706f0, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object __init__ at 0x1025746f0, file \"/Users/e/Documen')\nline 57: orig ('LOAD_CONST', '<code object error at 0x102a70270, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object error at 0x102574270, file \"/Users/e/Documents/')"
+   "detail": "line 36: orig ('LOAD_CONST', '<code object ParserBase at 0x1010d4db0, file \"/Users/e/.pyen') | got ('LOAD_CONST', '<code object ParserBase at 0x104d5cd20, file \"/Users/e/Docum')\nline 53: orig ('LOAD_CONST', '<code object __init__ at 0x1010d46f0, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object __init__ at 0x104d5c6f0, file \"/Users/e/Documen')\nline 57: orig ('LOAD_CONST', '<code object error at 0x1010d4270, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object error at 0x104d5c270, file \"/Users/e/Documents/')"
   },
   {
    "module": "_osx_support",
@@ -33,7 +33,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 901,
    "ntotal": 1144,
-   "detail": "line 28: orig ('LOAD_CONST', '<code object _find_executable at 0x101308270, file \"/Users/e') | got ('LOAD_CONST', '<code object _find_executable at 0x1094e0270, file \"/Users/e')\nline 32: orig ('LOAD_CONST', '<code object _read_output at 0x101308300, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object _read_output at 0x1094e0300, file \"/Users/e/Doc')\nline 36: orig ('LOAD_CONST', '<code object _find_build_tool at 0x101308390, file \"/Users/e') | got ('LOAD_CONST', '<code object _find_build_tool at 0x1094e0390, file \"/Users/e')"
+   "detail": "line 28: orig ('LOAD_CONST', '<code object _find_executable at 0x107700270, file \"/Users/e') | got ('LOAD_CONST', '<code object _find_executable at 0x105190270, file \"/Users/e')\nline 32: orig ('LOAD_CONST', '<code object _read_output at 0x107700300, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object _read_output at 0x105190300, file \"/Users/e/Doc')\nline 36: orig ('LOAD_CONST', '<code object _find_build_tool at 0x107700390, file \"/Users/e') | got ('LOAD_CONST', '<code object _find_build_tool at 0x105190390, file \"/Users/e')"
   },
   {
    "module": "_strptime",
@@ -65,7 +65,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 2039,
    "ntotal": 3002,
-   "detail": "line 21: orig ('LOAD_CONST', '<code object Error at 0x1094b46f0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Error at 0x1051006f0, file \"/Users/e/Documents/')\nline 30: orig ('LOAD_CONST', '<code object _read_long at 0x1094b4270, file \"/Users/e/.pyen') | got ('LOAD_CONST', '<code object _read_long at 0x105100270, file \"/Users/e/Docum')\nline 34: orig ('LOAD_CONST', '<code object _read_ulong at 0x1094b4300, file \"/Users/e/.pye') | got ('LOAD_CONST', '<code object _read_ulong at 0x105100300, file \"/Users/e/Docu')"
+   "detail": "line 21: orig ('LOAD_CONST', '<code object Error at 0x1097806f0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Error at 0x10530c6f0, file \"/Users/e/Documents/')\nline 30: orig ('LOAD_CONST', '<code object _read_long at 0x109780270, file \"/Users/e/.pyen') | got ('LOAD_CONST', '<code object _read_long at 0x10530c270, file \"/Users/e/Docum')\nline 34: orig ('LOAD_CONST', '<code object _read_ulong at 0x109780300, file \"/Users/e/.pye') | got ('LOAD_CONST', '<code object _read_ulong at 0x10530c300, file \"/Users/e/Docu')"
   },
   {
    "module": "ast",
@@ -73,7 +73,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 680,
    "ntotal": 1049,
-   "detail": "line 9: orig ('LOAD_CONST', '<code object parse at 0x10142c6f0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object parse at 0x10965c6f0, file \"/Users/e/Documents/')\nline 13: orig ('LOAD_CONST', '<code object literal_eval at 0x10142c390, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object literal_eval at 0x10965c390, file \"/Users/e/Doc')\nline 19: orig ('LOAD_CONST', '<code object dump at 0x10142ca50, file \"/Users/e/.pyenv/vers') | got ('LOAD_CONST', '<code object dump at 0x10965ca50, file \"/Users/e/Documents/p')"
+   "detail": "line 9: orig ('LOAD_CONST', '<code object parse at 0x104d786f0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object parse at 0x104ed06f0, file \"/Users/e/Documents/')\nline 13: orig ('LOAD_CONST', '<code object literal_eval at 0x104d78390, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object literal_eval at 0x104ed0390, file \"/Users/e/Doc')\nline 19: orig ('LOAD_CONST', '<code object dump at 0x104d78a50, file \"/Users/e/.pyenv/vers') | got ('LOAD_CONST', '<code object dump at 0x104ed0a50, file \"/Users/e/Documents/p')"
   },
   {
    "module": "asynchat",
@@ -81,7 +81,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 279,
    "ntotal": 883,
-   "detail": "line 18: orig ('LOAD_CONST', '<code object async_chat at 0x1074a0ed0, file \"/Users/e/.pyen') | got ('LOAD_CONST', '<code object async_chat at 0x1090e4ed0, file \"/Users/e/Docum')\nline 27: orig ('LOAD_CONST', '<code object simple_producer at 0x1074a10c0, file \"/Users/e/') | got ('LOAD_CONST', '<code object simple_producer at 0x1090e50c0, file \"/Users/e/')\nline 34: orig ('LOAD_CONST', '<code object fifo at 0x1074a14b0, file \"/Users/e/.pyenv/vers') | got ('LOAD_CONST', '<code object fifo at 0x1090e54b0, file \"/Users/e/Documents/p')"
+   "detail": "line 18: orig ('LOAD_CONST', '<code object async_chat at 0x103184ed0, file \"/Users/e/.pyen') | got ('LOAD_CONST', '<code object async_chat at 0x1073a4ed0, file \"/Users/e/Docum')\nline 27: orig ('LOAD_CONST', '<code object simple_producer at 0x1031850c0, file \"/Users/e/') | got ('LOAD_CONST', '<code object simple_producer at 0x1073a50c0, file \"/Users/e/')\nline 34: orig ('LOAD_CONST', '<code object fifo at 0x1031854b0, file \"/Users/e/.pyenv/vers') | got ('LOAD_CONST', '<code object fifo at 0x1073a54b0, file \"/Users/e/Documents/p')"
   },
   {
    "module": "asyncore",
@@ -101,7 +101,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1654,
    "ntotal": 2286,
-   "detail": "line 21: orig ('LOAD_CONST', '<code object BdbQuit at 0x107d8c6f0, file \"/Users/e/.pyenv/v') | got ('LOAD_CONST', '<code object BdbQuit at 0x1006786f0, file \"/Users/e/Document')\nline 29: orig ('LOAD_CONST', '<code object Bdb at 0x107d90150, file \"/Users/e/.pyenv/versi') | got ('LOAD_CONST', '<code object Bdb at 0x10067c0c0, file \"/Users/e/Documents/pr')\nline 35: orig ('LOAD_CONST', '<code object set_trace at 0x107d901e0, file \"/Users/e/.pyenv') | got ('LOAD_CONST', '<code object set_trace at 0x10067c150, file \"/Users/e/Docume')"
+   "detail": "line 21: orig ('LOAD_CONST', '<code object BdbQuit at 0x1056906f0, file \"/Users/e/.pyenv/v') | got ('LOAD_CONST', '<code object BdbQuit at 0x10279c6f0, file \"/Users/e/Document')\nline 29: orig ('LOAD_CONST', '<code object Bdb at 0x105694150, file \"/Users/e/.pyenv/versi') | got ('LOAD_CONST', '<code object Bdb at 0x1027a00c0, file \"/Users/e/Documents/pr')\nline 35: orig ('LOAD_CONST', '<code object set_trace at 0x1056941e0, file \"/Users/e/.pyenv') | got ('LOAD_CONST', '<code object set_trace at 0x1027a0150, file \"/Users/e/Docume')"
   },
   {
    "module": "binhex",
@@ -109,7 +109,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 883,
    "ntotal": 1847,
-   "detail": "line 25: orig ('LOAD_CONST', '<code object Error at 0x1090c86f0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Error at 0x10529c6f0, file \"/Users/e/Documents/')\nline 46: orig ('LOAD_CONST', '<code object FInfo at 0x1090c8300, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object FInfo at 0x10529c300, file \"/Users/e/Documents/')\nline 52: orig ('LOAD_CONST', '<code object getfileinfo at 0x1090c8390, file \"/Users/e/.pye') | got ('LOAD_CONST', '<code object getfileinfo at 0x10529c390, file \"/Users/e/Docu')"
+   "detail": "line 25: orig ('LOAD_CONST', '<code object Error at 0x1055f86f0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Error at 0x102a306f0, file \"/Users/e/Documents/')\nline 46: orig ('LOAD_CONST', '<code object FInfo at 0x1055f8300, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object FInfo at 0x102a30300, file \"/Users/e/Documents/')\nline 52: orig ('LOAD_CONST', '<code object getfileinfo at 0x1055f8390, file \"/Users/e/.pye') | got ('LOAD_CONST', '<code object getfileinfo at 0x102a30390, file \"/Users/e/Docu')"
   },
   {
    "module": "bisect",
@@ -133,7 +133,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 2451,
    "ntotal": 2901,
-   "detail": "line 38: orig ('LOAD_CONST', '<code object IllegalMonthError at 0x10908c300, file \"/Users/') | got ('LOAD_CONST', '<code object IllegalMonthError at 0x100cd0300, file \"/Users/')\nline 46: orig ('LOAD_CONST', '<code object IllegalWeekdayError at 0x10908c780, file \"/User') | got ('LOAD_CONST', '<code object IllegalWeekdayError at 0x100cd0780, file \"/User')\nline 73: orig ('LOAD_CONST', '<code object _localized_month at 0x10908cb70, file \"/Users/e') | got ('LOAD_CONST', '<code object _localized_month at 0x100cd0b70, file \"/Users/e')"
+   "detail": "line 38: orig ('LOAD_CONST', '<code object IllegalMonthError at 0x102830300, file \"/Users/') | got ('LOAD_CONST', '<code object IllegalMonthError at 0x10900c300, file \"/Users/')\nline 46: orig ('LOAD_CONST', '<code object IllegalWeekdayError at 0x102830780, file \"/User') | got ('LOAD_CONST', '<code object IllegalWeekdayError at 0x10900c780, file \"/User')\nline 73: orig ('LOAD_CONST', '<code object _localized_month at 0x102830b70, file \"/Users/e') | got ('LOAD_CONST', '<code object _localized_month at 0x10900cb70, file \"/Users/e')"
   },
   {
    "module": "cgi",
@@ -149,7 +149,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1307,
    "ntotal": 1435,
-   "detail": "line 43: orig ('LOAD_CONST', '<code object reset at 0x104d506f0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object reset at 0x1096ac6f0, file \"/Users/e/Documents/')\nline 49: orig ('LOAD_CONST', '<code object small at 0x104d50270, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object small at 0x1096ac270, file \"/Users/e/Documents/')\nline 53: orig ('LOAD_CONST', '<code object strong at 0x104d50300, file \"/Users/e/.pyenv/ve') | got ('LOAD_CONST', '<code object strong at 0x1096ac300, file \"/Users/e/Documents')"
+   "detail": "line 43: orig ('LOAD_CONST', '<code object reset at 0x104dc46f0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object reset at 0x1012946f0, file \"/Users/e/Documents/')\nline 49: orig ('LOAD_CONST', '<code object small at 0x104dc4270, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object small at 0x101294270, file \"/Users/e/Documents/')\nline 53: orig ('LOAD_CONST', '<code object strong at 0x104dc4300, file \"/Users/e/.pyenv/ve') | got ('LOAD_CONST', '<code object strong at 0x101294300, file \"/Users/e/Documents')"
   },
   {
    "module": "chunk",
@@ -161,7 +161,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1063,
    "ntotal": 1328,
-   "detail": "line 25: orig ('LOAD_CONST', '<code object Cmd at 0x10984a150, file \"/Users/e/.pyenv/versi') | got ('LOAD_CONST', '<code object Cmd at 0x1099e6150, file \"/Users/e/Documents/pr')\nline 67: orig ('LOAD_CONST', '<code object __init__ at 0x1098486f0, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object __init__ at 0x1099e46f0, file \"/Users/e/Documen')\nline 72: orig ('LOAD_CONST', '<code object cmdloop at 0x109848270, file \"/Users/e/.pyenv/v') | got ('LOAD_CONST', '<code object cmdloop at 0x1099e4270, file \"/Users/e/Document')"
+   "detail": "line 25: orig ('LOAD_CONST', '<code object Cmd at 0x106eb2150, file \"/Users/e/.pyenv/versi') | got ('LOAD_CONST', '<code object Cmd at 0x107022150, file \"/Users/e/Documents/pr')\nline 67: orig ('LOAD_CONST', '<code object __init__ at 0x106eb06f0, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object __init__ at 0x1070206f0, file \"/Users/e/Documen')\nline 72: orig ('LOAD_CONST', '<code object cmdloop at 0x106eb0270, file \"/Users/e/.pyenv/v') | got ('LOAD_CONST', '<code object cmdloop at 0x107020270, file \"/Users/e/Document')"
   },
   {
    "module": "code",
@@ -173,7 +173,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1223,
    "ntotal": 2186,
-   "detail": "line 108: orig ('LOAD_CONST', '<code object CodecInfo at 0x104c10300, file \"/Users/e/.pyenv') | got ('LOAD_CONST', '<code object CodecInfo at 0x100f04300, file \"/Users/e/Docume')\nline 116: orig ('LOAD_CONST', '<code object Codec at 0x104c10780, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Codec at 0x100f04780, file \"/Users/e/Documents/')\nline 123: orig ('LOAD_CONST', '<code object IncrementalEncoder at 0x104c10ae0, file \"/Users') | got ('LOAD_CONST', '<code object IncrementalEncoder at 0x100f04ae0, file \"/Users')"
+   "detail": "line 108: orig ('LOAD_CONST', '<code object CodecInfo at 0x1091d0300, file \"/Users/e/.pyenv') | got ('LOAD_CONST', '<code object CodecInfo at 0x10292c300, file \"/Users/e/Docume')\nline 116: orig ('LOAD_CONST', '<code object Codec at 0x1091d0780, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Codec at 0x10292c780, file \"/Users/e/Documents/')\nline 123: orig ('LOAD_CONST', '<code object IncrementalEncoder at 0x1091d0ae0, file \"/Users') | got ('LOAD_CONST', '<code object IncrementalEncoder at 0x10292cae0, file \"/Users')"
   },
   {
    "module": "codeop",
@@ -189,7 +189,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 653,
    "ntotal": 860,
-   "detail": "line 39: orig ('LOAD_CONST', '<code object compile_dir at 0x1007ac6f0, file \"/Users/e/.pye') | got ('LOAD_CONST', '<code object compile_dir at 0x108e146f0, file \"/Users/e/Docu')\nline 49: orig ('LOAD_CONST', '<code object compile_file at 0x1007ac300, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object compile_file at 0x108e14270, file \"/Users/e/Doc')\nline 59: orig ('LOAD_CONST', '<code object compile_path at 0x1007ac390, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object compile_path at 0x108e14300, file \"/Users/e/Doc')"
+   "detail": "line 39: orig ('LOAD_CONST', '<code object compile_dir at 0x105aa46f0, file \"/Users/e/.pye') | got ('LOAD_CONST', '<code object compile_dir at 0x1074286f0, file \"/Users/e/Docu')\nline 49: orig ('LOAD_CONST', '<code object compile_file at 0x105aa4300, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object compile_file at 0x107428270, file \"/Users/e/Doc')\nline 59: orig ('LOAD_CONST', '<code object compile_path at 0x105aa4390, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object compile_path at 0x107428300, file \"/Users/e/Doc')"
   },
   {
    "module": "configparser",
@@ -205,7 +205,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 525,
    "ntotal": 676,
-   "detail": "line 26: orig ('LOAD_CONST', '<code object ContextDecorator at 0x1025ec390, file \"/Users/e') | got ('LOAD_CONST', '<code object ContextDecorator at 0x109c58390, file \"/Users/e')\nline 34: orig ('LOAD_CONST', '<code object _GeneratorContextManager at 0x1025ec930, file \"') | got ('LOAD_CONST', '<code object _GeneratorContextManager at 0x109c58930, file \"')\nline 41: orig ('LOAD_CONST', '<code object contextmanager at 0x1025eca50, file \"/Users/e/.') | got ('LOAD_CONST', '<code object contextmanager at 0x109c58a50, file \"/Users/e/D')"
+   "detail": "line 26: orig ('LOAD_CONST', '<code object ContextDecorator at 0x104a08390, file \"/Users/e') | got ('LOAD_CONST', '<code object ContextDecorator at 0x101238390, file \"/Users/e')\nline 34: orig ('LOAD_CONST', '<code object _GeneratorContextManager at 0x104a08930, file \"') | got ('LOAD_CONST', '<code object _GeneratorContextManager at 0x101238930, file \"')\nline 41: orig ('LOAD_CONST', '<code object contextmanager at 0x104a08a50, file \"/Users/e/.') | got ('LOAD_CONST', '<code object contextmanager at 0x101238a50, file \"/Users/e/D')"
   },
   {
    "module": "copy",
@@ -213,15 +213,15 @@
    "verdict": "SIG-DIFF",
    "ndiff": 868,
    "ntotal": 1016,
-   "detail": "line 22: orig ('LOAD_CONST', '<code object Error at 0x10260c6f0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Error at 0x1058a06f0, file \"/Users/e/Documents/')\nline 57: orig ('LOAD_CONST', '<code object copy at 0x10260c300, file \"/Users/e/.pyenv/vers') | got ('LOAD_CONST', '<code object copy at 0x1058a0300, file \"/Users/e/Documents/p')\nline 65: orig ('LOAD_CONST', '<code object _copy_immutable at 0x10260c390, file \"/Users/e/') | got ('LOAD_CONST', '<code object _copy_immutable at 0x1058a0390, file \"/Users/e/')"
+   "detail": "line 22: orig ('LOAD_CONST', '<code object Error at 0x1047ec6f0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object Error at 0x1091c06f0, file \"/Users/e/Documents/')\nline 57: orig ('LOAD_CONST', '<code object copy at 0x1047ec300, file \"/Users/e/.pyenv/vers') | got ('LOAD_CONST', '<code object copy at 0x1091c0300, file \"/Users/e/Documents/p')\nline 65: orig ('LOAD_CONST', '<code object _copy_immutable at 0x1047ec390, file \"/Users/e/') | got ('LOAD_CONST', '<code object _copy_immutable at 0x1091c0390, file \"/Users/e/')"
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 757: orig  ctx=Del())]) | dec  ctx=Del())",
+   "ast_detail": "diff at token 437: orig  orelse=[For(target=Name(id='c' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 316,
-   "ntotal": 528,
-   "detail": "line 13: orig ('LOAD_CONST', '<code object pickle at 0x1096b46f0, file \"/Users/e/.pyenv/ve') | got ('LOAD_CONST', '<code object pickle at 0x107ce46f0, file \"/Users/e/Documents')\nline 17: orig ('LOAD_CONST', '<code object constructor at 0x1096b4270, file \"/Users/e/.pye') | got ('LOAD_CONST', '<code object constructor at 0x107ce4270, file \"/Users/e/Docu')\nline 36: orig ('LOAD_CONST', '<code object pickle_complex at 0x1096b4300, file \"/Users/e/.') | got ('LOAD_CONST', '<code object pickle_complex at 0x107ce4300, file \"/Users/e/D')"
+   "ndiff": 344,
+   "ntotal": 527,
+   "detail": "line 13: orig ('LOAD_CONST', '<code object pickle at 0x1050986f0, file \"/Users/e/.pyenv/ve') | got ('LOAD_CONST', '<code object pickle at 0x109c086f0, file \"/Users/e/Documents')\nline 17: orig ('LOAD_CONST', '<code object constructor at 0x105098270, file \"/Users/e/.pye') | got ('LOAD_CONST', '<code object constructor at 0x109c08270, file \"/Users/e/Docu')\nline 36: orig ('LOAD_CONST', '<code object pickle_complex at 0x105098300, file \"/Users/e/.') | got ('LOAD_CONST', '<code object pickle_complex at 0x109c08300, file \"/Users/e/D')"
   },
   {
    "module": "crypt",
@@ -241,7 +241,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1191,
    "ntotal": 1486,
-   "detail": "line 43: orig ('LOAD_CONST', '<code object _try_compile at 0x1050586f0, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object _try_compile at 0x1094ec6f0, file \"/Users/e/Doc')\nline 48: orig ('LOAD_CONST', '<code object dis at 0x105058270, file \"/Users/e/.pyenv/versi') | got ('LOAD_CONST', '<code object dis at 0x1094ec270, file \"/Users/e/Documents/pr')\nline 53: orig ('LOAD_CONST', '<code object distb at 0x105058300, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object distb at 0x1094ec300, file \"/Users/e/Documents/')"
+   "detail": "line 43: orig ('LOAD_CONST', '<code object _try_compile at 0x1053106f0, file \"/Users/e/.py') | got ('LOAD_CONST', '<code object _try_compile at 0x10935c6f0, file \"/Users/e/Doc')\nline 48: orig ('LOAD_CONST', '<code object dis at 0x105310270, file \"/Users/e/.pyenv/versi') | got ('LOAD_CONST', '<code object dis at 0x10935c270, file \"/Users/e/Documents/pr')\nline 53: orig ('LOAD_CONST', '<code object distb at 0x105310300, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object distb at 0x10935c300, file \"/Users/e/Documents/')"
   },
   {
    "module": "dummy_threading",
@@ -257,7 +257,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 185,
    "ntotal": 1130,
-   "detail": "line 32: orig ('LOAD_CONST', '<code object input at 0x1027b06f0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object input at 0x104b1c6f0, file \"/Users/e/Documents/')\nline 36: orig ('LOAD_CONST', '<code object close at 0x1027b0270, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object close at 0x104b1c270, file \"/Users/e/Documents/')\nline 40: orig ('LOAD_CONST', '<code object nextfile at 0x1027b0300, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object nextfile at 0x104b1c300, file \"/Users/e/Documen')"
+   "detail": "line 32: orig ('LOAD_CONST', '<code object input at 0x1033486f0, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object input at 0x1076906f0, file \"/Users/e/Documents/')\nline 36: orig ('LOAD_CONST', '<code object close at 0x103348270, file \"/Users/e/.pyenv/ver') | got ('LOAD_CONST', '<code object close at 0x107690270, file \"/Users/e/Documents/')\nline 40: orig ('LOAD_CONST', '<code object nextfile at 0x103348300, file \"/Users/e/.pyenv/') | got ('LOAD_CONST', '<code object nextfile at 0x107690300, file \"/Users/e/Documen')"
   }
  ]
 }

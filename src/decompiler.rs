@@ -8648,6 +8648,8 @@ impl<'a> Ctx<'a> {
                     self.push_stmt(Stmt::Raise {
                         exc: None,
                         cause: None,
+                        py2_inst: None,
+                        py2_tb: None,
                     });
                     true
                 }
@@ -8656,28 +8658,29 @@ impl<'a> Ctx<'a> {
                     self.push_stmt(Stmt::Raise {
                         exc: Some(exc),
                         cause: None,
+                        py2_inst: None,
+                        py2_tb: None,
                     });
                     true
                 }
                 _ => {
                     if self.version.major == 2 {
-                        // py2 `raise type, inst[, tb]`: inst popped first;
-                        // render the py3-equivalent instantiation
-                        if arg >= 3 {
-                            let _tb = self.pop_expr();
-                        }
+                        // py2 `raise type, inst[, tb]`: render the native
+                        // form - it recompiles to identical bytecode (the
+                        // old Call-instantiation rewrite could never
+                        // sig-match and dropped the traceback)
+                        let tb = if arg >= 3 {
+                            Some(self.pop_expr())
+                        } else {
+                            None
+                        };
                         let inst = self.pop_expr();
                         let ty = self.pop_expr();
-                        let exc = Rc::new(Expr::Call {
-                            func: ty,
-                            args: vec![inst],
-                            keywords: Vec::new(),
-                            star_args: None,
-                            star_kwargs: None,
-                        });
                         self.push_stmt(Stmt::Raise {
-                            exc: Some(exc),
+                            exc: Some(ty),
                             cause: None,
+                            py2_inst: Some(inst),
+                            py2_tb: tb,
                         });
                         return true;
                     }
@@ -8686,6 +8689,8 @@ impl<'a> Ctx<'a> {
                     self.push_stmt(Stmt::Raise {
                         exc: Some(exc),
                         cause: Some(cause),
+                        py2_inst: None,
+                        py2_tb: None,
                     });
                     true
                 }
@@ -13684,7 +13689,16 @@ impl<'a> Ctx<'a> {
                 .iter()
                 .skip_while(|i| i.offset < from)
                 .take_while(|i| i.offset < t)
-                .any(|i| i.target.map_or(false, |it| it > from && it <= t));
+                .any(|i| i.target.map_or(false, |it| it > from && it <= t))
+                // a backward jump from inside the region landing on t
+                // makes t a loop TOP within the region (the back edge
+                // always sits after it), not an early boundary
+                || self
+                    .instrs
+                    .iter()
+                    .skip_while(|i| i.offset < t)
+                    .take_while(|i| i.offset < limit)
+                    .any(|i| i.is_backward && i.target == Some(t));
             if !internal {
                 best = t;
             }
@@ -18309,7 +18323,7 @@ fn stmts_contain_yield(stmts: &[Stmt]) -> bool {
                         || it.target.as_ref().map_or(false, |v| expr_has_yield(v))
                 })
         }
-        Stmt::Raise { exc, cause } => {
+        Stmt::Raise { exc, cause, .. } => {
             exc.as_ref().map_or(false, |e| expr_has_yield(e))
                 || cause.as_ref().map_or(false, |e| expr_has_yield(e))
         }

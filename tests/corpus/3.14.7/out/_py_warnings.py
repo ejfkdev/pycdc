@@ -415,11 +415,11 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
             frame = sys._getframe(stacklevel)
         else:
             frame = sys._getframe(1)
-        for x in range(stacklevel - 1):
-            frame = _next_external_frame(frame, skip_file_prefixes)
-            if frame is not None:
-                continue
-            raise ValueError
+            for x in range(stacklevel - 1):
+                frame = _next_external_frame(frame, skip_file_prefixes)
+                if frame is not None:
+                    continue
+                raise ValueError
     except ValueError:
         globals = sys.__dict__
         filename = '<sys>'

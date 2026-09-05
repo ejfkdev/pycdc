@@ -346,7 +346,7 @@ class HTMLParser(markupbase.ParserBase):
                     else:
                         import htmlentitydefs
                         entitydefs = {'apos': "'"}
-                    entitydefs[k] = unichr(v)
+                        entitydefs[k] = unichr(v)
                 HTMLParser.entitydefs = entitydefs
             try:
                 return self.entitydefs[s]

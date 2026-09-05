@@ -1197,15 +1197,16 @@ class ConverterMapping(MutableMapping):
                 setattr(proxy, k, getter)
 
     def __delitem__(self, key):
-        try:
-            k = 'get' + (key or None)
-        except TypeError:
-            raise KeyError(key)
-        else:
-            del self._data[key]
         for inst in itertools.chain((self._parser,), self._parser.values()):
             try:
+                k = 'get' + (key or None)
+            except TypeError:
+                raise KeyError(key)
+            else:
+                del self._data[key]
                 delattr(inst, k)
+            try:
+                pass
             except AttributeError:
                 continue
 

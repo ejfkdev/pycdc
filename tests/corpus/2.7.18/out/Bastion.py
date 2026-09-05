@@ -99,7 +99,7 @@ def Bastion(object, filter=lambda name: name[:1] != '_', name=None, bastionclass
 
     """
 
-    raise RuntimeError('This code is not secure in Python 2.2 and later')
+    raise RuntimeError, 'This code is not secure in Python 2.2 and later'
     def get1(name, object=object, filter=filter):
         '''Internal function for Bastion().  See source comments.'''
 
@@ -107,7 +107,7 @@ def Bastion(object, filter=lambda name: name[:1] != '_', name=None, bastionclass
             attribute = getattr(object, name)
             if type(attribute) == MethodType:
                 return attribute
-        raise AttributeError(name)
+        raise AttributeError, name
 
     def get2(name, get1=get1):
         '''Internal function for Bastion().  See source comments.'''

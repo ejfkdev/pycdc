@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 8,
-  "SIG-DIFF": 31,
+  "PASS": 9,
+  "SIG-DIFF": 30,
   "AST-PASS": 1
  },
  "results": [
@@ -19,7 +19,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 297: orig  body=Yield(value=None)) | dec  body=Yield(value=Constant(value=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 3002,
+   "ndiff": 2998,
    "ntotal": 3084,
    "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -67,7 +67,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 216: orig  body=[Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  body=[Break()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 144,
+   "ndiff": 167,
    "ntotal": 362,
    "detail": "line 177: orig ('FOR_ITER', 'to 88') | got ('FOR_ITER', 'to 124')\nline 179: orig ('SETUP_FINALLY', 'to 66') | got ('POP_TOP', '')\nline 180: orig ('LOAD_GLOBAL', 'open') | got ('JUMP_ABSOLUTE', '')"
   },
@@ -211,7 +211,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 241: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1071,
+   "ndiff": 1067,
    "ntotal": 1305,
    "detail": "line 219: orig ('SETUP_FINALLY', 'to 320') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 221: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -247,9 +247,9 @@
    "module": "compileall",
    "ast_detail": "diff at token 194: orig  orelse=[If(test=BoolOp(op=And() | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 769,
+   "ndiff": 678,
    "ntotal": 1094,
-   "detail": "line 313: orig ('JUMP_FORWARD', 'to 220') | got ('LOAD_FAST', 'files_and_ddirs')\nline 314: orig ('LOAD_FAST', 'files_and_ddirs') | got ('GET_ITER', '')\nline 315: orig ('GET_ITER', '') | got ('FOR_ITER', 'to 218')"
+   "detail": "line 399: orig ('LOAD_GLOBAL', 'os') | got ('SETUP_FINALLY', 'to 128')\nline 400: orig ('LOAD_ATTR', 'path') | got ('LOAD_GLOBAL', 'py_compile')\nline 401: orig ('LOAD_METHOD', 'isfile') | got ('LOAD_ATTR', 'compile')"
   },
   {
    "module": "configparser",
@@ -269,17 +269,13 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 1381: orig  orelse=[For(target=Name(id='item' | dec  orelse=[])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 69,
-   "ntotal": 915,
-   "detail": "line 846: orig ('JUMP_FORWARD', 'to 264') | got ('LOAD_FAST', 'listiter')\nline 847: orig ('LOAD_FAST', 'listiter') | got ('GET_ITER', '')\nline 848: orig ('GET_ITER', '') | got ('FOR_ITER', 'to 262')"
+   "verdict": "PASS"
   },
   {
    "module": "copyreg",
    "ast_detail": "diff at token 207: orig  value=Constant(value=512) | dec  value=Constant(value=512",
    "verdict": "SIG-DIFF",
-   "ndiff": 249,
+   "ndiff": 253,
    "ntotal": 544,
    "detail": "line 287: orig ('LOAD_CONST', 'None') | got ('__newobj__', 1)\nline 288: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'cls')\nline 289: orig ('__newobj__', 1) | got ('LOAD_ATTR', '__new__')"
   },

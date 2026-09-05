@@ -579,8 +579,9 @@ class MutableSet(Set):
     def __isub__(self, it):
         if it is self:
             self.clear()
-        for value in it:
-            self.discard(value)
+        else:
+            for value in it:
+                self.discard(value)
         return self
 
 
@@ -756,10 +757,10 @@ class MutableMapping(Mapping):
         if isinstance(other, Mapping):
             for key in other:
                 self[key] = other[key]
+        elif hasattr(other, 'keys'):
+            for key in other.keys():
+                self[key] = other[key]
         else:
-            if hasattr(other, 'keys'):
-                for key in other.keys():
-                    self[key] = other[key]
             for key, value in other:
                 self[key] = value
         for key, value in kwds.items():

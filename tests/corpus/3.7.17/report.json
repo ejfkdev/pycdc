@@ -63,7 +63,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 308: orig  body=[Try(body=[For(target=Name(id='i' | dec  body=[While(test=Compare(left=Name(id='key'",
    "verdict": "SIG-DIFF",
-   "ndiff": 111,
+   "ndiff": 117,
    "ntotal": 367,
    "detail": "line 174: orig ('SETUP_LOOP', 'to 88') | got ('SETUP_LOOP', 'to 90')\nline 178: orig ('FOR_ITER', 'to 86') | got ('FOR_ITER', 'to 88')\nline 206: orig ('POP_EXCEPT', '') | got ('CONTINUE_LOOP', '')"
   },
@@ -191,8 +191,8 @@
    "module": "cmd",
    "ast_detail": "diff at token 513: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 773,
-   "ntotal": 1316,
+   "ndiff": 768,
+   "ntotal": 1317,
    "detail": "line 441: orig ('SETUP_LOOP', 'to 152') | got ('SETUP_LOOP', 'to 194')\nline 458: orig ('POP_BLOCK', '') | got ('LOAD_FAST', 'line')\nline 459: orig ('LOAD_FAST', 'line') | got ('LOAD_CONST', 'None')"
   },
   {
@@ -253,10 +253,10 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 455: orig  If(test=BoolOp(op=And() | dec  If(test=Call(func=Attribute(value=Name(id='name'",
+   "ast_detail": "diff at token 410: orig  orelse=[For(target=Name(id='c' | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 257,
-   "ntotal": 542,
+   "ndiff": 259,
+   "ntotal": 540,
    "detail": "line 279: orig ('LOAD_CONST', 'None') | got ('__newobj__', 1)\nline 280: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'cls')\nline 281: orig ('__newobj__', 1) | got ('LOAD_ATTR', '__new__')"
   },
   {

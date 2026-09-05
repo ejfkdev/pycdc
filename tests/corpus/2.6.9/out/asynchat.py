@@ -62,18 +62,18 @@ class async_chat(asyncore.dispatcher):
 
     def handle_read(self):
         while self.ac_in_buffer:
-            try:
-                data = self.recv(self.ac_in_buffer_size)
-            except socket.error, why:
-                self.handle_error()
-                return
-            else:
-                self.ac_in_buffer = self.ac_in_buffer + data
-            lb = len(self.ac_in_buffer)
-            terminator = self.get_terminator()
             if not terminator:
-                self.collect_incoming_data(self.ac_in_buffer)
-                self.ac_in_buffer = ''
+                try:
+                    data = self.recv(self.ac_in_buffer_size)
+                except socket.error, why:
+                    self.handle_error()
+                    return
+                else:
+                    self.ac_in_buffer = self.ac_in_buffer + data
+                    lb = len(self.ac_in_buffer)
+                    terminator = self.get_terminator()
+                    self.collect_incoming_data(self.ac_in_buffer)
+                    self.ac_in_buffer = ''
                 continue
             if isinstance(terminator, int) or isinstance(terminator, long):
                 n = terminator

@@ -625,7 +625,8 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             try:
                 if is_sync:
                     cb_suppress = cb(*exc_details)
-                cb_suppress = await cb(*exc_details)
+                else:
+                    cb_suppress = await cb(*exc_details)
                 if cb_suppress:
                     suppressed_exc = True
                     pending_raise = False

@@ -78,9 +78,10 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
         with ProcessPoolExecutor(max_workers=workers) as executor:
             results = executor.map(partial(_compile_file_tuple, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode), files_and_ddirs)
             success = min(results, default=True)
-    for file, dfile in files_and_ddirs:
-        if not compile_file(file, dfile, force, rx, quiet, legacy, optimize, invalidation_mode):
-            success = False
+    else:
+        for file, dfile in files_and_ddirs:
+            if not compile_file(file, dfile, force, rx, quiet, legacy, optimize, invalidation_mode):
+                success = False
     return success
 
 def _compile_file_tuple(file_and_dfile, **kwargs):

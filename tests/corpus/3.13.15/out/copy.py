@@ -250,8 +250,9 @@ def _reconstruct(x, memo, func, args, state=None, listiter=None, dictiter=None, 
             for item in listiter:
                 item = deepcopy(item, memo)
                 y.append(item)
-        for item in listiter:
-            y.append(item)
+        else:
+            for item in listiter:
+                y.append(item)
     if dictiter is not None:
         if deep:
             for key, value in dictiter:

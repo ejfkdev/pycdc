@@ -63,7 +63,7 @@ class _Printer(object):
         prompt = 'Hit Return for more, or q (and Return) to quit: '
         lineno = 0
         while True:
-            while key is None:
+            if key == 'q':
                 try:
                     for i in range(lineno, lineno + self.MAXLINES):
                         print(self.__lines[i])
@@ -72,11 +72,13 @@ class _Printer(object):
                 else:
                     lineno += self.MAXLINES
                     key = None
-                key = input(prompt)
-                if key not in ('', 'q'):
+                    key = input(prompt)
                     key = None
-            if key == 'q':
-                return
+                    if key not in ('', 'q'):
+                        pass
+                    while key is None:
+                        pass
+                    return
 
 
 class _Helper(object):

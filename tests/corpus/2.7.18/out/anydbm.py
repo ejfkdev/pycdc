@@ -48,7 +48,7 @@ for _name in _names:
         _defaultmod = _mod
     _errors.append(_mod.error)
 if not _defaultmod:
-    raise ImportError('no dbm clone found; tried %s' % _names)
+    raise ImportError, 'no dbm clone found; tried %s' % _names
 error = tuple(_errors)
 
 def open(file, flag='r', mode=438):
@@ -69,9 +69,9 @@ def open(file, flag='r', mode=438):
         if 'c' in flag or 'n' in flag:
             mod = _defaultmod
         else:
-            raise error("need 'c' or 'n' flag to open new db")
+            raise error, "need 'c' or 'n' flag to open new db"
     elif result == '':
-        raise error('db type could not be determined')
+        raise error, 'db type could not be determined'
     else:
         mod = __import__(result)
     return mod.open(file, flag, mode)

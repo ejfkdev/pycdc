@@ -714,6 +714,8 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
                 try:
                     if is_sync:
                         cb_suppress = cb(*exc_details)
+                    else:
+                        cb_suppress = await cb(*exc_details)
                 except:
                     new_exc_details = sys.exc_info()
                     _fix_exception_context(new_exc_details[1], exc_details[1])
@@ -722,21 +724,10 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             except BaseException:
                 exc_details[1].__context__ = fixed_ctx
                 raise
-            try:
-                try:
-                    cb_suppress = await cb(*exc_details)
-                    if cb_suppress:
-                        suppressed_exc = True
-                        pending_raise = False
-                        exc_details = (None, None, None)
-                except:
-                    new_exc_details = sys.exc_info()
-                    _fix_exception_context(new_exc_details[1], exc_details[1])
-                    pending_raise = True
-                    exc_details = new_exc_details
-            except BaseException:
-                exc_details[1].__context__ = fixed_ctx
-                raise
+            if cb_suppress:
+                suppressed_exc = True
+                pending_raise = False
+                exc_details = (None, None, None)
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__

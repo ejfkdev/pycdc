@@ -59,7 +59,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 306: orig  body=[Try(body=[For(target=Name(id='i' | dec  body=[While(test=Compare(left=Name(id='key'",
    "verdict": "SIG-DIFF",
-   "ndiff": 111,
+   "ndiff": 117,
    "ntotal": 368,
    "detail": "line 175: orig ('SETUP_LOOP', 'to 102') | got ('SETUP_LOOP', 'to 105')\nline 179: orig ('FOR_ITER', 'to 101') | got ('FOR_ITER', 'to 104')\nline 207: orig ('POP_EXCEPT', '') | got ('CONTINUE_LOOP', '')"
   },
@@ -237,9 +237,9 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 698: orig  ctx=Del())]) | dec  ctx=Del())",
+   "ast_detail": "diff at token 410: orig  orelse=[For(target=Name(id='c' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 335,
+   "ndiff": 337,
    "ntotal": 525,
    "detail": "line 169: orig ('SETUP_LOOP', 'to 77') | got ('SETUP_LOOP', 'to 76')\nline 174: orig ('FOR_ITER', 'to 70') | got ('FOR_ITER', 'to 69')\nline 185: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },

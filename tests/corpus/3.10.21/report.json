@@ -27,7 +27,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 275: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 3599,
+   "ndiff": 3593,
    "ntotal": 3676,
    "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
@@ -67,7 +67,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 51: orig  body=[Try(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='sys' | dec  body=[Raise(exc=Call(func=Name(id='SystemExit'",
    "verdict": "SIG-DIFF",
-   "ndiff": 281,
+   "ndiff": 286,
    "ntotal": 369,
    "detail": "line 72: orig ('SETUP_FINALLY', 'to 22') | got ('LOAD_GLOBAL', 'SystemExit')\nline 73: orig ('LOAD_GLOBAL', 'sys') | got ('LOAD_FAST', 'code')\nline 74: orig ('LOAD_ATTR', 'stdin') | got ('CALL_FUNCTION', '')"
   },
@@ -275,7 +275,7 @@
    "module": "copy",
    "ast_detail": "diff at token 803: orig  Break()] | dec  Return(value=Name(id='y'",
    "verdict": "SIG-DIFF",
-   "ndiff": 413,
+   "ndiff": 344,
    "ntotal": 913,
    "detail": "line 286: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, None)')\nline 287: orig ('LOAD_CONST', '(None, None, None)') | got ('LOAD_NAME', 'deepcopy')\nline 288: orig ('LOAD_NAME', 'deepcopy') | got ('LOAD_CONST', \"('deepcopy',)\")"
   },
@@ -289,11 +289,11 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 359: orig  Try(body=[Assign(targets=[Name(id='result' | dec  Raise()]",
+   "ast_detail": "diff at token 2: orig  Try(body=[Import(names=[alias(name='_crypt')])] | dec  For(target=Name(id='_v'",
    "verdict": "SIG-DIFF",
-   "ndiff": 57,
+   "ndiff": 181,
    "ntotal": 452,
-   "detail": "line 395: orig ('SETUP_FINALLY', 'to 62') | got ('RAISE_VARARGS', '')\nline 396: orig ('LOAD_GLOBAL', 'crypt') | got <missing>\nline 397: orig ('LOAD_CONST', \"''\") | got <missing>"
+   "detail": "line 7: orig ('SETUP_FINALLY', 'to 26') | got ('LOAD_CONST', \"('b', 'y', 'a', '')\")\nline 8: orig ('LOAD_CONST', '0') | got ('GET_ITER', '')\nline 9: orig ('LOAD_CONST', 'None') | got ('FOR_ITER', 'to 266')"
   }
  ]
 }

@@ -329,7 +329,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                 week_of_year_start = 6
             else:
                 week_of_year_start = 0
-        elif group_key == 'Z':
+        if group_key == 'Z':
             found_zone = found_dict['Z'].lower()
             for value, tz_values in enumerate(locale_time.timezone):
                 if found_zone in tz_values:
