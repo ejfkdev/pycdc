@@ -339,7 +339,11 @@ impl Printer {
                     } else {
                         self.write(" ");
                     }
-                    self.expr(v, 0);
+                    // precedence 2: a multi-element tuple value MUST keep its
+                    // parens inside a print statement — bare, its items would
+                    // parse as separate print items (py2 `print (a, b)`
+                    // outputs the tuple, `print a, b` does not)
+                    self.expr(v, 2);
                     if i + 1 < values.len() {
                         self.write(",");
                     }
