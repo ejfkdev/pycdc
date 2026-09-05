@@ -310,8 +310,6 @@ def _processoptions(args):
             _wm._setoption(arg)
         except _wm._OptionError as msg:
             print('Invalid -W option ignored:', msg, file=sys.stderr)
-            msg = None
-            del msg
             continue
 
 def _setoption(arg):
@@ -336,7 +334,8 @@ def _setoption(arg):
                 raise ValueError
         except (ValueError, OverflowError):
             raise _wm._OptionError(f'invalid lineno {lineno!r}') from None
-    lineno = 0
+    else:
+        lineno = 0
     _wm.filterwarnings(action, message, category, module, lineno)
 
 def _getaction(action):

@@ -141,8 +141,6 @@ def main():
         except BrokenPipeError as exc:
             sys.stdout = None
             sys.exit(exc.errno)
-            exc = None
-            del exc
     else:
         parser.print_usage()
     return parser

@@ -163,8 +163,8 @@
    "module": "bz2",
    "ast_detail": "diff at token 149: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 440,
-   "ntotal": 841,
+   "ndiff": 441,
+   "ntotal": 842,
    "detail": "line 29: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 33: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
   {

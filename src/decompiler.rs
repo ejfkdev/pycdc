@@ -1382,6 +1382,13 @@ impl<'a> Ctx<'a> {
                 pc += 1;
                 continue;
             }
+            // pre-exec machinery (open_exception_blocks -> emit_try_tail
+            // -> handler region sub-walks) leaves cur_offset/cur_next at
+            // the sub-walk's last instruction — re-establish THIS loop's
+            // position so exec's block bookkeeping (close_blocks_at,
+            // loop matching) sees the real dispatch site
+            self.cur_offset = pos;
+            self.cur_next = inst.end();
             let prev = self.prev_op;
             self.prev_op_at_exec = prev;
             if !self.exec(&inst) {
@@ -2324,6 +2331,7 @@ impl<'a> Ctx<'a> {
         );
         let saved_stack = std::mem::take(&mut self.stack);
         let saved_skip = self.skip_until;
+        let saved_cur = (self.cur_offset, self.cur_next);
         // an outer walk's skip range must not swallow this region's
         // instructions — the span walk starts with clean skip state
         self.skip_until = None;
@@ -2357,6 +2365,9 @@ impl<'a> Ctx<'a> {
             if self.legacy_nest_depth > 0 {
                 self.legacy_chain_step(&inst);
             }
+            // nested tail emission may have moved cur_offset — restore
+            self.cur_offset = pos;
+            self.cur_next = inst.end();
             self.close_blocks_at(pos);
             if !self.exec(&inst) {
                 if std::env::var("PYCDC_TRACE").is_ok() {
@@ -2390,6 +2401,9 @@ impl<'a> Ctx<'a> {
         self.blocks = saved_blocks;
         self.stack = saved_stack;
         self.skip_until = saved_skip;
+        let (saved_cur_offset, saved_cur_next) = saved_cur;
+        self.cur_offset = saved_cur_offset;
+        self.cur_next = saved_cur_next;
         self.cur_line = saved_line;
         self.pending_stores = saved_stores;
         stmts
@@ -3104,6 +3118,11 @@ impl<'a> Ctx<'a> {
         // backward exits except finally-flow JBNI, which never targets a
         // loop block)
         let mut trail_continue = false;
+        // the trail scan consumed a handler exit jump (JF over the
+        // mismatch stubs, or JB to the loop top): what follows is
+        // exception-path machinery (as-cleanup copy + RERAISE), never a
+        // sunk continuation
+        let mut trail_exit_jump = false;
         // skip cleanup: [LOAD_CONST None; STORE; DELETE], closing jump
         while k2 < self.instrs.len() {
             let c = &self.instrs[k2];
@@ -3134,6 +3153,9 @@ impl<'a> Ctx<'a> {
                     {
                         trail_continue = true;
                     }
+                    if !matches!(c.op, Op::RERAISE) {
+                        trail_exit_jump = true;
+                    }
                     k2 += 1;
                     break;
                 }
@@ -3148,6 +3170,7 @@ impl<'a> Ctx<'a> {
         // handler). Include it so the function's tail is not lost.
         if k2 < self.instrs.len()
             && self.instrs[k2].offset < limit
+            && !trail_exit_jump
             // a normal handler exit (JUMP_FORWARD over the mismatch
             // stubs) is NOT a sunk continuation — extending over it
             // would swallow the exception-path as-cleanup

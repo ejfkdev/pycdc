@@ -452,8 +452,6 @@ def main():
         print(msg)
         print(usage)
         sys.exit(2)
-        msg = None
-        del msg
     func = encode
     for o, a in opts:
         if o == '-e':

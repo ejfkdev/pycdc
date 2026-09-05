@@ -284,7 +284,6 @@ For incremental decompression, use a BZ2Decompressor object instead.
         except OSError:
             if results:
                 pass
-            raise
         else:
             results.append(res)
             if not decomp.eof:

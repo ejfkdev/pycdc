@@ -438,8 +438,6 @@ else:
                         if len(lines) <= 1:
                             raise
                             raise
-                    exc = None
-                    del exc
                 self.bytebuffer = data[decodedbytes:]
                 self.charbuffer += newchars
                 if not newdata:
@@ -995,4 +993,3 @@ else:
 _false = 0
 if _false:
     import encodings
-# WARNING: Decompyle incomplete

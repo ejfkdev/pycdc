@@ -766,7 +766,8 @@ Does not return a fresh dictionary.
             ann = _BASE_GET_ANNOTATIONS(obj)
         except AttributeError:
             return
-    ann = getattr(obj, '__annotations__', None)
+    else:
+        ann = getattr(obj, '__annotations__', None)
     if ann is None:
         return
     if not isinstance(ann, dict):

@@ -124,14 +124,14 @@
    "ast_detail": "diff at token 136: orig  keywords=[]))])] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 2257,
-   "ntotal": 2361,
+   "ntotal": 2358,
    "detail": "line 29: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 33: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "base64",
    "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1833,
+   "ndiff": 1835,
    "ntotal": 2117,
    "detail": "line 72: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 74: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 230: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 146') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 86')"
   },
@@ -152,14 +152,14 @@
    "ast_detail": "diff at token 160: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
    "verdict": "SIG-DIFF",
    "ndiff": 844,
-   "ntotal": 880,
+   "ntotal": 879,
    "detail": "line 29: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 33: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cProfile",
    "ast_detail": "diff at token 477: orig  Try(body=[Return(value=Call(func=Name(id='func' | dec  Try(body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 297,
+   "ndiff": 294,
    "ntotal": 742,
    "detail": "line 311: orig ('JUMP_BACKWARD', 'to 328') | got ('JUMP_FORWARD', 'to 420')\nline 432: orig ('PUSH_NULL', '') | got ('NOP', '')\nline 433: orig ('LOAD_FAST', 'func') | got ('LOAD_FAST', 'self')"
   },
@@ -175,8 +175,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 689: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
-   "ndiff": 3007,
-   "ntotal": 3179,
+   "ndiff": 3010,
+   "ntotal": 3176,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {
@@ -215,8 +215,8 @@
    "module": "codecs",
    "ast_detail": "diff at token 784: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1654,
-   "ntotal": 2329,
+   "ndiff": 1962,
+   "ntotal": 2328,
    "detail": "line 317: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, None, None, None)')\nline 318: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 319: orig ('LOAD_CONST', '(None, None, None, None, None)') | got ('LOAD_CONST', \"('_is_text_encoding',)\")"
   },
   {

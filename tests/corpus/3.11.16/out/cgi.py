@@ -828,8 +828,6 @@ def print_directory():
         pwd = os.getcwd()
     except OSError as msg:
         print('OSError:', html.escape(str(msg)))
-        msg = None
-        del msg
     else:
         print(html.escape(pwd))
     print()

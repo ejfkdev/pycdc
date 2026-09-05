@@ -610,8 +610,6 @@ For example:
                         _fix_exception_context(new_exc, exc)
                         pending_raise = True
                         exc = new_exc
-                        new_exc = None
-                        del new_exc
                 except BaseException:
                     exc.__context__ = fixed_ctx
                     raise
@@ -736,8 +734,6 @@ method.'''
                     _fix_exception_context(new_exc, exc)
                     pending_raise = True
                     exc = new_exc
-                    new_exc = None
-                    del new_exc
                     continue
             except BaseException:
                 exc.__context__ = fixed_ctx
@@ -752,12 +748,11 @@ method.'''
                         _fix_exception_context(new_exc, exc)
                         pending_raise = True
                         exc = new_exc
-                        new_exc = None
-                        del new_exc
                         continue
                 except BaseException:
                     exc.__context__ = fixed_ctx
                     raise
+                continue
         if pending_raise:
             try:
                 fixed_ctx = exc.__context__

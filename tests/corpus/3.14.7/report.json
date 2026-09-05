@@ -99,8 +99,8 @@
    "module": "_py_warnings",
    "ast_detail": "diff at token 330: orig  body=[Pass()])])]) | dec  body=[Return()])])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2885,
-   "ntotal": 3456,
+   "ndiff": 2893,
+   "ntotal": 3453,
    "detail": "line 538: orig ('POP_JUMP_IF_NOT_NONE', 'to L1') | got ('POP_JUMP_IF_NOT_NONE', 'to L2')\nline 541: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')\nline 542: orig ('LOAD_CONST', 'None') | got ('NOP', '')"
   },
   {
@@ -199,8 +199,8 @@
    "module": "bz2",
    "ast_detail": "diff at token 151: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 820,
-   "ntotal": 883,
+   "ndiff": 823,
+   "ntotal": 885,
    "detail": "line 31: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 35: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 36: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_SMALL_INT', '')"
   },
   {
@@ -275,8 +275,8 @@
    "module": "contextlib",
    "ast_detail": "diff at token 54: orig  body=[Return()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2397,
-   "ntotal": 2465,
+   "ndiff": 2391,
+   "ntotal": 2458,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_SMALL_INT', '')"
   },
   {
