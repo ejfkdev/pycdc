@@ -47,15 +47,14 @@ def dis(x=None):
                     print('Sorry:', msg)
                 print()
             continue
-        else:
-            if hasattr(x, 'co_code'):
-                disassemble(x)
-            elif isinstance(x, (bytes, bytearray)):
-                _disassemble_bytes(x)
-            elif isinstance(x, str):
-                _disassemble_str(x)
-            else:
-                raise TypeError("don't know how to disassemble %s objects" % type(x).__name__)
+    elif hasattr(x, 'co_code'):
+        disassemble(x)
+    elif isinstance(x, (bytes, bytearray)):
+        _disassemble_bytes(x)
+    elif isinstance(x, str):
+        _disassemble_str(x)
+    else:
+        raise TypeError("don't know how to disassemble %s objects" % type(x).__name__)
 
 def distb(tb=None):
     '''Disassemble a traceback (default: last traceback).'''

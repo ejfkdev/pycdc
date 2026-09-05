@@ -4786,7 +4786,10 @@ impl<'a> Ctx<'a> {
                         .push((None, Some(target), Some(iter), body, is_async));
                     let else_blk = Block::new(BlockType::ForElse, pos, else_end);
                     self.blocks.push(else_blk);
-                } else if let Some(se) = b.for_setup_end.filter(|se| *se > b.end) {
+                } else if let Some(se) = b
+                    .for_setup_end
+                    .filter(|se| *se > b.end && self.setup_for_else_region(b.end, *se))
+                {
                     // SETUP_LOOP-era for-else: the exhaustion exit (b.end)
                     // closed the body; the else region runs to the loop pop
                     self.pending_loop
@@ -13818,6 +13821,38 @@ impl<'a> Ctx<'a> {
     /// a following unconditional jump over untargeted code marks an else
     /// region [pos, jump_target). Plain loops have no such jump (the next
     /// statement follows directly or a nested structure intervenes).
+    /// SETUP_LOOP-era for-else region check: a plain loop end is
+    /// `POP_BLOCK; JUMP_FORWARD -> setup_target` — the exhaustion exit
+    /// hopping to the merge (e.g. the then arm of an if/else whose loop
+    /// shares its SETUP_LOOP target with the if's merge, copy._reconstruct
+    /// on 3.5-3.7). Treating that as a for-else attaches the IF's else
+    /// branch to the FOR (the shallow-copy loop then runs after the deep
+    /// one instead of instead of it). A genuine else region holds
+    /// statements after the POP_BLOCK.
+    fn setup_for_else_region(&self, exit: usize, setup_end: usize) -> bool {
+        let Some(&pi) = self.idx_of.get(&exit) else {
+            return false;
+        };
+        let mut k = pi;
+        while matches!(
+            self.instrs.get(k).map(|x| x.op),
+            Some(Op::POP_BLOCK) | Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE)
+        ) {
+            k += 1;
+        }
+        if let Some(ins) = self.instrs.get(k) {
+            if matches!(
+                ins.op,
+                Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+            ) && !ins.is_backward
+                && ins.target == Some(setup_end)
+            {
+                return false;
+            }
+        }
+        true
+    }
+
     fn probe_for_else(&self, pos: usize) -> Option<usize> {
         let Some(&pi) = self.idx_of.get(&pos) else {
             return None;

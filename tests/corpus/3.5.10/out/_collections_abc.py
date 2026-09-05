@@ -699,13 +699,12 @@ class MutableMapping(Mapping):
             if isinstance(other, Mapping):
                 for key in other:
                     self[key] = other[key]
-                else:
-                    if hasattr(other, 'keys'):
-                        for key in other.keys():
-                            self[key] = other[key]
-                        else:
-                            for key, value in other:
-                                self[key] = value
+            elif hasattr(other, 'keys'):
+                for key in other.keys():
+                    self[key] = other[key]
+            else:
+                for key, value in other:
+                    self[key] = value
         for key, value in kwds.items():
             self[key] = value
 

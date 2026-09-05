@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 10,
-  "SIG-DIFF": 25,
+  "PASS": 11,
+  "SIG-DIFF": 24,
   "AST-PASS": 5
  },
  "results": [
@@ -19,8 +19,8 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 246: orig  body=Yield(value=None)) | dec  body=Yield(value=NameConstant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2987,
-   "ntotal": 3134,
+   "ndiff": 3034,
+   "ntotal": 3136,
    "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
   {
@@ -109,11 +109,11 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 655: orig  orelse=[])] | dec  orelse=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 757: orig  body=[While(test=BoolOp(op=And() | dec  body=[While(test=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 291,
+   "ndiff": 238,
    "ntotal": 813,
-   "detail": "line 492: orig ('SETUP_LOOP', 'to 112') | got ('SETUP_LOOP', 'to 110')\nline 517: orig ('JUMP_FORWARD', 'to 112') | got ('LOAD_FAST', 'self')\nline 518: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'producer_fifo')"
+   "detail": "line 565: orig ('SETUP_LOOP', 'to 280') | got ('SETUP_LOOP', 'to 278')\nline 570: orig ('LOAD_FAST', 'self') | got ('SETUP_EXCEPT', 'to 30')\nline 571: orig ('LOAD_ATTR', 'connected') | got ('LOAD_FAST', 'first')"
   },
   {
    "module": "asyncore",
@@ -245,11 +245,7 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 1194: orig  If(test=Compare(left=Name(id='listiter' | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 50,
-   "ntotal": 969,
-   "detail": "line 875: orig ('POP_JUMP_IF_FALSE', '') | got ('EXTENDED_ARG', '')\nline 876: orig ('SETUP_LOOP', 'to 278') | got ('POP_JUMP_IF_FALSE', '')\nline 877: orig ('LOAD_FAST', 'listiter') | got ('SETUP_LOOP', 'to 278')"
+   "verdict": "PASS"
   },
   {
    "module": "copyreg",
