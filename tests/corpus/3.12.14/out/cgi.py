@@ -790,18 +790,19 @@ def test(environ=os.environ):
 
         print('<H3>What follows is a test, not an actual exception:</H3>')
         g()
-    finally:
-        print('<H1>Second try with a small maxlen...</H1>')
-        maxlen = 50
-        try:
-            form = FieldStorage()
-            print_directory()
-            print_arguments()
-            print_form(form)
-            print_environ(environ)
-        finally:
-            print_exception()
-            return
+    except:
+        print_exception()
+    print('<H1>Second try with a small maxlen...</H1>')
+    maxlen = 50
+    try:
+        form = FieldStorage()
+        print_directory()
+        print_arguments()
+        print_form(form)
+        print_environ(environ)
+    except:
+        print_exception()
+        return
 
 def print_exception(type=None, value=None, tb=None, limit=None):
     if not type is not None:

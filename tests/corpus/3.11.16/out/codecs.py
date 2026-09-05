@@ -792,7 +792,7 @@ def open(filename, mode='r', encoding=None, errors='strict', buffering=-1):
         info = lookup(encoding)
         srw = StreamReaderWriter(file, info.streamreader, info.streamwriter, errors)
         srw.encoding = encoding
-    finally:
+    except:
         file.close()
         raise
     return srw

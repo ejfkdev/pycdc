@@ -313,7 +313,7 @@ class Aifc_read:
             file_object = builtins.open(f, 'rb')
             try:
                 self.initfp(file_object)
-            finally:
+            except:
                 file_object.close()
                 raise
             return
@@ -487,10 +487,12 @@ class Aifc_write:
             file_object = builtins.open(f, 'wb')
             try:
                 self.initfp(file_object)
-            finally:
-                if f.endswith('.aiff'):
-                    self._aifc = 0
-            return
+            except:
+                file_object.close()
+                raise
+            if f.endswith('.aiff'):
+                self._aifc = 0
+                return
             return
         self.initfp(f)
 

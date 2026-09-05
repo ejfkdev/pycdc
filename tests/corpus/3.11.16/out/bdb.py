@@ -782,7 +782,7 @@ def effective(file, line, frame):
                     b.ignore -= 1
                 else:
                     return b, True
-        finally:
+        except:
             b, False
             return
     return (None, None)

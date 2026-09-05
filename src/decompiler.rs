@@ -202,6 +202,11 @@ struct LegacyHandler {
     /// 3.9 puts POP_EXCEPT before a terminating handler body; the fold is
     /// deferred until the body's RETURN/jump-out
     pop_seen: bool,
+    /// 3.10+ ends a bare-except handler with a plain RAISE_VARARGS (no
+    /// POP_EXCEPT/RERAISE/END_FINALLY follows to close it) — fold the
+    /// handler at the NEXT instruction so the dispatch for the raise first
+    /// lands Stmt::Raise in the handler body
+    bare_raise_fold: bool,
 }
 
 /// Saved outer legacy-chain state while a nested chain (a try inside an
@@ -540,7 +545,19 @@ pub fn decompile_in_scope(
             }
             let is_except = window
                 .iter()
-                .any(|x| x.op == Op::CHECK_EXC_MATCH || x.op == Op::CHECK_EG_MATCH);
+                .any(|x| x.op == Op::CHECK_EXC_MATCH || x.op == Op::CHECK_EG_MATCH)
+                || {
+                    // bare `except:` (3.11+): the handler discards the
+                    // exception value right away (PUSH_EXC_INFO; POP_TOP)
+                    // and never runs CHECK_EXC_MATCH. A finally handler
+                    // keeps the value for its RERAISE — its head is the
+                    // body copy or RERAISE itself, never a POP_TOP.
+                    window
+                        .iter()
+                        .skip(1)
+                        .find(|x| !matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE))
+                        .map_or(false, |x| x.op == Op::POP_TOP)
+                };
             handler_kind.insert(e.target, is_except);
             all_handler_targets.push(e.target);
         }
@@ -2467,6 +2484,15 @@ impl<'a> Ctx<'a> {
         // except* (3.11+): clauses match with CHECK_EG_MATCH and branch
         // on POP_JUMP_IF_NONE; the star flag is per-clause
         let mut star_clause = false;
+        // a clause head is expected right after PUSH_EXC_INFO and at each
+        // mismatch-jump target; a POP_TOP there is a BARE `except:` clause
+        // (the exception value is discarded without any CHECK_EXC_MATCH)
+        let mut at_clause_head = true;
+        // except* dispatch parks a POP_TOP at each mismatch-jump target
+        // (clause-cleanup, not a bare clause); `except` and `except*`
+        // cannot share a try, so once an EG match is seen the bare-clause
+        // reading is off the table
+        let mut eg_chain = false;
         while pc < self.instrs.len() {
             let inst = self.instrs[pc];
             if inst.offset >= end
@@ -2476,7 +2502,30 @@ impl<'a> Ctx<'a> {
                 break;
             }
             match inst.op {
+                Op::NOP | Op::NOT_TAKEN | Op::CACHE => {
+                    pc += 1;
+                    continue;
+                }
+                Op::POP_TOP
+                    if at_clause_head
+                        && !eg_chain
+                        && self.version.at_least(3, 11) =>
+                {
+                    at_clause_head = false;
+                    clause_offsets.push(inst.offset);
+                    pc += 1;
+                    let body =
+                        self.decompile_handler_body(&mut pc, end, region_end, false);
+                    handlers.push(ExceptHandler {
+                        type_: None,
+                        name: None,
+                        body,
+                        is_star: false,
+                    });
+                    continue;
+                }
                 Op::CHECK_EXC_MATCH => {
+                    at_clause_head = false;
                     // stack: [exc, pattern] — pattern expression was built
                     // by preceding loads; simulate them minimally
                     pattern = self.sim_pattern(&mut pc, inst.offset);
@@ -2484,6 +2533,8 @@ impl<'a> Ctx<'a> {
                     continue;
                 }
                 Op::CHECK_EG_MATCH => {
+                    at_clause_head = false;
+                    eg_chain = true;
                     pattern = self.sim_pattern(&mut pc, inst.offset);
                     star_clause = true;
                     pc += 1;
@@ -2493,6 +2544,7 @@ impl<'a> Ctx<'a> {
                 | Op::POP_JUMP_FORWARD_IF_FALSE
                 | Op::POP_JUMP_IF_NONE
                 | Op::POP_JUMP_FORWARD_IF_NONE => {
+                    at_clause_head = false;
                     let next = inst.target.unwrap_or(end);
                     clause_offsets.push(inst.offset);
                     pc += 1;
@@ -2543,10 +2595,12 @@ impl<'a> Ctx<'a> {
                     // path cleanup + its RERAISE) is consumed
                     if let Some(&ni) = self.idx_of.get(&next) {
                         pc = ni;
+                        at_clause_head = true;
                     }
                     continue;
                 }
                 Op::RERAISE => {
+                    at_clause_head = false;
                     pc += 1;
                     // a clause's exception-path cleanup also ends in
                     // RERAISE — the chain only terminates when no new
@@ -2589,10 +2643,12 @@ impl<'a> Ctx<'a> {
                     continue;
                 }
                 Op::POP_EXCEPT => {
+                    at_clause_head = false;
                     pc += 1;
                     continue;
                 }
                 Op::RETURN_VALUE | Op::RETURN_CONST | Op::END_FINALLY => {
+                    at_clause_head = false;
                     // a stray terminator between clauses (a body ending
                     // without a closing jump): hop to the next clause
                     if inst.offset >= end
@@ -2604,6 +2660,7 @@ impl<'a> Ctx<'a> {
                     pc += 1;
                 }
                 _ => {
+                    at_clause_head = false;
                     pc += 1;
                 }
             }
@@ -3653,6 +3710,87 @@ impl<'a> Ctx<'a> {
             return;
         };
 
+        // deferred fold for a handler ended by a bare/plain raise (3.10+:
+        // no POP_EXCEPT/RERAISE/END_FINALLY follows to run the historical
+        // close). Folding here — one instruction later — lets the dispatch
+        // for the RAISE_VARARGS first push Stmt::Raise into the handler
+        // body, then the handler is collected into the chain like the
+        // RERAISE arm does.
+        if self
+            .legacy_handler
+            .as_ref()
+            .map_or(false, |h| h.bare_raise_fold)
+        {
+            self.flush_pending_stores();
+            if let Some(h) = self.legacy_handler.take() {
+                if let Some(he) = &h.name {
+                    if let Expr::Name(n) = &**he {
+                        self.pending_as_cleanup = Some(n.clone());
+                    }
+                }
+                self.legacy_handler_end = None;
+                if let Some(l) = self.legacy_try.as_mut() {
+                    l.handlers.push(ExceptHandler {
+                        type_: h.type_,
+                        name: h.name,
+                        body: h.body,
+                        is_star: false,
+                    });
+                }
+            }
+            // a handler ended by an unconditional raise is the LAST handler
+            // (a non-final one would need a mismatch exit). When nothing
+            // else can follow the chain (no else region, no POP_EXCEPT /
+            // END_FINALLY / RERAISE cleanup path in the rest of the code —
+            // the 3.10 branch-duplicated-return layout), flush the chain
+            // NOW: the enclosing branch block (e.g. the if-then a bare
+            // `except: raise` lives in) is still open, so the Try lands in
+            // the right body instead of leaking to the function tail.
+            let after = self
+                .idx_of
+                .get(&pos)
+                .map(|&ci| ci + 1)
+                .unwrap_or(self.instrs.len());
+            let chain_complete = self
+                .legacy_try
+                .as_ref()
+                .map_or(false, |l| !l.handlers.is_empty() && l.else_start.is_none())
+                && !self.instrs.iter().skip(after).any(|x| {
+                    matches!(x.op, Op::POP_EXCEPT | Op::END_FINALLY | Op::RERAISE)
+                });
+            if chain_complete {
+                if let Some(l) = self.legacy_try.take() {
+                    self.restore_legacy_nest();
+                    self.push_legacy_try(l);
+                }
+            }
+        }
+        // mark: an unconditional raise inside an open handler (no
+        // handler-internal block open, no historical close instruction
+        // following) ends the handler flow
+        if matches!(inst.op, Op::RAISE_VARARGS)
+            && inst.arg <= 1
+            && self.version.at_least(3, 9)
+            && self.legacy_handler.is_some()
+            && self
+                .legacy_handler
+                .as_ref()
+                .map_or(false, |h| self.blocks.len() <= h.block_depth)
+        {
+            let next_closes = self
+                .idx_of
+                .get(&pos)
+                .and_then(|&ci| self.instrs.get(ci + 1))
+                .map_or(false, |nx| {
+                    matches!(nx.op, Op::POP_EXCEPT | Op::END_FINALLY | Op::RERAISE)
+                });
+            if !next_closes {
+                if let Some(h) = self.legacy_handler.as_mut() {
+                    h.bare_raise_fold = true;
+                }
+            }
+        }
+
         // bare `except:` entry: the handler starts with POP_TOPs instead of
         // DUP_TOP + COMPARE_OP + PJIF — open a typeless legacy handler whose
         // end is the first POP_EXCEPT / END_FINALLY / RERAISE
@@ -3677,7 +3815,7 @@ impl<'a> Ctx<'a> {
                 name: None,
                 body: Vec::new(),
                 block_depth: self.blocks.len(),
-                pop_seen: false,
+                pop_seen: false, bare_raise_fold: false,
             });
             self.legacy_handler_end = Some(hend);
             self.in_handler_prelude = true;
@@ -3774,7 +3912,7 @@ impl<'a> Ctx<'a> {
                         name: None,
                         body: Vec::new(),
                         block_depth: self.blocks.len(),
-                        pop_seen: false,
+                        pop_seen: false, bare_raise_fold: false,
                     });
                     self.legacy_handler_end = Some(hend);
                     self.in_handler_prelude = true;
@@ -12675,7 +12813,7 @@ impl<'a> Ctx<'a> {
                 name: None,
                 body: Vec::new(),
                 block_depth: self.blocks.len(),
-                pop_seen: false,
+                pop_seen: false, bare_raise_fold: false,
             });
             // a previous handler's unconfirmed cleanup marker must not
             // swallow this handler's `as` name store
@@ -16977,7 +17115,141 @@ fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
             }
         }
     }
+    // empty-generator idiom: CPython dead-code-eliminates an unreachable
+    // `while False: yield None` (the canonical empty generator, e.g.
+    // _collections_abc Iterable.__iter__) leaving only the generator flag —
+    // a rendered body without any yield would turn the generator function
+    // into a plain function (iter()/next() break with TypeError).
+    // Synthesize the canonical unreachable yield to preserve generator-ness.
+    if (code.is_generator() || code.is_async_generator())
+        && code.name != "<module>"
+        && !stmts_contain_yield(&body)
+    {
+        if matches!(body.last(), Some(Stmt::Pass)) {
+            body.pop();
+        }
+        body.push(Stmt::While {
+            cond: Rc::new(Expr::Const(Rc::new(PyObject::False))),
+            body: vec![Stmt::Expr(Rc::new(Expr::Yield(Some(Rc::new(
+                Expr::Const(Rc::new(PyObject::None)),
+            )))))],
+            orelse: Vec::new(),
+        });
+    }
     body
+}
+
+/// True when any yield/yield-from expression occurs in these statements
+/// (nested function/class bodies excluded — their yields belong to them).
+fn stmts_contain_yield(stmts: &[Stmt]) -> bool {
+    fn expr_has_yield(e: &ExprRef) -> bool {
+        match &**e {
+            Expr::Yield(_) | Expr::YieldFrom(_) => true,
+            Expr::Unary { operand, .. } => expr_has_yield(operand),
+            Expr::Binary { left, right, .. }
+            | Expr::Named { target: left, value: right } => {
+                expr_has_yield(left) || expr_has_yield(right)
+            }
+            Expr::BoolOp { values, .. }
+            | Expr::Compare { operands: values, .. }
+            | Expr::Tuple(values)
+            | Expr::List(values)
+            | Expr::Set(values) => values.iter().any(expr_has_yield),
+            Expr::Call {
+                func,
+                args,
+                keywords,
+                star_args,
+                star_kwargs,
+            } => {
+                expr_has_yield(func)
+                    || args.iter().any(expr_has_yield)
+                    || keywords.iter().any(|(_, v)| expr_has_yield(v))
+                    || star_args.as_ref().map_or(false, |s| expr_has_yield(s))
+                    || star_kwargs.as_ref().map_or(false, |s| expr_has_yield(s))
+            }
+            Expr::Ternary {
+                cond,
+                then_expr,
+                else_expr,
+            } => {
+                expr_has_yield(cond)
+                    || expr_has_yield(then_expr)
+                    || expr_has_yield(else_expr)
+            }
+            Expr::Subscript { value, index } => {
+                expr_has_yield(value) || expr_has_yield(index)
+            }
+            Expr::Attribute { value, .. } => expr_has_yield(value),
+            Expr::Starred(v) => expr_has_yield(v),
+            _ => false,
+        }
+    }
+    stmts.iter().any(|s| match s {
+        Stmt::Expr(e) => expr_has_yield(e),
+        Stmt::Assign { targets, value } => {
+            expr_has_yield(value) || targets.iter().any(expr_has_yield)
+        }
+        Stmt::AugAssign { value, .. } => expr_has_yield(value),
+        Stmt::AnnAssign { value, .. } => {
+            value.as_ref().map_or(false, |v| expr_has_yield(v))
+        }
+        Stmt::Return(e) => e.as_ref().map_or(false, expr_has_yield),
+        Stmt::Delete(es) => es.iter().any(expr_has_yield),
+        Stmt::If { cond, body, orelse }
+        | Stmt::While { cond, body, orelse } => {
+            expr_has_yield(cond)
+                || stmts_contain_yield(body)
+                || stmts_contain_yield(orelse)
+        }
+        Stmt::For {
+            target,
+            iter,
+            body,
+            orelse,
+            ..
+        } => {
+            expr_has_yield(target)
+                || expr_has_yield(iter)
+                || stmts_contain_yield(body)
+                || stmts_contain_yield(orelse)
+        }
+        Stmt::Try {
+            body,
+            handlers,
+            orelse,
+            finalbody,
+        } => {
+            stmts_contain_yield(body)
+                || handlers.iter().any(|h| stmts_contain_yield(&h.body))
+                || stmts_contain_yield(orelse)
+                || stmts_contain_yield(finalbody)
+        }
+        Stmt::With { items, body, .. } => {
+            stmts_contain_yield(body)
+                || items.iter().any(|it| {
+                    expr_has_yield(&it.ctx)
+                        || it.target.as_ref().map_or(false, |v| expr_has_yield(v))
+                })
+        }
+        Stmt::Raise { exc, cause } => {
+            exc.as_ref().map_or(false, |e| expr_has_yield(e))
+                || cause.as_ref().map_or(false, |e| expr_has_yield(e))
+        }
+        Stmt::Assert { test, msg } => {
+            expr_has_yield(test)
+                || msg.as_ref().map_or(false, |m| expr_has_yield(m))
+        }
+        Stmt::Match { subject, cases } => {
+            expr_has_yield(subject)
+                || cases.iter().any(|c| {
+                    c.guard.as_ref().map_or(false, |g| expr_has_yield(g))
+                        || stmts_contain_yield(&c.body)
+                })
+        }
+        // yields inside a nested def/class belong to THAT scope
+        _ => false,
+    })
 }
 
 

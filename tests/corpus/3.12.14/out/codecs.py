@@ -799,7 +799,7 @@ else:
             info = lookup(encoding)
             srw = StreamReaderWriter(file, info.streamreader, info.streamwriter, errors)
             srw.encoding = encoding
-        finally:
+        except:
             file.close()
             raise
         return srw

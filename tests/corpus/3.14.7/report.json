@@ -46,8 +46,8 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3986,
-   "ntotal": 4112,
+   "ndiff": 4028,
+   "ntotal": 4120,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_SMALL_INT', '')"
   },
   {
@@ -122,9 +122,9 @@
    "module": "_sitebuiltins",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 271,
+   "ndiff": 215,
    "ntotal": 372,
-   "detail": "line 90: orig ('LOAD_FAST', 'code') | got ('LOAD_FAST_BORROW', 'code')\nline 94: orig ('POP_TOP', '') | got ('LOAD_GLOBAL', 'SystemExit + NULL')\nline 95: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'code')"
+   "detail": "line 152: orig ('STORE_FAST', 'dir') | got ('STORE_FAST_LOAD_FAST', 'dir, files')\nline 153: orig ('LOAD_FAST_BORROW', 'files') | got ('GET_ITER', '')\nline 154: orig ('GET_ITER', '') | got ('FOR_ITER', 'to L3')"
   },
   {
    "module": "_strptime",
@@ -238,15 +238,15 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1504,
-   "ntotal": 1551,
+   "ndiff": 1511,
+   "ntotal": 1558,
    "detail": "line 17: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 21: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'compile_command') | got ('LOAD_SMALL_INT', '')"
   },
   {
    "module": "codecs",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2042,
+   "ndiff": 2298,
    "ntotal": 2373,
    "detail": "line 18: orig ('BUILD_LIST', '') | got ('NOP', '')\nline 19: orig ('LOAD_CONST', \"'register'\") | got ('BUILD_LIST', '')\nline 20: orig ('LIST_APPEND', '') | got ('LOAD_CONST', \"'register'\")"
   },
@@ -298,7 +298,7 @@
    "module": "copyreg",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 436,
+   "ndiff": 431,
    "ntotal": 691,
    "detail": "line 211: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')\nline 219: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L8')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L3')"
   }

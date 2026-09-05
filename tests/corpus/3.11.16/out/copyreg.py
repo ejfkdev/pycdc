@@ -134,8 +134,9 @@ def _slotnames(cls):
             continue
     try:
         cls.__slotnames__ = names
-    finally:
+    except:
         return names
+    return names
 
 _extension_registry = {}
 _inverted_registry = {}

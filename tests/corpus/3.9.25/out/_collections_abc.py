@@ -220,7 +220,8 @@ class Iterable(metaclass=ABCMeta):
     __slots__ = ()
     @abstractmethod
     def __iter__(self):
-        pass
+        while False:
+            yield None
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -266,7 +267,8 @@ class Reversible(Iterable):
     __slots__ = ()
     @abstractmethod
     def __reversed__(self):
-        pass
+        while False:
+            yield None
 
     @classmethod
     def __subclasshook__(cls, C):

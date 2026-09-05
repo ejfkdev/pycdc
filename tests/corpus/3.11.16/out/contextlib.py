@@ -504,21 +504,11 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
                     suppressed_exc = True
                     pending_raise = False
                     exc_details = (None, None, None)
-            finally:
+            except:
                 new_exc_details = sys.exc_info()
                 _fix_exception_context(new_exc_details[1], exc_details[1])
                 pending_raise = True
                 exc_details = new_exc_details
-                if not self._exit_callbacks:
-                    pass
-                if pending_raise:
-                    pass
-                try:
-                    fixed_ctx = exc_details[1].__context__
-                    raise exc_details[1]
-                except BaseException:
-                    exc_details[1].__context__ = fixed_ctx
-                    raise
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__
@@ -640,21 +630,11 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
                     suppressed_exc = True
                     pending_raise = False
                     exc_details = (None, None, None)
-            finally:
+            except:
                 new_exc_details = sys.exc_info()
                 _fix_exception_context(new_exc_details[1], exc_details[1])
                 pending_raise = True
                 exc_details = new_exc_details
-                if not self._exit_callbacks:
-                    pass
-                if pending_raise:
-                    pass
-                try:
-                    fixed_ctx = exc_details[1].__context__
-                    raise exc_details[1]
-                except BaseException:
-                    exc_details[1].__context__ = fixed_ctx
-                    raise
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__

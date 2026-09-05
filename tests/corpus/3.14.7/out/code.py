@@ -85,6 +85,9 @@ caller should be prepared to deal with it.
             exec(code, self.locals)
         except SystemExit:
             raise
+        except:
+            self.showtraceback()
+            return
 
     def showsyntaxerror(self, filename=None, **kwargs):
         '''Display the syntax error that just occurred.

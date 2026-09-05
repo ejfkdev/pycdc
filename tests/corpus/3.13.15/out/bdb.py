@@ -863,10 +863,12 @@ If no such entry exists, then (None, None) is returned.
                 if b.ignore > 0:
                     b.ignore -= 1
                     continue
-        finally:
+        except:
+            b, False
+            return
             try:
                 pass
-            finally:
+            except:
                 b, False
                 return
         return b, True

@@ -584,11 +584,16 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
             is_sync, cb = self._exit_callbacks.pop()
             assert is_sync
             try:
-                # WARNING: unrecovered try/except structure
-                if cb(*exc_details):
-                    suppressed_exc = True
-                    pending_raise = False
-                    exc_details = (None, None, None)
+                try:
+                    if cb(*exc_details):
+                        suppressed_exc = True
+                        pending_raise = False
+                        exc_details = (None, None, None)
+                except:
+                    new_exc_details = sys.exc_info()
+                    _fix_exception_context(new_exc_details[1], exc_details[1])
+                    pending_raise = True
+                    exc_details = new_exc_details
             except BaseException:
                 exc_details[1].__context__ = fixed_ctx
                 raise
@@ -706,19 +711,29 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
             try:
-                # WARNING: unrecovered try/except structure
-                if is_sync:
-                    cb_suppress = cb(*exc_details)
+                try:
+                    if is_sync:
+                        cb_suppress = cb(*exc_details)
+                except:
+                    new_exc_details = sys.exc_info()
+                    _fix_exception_context(new_exc_details[1], exc_details[1])
+                    pending_raise = True
+                    exc_details = new_exc_details
             except BaseException:
                 exc_details[1].__context__ = fixed_ctx
                 raise
             try:
-                # WARNING: unrecovered try/except structure
-                cb_suppress = await cb(*exc_details)
-                if cb_suppress:
-                    suppressed_exc = True
-                    pending_raise = False
-                    exc_details = (None, None, None)
+                try:
+                    cb_suppress = await cb(*exc_details)
+                    if cb_suppress:
+                        suppressed_exc = True
+                        pending_raise = False
+                        exc_details = (None, None, None)
+                except:
+                    new_exc_details = sys.exc_info()
+                    _fix_exception_context(new_exc_details[1], exc_details[1])
+                    pending_raise = True
+                    exc_details = new_exc_details
             except BaseException:
                 exc_details[1].__context__ = fixed_ctx
                 raise

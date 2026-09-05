@@ -64,18 +64,27 @@ def read(obj):
         obj.handle_read_event()
     except _reraised_exceptions:
         raise
+    except:
+        obj.handle_error()
+        return
 
 def write(obj):
     try:
         obj.handle_write_event()
     except _reraised_exceptions:
         raise
+    except:
+        obj.handle_error()
+        return
 
 def _exception(obj):
     try:
         obj.handle_expt_event()
     except _reraised_exceptions:
         raise
+    except:
+        obj.handle_error()
+        return
 
 def readwrite(obj, flags):
     try:
@@ -99,6 +108,9 @@ def readwrite(obj, flags):
         return
     except _reraised_exceptions:
         raise
+    except:
+        obj.handle_error()
+        return
 
 def poll(timeout=0.0, map=None):
     if not map is not None:
@@ -389,11 +401,8 @@ class dispatcher:
         nil, t, v, tbinfo = compact_traceback()
         try:
             self_repr = repr(self)
-        finally:
+        except:
             self_repr = '<__repr__(self) failed for object at %0x>' % id(self)
-            self.log_info(f'uncaptured python exception, closing channel {self_repr!s} ({t!s}:{v!s} {tbinfo!s})', 'error')
-            self.handle_close()
-            return
         self.log_info(f'uncaptured python exception, closing channel {self_repr!s} ({t!s}:{v!s} {tbinfo!s})', 'error')
         self.handle_close()
 
@@ -475,6 +484,10 @@ def close_all(map=None, ignore_all=False):
             continue
         except _reraised_exceptions:
             raise
+        except:
+            if not ignore_all:
+                raise
+            continue
     map.clear()
 
 if os.name == 'posix':

@@ -84,6 +84,9 @@ class InteractiveInterpreter:
             exec(code, self.locals)
         except SystemExit:
             raise
+        except:
+            self.showtraceback()
+            return
 
     def showsyntaxerror(self, filename=None):
         '''Display the syntax error that just occurred.

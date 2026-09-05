@@ -15,8 +15,9 @@ class Quitter(object):
     def __call__(self, code=None):
         try:
             sys.stdin.close()
-        finally:
+        except:
             raise SystemExit(code)
+        raise SystemExit(code)
 
 
 class _Printer(object):
