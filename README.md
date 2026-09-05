@@ -85,10 +85,10 @@ cargo build                                                 # 重新嵌入
 | 指标 | 数量 |
 |---|---|
 | PASS（字节码级一致） | 80（15.4%） |
-| AST-PASS（语义等价） | 28 |
-| **语义等价合计** | **108（20.8%）** |
+| AST-PASS（语义等价） | 32 |
+| **语义等价合计** | **112（21.5%）** |
 | INCOMPLETE（可编译、含占位） | **0** |
-| SIG-DIFF（可编译、结构有差） | 412 |
+| SIG-DIFF（可编译、结构有差） | 408 |
 | SYNTAX-ERR | **0（所有 520 个输出都能在对应版本编译）** |
 
 每个版本目录下的 `report.json` 保存逐模块判级与首个差异位置，便于聚类修复。
@@ -115,8 +115,10 @@ cargo build                                                 # 重新嵌入
 - try/except：3.11+ 基于异常表重建（含 except*、嵌套链、handler 内 continue/return、
   循环内 inline finally 副本裁剪）；3.8–3.10 SETUP_* 时代链式结构（含 handler 内嵌套
   try、函数尾 try/finally、成功路径语句排序、循环体整体为链的延迟折叠）已按链式状态机
-  还原。已知缺口：2.x/3.5–3.10 中「except 分支内 continue + 同 try 带 finally + 位于
-  循环内」的组合可能丢失循环嵌套结构。
+  还原。多 handler 链含尾随裸 `except:`（`except E: ... except: ...`）已正确归位（atexit/
+  _dummy_thread 的裸 except 体不再被提升到外层）。已知缺口：2.x/3.5–3.10 中「except 分支
+  内 continue + 同 try 带 finally + 位于循环内」的组合可能丢失循环嵌套结构；裸 except 归位
+  时循环内 handler 尾可能多出一个语义等价的 `continue`。
 - `with a, b:` 多上下文输出为嵌套 with（语义等价）。
 - match/case（3.10–3.14）：字面量/捕获/通配/or/序列（含 `*rest`、字面量元素）/映射
   （含值字面量模式与 `**rest`）/类模式（位置+关键字+字面量子模式，含唯一非通配 case 的
