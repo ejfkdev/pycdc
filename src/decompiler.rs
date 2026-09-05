@@ -16482,40 +16482,42 @@ impl<'a> Ctx<'a> {
         if self.instrs.get(k).map(|x| x.offset) != Some(l.handler_start) {
             return false;
         }
-        // handler chain must contain a POP_EXCEPT; LOAD None; RETURN arm
+        // the sunk copy sits IMMEDIATELY after a handler's POP_EXCEPT
+        // (POP_EXCEPT; LOAD None; RETURN) - a scan that wandered past
+        // the chain's RERAISE would find the function's own implicit
+        // tail return and misfire on genuine source-level `return` in
+        // the try body (chunk.skip)
         let mut m = k;
-        let mut pops = 0;
-        let mut prev_none = false;
         while let Some(ins) = self.instrs.get(m) {
             match ins.op {
                 Op::POP_EXCEPT => {
-                    pops += 1;
-                    prev_none = false;
-                }
-                Op::LOAD_CONST => {
-                    let is_none = matches!(
-                        self.code.consts.get(ins.arg as usize).map(|o| &**o),
-                        Some(PyObject::None)
-                    );
-                    if is_none {
-                        prev_none = true;
-                    }
-                }
-                Op::RETURN_VALUE | Op::RETURN_CONST => {
-                    if pops > 0 && prev_none {
-                        return true;
-                    }
-                    prev_none = false;
-                }
-                Op::SETUP_FINALLY => break,
-                _ => {
-                    if !matches!(
-                        ins.op,
-                        Op::NOP | Op::CACHE | Op::EXTENDED_ARG | Op::NOT_TAKEN
+                    let mut j = m + 1;
+                    while matches!(
+                        self.instrs.get(j).map(|x| x.op),
+                        Some(Op::NOP) | Some(Op::CACHE) | Some(Op::NOT_TAKEN)
                     ) {
-                        prev_none = false;
+                        j += 1;
+                    }
+                    let none_load = self.instrs.get(j).map(|x| {
+                        x.op == Op::LOAD_CONST
+                            && matches!(
+                                self.code.consts.get(x.arg as usize).map(|o| &**o),
+                                Some(PyObject::None)
+                            )
+                    }) == Some(true);
+                    if none_load {
+                        if matches!(
+                            self.instrs.get(j + 1).map(|x| x.op),
+                            Some(Op::RETURN_VALUE) | Some(Op::RETURN_CONST)
+                        ) {
+                            return true;
+                        }
                     }
                 }
+                // the chain's mismatch tail: nothing past it belongs to
+                // the handler
+                Op::RERAISE | Op::END_FINALLY | Op::SETUP_FINALLY => break,
+                _ => {}
             }
             m += 1;
         }
