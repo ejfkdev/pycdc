@@ -53,7 +53,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 145: orig  Return(value=NameConstant(value=None))] | dec  Return(value=None)]",
+   "ast_detail": "diff at token 211: orig  Return(value=IfExp(test=UnaryOp(op=Not() | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 823,
    "ntotal": 1272,
@@ -73,7 +73,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1395: orig  body=[Global(names=['_TimeRE_cache' | dec  body=[Global(names=['_TimeRE_cache'])",
+   "ast_detail": "diff at token 1409: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1810,
    "ntotal": 2170,
@@ -157,9 +157,9 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 104: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 988: orig  body=[If(test=Compare(left=Str(s='t') | dec  body=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
-   "ndiff": 358,
+   "ndiff": 768,
    "ntotal": 863,
    "detail": "line 42: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 46: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 47: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
@@ -169,15 +169,15 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 499: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 523: orig  right=Num(n=400))))] | dec  right=Num(n=400))))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2604,
+   "ndiff": 2572,
    "ntotal": 3072,
    "detail": "line 424: orig ('LOAD_CONST', 'None') | got ('<listcomp>', 1)\nline 425: orig ('RETURN_VALUE', '') | got ('BUILD_LIST', '')\nline 426: orig ('<listcomp>', 1) | got ('LOAD_FAST', '.0')"
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 72: orig  'logfile' | dec  'logfp'])",
+   "ast_detail": "diff at token 79: orig  body=[Try(body=[Assign(targets=[Name(id='logfp' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 2894,
    "ntotal": 3020,
@@ -249,7 +249,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 61: orig  body=[Return(value=NameConstant(value=None))] | dec  body=[]",
+   "ast_detail": "diff at token 61: orig  body=[Return(value=None)] | dec  body=[]",
    "verdict": "SIG-DIFF",
    "ndiff": 1440,
    "ntotal": 1809,
@@ -267,17 +267,17 @@
    "module": "copyreg",
    "ast_detail": "diff at token 201: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 339,
+   "ndiff": 350,
    "ntotal": 540,
    "detail": "line 169: orig ('SETUP_LOOP', 'to 56') | got ('SETUP_LOOP', 'to 44')\nline 174: orig ('FOR_ITER', 'to 50') | got ('FOR_ITER', 'to 38')\nline 181: orig ('LOAD_FAST', 'base') | got ('JUMP_ABSOLUTE', '')"
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 166: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 191: orig  orelse=[If(test=Compare(left=Attribute(value=Name(id='method' | dec  orelse=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 160,
+   "ndiff": 136,
    "ntotal": 381,
-   "detail": "line 198: orig ('JUMP_FORWARD', 'to 176') | got ('JUMP_FORWARD', 'to 170')\nline 218: orig ('DUP_TOP', '') | got ('COMPARE_OP', '<=')\nline 219: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')"
+   "detail": "line 239: orig ('JUMP_FORWARD', 'to 288') | got ('JUMP_FORWARD', 'to 234')\nline 244: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_IF_FALSE', '')\nline 245: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_FAST', 'rounds')"
   }
  ]
 }

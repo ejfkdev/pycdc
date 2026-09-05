@@ -6,9 +6,9 @@ Run WITH the same interpreter version as the sources target.
 Usage: ast_compare.py ORIGINAL.py DECOMPILED.py
 Exit 0 when the normalized ASTs match; 1 otherwise (first difference on
 stdout). Normalizations applied (both sides):
-  - adjacent `from m import a` / `from m import b` merged
+  - adjacent 'from m import a' / 'from m import b' merged
   - global/nonlocal declarations hoisted to the top of their scope (set)
-  - `while True` == `while 1`
+  - 'while True' == 'while 1'
   - docstring Expr statements dropped
   - py2 Str/Num/NameConstant nodes mapped to Constant-style tuples
 Compatible with Python 2.6+ and 3.x (no argparse, no set literals).
@@ -100,7 +100,7 @@ def ends_terminal(body):
 
 
 def flatten_terminal_else(stmts):
-    """`if c: <terminal> else: X` equals `if c: <terminal>` followed by X:
+    """'if c: <terminal> else: X' equals 'if c: <terminal>' followed by X:
     compilers drop the else jump when the then-branch never falls through,
     so decompiled output legitimately flattens it."""
     out = []
@@ -122,7 +122,7 @@ TRY_TYPES = tuple(
 
 def flatten_try_else(stmts):
     """When every handler ends terminally (return/raise/break/continue),
-    `try: B else: O` followed by S is the same as `try: B` with O and S
+    'try: B else: O' followed by S is the same as 'try: B' with O and S
     sequential - compilers pick either layout."""
     out = []
     for s in stmts:
@@ -286,7 +286,7 @@ class Normalizer(ast.NodeTransformer):
 
     def visit_BinOp(self, node):
         self.generic_visit(node)
-        # compilers fold `'x' * n` into a literal string
+        # compilers fold ''x' * n' into a literal string
         if isinstance(node.op, ast.Mult):
             ls, rn = self._strval(node.left), self._numval(node.right)
             if ls is not None and isinstance(rn, int) and 0 <= rn <= 1000 \
@@ -338,7 +338,7 @@ class Normalizer(ast.NodeTransformer):
 
     def visit_Yield(self, node):
         self.generic_visit(node)
-        # bare `yield` and `yield None` are the same operation
+        # bare 'yield' and 'yield None' are the same operation
         if node.value is None:
             node.value = ast.Name(id='None', ctx=ast.Load())
         elif hasattr(ast, 'NameConstant') and isinstance(node.value, ast.NameConstant) \
@@ -349,9 +349,42 @@ class Normalizer(ast.NodeTransformer):
             node.value = ast.Name(id='None', ctx=ast.Load())
         return node
 
+    def visit_Compare(self, node):
+        self.generic_visit(node)
+        # compilers flatten `a < b <= c` into `a < b and b <= c` (each
+        # link re-evaluating the shared middle only in the AST sense);
+        # expand both sides so a flattened decompile compares equal.
+        # Equality ops are excluded (not transitive for custom __eq__).
+        if len(node.ops) > 1:
+            order = (ast.Lt, ast.LtE, ast.Gt, ast.GtE)
+            if all(isinstance(o, order) for o in node.ops):
+                chain = [node.left] + node.comparators
+                parts = []
+                for i, op in enumerate(node.ops):
+                    parts.append(ast.Compare(left=chain[i],
+                                             ops=[op],
+                                             comparators=[chain[i + 1]]))
+                return ast.BoolOp(op=ast.And(), values=parts)
+        return node
+
+    def visit_Return(self, node):
+        self.generic_visit(node)
+        # 'return None' and bare 'return' compile identically
+        v = node.value
+        if v is not None:
+            if hasattr(ast, 'NameConstant') and isinstance(v, ast.NameConstant) \
+                    and v.value is None:
+                node.value = None
+            elif hasattr(ast, 'Constant') and isinstance(v, ast.Constant) \
+                    and v.value is None:
+                node.value = None
+            elif isinstance(v, ast.Name) and v.id == 'None':
+                node.value = None
+        return node
+
     def visit_Raise(self, node):
         self.generic_visit(node)
-        # py2 `raise T, I` (type/inst fields) == decompiled `raise T(I)`
+        # py2 'raise T, I' (type/inst fields) == decompiled 'raise T(I)'
         if hasattr(node, 'type') and getattr(node, 'inst', None) is not None                 and getattr(node, 'tback', None) is None:
             node.type = ast.Call(func=node.type, args=[node.inst],
                                  keywords=[], starargs=None, kwargs=None)
@@ -418,16 +451,23 @@ def sorted_node(node):
     return node
 
 
+ELSE_PASS_TYPES = tuple(
+    [ast.If, ast.While, ast.For]
+    + [t for t in (getattr(ast, 'Try', None), getattr(ast, 'TryStar', None),
+                   getattr(ast, 'TryExcept', None),
+                   getattr(ast, 'TryFinally', None)) if t is not None])
+
+
 def dump_stmts(stmts):
     """ast.dump refuses lists; compare statement bodies position-wise."""
     return '[' + ','.join(ast.dump(s) for s in stmts) + ']'
 
 
 def merge_nested_ifs(stmts):
-    """`if a: if b: X` (no elses) compiles identically to `if a and b: X`;
-    `if a: X else: if b: X` (same then) to `if a or b: X`; and
-    `if a: if b: X` where the outer has no else also equals
-    `if not a or b: X`-style De Morgan rewritings. Canonicalize all such
+    """'if a: if b: X' (no elses) compiles identically to 'if a and b: X';
+    'if a: X else: if b: X' (same then) to 'if a or b: X'; and
+    'if a: if b: X' where the outer has no else also equals
+    'if not a or b: X'-style De Morgan rewritings. Canonicalize all such
     forms by merging, then let canonical_bool normalize the test."""
     out = []
     for s in stmts:
@@ -473,17 +513,71 @@ class BoolCanonicalizer(ast.NodeTransformer):
         return node
 
 
+def _scope_assigned_names(node):
+    """Names bound by Store/Del anywhere in the scope body (including
+    nested funcs/classes), plus names captured by nested-scope global/
+    nonlocal statements that are assigned there."""
+    assigned = set()
+    for sub in ast.walk(node):
+        if isinstance(sub, ast.Name) and isinstance(sub.ctx, (ast.Store, ast.Del)):
+            assigned.add(sub.id)
+        elif hasattr(ast, 'arg'):
+            pass
+    # function args / defaults bind names too
+    for sub in ast.walk(node):
+        if isinstance(sub, (ast.FunctionDef, getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):
+            a = sub.args
+            for arg in getattr(a, 'args', []) + getattr(a, 'kwonlyargs', []):
+                assigned.add(getattr(arg, 'arg', getattr(arg, 'id', None)))
+            for arg in [getattr(a, 'vararg', None), getattr(a, 'kwarg', None)]:
+                if arg is not None:
+                    assigned.add(getattr(arg, 'arg', getattr(arg, 'id', None)))
+    assigned.discard(None)
+    return assigned
+
+
+def prune_globals(tree):
+    """`global x` for a name never assigned in the scope is a bytecode
+    no-op (loads resolve the same); decompilers infer the statement from
+    assignments only. Drop unassigned names and sort the rest so
+    declaration-order/verbosity differences compare equal."""
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.FunctionDef,
+                             getattr(ast, 'AsyncFunctionDef', ast.FunctionDef),
+                             ast.ClassDef)):
+            assigned = _scope_assigned_names(node)
+            body = getattr(node, 'body', None)
+            if not isinstance(body, list):
+                continue
+            for stmt in body:
+                if isinstance(stmt, ast.Global) and stmt.names:
+                    keep = sorted(n for n in stmt.names if n in assigned)
+                    if keep:
+                        stmt.names = keep
+                    else:
+                        body.remove(stmt)
+    return tree
+
+
 def dump(src):
     tree = ast.parse(src)
     tree = Normalizer().visit(tree)
     tree = BoolCanonicalizer().visit(tree)
     # re-run body normalization so merged/canonical forms settle
     tree = Normalizer().visit(tree)
+    tree = prune_globals(tree)
     for node in ast.walk(tree):
         for field in ('body', 'orelse', 'finalbody'):
             val = getattr(node, field, None)
             if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
                 setattr(node, field, merge_nested_ifs(val))
+        # 'else: pass' is a no-op for if/while/for/try - drop it so an
+        # omitted else compares equal
+        ore = getattr(node, 'orelse', None)
+        if (isinstance(ore, list) and len(ore) == 1
+                and isinstance(ore[0], ast.Pass)
+                and isinstance(node, ELSE_PASS_TYPES)):
+            node.orelse = []
     return ast.dump(tree)
 
 

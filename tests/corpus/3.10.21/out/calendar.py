@@ -85,19 +85,16 @@ def leapdays(y1, y2):
 def weekday(year, month, day):
     '''Return weekday (0-6 ~ Mon-Sun) for year, month (1-12), day (1-31).'''
 
-    if datetime.MINYEAR <= year:
-        if not year <= datetime.MAXYEAR:
-            year = 2000 + year % 400
-    return datetime.date(year, month, day).weekday()
+    if not datetime.MINYEAR <= year <= datetime.MAXYEAR:
+        year = 2000 + year % 400
+        return datetime.date(year, month, day).weekday()
 
 def monthrange(year, month):
     '''Return weekday (0-6 ~ Mon-Sun) and number of days (28-31) for
        year, month.'''
 
-    if 1 <= month:
-        if not month <= 12:
-            raise IllegalMonthError(month)
-            raise IllegalMonthError(month)
+    if not 1 <= month <= 12:
+        raise IllegalMonthError(month)
     day1 = weekday(year, month, 1)
     ndays = mdays[month] + (month == February and isleap(year))
     return day1, ndays
@@ -564,10 +561,8 @@ c = TextCalendar()
 firstweekday = c.getfirstweekday
 
 def setfirstweekday(firstweekday):
-    if MONDAY <= firstweekday:
-        if not firstweekday <= SUNDAY:
-            raise IllegalWeekdayError(firstweekday)
-            raise IllegalWeekdayError(firstweekday)
+    if not MONDAY <= firstweekday <= SUNDAY:
+        raise IllegalWeekdayError(firstweekday)
     c.firstweekday = firstweekday
 
 monthcalendar = c.monthdayscalendar

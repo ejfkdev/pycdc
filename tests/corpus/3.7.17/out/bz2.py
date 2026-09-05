@@ -55,9 +55,8 @@ class BZ2File(_compression.BaseStream):
         self._mode = _MODE_CLOSED
         if buffering is not None:
             warnings.warn("Use of 'buffering' argument is deprecated", DeprecationWarning)
-        if 1 <= compresslevel:
-            if not compresslevel <= 9:
-                raise ValueError('compresslevel must be between 1 and 9')
+        if not 1 <= compresslevel <= 9:
+            raise ValueError('compresslevel must be between 1 and 9')
         if mode in ('', 'r', 'rb'):
             mode = 'rb'
             mode_code = _MODE_READ

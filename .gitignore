@@ -3,3 +3,4 @@ __pycache__/
 *.pyc.bak
 .DS_Store
 *.pyc
+tools/ast_compare.pyc

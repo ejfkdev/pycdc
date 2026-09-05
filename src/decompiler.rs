@@ -389,6 +389,13 @@ struct Ctx<'a> {
     prev_op_at_exec: Option<Op>,
     /// instruction offsets to skip (false-path cleanup of value merges)
     skip_until: Option<usize>,
+    /// 3.8+ compiler tail-duplication: a cond jump's else path can hold
+    /// a verbatim copy of a terminating body (raise/return) instead of
+    /// a jump to the shared one. redirect maps the jump target to the
+    /// original body start; skip lists (copy_start, copy_end) regions
+    /// the walk must not enter.
+    dup_copy_redirect: HashMap<usize, usize>,
+    dup_copy_skip: Vec<(usize, usize)>,
     /// loop top of a loop that saw BREAK_LOOP: dead back edges after the
     /// break (<=3.7 padding) must not mark the output unclean
     broken_loop_top: Option<usize>,
@@ -645,6 +652,8 @@ pub fn decompile_in_scope(
         prev_op: None,
         prev_op_at_exec: None,
         skip_until: None,
+        dup_copy_redirect: HashMap::new(),
+        dup_copy_skip: Vec::new(),
         broken_loop_top: None,
         py2_else_pop_at: None,
         pending_star_kw_call: false,
@@ -1019,11 +1028,23 @@ pub fn decompile_in_scope(
 impl<'a> Ctx<'a> {
     fn run(&mut self) {
         self.prescan_while_true();
+        self.prescan_dup_copies();
         let mut pc = 0usize;
         let mut past_chains = false;
         while pc < self.instrs.len() {
             let inst = self.instrs[pc];
             let pos = inst.offset;
+            // tail-duplicated body copy: never walk into it (the jump
+            // that targeted it was redirected to the original)
+            if let Some(&(s, e)) = self.dup_copy_skip.iter().find(|&&(s, _)| s == pos) {
+                if let Some(&ei) = self.idx_of.get(&e) {
+                    pc = ei;
+                    continue;
+                }
+                if e >= self.instrs.last().map_or(0, |x| x.end()) {
+                    break;
+                }
+            }
             if self.chain_heads.contains(&pos) && inst.op == Op::PUSH_EXC_INFO {
                 // out-of-line handler chain head: fold any Try block
                 // ending here FIRST (its tail parses the chain), then
@@ -11185,6 +11206,382 @@ impl<'a> Ctx<'a> {
             )
         };
         let ci = *self.idx_of.get(&self.cur_offset)?;
+        // negated chain over a tail-duplicated terminating body (3.8+):
+        // `if not (a<b<=c): BODY` — every link PJIF escapes into a
+        // verbatim copy of BODY (prescan redirected `target` to the
+        // shared body start) and the FINAL link is a PJIT hopping over
+        // it. Merge the links and emit the negated chain directly.
+        if let Some(orig_t) = self
+            .dup_copy_redirect
+            .iter()
+            .find(|(_, &b)| b == target)
+            .map(|(&t, _)| t)
+        {
+            let Some(&bi) = self.idx_of.get(&target) else {
+                return None;
+            };
+            // shared body end: first terminator (RETURN/RAISE outright,
+            // forward JF without internal target); a cond jump inside
+            // the body means this is not a plain terminator block
+            let mut body_end = None;
+            let mut k2 = bi;
+            while let Some(ins) = self.instrs.get(k2) {
+                if matches!(
+                    ins.op,
+                    Op::POP_JUMP_IF_FALSE
+                        | Op::POP_JUMP_IF_TRUE
+                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                        | Op::POP_JUMP_BACKWARD_IF_FALSE
+                        | Op::POP_JUMP_BACKWARD_IF_TRUE
+                        | Op::JUMP_IF_FALSE_OR_POP
+                        | Op::JUMP_IF_TRUE_OR_POP
+                        | Op::JUMP_IF_FALSE
+                        | Op::JUMP_IF_TRUE
+                ) {
+                    break;
+                }
+                if matches!(
+                    ins.op,
+                    Op::RETURN_VALUE | Op::RETURN_CONST | Op::RAISE_VARARGS
+                ) {
+                    body_end = Some(ins.end());
+                    break;
+                }
+                if let Some(t) = ins.target {
+                    if !ins.is_backward
+                        && t > ins.offset
+                        && matches!(
+                            ins.op,
+                            Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+                        )
+                    {
+                        let internal = self.instrs[bi..k2]
+                            .iter()
+                            .any(|x| x.target == Some(t));
+                        if !internal {
+                            body_end = Some(ins.end());
+                            break;
+                        }
+                    }
+                }
+                k2 += 1;
+                if k2 - bi > 400 {
+                    break;
+                }
+            }
+            let Some(be) = body_end else {
+                if scc_dbg { eprintln!("SCC-neg: bail body_end"); }
+                return None;
+            };
+            // walk the links in [ci+1, bi): pure-value regions ending in
+            // COMPARE + cond jump (PJIF -> the copy, final PJIT -> merge)
+            let mut acc_ops2 = ops.clone();
+            let mut acc_operands2 = operands.clone();
+            let mut k = ci + 1;
+            let mut prev_link_end = ci + 1;
+            let mut final_ok = false;
+            while k < bi {
+                let ins = self.instrs[k];
+                let is_link = matches!(
+                    ins.op,
+                    Op::POP_JUMP_IF_FALSE
+                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                        | Op::POP_JUMP_IF_TRUE
+                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                );
+                if !is_link {
+                    if !is_pure_value_op(ins.op)
+                        && !matches!(
+                            ins.op,
+                            Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::TO_BOOL
+                        )
+                    {
+                        if scc_dbg {
+                            eprintln!("SCC-neg: bail impure {:?} off={}", ins.op, ins.offset);
+                        }
+                        return None;
+                    }
+                    k += 1;
+                    continue;
+                }
+                // link jump: its lhs operand region must end at a COMPARE
+                let cmp_idx = match self.match_prev_real(k) {
+                    Some(x) if x > ci => x,
+                    _ => {
+                        if scc_dbg { eprintln!("SCC-neg: bail prev_real"); }
+                        return None;
+                    }
+                };
+                if self.instrs[cmp_idx].op != Op::COMPARE_OP {
+                    if scc_dbg { eprintln!("SCC-neg: bail not-cmp"); }
+                    return None;
+                }
+                // region between the previous link and this COMPARE
+                let region_start = if acc_ops2.len() == ops.len() {
+                    ci + 1
+                } else {
+                    prev_link_end
+                };
+                let rhs = self.sim_value_region(region_start, cmp_idx)?;
+                acc_ops2.push(cmp_from_index(compare_op_index(
+                    self.instrs[cmp_idx].arg as u32,
+                    self.version,
+                )));
+                acc_operands2.push(rhs);
+                let jt = ins.target?;
+                if matches!(
+                    ins.op,
+                    Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+                ) {
+                    if jt != orig_t {
+                        if scc_dbg { eprintln!("SCC-neg: bail link target {} != {}", jt, orig_t); }
+                        return None;
+                    }
+                    prev_link_end = k + 1;
+                    k += 1;
+                    continue;
+                }
+                // final PJIT: fall-through must be the shared body and
+                // the hop must clear the duplicated copy
+                let mut nx = k + 1;
+                while matches!(
+                    self.instrs.get(nx).map(|x| x.op),
+                    Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE)
+                ) {
+                    nx += 1;
+                }
+                if self.instrs.get(nx).map(|x| x.offset) != Some(target) {
+                    if scc_dbg { eprintln!("SCC-neg: bail final fallthrough"); }
+                    return None;
+                }
+                if jt < orig_t {
+                    if scc_dbg { eprintln!("SCC-neg: bail final hop into copy"); }
+                    return None;
+                }
+                final_ok = true;
+                break;
+            }
+            if !final_ok || acc_ops2.len() < 2 {
+                if scc_dbg { eprintln!("SCC-neg: bail final_ok={} ops={}", final_ok, acc_ops2.len()); }
+                return None;
+            }
+            let merged: ExprRef = Rc::new(Expr::Compare {
+                operands: acc_operands2,
+                ops: acc_ops2,
+            });
+            return Some((negate_cond(merged), target, be));
+        }
+        // negated chain over a shared body reached through a cleanup
+        // trampoline (3.8/3.9/3.11/3.13/3.14): link PJIFs escape to
+        // `POP_TOP; BODY`, the final PJIT hops to the merge past BODY,
+        // and a JUMP_FORWARD skips the cleanup into BODY:
+        //   <link1 CMP> PJIF P; <linkN CMP> PJIT M; JF B; P: POP_TOP;
+        //   B: BODY(terminating); M:
+        // yields `if not (chain): BODY`.
+        {
+            let is_pjif = |o: Op| {
+                matches!(
+                    o,
+                    Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+                )
+            };
+            let is_pjit = |o: Op| {
+                matches!(
+                    o,
+                    Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+                )
+            };
+            let is_jf = |o: Op| matches!(o, Op::JUMP_FORWARD | Op::JUMP);
+            if let Some(&pi) = self.idx_of.get(&target) {
+                if self.instrs.get(pi).map(|x| x.op) == Some(Op::POP_TOP) {
+                    // B: first non-padding after the cleanup POP
+                    let mut bx = pi + 1;
+                    while matches!(
+                        self.instrs.get(bx).map(|x| x.op),
+                        Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE)
+                    ) {
+                        bx += 1;
+                    }
+                    if let Some(bin) = self.instrs.get(bx) {
+                        let b_off = bin.offset;
+                        // walk the link span (ci+1 .. pi): pure values,
+                        // COMPAREs, PJIFs to `target`, exactly one final
+                        // PJIT (merge M) and one JF hopping to B
+                        let mut acc_ops_t = ops.clone();
+                        let mut acc_operands_t = operands.clone();
+                        let mut k = ci + 1;
+                        let mut prev_link_end = ci + 1;
+                        let mut pjit_seen = false;
+                        let mut jf_seen = false;
+                        let mut ok = true;
+                        while k < pi {
+                            let ins = self.instrs[k];
+                            if matches!(
+                                ins.op,
+                                Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::TO_BOOL
+                            ) || is_pure_value_op(ins.op)
+                            {
+                                k += 1;
+                                continue;
+                            }
+                            if matches!(
+                                ins.op,
+                                Op::COMPARE_OP | Op::IS_OP | Op::CONTAINS_OP
+                            ) {
+                                k += 1;
+                                continue;
+                            }
+                            if is_pjif(ins.op) {
+                                // intermediate link: must escape to the
+                                // trampoline POP
+                                if ins.target != Some(target) {
+                                    ok = false;
+                                    break;
+                                }
+                                let cmp_idx = match self.match_prev_real(k) {
+                                    Some(x) if x > ci => x,
+                                    _ => {
+                                        ok = false;
+                                        break;
+                                    }
+                                };
+                                if self.instrs[cmp_idx].op != Op::COMPARE_OP {
+                                    ok = false;
+                                    break;
+                                }
+                                let rhs =
+                                    match self.sim_value_region(prev_link_end, cmp_idx) {
+                                        Some(r) => r,
+                                        None => {
+                                            ok = false;
+                                            break;
+                                        }
+                                    };
+                                acc_ops_t.push(cmp_from_index(compare_op_index(
+                                    self.instrs[cmp_idx].arg as u32,
+                                    self.version,
+                                )));
+                                acc_operands_t.push(rhs);
+                                prev_link_end = k + 1;
+                                k += 1;
+                                continue;
+                            }
+                            if is_pjit(ins.op) && !pjit_seen {
+                                // final link: its COMPARE feeds the merge
+                                let cmp_idx = match self.match_prev_real(k) {
+                                    Some(x) if x > ci => x,
+                                    _ => {
+                                        ok = false;
+                                        break;
+                                    }
+                                };
+                                if self.instrs[cmp_idx].op != Op::COMPARE_OP {
+                                    ok = false;
+                                    break;
+                                }
+                                let rhs =
+                                    match self.sim_value_region(prev_link_end, cmp_idx) {
+                                        Some(r) => r,
+                                        None => {
+                                            ok = false;
+                                            break;
+                                        }
+                                    };
+                                acc_ops_t.push(cmp_from_index(compare_op_index(
+                                    self.instrs[cmp_idx].arg as u32,
+                                    self.version,
+                                )));
+                                acc_operands_t.push(rhs);
+                                // merge M must sit at/after the body end
+                                if ins.target.map_or(true, |m| m <= target) {
+                                    ok = false;
+                                    break;
+                                }
+                                pjit_seen = true;
+                                prev_link_end = k + 1;
+                                k += 1;
+                                continue;
+                            }
+                            if is_jf(ins.op) && !jf_seen {
+                                // success hop over the cleanup into B
+                                if ins.target != Some(b_off) {
+                                    ok = false;
+                                    break;
+                                }
+                                jf_seen = true;
+                                k += 1;
+                                continue;
+                            }
+                            ok = false;
+                            break;
+                        }
+                        if ok && pjit_seen && acc_ops_t.len() >= 2 {
+                            // body end: first terminator from B; a cond
+                            // jump inside means this is an or-operand
+                            // region, not a terminator body
+                            let mut body_end = None;
+                            let mut k2 = bx;
+                            while let Some(ins) = self.instrs.get(k2) {
+                                if matches!(
+                                    ins.op,
+                                    Op::POP_JUMP_IF_FALSE
+                                        | Op::POP_JUMP_IF_TRUE
+                                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                                        | Op::POP_JUMP_BACKWARD_IF_FALSE
+                                        | Op::POP_JUMP_BACKWARD_IF_TRUE
+                                        | Op::JUMP_IF_FALSE_OR_POP
+                                        | Op::JUMP_IF_TRUE_OR_POP
+                                        | Op::JUMP_IF_FALSE
+                                        | Op::JUMP_IF_TRUE
+                                ) {
+                                    break;
+                                }
+                                if matches!(
+                                    ins.op,
+                                    Op::RETURN_VALUE
+                                        | Op::RETURN_CONST
+                                        | Op::RAISE_VARARGS
+                                        | Op::RERAISE
+                                ) {
+                                    body_end = Some(ins.end());
+                                    break;
+                                }
+                                if let Some(t) = ins.target {
+                                    if !ins.is_backward
+                                        && t > ins.offset
+                                        && is_jf(ins.op)
+                                    {
+                                        let internal = self.instrs[bx..k2]
+                                            .iter()
+                                            .any(|x| x.target == Some(t));
+                                        if !internal {
+                                            body_end = Some(ins.end());
+                                            break;
+                                        }
+                                    }
+                                }
+                                k2 += 1;
+                                if k2 - bx > 400 {
+                                    break;
+                                }
+                            }
+                            if let Some(be) = body_end {
+                                let merged: ExprRef = Rc::new(Expr::Compare {
+                                    operands: acc_operands_t,
+                                    ops: acc_ops_t,
+                                });
+                                if scc_dbg {
+                                    eprintln!("SCC-tramp: merged body [{},{})", b_off, be);
+                                }
+                                return Some((negate_cond(merged), b_off, be));
+                            }
+                        }
+                    }
+                }
+            }
+        }
         // walk the remaining links: pure value region ending in a PJIF to
         // the SAME else label
         let mut acc_ops = ops.clone();
@@ -11611,6 +12008,8 @@ impl<'a> Ctx<'a> {
     }
 
     fn handle_cond_jump(&mut self, cond: ExprRef, jump_if_true: bool, target: usize) {
+        // tail-duplicated body copy: aim the jump at the original body
+        let target = self.dup_copy_redirect.get(&target).copied().unwrap_or(target);
         // py2 value-form boolop consumed by an if: `if X or Y:` where the
         // operands are value-building chains (chained comparisons via
         // JUMP_IF_*_OR_POP) — the FINAL operand's cond jump arrives while
@@ -12854,6 +13253,10 @@ impl<'a> Ctx<'a> {
     /// JUMP_IF_TRUE_OR_POP / JUMP_IF_FALSE_OR_POP: begin a short-circuit
     /// region. The value stays on the stack; at the target we merge.
     fn handle_short_circuit(&mut self, or_form: bool, target: usize) {
+        // tail-duplicated body copy: the else path is a verbatim copy of
+        // the terminating then body — the link still merges into it
+        let dup_body = self.dup_copy_redirect.contains_key(&target);
+        let target = self.dup_copy_redirect.get(&target).copied().unwrap_or(target);
         // pycdc-style: mark a pending merge by pushing an If block whose
         // "cond" is the left operand; closing merges into BoolOp.
         let left = self.pop_expr();
@@ -12865,7 +13268,9 @@ impl<'a> Ctx<'a> {
         // (rotating the enclosing call's operands) before the close skips
         // its POP_TOP.
         let chain = !or_form
-            && (self.is_chain_else_arm_rot(target) || self.is_chain_else_arm(target));
+            && (self.is_chain_else_arm_rot(target)
+                || self.is_chain_else_arm(target)
+                || dup_body);
         let blk_end = if chain {
             self.chain_then_merge_from(self.cur_next, target)
                 .unwrap_or(target)
@@ -13031,6 +13436,7 @@ impl<'a> Ctx<'a> {
     }
 
     fn handle_jump_forward(&mut self, target: usize) -> bool {
+        let target = self.dup_copy_redirect.get(&target).copied().unwrap_or(target);
         self.close_blocks_at(self.cur_offset);
         // a forward jump flying over an OPEN (non-top) If block's end
         // boundary implies an else region [end, target) for that block
@@ -13448,6 +13854,185 @@ impl<'a> Ctx<'a> {
     /// unconditional backward jump and has no cond jump at its top.
     /// Register those loops so the block opens when execution reaches the
     /// top and closes at the back edge.
+    fn prescan_dup_copies(&mut self) {
+        if !self.version.at_least(3, 8) || self.inline_comp.is_some() {
+            return;
+        }
+        let is_cond = |o: Op| {
+            matches!(
+                o,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                    | Op::POP_JUMP_BACKWARD_IF_FALSE
+                    | Op::POP_JUMP_BACKWARD_IF_TRUE
+                    | Op::JUMP_IF_FALSE_OR_POP
+                    | Op::JUMP_IF_TRUE_OR_POP
+                    | Op::JUMP_IF_FALSE
+                    | Op::JUMP_IF_TRUE
+                    | Op::POP_JUMP_IF_NONE
+                    | Op::POP_JUMP_FORWARD_IF_NONE
+                    | Op::POP_JUMP_IF_NOT_NONE
+                    | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+            )
+        };
+        let is_terminator = |o: Op| {
+            matches!(
+                o,
+                Op::RAISE_VARARGS
+                    | Op::RETURN_VALUE
+                    | Op::RETURN_CONST
+                    | Op::JUMP_FORWARD
+                    | Op::JUMP
+                    | Op::JUMP_ABSOLUTE
+                    | Op::JUMP_BACKWARD
+                    | Op::RERAISE
+            )
+        };
+        let is_padding = |o: Op| matches!(o, Op::NOP | Op::NOT_TAKEN | Op::CACHE);
+        // every offset some jump points at
+        let mut jumped: HashSet<usize> = HashSet::new();
+        for ins in self.instrs.iter() {
+            if let Some(t) = ins.target {
+                jumped.insert(t);
+            }
+        }
+        let n = self.instrs.len();
+        for i in 0..n {
+            let ins = self.instrs[i];
+            if !is_cond(ins.op) {
+                continue;
+            }
+            let Some(t) = ins.target else { continue };
+            if t <= ins.offset {
+                continue;
+            }
+            let Some(&ti) = self.idx_of.get(&t) else {
+                continue;
+            };
+            // cleanup prefix at the else landing: [ROT_TWO|SWAP 2;] POP_TOP
+            let mut c = ti;
+            if matches!(self.instrs.get(c).map(|x| x.op), Some(Op::ROT_TWO))
+                && matches!(self.instrs.get(c + 1).map(|x| x.op), Some(Op::POP_TOP))
+            {
+                c += 2;
+            } else if matches!(self.instrs.get(c).map(|x| x.op), Some(Op::SWAP))
+                && self.instrs.get(c).map(|x| x.arg) == Some(2)
+                && matches!(self.instrs.get(c + 1).map(|x| x.op), Some(Op::POP_TOP))
+            {
+                c += 2;
+            } else if matches!(self.instrs.get(c).map(|x| x.op), Some(Op::POP_TOP)) {
+                c += 1;
+            } else {
+                continue;
+            }
+            // scan through the chain material between this jump and the
+            // else landing; the body starts after the LAST cond jump
+            // (chain links re-jump to the same copy on failure)
+            let mut last_j = None;
+            let mut k = i + 1;
+            while k < ti {
+                let op = self.instrs[k].op;
+                if is_padding(op) || is_pure_value_op(op) {
+                    k += 1;
+                    continue;
+                }
+                if matches!(
+                    op,
+                    Op::COMPARE_OP | Op::IS_OP | Op::CONTAINS_OP | Op::TO_BOOL
+                ) {
+                    k += 1;
+                    continue;
+                }
+                if is_cond(op) {
+                    last_j = Some(k);
+                    k += 1;
+                    continue;
+                }
+                // non-chain material: the terminating body starts right
+                // after the last link
+                break;
+            }
+            let Some(lj) = last_j else { continue };
+            let Some(mut b) = (lj + 1..ti).find(|&x| !is_padding(self.instrs[x].op)) else {
+                continue;
+            };
+            let body_start = self.instrs[b].offset;
+            // the shared body must not be jumped into from elsewhere
+            if jumped.iter().any(|&jt| jt > body_start && jt < t) {
+                continue;
+            }
+            // body end E: through the first terminator (capped)
+            let mut e = None;
+            let mut m = b;
+            while m < n && m - b < 40 {
+                if is_terminator(self.instrs[m].op) {
+                    e = Some(m + 1);
+                    break;
+                }
+                if self.instrs[m].is_backward {
+                    break;
+                }
+                m += 1;
+            }
+            let Some(e) = e else { continue };
+            // E must land at or before the copy cleanup start
+            if self.instrs[e - 1].end() > self.instrs[c].offset {
+                continue;
+            }
+            // the copy must match [B, E) instruction-for-instruction
+            // (ignoring padding)
+            let mut bi = b;
+            let mut ci = c;
+            let mut matched = 0usize;
+            let mut ok = true;
+            while bi < e {
+                if is_padding(self.instrs[bi].op) {
+                    bi += 1;
+                    continue;
+                }
+                while ci < n && is_padding(self.instrs[ci].op) {
+                    ci += 1;
+                }
+                let Some(cin) = self.instrs.get(ci) else {
+                    ok = false;
+                    break;
+                };
+                let bin = &self.instrs[bi];
+                if cin.op != bin.op
+                    || cin.arg != bin.arg
+                    || cin.target != bin.target
+                    || cin.is_backward != bin.is_backward
+                {
+                    ok = false;
+                    break;
+                }
+                matched += 1;
+                bi += 1;
+                ci += 1;
+            }
+            // matched >= 1 is safe: the mandatory cleanup POP_TOP at
+            // the else landing only exists in compiler chain machinery
+            // (a source-level duplicate statement has no stack value to
+            // discard), and the body must be a verified terminator run
+            if !ok || matched < 1 || bi != e || ci >= n {
+                continue;
+            }
+            // no other jump may land strictly inside the copy region
+            let copy_start_off = self.instrs[ti].offset;
+            let copy_end = self.instrs[ci - 1].end();
+            if jumped
+                .iter()
+                .any(|&jt| jt > copy_start_off && jt < copy_end)
+            {
+                continue;
+            }
+            self.dup_copy_redirect.insert(t, body_start);
+            self.dup_copy_skip.push((copy_start_off, copy_end));
+        }
+    }
+
     fn prescan_while_true(&mut self) {
         if !self.version.at_least(3, 8) || self.inline_comp.is_some() {
             return;

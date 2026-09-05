@@ -46,9 +46,8 @@ def mksalt(method=None, *, rounds=None):
             log_rounds = int.bit_length(rounds - 1)
             if rounds != 1 << log_rounds:
                 raise ValueError('rounds must be a power of 2')
-            if 4 <= log_rounds:
-                if not log_rounds <= 31:
-                    raise ValueError('rounds out of the range 2**4 to 2**31')
+            if not 4 <= log_rounds <= 31:
+                raise ValueError('rounds out of the range 2**4 to 2**31')
         s += f'{log_rounds:02d}$'
     elif (method.ident in ('5', '6') and rounds is not None) and rounds is not None:
         raise ValueError(f'{method} doesn\'t support the rounds argument')

@@ -81,3 +81,24 @@ print(quote_strip('plain'))
 print(elif_ctx('', "'q'"))
 print(elif_ctx('x', '"d"'))
 print(elif_ctx('x', 'raw'))
+
+# negated statement chain over a terminating body: `if not (a<b<c):`
+# 3.8/3.9/3.11/3.13/3.14 use a cleanup trampoline (PJIF -> POP_TOP ->
+# shared body), 3.10/3.12 tail-duplicate the body into the else path.
+# Mis-merging drops the low-side case (behavior-breaking).
+def not_chain(x):
+    if not (1 <= x <= 9):
+        return 'out'
+    return 'in'
+
+def not_chain_raise(v):
+    if not (0 < v < 100):
+        raise ValueError('range')
+    return v
+
+print(not_chain(-1), not_chain(5), not_chain(20))
+try:
+    not_chain_raise(0)
+except ValueError:
+    print('VE')
+print(not_chain_raise(50))

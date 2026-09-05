@@ -148,9 +148,9 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 62: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 160: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 744,
+   "ndiff": 766,
    "ntotal": 802,
    "detail": "line 29: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 33: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
@@ -166,13 +166,13 @@
    "module": "calendar",
    "ast_detail": "diff at token 529: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 3323,
+   "ndiff": 3244,
    "ntotal": 3395,
    "detail": "line 13: orig ('LOAD_CONST', \"('IntEnum', 'global_enum')\") | got ('LOAD_CONST', \"('IntEnum',)\")\nline 17: orig ('IMPORT_FROM', 'global_enum') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'global_enum') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 63: orig  'logfile' | dec  'logfp'])",
+   "ast_detail": "diff at token 141: orig  body=[Pass()] | dec  body=[]",
    "verdict": "SIG-DIFF",
    "ndiff": 2772,
    "ntotal": 2899,
@@ -248,7 +248,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 63: orig  body=[Return(value=Constant(value=None))] | dec  body=[]",
+   "ast_detail": "diff at token 63: orig  body=[Return()] | dec  body=[]",
    "verdict": "SIG-DIFF",
    "ndiff": 2165,
    "ntotal": 2260,
@@ -266,17 +266,17 @@
    "module": "copyreg",
    "ast_detail": "diff at token 46: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 397,
-   "ntotal": 611,
+   "ndiff": 399,
+   "ntotal": 615,
    "detail": "line 189: orig ('FOR_ITER', 'to 228') | got ('FOR_ITER', 'to 238')\nline 195: orig ('POP_JUMP_IF_FALSE', 'to 136') | got ('POP_JUMP_IF_TRUE', 'to 96')\nline 196: orig ('LOAD_FAST', 'base') | got ('JUMP_BACKWARD', 'to 64')"
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 190: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 214: orig  orelse=[If(test=Compare(left=Attribute(value=Name(id='method' | dec  orelse=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 200,
+   "ndiff": 142,
    "ntotal": 462,
-   "detail": "line 231: orig ('POP_JUMP_IF_FALSE', 'to 434') | got ('POP_JUMP_IF_FALSE', 'to 408')\nline 238: orig ('POP_JUMP_IF_FALSE', 'to 434') | got ('POP_JUMP_IF_FALSE', 'to 408')\nline 243: orig ('JUMP_FORWARD', 'to 414') | got ('JUMP_FORWARD', 'to 388')"
+   "detail": "line 287: orig ('JUMP_FORWARD', 'to 586') | got ('JUMP_FORWARD', 'to 552')\nline 292: orig ('POP_JUMP_IF_FALSE', 'to 554') | got ('POP_JUMP_IF_FALSE', 'to 552')\nline 294: orig ('POP_JUMP_IF_NONE', 'to 586') | got ('POP_JUMP_IF_NONE', 'to 552')"
   },
   {
    "module": "csv",

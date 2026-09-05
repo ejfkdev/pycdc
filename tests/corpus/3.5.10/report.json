@@ -49,7 +49,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 144: orig  Return(value=NameConstant(value=None))] | dec  Return(value=None)]",
+   "ast_detail": "diff at token 210: orig  Return(value=IfExp(test=UnaryOp(op=Not() | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 967,
    "ntotal": 1157,
@@ -65,7 +65,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1305: orig  body=[Global(names=['_TimeRE_cache' | dec  body=[Global(names=['_TimeRE_cache'])",
+   "ast_detail": "diff at token 1319: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1532,
    "ntotal": 1848,
@@ -145,7 +145,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 986: orig  body=[If(test=Compare(left=Str(s='t') | dec  body=[If(test=BoolOp(op=Or()",
+   "ast_detail": "diff at token 990: orig  body=[If(test=Compare(left=Str(s='t') | dec  body=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
    "ndiff": 780,
    "ntotal": 899,
@@ -157,7 +157,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 899: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
+   "ast_detail": "diff at token 903: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
    "verdict": "SIG-DIFF",
    "ndiff": 2418,
    "ntotal": 2894,
@@ -165,7 +165,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 71: orig  'logfile' | dec  'logfp'])",
+   "ast_detail": "diff at token 78: orig  body=[Try(body=[Assign(targets=[Name(id='logfp' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 2910,
    "ntotal": 3049,

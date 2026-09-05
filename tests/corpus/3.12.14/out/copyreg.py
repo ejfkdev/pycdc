@@ -142,10 +142,8 @@ def add_extension(module, name, code):
     '''Register an extension code.'''
 
     code = int(code)
-    if 1 <= code:
-        if not code <= 2147483647:
-            raise ValueError('code out of range')
-            raise ValueError('code out of range')
+    if not 1 <= code <= 2147483647:
+        raise ValueError('code out of range')
     key = module, name
     if _extension_registry.get(key) == code and _inverted_registry.get(code) == key:
         return

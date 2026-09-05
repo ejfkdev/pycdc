@@ -61,7 +61,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 139: orig  Return(value=Constant(value=None))] | dec  Return()]",
+   "ast_detail": "diff at token 212: orig  ctx=Load())))]) | dec  ctx=Load())))])])",
    "verdict": "SIG-DIFF",
    "ndiff": 1237,
    "ntotal": 1437,
@@ -81,7 +81,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1291: orig  body=[Global(names=['_TimeRE_cache' | dec  body=[Global(names=['_TimeRE_cache'])",
+   "ast_detail": "diff at token 1305: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1775,
    "ntotal": 2142,
@@ -173,10 +173,10 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 73: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 347: orig  finalbody=[Try(body=[If(test=Attribute(value=Name(id='self' | dec  finalbody=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 988,
-   "ntotal": 1062,
+   "ndiff": 984,
+   "ntotal": 1065,
    "detail": "line 34: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 38: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
   {
@@ -189,15 +189,15 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 447: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 471: orig  right=Constant(value=400))))] | dec  right=Constant(value=400))))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2625,
+   "ndiff": 2606,
    "ntotal": 3063,
    "detail": "line 391: orig ('LOAD_CONST', 'None') | got ('<listcomp>', 1)\nline 392: orig ('RETURN_VALUE', '') | got ('BUILD_LIST', '')\nline 393: orig ('<listcomp>', 1) | got ('LOAD_FAST', '.0')"
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 52: orig  'logfile' | dec  'logfp'])",
+   "ast_detail": "diff at token 59: orig  body=[Try(body=[Assign(targets=[Name(id='logfp' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 2775,
    "ntotal": 2887,
@@ -273,7 +273,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 59: orig  body=[Return(value=Constant(value=None))] | dec  body=[]",
+   "ast_detail": "diff at token 59: orig  body=[Return()] | dec  body=[]",
    "verdict": "SIG-DIFF",
    "ndiff": 1687,
    "ntotal": 1750,
@@ -291,7 +291,7 @@
    "module": "copyreg",
    "ast_detail": "diff at token 191: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 358,
+   "ndiff": 348,
    "ntotal": 563,
    "detail": "line 188: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 189: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'base')\nline 190: orig ('LOAD_FAST', 'base') | got ('LOAD_ATTR', '__new__')"
   }

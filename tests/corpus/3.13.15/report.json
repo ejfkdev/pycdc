@@ -168,10 +168,10 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 56: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 149: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 795,
-   "ntotal": 838,
+   "ndiff": 440,
+   "ntotal": 841,
    "detail": "line 29: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 33: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
   {
@@ -186,7 +186,7 @@
    "module": "calendar",
    "ast_detail": "diff at token 411: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 3357,
+   "ndiff": 3247,
    "ntotal": 3430,
    "detail": "line 13: orig ('LOAD_CONST', \"('IntEnum', 'global_enum')\") | got ('LOAD_CONST', \"('IntEnum',)\")\nline 17: orig ('IMPORT_FROM', 'global_enum') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'global_enum') | got ('LOAD_CONST', '0')"
   },
@@ -244,7 +244,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 54: orig  body=[Return(value=Constant(value=None))] | dec  decorator_list=[Attribute(value=Name(id='abc'",
+   "ast_detail": "diff at token 54: orig  body=[Return()] | dec  decorator_list=[Attribute(value=Name(id='abc'",
    "verdict": "SIG-DIFF",
    "ndiff": 2393,
    "ntotal": 2476,
@@ -262,7 +262,7 @@
    "module": "copyreg",
    "ast_detail": "diff at token 38: orig  ctx=Load())]))])]) | dec  ctx=Load())]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 410,
+   "ndiff": 413,
    "ntotal": 627,
    "detail": "line 190: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L7')\nline 197: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L3')\nline 198: orig ('LOAD_FAST', 'base') | got ('JUMP_BACKWARD', 'to L2')"
   },

@@ -53,7 +53,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 139: orig  Return(value=Constant(value=None))] | dec  Return()]",
+   "ast_detail": "diff at token 212: orig  ctx=Load())))]) | dec  ctx=Load())))])])",
    "verdict": "SIG-DIFF",
    "ndiff": 1137,
    "ntotal": 1424,
@@ -73,7 +73,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1291: orig  body=[Global(names=['_TimeRE_cache' | dec  body=[Global(names=['_TimeRE_cache'])",
+   "ast_detail": "diff at token 1444: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
    "verdict": "SIG-DIFF",
    "ndiff": 2049,
    "ntotal": 2145,
@@ -137,7 +137,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 353: orig  body=[Global(names=['_b32tab2']) | dec  body=[If(test=Compare(left=Name(id='alphabet'",
+   "ast_detail": "diff at token 534: orig  value=Constant(value=b'======'))] | dec  value=Constant(value=b'======'))",
    "verdict": "SIG-DIFF",
    "ndiff": 1089,
    "ntotal": 1933,
@@ -165,9 +165,9 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 62: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 265: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 769,
+   "ndiff": 743,
    "ntotal": 830,
    "detail": "line 28: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 32: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
@@ -181,15 +181,15 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 454: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 478: orig  right=Constant(value=400))))] | dec  right=Constant(value=400))))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2419,
+   "ndiff": 2386,
    "ntotal": 3039,
-   "detail": "line 554: orig ('DUP_TOP', '') | got ('COMPARE_OP', '<=')\nline 555: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', 'to 32')\nline 556: orig ('COMPARE_OP', '<=') | got ('LOAD_FAST', 'year')"
+   "detail": "line 561: orig ('POP_JUMP_IF_TRUE', 'to 38') | got ('POP_JUMP_IF_TRUE', 'to 56')\nline 579: orig ('monthrange', 2) | got ('LOAD_CONST', 'None')\nline 580: orig ('LOAD_CONST', '1') | got ('RETURN_VALUE', '')"
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 53: orig  'logfile' | dec  'logfp'])",
+   "ast_detail": "diff at token 69: orig  body=[Try(body=[Assign(targets=[Name(id='logfp' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 2780,
    "ntotal": 2915,
@@ -265,7 +265,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 60: orig  body=[Return(value=Constant(value=None))] | dec  body=[]",
+   "ast_detail": "diff at token 60: orig  body=[Return()] | dec  body=[]",
    "verdict": "SIG-DIFF",
    "ndiff": 1816,
    "ntotal": 1876,
@@ -283,17 +283,17 @@
    "module": "copyreg",
    "ast_detail": "diff at token 46: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 360,
+   "ndiff": 371,
    "ntotal": 597,
    "detail": "line 210: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 82')\nline 216: orig ('POP_JUMP_IF_FALSE', 'to 52') | got ('POP_JUMP_IF_FALSE', 'to 80')\nline 221: orig ('POP_JUMP_IF_TRUE', 'to 52') | got ('POP_JUMP_IF_TRUE', 'to 50')"
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 177: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 359: orig  Try(body=[Assign(targets=[Name(id='result' | dec  If(test=Compare(left=Attribute(value=Name(id='e'",
    "verdict": "SIG-DIFF",
-   "ndiff": 205,
+   "ndiff": 57,
    "ntotal": 452,
-   "detail": "line 214: orig ('POP_JUMP_IF_FALSE', 'to 200') | got ('POP_JUMP_IF_FALSE', 'to 188')\nline 221: orig ('POP_JUMP_IF_FALSE', 'to 200') | got ('POP_JUMP_IF_FALSE', 'to 188')\nline 228: orig ('JUMP_FORWARD', 'to 182') | got ('JUMP_FORWARD', 'to 170')"
+   "detail": "line 395: orig ('SETUP_FINALLY', 'to 62') | got ('LOAD_FAST', 'e')\nline 396: orig ('LOAD_GLOBAL', 'crypt') | got ('LOAD_ATTR', 'errno')\nline 397: orig ('LOAD_CONST', \"''\") | got ('LOAD_GLOBAL', 'errno')"
   }
  ]
 }
