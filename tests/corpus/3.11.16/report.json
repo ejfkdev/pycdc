@@ -49,11 +49,11 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 455: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
+   "ast_detail": "diff at token 452: orig  orelse=[If(test=Compare(left=Name(id='decltype' | dec  orelse=[Assert(test=Compare(left=Name(id='decltype'",
    "verdict": "SIG-DIFF",
    "ndiff": 1018,
    "ntotal": 1455,
-   "detail": "line 304: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1000') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 982')\nline 361: orig ('JUMP_FORWARD', 'to 970') | got ('JUMP_FORWARD', 'to 952')\nline 375: orig ('JUMP_FORWARD', 'to 970') | got ('JUMP_FORWARD', 'to 952')"
+   "detail": "line 304: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1000') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 972')\nline 361: orig ('JUMP_FORWARD', 'to 970') | got ('JUMP_FORWARD', 'to 942')\nline 375: orig ('JUMP_FORWARD', 'to 970') | got ('JUMP_FORWARD', 'to 942')"
   },
   {
    "module": "_osx_support",

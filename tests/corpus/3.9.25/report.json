@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 8,
-  "SIG-DIFF": 31,
+  "PASS": 9,
+  "SIG-DIFF": 30,
   "AST-PASS": 1
  },
  "results": [
@@ -17,11 +17,7 @@
   },
   {
    "module": "_bootlocale",
-   "ast_detail": "diff at token 82: orig  body=[Assert(test=UnaryOp(op=Not() | dec  body=[If(test=Name(id='do_setlocale'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1,
-   "ntotal": 121,
-   "detail": "line 96: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')"
+   "verdict": "PASS"
   },
   {
    "module": "_bootsubprocess",

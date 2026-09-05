@@ -105,3 +105,16 @@ try:
     raise SubError(1)
 except MyError as e:
     print('caught as parent:', e.code)
+
+# assert with negated test: PJIF over a fall-through raise block
+# (mirror polarity of the canonical PJIT assert shape)
+def assert_not(x):
+    assert not x
+    assert not x, 'neg-msg'
+    return 'ok'
+
+print(assert_not(False))
+try:
+    assert_not(True)
+except AssertionError:
+    print('AE')

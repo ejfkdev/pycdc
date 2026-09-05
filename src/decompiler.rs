@@ -12537,6 +12537,19 @@ impl<'a> Ctx<'a> {
                 return;
             }
         }
+        // `assert not c` mirrors it: PJIF whose FALSE path skips the
+        // fall-through raise block (source `if c: raise AssertionError`
+        // is bytecode-identical; assert is the canonical reading)
+        if !jump_if_true && !self.version.at_least(3, 12) {
+            if let Some(msg) = self.is_assert_fallthrough(target) {
+                self.push_stmt(Stmt::Assert {
+                    test: negate_cond(cond),
+                    msg,
+                });
+                self.skip_until = Some(target);
+                return;
+            }
+        }
         // `if not cond: raise AssertionError` written as a statement: the
         // raise block is the jump target
         if !jump_if_true && self.is_assert_target(target) {

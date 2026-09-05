@@ -29,8 +29,7 @@ else:
 
     else:
         def getpreferredencoding(do_setlocale=True):
-            if do_setlocale:
-                raise AssertionError
+            assert not do_setlocale
             if sys.flags.utf8_mode:
                 return 'UTF-8'
             result = _locale.nl_langinfo(_locale.CODESET)
