@@ -118,9 +118,9 @@
    "module": "aifc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2747,
+   "ndiff": 2628,
    "ntotal": 3367,
-   "detail": "line 519: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 520: orig ('COPY', '') | got ('POP_JUMP_IF_FALSE', 'to 128')\nline 521: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
+   "detail": "line 519: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 520: orig ('COPY', '') | got ('POP_JUMP_IF_FALSE', 'to 148')\nline 521: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },
   {
    "module": "base64",
@@ -174,8 +174,8 @@
    "module": "cgi",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2791,
-   "ntotal": 2936,
+   "ndiff": 2806,
+   "ntotal": 2938,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {

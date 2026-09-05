@@ -9310,7 +9310,7 @@ impl<'a> Ctx<'a> {
         cond: &ExprRef,
         jump_if_true: bool,
         target: usize,
-    ) -> Option<(ExprRef, usize, usize)> {
+    ) -> Option<(ExprRef, usize, usize, usize)> {
         // General same-body boolop condition chains:
         //   `if a or b or c: BODY else: ELSE` compiles to a sequence of
         //   pure operand regions each terminated by a cond jump; jumps to
@@ -9338,12 +9338,47 @@ impl<'a> Ctx<'a> {
         if ti <= ci + 1 || ti >= self.instrs.len() {
             return None;
         }
-        // operand 1 joins via this jump
-        let mut parts: Vec<ExprRef> = vec![if jump_if_true {
+        // operand 1 joins via this jump. CHAIN-OR: when this cond jump
+        // exits a statement-level chained comparison (`if a==b==c or d:`),
+        // the earlier chain links opened nested If blocks whose ends are the
+        // trampoline POP_TOP cleanups — fold their conds into the first
+        // operand via merge_chain_compare; the caller pops the absorbed
+        // blocks when the merge succeeds.
+        let mut first: ExprRef = if jump_if_true {
             cond.clone()
         } else {
             Rc::new(Expr::Unary { op: UnaryOp::Not, operand: cond.clone() })
-        }];
+        };
+        let mut chain_blocks = 0usize;
+        {
+            let mut depth = 0;
+            while let Some(b) = self.blocks.iter().rev().nth(depth) {
+                if !matches!(b.kind, BlockType::If) {
+                    break;
+                }
+                let is_link = b.end < target
+                    && self
+                        .idx_of
+                        .get(&b.end)
+                        .and_then(|&ei| self.instrs.get(ei))
+                        .map_or(false, |x| x.op == Op::POP_TOP);
+                if !is_link {
+                    break;
+                }
+                match b.cond.as_ref() {
+                    Some(c) => match merge_chain_compare(c, &first) {
+                        Some(m) => {
+                            first = m;
+                            chain_blocks += 1;
+                            depth += 1;
+                        }
+                        None => break,
+                    },
+                    None => break,
+                }
+            }
+        }
+        let mut parts: Vec<ExprRef> = vec![first];
         // J1 itself targets the body start — it is the first body jump
         let mut body_jumps = 1usize;
         let mut k = ci + 1;
@@ -9351,13 +9386,31 @@ impl<'a> Ctx<'a> {
         let mut final_was_exit_jump = false;
         loop {
             // scan the next pure operand region up to its cond jump
-            let region_start = k;
+            let mut region_start = k;
             let mut jidx = None;
+            let mut saw_trampoline = false;
             while k < self.instrs.len() {
                 let ins = &self.instrs[k];
                 if is_cond_jump(ins.op) {
                     jidx = Some(k);
                     break;
+                }
+                // chain-or trampoline: the chain-false path hops (JF) over
+                // the POP_TOP cleanup into the next or operand — resume the
+                // operand scan at the continuation (once per region)
+                if !saw_trampoline
+                    && matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP)
+                    && !ins.is_backward
+                    && ins.target
+                        .map_or(false, |t| t > ins.offset && t < target)
+                {
+                    if let Some(&tk) = self.idx_of.get(&ins.target.unwrap()) {
+                        saw_trampoline = true;
+                        k = tk;
+                        region_start = tk;
+                        continue;
+                    }
+                    return None;
                 }
                 if !is_pure_value_op(ins.op) || ins.offset >= target {
                     return None;
@@ -9458,7 +9511,7 @@ impl<'a> Ctx<'a> {
             }
         }
         let merged = Rc::new(Expr::BoolOp { op, values: parts }) as ExprRef;
-        Some((merged, target, exit))
+        Some((merged, target, exit, chain_blocks))
     }
 
     /// Fused `if a or b [or c]: continue` chain (common on py2): the first
@@ -11209,6 +11262,27 @@ impl<'a> Ctx<'a> {
                 return;
             }
         }
+        // 3.12+: statement-level chained-comparison if condition, as a
+        // FALLBACK after the loop-guard chain path above. 3.12 replaced the
+        // DUP/ROT chain bookkeeping with SWAP/COPY and lets each link exit
+        // to its own else-copy/cleanup label, but the layout (pure-value
+        // link regions ending in PJIF, success hop JUMP_FORWARD into the
+        // body) still fits the SCC scan — e.g. `if a==b==c and a==d:` whose
+        // first link exits to a duplicated else stub ahead of the body.
+        if !jump_if_true && self.version.at_least(3, 12) {
+            if let Some((merged, body_start, body_end)) =
+                self.try_stmt_chain_compare(&cond, target)
+            {
+                let mut blk = Block::new(BlockType::If, body_start, body_end);
+                blk.cond = Some(merged);
+                blk.cond_set = true;
+                blk.jump_if_true = false;
+                blk.stack_depth = self.stack.len();
+                self.blocks.push(blk);
+                self.skip_until = Some(body_start);
+                return;
+            }
+        }
         // py2-style boolop if-conditions: `(a or b) and c` merges into one
         // BoolOp cond + a single If block. Skipped when this jump is an
         // uninitialized loop's condition (SETUP_LOOP era) or a rotated-while
@@ -11222,9 +11296,15 @@ impl<'a> Ctx<'a> {
             // targets the BODY start; the region up to it is the second
             // operand ending in an opposite-polarity cond jump to the if's
             // exit. Merge into one BoolOp cond over [target, exit).
-            if let Some((merged_cond, body_start, exit)) =
+            if let Some((merged_cond, body_start, exit, chain_blocks)) =
                 self.try_merge_or_cond(&cond, jump_if_true, target)
             {
+                // chain-or: the absorbed chain-link If blocks (whose conds
+                // were folded into the merged condition) come off the stack
+                // innermost-first; their bytecode is covered by the skip
+                for _ in 0..chain_blocks {
+                    self.blocks.pop();
+                }
                 let mut blk = Block::new(BlockType::If, body_start, exit);
                 blk.cond = Some(merged_cond);
                 blk.cond_set = true;
