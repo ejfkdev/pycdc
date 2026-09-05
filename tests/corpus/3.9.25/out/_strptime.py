@@ -241,9 +241,9 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
 
     global _TimeRE_cache
     for index, arg in enumerate([data_string, format]):
-        pass
-    msg = 'strptime() argument {} must be str, not {}'
-    raise TypeError(msg.format(index, type(arg)))
+        if not isinstance(arg, str):
+            msg = 'strptime() argument {} must be str, not {}'
+            raise TypeError(msg.format(index, type(arg)))
     with _cache_lock:
         locale_time = _TimeRE_cache.locale_time
         if _getlang() != locale_time.lang or time.tzname != locale_time.tzname or time.daylight != locale_time.daylight:
@@ -452,4 +452,3 @@ def _strptime_datetime(cls, data_string, format='%a %b %d %H:%M:%S %Y'):
         args += (tz,)
     return cls(*args)
 
-# WARNING: Decompyle incomplete

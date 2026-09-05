@@ -68,7 +68,7 @@
   },
   {
    "module": "_pylong",
-   "ast_detail": "diff at token 283: orig  values=[Compare(left=Name(id='_decimal' | dec  values=[Compare(left=Name(id='w'",
+   "ast_detail": "diff at token 336: orig  body=[Assign(targets=[Name(id='d' | dec  body=[Assign(targets=[Subscript(value=Name(id='pow10_cache'",
    "verdict": "SIG-DIFF",
    "ndiff": 145,
    "ntotal": 997,
@@ -172,7 +172,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 141: orig  body=[Pass()] | dec  body=[]",
+   "ast_detail": "diff at token 551: orig  While(test=BoolOp(op=And() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2772,
    "ntotal": 2899,
@@ -248,7 +248,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 63: orig  body=[Return()] | dec  body=[]",
+   "ast_detail": "diff at token 63: orig  body=[Return()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 2165,
    "ntotal": 2260,
@@ -280,7 +280,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 235: orig  values=[Compare(left=Call(func=Name(id='iter' | dec  values=[Compare(left=Name(id='fieldnames'",
+   "ast_detail": "diff at token 472: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
    "ndiff": 1698,
    "ntotal": 1745,

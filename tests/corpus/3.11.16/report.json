@@ -173,7 +173,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 139: orig  body=[Pass()] | dec  body=[]",
+   "ast_detail": "diff at token 689: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
    "ndiff": 3007,
    "ntotal": 3179,
@@ -213,7 +213,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 749: orig  body=[Pass()] | dec  body=[]",
+   "ast_detail": "diff at token 784: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 1654,
    "ntotal": 2329,
@@ -249,7 +249,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 62: orig  body=[Return()] | dec  body=[]",
+   "ast_detail": "diff at token 62: orig  body=[Return()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 2145,
    "ntotal": 2283,

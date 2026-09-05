@@ -139,3 +139,37 @@ def two_loops_same_fn():
     return out
 
 print(two_loops_same_fn())
+
+# backward cond-jump to loop top with the loop's real back edge AFTER a
+# terminating block: 3.8/3.9 compile `if not x: raise` at the loop tail
+# as PJIT-to-top (continue-equivalent) + raise + dead JABS. Misread as a
+# rotated-while back edge, the loop closes early and the raise hoists
+# out (chunk.skip family).
+def tail_raise(items):
+    out = []
+    i = 0
+    while i < len(items):
+        dummy = items[i]
+        i = i + 1
+        if not dummy:
+            raise ValueError('zero')
+        out.append(dummy)
+    return out
+
+print(tail_raise([1, 2, 3]))
+try:
+    tail_raise([1, 0, 3])
+except ValueError:
+    print('VE')
+
+def mid_continue(n):
+    out = []
+    i = 0
+    while i < n:
+        i = i + 1
+        if i % 2 == 0:
+            continue
+        out.append(i)
+    return out
+
+print(mid_continue(6))

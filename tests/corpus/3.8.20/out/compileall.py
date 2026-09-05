@@ -79,8 +79,8 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
             results = executor.map(partial(_compile_file_tuple, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode), files_and_ddirs)
             success = min(results, default=True)
     for file, dfile in files_and_ddirs:
-        pass
-    success = False
+        if not compile_file(file, dfile, force, rx, quiet, legacy, optimize, invalidation_mode):
+            success = False
     return success
 
 def _compile_file_tuple(file_and_dfile, **kwargs):
@@ -241,7 +241,8 @@ def main():
                 if os.path.isfile(dest):
                     if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode=invalidation_mode):
                         success = False
-            success = False
+                elif not compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers, invalidation_mode=invalidation_mode):
+                    success = False
             return success
         return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
     except KeyboardInterrupt:

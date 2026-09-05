@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 6,
-  "SIG-DIFF": 33,
+  "PASS": 7,
+  "SIG-DIFF": 32,
   "AST-PASS": 1
  },
  "results": [
@@ -77,10 +77,10 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1680: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[Pass()]",
+   "ast_detail": "diff at token 1834: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1777,
-   "ntotal": 2133,
+   "ndiff": 2034,
+   "ntotal": 2135,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {
@@ -157,11 +157,11 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "diff at token 1620: orig  While(test=Compare(left=Name(id='wtd' | dec  Try(body=[Assign(targets=[Tuple(elts=[Name(id='decdatacur'",
+   "ast_detail": "diff at token 1658: orig  While(test=Name(id='True' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 761,
+   "ndiff": 755,
    "ntotal": 1798,
-   "detail": "line 1007: orig ('LOAD_FAST', 'wtd') | got ('SETUP_FINALLY', 'to 30')\nline 1008: orig ('LOAD_CONST', '0') | got ('LOAD_GLOBAL', 'binascii')\nline 1009: orig ('COMPARE_OP', '>') | got ('LOAD_METHOD', 'a2b_hqx')"
+   "detail": "line 1030: orig ('SETUP_FINALLY', 'to 80') | got ('LOAD_FAST', 'decdata')\nline 1031: orig ('LOAD_GLOBAL', 'binascii') | got ('POP_JUMP_IF_TRUE', '')\nline 1032: orig ('LOAD_METHOD', 'a2b_hqx') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "bisect",
@@ -193,9 +193,9 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 170: orig  body=[Pass()] | dec  body=[]",
+   "ast_detail": "diff at token 702: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='end'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2794,
+   "ndiff": 2778,
    "ntotal": 2900,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
@@ -209,11 +209,7 @@
   },
   {
    "module": "chunk",
-   "ast_detail": "diff at token 529: orig  values=[Attribute(value=Name(id='self' | dec  values=[BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 7,
-   "ntotal": 438,
-   "detail": "line 431: orig ('LOAD_FAST', 'dummy') | got ('JUMP_ABSOLUTE', '')\nline 432: orig ('POP_JUMP_IF_TRUE', '') | got ('LOAD_GLOBAL', 'EOFError')\nline 433: orig ('LOAD_GLOBAL', 'EOFError') | got ('RAISE_VARARGS', '')"
+   "verdict": "PASS"
   },
   {
    "module": "cmd",
@@ -233,10 +229,10 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1143: orig  body=[Pass()] | dec  body=[]",
+   "ast_detail": "diff at token 1430: orig  type_comment=None)] | dec  type_comment=None)",
    "verdict": "SIG-DIFF",
-   "ndiff": 1143,
-   "ntotal": 2185,
+   "ndiff": 1076,
+   "ntotal": 2187,
    "detail": "line 992: orig ('POP_JUMP_IF_FALSE', '') | got ('EXTENDED_ARG', '')\nline 993: orig ('LOAD_FAST', 'size') | got ('POP_JUMP_IF_FALSE', '')\nline 994: orig ('STORE_FAST', 'chars') | got ('LOAD_FAST', 'size')"
   },
   {
@@ -255,9 +251,9 @@
    "module": "compileall",
    "ast_detail": "diff at token 193: orig  ctx=Load())))] | dec  ctx=Load())))",
    "verdict": "SIG-DIFF",
-   "ndiff": 764,
+   "ndiff": 768,
    "ntotal": 1094,
-   "detail": "line 313: orig ('JUMP_FORWARD', 'to 220') | got ('LOAD_FAST', 'files_and_ddirs')\nline 314: orig ('LOAD_FAST', 'files_and_ddirs') | got ('GET_ITER', '')\nline 315: orig ('GET_ITER', '') | got ('FOR_ITER', 'to 192')"
+   "detail": "line 313: orig ('JUMP_FORWARD', 'to 220') | got ('LOAD_FAST', 'files_and_ddirs')\nline 314: orig ('LOAD_FAST', 'files_and_ddirs') | got ('GET_ITER', '')\nline 315: orig ('GET_ITER', '') | got ('FOR_ITER', 'to 218')"
   },
   {
    "module": "configparser",
@@ -269,7 +265,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 86: orig  body=[Return(value=None)] | dec  body=[]",
+   "ast_detail": "diff at token 86: orig  body=[Return(value=None)] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1507,
    "ntotal": 1827,
@@ -287,9 +283,9 @@
    "module": "copyreg",
    "ast_detail": "diff at token 207: orig  value=Constant(value=512) | dec  value=Constant(value=512",
    "verdict": "SIG-DIFF",
-   "ndiff": 344,
+   "ndiff": 249,
    "ntotal": 544,
-   "detail": "line 175: orig ('FOR_ITER', 'to 54') | got ('FOR_ITER', 'to 40')\nline 182: orig ('LOAD_FAST', 'base') | got ('JUMP_ABSOLUTE', '')\nline 183: orig ('LOAD_ATTR', '__flags__') | got ('LOAD_FAST', 'base')"
+   "detail": "line 287: orig ('LOAD_CONST', 'None') | got ('__newobj__', 1)\nline 288: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'cls')\nline 289: orig ('__newobj__', 1) | got ('LOAD_ATTR', '__new__')"
   },
   {
    "module": "crypt",

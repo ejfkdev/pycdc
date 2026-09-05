@@ -429,6 +429,16 @@ def canonical_bool(node):
                    for v in inner.values]
             op = ast.And() if isinstance(inner.op, ast.Or) else ast.Or()
             return sorted_node(ast.BoolOp(op=op, values=neg))
+        # `not a in b` == `a not in b` (CPython folds the invertible
+        # single-op comparisons the same way)
+        if isinstance(inner, ast.Compare) and len(inner.ops) == 1:
+            inv = ((ast.Is, ast.IsNot), (ast.IsNot, ast.Is),
+                   (ast.In, ast.NotIn), (ast.NotIn, ast.In),
+                   (ast.Eq, ast.NotEq), (ast.NotEq, ast.Eq))
+            for src_op, dst_op in inv:
+                if isinstance(inner.ops[0], src_op):
+                    return ast.Compare(left=inner.left, ops=[dst_op()],
+                                       comparators=inner.comparators)
         return sorted_node(ast.UnaryOp(op=ast.Not(), operand=inner))
     if isinstance(node, ast.BoolOp):
         kind = type(node.op)
@@ -571,6 +581,12 @@ def dump(src):
             val = getattr(node, field, None)
             if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
                 setattr(node, field, merge_nested_ifs(val))
+        # a docstring-only body normalizes to empty; the source may have
+        # carried a redundant `pass` after it (no bytecode) - canonicalize
+        # an empty statement body to [Pass()] on both sides
+        val = getattr(node, 'body', None)
+        if isinstance(val, list) and not val:
+            node.body = [ast.Pass()]
         # 'else: pass' is a no-op for if/while/for/try - drop it so an
         # omitted else compares equal
         ore = getattr(node, 'orelse', None)
@@ -578,6 +594,9 @@ def dump(src):
                 and isinstance(ore[0], ast.Pass)
                 and isinstance(node, ELSE_PASS_TYPES)):
             node.orelse = []
+    # merge_nested_ifs builds fresh BoolOps that were never canonicalized
+    # (merge order leaves them nested and unordered) - one final pass
+    tree = BoolCanonicalizer().visit(tree)
     return ast.dump(tree)
 
 

@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 7,
-  "SIG-DIFF": 28,
+  "PASS": 8,
+  "SIG-DIFF": 27,
   "AST-PASS": 5
  },
  "results": [
@@ -73,10 +73,10 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1409: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[Pass()]",
+   "ast_detail": "diff at token 1550: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1810,
-   "ntotal": 2170,
+   "ndiff": 2073,
+   "ntotal": 2174,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {
@@ -147,7 +147,7 @@
    "module": "binhex",
    "ast_detail": "diff at token 1291: orig  orelse=[]) | dec  orelse=[])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 718,
+   "ndiff": 10,
    "ntotal": 1815,
    "detail": "line 920: orig ('SETUP_WITH', 'to 76') | got ('SETUP_WITH', 'to 68')\nline 938: orig ('LOAD_FAST', 'ofp') | got ('POP_BLOCK', '')\nline 939: orig ('LOAD_METHOD', 'close_data') | got ('LOAD_CONST', 'None')"
   },
@@ -177,7 +177,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 144: orig  body=[Pass()] | dec  body=[]",
+   "ast_detail": "diff at token 651: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='end'",
    "verdict": "SIG-DIFF",
    "ndiff": 2894,
    "ntotal": 3020,
@@ -193,15 +193,11 @@
   },
   {
    "module": "chunk",
-   "ast_detail": "diff at token 449: orig  values=[Attribute(value=Name(id='self' | dec  values=[BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 7,
-   "ntotal": 439,
-   "detail": "line 410: orig ('SETUP_LOOP', 'to 162') | got ('SETUP_LOOP', 'to 158')\nline 431: orig ('LOAD_FAST', 'dummy') | got ('JUMP_ABSOLUTE', '')\nline 432: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_BLOCK', '')"
+   "verdict": "PASS"
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 416: orig  body=[Pass()] | dec  body=[]",
+   "ast_detail": "diff at token 513: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='i'",
    "verdict": "SIG-DIFF",
    "ndiff": 773,
    "ntotal": 1316,
@@ -217,7 +213,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 890: orig  body=[Pass()] | dec  body=[]",
+   "ast_detail": "diff at token 1243: orig  cause=None)] | dec  cause=None)",
    "verdict": "SIG-DIFF",
    "ndiff": 1096,
    "ntotal": 2187,
@@ -233,11 +229,11 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 386: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[Pass()]",
+   "ast_detail": "diff at token 547: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  Try(body=[Assign(targets=[Name(id='ok'",
    "verdict": "SIG-DIFF",
-   "ndiff": 769,
-   "ntotal": 1112,
-   "detail": "line 324: orig ('JUMP_FORWARD', 'to 242') | got ('JUMP_FORWARD', 'to 220')\nline 325: orig ('SETUP_LOOP', 'to 242') | got ('SETUP_LOOP', 'to 220')\nline 328: orig ('FOR_ITER', 'to 240') | got ('FOR_ITER', 'to 214')"
+   "ndiff": 687,
+   "ntotal": 1116,
+   "detail": "line 412: orig ('LOAD_GLOBAL', 'os') | got ('SETUP_EXCEPT', 'to 128')\nline 413: orig ('LOAD_ATTR', 'path') | got ('LOAD_GLOBAL', 'py_compile')\nline 414: orig ('LOAD_METHOD', 'isfile') | got ('LOAD_ATTR', 'compile')"
   },
   {
    "module": "configparser",
@@ -249,7 +245,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 61: orig  body=[Return(value=None)] | dec  body=[]",
+   "ast_detail": "diff at token 61: orig  body=[Return(value=None)] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1440,
    "ntotal": 1809,
@@ -265,11 +261,11 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 201: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
+   "ast_detail": "diff at token 455: orig  If(test=BoolOp(op=And() | dec  Continue()",
    "verdict": "SIG-DIFF",
-   "ndiff": 350,
-   "ntotal": 540,
-   "detail": "line 169: orig ('SETUP_LOOP', 'to 56') | got ('SETUP_LOOP', 'to 44')\nline 174: orig ('FOR_ITER', 'to 50') | got ('FOR_ITER', 'to 38')\nline 181: orig ('LOAD_FAST', 'base') | got ('JUMP_ABSOLUTE', '')"
+   "ndiff": 257,
+   "ntotal": 542,
+   "detail": "line 279: orig ('LOAD_CONST', 'None') | got ('__newobj__', 1)\nline 280: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'cls')\nline 281: orig ('__newobj__', 1) | got ('LOAD_ATTR', '__new__')"
   },
   {
    "module": "crypt",

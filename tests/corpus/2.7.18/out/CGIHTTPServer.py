@@ -202,10 +202,9 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             if pid != 0:
                 pid, sts = os.waitpid(pid, 0)
                 while select.select([self.rfile], [], [], 0)[0]:
-                    pass
-                else:
-                    # WARNING: break outside loop (unrecovered structure)
-                    pass
+                    if not self.rfile.read(1):
+                        break
+                    continue
                 if sts:
                     self.log_error('CGI script exit status %#x', sts)
                 return
@@ -241,10 +240,9 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             else:
                 data = None
             while select.select([self.rfile._sock], [], [], 0)[0]:
-                pass
-            else:
-                # WARNING: break outside loop (unrecovered structure)
-                pass
+                if not self.rfile._sock.recv(1):
+                    break
+                continue
             stdout, stderr = p.communicate(data)
             self.wfile.write(stdout)
             if stderr:

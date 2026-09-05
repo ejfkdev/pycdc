@@ -152,7 +152,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 202: orig  body=[Return()]) | dec  body=[Return()])])",
+   "ast_detail": "diff at token 203: orig  body=[Return()]) | dec  body=[Return()])])",
    "verdict": "SIG-DIFF",
    "ndiff": 2637,
    "ntotal": 2733,
@@ -244,7 +244,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 54: orig  body=[Return()] | dec  decorator_list=[Attribute(value=Name(id='abc'",
+   "ast_detail": "diff at token 54: orig  body=[Return()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 2393,
    "ntotal": 2476,
@@ -268,7 +268,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 194: orig  values=[Compare(left=Call(func=Name(id='iter' | dec  values=[Compare(left=Name(id='fieldnames'",
+   "ast_detail": "diff at token 393: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
    "ndiff": 1689,
    "ntotal": 1726,

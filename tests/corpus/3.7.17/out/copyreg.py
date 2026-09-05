@@ -43,9 +43,9 @@ def _reduce_ex(self, proto):
     assert proto < 2
     for base in self.__class__.__mro__:
         if hasattr(base, '__flags__'):
-            pass
+            if not base.__flags__ & _HEAPTYPE:
+                break
     else:
-        # WARNING: break outside loop (unrecovered structure)
         base = object
     if base is object:
         state = None
@@ -156,4 +156,3 @@ def remove_extension(module, name, code):
 def clear_extension_cache():
     _extension_cache.clear()
 
-# WARNING: Decompyle incomplete

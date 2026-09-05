@@ -44,7 +44,10 @@ def _reduce_ex(self, proto):
     cls = self.__class__
     for base in cls.__mro__:
         if hasattr(base, '__flags__'):
-            pass
+            if not base.__flags__ & _HEAPTYPE:
+                break
+    else:
+        base = object
     if base is object:
         state = None
     else:

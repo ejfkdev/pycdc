@@ -2,8 +2,8 @@
  "version": "3.6.15",
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
-  "PASS": 9,
-  "SIG-DIFF": 26,
+  "PASS": 10,
+  "SIG-DIFF": 25,
   "AST-PASS": 5
  },
  "results": [
@@ -65,10 +65,10 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1417: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[Pass()]",
+   "ast_detail": "diff at token 1558: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1978,
-   "ntotal": 2090,
+   "ndiff": 1987,
+   "ntotal": 2094,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {
@@ -165,7 +165,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 144: orig  body=[Pass()] | dec  body=[]",
+   "ast_detail": "diff at token 879: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='end'",
    "verdict": "SIG-DIFF",
    "ndiff": 3025,
    "ntotal": 3171,
@@ -181,15 +181,11 @@
   },
   {
    "module": "chunk",
-   "ast_detail": "diff at token 449: orig  values=[Attribute(value=Name(id='self' | dec  values=[BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 7,
-   "ntotal": 438,
-   "detail": "line 409: orig ('SETUP_LOOP', 'to 162') | got ('SETUP_LOOP', 'to 158')\nline 430: orig ('LOAD_FAST', 'dummy') | got ('JUMP_ABSOLUTE', '')\nline 431: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_BLOCK', '')"
+   "verdict": "PASS"
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 416: orig  body=[Pass()] | dec  body=[]",
+   "ast_detail": "diff at token 513: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='i'",
    "verdict": "SIG-DIFF",
    "ndiff": 749,
    "ntotal": 1316,
@@ -205,7 +201,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 890: orig  body=[Pass()] | dec  body=[]",
+   "ast_detail": "diff at token 1243: orig  cause=None)] | dec  cause=None)",
    "verdict": "SIG-DIFF",
    "ndiff": 259,
    "ntotal": 2153,
@@ -224,7 +220,7 @@
    "ast_detail": "diff at token 167: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
    "verdict": "SIG-DIFF",
    "ndiff": 820,
-   "ntotal": 1030,
+   "ntotal": 1036,
    "detail": "line 135: orig ('SETUP_LOOP', 'to 284') | got ('SETUP_LOOP', 'to 282')\nline 138: orig ('FOR_ITER', 'to 282') | got ('FOR_ITER', 'to 280')\nline 201: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },
   {
@@ -237,7 +233,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 57: orig  body=[Return(value=None)] | dec  body=[]",
+   "ast_detail": "diff at token 57: orig  body=[Return(value=None)] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 671,
    "ntotal": 934,
@@ -265,7 +261,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1041: orig  values=[BoolOp(op=Or() | dec  values=[Name(id='key'",
+   "ast_detail": "diff at token 1491: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
    "ndiff": 1641,
    "ntotal": 1679,

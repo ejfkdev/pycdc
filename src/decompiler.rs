@@ -12597,15 +12597,41 @@ impl<'a> Ctx<'a> {
                         return;
                     }
                     if jump_if_true && self.blocks[i].cond_set {
-                        // 3.10+ rotated while back edge: close inner
-                        // blocks, then the loop EXACTLY ONCE — its close
-                        // may push a WhileElse continuation that must stay
-                        // open for the else region that follows
-                        while self.blocks.len() > i + 1 {
+                        // a GENUINE rotated-while back edge is the loop's
+                        // last jump — no unconditional back edge follows
+                        // it. When the forward region still holds the
+                        // loop's JABS/JUMP_BACKWARD to its top (after a
+                        // break/raise/continue block), this cond jump is
+                        // `if c: continue`-style: fall through to the
+                        // arm below that opens an If ending at that back
+                        // edge instead of closing the loop here.
+                        let loop_start0 = self.blocks[i].start;
+                        let has_later_back_edge = self
+                            .idx_of
+                            .get(&self.cur_offset)
+                            .map_or(false, |&ci0| {
+                                self.instrs.iter().skip(ci0 + 1).any(|ins| {
+                                    ins.is_backward
+                                        && ins.target == Some(loop_start0)
+                                        && matches!(
+                                            ins.op,
+                                            Op::JUMP_ABSOLUTE
+                                                | Op::JUMP_BACKWARD
+                                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                        )
+                                })
+                            });
+                        if !has_later_back_edge {
+                            // 3.10+ rotated while back edge: close inner
+                            // blocks, then the loop EXACTLY ONCE — its close
+                            // may push a WhileElse continuation that must stay
+                            // open for the else region that follows
+                            while self.blocks.len() > i + 1 {
+                                self.force_close_top(target);
+                            }
                             self.force_close_top(target);
+                            return;
                         }
-                        self.force_close_top(target);
-                        return;
                     }
                     // backward cond jump to the loop top (`if c: break` /
                     // `if not c: break` shape): the then-body runs until

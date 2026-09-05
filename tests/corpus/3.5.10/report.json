@@ -2,8 +2,8 @@
  "version": "3.5.10",
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
-  "PASS": 11,
-  "SIG-DIFF": 25,
+  "PASS": 12,
+  "SIG-DIFF": 24,
   "AST-PASS": 4
  },
  "results": [
@@ -65,10 +65,10 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1319: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[Pass()]",
+   "ast_detail": "diff at token 1460: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1532,
-   "ntotal": 1848,
+   "ndiff": 1748,
+   "ntotal": 1850,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {
@@ -165,7 +165,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 143: orig  body=[Pass()] | dec  body=[]",
+   "ast_detail": "diff at token 872: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='end'",
    "verdict": "SIG-DIFF",
    "ndiff": 2910,
    "ntotal": 3049,
@@ -181,11 +181,7 @@
   },
   {
    "module": "chunk",
-   "ast_detail": "diff at token 449: orig  values=[Attribute(value=Name(id='self' | dec  values=[BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 7,
-   "ntotal": 442,
-   "detail": "line 413: orig ('SETUP_LOOP', 'to 219') | got ('SETUP_LOOP', 'to 213')\nline 434: orig ('LOAD_FAST', 'dummy') | got ('JUMP_ABSOLUTE', '')\nline 435: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_BLOCK', '')"
+   "verdict": "PASS"
   },
   {
    "module": "cmd",
@@ -223,8 +219,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 155: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
    "verdict": "SIG-DIFF",
-   "ndiff": 789,
-   "ntotal": 1026,
+   "ndiff": 794,
+   "ntotal": 1027,
    "detail": "line 160: orig ('SETUP_LOOP', 'to 349') | got ('SETUP_LOOP', 'to 348')\nline 163: orig ('FOR_ITER', 'to 348') | got ('FOR_ITER', 'to 347')\nline 226: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },
   {
@@ -261,7 +257,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1036: orig  values=[BoolOp(op=Or() | dec  values=[Name(id='key'",
+   "ast_detail": "diff at token 1484: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
    "ndiff": 1626,
    "ntotal": 1660,

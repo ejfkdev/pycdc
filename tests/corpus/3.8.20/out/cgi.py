@@ -550,6 +550,7 @@ class FieldStorage:
         while True:
             data = self.fp.readline()
             hdr_text += data
+            break
         if not hdr_text:
             pass
         else:

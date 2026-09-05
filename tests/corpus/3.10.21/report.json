@@ -113,7 +113,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 334: orig  values=[Call(func=Name(id='isinstance' | dec  values=[BoolOp(op=And()",
+   "ast_detail": "diff at token 362: orig  ops=[Eq() | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 7480,
    "ntotal": 7852,
@@ -145,7 +145,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 567: orig  orelse=[])] | dec  orelse=[])",
+   "ast_detail": "diff at token 565: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 2342,
    "ntotal": 2441,
@@ -189,7 +189,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 129: orig  body=[Pass()] | dec  body=[]",
+   "ast_detail": "diff at token 535: orig  While(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='end'",
    "verdict": "SIG-DIFF",
    "ndiff": 2811,
    "ntotal": 2915,
@@ -265,7 +265,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 60: orig  body=[Return()] | dec  body=[]",
+   "ast_detail": "diff at token 60: orig  body=[Return()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1816,
    "ntotal": 1876,

@@ -188,7 +188,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 308: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 309: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 3823,
    "ntotal": 4001,
@@ -280,7 +280,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 54: orig  body=[Return()] | dec  decorator_list=[Attribute(value=Name(id='abc'",
+   "ast_detail": "diff at token 54: orig  body=[Return()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 2555,
    "ntotal": 2629,
