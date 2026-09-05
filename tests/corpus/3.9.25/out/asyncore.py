@@ -45,12 +45,12 @@ except NameError:
     socket_map = {}
 
 def _strerror(err):
-    if err in errorcode:
-        return errorcode[err]
     try:
         return os.strerror(err)
     except (ValueError, OverflowError, NameError):
-        pass
+        if err in errorcode:
+            pass
+        return errorcode[err]
     return 'Unknown error %s' % err
 
 class ExitNow(Exception):
@@ -279,8 +279,6 @@ class dispatcher:
             raise OSError(err, errorcode[err])
 
     def accept(self):
-        if why.args[0] in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
-            return
         raise
         why = None
         del why
@@ -289,13 +287,13 @@ class dispatcher:
         except TypeError:
             pass
         except OSError as why:
-            pass
+            if why.args[0] in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
+                pass
+            return
         else:
             return conn, addr
 
     def send(self, data):
-        if why.args[0] == EWOULDBLOCK:
-            return 0
         if why.args[0] in _DISCONNECTED:
             self.handle_close()
             return 0
@@ -307,12 +305,11 @@ class dispatcher:
             result = self.socket.send(data)
             return result
         except OSError as why:
-            pass
+            if why.args[0] == EWOULDBLOCK:
+                pass
+            return 0
 
     def recv(self, buffer_size):
-        if why.args[0] in _DISCONNECTED:
-            self.handle_close()
-            return b''
         raise
         why = None
         del why
@@ -323,7 +320,9 @@ class dispatcher:
                 return b''
             return data
         except OSError as why:
-            pass
+            if why.args[0] in _DISCONNECTED:
+                self.handle_close()
+            return b''
 
     def close(self):
         self.connected = False

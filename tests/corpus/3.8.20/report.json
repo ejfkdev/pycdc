@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 7,
-  "SIG-DIFF": 32,
+  "PASS": 8,
+  "SIG-DIFF": 31,
   "AST-PASS": 1
  },
  "results": [
@@ -13,11 +13,7 @@
   },
   {
    "module": "_bootlocale",
-   "ast_detail": "diff at token 45: orig  orelse=[Try(body=[Expr(value=Attribute(value=Name(id='_locale' | dec  orelse=[If(test=Call(func=Name(id='hasattr'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 29,
-   "ntotal": 122,
-   "detail": "line 23: orig ('SETUP_FINALLY', 'to 56') | got ('LOAD_NAME', 'hasattr')\nline 24: orig ('LOAD_NAME', '_locale') | got ('LOAD_NAME', 'sys')\nline 25: orig ('LOAD_ATTR', 'CODESET') | got ('LOAD_CONST', \"'getandroidapilevel'\")"
+   "verdict": "PASS"
   },
   {
    "module": "_collections_abc",
@@ -127,16 +123,16 @@
    "module": "asynchat",
    "ast_detail": "diff at token 300: orig  body=[Return(value=None)]) | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 528,
+   "ndiff": 529,
    "ntotal": 810,
    "detail": "line 227: orig ('JUMP_FORWARD', 'to 86') | got ('JUMP_FORWARD', 'to 84')\nline 236: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 84')\nline 237: orig ('RETURN_VALUE', '') | got ('DUP_TOP', '')"
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 80: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='os' | dec  body=[If(test=Compare(left=Name(id='err'",
+   "ast_detail": "diff at token 80: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='os' | dec  body=[Return(value=BinOp(left=Constant(value='Unknown error %s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2130,
-   "ntotal": 2212,
+   "ndiff": 2131,
+   "ntotal": 2215,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -251,7 +247,7 @@
    "module": "compileall",
    "ast_detail": "diff at token 193: orig  ctx=Load())))] | dec  ctx=Load())))",
    "verdict": "SIG-DIFF",
-   "ndiff": 768,
+   "ndiff": 769,
    "ntotal": 1094,
    "detail": "line 313: orig ('JUMP_FORWARD', 'to 220') | got ('LOAD_FAST', 'files_and_ddirs')\nline 314: orig ('LOAD_FAST', 'files_and_ddirs') | got ('GET_ITER', '')\nline 315: orig ('GET_ITER', '') | got ('FOR_ITER', 'to 218')"
   },
@@ -259,7 +255,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1494: orig  type_comment=None)] | dec  type_comment=None)",
    "verdict": "SIG-DIFF",
-   "ndiff": 2813,
+   "ndiff": 2801,
    "ntotal": 4350,
    "detail": "line 1088: orig ('JUMP_FORWARD', 'to 336') | got ('JUMP_ABSOLUTE', '')\nline 1414: orig ('JUMP_FORWARD', 'to 472') | got ('JUMP_ABSOLUTE', '')\nline 1472: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')"
   },
@@ -267,7 +263,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 86: orig  body=[Return(value=None)] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1507,
+   "ndiff": 1503,
    "ntotal": 1827,
    "detail": "line 296: orig ('LOAD_DEREF', 'func') | got ('LOAD_FAST', 'func')\nline 298: orig ('LOAD_CLOSURE', 'func') | got ('LOAD_CLOSURE', 'self')\nline 299: orig ('LOAD_CLOSURE', 'self') | got ('BUILD_TUPLE', '')"
   },
@@ -289,11 +285,11 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 2: orig  Try(body=[Import(names=[alias(name='_crypt' | dec  If(test=Compare(left=Attribute(value=Name(id='_sys'",
+   "ast_detail": "diff at token 256: orig  orelse=[If(test=Compare(left=Attribute(value=Name(id='method' | dec  orelse=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 164,
+   "ndiff": 136,
    "ntotal": 412,
-   "detail": "line 7: orig ('SETUP_FINALLY', 'to 26') | got ('LOAD_NAME', '_sys')\nline 8: orig ('LOAD_CONST', '0') | got ('LOAD_ATTR', 'platform')\nline 9: orig ('LOAD_CONST', 'None') | got ('LOAD_CONST', \"'win32'\")"
+   "detail": "line 270: orig ('JUMP_FORWARD', 'to 288') | got ('JUMP_FORWARD', 'to 234')\nline 275: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_IF_FALSE', '')\nline 276: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_FAST', 'rounds')"
   }
  ]
 }

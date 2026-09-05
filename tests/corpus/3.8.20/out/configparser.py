@@ -632,12 +632,11 @@ class RawConfigParser(MutableMapping):
         elements_added = set()
         for section, keys in dictionary.items():
             section = str(section)
-            if self._strict and section in elements_added:
-                raise
             try:
                 self.add_section(section)
             except (DuplicateSectionError, ValueError):
-                pass
+                if self._strict and section in elements_added:
+                    raise
             elements_added.add(section)
             for key, value in keys.items():
                 key = self.optionxform(str(key))
@@ -668,23 +667,19 @@ class RawConfigParser(MutableMapping):
         The section DEFAULT is special.
         """
 
-        if fallback is _UNSET:
-            raise
-        else:
-            return fallback
         try:
             d = self._unify_values(section, vars)
         except NoSectionError:
-            pass
-        option = self.optionxform(option)
-        if fallback is _UNSET:
-            raise NoOptionError(option, section)
-        else:
+            if fallback is _UNSET:
+                raise
             return fallback
+        option = self.optionxform(option)
         try:
             value = d[option]
         except KeyError:
-            pass
+            if fallback is _UNSET:
+                raise NoOptionError(option, section)
+            return fallback
         if raw or value is None:
             return value
         return self._interpolation.before_get(self, section, option, value, d)
@@ -724,12 +719,11 @@ class RawConfigParser(MutableMapping):
         if section is _UNSET:
             return super().items()
         d = self._defaults.copy()
-        if section != self.default_section:
-            raise NoSectionError(section)
         try:
             d.update(self._sections[section])
         except KeyError:
-            pass
+            if section != self.default_section:
+                raise NoSectionError(section)
         orig_keys = list(d.keys())
         if vars:
             for key, value in vars.items():
@@ -994,12 +988,11 @@ class RawConfigParser(MutableMapping):
         """
 
         sectiondict = {}
-        if section != self.default_section:
-            raise NoSectionError(section) from None
         try:
             sectiondict = self._sections[section]
         except KeyError:
-            pass
+            if section != self.default_section:
+                raise NoSectionError(section) from None
         vardict = {}
         if vars:
             for key, value in vars.items():

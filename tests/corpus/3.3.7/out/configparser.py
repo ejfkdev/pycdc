@@ -610,12 +610,11 @@ class RawConfigParser(MutableMapping):
         elements_added = set()
         for section, keys in dictionary.items():
             section = str(section)
-            if self._strict and section in elements_added:
-                raise
             try:
                 self.add_section(section)
             except (DuplicateSectionError, ValueError):
-                pass
+                if self._strict and section in elements_added:
+                    raise
             elements_added.add(section)
             for key, value in keys.items():
                 key = self.optionxform(str(key))
@@ -646,23 +645,21 @@ class RawConfigParser(MutableMapping):
         The section DEFAULT is special.
         """
 
-        if fallback is _UNSET:
-            raise
-        else:
-            return fallback
         try:
             d = self._unify_values(section, vars)
         except NoSectionError:
-            pass
+            if fallback is _UNSET:
+                raise
+            else:
+                return fallback
         option = self.optionxform(option)
-        if fallback is _UNSET:
-            raise NoOptionError(option, section)
-        else:
-            return fallback
         try:
             value = d[option]
         except KeyError:
-            pass
+            if fallback is _UNSET:
+                raise NoOptionError(option, section)
+            else:
+                return fallback
         if raw or value is None:
             return value
         return self._interpolation.before_get(self, section, option, value, d)
@@ -671,34 +668,31 @@ class RawConfigParser(MutableMapping):
         return conv(self.get(section, option, **kwargs))
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
-        if fallback is _UNSET:
-            raise
-        else:
-            return fallback
         try:
             return self._get(section, int, option, raw=raw, vars=vars)
         except (NoSectionError, NoOptionError):
-            pass
+            if fallback is _UNSET:
+                raise
+            else:
+                return fallback
 
     def getfloat(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
-        if fallback is _UNSET:
-            raise
-        else:
-            return fallback
         try:
             return self._get(section, float, option, raw=raw, vars=vars)
         except (NoSectionError, NoOptionError):
-            pass
+            if fallback is _UNSET:
+                raise
+            else:
+                return fallback
 
     def getboolean(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
-        if fallback is _UNSET:
-            raise
-        else:
-            return fallback
         try:
             return self._get(section, self._convert_to_boolean, option, raw=raw, vars=vars)
         except (NoSectionError, NoOptionError):
-            pass
+            if fallback is _UNSET:
+                raise
+            else:
+                return fallback
 
     def items(self, section=_UNSET, raw=False, vars=None):
         """Return a list of (name, value) tuples for each option in a section.
@@ -715,12 +709,11 @@ class RawConfigParser(MutableMapping):
         if section is _UNSET:
             return super().items()
         d = self._defaults.copy()
-        if section != self.default_section:
-            raise NoSectionError(section)
         try:
             d.update(self._sections[section])
         except KeyError:
-            pass
+            if section != self.default_section:
+                raise NoSectionError(section)
         if vars:
             for key, value in vars.items():
                 d[self.optionxform(key)] = value
@@ -978,12 +971,11 @@ class RawConfigParser(MutableMapping):
         """
 
         sectiondict = {}
-        if section != self.default_section:
-            raise NoSectionError(section)
         try:
             sectiondict = self._sections[section]
         except KeyError:
-            pass
+            if section != self.default_section:
+                raise NoSectionError(section)
         vardict = {}
         if vars:
             for key, value in vars.items():

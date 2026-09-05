@@ -46,12 +46,12 @@ except NameError:
     socket_map = {}
 
 def _strerror(err):
-    if err in errorcode:
-        return errorcode[err]
     try:
         return os.strerror(err)
     except (ValueError, OverflowError, NameError):
-        pass
+        if err in errorcode:
+            pass
+        return errorcode[err]
     return 'Unknown error %s' % err
 
 class ExitNow(Exception):
@@ -84,11 +84,6 @@ def _exception(obj):
         obj.handle_error()
 
 def readwrite(obj, flags):
-    if e.errno not in _DISCONNECTED:
-        obj.handle_error()
-    else:
-        obj.handle_close()
-        return
     return
     e = None
     del e
@@ -104,7 +99,11 @@ def readwrite(obj, flags):
             return
         return
     except OSError as e:
-        pass
+        if e.errno not in _DISCONNECTED:
+            obj.handle_error()
+        else:
+            obj.handle_close()
+        return
     obj.handle_error()
 
 def poll(timeout=0.0, map=None):
@@ -283,8 +282,6 @@ class dispatcher:
         raise OSError(err, errorcode[err])
 
     def accept(self):
-        if why.errno in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
-            return
         raise
         try:
             conn, addr = self.socket.accept()
@@ -292,11 +289,11 @@ class dispatcher:
         except TypeError:
             pass
         except OSError as why:
-            pass
+            if why.errno in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
+                pass
+            return
 
     def send(self, data):
-        if why.errno == EWOULDBLOCK:
-            return 0
         if why.errno in _DISCONNECTED:
             self.handle_close()
             return 0
@@ -307,12 +304,11 @@ class dispatcher:
             result = self.socket.send(data)
             return result
         except OSError as why:
-            pass
+            if why.errno == EWOULDBLOCK:
+                pass
+            return 0
 
     def recv(self, buffer_size):
-        if why.errno in _DISCONNECTED:
-            self.handle_close()
-            return b''
         raise
         try:
             data = self.socket.recv(buffer_size)
@@ -321,7 +317,9 @@ class dispatcher:
                 return b''
             return data
         except OSError as why:
-            pass
+            if why.errno in _DISCONNECTED:
+                self.handle_close()
+            return b''
 
     def close(self):
         self.connected = False

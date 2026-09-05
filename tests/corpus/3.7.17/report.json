@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 8,
-  "SIG-DIFF": 27,
+  "PASS": 9,
+  "SIG-DIFF": 26,
   "AST-PASS": 5
  },
  "results": [
@@ -13,11 +13,7 @@
   },
   {
    "module": "_bootlocale",
-   "ast_detail": "diff at token 38: orig  orelse=[Try(body=[Expr(value=Attribute(value=Name(id='_locale' | dec  orelse=[If(test=Call(func=Name(id='hasattr'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 29,
-   "ntotal": 122,
-   "detail": "line 23: orig ('SETUP_EXCEPT', 'to 56') | got ('LOAD_NAME', 'hasattr')\nline 24: orig ('LOAD_NAME', '_locale') | got ('LOAD_NAME', 'sys')\nline 25: orig ('LOAD_ATTR', 'CODESET') | got ('LOAD_CONST', \"'getandroidapilevel'\")"
+   "verdict": "PASS"
   },
   {
    "module": "_collections_abc",
@@ -159,7 +155,7 @@
    "module": "bz2",
    "ast_detail": "diff at token 988: orig  body=[If(test=Compare(left=Str(s='t') | dec  body=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
-   "ndiff": 768,
+   "ndiff": 770,
    "ntotal": 863,
    "detail": "line 42: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 46: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 47: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
@@ -237,9 +233,9 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 2825: orig  Try(body=[Expr(value=Call(func=Attribute(value=Name(id='self' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 3152: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(arg=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 3376,
+   "ndiff": 3325,
    "ntotal": 4369,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },

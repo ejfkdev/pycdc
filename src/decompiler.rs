@@ -3755,6 +3755,7 @@ impl<'a> Ctx<'a> {
             .as_ref()
             .map_or(false, |h| h.bare_raise_fold)
         {
+            self.close_handler_blocks();
             self.flush_pending_stores();
             if let Some(h) = self.legacy_handler.take() {
                 if let Some(he) = &h.name {
@@ -4038,6 +4039,7 @@ impl<'a> Ctx<'a> {
                     }
                 } else {
                     if self.legacy_handler.is_some() {
+                        self.close_handler_blocks();
                         self.flush_pending_stores();
                     }
                     // 3.8-3.10 `continue` inside an except handler of a
@@ -4229,6 +4231,7 @@ impl<'a> Ctx<'a> {
             Op::RERAISE => {
                 self.in_handler_prelude = false;
                 if self.legacy_handler.is_some() {
+                    self.close_handler_blocks();
                     self.flush_pending_stores();
                 }
                 if let Some(h) = self.legacy_handler.take() {
@@ -6684,6 +6687,9 @@ impl<'a> Ctx<'a> {
                     .legacy_handler
                     .as_ref()
                     .map_or(false, |h| h.pop_seen);
+                if defer_fold {
+                    self.close_handler_blocks();
+                }
                 let e = self.pop_expr();
                 // handler-side copy of the sunk 3.10 tail terminator:
                 // drop the return, fold the handler without it
@@ -9103,6 +9109,27 @@ impl<'a> Ctx<'a> {
     /// block. Success-path statements emitted after POP_BLOCK (typically
     /// the function's trailing `return`) chronologically FOLLOW the try
     /// statement in the source, so insert before any trailing returns.
+    /// Close blocks opened INSIDE the currently open legacy handler
+    /// (If/Else/With/...) before it is collected, so their converted
+    /// statements route into the handler body instead of the enclosing
+    /// scope (their lexical end can sit past the collection point —
+    /// e.g. an else region falling through to POP_EXCEPT).
+    fn close_handler_blocks(&mut self) {
+        let Some(depth) = self.legacy_handler.as_ref().map(|h| h.block_depth) else {
+            return;
+        };
+        let mut guard = self.blocks.len();
+        while self.blocks.len() > depth && guard > 0 {
+            guard -= 1;
+            let end = self
+                .blocks
+                .last()
+                .map(|b| b.end.min(self.cur_offset.max(b.start)))
+                .unwrap_or(self.cur_offset);
+            self.force_close_top(end);
+        }
+    }
+
     fn push_legacy_try(&mut self, l: LegacyTry) {
         let try_stmt = Stmt::Try {
             body: l.body,

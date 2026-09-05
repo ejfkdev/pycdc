@@ -79,13 +79,13 @@ else:
         globals()['METHOD_' + name] = method
         salt = mksalt(method, rounds=rounds)
         result = None
-        if e.errno in {errno.EINVAL, errno.EPERM, errno.ENOSYS}:
-            return False
         raise
         try:
             result = crypt('', salt)
         except OSError as e:
-            pass
+            if e.errno in {errno.EINVAL, errno.EPERM, errno.ENOSYS}:
+                pass
+            return False
         else:
             methods.append(method)
             return True

@@ -129,9 +129,9 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 63: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='os' | dec  body=[If(test=Compare(left=Name(id='err'",
+   "ast_detail": "diff at token 82: orig  body=[Return(value=Subscript(value=Name(id='errorcode' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2114,
+   "ndiff": 2110,
    "ntotal": 2191,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
@@ -239,7 +239,7 @@
    "module": "codeop",
    "ast_detail": "diff at token 65: orig  body=[Break()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 252,
+   "ndiff": 250,
    "ntotal": 345,
    "detail": "line 78: orig ('FOR_ITER', 'to 44') | got ('FOR_ITER', 'to 42')\nline 85: orig ('POP_JUMP_IF_FALSE', 'to 42') | got ('POP_JUMP_IF_FALSE', 'to 40')\nline 91: orig ('POP_JUMP_IF_FALSE', 'to 42') | got ('POP_JUMP_IF_FALSE', 'to 40')"
   },
@@ -251,7 +251,7 @@
    "module": "compileall",
    "ast_detail": "diff at token 134: orig  ctx=Load())))] | dec  ctx=Load())))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1432,
+   "ndiff": 1443,
    "ntotal": 1512,
    "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
@@ -259,7 +259,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1150: orig  Try(body=[Assign(targets=[Name(id='v' | dec  If(test=Compare(left=Constant(value='%')",
    "verdict": "SIG-DIFF",
-   "ndiff": 2694,
+   "ndiff": 2685,
    "ntotal": 4289,
    "detail": "line 1021: orig ('SETUP_FINALLY', 'to 246') | got ('LOAD_CONST', \"'%'\")\nline 1022: orig ('LOAD_FAST', 'map') | got ('LOAD_FAST', 'v')\nline 1023: orig ('LOAD_FAST', 'var') | got ('CONTAINS_OP', '')"
   },
@@ -289,11 +289,11 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 359: orig  Try(body=[Assign(targets=[Name(id='result' | dec  If(test=Compare(left=Attribute(value=Name(id='e'",
+   "ast_detail": "diff at token 359: orig  Try(body=[Assign(targets=[Name(id='result' | dec  Raise()",
    "verdict": "SIG-DIFF",
    "ndiff": 57,
    "ntotal": 452,
-   "detail": "line 395: orig ('SETUP_FINALLY', 'to 62') | got ('LOAD_FAST', 'e')\nline 396: orig ('LOAD_GLOBAL', 'crypt') | got ('LOAD_ATTR', 'errno')\nline 397: orig ('LOAD_CONST', \"''\") | got ('LOAD_GLOBAL', 'errno')"
+   "detail": "line 395: orig ('SETUP_FINALLY', 'to 62') | got ('RAISE_VARARGS', '')\nline 396: orig ('LOAD_GLOBAL', 'crypt') | got <missing>\nline 397: orig ('LOAD_CONST', \"''\") | got <missing>"
   }
  ]
 }

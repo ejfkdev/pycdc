@@ -320,13 +320,13 @@ def decompress(data):
     results = []
     while data:
         decomp = BZ2Decompressor()
-        if results:
-            break
+        break
         raise
         try:
             res = decomp.decompress(data)
         except OSError:
-            pass
+            if results:
+                pass
         results.append(res)
         if not decomp.eof:
             raise ValueError('Compressed data ended before the end-of-stream marker was reached')

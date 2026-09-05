@@ -176,8 +176,14 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     os.link(previous_cfile, cfile)
     except py_compile.PyCompileError as err:
         success = False
+        if quiet >= 2:
+            pass
+        return success
     except (SyntaxError, UnicodeError, OSError) as e:
         success = False
+        if quiet >= 2:
+            pass
+        return success
     else:
         success = False
         if ok == 0:
@@ -198,8 +204,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     pass
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
-            if quiet >= 2:
-                return success
             if quiet:
                 print('*** Error compiling {!r}...'.format(fullname))
             else:
@@ -210,8 +214,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             return success
             err = None
             del err
-            if quiet >= 2:
-                return success
             if quiet:
                 print('*** Error compiling {!r}...'.format(fullname))
             else:

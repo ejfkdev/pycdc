@@ -644,12 +644,11 @@ class RawConfigParser(MutableMapping):
         elements_added = set()
         for section, keys in dictionary.items():
             section = str(section)
-            if self._strict and section in elements_added:
-                raise
             try:
                 self.add_section(section)
             except (DuplicateSectionError, ValueError):
-                pass
+                if self._strict and section in elements_added:
+                    raise
             elements_added.add(section)
             for key, value in keys.items():
                 key = self.optionxform(str(key))
@@ -736,12 +735,11 @@ class RawConfigParser(MutableMapping):
         if section is _UNSET:
             return super().items()
         d = self._defaults.copy()
-        if section != self.default_section:
-            raise NoSectionError(section)
         try:
             d.update(self._sections[section])
         except KeyError:
-            pass
+            if section != self.default_section:
+                raise NoSectionError(section)
         orig_keys = list(d.keys())
         if vars:
             for key, value in vars.items():
@@ -1011,12 +1009,11 @@ class RawConfigParser(MutableMapping):
         """
 
         sectiondict = {}
-        if section != self.default_section:
-            raise NoSectionError(section) from None
         try:
             sectiondict = self._sections[section]
         except KeyError:
-            pass
+            if section != self.default_section:
+                raise NoSectionError(section) from None
         vardict = {}
         if vars:
             for key, value in vars.items():

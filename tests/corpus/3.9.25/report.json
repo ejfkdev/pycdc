@@ -17,11 +17,11 @@
   },
   {
    "module": "_bootlocale",
-   "ast_detail": "diff at token 33: orig  orelse=[Try(body=[Expr(value=Attribute(value=Name(id='_locale' | dec  orelse=[If(test=Call(func=Name(id='hasattr'",
+   "ast_detail": "diff at token 82: orig  body=[Assert(test=UnaryOp(op=Not() | dec  body=[If(test=Name(id='do_setlocale'",
    "verdict": "SIG-DIFF",
-   "ndiff": 29,
+   "ndiff": 1,
    "ntotal": 121,
-   "detail": "line 23: orig ('SETUP_FINALLY', 'to 56') | got ('LOAD_NAME', 'hasattr')\nline 24: orig ('LOAD_NAME', '_locale') | got ('LOAD_NAME', 'sys')\nline 25: orig ('LOAD_ATTR', 'CODESET') | got ('LOAD_CONST', \"'getandroidapilevel'\")"
+   "detail": "line 96: orig ('LOAD_ASSERTION_ERROR', '') | got ('LOAD_GLOBAL', 'AssertionError')"
   },
   {
    "module": "_bootsubprocess",
@@ -137,10 +137,10 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 54: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='os' | dec  body=[If(test=Compare(left=Name(id='err'",
+   "ast_detail": "diff at token 73: orig  body=[Return(value=Subscript(value=Name(id='errorcode' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2155,
-   "ntotal": 2234,
+   "ndiff": 2153,
+   "ntotal": 2231,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -175,7 +175,7 @@
    "module": "bz2",
    "ast_detail": "diff at token 347: orig  finalbody=[Try(body=[If(test=Attribute(value=Name(id='self' | dec  finalbody=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 984,
+   "ndiff": 985,
    "ntotal": 1065,
    "detail": "line 34: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 38: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
@@ -255,7 +255,7 @@
    "module": "compileall",
    "ast_detail": "diff at token 134: orig  ctx=Load())))] | dec  ctx=Load())))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1117,
+   "ndiff": 1121,
    "ntotal": 1513,
    "detail": "line 362: orig ('JUMP_FORWARD', 'to 330') | got ('LOAD_FAST', 'files')\nline 363: orig ('LOAD_FAST', 'files') | got ('GET_ITER', '')\nline 364: orig ('GET_ITER', '') | got ('FOR_ITER', 'to 328')"
   },
@@ -263,7 +263,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1094: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2817,
+   "ndiff": 2826,
    "ntotal": 4333,
    "detail": "line 1068: orig ('JUMP_FORWARD', 'to 334') | got ('JUMP_ABSOLUTE', '')\nline 1393: orig ('JUMP_FORWARD', 'to 470') | got ('JUMP_ABSOLUTE', '')\nline 1451: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')"
   },
@@ -271,7 +271,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 59: orig  body=[Return()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1687,
+   "ndiff": 1685,
    "ntotal": 1750,
    "detail": "line 28: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 32: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
