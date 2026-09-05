@@ -84,11 +84,11 @@ cargo build                                                 # 重新嵌入
 
 | 指标 | 数量 |
 |---|---|
-| PASS（字节码级一致） | 98（18.8%） |
-| AST-PASS（语义等价） | 62 |
-| **语义等价合计** | **160（30.8%）** |
+| PASS（字节码级一致） | 100（19.2%） |
+| AST-PASS（语义等价） | 64 |
+| **语义等价合计** | **164（31.5%）** |
 | INCOMPLETE（可编译、含占位） | **0** |
-| SIG-DIFF（可编译、结构有差） | 360 |
+| SIG-DIFF（可编译、结构有差） | 356 |
 | SYNTAX-ERR | **0（所有 520 个输出都能在对应版本编译）** |
 
 每个版本目录下的 `report.json` 保存逐模块判级与首个差异位置，便于聚类修复。
@@ -155,9 +155,12 @@ cargo build                                                 # 重新嵌入
 - 推导式元素中的三元表达式（`[a if c else b for ...]`）在部分旧版本可能错位。
 - 链式比较（`a == b == c`）：值位、if 条件的 and 形（3.8–3.14，3.12+ 经 SCC 回退）、
   or 形（`if 链 or x[ or y]:`）与 **链 or 链**（`(a==b==c) or (d==e==f)`，含 3.8–3.10
-  小块复制布局与 py2 值形 JFOP/JTFOP 短路）、elif 上下文、切片操作数（含 3.14
-  const-slice 的 marshal 引用序修复）均已支持（b23_boolchain 13/13 全绿）。
-- py2.6：函数级内联列表推导（`_[N]` FAST 累加器）已支持；「if 内嵌 if + 同级 elif +
+  小块复制布局与 py2 值形 JFOP/JTFOP 短路）、**否定形**（`if not (a<b<=c): raise/return`，
+  两种编译器布局：3.10/3.12 尾部复制 body 进 else 路、3.8/3.9/3.11/3.13/3.14 清理蹦床
+  共享 body）、elif 上下文、切片操作数（含 3.14 const-slice 的 marshal 引用序修复）
+  均已支持（b23_boolchain 13/13 全绿）。
+- py2：`raise T, I[, B]` 原生渲染（忠实可重编译，不再重写为调用形）；py2.6
+  函数级内联列表推导（`_[N]` FAST 累加器）已支持；「if 内嵌 if + 同级 elif +
   尾部悬挂 return」的深嵌套形状可能丢失后续分支。
 - Python 1.x 可加载 marshal，但未附带 opcode 表。
 - PyPy/Jython/GraalPy 变体按对应 CPython 版本表尽力处理。
