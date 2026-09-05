@@ -8420,9 +8420,14 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::PRINT_ITEM_TO => {
-                // 2.7: stream (DUPed) sits below the item; both are consumed
-                let v = self.pop_expr();
-                self.pop(); // this item's stream copy
+                // `print >> file, value`: bytecode is
+                //   [file]; DUP_TOP; [value]; ROT_TWO  ->  [file, value, file]
+                // so the stream copy is on TOP and the item is below it.
+                // PRINT_ITEM_TO pops the stream first, then the item (the
+                // original [file] stays for PRINT_NEWLINE_TO). Popping in the
+                // reverse order rendered the file expr as the printed value.
+                self.pop(); // the DUPed stream copy (top)
+                let v = self.pop_expr(); // the item
                 self.pending_print.push(v);
                 true
             }

@@ -20,7 +20,7 @@ def _run_exitfuncs():
     while _exithandlers:
         func, targs, kargs = _exithandlers.pop()
         import traceback
-        print >>sys.stderr, sys.stderr
+        print >>sys.stderr, 'Error in atexit._run_exitfuncs:'
         traceback.print_exc()
         exc_info = sys.exc_info()
         try:

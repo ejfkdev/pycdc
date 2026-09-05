@@ -420,16 +420,16 @@ class Breakpoint:
             disp = disp + 'yes  '
         else:
             disp = disp + 'no   '
-        print >>out, out
+        print >>out, '%-4dbreakpoint   %s at %s:%d' % (self.number, disp, self.file, self.line)
         if self.cond:
-            print >>out, out
+            print >>out, '\tstop only if %s' % (self.cond,)
         if self.ignore:
-            print >>out, out
+            print >>out, '\tignore next %d hits' % self.ignore
         if self.hits and self.hits > 1:
             ss = 's'
         else:
             ss = ''
-        print >>out, out
+        print >>out, '\tbreakpoint already hit %d time%s' % (self.hits, ss)
 
 
 def checkfuncname(b, frame):

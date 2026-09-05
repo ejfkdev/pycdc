@@ -1,9 +1,10 @@
 {
- "3.14.7": {
-  "interp": "/opt/homebrew/bin/python3.14",
+ "2.7.18": {
+  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
   "counts": {
-   "PASS": 6,
-   "SIG-DIFF": 34
+   "SIG-DIFF": 33,
+   "AST-PASS": 6,
+   "PASS": 1
   }
  }
 }
