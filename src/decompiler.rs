@@ -11441,10 +11441,10 @@ impl<'a> Ctx<'a> {
             if jump_if_true {
                 cond.clone()
             } else {
-                Rc::new(Expr::Unary { op: UnaryOp::Not, operand: cond.clone() })
+                negate_cond(cond.clone())
             }
         } else if jump_if_true {
-            Rc::new(Expr::Unary { op: UnaryOp::Not, operand: cond.clone() })
+            negate_cond(cond.clone())
         } else {
             cond.clone()
         };
@@ -11906,16 +11906,12 @@ impl<'a> Ctx<'a> {
         // inline comprehension filter: `... if cond`
         if let Some(comp) = &mut self.inline_comp {
             if self.cur_offset < comp.end {
-                let c = if jump_if_true {
-                    Rc::new(Expr::Unary {
-                        op: UnaryOp::Not,
-                        operand: cond,
-                    })
-                } else {
-                    cond
-                };
+                // NB: no negate_cond here — the push below cancels the
+                // polarity flip (simplify_not(Not(c)) == c); folding the
+                // comparison would invert the filter
+                let c = if jump_if_true { cond } else { simplify_not(cond) };
                 if let Some(cur) = &mut comp.cur {
-                    cur.ifs.push(simplify_not(c));
+                    cur.ifs.push(c);
                 }
                 return;
             }
@@ -11996,21 +11992,9 @@ impl<'a> Ctx<'a> {
                 // jump's operand must be normalized the same way (`if not a
                 // and not b` compiles to two PJITs and must merge to
                 // And(Not a, Not b))
-                let c2 = if jump_if_true {
-                    // branch-taken polarity: negate, cancelling a double
-                    // negation when the operand is itself `not x`
-                    match &*cond {
-                        Expr::Unary { op: UnaryOp::Not, operand } => {
-                            operand.clone()
-                        }
-                        _ => Rc::new(Expr::Unary {
-                            op: UnaryOp::Not,
-                            operand: cond,
-                        }),
-                    }
-                } else {
-                    cond
-                };
+                // branch-taken polarity: negate (cancels double negation
+                // and inverts single-op comparisons)
+                let c2 = if jump_if_true { negate_cond(cond) } else { cond };
                 let mut values = Vec::new();
                 flatten_boolop(prev, kind, &mut values);
                 flatten_boolop(c2, kind, &mut values);
@@ -12067,10 +12051,7 @@ impl<'a> Ctx<'a> {
         if let Some(top) = self.blocks.last_mut() {
             if matches!(top.kind, BlockType::While) && !top.cond_set && cond_like {
                 let c = if jump_if_true {
-                    Rc::new(Expr::Unary {
-                        op: UnaryOp::Not,
-                        operand: cond,
-                    })
+                    negate_cond(cond)
                 } else {
                     cond
                 };
@@ -12245,10 +12226,7 @@ impl<'a> Ctx<'a> {
                                 let mut blk =
                                     Block::new(BlockType::If, self.cur_next, inst.start);
                                 let c = if jump_if_true {
-                                    Rc::new(Expr::Unary {
-                                        op: UnaryOp::Not,
-                                        operand: cond.clone(),
-                                    })
+                                    negate_cond(cond.clone())
                                 } else {
                                     cond.clone()
                                 };
@@ -12307,10 +12285,7 @@ impl<'a> Ctx<'a> {
                             let cond_end = self.instrs[ci].end();
                             let mut blk = Block::new(BlockType::While, t, target);
                             blk.cond = Some(if jump_if_true {
-                                Rc::new(Expr::Unary {
-                                    op: UnaryOp::Not,
-                                    operand: cond,
-                                })
+                                negate_cond(cond)
                             } else {
                                 cond
                             });
@@ -12369,10 +12344,7 @@ impl<'a> Ctx<'a> {
             let c = if jump_if_true {
                 cond
             } else {
-                Rc::new(Expr::Unary {
-                    op: UnaryOp::Not,
-                    operand: cond,
-                })
+                negate_cond(cond)
             };
             self.push_stmt(Stmt::If {
                 cond: c,
@@ -12431,10 +12403,7 @@ impl<'a> Ctx<'a> {
         // is the then-body. With POP_JUMP_IF_TRUE the fall-through runs when
         // the condition is false, so negate.
         let c = if jump_if_true {
-            Rc::new(Expr::Unary {
-                op: UnaryOp::Not,
-                operand: cond,
-            })
+            negate_cond(cond)
         } else {
             cond
         };
@@ -14658,6 +14627,47 @@ fn is_pure_value_op(op: Op) -> bool {
             | Op::CACHE
             | Op::EXTENDED_ARG
     )
+}
+
+fn negate_cond(e: ExprRef) -> ExprRef {
+    // CPython's AST optimizer inverts single-op comparisons under `not`
+    // (`not x is None` -> `x is not None`); mirror that so escape-jump
+    // polarity renders the canonical source form. Eq/NotEq fold too —
+    // `==` is exactly `not !=` at the bytecode level.
+    if let Expr::Compare { operands, ops } = &*e {
+        if ops.len() == 1 {
+            let inv = match ops[0] {
+                CmpOp::Is => Some(CmpOp::IsNot),
+                CmpOp::IsNot => Some(CmpOp::Is),
+                CmpOp::In => Some(CmpOp::NotIn),
+                CmpOp::NotIn => Some(CmpOp::In),
+                CmpOp::Eq => Some(CmpOp::NotEq),
+                CmpOp::NotEq => Some(CmpOp::Eq),
+                _ => None,
+            };
+            if let Some(op) = inv {
+                return Rc::new(Expr::Compare {
+                    operands: operands.clone(),
+                    ops: vec![op],
+                });
+            }
+        }
+    }
+    simplify_not_or_wrap(e)
+}
+
+fn simplify_not_or_wrap(e: ExprRef) -> ExprRef {
+    if let Expr::Unary {
+        op: UnaryOp::Not,
+        operand,
+    } = &*e
+    {
+        return operand.clone();
+    }
+    Rc::new(Expr::Unary {
+        op: UnaryOp::Not,
+        operand: e,
+    })
 }
 
 fn simplify_not(e: ExprRef) -> ExprRef {

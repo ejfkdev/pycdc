@@ -83,11 +83,11 @@ sys.stdin and sys.stdout are used.
 
 """
 
-        if not stdin is None:
+        if stdin is not None:
             self.stdin = stdin
         else:
             self.stdin = sys.stdin
-        if not stdout is None:
+        if stdout is not None:
             self.stdout = stdout
         else:
             self.stdout = sys.stdout
@@ -116,7 +116,7 @@ sys.stdin and sys.stdout are used.
                 line = 'EOF'
         try:
             try:
-                if not intro is None:
+                if intro is not None:
                     self.intro = intro
                 if self.intro:
                     self.stdout.write(str(self.intro) + '\n')
@@ -243,7 +243,7 @@ commands by the interpreter should stop.
         cmd, arg, line = self.parseline(line)
         if not line:
             return self.emptyline()
-        if not cmd is not None:
+        if cmd is None:
             return self.default(line)
         self.lastcmd = line
         if line == 'EOF':
@@ -251,7 +251,7 @@ commands by the interpreter should stop.
         if cmd == '':
             return self.default(line)
         func = getattr(self, 'do_' + cmd, None)
-        if not func is not None:
+        if func is None:
             return self.default(line)
         return func(arg)
 
@@ -349,7 +349,7 @@ Otherwise try to call complete_<command> to get list of completions.
         cmds_undoc = []
         topics = set()
         for name in names:
-            if not name[:5] == 'help_':
+            if name[:5] != 'help_':
                 continue
             topics.add(name[5:])
         names.sort()

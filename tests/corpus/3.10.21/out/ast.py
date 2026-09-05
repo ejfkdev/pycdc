@@ -189,7 +189,7 @@ def copy_location(new_node, old_node):
     for attr in ('lineno', 'col_offset', 'end_lineno', 'end_col_offset'):
         if attr in old_node._attributes and attr in new_node._attributes:
             value = getattr(old_node, attr, None)
-            if value is not None or hasattr(old_node, attr):
+            if value is None or hasattr(old_node, attr):
                 setattr(new_node, attr, value)
     return new_node
 

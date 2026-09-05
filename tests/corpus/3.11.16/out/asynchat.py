@@ -154,7 +154,7 @@ class async_chat(asyncore.dispatcher):
                 first = self.producer_fifo[0]
                 if not first:
                     del self.producer_fifo[0]
-                    if not first is not None:
+                    if first is None:
                         self.handle_close()
                         return
                 obs = self.ac_out_buffer_size

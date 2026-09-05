@@ -307,7 +307,7 @@ class Sniffer:
                         if v[0] > 0:
                             if v[1] > 0:
                                 if v[1] / total >= consistency:
-                                    if delimiters is None or k in delimiters:
+                                    if delimiters is not None or k in delimiters:
                                         delims[k] = v
                     consistency -= 0.01
                 else:

@@ -259,7 +259,7 @@ class ParserBase:
                 return -1
             if c == '>':
                 return j + 1
-            if not c in '\'"':
+            if c not in '\'"':
                 break
             m = _declstringlit_match(rawdata, j)
             if not m:
@@ -290,7 +290,7 @@ class ParserBase:
                 c = self.rawdata[j:j + 1]
                 if not c:
                     return -1
-                if not c in '\'"':
+                if c not in '\'"':
                     break
                 m = _declstringlit_match(rawdata, j)
                 if m:

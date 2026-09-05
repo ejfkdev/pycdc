@@ -146,7 +146,7 @@ register_dialect('unix', unix_dialect)
 
 class DictReader:
     def __init__(self, f, fieldnames=None, restkey=None, restval=None, dialect='excel', *args, **kwds):
-        if not fieldnames is None:
+        if fieldnames is not None:
             if iter(fieldnames) is fieldnames:
                 fieldnames = list(fieldnames)
         self._fieldnames = fieldnames
@@ -161,7 +161,7 @@ class DictReader:
 
     @property
     def fieldnames(self):
-        if not self._fieldnames is not None:
+        if self._fieldnames is None:
             try:
                 self._fieldnames = next(self.reader)
             except StopIteration:
@@ -195,7 +195,7 @@ class DictReader:
 
 class DictWriter:
     def __init__(self, f, fieldnames, restval='', extrasaction='raise', dialect='excel', *args, **kwds):
-        if not fieldnames is None:
+        if fieldnames is not None:
             if iter(fieldnames) is fieldnames:
                 fieldnames = list(fieldnames)
         self.fieldnames = fieldnames
@@ -382,10 +382,10 @@ additional chunks as necessary.
                             continue
                         if not v[1] / total >= consistency:
                             continue
-                        if not delimiters is None and not k in delimiters:
+                        if delimiters is not None and k not in delimiters:
                             pass
                     consistency -= 0.01
-                    if not len(delims) == 0:
+                    if len(delims) != 0:
                         break
                     if not consistency >= threshold:
                         break
@@ -402,7 +402,7 @@ additional chunks as necessary.
             return ('', 0)
         if len(delims) > 1:
             for d in self.preferred:
-                if not d in delims.keys():
+                if d not in delims.keys():
                     continue
                 skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
                 return d, skipinitialspace
@@ -436,9 +436,9 @@ additional chunks as necessary.
                 except (ValueError, TypeError):
                     hasHeader += 1
                 else:
-                    if not thisType != columnTypes[col]:
+                    if thisType == columnTypes[col]:
                         pass
-                    if not columnTypes[col] is not None:
+                    if columnTypes[col] is None:
                         columnTypes[col] = thisType
                     del columnTypes[col]
                     hasHeader = 0

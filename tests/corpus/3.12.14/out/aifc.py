@@ -334,7 +334,7 @@ class Aifc_read:
 
     def close(self):
         file = self._file
-        if not file is None:
+        if file is not None:
             self._file = None
             file.close()
             return
@@ -370,7 +370,7 @@ class Aifc_read:
 
     def getmark(self, id):
         for marker in self._markers:
-            if not id == marker[0]:
+            if id != marker[0]:
                 continue
             return marker
         raise Error('marker {0!r} does not exist'.format(id))
@@ -615,7 +615,7 @@ class Aifc_write:
         if not isinstance(name, bytes):
             raise Error('marker name must be bytes')
         for i in range(len(self._markers)):
-            if not id == self._markers[i][0]:
+            if id != self._markers[i][0]:
                 continue
             self._markers[i] = id, pos, name
             return
@@ -623,7 +623,7 @@ class Aifc_write:
 
     def getmark(self, id):
         for marker in self._markers:
-            if not id == marker[0]:
+            if id != marker[0]:
                 continue
             return marker
         raise Error('marker {0!r} does not exist'.format(id))
@@ -654,7 +654,7 @@ class Aifc_write:
             return
 
     def close(self):
-        if not self._file is not None:
+        if self._file is None:
             return
         try:
             self._ensure_header_written(0)
@@ -760,7 +760,7 @@ class Aifc_write:
         self._file.write(b'COMM')
         _write_ulong(self._file, commlength)
         _write_short(self._file, self._nchannels)
-        if not self._form_length_pos is None:
+        if self._form_length_pos is not None:
             self._nframes_pos = self._file.tell()
         _write_ulong(self._file, self._nframes)
         if self._comptype in (b'ULAW', b'ulaw', b'ALAW', b'alaw', b'G722'):
@@ -772,7 +772,7 @@ class Aifc_write:
             self._file.write(self._comptype)
             _write_string(self._file, self._compname)
         self._file.write(b'SSND')
-        if not self._form_length_pos is None:
+        if self._form_length_pos is not None:
             self._ssnd_length_pos = self._file.tell()
         _write_ulong(self._file, self._datalength + 8)
         _write_ulong(self._file, 0)
@@ -818,7 +818,7 @@ class Aifc_write:
         for marker in self._markers:
             id, pos, name = marker
             length = length + len(name) + 1 + 6
-            if not len(name) & 1 == 0:
+            if len(name) & 1 != 0:
                 continue
             length = length + 1
         _write_ulong(self._file, length)
@@ -832,7 +832,7 @@ class Aifc_write:
 
 
 def open(f, mode=None):
-    if not mode is not None:
+    if mode is None:
         if hasattr(f, 'mode'):
             mode = f.mode
         else:

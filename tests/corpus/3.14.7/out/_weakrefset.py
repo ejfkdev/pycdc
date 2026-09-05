@@ -7,19 +7,19 @@ class WeakSet:
         self.data = set()
         def _remove(item, selfref=ref(self)):
             self = selfref()
-            if not self is None:
+            if self is not None:
                 self.data.discard(item)
                 return
 
         self._remove = _remove
-        if not data is None:
+        if data is not None:
             self.update(data)
             return
 
     def __iter__(self):
         for itemref in self.data.copy():
             item = itemref()
-            if not item is not None:
+            if item is None:
                 continue
             yield item
 
@@ -52,7 +52,7 @@ class WeakSet:
             except KeyError:
                 raise KeyError('pop from empty WeakSet') from None
             item = itemref()
-            if item is not None:
+            if item is None:
                 break
         return item
 

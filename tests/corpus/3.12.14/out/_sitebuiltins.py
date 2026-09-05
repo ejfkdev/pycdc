@@ -66,7 +66,7 @@ class _Printer(object):
                 return
             lineno += self.MAXLINES
             key = None
-            while not key is not None:
+            while key is None:
                 key = input(prompt)
                 if key not in ('', 'q'):
                     key = None

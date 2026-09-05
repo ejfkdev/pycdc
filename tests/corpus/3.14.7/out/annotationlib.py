@@ -66,13 +66,13 @@ If the forward reference cannot be evaluated, raise an exception.
         raise NotImplementedError(format)
         if isinstance(self.__cell__, types.CellType):
             return self.__cell__.cell_contents
-        if not owner is not None:
+        if owner is None:
             owner = self.__owner__
-        if not globals is not None and not self.__forward_module__ is None:
+        if globals is None and self.__forward_module__ is not None:
             globals = getattr(sys.modules.get(self.__forward_module__, None), '__dict__', None)
-        if not globals is not None:
+        if globals is None:
             globals = self.__globals__
-        if not globals is not None:
+        if globals is None:
             if isinstance(owner, type):
                 module_name = getattr(owner, '__module__', None)
                 if module_name:
@@ -83,17 +83,17 @@ If the forward reference cannot be evaluated, raise an exception.
                 globals = getattr(owner, '__dict__', None)
             elif callable(owner):
                 globals = getattr(owner, '__globals__', None)
-        if not globals is not None:
+        if globals is None:
             globals = {}
-        if not type_params is not None and not owner is None:
+        if type_params is None and owner is not None:
             type_params = getattr(owner, '__type_params__', None)
-        if not locals is not None:
+        if locals is None:
             locals = {}
             if isinstance(owner, type):
                 locals.update(vars(owner))
         elif type_params is not None or isinstance(self.__cell__, dict) or self.__extra_names__:
             locals = dict(locals)
-        if not type_params is None:
+        if type_params is not None:
             for param in type_params:
                 locals.setdefault(param.__name__, param)
         if isinstance(self.__cell__, dict):
@@ -151,16 +151,16 @@ If the forward reference cannot be evaluated, raise an exception.
 
     @property
     def __forward_arg__(self):
-        if not self.__arg__ is None:
+        if self.__arg__ is not None:
             return self.__arg__
-        if not self.__ast_node__ is None:
+        if self.__ast_node__ is not None:
             self.__arg__ = ast.unparse(self.__ast_node__)
             return self.__arg__
         raise AssertionError("Attempted to access '__forward_arg__' on an uninitialized ForwardRef")
 
     @property
     def __resolved_str__(self):
-        if not self.__resolved_str_cache__ is not None:
+        if self.__resolved_str_cache__ is None:
             resolved_str = self.__forward_arg__
             names = self.__extra_names__
             if names:
@@ -173,7 +173,7 @@ If the forward reference cannot be evaluated, raise an exception.
 
     @property
     def __forward_code__(self):
-        if not self.__code__ is None:
+        if self.__code__ is not None:
             return self.__code__
         arg = self.__forward_arg__
         try:
@@ -200,11 +200,11 @@ If the forward reference cannot be evaluated, raise an exception.
 
     def __repr__(self):
         extra = []
-        if not self.__forward_module__ is None:
+        if self.__forward_module__ is not None:
             extra.append(f', module={self.__forward_module__!r}')
         if self.__forward_is_class__:
             extra.append(', is_class=True')
-        if not self.__owner__ is None:
+        if self.__owner__ is not None:
             extra.append(f', owner={self.__owner__!r}')
         return f'ForwardRef({self.__resolved_str__!r}{''.join(extra)})'
 
@@ -238,7 +238,7 @@ class _Stringifier:
             return other.__ast_node__, other.__extra_names__
         if type(other) is _Template:
             return _template_to_ast(other), None
-        if not self.__stringifier_dict__.format == Format.STRING:
+        if self.__stringifier_dict__.format != Format.STRING:
             if other is None or type(other) in (str, int, float, bool, complex):
                 return ast.Constant(value=other), None
         if type(other) is dict:
@@ -247,11 +247,11 @@ class _Stringifier:
             values = []
             for key, value in other.items():
                 new_key, new_extra_names = self.__convert_to_ast(key)
-                if not new_extra_names is None:
+                if new_extra_names is not None:
                     extra_names.update(new_extra_names)
                 keys.append(new_key)
                 new_value, new_extra_names = self.__convert_to_ast(value)
-                if not new_extra_names is None:
+                if new_extra_names is not None:
                     extra_names.update(new_extra_names)
                 values.append(new_value)
             return ast.Dict(keys, values), extra_names
@@ -260,7 +260,7 @@ class _Stringifier:
             elts = []
             for elt in other:
                 new_elt, new_extra_names = self.__convert_to_ast(elt)
-                if not new_extra_names is None:
+                if new_extra_names is not None:
                     extra_names.update(new_extra_names)
                 elts.append(new_elt)
             ast_class = {list: ast.List, tuple: ast.Tuple, set: ast.Set}[type(other)]
@@ -272,10 +272,10 @@ class _Stringifier:
         if isinstance(other, slice):
             extra_names = {}
             def conv(obj):
-                if not obj is not None:
+                if obj is None:
                     return
                 new_obj, new_extra_names = self.__convert_to_ast(obj)
-                if not new_extra_names is None:
+                if new_extra_names is not None:
                     extra_names.update(new_extra_names)
                 return new_obj
 
@@ -290,9 +290,9 @@ class _Stringifier:
 
     def __make_new(self, node, extra_names=None):
         new_extra_names = {}
-        if not self.__extra_names__ is None:
+        if self.__extra_names__ is not None:
             new_extra_names.update(self.__extra_names__)
-        if not extra_names is None:
+        if extra_names is not None:
             new_extra_names.update(extra_names)
         stringifier = _Stringifier(node, self.__globals__, self.__owner__, self.__forward_is_class__, stringifier_dict=self.__stringifier_dict__, extra_names=new_extra_names or None)
         self.__stringifier_dict__.stringifiers.append(stringifier)
@@ -309,7 +309,7 @@ class _Stringifier:
             elts = []
             for elt in other:
                 new_elt, new_extra_names = self.__convert_to_ast_getitem(elt)
-                if not new_extra_names is None:
+                if new_extra_names is not None:
                     extra_names.update(new_extra_names)
                 elts.append(new_elt)
             other = ast.Tuple(elts)
@@ -327,13 +327,13 @@ class _Stringifier:
         ast_args = []
         for arg in args:
             new_arg, new_extra_names = self.__convert_to_ast(arg)
-            if not new_extra_names is None:
+            if new_extra_names is not None:
                 extra_names.update(new_extra_names)
             ast_args.append(new_arg)
         ast_kwargs = []
         for key, value in kwargs.items():
             new_value, new_extra_names = self.__convert_to_ast(value)
-            if not new_extra_names is None:
+            if new_extra_names is not None:
                 extra_names.update(new_extra_names)
             ast_kwargs.append(ast.keyword(key, new_value))
         return self.__make_new(ast.Call(self.__get_ast(), ast_args, ast_kwargs), extra_names)
@@ -482,9 +482,9 @@ class _StringifierDict(dict):
             if isinstance(obj.__ast_node__, str):
                 obj.__arg__ = obj.__ast_node__
                 obj.__ast_node__ = None
-            if not cell_dict is not None:
+            if cell_dict is None:
                 continue
-            if not obj.__cell__ is None:
+            if obj.__cell__ is not None:
                 continue
             obj.__cell__ = cell_dict
 
@@ -544,7 +544,7 @@ def _build_closure(annotate, owner, is_class, stringifier_dict, *, allow_evaluat
             except ValueError:
                 pass
             new_cell = cell
-        if not new_cell is not None:
+        if new_cell is None:
             fwdref = _Stringifier(name, cell=cell, owner=owner, globals=annotate.__globals__, is_class=is_class, stringifier_dict=stringifier_dict)
             stringifier_dict.stringifiers.append(fwdref)
             new_cell = types.CellType(fwdref)
@@ -629,23 +629,23 @@ default, contingent on type(obj):
     match format:
         case Format.VALUE:
             ann = _get_dunder_annotations(obj)
-            if not ann is not None:
+            if ann is None:
                 ann = _get_and_call_annotate(obj, format)
         case Format.FORWARDREF:
             try:
                 ann = _get_dunder_annotations(obj)
             except Exception:
                 pass
-            if not ann is None:
+            if ann is not None:
                 return dict(ann)
         case Format.STRING:
             ann = _get_and_call_annotate(obj, format)
-            if not ann is None:
+            if ann is not None:
                 return dict(ann)
         case Format.VALUE_WITH_FAKE_GLOBALS:
             raise ValueError('The VALUE_WITH_FAKE_GLOBALS format is for internal use only')
     raise ValueError(f'Unsupported format {format!r}')
-    if not ann is not None:
+    if ann is None:
         if isinstance(obj, type) or callable(obj):
             return {}
         raise TypeError(f'{obj!r} does not have annotations')
@@ -653,8 +653,8 @@ default, contingent on type(obj):
         return {}
     if not eval_str:
         return dict(ann)
-    if not globals is None:
-        if not locals is not None:
+    if globals is not None:
+        if locals is None:
             if isinstance(obj, type):
                 obj_globals = None
                 module_name = getattr(obj, '__module__', None)
@@ -674,7 +674,7 @@ default, contingent on type(obj):
                 unwrap = obj
             else:
                 obj_locals = unwrap = (obj_globals := None)
-            if not unwrap is None:
+            if unwrap is not None:
                 _seen_ids = {id(unwrap)}
                 while hasattr(unwrap, '__wrapped__'):
                     candidate = unwrap.__wrapped__
@@ -693,12 +693,12 @@ default, contingent on type(obj):
                         unwrap = candidate
                 if hasattr(unwrap, '__globals__'):
                     obj_globals = unwrap.__globals__
-            if not globals is not None:
+            if globals is None:
                 globals = obj_globals
-            if not locals is not None:
+            if locals is None:
                 locals = obj_locals
     if (type_params := getattr(obj, '__type_params__', ())):
-        if not locals is not None:
+        if locals is None:
             locals = {}
         locals = {param.__name__: param for param in type_params} | locals
     return_value = {key: value for key, value in ann.items() if isinstance(value, str)}
@@ -748,7 +748,7 @@ May not return a fresh dictionary.
 '''
 
     annotate = getattr(obj, '__annotate__', None)
-    if not annotate is None:
+    if annotate is not None:
         ann = call_annotate_function(annotate, format, owner=obj)
         if not isinstance(ann, dict):
             raise ValueError(f'{obj!r}.__annotate__ returned a non-dict')
@@ -768,7 +768,7 @@ Does not return a fresh dictionary.
         except AttributeError:
             return
     ann = getattr(obj, '__annotations__', None)
-    if not ann is not None:
+    if ann is None:
         return
     if not isinstance(ann, dict):
         raise ValueError(f'{obj!r}.__annotations__ is neither a dict nor None')

@@ -125,7 +125,7 @@ class Bdb:
         Return self.trace_dispatch to continue tracing in this scope.
         '''
 
-        if not self.botframe is not None:
+        if self.botframe is None:
             self.botframe = frame.f_back
             return self.trace_dispatch
         if not self.stop_here(frame) and not self.break_anywhere(frame):
@@ -169,7 +169,7 @@ class Bdb:
 
         if self.stop_here(frame):
             if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] is StopIteration:
-                if not arg[2] is None:
+                if arg[2] is not None:
                     self.user_exception(frame, arg)
                     if self.quitting:
                         raise BdbQuit
@@ -182,7 +182,7 @@ class Bdb:
     def is_skipped_module(self, module_name):
         '''Return True if module_name matches any skip pattern.'''
 
-        if not module_name is not None:
+        if module_name is None:
             return False
         for pattern in self.skip:
             if fnmatch.fnmatch(module_name, pattern):
@@ -268,7 +268,7 @@ class Bdb:
         '''Stop when the line with the lineno greater than the current one is
         reached or when returning from current frame.'''
 
-        if not lineno is not None:
+        if lineno is None:
             lineno = frame.f_lineno + 1
         self._set_stopinfo(frame, frame, lineno)
 
@@ -299,7 +299,7 @@ class Bdb:
         If frame is not specified, debugging starts from caller's frame.
         """
 
-        if not frame is not None:
+        if frame is None:
             frame = sys._getframe().f_back
         self.reset()
         while frame:
@@ -455,7 +455,7 @@ class Bdb:
             bp = Breakpoint.bpbynumber[number]
         except IndexError:
             raise ValueError('Breakpoint number %d out of range' % number) from None
-        if not bp is not None:
+        if bp is None:
             raise ValueError('Breakpoint %d already deleted' % number)
         return bp
 
@@ -502,17 +502,17 @@ class Bdb:
         stack = []
         if t and t.tb_frame is f:
             t = t.tb_next
-        while not f is None:
+        while f is not None:
             stack.append((f, f.f_lineno))
             if f is self.botframe:
                 break
             f = f.f_back
         stack.reverse()
         i = max(0, len(stack) - 1)
-        while not t is None:
+        while t is not None:
             stack.append((t.tb_frame, t.tb_lineno))
             t = t.tb_next
-        if not f is not None:
+        if f is None:
             i = max(0, len(stack) - 1)
         return stack, i
 
@@ -540,7 +540,7 @@ class Bdb:
             rv = frame.f_locals['__return__']
             s += '->'
             s += reprlib.repr(rv)
-        if not lineno is None:
+        if lineno is not None:
             line = linecache.getline(filename, lineno, frame.f_globals)
             if line:
                 s += lprefix + line.strip()
@@ -554,10 +554,10 @@ class Bdb:
         globals defaults to __main__.dict; locals defaults to globals.
         '''
 
-        if not globals is not None:
+        if globals is None:
             import __main__
             globals = __main__.__dict__
-        if not locals is not None:
+        if locals is None:
             locals = globals
         self.reset()
         if isinstance(cmd, str):
@@ -577,10 +577,10 @@ class Bdb:
         globals defaults to __main__.dict; locals defaults to globals.
         '''
 
-        if not globals is not None:
+        if globals is None:
             import __main__
             globals = __main__.__dict__
-        if not locals is not None:
+        if locals is None:
             locals = globals
         self.reset()
         sys.settrace(self.trace_dispatch)
@@ -688,7 +688,7 @@ class Breakpoint:
         and defaults to standard output.
         '''
 
-        if not out is not None:
+        if out is None:
             out = sys.stdout
         print(self.bpformat(), file=out)
 

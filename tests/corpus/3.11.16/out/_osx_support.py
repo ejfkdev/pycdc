@@ -15,7 +15,7 @@ def _find_executable(executable, path=None):
     os.environ['PATH'].  Returns the complete filename or None if not found.
     """
 
-    if not path is not None:
+    if path is None:
         path = os.environ['PATH']
     paths = path.split(os.pathsep)
     base, ext = os.path.splitext(executable)
@@ -57,7 +57,7 @@ def _get_system_version():
     '''Return the OS X system version as a string'''
 
     global _SYSTEM_VERSION
-    if not _SYSTEM_VERSION is not None:
+    if _SYSTEM_VERSION is None:
         _SYSTEM_VERSION = ''
         try:
             f = open('/System/Library/CoreServices/SystemVersion.plist', encoding='utf-8')
@@ -67,9 +67,9 @@ def _get_system_version():
             # WARNING: unrecovered try/except structure
             m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
             f.close()
-            if not m is None:
+            if m is not None:
                 _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
-        if not m is None:
+        if m is not None:
             _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
     return _SYSTEM_VERSION
 
@@ -84,7 +84,7 @@ def _get_system_version_tuple():
     '''
 
     global _SYSTEM_VERSION_TUPLE
-    if not _SYSTEM_VERSION_TUPLE is not None:
+    if _SYSTEM_VERSION_TUPLE is None:
         osx_version = _get_system_version()
         if osx_version:
             try:
@@ -114,7 +114,7 @@ def _default_sysroot(cc):
     """ Returns the root of the default SDK for this system, or '/' """
 
     global _cache_default_sysroot
-    if not _cache_default_sysroot is None:
+    if _cache_default_sysroot is not None:
         return _cache_default_sysroot
     contents = _read_output(f'{cc!s} -c -E -v - </dev/null', True)
     in_incdirs = False
@@ -132,7 +132,7 @@ def _default_sysroot(cc):
                 continue
         if line.endswith('.sdk/usr/include'):
             _cache_default_sysroot = line[:-12]
-    if not _cache_default_sysroot is not None:
+    if _cache_default_sysroot is None:
         _cache_default_sysroot = '/'
     return _cache_default_sysroot
 
@@ -186,7 +186,7 @@ def _remove_unsupported_archs(_config_vars):
 
     if 'CC' in os.environ:
         return _config_vars
-    if not re.search('-arch\\s+ppc', _config_vars['CFLAGS']) is None:
+    if re.search('-arch\\s+ppc', _config_vars['CFLAGS']) is not None:
         status = os.system(("echo 'int main{};' | '" + str(_config_vars['CC'].replace("'", '\'"\'"\'')) + "' -c -arch ppc -x c -o /dev/null /dev/null 2>/dev/null"))
         if status:
             for cv in _UNIVERSAL_CONFIG_VARS:
@@ -214,7 +214,7 @@ def _check_for_unavailable_sdk(_config_vars):
 
     cflags = _config_vars.get('CFLAGS', '')
     m = re.search('-isysroot\\s*(\\S+)', cflags)
-    if not m is None:
+    if m is not None:
         sdk = m.group(1)
         if not os.path.exists(sdk):
             for cv in _UNIVERSAL_CONFIG_VARS:

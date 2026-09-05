@@ -31,7 +31,7 @@ def int_to_decimal(n):
         intermediate results. In context, these are likely to be reused
         across various levels of the conversion to Decimal.'''
 
-        if not (result := mem.get(w)) is not None:
+        if (result := mem.get(w)) is None:
             if w <= BITLIM:
                 result = D2 ** w
             elif w - 1 in mem:
@@ -70,14 +70,14 @@ def int_to_decimal_string(n):
 
     w = n.bit_length()
     if w > 450000:
-        if not _decimal is None:
+        if _decimal is not None:
             return str(int_to_decimal(n))
     def inner(n, w):
         if w <= 1000:
             return str(n)
         w2 = w >> 1
         d = pow10_cache.get(w2)
-        if not d is not None:
+        if d is None:
             pow10_cache[w2] = (d := 5 ** w2 << w2)
         hi, lo = divmod(n, d)
         return inner(hi, w - w2) + inner(lo, w2).zfill(w2)
@@ -106,7 +106,7 @@ def _str_to_int_inner(s):
         to 'int'.
         """
 
-        if not (result := mem.get(w)) is not None:
+        if (result := mem.get(w)) is None:
             if w <= DIGLIM:
                 result = 5 ** w
             elif w - 1 in mem:

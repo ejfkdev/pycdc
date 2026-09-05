@@ -901,7 +901,7 @@ class RawConfigParser(MutableMapping):
                         if index == -1:
                             continue
                         next_prefixes[prefix] = index
-                        if not index == 0:
+                        if index != 0:
                             if index > 0:
                                 if line[index - 1].isspace():
                                     comment_start = min(comment_start, index)

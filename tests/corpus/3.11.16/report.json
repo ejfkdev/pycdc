@@ -21,7 +21,7 @@
   },
   {
    "module": "_bootsubprocess",
-   "ast_detail": "diff at token 48: orig  body=[Try(body=[If(test=Compare(left=Attribute(value=Name(id='self' | dec  body=[Try(body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 347: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 87,
    "ntotal": 398,
@@ -57,7 +57,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 43: orig  body=[If(test=Compare(left=Name(id='path' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 139: orig  Return(value=Constant(value=None))] | dec  Return()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1274,
    "ntotal": 1552,
@@ -89,7 +89,7 @@
   },
   {
    "module": "_threading_local",
-   "ast_detail": "diff at token 116: orig  If(test=Compare(left=Name(id='thread' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 126: orig  ctx=Del())])] | dec  ctx=Del())])",
    "verdict": "SIG-DIFF",
    "ndiff": 434,
    "ntotal": 500,
@@ -137,7 +137,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 333: orig  body=[If(test=Compare(left=Attribute(value=Name(id='self' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 525: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2430,
    "ntotal": 2548,
@@ -197,7 +197,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 71: orig  body=[If(test=Compare(left=Name(id='stdin' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 179: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  Try(body=[Try(body=[If(test=Compare(left=Name(id='intro'",
    "verdict": "SIG-DIFF",
    "ndiff": 930,
    "ntotal": 1453,
@@ -205,7 +205,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 23: orig  body=[If(test=Compare(left=Name(id='locals' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 128: orig  keywords=[]))])] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 684,
    "ntotal": 715,
@@ -213,7 +213,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 209: orig  If(test=Compare(left=Name(id='_is_text_encoding' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 749: orig  body=[Pass()] | dec  body=[]",
    "verdict": "SIG-DIFF",
    "ndiff": 1654,
    "ntotal": 2329,
@@ -257,7 +257,7 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 83: orig  If(test=Compare(left=Name(id='copier' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 778: orig  finalbody=[]) | dec  finalbody=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 702,
    "ntotal": 997,
@@ -265,7 +265,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 38: orig  If(test=Compare(left=Name(id='constructor_ob' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 46: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 433,
    "ntotal": 671,
@@ -273,7 +273,7 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 92: orig  body=[If(test=Compare(left=Name(id='method' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 188: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 206,
    "ntotal": 492,
@@ -281,7 +281,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 283: orig  body=[If(test=Compare(left=Attribute(value=Name(id='self' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 962: orig  body=[Continue()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
    "ndiff": 1740,
    "ntotal": 1775,

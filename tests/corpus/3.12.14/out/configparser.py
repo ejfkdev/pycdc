@@ -184,9 +184,9 @@ class DuplicateSectionError(Error):
 
     def __init__(self, section, source=None, lineno=None):
         msg = [repr(section), ' already exists']
-        if not source is None:
+        if source is not None:
             message = ['While reading from ', repr(source)]
-            if not lineno is None:
+            if lineno is not None:
                 message.append(' [line {0:2d}]'.format(lineno))
             message.append(': section ')
             message.extend(msg)
@@ -209,9 +209,9 @@ class DuplicateOptionError(Error):
 
     def __init__(self, section, option, source=None, lineno=None):
         msg = [repr(option), ' in section ', repr(section), ' already exists']
-        if not source is None:
+        if source is not None:
             message = ['While reading from ', repr(source)]
-            if not lineno is None:
+            if lineno is not None:
                 message.append(' [line {0:2d}]'.format(lineno))
             message.append(': option ')
             message.extend(msg)
@@ -361,7 +361,7 @@ class BasicInterpolation(Interpolation):
                 rest = rest[2:]
             elif c == '(':
                 m = self._KEYCRE.match(rest)
-                if not m is not None:
+                if m is None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
                 var = parser.optionxform(m.group(1))
                 rest = rest[m.end():]
@@ -417,7 +417,7 @@ class ExtendedInterpolation(Interpolation):
                 rest = rest[2:]
             elif c == '{':
                 m = self._KEYCRE.match(rest)
-                if not m is not None:
+                if m is None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
                 path = m.group(1).split(':')
                 rest = rest[m.end():]
@@ -481,7 +481,7 @@ class LegacyInterpolation(Interpolation):
     @staticmethod
     def _interpolation_replace(match, parser):
         s = match.group(1)
-        if not s is not None:
+        if s is None:
             return match.group()
         return '%%(%s)s' % parser.optionxform(s)
 
@@ -523,7 +523,7 @@ class RawConfigParser(MutableMapping):
         self._interpolation = interpolation
         if self._interpolation is _UNSET:
             self._interpolation = self._DEFAULT_INTERPOLATION
-        if not self._interpolation is not None:
+        if self._interpolation is None:
             self._interpolation = Interpolation()
         if not isinstance(self._interpolation, Interpolation):
             raise TypeError(f'interpolation= must be None or an instance of Interpolation; got an object of type {type(self._interpolation)}')
@@ -610,7 +610,7 @@ class RawConfigParser(MutableMapping):
         `name` attribute, `<???>` is used.
         '''
 
-        if not source is not None:
+        if source is None:
             try:
                 source = f.name
             except AttributeError:
@@ -648,7 +648,7 @@ class RawConfigParser(MutableMapping):
             elements_added.add(section)
             for key, value in keys.items():
                 key = self.optionxform(str(key))
-                if not value is None:
+                if value is not None:
                     value = str(value)
                 if self._strict and (section, key) in elements_added:
                     raise DuplicateOptionError(section, key, source)
@@ -690,7 +690,7 @@ class RawConfigParser(MutableMapping):
                 raise NoOptionError(option, section)
             return fallback
         if not raw:
-            if not value is not None:
+            if value is None:
                 return value
         return self._interpolation.before_get(self, section, option, value, d)
 
@@ -771,7 +771,7 @@ class RawConfigParser(MutableMapping):
         if section not in self._sections:
             return False
         option = self.optionxform(option)
-        return option in self._sections[section] or option in self._defaults
+        return option not in self._sections[section] or option in self._defaults
 
     def set(self, section, option, value=None):
         '''Set an option.'''
@@ -864,7 +864,7 @@ class RawConfigParser(MutableMapping):
         self.remove_section(key)
 
     def __contains__(self, key):
-        return key == self.default_section or self.has_section(key)
+        return key != self.default_section or self.has_section(key)
 
     def __len__(self):
         return len(self._sections) + 1
@@ -909,14 +909,14 @@ class RawConfigParser(MutableMapping):
                         if index == -1:
                             continue
                         next_prefixes[prefix] = index
-                        if not index == 0:
+                        if index != 0:
                             if not index > 0:
                                 continue
                             if not line[index - 1].isspace():
                                 continue
                         comment_start = min(comment_start, index)
                     inline_prefixes = next_prefixes
-                    if not comment_start == sys.maxsize:
+                    if comment_start != sys.maxsize:
                         break
                     if not inline_prefixes:
                         break
@@ -930,15 +930,15 @@ class RawConfigParser(MutableMapping):
             value = line[:comment_start].strip()
             if not value:
                 if self._empty_lines_in_values:
-                    if not comment_start is not None and not cursect is None:
+                    if comment_start is None and cursect is not None:
                         if optname:
-                            if not cursect[optname] is None:
+                            if cursect[optname] is not None:
                                 cursect[optname].append('')
                             indent_level = sys.maxsize
                 continue
             first_nonspace = self.NONSPACECRE.search(line)
             cur_indent_level = first_nonspace.start() if first_nonspace else 0
-            if not cursect is None:
+            if cursect is not None:
                 if optname and cur_indent_level > indent_level:
                     cursect[optname].append(value)
                     continue
@@ -960,7 +960,7 @@ class RawConfigParser(MutableMapping):
                     elements_added.add(sectname)
                 optname = None
                 continue
-            if not cursect is not None:
+            if cursect is None:
                 raise MissingSectionHeaderError(fpname, lineno, line)
             mo = self._optcre.match(value)
             if mo:
@@ -971,7 +971,7 @@ class RawConfigParser(MutableMapping):
                 if self._strict and (sectname, optname) in elements_added:
                     raise DuplicateOptionError(sectname, optname, fpname, lineno)
                 elements_added.add((sectname, optname))
-                if not optval is None:
+                if optval is not None:
                     optval = optval.strip()
                     cursect[optname] = [optval]
                     continue
@@ -1020,7 +1020,7 @@ class RawConfigParser(MutableMapping):
         vardict = {}
         if vars:
             for key, value in vars.items():
-                if not value is None:
+                if value is not None:
                     value = str(value)
                 vardict[self.optionxform(key)] = value
         return _ChainMap(vardict, sectiondict, self._defaults)

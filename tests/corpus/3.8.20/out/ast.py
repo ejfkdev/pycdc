@@ -148,7 +148,7 @@ def copy_location(new_node, old_node):
         if attr in old_node._attributes:
             if attr in new_node._attributes:
                 value = getattr(old_node, attr, None)
-                if not value is not None:
+                if value is None:
                     if hasattr(old_node, attr):
                         if attr.startswith('end_'):
                             setattr(new_node, attr, value)

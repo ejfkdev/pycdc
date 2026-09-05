@@ -687,7 +687,7 @@ class ValuesView(MappingView):
     def __contains__(self, value):
         for key in self._mapping:
             v = self._mapping[key]
-            if not v is value:
+            if v is not value:
                 if v == value:
                     return True
         return False
@@ -810,7 +810,7 @@ class Sequence(Reversible, Collection):
 
     def __contains__(self, value):
         for v in self:
-            if not v is value:
+            if v is not value:
                 if v == value:
                     return True
         return False
@@ -833,7 +833,7 @@ class Sequence(Reversible, Collection):
             stop += len(self)
         i = start
         while True:
-            if stop is None or i < stop:
+            if stop is not None or i < stop:
                 pass
         raise ValueError
         try:

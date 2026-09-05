@@ -25,7 +25,7 @@ def b64encode(s, altchars=None):
     """
 
     encoded = binascii.b2a_base64(s, newline=False)
-    if not altchars is None:
+    if altchars is not None:
         assert len(altchars) == 2, repr(altchars)
         return encoded.translate(bytes.maketrans(b'+/', altchars))
     return encoded
@@ -50,7 +50,7 @@ def b64decode(s, altchars=None, validate=False):
     """
 
     s = _bytes_from_decode_data(s)
-    if not altchars is None:
+    if altchars is not None:
         altchars = _bytes_from_decode_data(altchars)
         assert len(altchars) == 2, repr(altchars)
         s = s.translate(bytes.maketrans(altchars, b'+/'))
@@ -147,7 +147,7 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
     s = _bytes_from_decode_data(s)
     if len(s) % 8:
         raise binascii.Error('Incorrect padding')
-    if not map01 is None:
+    if map01 is not None:
         map01 = _bytes_from_decode_data(map01)
         assert len(map01) == 1, repr(map01)
         s = s.translate(bytes.maketrans(b'01', b'O' + map01))
@@ -259,7 +259,7 @@ def a85encode(b, *, foldspaces=False, wrapcol=0, pad=False, adobe=False):
     '''
 
     global _a85chars, _a85chars2
-    if not _a85chars2 is not None:
+    if _a85chars2 is None:
         _a85chars = [bytes((i,)) for i in range(33, 118)]
         _a85chars2 = [a + b for a in _a85chars for b in _a85chars]
     result = _85encode(b, _a85chars, _a85chars2, pad, True, foldspaces)
@@ -311,7 +311,7 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
             if x <= 117:
                 pass
         curr_append(x)
-        if not len(curr) == 5:
+        if len(curr) != 5:
             continue
         acc = 0
         for x in curr:
@@ -351,7 +351,7 @@ def b85encode(b, pad=False):
     """
 
     global _b85chars, _b85chars2
-    if not _b85chars2 is not None:
+    if _b85chars2 is None:
         _b85chars = [bytes((i,)) for i in _b85alphabet]
         _b85chars2 = [a + b for a in _b85chars for b in _b85chars]
     return _85encode(b, _b85chars, _b85chars2, pad)
@@ -363,7 +363,7 @@ def b85decode(b):
     '''
 
     global _b85dec
-    if not _b85dec is not None:
+    if _b85dec is None:
         _b85dec = [None] * 256
         for i, c in enumerate(_b85alphabet):
             _b85dec[c] = i
@@ -381,7 +381,7 @@ def b85decode(b):
                     acc = acc * 85 + _b85dec[c]
             except TypeError:
                 for j, c in enumerate(chunk):
-                    if not _b85dec[c] is None:
+                    if _b85dec[c] is not None:
                         continue
                     raise ValueError('bad base85 character at position %d' % (i + j)) from None
                 raise
@@ -462,7 +462,7 @@ def main():
             func = decode
         if o == '-u':
             func = decode
-        if not o == '-h':
+        if o != '-h':
             continue
         print(usage)
         return

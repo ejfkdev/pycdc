@@ -44,7 +44,7 @@ class CodecInfo(tuple):
         self.incrementaldecoder = incrementaldecoder
         self.streamwriter = streamwriter
         self.streamreader = streamreader
-        if not _is_text_encoding is None:
+        if _is_text_encoding is not None:
             self._is_text_encoding = _is_text_encoding
         return self
 
@@ -496,7 +496,7 @@ read() method.
                     line = line0withoutend
                     return line
             if data:
-                if not size is None:
+                if size is not None:
                     if line:
                         if not keepends:
                             line = line.splitlines(keepends=False)[0]
@@ -696,7 +696,7 @@ StreamWriter/Readers.
         return data
 
     def readline(self, size=None):
-        if not size is not None:
+        if size is None:
             data = self.reader.readline()
         else:
             data = self.reader.readline(size)
@@ -783,11 +783,11 @@ parameter.
 
     import warnings
     warnings.warn('codecs.open() is deprecated. Use open() instead.', DeprecationWarning, stacklevel=2)
-    if not encoding is None:
+    if encoding is not None:
         if 'b' not in mode:
             mode = mode + 'b'
     file = builtins.open(filename, mode, buffering)
-    if not encoding is not None:
+    if encoding is None:
         return file
     try:
         info = lookup(encoding)
@@ -823,7 +823,7 @@ introspection by Python programs.
 
 """
 
-    if not file_encoding is not None:
+    if file_encoding is None:
         file_encoding = data_encoding
     data_info = lookup(data_encoding)
     file_info = lookup(file_encoding)
@@ -862,7 +862,7 @@ or the codecs doesn't provide an incremental encoder.
 """
 
     encoder = lookup(encoding).incrementalencoder
-    if not encoder is not None:
+    if encoder is None:
         raise LookupError(encoding)
     return encoder
 
@@ -876,7 +876,7 @@ or the codecs doesn't provide an incremental decoder.
 """
 
     decoder = lookup(encoding).incrementaldecoder
-    if not decoder is not None:
+    if decoder is None:
         raise LookupError(encoding)
     return decoder
 
@@ -967,7 +967,7 @@ multiple character to \\u001a.
 
     m = {}
     for k, v in decoding_map.items():
-        if not v in m:
+        if v not in m:
             m[v] = k
             continue
         m[v] = None

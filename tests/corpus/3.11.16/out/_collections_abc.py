@@ -55,7 +55,7 @@ def _check_methods(C, *methods):
     for method in methods:
         for B in mro:
             if method in B.__dict__:
-                if not B.__dict__[method] is not None:
+                if B.__dict__[method] is None:
                     return NotImplemented
                 break
         else:
@@ -105,11 +105,11 @@ class Coroutine(Awaitable):
         Return next yielded value or raise StopIteration.
         '''
 
-        if not val is not None:
-            if not tb is not None:
+        if val is None:
+            if tb is None:
                 raise typ
             val = typ()
-        if not tb is None:
+        if tb is not None:
             val = val.with_traceback(tb)
         raise val
 
@@ -187,11 +187,11 @@ class AsyncGenerator(AsyncIterator):
         Return next yielded value or raise StopAsyncIteration.
         '''
 
-        if not val is not None:
-            if not tb is not None:
+        if val is None:
+            if tb is None:
                 raise typ
             val = typ()
-        if not tb is None:
+        if tb is not None:
             val = val.with_traceback(tb)
         raise val
 
@@ -298,11 +298,11 @@ class Generator(Iterator):
         Return next yielded value or raise StopIteration.
         '''
 
-        if not val is not None:
-            if not tb is not None:
+        if val is None:
+            if tb is None:
                 raise typ
             val = typ()
-        if not tb is None:
+        if tb is not None:
             val = val.with_traceback(tb)
         raise val
 
@@ -919,14 +919,14 @@ class Sequence(Reversible, Collection):
            recommended.
         '''
 
-        if not start is None:
+        if start is not None:
             if start < 0:
                 start = max(len(self) + start, 0)
-        if not stop is None:
+        if stop is not None:
             if stop < 0:
                 stop += len(self)
         i = start
-        if stop is None or i < stop:
+        if stop is not None or i < stop:
             try:
                 v = self[i]
             except IndexError:
@@ -937,14 +937,14 @@ class Sequence(Reversible, Collection):
                 if v is value or v == value:
                     return i
                 i += 1
-                if not stop is None:
+                if stop is not None:
                     pass
                 if not i < stop:
                     pass
         if v is value or v == value:
             return i
         i += 1
-        if not stop is None:
+        if stop is not None:
             pass
         if not i < stop:
             pass

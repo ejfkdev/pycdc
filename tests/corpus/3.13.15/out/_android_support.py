@@ -91,7 +91,7 @@ class BinaryLogStream(io.RawIOBase):
         return len(b)
 
     def fileno(self):
-        if not self._fileno is not None:
+        if self._fileno is None:
             raise io.UnsupportedOperation('fileno')
         return self._fileno
 

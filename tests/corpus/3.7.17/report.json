@@ -243,7 +243,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 2731: orig  body=[Try(body=[Assign(targets=[Name(id='source' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 3374,
+   "ndiff": 3376,
    "ntotal": 4369,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },

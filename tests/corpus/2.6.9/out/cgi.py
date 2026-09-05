@@ -369,7 +369,7 @@ class FieldStorage:
         if 'REQUEST_METHOD' in environ:
             method = environ['REQUEST_METHOD'].upper()
         self.qs_on_post = None
-        if method == 'GET' or method == 'HEAD':
+        if method != 'GET' or method == 'HEAD':
             if 'QUERY_STRING' in environ:
                 qs = environ['QUERY_STRING']
             elif sys.argv[1:]:

@@ -238,11 +238,11 @@ def open(filename, mode='rb', compresslevel=9, encoding=None, errors=None, newli
     if 't' in mode:
         if 'b' in mode:
             raise ValueError(f'Invalid mode: {mode!r}')
-            if not encoding is None:
+            if encoding is not None:
                 raise ValueError("Argument 'encoding' not supported in binary mode")
-            if not errors is None:
+            if errors is not None:
                 raise ValueError("Argument 'errors' not supported in binary mode")
-            if not newline is None:
+            if newline is not None:
                 raise ValueError("Argument 'newline' not supported in binary mode")
     bz_mode = mode.replace('t', '')
     binary_file = BZ2File(filename, bz_mode, compresslevel=compresslevel)

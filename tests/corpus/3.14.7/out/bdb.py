@@ -33,7 +33,7 @@ class _MonitoringTracer:
         self._tracefunc = tracefunc
         self._tracing_thread = threading.current_thread()
         curr_tool = sys.monitoring.get_tool(self._tool_id)
-        if not curr_tool is not None:
+        if curr_tool is None:
             sys.monitoring.use_tool_id(self._tool_id, self._name)
         elif curr_tool == self._name:
             sys.monitoring.clear_tool_id(self._tool_id)
@@ -44,7 +44,7 @@ class _MonitoringTracer:
         for event, cb_name in self.EVENT_CALLBACK_MAP.items():
             callback = self.callback_wrapper(getattr(self, f'{cb_name}_callback'), event)
             sys.monitoring.register_callback(self._tool_id, event, callback)
-            if not event != E.INSTRUCTION:
+            if event == E.INSTRUCTION:
                 continue
             all_events |= event
         self.update_local_events()
@@ -99,7 +99,7 @@ class _MonitoringTracer:
 
     def call_callback(self, frame, code, *args):
         local_tracefunc = self._tracefunc(frame, 'call', None)
-        if not local_tracefunc is None:
+        if local_tracefunc is not None:
             frame.f_trace = local_tracefunc
             if self._enabled:
                 sys.monitoring.set_local_events(self._tool_id, code, self.LOCAL_EVENTS)
@@ -157,10 +157,10 @@ class _MonitoringTracer:
     def update_local_events(self, frame=None):
         if sys.monitoring.get_tool(self._tool_id) != self._name:
             return
-        if not frame is not None:
+        if frame is None:
             frame = sys._getframe().f_back
-        while not frame is None:
-            if not frame.f_trace is None:
+        while frame is not None:
+            if frame.f_trace is not None:
                 if frame.f_trace_opcodes:
                     events = self.LOCAL_EVENTS | E.INSTRUCTION
                 else:
@@ -338,7 +338,7 @@ self.user_call(). Raise BdbQuit if self.quitting is set.
 Return self.trace_dispatch to continue tracing in this scope.
 '''
 
-        if not self.botframe is not None:
+        if self.botframe is None:
             self.botframe = frame.f_back
             return self.trace_dispatch
         if not self.stop_here(frame) and not self.break_anywhere(frame):
@@ -388,7 +388,7 @@ Return self.trace_dispatch to continue tracing in this scope.
 
         if self.stop_here(frame):
             if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] is StopIteration:
-                if not arg[2] is None:
+                if arg[2] is not None:
                     self.user_exception(frame, arg)
                     self.restart_events()
                     if self.quitting:
@@ -411,7 +411,7 @@ Return self.trace_dispatch to continue tracing in this scope.
     def is_skipped_module(self, module_name):
         '''Return True if module_name matches any skip pattern.'''
 
-        if not module_name is not None:
+        if module_name is None:
             return False
         for pattern in self.skip:
             if not fnmatch.fnmatch(module_name, pattern):
@@ -506,7 +506,7 @@ Must implement in derived classes or get NotImplementedError.
         if trace_opcodes != self.trace_opcodes:
             self.trace_opcodes = trace_opcodes
             frame = self.enterframe
-            while not frame is None:
+            while frame is not None:
                 frame.f_trace_opcodes = trace_opcodes
                 if frame is self.botframe:
                     break
@@ -546,7 +546,7 @@ don't stop at all.
         '''Stop when the line with the lineno greater than the current one is
 reached or when returning from current frame.'''
 
-        if not lineno is not None:
+        if lineno is None:
             lineno = frame.f_lineno + 1
         self._set_stopinfo(frame, frame, lineno)
 
@@ -569,7 +569,7 @@ reached or when returning from current frame.'''
 
     def set_trace(self, frame=None):
         self.stop_trace()
-        if not frame is not None:
+        if frame is None:
             frame = sys._getframe().f_back
         self.reset()
         with self.set_enterframe(frame):
@@ -742,7 +742,7 @@ raise a ValueError.
             bp = Breakpoint.bpbynumber[number]
         except IndexError:
             raise ValueError('Breakpoint number %d out of range' % number) from None
-        if not bp is not None:
+        if bp is None:
             raise ValueError('Breakpoint %d already deleted' % number)
         return bp
 
@@ -787,17 +787,17 @@ Size may be number of frames above or below f.
         stack = []
         if t and t.tb_frame is f:
             t = t.tb_next
-        while not f is None:
+        while f is not None:
             stack.append((f, f.f_lineno))
             if f is self.botframe:
                 break
             f = f.f_back
         stack.reverse()
         i = max(0, len(stack) - 1)
-        while not t is None:
+        while t is not None:
             stack.append((t.tb_frame, t.tb_lineno))
             t = t.tb_next
-        if not f is not None:
+        if f is None:
             i = max(0, len(stack) - 1)
         return stack, i
 
@@ -825,7 +825,7 @@ line of code (if it exists).
             rv = frame.f_locals['__return__']
             s += '->'
             s += reprlib.repr(rv)
-        if not lineno is None:
+        if lineno is not None:
             line = linecache.getline(filename, lineno, frame.f_globals)
             if line:
                 s += lprefix + line.strip()
@@ -853,10 +853,10 @@ line of code (if it exists).
 globals defaults to __main__.dict; locals defaults to globals.
 '''
 
-        if not globals is not None:
+        if globals is None:
             import __main__
             globals = __main__.__dict__
-        if not locals is not None:
+        if locals is None:
             locals = globals
         self.reset()
         if isinstance(cmd, str):
@@ -875,10 +875,10 @@ globals defaults to __main__.dict; locals defaults to globals.
 globals defaults to __main__.dict; locals defaults to globals.
 '''
 
-        if not globals is not None:
+        if globals is None:
             import __main__
             globals = __main__.__dict__
-        if not locals is not None:
+        if locals is None:
             locals = globals
         self.reset()
         self.start_trace()
@@ -985,7 +985,7 @@ The optional out argument directs where the output is sent
 and defaults to standard output.
 '''
 
-        if not out is not None:
+        if out is None:
             out = sys.stdout
         print(self.bpformat(), file=out)
 

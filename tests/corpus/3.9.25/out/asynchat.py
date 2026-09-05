@@ -106,7 +106,7 @@ class async_chat(asyncore.dispatcher):
                 continue
             index = find_prefix_at_end(self.ac_in_buffer, terminator)
             if index:
-                if not index != lb:
+                if index == lb:
                     break
                 self.collect_incoming_data(self.ac_in_buffer[:-index])
                 self.ac_in_buffer = self.ac_in_buffer[-index:]

@@ -104,7 +104,7 @@ class _GeneratorContextManagerBase:
         self.args = args
         self.kwds = kwds
         doc = getattr(func, '__doc__', None)
-        if not doc is not None:
+        if doc is None:
             doc = type(self).__doc__
         self.__doc__ = doc
 
@@ -123,14 +123,14 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             raise RuntimeError("generator didn't yield") from None
 
     def __exit__(self, typ, value, traceback):
-        if not typ is not None:
+        if typ is None:
             try:
                 next(self.gen)
             except StopIteration:
                 return False
             # WARNING: unrecovered try/except structure
             raise RuntimeError("generator didn't stop")
-        if not value is not None:
+        if value is None:
             value = typ()
         try:
             self.gen.throw(typ, value, traceback)
@@ -170,14 +170,14 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             raise RuntimeError("generator didn't yield") from None
 
     async def __aexit__(self, typ, value, traceback):
-        if not typ is not None:
+        if typ is None:
             try:
                 await anext(self.gen)
             except StopAsyncIteration:
                 return False
             # WARNING: unrecovered try/except structure
             raise RuntimeError("generator didn't stop")
-        if not value is not None:
+        if value is None:
             value = typ()
         try:
             await self.gen.athrow(typ, value, traceback)

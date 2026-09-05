@@ -161,12 +161,12 @@ class LocaleTime(object):
             time_tuple = time.struct_time((1999, m, 17, 22, 44, 55, 2, 76, 0))
             datetime = time.strftime(directive, time_tuple).lower()
             indices = set(_findall(datetime, self.f_month[m]))
-            if not full_indices is not None:
+            if full_indices is None:
                 full_indices = indices
             else:
                 full_indices &= indices
             indices = set(_findall(datetime, self.a_month[m]))
-            if not abbr_indices is not None:
+            if abbr_indices is None:
                 abbr_indices = indices
             else:
                 abbr_indices &= indices
@@ -192,13 +192,13 @@ class LocaleTime(object):
             time_tuple = time.struct_time((1999, 3, 17, 22, 44, 55, wd, 76, 0))
             datetime = time.strftime(directive, time_tuple).lower()
             indices = set(_findall(datetime, self.f_weekday[wd]))
-            if not full_indices is not None:
+            if full_indices is None:
                 full_indices = indices
             else:
                 full_indices &= indices
             if self.f_weekday[wd] != self.a_weekday[wd]:
                 indices = set(_findall(datetime, self.a_weekday[wd]))
-            if not abbr_indices is not None:
+            if abbr_indices is None:
                 abbr_indices = indices
             else:
                 abbr_indices &= indices
@@ -265,7 +265,7 @@ class TimeRE(dict):
 
         to_convert = sorted(to_convert, key=len, reverse=True)
         for value in to_convert:
-            if not value != '':
+            if value == '':
                 continue
             break
         else:
@@ -397,13 +397,13 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             hour = int(found_dict['I'])
             ampm = found_dict.get('p', '').lower()
             if ampm in ('', locale_time.am_pm[0]):
-                if not hour == 12:
+                if hour != 12:
                     continue
                 hour = 0
                 continue
-            if not ampm == locale_time.am_pm[1]:
+            if ampm != locale_time.am_pm[1]:
                 continue
-            if not hour != 12:
+            if hour == 12:
                 continue
             hour += 12
             continue
@@ -472,57 +472,57 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             gmtoff = -gmtoff
             gmtoff_fraction = -gmtoff_fraction
             continue
-        if not group_key == 'Z':
+        if group_key != 'Z':
             continue
         found_zone = found_dict['Z'].lower()
         for value, tz_values in enumerate(locale_time.timezone):
-            if not found_zone in tz_values:
+            if found_zone not in tz_values:
                 continue
             if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
                 continue
             tz = value
             continue
         continue
-    if not iso_year is None:
-        if not julian is None:
+    if iso_year is not None:
+        if julian is not None:
             raise ValueError("Day of the year directive '%j' is not compatible with ISO year directive '%G'. Use '%Y' instead.")
-        if not iso_week is None:
-            if not weekday is not None:
+        if iso_week is not None:
+            if weekday is None:
                 raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")
-                if not iso_week is None:
-                    if not year is None:
-                        if not weekday is not None:
+                if iso_week is not None:
+                    if year is not None:
+                        if weekday is None:
                             raise ValueError("ISO week directive '%V' must be used with the ISO year directive '%G' and a weekday directive ('%A', '%a', '%w', or '%u').")
                     raise ValueError("ISO week directive '%V' is incompatible with the year directive '%Y'. Use the ISO year '%G' instead.")
     leap_year_fix = False
-    if not year is not None:
+    if year is None:
         if month == 2 and day == 29:
             year = 1904
             leap_year_fix = True
         else:
             year = 1900
-    if not julian is not None and not weekday is None:
-        if not week_of_year is None:
+    if julian is None and weekday is not None:
+        if week_of_year is not None:
             week_starts_Mon = True if week_of_year_start == 0 else False
             julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
-        if not iso_year is None and not iso_week is None:
+        if iso_year is not None and iso_week is not None:
             datetime_result = datetime_date.fromisocalendar(iso_year, iso_week, weekday + 1)
             year = datetime_result.year
             month = datetime_result.month
             day = datetime_result.day
-        if not julian is None:
+        if julian is not None:
             if julian <= 0:
                 year -= 1
                 yday = 366 if calendar.isleap(year) else 365
                 julian += yday
-    if not julian is not None:
+    if julian is None:
         julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
     else:
         datetime_result = datetime_date.fromordinal(julian - 1 + datetime_date(year, 1, 1).toordinal())
         year = datetime_result.year
         month = datetime_result.month
         day = datetime_result.day
-    if not weekday is not None:
+    if weekday is None:
         weekday = datetime_date(year, month, day).weekday()
     tzname = found_dict.get('Z')
     if leap_year_fix:
@@ -543,7 +543,7 @@ def _strptime_datetime(cls, data_string, format='%a %b %d %H:%M:%S %Y'):
     tt, fraction, gmtoff_fraction = _strptime(data_string, format)
     tzname, gmtoff = tt[-2:]
     args = tt[:6] + (fraction,)
-    if not gmtoff is None:
+    if gmtoff is not None:
         tzdelta = datetime_timedelta(seconds=gmtoff, microseconds=gmtoff_fraction)
         if tzname:
             tz = datetime_timezone(tzdelta, tzname)

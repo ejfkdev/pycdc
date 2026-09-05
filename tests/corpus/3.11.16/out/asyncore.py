@@ -113,7 +113,7 @@ def readwrite(obj, flags):
         return
 
 def poll(timeout=0.0, map=None):
-    if not map is not None:
+    if map is None:
         map = socket_map
     if map:
         r = []
@@ -136,24 +136,24 @@ def poll(timeout=0.0, map=None):
         r, w, e = select.select(r, w, e, timeout)
         for fd in r:
             obj = map.get(fd)
-            if not obj is not None:
+            if obj is None:
                 continue
             read(obj)
         for fd in w:
             obj = map.get(fd)
-            if not obj is not None:
+            if obj is None:
                 continue
             write(obj)
         for fd in e:
             obj = map.get(fd)
-            if not obj is not None:
+            if obj is None:
                 continue
             _exception(obj)
 
 def poll2(timeout=0.0, map=None):
-    if not map is not None:
+    if map is None:
         map = socket_map
-    if not timeout is None:
+    if timeout is not None:
         timeout = int(timeout * 1000)
     pollster = select.poll()
     if map:
@@ -169,20 +169,20 @@ def poll2(timeout=0.0, map=None):
         r = pollster.poll(timeout)
         for fd, flags in r:
             obj = map.get(fd)
-            if not obj is not None:
+            if obj is None:
                 continue
             readwrite(obj, flags)
 
 poll3 = poll2
 
 def loop(timeout=30.0, use_poll=False, map=None, count=None):
-    if not map is not None:
+    if map is None:
         map = socket_map
     if use_poll and hasattr(select, 'poll'):
         poll_fun = poll2
     else:
         poll_fun = poll
-    if not count is not None:
+    if count is None:
         while map:
             poll_fun(timeout, map)
         return
@@ -202,7 +202,7 @@ class dispatcher:
     addr = None
     ignore_log_types = frozenset({'warning'})
     def __init__(self, sock=None, map=None):
-        if not map is not None:
+        if map is None:
             self._map = socket_map
         else:
             self._map = map
@@ -231,7 +231,7 @@ class dispatcher:
             status.append('listening')
         elif self.connected:
             status.append('connected')
-        if not self.addr is None:
+        if self.addr is not None:
             try:
                 status.append('%s:%d' % self.addr)
             except TypeError:
@@ -239,13 +239,13 @@ class dispatcher:
         return '<%s at %#x>' % (' '.join(status), id(self))
 
     def add_channel(self, map=None):
-        if not map is not None:
+        if map is None:
             map = self._map
         map[self._fileno] = self
 
     def del_channel(self, map=None):
         fd = self._fileno
-        if not map is not None:
+        if map is None:
             map = self._map
         if fd in map:
             del map[fd]
@@ -288,7 +288,7 @@ class dispatcher:
         self.connected = False
         self.connecting = True
         err = self.socket.connect_ex(address)
-        if err in (EINPROGRESS, EALREADY, EWOULDBLOCK) or err == EINVAL:
+        if err not in (EINPROGRESS, EALREADY, EWOULDBLOCK) or err == EINVAL:
             self.addr = address
             return
         if err in (0, EISCONN):
@@ -346,7 +346,7 @@ class dispatcher:
         self.accepting = False
         self.connecting = False
         self.del_channel()
-        if not self.socket is None:
+        if self.socket is not None:
             try:
                 self.socket.close()
             except OSError as why:
@@ -420,7 +420,7 @@ class dispatcher:
 
     def handle_accept(self):
         pair = self.accept()
-        if not pair is None:
+        if pair is not None:
             self.handle_accepted(*pair)
             return
 
@@ -469,7 +469,7 @@ def compact_traceback():
     return (file, function, line), t, v, info
 
 def close_all(map=None, ignore_all=False):
-    if not map is not None:
+    if map is None:
         map = socket_map
     for x in list(map.values()):
         try:

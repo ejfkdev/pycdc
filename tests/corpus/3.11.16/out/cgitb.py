@@ -132,7 +132,7 @@ def html(einfo, context=5):
 
         vars = scanvars(reader, frame, locals)
         rows = [f'<tr><td bgcolor="#d8bbff">{"<big>&nbsp;</big>"!s}{link!s} {call!s}</td></tr>']
-        if not index is None:
+        if index is not None:
             i = lnum - index
             for line in lines:
                 num = small('&nbsp;' * (5 - len(str(i))) + str(i)) + '&nbsp;'
@@ -201,7 +201,7 @@ def text(einfo, context=5):
 
         vars = scanvars(reader, frame, locals)
         rows = [f' {file!s} {call!s}']
-        if not index is None:
+        if index is not None:
             i = lnum - index
             for line in lines:
                 num = '%5d ' % i
@@ -263,7 +263,7 @@ class Hook:
                 self.file.write(doc + '\n')
         else:
             self.file.write('<p>A problem occurred in a Python script.\n')
-        if not self.logdir is None:
+        if self.logdir is not None:
             suffix = ['.txt', '.html'][self.format == 'html']
             fd, path = tempfile.mkstemp(suffix=suffix, dir=self.logdir)
             try:

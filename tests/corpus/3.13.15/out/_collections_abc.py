@@ -60,9 +60,9 @@ def _check_methods(C, *methods):
     mro = C.__mro__
     for method in methods:
         for B in mro:
-            if not method in B.__dict__:
+            if method not in B.__dict__:
                 continue
-            if not B.__dict__[method] is not None:
+            if B.__dict__[method] is None:
                 return NotImplemented
             break
         return NotImplemented
@@ -111,11 +111,11 @@ Return next yielded value or raise StopIteration.
 Return next yielded value or raise StopIteration.
 '''
 
-        if not val is not None:
-            if not tb is not None:
+        if val is None:
+            if tb is None:
                 raise typ
             val = typ()
-        if not tb is None:
+        if tb is not None:
             val = val.with_traceback(tb)
         raise val
 
@@ -193,11 +193,11 @@ Return next yielded value or raise StopAsyncIteration.
 Return next yielded value or raise StopAsyncIteration.
 '''
 
-        if not val is not None:
-            if not tb is not None:
+        if val is None:
+            if tb is None:
                 raise typ
             val = typ()
-        if not tb is None:
+        if tb is not None:
             val = val.with_traceback(tb)
         raise val
 
@@ -312,11 +312,11 @@ Return next yielded value or raise StopIteration.
 Return next yielded value or raise StopIteration.
 '''
 
-        if not val is not None:
-            if not tb is not None:
+        if val is None:
+            if tb is None:
                 raise typ
             val = typ()
-        if not tb is None:
+        if tb is not None:
             val = val.with_traceback(tb)
         raise val
 
@@ -494,7 +494,7 @@ then the other operations will automatically follow suit.
         if len(self) > len(other):
             return False
         for elem in self:
-            if not elem not in other:
+            if elem in other:
                 continue
             return False
         return True
@@ -515,7 +515,7 @@ then the other operations will automatically follow suit.
         if len(self) < len(other):
             return False
         for elem in other:
-            if not elem not in self:
+            if elem in self:
                 continue
             return False
         return True
@@ -545,7 +545,7 @@ does not accept an iterable for an input.
         '''Return True if two sets have a null intersection.'''
 
         for value in other:
-            if not value in self:
+            if value not in self:
                 continue
             return False
         return True
@@ -796,7 +796,7 @@ class ItemsView(MappingView, Set):
             v = self._mapping[key]
         except KeyError:
             return False
-        return v is value or v == value
+        return v is not value or v == value
 
     def __iter__(self):
         for key in self._mapping:
@@ -810,7 +810,7 @@ class ValuesView(MappingView, Collection):
     def __contains__(self, value):
         for key in self._mapping:
             v = self._mapping[key]
-            if not v is value and not v == value:
+            if v is not value and v != value:
                 pass
             else:
                 return True
@@ -938,7 +938,7 @@ __getitem__, and __len__.
 
     def __contains__(self, value):
         for v in self:
-            if not v is value and not v == value:
+            if v is not value and v != value:
                 pass
             else:
                 return True
@@ -956,14 +956,14 @@ Supporting start and stop arguments is optional, but
 recommended.
 '''
 
-        if not start is None:
+        if start is not None:
             if start < 0:
                 start = max(len(self) + start, 0)
-        if not stop is None:
+        if stop is not None:
             if stop < 0:
                 stop += len(self)
         i = start
-        if stop is None or i < stop:
+        if stop is not None or i < stop:
             try:
                 v = self[i]
             except IndexError:
@@ -971,7 +971,7 @@ recommended.
             if v is value or v == value:
                 return i
             i += 1
-            if not stop is not None:
+            if stop is None:
                 pass
             if i < stop:
                 pass

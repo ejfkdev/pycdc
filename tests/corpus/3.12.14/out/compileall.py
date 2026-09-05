@@ -43,9 +43,9 @@ def _walk_dir(dir, maxlevels, quiet=0):
                 continue
             if not maxlevels > 0:
                 continue
-            if not name != os.curdir:
+            if name == os.curdir:
                 continue
-            if not name != os.pardir:
+            if name == os.pardir:
                 continue
             if not os.path.isdir(fullname):
                 continue
@@ -80,11 +80,11 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
     '''
 
     ProcessPoolExecutor = None
-    if not ddir is None:
-        if not stripdir is not None:
-            if not prependdir is None:
+    if ddir is not None:
+        if stripdir is None:
+            if prependdir is not None:
                 raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
-    if not ddir is None:
+    if ddir is not None:
         stripdir = dir
         prependdir = ddir
         ddir = None
@@ -94,12 +94,12 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
         from concurrent.futures.process import _check_system_limits
         _check_system_limits()
         from concurrent.futures import ProcessPoolExecutor
-    if not maxlevels is not None:
+    if maxlevels is None:
         maxlevels = sys.getrecursionlimit()
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels)
     success = True
     if workers != 1:
-        if not ProcessPoolExecutor is None:
+        if ProcessPoolExecutor is not None:
             import multiprocessing
             if multiprocessing.get_start_method() == 'fork':
                 mp_context = multiprocessing.get_context('forkserver')
@@ -140,28 +140,28 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     hardlink_dupes: hardlink duplicated pyc files
     '''
 
-    if not ddir is None:
-        if not stripdir is not None:
-            if not prependdir is None:
+    if ddir is not None:
+        if stripdir is None:
+            if prependdir is not None:
                 raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
     success = True
     fullname = os.fspath(fullname)
-    stripdir = os.fspath(stripdir) if not stripdir is None else None
+    stripdir = os.fspath(stripdir) if stripdir is not None else None
     name = os.path.basename(fullname)
     dfile = None
-    if not ddir is None:
+    if ddir is not None:
         dfile = os.path.join(ddir, name)
-    if not stripdir is None:
+    if stripdir is not None:
         fullname_parts = fullname.split(os.path.sep)
         stripdir_parts = stripdir.split(os.path.sep)
         ddir_parts = list(fullname_parts)
         for spart, opart in zip(stripdir_parts, fullname_parts):
-            if not spart == opart:
+            if spart != opart:
                 continue
             ddir_parts.remove(spart)
         dfile = os.path.join(*ddir_parts)
-    if not prependdir is None:
-        if not dfile is not None:
+    if prependdir is not None:
+        if dfile is None:
             dfile = os.path.join(prependdir, fullname)
         else:
             dfile = os.path.join(prependdir, dfile)
@@ -170,11 +170,11 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     optimize = sorted(set(optimize))
     if hardlink_dupes and len(optimize) < 2:
         raise ValueError('Hardlinking of duplicated bytecode makes sense only for more than one optimization level')
-    if not rx is None:
+    if rx is not None:
         mo = rx.search(fullname)
         if mo:
             return success
-    if not limit_sl_dest is None:
+    if limit_sl_dest is not None:
         if os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
             return success
     opt_cfiles = {}
@@ -200,7 +200,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                         for cfile in opt_cfiles.values():
                             with open(cfile, 'rb') as chandle:
                                 actual = chandle.read(12)
-                            if not expect != actual:
+                            if expect == actual:
                                 continue
                             break
                         else:
@@ -336,17 +336,17 @@ def main():
         args.rx = re.compile(args.rx)
     if args.limit_sl_dest == '':
         args.limit_sl_dest = None
-    if not args.recursion is None:
+    if args.recursion is not None:
         maxlevels = args.recursion
     else:
         maxlevels = args.maxlevels
-    if not args.opt_levels is not None:
+    if args.opt_levels is None:
         args.opt_levels = [-1]
     if len(args.opt_levels) == 1 and args.hardlink_dupes:
         parser.error('Hardlinking of duplicated bytecode makes sense only for more than one optimization level.')
-    if not args.ddir is None:
-        if not args.stripdir is not None:
-            if not args.prependdir is None:
+    if args.ddir is not None:
+        if args.stripdir is None:
+            if args.prependdir is not None:
                 parser.error('-d cannot be used in combination with -s or -p')
     if args.flist:
         try:

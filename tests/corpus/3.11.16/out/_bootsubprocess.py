@@ -16,7 +16,7 @@ class Popen:
         pid = os.fork()
         if pid == 0:
             try:
-                if not self._env is None:
+                if self._env is not None:
                     os.execve(self._cmd[0], self._cmd, self._env)
                 else:
                     os.execv(self._cmd[0], self._cmd)

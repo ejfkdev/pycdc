@@ -36,7 +36,7 @@ Pass type_comments=True to get back type comments where the syntax allows.
         flags |= PyCF_OPTIMIZED_AST
     if type_comments:
         flags |= PyCF_TYPE_COMMENTS
-    if not feature_version is not None:
+    if feature_version is None:
         feature_version = -1
     elif isinstance(feature_version, tuple):
         major, minor = feature_version
@@ -122,7 +122,7 @@ will be omitted from the output for better readability.
 '''
 
     def _format(node, level=0):
-        if not indent is None:
+        if indent is not None:
             level += 1
             prefix = '\n' + indent * level
             sep = ',\n' + indent * level
@@ -145,7 +145,7 @@ will be omitted from the output for better readability.
                 except AttributeError:
                     pass
                 else:
-                    if not value is not None and not getattr(cls, name, ...) is not None:
+                    if value is None and getattr(cls, name, ...) is None:
                         keywords = True
                     if not show_empty:
                         if value == []:
@@ -170,8 +170,8 @@ will be omitted from the output for better readability.
                     value = getattr(node, name)
                 except AttributeError:
                     pass
-                if not value is not None:
-                    if not getattr(cls, name, ...) is not None:
+                if value is None:
+                    if getattr(cls, name, ...) is None:
                         continue
                 value, simple = _format(value, level)
                 allsimple = allsimple and simple
@@ -187,7 +187,7 @@ will be omitted from the output for better readability.
 
     if not isinstance(node, AST):
         raise TypeError('expected AST, got %r' % node.__class__.__name__)
-    if not indent is None and not isinstance(indent, str):
+    if indent is not None and not isinstance(indent, str):
         indent = ' ' * indent
     return _format(node)[0]
 
@@ -200,7 +200,7 @@ attributes) from *old_node* to *new_node* if possible, and return *new_node*.
     for attr in ('lineno', 'col_offset', 'end_lineno', 'end_col_offset'):
         if attr in old_node._attributes and attr in new_node._attributes:
             value = getattr(old_node, attr, None)
-            if not value is not None:
+            if value is None:
                 if hasattr(old_node, attr) and attr.startswith('end_'):
                     setattr(new_node, attr, value)
     return new_node
@@ -221,7 +221,7 @@ parent node.  It works recursively starting at *node*.
             else:
                 lineno = node.lineno
         if 'end_lineno' in node._attributes:
-            if not getattr(node, 'end_lineno', None) is not None:
+            if getattr(node, 'end_lineno', None) is None:
                 node.end_lineno = end_lineno
             else:
                 end_lineno = node.end_lineno
@@ -231,7 +231,7 @@ parent node.  It works recursively starting at *node*.
             else:
                 col_offset = node.col_offset
         if 'end_col_offset' in node._attributes:
-            if not getattr(node, 'end_col_offset', None) is not None:
+            if getattr(node, 'end_col_offset', None) is None:
                 node.end_col_offset = end_col_offset
             else:
                 end_col_offset = node.end_col_offset
@@ -254,9 +254,9 @@ location in a file.
             continue
         if 'lineno' in child._attributes:
             child.lineno = getattr(child, 'lineno', 0) + n
-        if not 'end_lineno' in child._attributes:
+        if 'end_lineno' not in child._attributes:
             continue
-        if not (end_lineno := getattr(child, 'end_lineno', 0)) is not None:
+        if (end_lineno := getattr(child, 'end_lineno', 0)) is None:
             continue
         child.end_lineno = end_lineno + n
     return node
@@ -323,12 +323,12 @@ This mimics how the Python parser splits source code.
 '''
 
     global _line_pattern
-    if not _line_pattern is not None:
+    if _line_pattern is None:
         import re
         _line_pattern = re.compile('(.*?(?:\\r\\n|\\n|\\r|$))')
     lines = []
     for lineno, match in enumerate(_line_pattern.finditer(source), 1):
-        if not maxlines is None:
+        if maxlines is not None:
             if lineno > maxlines:
                 return lines
         lines.append(match[0])
@@ -356,8 +356,8 @@ be padded with spaces to match its original position.
 '''
 
     try:
-        if not node.end_lineno is None:
-            if not node.end_col_offset is not None:
+        if node.end_lineno is not None:
+            if node.end_col_offset is None:
                 return
     except AttributeError:
         return
@@ -440,7 +440,7 @@ might differ in whitespace or similar details.
             b_attr = getattr(b, attr, sentinel)
             if a_attr is sentinel and b_attr is sentinel:
                 continue
-            if not a_attr != b_attr:
+            if a_attr == b_attr:
                 continue
             return False
         return True
@@ -539,7 +539,7 @@ Usually you use the transformer like this::
                 for value in old_value:
                     if isinstance(value, AST):
                         value = self.visit(value)
-                        if not value is not None:
+                        if value is None:
                             continue
                     if not isinstance(value, AST):
                         new_values.extend(value)
@@ -550,7 +550,7 @@ Usually you use the transformer like this::
             if not isinstance(old_value, AST):
                 continue
             new_node = self.visit(old_value)
-            if not new_node is not None:
+            if new_node is None:
                 delattr(node, field)
                 continue
             setattr(node, field, new_node)

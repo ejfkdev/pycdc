@@ -46,7 +46,7 @@ def _maybe_compile(compiler, source, filename, symbol, flags):
         if not line:
             pass
         else:
-            if not line[0] != '#':
+            if line[0] == '#':
                 continue
             if symbol != 'eval':
                 source = 'pass'

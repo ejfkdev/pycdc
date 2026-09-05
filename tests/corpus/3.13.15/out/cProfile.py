@@ -128,7 +128,7 @@ def main():
         sys.exit(2)
     options, args = parser.parse_args()
     sys.argv[:] = args
-    if not options.outfile is None:
+    if options.outfile is not None:
         options.outfile = os.path.abspath(options.outfile)
     if len(args) > 0:
         if options.module:

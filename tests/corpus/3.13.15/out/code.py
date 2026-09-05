@@ -28,7 +28,7 @@ key "__doc__" set to None.
 
 '''
 
-        if not locals is not None:
+        if locals is None:
             locals = {'__name__': '__console__', '__doc__': None}
         self.locals = locals
         self.compile = CommandCompiler()
@@ -63,7 +63,7 @@ line.
         except (OverflowError, SyntaxError, ValueError):
             self.showsyntaxerror(filename, source=source)
             return False
-        if not code is not None:
+        if code is None:
             return True
         self.runcode(code)
         return False
@@ -132,7 +132,7 @@ The output is written by self.write(), below.
         value = value.with_traceback(tb)
         lines = source.splitlines()
         if source and typ is SyntaxError:
-            if not value.text and not value.lineno is None:
+            if not value.text and value.lineno is not None:
                 if len(lines) >= value.lineno:
                     value.text = lines[value.lineno - 1]
         sys.last_exc = value.with_traceback(tb)
@@ -215,11 +215,11 @@ a default message is printed.
             self.resetbuffer()
             more = 0
         finally:
-            if not _exit is None:
+            if _exit is not None:
                 builtins.exit = _exit
-            if not _quit is None:
+            if _quit is not None:
                 builtins.quit = _quit
-            if not exitmsg is not None:
+            if exitmsg is None:
                 self.write('now exiting %s...\n' % self.__class__.__name__)
             if exitmsg != '':
                 self.write('%s\n' % exitmsg)
@@ -236,16 +236,16 @@ a default message is printed.
             self.resetbuffer()
             more = 0
         finally:
-            if not _exit is None:
+            if _exit is not None:
                 builtins.exit = _exit
-            if not _quit is None:
+            if _quit is not None:
                 builtins.quit = _quit
-            if not exitmsg is not None:
+            if exitmsg is None:
                 self.write('now exiting %s...\n' % self.__class__.__name__)
             if exitmsg != '':
                 self.write('%s\n' % exitmsg)
         cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
-        if not banner is not None:
+        if banner is None:
             self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
         elif banner:
             self.write('%s\n' % str(banner))
@@ -279,11 +279,11 @@ a default message is printed.
                 self.resetbuffer()
                 more = 0
             finally:
-                if not _exit is None:
+                if _exit is not None:
                     builtins.exit = _exit
-                if not _quit is None:
+                if _quit is not None:
                     builtins.quit = _quit
-                if not exitmsg is not None:
+                if exitmsg is None:
                     self.write('now exiting %s...\n' % self.__class__.__name__)
                 if exitmsg != '':
                     self.write('%s\n' % exitmsg)
@@ -303,17 +303,17 @@ a default message is printed.
                             raise e
                             e = None
                             del e
-                            if not _exit is None:
+                            if _exit is not None:
                                 builtins.exit = _exit
-                            if not _quit is None:
+                            if _quit is not None:
                                 builtins.quit = _quit
-                            if not exitmsg is not None:
+                            if exitmsg is None:
                                 self.write('now exiting %s...\n' % self.__class__.__name__)
 
     def push(self, line, filename=None, _symbol='single'):
         self.buffer.append(line)
         source = '\n'.join(self.buffer)
-        if not filename is not None:
+        if filename is None:
             filename = self.filename
         more = self.runsource(source, filename, symbol=_symbol)
         if not more:
@@ -368,7 +368,7 @@ local_exit -- passed to InteractiveConsole.__init__()
 '''
 
     console = InteractiveConsole(local, local_exit=local_exit)
-    if not readfunc is None:
+    if readfunc is not None:
         console.raw_input = readfunc
     else:
         try:

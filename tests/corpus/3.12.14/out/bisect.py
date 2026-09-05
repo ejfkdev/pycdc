@@ -11,7 +11,7 @@ def insort_right(a, x, lo=0, hi=None, *, key=None):
     A custom key function can be supplied to customize the sort order.
     '''
 
-    if not key is not None:
+    if key is None:
         lo = bisect_right(a, x, lo, hi)
     else:
         lo = bisect_right(a, key(x), lo, hi, key=key)
@@ -32,9 +32,9 @@ def bisect_right(a, x, lo=0, hi=None, *, key=None):
 
     if lo < 0:
         raise ValueError('lo must be non-negative')
-    if not hi is not None:
+    if hi is None:
         hi = len(a)
-    if not key is not None:
+    if key is None:
         while lo < hi:
             mid = (lo + hi) // 2
             if x < a[mid]:
@@ -61,7 +61,7 @@ def insort_left(a, x, lo=0, hi=None, *, key=None):
     A custom key function can be supplied to customize the sort order.
     '''
 
-    if not key is not None:
+    if key is None:
         lo = bisect_left(a, x, lo, hi)
     else:
         lo = bisect_left(a, key(x), lo, hi, key=key)
@@ -82,9 +82,9 @@ def bisect_left(a, x, lo=0, hi=None, *, key=None):
 
     if lo < 0:
         raise ValueError('lo must be non-negative')
-    if not hi is not None:
+    if hi is None:
         hi = len(a)
-    if not key is not None:
+    if key is None:
         while lo < hi:
             mid = (lo + hi) // 2
             if a[mid] < x:

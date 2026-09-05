@@ -52,7 +52,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 43: orig  body=[If(test=Compare(left=Name(id='path' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 126: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 1301,
    "ntotal": 1489,
@@ -68,7 +68,7 @@
   },
   {
    "module": "_pylong",
-   "ast_detail": "diff at token 41: orig  body=[If(test=Compare(left=NamedExpr(target=Name(id='result' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 283: orig  values=[Compare(left=Name(id='_decimal' | dec  values=[Compare(left=Name(id='w'",
    "verdict": "SIG-DIFF",
    "ndiff": 145,
    "ntotal": 997,
@@ -96,7 +96,7 @@
   },
   {
    "module": "_threading_local",
-   "ast_detail": "diff at token 118: orig  If(test=Compare(left=Name(id='thread' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 128: orig  ctx=Del())])] | dec  ctx=Del())])",
    "verdict": "SIG-DIFF",
    "ndiff": 401,
    "ntotal": 446,
@@ -140,7 +140,7 @@
   },
   {
    "module": "bisect",
-   "ast_detail": "diff at token 10: orig  body=[If(test=Compare(left=Name(id='key' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 123: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 241,
    "ntotal": 279,
@@ -164,7 +164,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 593: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 529: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 3323,
    "ntotal": 3395,
@@ -196,7 +196,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 71: orig  body=[If(test=Compare(left=Name(id='stdin' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 143: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Try(body=[Try(body=[Import(names=[alias(name='readline')])",
    "verdict": "SIG-DIFF",
    "ndiff": 1265,
    "ntotal": 1452,
@@ -204,7 +204,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 23: orig  body=[If(test=Compare(left=Name(id='locals' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 130: orig  keywords=[]))])] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 1000,
    "ntotal": 1036,
@@ -224,7 +224,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 111,
    "ntotal": 381,
-   "detail": "line 81: orig ('FOR_ITER', 'to 102') | got ('FOR_ITER', 'to 100')\nline 95: orig ('POP_JUMP_IF_TRUE', 'to 98') | got ('POP_JUMP_IF_FALSE', 'to 98')\nline 97: orig ('POP_TOP', '') | got ('JUMP_BACKWARD', 'to 36')"
+   "detail": "line 81: orig ('FOR_ITER', 'to 102') | got ('FOR_ITER', 'to 100')\nline 94: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 97: orig ('POP_TOP', '') | got ('JUMP_BACKWARD', 'to 36')"
   },
   {
    "module": "colorsys",
@@ -256,7 +256,7 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 74: orig  If(test=Compare(left=Name(id='copier' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 739: orig  finalbody=[]) | dec  finalbody=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 635,
    "ntotal": 870,
@@ -264,7 +264,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 38: orig  If(test=Compare(left=Name(id='constructor_ob' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 46: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 397,
    "ntotal": 611,
@@ -272,7 +272,7 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 94: orig  body=[If(test=Compare(left=Name(id='method' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 190: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 200,
    "ntotal": 462,
@@ -280,7 +280,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 235: orig  values=[Compare(left=Call(func=Name(id='iter' | dec  values=[UnaryOp(op=Not()",
+   "ast_detail": "diff at token 235: orig  values=[Compare(left=Call(func=Name(id='iter' | dec  values=[Compare(left=Name(id='fieldnames'",
    "verdict": "SIG-DIFF",
    "ndiff": 1698,
    "ntotal": 1745,

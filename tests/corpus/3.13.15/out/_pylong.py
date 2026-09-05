@@ -25,7 +25,7 @@ def compute_powers(w, base, more_than, show=False):
     ws = {w}
     while ws:
         w = ws.pop()
-        if w in seen or w <= more_than:
+        if w not in seen or w <= more_than:
             pass
         seen.add(w)
         lo = w >> 1
@@ -98,7 +98,7 @@ def int_to_decimal_string(n):
 
     w = n.bit_length()
     if w > 450000:
-        if not _decimal is None:
+        if _decimal is not None:
             return str(int_to_decimal(n))
     DIGLIM = 1000
     def inner(n, w):

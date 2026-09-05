@@ -150,7 +150,7 @@ class HTMLParser(markupbase.ParserBase):
 
     def parse_pi(self, i):
         rawdata = self.rawdata
-        if not rawdata[i:i + 2] == '<?':
+        if rawdata[i:i + 2] != '<?':
             raise AssertionError('unexpected call to parse_pi()')
         match = piclose.search(rawdata, i + 2)
         if not match:
@@ -228,7 +228,7 @@ class HTMLParser(markupbase.ParserBase):
 
     def parse_endtag(self, i):
         rawdata = self.rawdata
-        if not rawdata[i:i + 2] == '</':
+        if rawdata[i:i + 2] != '</':
             raise AssertionError('unexpected call to parse_endtag')
         match = endendtag.search(rawdata, i + 1)
         if not match:

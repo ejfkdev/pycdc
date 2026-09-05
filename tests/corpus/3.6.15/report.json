@@ -207,9 +207,9 @@
    "module": "codecs",
    "ast_detail": "diff at token 890: orig  body=[Pass()] | dec  body=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 939,
-   "ntotal": 2155,
-   "detail": "line 1190: orig ('SETUP_LOOP', 'to 468') | got ('SETUP_LOOP', 'to 472')\nline 1204: orig ('POP_JUMP_IF_FALSE', '') | got ('UNARY_NOT', '')\nline 1205: orig ('LOAD_FAST', 'data') | got ('POP_JUMP_IF_TRUE', '')"
+   "ndiff": 950,
+   "ntotal": 2154,
+   "detail": "line 1190: orig ('SETUP_LOOP', 'to 468') | got ('SETUP_LOOP', 'to 470')\nline 1204: orig ('POP_JUMP_IF_FALSE', '') | got ('UNARY_NOT', '')\nline 1205: orig ('LOAD_FAST', 'data') | got ('POP_JUMP_IF_TRUE', '')"
   },
   {
    "module": "codeop",
@@ -231,7 +231,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 2748: orig  body=[Try(body=[Assign(targets=[Name(id='source' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 3926,
+   "ndiff": 3928,
    "ntotal": 4337,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },

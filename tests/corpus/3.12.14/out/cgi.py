@@ -101,7 +101,7 @@ def parse(fp=None, environ=os.environ, keep_blank_values=0, strict_parsing=0, se
             Defaults to &.
     '''
 
-    if not fp is not None:
+    if fp is None:
         fp = sys.stdin
     if hasattr(fp, 'encoding'):
         encoding = fp.encoding
@@ -339,9 +339,9 @@ class FieldStorage:
                 qs = ''
             qs = qs.encode(locale.getpreferredencoding(), 'surrogateescape')
             fp = BytesIO(qs)
-            if not headers is not None:
+            if headers is None:
                 headers = {'content-type': 'application/x-www-form-urlencoded'}
-        if not headers is not None:
+        if headers is None:
             headers = {}
             if method == 'POST':
                 headers['content-type'] = 'application/x-www-form-urlencoded'
@@ -354,7 +354,7 @@ class FieldStorage:
         elif not isinstance(headers, (Mapping, Message)):
             raise TypeError('headers must be mapping or an instance of email.message.Message')
         self.headers = headers
-        if not fp is not None:
+        if fp is None:
             self.fp = sys.stdin.buffer
         elif isinstance(fp, TextIOWrapper):
             self.fp = fp.buffer
@@ -402,7 +402,7 @@ class FieldStorage:
             if maxlen and clen > maxlen:
                 raise ValueError('Maximum content length exceeded')
         self.length = clen
-        if not self.limit is not None:
+        if self.limit is None:
             if clen >= 0:
                 self.limit = clen
         self.list = None
@@ -444,7 +444,7 @@ class FieldStorage:
             value = self.file.read()
             self.file.seek(0)
             return value
-        if not self.list is None:
+        if self.list is not None:
             value = self.list
             return value
         value = None
@@ -453,11 +453,11 @@ class FieldStorage:
     def __getitem__(self, key):
         '''Dictionary style indexing.'''
 
-        if not self.list is not None:
+        if self.list is None:
             raise TypeError('not indexable')
         found = []
         for item in self.list:
-            if not item.name == key:
+            if item.name != key:
                 continue
             found.append(item)
         if not found:
@@ -499,14 +499,14 @@ class FieldStorage:
     def keys(self):
         '''Dictionary style keys() method.'''
 
-        if not self.list is not None:
+        if self.list is None:
             raise TypeError('not indexable')
         return list(set((item.name for item in self.list)))
 
     def __contains__(self, key):
         '''Dictionary style __contains__ method.'''
 
-        if not self.list is not None:
+        if self.list is None:
             raise TypeError('not indexable')
         return any((item.name == key for item in self.list))
 
@@ -516,7 +516,7 @@ class FieldStorage:
         return len(self.keys())
 
     def __bool__(self):
-        if not self.list is not None:
+        if self.list is None:
             raise TypeError('Cannot be converted to bool.')
         return bool(self.list)
 
@@ -553,12 +553,12 @@ class FieldStorage:
             while True:
                 first_line = self.fp.readline()
                 self.bytes_read += len(first_line)
-                if not first_line.strip() != b'--' + self.innerboundary:
+                if first_line.strip() == b'--' + self.innerboundary:
                     break
                 if not first_line:
                     break
         max_num_fields = self.max_num_fields
-        if not max_num_fields is None:
+        if max_num_fields is not None:
             max_num_fields -= len(self.list)
         while True:
             parser = FeedParser()
@@ -575,9 +575,9 @@ class FieldStorage:
             headers = parser.close()
             if 'content-length' in headers:
                 del headers['content-length']
-            limit = None if not self.limit is not None else self.limit - self.bytes_read
+            limit = None if self.limit is None else self.limit - self.bytes_read
             part = klass(self.fp, headers, ib, environ, keep_blank_values, strict_parsing, limit, self.encoding, self.errors, max_num_fields, self.separator)
-            if not max_num_fields is None:
+            if max_num_fields is not None:
                 max_num_fields -= 1
                 if part.list:
                     max_num_fields -= len(part.list)
@@ -638,7 +638,7 @@ class FieldStorage:
     def __write(self, line):
         '''line is always bytes, not string'''
 
-        if not self.__file is None:
+        if self.__file is not None:
             if self.__file.tell() + len(line) > 1000:
                 self.file = self.make_file()
                 data = self.__file.getvalue()
@@ -672,7 +672,7 @@ class FieldStorage:
         last_line_lfend = True
         _read = 0
         while True:
-            if not self.limit is None:
+            if self.limit is not None:
                 if 0 <= self.limit:
                     if self.limit <= _read:
                         return
@@ -805,7 +805,7 @@ def test(environ=os.environ):
         return
 
 def print_exception(type=None, value=None, tb=None, limit=None):
-    if not type is not None:
+    if type is None:
         type, value, tb = sys.exc_info()
     import traceback
     print()

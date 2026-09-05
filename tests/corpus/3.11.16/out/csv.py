@@ -96,7 +96,7 @@ class DictReader:
 
     @property
     def fieldnames(self):
-        if not self._fieldnames is not None:
+        if self._fieldnames is None:
             try:
                 self._fieldnames = next(self.reader)
             except StopIteration:
@@ -348,7 +348,7 @@ class Sniffer:
                 except (ValueError, OverflowError):
                     thisType = len(row[col])
                 if thisType != columnTypes[col]:
-                    if not columnTypes[col] is not None:
+                    if columnTypes[col] is None:
                         columnTypes[col] = thisType
                         continue
                 del columnTypes[col]

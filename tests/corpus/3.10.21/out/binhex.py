@@ -315,7 +315,7 @@ class HexBin:
                 ch = ifp.read(1)
                 if not ch:
                     raise Error('No binhex data found')
-                if not ch == b'\r':
+                if ch != b'\r':
                     break
         if ch == b':':
             pass

@@ -259,7 +259,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1150: orig  Try(body=[Assign(targets=[Name(id='v' | dec  If(test=Compare(left=Constant(value='%')",
    "verdict": "SIG-DIFF",
-   "ndiff": 2862,
+   "ndiff": 2863,
    "ntotal": 4289,
    "detail": "line 1021: orig ('SETUP_FINALLY', 'to 246') | got ('LOAD_CONST', \"'%'\")\nline 1022: orig ('LOAD_FAST', 'map') | got ('LOAD_FAST', 'v')\nline 1023: orig ('LOAD_FAST', 'var') | got ('CONTAINS_OP', '')"
   },

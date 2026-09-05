@@ -111,7 +111,7 @@ indentation level, or only delineate with semicolon if applicable'''
 
     @contextmanager
     def buffered(self, buffer=None):
-        if not buffer is not None:
+        if buffer is None:
             buffer = []
         original_source = self._source
         self._source = buffer
@@ -169,7 +169,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
 
     def get_type_comment(self, node):
         comment = self._type_ignores.get(node.lineno) or node.type_comment
-        if not comment is None:
+        if comment is not None:
             return f' # type: {comment}'
 
     def traverse(self, node):
@@ -431,7 +431,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             self._write_docstring_and_traverse_body(node)
 
     def _type_params_helper(self, type_params):
-        if not type_params is None:
+        if type_params is not None:
             if len(type_params) > 0:
                 with self.delimit('[', ']'):
                     self.interleave((lambda: self.write(', ')), self.traverse, type_params)
@@ -554,7 +554,7 @@ Returns the tuple (string literal to write, possible quote types).
         if escaped_string:
             possible_quotes.sort(key=(lambda q: q[0] == escaped_string[-1]))
             if possible_quotes[0][0] == escaped_string[-1]:
-                if not len(possible_quotes[0]) == 3:
+                if len(possible_quotes[0]) != 3:
                     raise AssertionError
                 escaped_string = escaped_string[:-1] + '\\' + escaped_string[-1]
         return escaped_string, possible_quotes
@@ -760,7 +760,7 @@ Returns the tuple (string literal to write, possible quote types).
 
         def write_item(item):
             k, v = item
-            if not k is not None:
+            if k is None:
                 self.write('**')
                 self.set_precedence(_Precedence.EXPR, v)
                 self.traverse(v)
@@ -771,7 +771,7 @@ Returns the tuple (string literal to write, possible quote types).
             self.interleave((lambda: self.write(', ')), write_item, zip(node.keys, node.values))
 
     def visit_Tuple(self, node):
-        with self.delimit_if('(', ')', len(node.elts) == 0 or self.get_precedence(node) > _Precedence.TUPLE):
+        with self.delimit_if('(', ')', len(node.elts) != 0 or self.get_precedence(node) > _Precedence.TUPLE):
             self.items_view(self.traverse, node.elts)
 
     unop = {'Invert': '~', 'Not': 'not', 'UAdd': '+', 'USub': '-'}
@@ -914,7 +914,7 @@ Returns the tuple (string literal to write, possible quote types).
             if d:
                 self.write('=')
                 self.traverse(d)
-            if not index == len(node.posonlyargs):
+            if index != len(node.posonlyargs):
                 continue
             self.write(', /')
         if node.vararg or node.kwonlyargs:
@@ -949,7 +949,7 @@ Returns the tuple (string literal to write, possible quote types).
             return
 
     def visit_keyword(self, node):
-        if not node.arg is not None:
+        if node.arg is None:
             self.write('**')
         else:
             self.write(node.arg)
@@ -1001,7 +1001,7 @@ Returns the tuple (string literal to write, possible quote types).
 
     def visit_MatchStar(self, node):
         name = node.name
-        if not name is not None:
+        if name is None:
             name = '_'
         self.write(f'*{name}')
 
@@ -1016,7 +1016,7 @@ Returns the tuple (string literal to write, possible quote types).
             keys = node.keys
             self.interleave((lambda: self.write(', ')), write_key_pattern_pair, zip(keys, node.patterns, strict=True))
             rest = node.rest
-            if not rest is None:
+            if rest is not None:
                 if keys:
                     self.write(', ')
                 self.write(f'**{rest}')
@@ -1041,10 +1041,10 @@ Returns the tuple (string literal to write, possible quote types).
     def visit_MatchAs(self, node):
         name = node.name
         pattern = node.pattern
-        if not name is not None:
+        if name is None:
             self.write('_')
             return
-        if not pattern is not None:
+        if pattern is None:
             self.write(node.name)
             return
         with self.require_parens(_Precedence.TEST, node):

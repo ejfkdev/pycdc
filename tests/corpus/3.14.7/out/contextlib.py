@@ -106,7 +106,7 @@ class _GeneratorContextManagerBase:
         self.args = args
         self.kwds = kwds
         doc = getattr(func, '__doc__', None)
-        if not doc is not None:
+        if doc is None:
             doc = type(self).__doc__
         self.__doc__ = doc
 
@@ -125,7 +125,7 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             raise RuntimeError("generator didn't yield") from None
 
     def __exit__(self, typ, value, traceback):
-        if not typ is not None:
+        if typ is None:
             try:
                 try:
                     next(self.gen)
@@ -152,7 +152,7 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
                 return False
             # WARNING: unrecovered try/except structure
             raise RuntimeError("generator didn't stop")
-        if not value is not None:
+        if value is None:
             value = typ()
         try:
             self.gen.throw(value)
@@ -198,7 +198,7 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             raise RuntimeError("generator didn't yield") from None
 
     async def __aexit__(self, typ, value, traceback):
-        if not typ is not None:
+        if typ is None:
             try:
                 pass
             except StopAsyncIteration:
@@ -209,7 +209,7 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 return False
             # WARNING: unrecovered try/except structure
             raise RuntimeError("generator didn't stop")
-        if not value is not None:
+        if value is None:
             value = typ()
         try:
             pass
@@ -462,13 +462,13 @@ statement following the with statement.
         pass
 
     def __exit__(self, exctype, excinst, exctb):
-        if not exctype is not None:
+        if exctype is None:
             return
         if issubclass(exctype, self._exceptions):
             return True
         if issubclass(exctype, BaseExceptionGroup):
             match, rest = excinst.split(self._exceptions)
-            if not rest is not None:
+            if rest is None:
                 return True
             raise rest
         return False
@@ -590,7 +590,7 @@ For example:
                 raise AssertionError
         if pending_raise:
             try:
-                if not exc is not None:
+                if exc is None:
                     exc_details = (None, None, None)
                 else:
                     exc_details = type(exc), exc, exc.__traceback__
@@ -724,7 +724,7 @@ method.'''
             is_sync, cb = self._exit_callbacks.pop()
             try:
                 try:
-                    if not exc is not None:
+                    if exc is None:
                         exc_details = (None, None, None)
                     else:
                         exc_details = type(exc), exc, exc.__traceback__

@@ -11,7 +11,7 @@ def pickle(ob_type, pickle_function, constructor_ob=None):
     if not callable(pickle_function):
         raise TypeError('reduction functions must be callable')
     dispatch_table[ob_type] = pickle_function
-    if not constructor_ob is None:
+    if constructor_ob is not None:
         constructor(constructor_ob)
         return
 
@@ -61,7 +61,7 @@ def _reduce_ex(self, proto):
                 if not isinstance(new, _new_type):
                     pass
                 else:
-                    if not new.__self__ is base:
+                    if new.__self__ is not base:
                         continue
                     base = object
                     if base is object:
@@ -110,13 +110,13 @@ defined.)
 """
 
     names = cls.__dict__.get('__slotnames__')
-    if not names is None:
+    if names is not None:
         return names
     names = []
     if not hasattr(cls, '__slots__'):
         pass
     for c in cls.__mro__:
-        if not '__slots__' in c.__dict__:
+        if '__slots__' not in c.__dict__:
             continue
         slots = c.__dict__['__slots__']
         if isinstance(slots, str):

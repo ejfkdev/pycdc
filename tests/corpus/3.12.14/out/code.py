@@ -27,7 +27,7 @@ class InteractiveInterpreter:
 
         '''
 
-        if not locals is not None:
+        if locals is None:
             locals = {'__name__': '__console__', '__doc__': None}
         self.locals = locals
         self.compile = CommandCompiler()
@@ -62,7 +62,7 @@ class InteractiveInterpreter:
         except (OverflowError, SyntaxError, ValueError):
             self.showsyntaxerror(filename)
             return False
-        if not code is not None:
+        if code is None:
             return True
         self.runcode(code)
         return False
@@ -225,7 +225,7 @@ class InteractiveConsole(InteractiveInterpreter):
                 more = 0
             else:
                 cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
-                if not banner is not None:
+                if banner is None:
                     self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
                 elif banner:
                     self.write('%s\n' % str(banner))
@@ -252,7 +252,7 @@ class InteractiveConsole(InteractiveInterpreter):
                     else:
                         more = self.push(line)
         cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
-        if not banner is not None:
+        if banner is None:
             self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
         elif banner:
             self.write('%s\n' % str(banner))
@@ -279,7 +279,7 @@ class InteractiveConsole(InteractiveInterpreter):
                     more = 0
                 else:
                     more = self.push(line)
-        if not exitmsg is not None:
+        if exitmsg is None:
             self.write('now exiting %s...\n' % self.__class__.__name__)
             return
         if exitmsg != '':
@@ -326,7 +326,7 @@ def interact(banner=None, readfunc=None, local=None, exitmsg=None):
     '''
 
     console = InteractiveConsole(local)
-    if not readfunc is None:
+    if readfunc is not None:
         console.raw_input = readfunc
     else:
         try:

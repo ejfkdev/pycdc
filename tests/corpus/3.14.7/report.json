@@ -62,9 +62,9 @@
    "module": "_compat_pickle",
    "ast_detail": "diff at token 338: orig  body=[Pass()])] | dec  body=[Pass()])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2,
+   "ndiff": 6,
    "ntotal": 492,
-   "detail": "line 290: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_NAME', 'AssertionError')\nline 314: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_NAME', 'AssertionError')"
+   "detail": "line 287: orig ('COMPARE_OP', 'bool(==)') | got ('COMPARE_OP', 'bool(!=)')\nline 288: orig ('POP_JUMP_IF_TRUE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 290: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_NAME', 'AssertionError')"
   },
   {
    "module": "_ios_support",
@@ -78,9 +78,9 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 140: orig  right=Constant(value=1))))] | dec  right=Constant(value=1))))",
    "verdict": "SIG-DIFF",
-   "ndiff": 951,
+   "ndiff": 953,
    "ntotal": 1352,
-   "detail": "line 212: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError + NULL')\nline 293: orig ('POP_JUMP_IF_FALSE', 'to L19') | got ('POP_JUMP_IF_FALSE', 'to L18')\nline 351: orig ('JUMP_FORWARD', 'to L17') | got ('JUMP_FORWARD', 'to L16')"
+   "detail": "line 209: orig ('COMPARE_OP', 'bool(==)') | got ('COMPARE_OP', 'bool(!=)')\nline 210: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_FALSE', 'to L1')\nline 212: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError + NULL')"
   },
   {
    "module": "_opcode_metadata",
@@ -88,7 +88,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 40: orig  body=[If(test=Compare(left=Name(id='path' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 117: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 1536,
    "ntotal": 1748,
@@ -104,7 +104,7 @@
   },
   {
    "module": "_py_warnings",
-   "ast_detail": "diff at token 78: orig  If(test=Compare(left=Attribute(value=Name(id='self' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 156: orig  body=[Assert(test=Name(id='_use_context' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 2754,
    "ntotal": 3342,
@@ -112,11 +112,11 @@
   },
   {
    "module": "_pylong",
-   "ast_detail": "diff at token 47: orig  body=[Continue()]) | dec  body=[Pass()])",
+   "ast_detail": "diff at token 39: orig  ops=[In()] | dec  ops=[LtE()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 623,
+   "ndiff": 628,
    "ntotal": 1531,
-   "detail": "line 153: orig ('JUMP_BACKWARD', 'to L1') | got ('NOP', '')\nline 257: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')\nline 343: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')"
+   "detail": "line 146: orig ('CONTAINS_OP', 'in') | got ('CONTAINS_OP', 'not in')\nline 153: orig ('JUMP_BACKWARD', 'to L1') | got ('NOP', '')\nline 185: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')"
   },
   {
    "module": "_sitebuiltins",
@@ -140,7 +140,7 @@
   },
   {
    "module": "_threading_local",
-   "ast_detail": "diff at token 85: orig  If(test=Compare(left=Name(id='thread' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 95: orig  ctx=Del())])])]) | dec  ctx=Del())])",
    "verdict": "SIG-DIFF",
    "ndiff": 462,
    "ntotal": 511,
@@ -148,11 +148,11 @@
   },
   {
    "module": "_weakrefset",
-   "ast_detail": "diff at token 32: orig  If(test=Compare(left=Name(id='self' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 43: orig  ctx=Load())]))])]) | dec  ctx=Load())]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 440,
+   "ndiff": 441,
    "ntotal": 768,
-   "detail": "line 315: orig ('LOAD_FAST', 'item') | got ('NOP', '')\nline 316: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'item')\nline 317: orig ('PUSH_EXC_INFO', '') | got ('RETURN_VALUE', '')"
+   "detail": "line 312: orig ('POP_JUMP_IF_NOT_NONE', 'to L2') | got ('POP_JUMP_IF_NONE', 'to L2')\nline 315: orig ('LOAD_FAST', 'item') | got ('NOP', '')\nline 316: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'item')"
   },
   {
    "module": "abc",
@@ -188,7 +188,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 216: orig  If(test=Compare(left=Name(id='curr_tool' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 308: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 3823,
    "ntotal": 4001,
@@ -196,7 +196,7 @@
   },
   {
    "module": "bisect",
-   "ast_detail": "diff at token 9: orig  body=[If(test=Compare(left=Name(id='key' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 105: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
    "ndiff": 122,
    "ntotal": 269,
@@ -220,7 +220,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 463: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 411: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1951,
    "ntotal": 4326,
@@ -228,7 +228,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 55: orig  body=[If(test=Compare(left=Name(id='stdin' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 119: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Try(body=[Try(body=[Import(names=[alias(name='readline')])",
    "verdict": "SIG-DIFF",
    "ndiff": 1350,
    "ntotal": 1541,
@@ -236,7 +236,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 19: orig  body=[If(test=Compare(left=Name(id='locals' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 106: orig  ctx=Load())))])])]) | dec  ctx=Load())))",
    "verdict": "SIG-DIFF",
    "ndiff": 1511,
    "ntotal": 1558,
@@ -254,9 +254,9 @@
    "module": "codeop",
    "ast_detail": "diff at token 51: orig  If(test=BoolOp(op=And() | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 297,
+   "ndiff": 299,
    "ntotal": 411,
-   "detail": "line 88: orig ('FOR_ITER', 'to L4') | got ('FOR_ITER', 'to L7')\nline 107: orig ('POP_TOP', '') | got ('LOAD_FAST_BORROW', 'symbol')\nline 108: orig ('JUMP_FORWARD', 'to L5') | got ('LOAD_CONST', \"'eval'\")"
+   "detail": "line 88: orig ('FOR_ITER', 'to L4') | got ('FOR_ITER', 'to L7')\nline 103: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 104: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L3')"
   },
   {
    "module": "colorsys",
@@ -288,7 +288,7 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 62: orig  If(test=Compare(left=Name(id='copier' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 524: orig  body=[Pass()])]) | dec  body=[Pass()])])])",
    "verdict": "SIG-DIFF",
    "ndiff": 350,
    "ntotal": 874,
@@ -296,9 +296,9 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 31: orig  If(test=Compare(left=Name(id='constructor_ob' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 38: orig  ctx=Load())]))])]) | dec  ctx=Load())]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 431,
+   "ndiff": 432,
    "ntotal": 691,
    "detail": "line 211: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')\nline 219: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L8')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L3')"
   }

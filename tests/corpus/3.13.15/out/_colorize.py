@@ -66,7 +66,7 @@ def can_colorize(*, file=None):
         except Exception:
             return fallback
 
-    if not file is not None:
+    if file is None:
         file = sys.stdout
     if not sys.flags.ignore_environment:
         if _safe_getenv('PYTHON_COLORS') == '0':

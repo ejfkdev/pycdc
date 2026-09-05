@@ -15,7 +15,7 @@ A string listing directories separated by 'os.pathsep'; defaults to
 os.environ['PATH'].  Returns the complete filename or None if not found.
 """
 
-    if not path is not None:
+    if path is None:
         path = os.environ['PATH']
     paths = path.split(os.pathsep)
     base, ext = os.path.splitext(executable)
@@ -54,7 +54,7 @@ def _get_system_version():
     '''Return the OS X system version as a string'''
 
     global _SYSTEM_VERSION
-    if not _SYSTEM_VERSION is not None:
+    if _SYSTEM_VERSION is None:
         _SYSTEM_VERSION = ''
         try:
             f = open('/System/Library/CoreServices/SystemVersion.plist', encoding='utf-8')
@@ -63,7 +63,7 @@ def _get_system_version():
         # WARNING: unrecovered try/except structure
         m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
         f.close()
-        if not m is None:
+        if m is not None:
             _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
         return _SYSTEM_VERSION
     return _SYSTEM_VERSION
@@ -79,7 +79,7 @@ two version numbers.
 '''
 
     global _SYSTEM_VERSION_TUPLE
-    if not _SYSTEM_VERSION_TUPLE is not None:
+    if _SYSTEM_VERSION_TUPLE is None:
         osx_version = _get_system_version()
         if osx_version:
             try:
@@ -112,7 +112,7 @@ def _default_sysroot(cc):
     """Returns the root of the default SDK for this system, or '/' """
 
     global _cache_default_sysroot
-    if not _cache_default_sysroot is None:
+    if _cache_default_sysroot is not None:
         return _cache_default_sysroot
     contents = _read_output(f'{cc!s} -c -E -v - </dev/null', True)
     in_incdirs = False
@@ -132,7 +132,7 @@ def _default_sysroot(cc):
         if not line.endswith('.sdk/usr/include'):
             continue
         _cache_default_sysroot = line[:-12]
-    if not _cache_default_sysroot is not None:
+    if _cache_default_sysroot is None:
         _cache_default_sysroot = '/'
     return _cache_default_sysroot
 
@@ -168,9 +168,9 @@ def _find_appropriate_compiler(_config_vars):
         raise SystemError('Cannot locate working compiler')
     if cc != oldcc:
         for cv in _COMPILER_CONFIG_VARS:
-            if not cv in _config_vars:
+            if cv not in _config_vars:
                 continue
-            if not cv not in os.environ:
+            if cv in os.environ:
                 continue
             cv_split = _config_vars[cv].split()
             cv_split[0] = cc if cv != 'CXX' else cc + '++'
@@ -181,9 +181,9 @@ def _remove_universal_flags(_config_vars):
     '''Remove all universal build arguments from config vars'''
 
     for cv in _UNIVERSAL_CONFIG_VARS:
-        if not cv in _config_vars:
+        if cv not in _config_vars:
             continue
-        if not cv not in os.environ:
+        if cv in os.environ:
             continue
         flags = _config_vars[cv]
         flags = re.sub('-arch\\s+\\w+\\s', ' ', flags, flags=re.ASCII)
@@ -196,13 +196,13 @@ def _remove_unsupported_archs(_config_vars):
 
     if 'CC' in os.environ:
         return _config_vars
-    if not re.search('-arch\\s+ppc', _config_vars['CFLAGS']) is None:
+    if re.search('-arch\\s+ppc', _config_vars['CFLAGS']) is not None:
         status = os.system(f"echo 'int main{{}};' | '{_config_vars['CC'].replace("'", '\'"\'"\'')!s}' -c -arch ppc -x c -o /dev/null /dev/null 2>/dev/null")
         if status:
             for cv in _UNIVERSAL_CONFIG_VARS:
-                if not cv in _config_vars:
+                if cv not in _config_vars:
                     continue
-                if not cv not in os.environ:
+                if cv in os.environ:
                     continue
                 flags = _config_vars[cv]
                 flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
@@ -215,9 +215,9 @@ def _override_all_archs(_config_vars):
     if 'ARCHFLAGS' in os.environ:
         arch = os.environ['ARCHFLAGS']
         for cv in _UNIVERSAL_CONFIG_VARS:
-            if not cv in _config_vars:
+            if cv not in _config_vars:
                 continue
-            if not '-arch' in _config_vars[cv]:
+            if '-arch' not in _config_vars[cv]:
                 continue
             flags = _config_vars[cv]
             flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
@@ -230,13 +230,13 @@ def _check_for_unavailable_sdk(_config_vars):
 
     cflags = _config_vars.get('CFLAGS', '')
     m = re.search('-isysroot\\s*(\\S+)', cflags)
-    if not m is None:
+    if m is not None:
         sdk = m.group(1)
         if not os.path.exists(sdk):
             for cv in _UNIVERSAL_CONFIG_VARS:
-                if not cv in _config_vars:
+                if cv not in _config_vars:
                     continue
-                if not cv not in os.environ:
+                if cv in os.environ:
                     continue
                 flags = _config_vars[cv]
                 flags = re.sub('-isysroot\\s*\\S+(?:\\s|$)', ' ', flags)
@@ -269,16 +269,16 @@ barf if multiple '-isysroot' arguments are present.
         else:
             if not _supports_arm64_builds():
                 for idx in reversed(range(len(compiler_so))):
-                    if not compiler_so[idx] == '-arch':
+                    if compiler_so[idx] != '-arch':
                         continue
-                    if not compiler_so[idx + 1] == 'arm64':
+                    if compiler_so[idx + 1] != 'arm64':
                         continue
                     del compiler_so[idx:idx + 2]
     if not _supports_arm64_builds():
         for idx in reversed(range(len(compiler_so))):
-            if not compiler_so[idx] == '-arch':
+            if compiler_so[idx] != '-arch':
                 pass
-            if not compiler_so[idx + 1] == 'arm64':
+            if compiler_so[idx + 1] != 'arm64':
                 pass
             del compiler_so[idx:idx + 2]
     if 'ARCHFLAGS' in os.environ:

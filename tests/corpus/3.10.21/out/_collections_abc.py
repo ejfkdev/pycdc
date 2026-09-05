@@ -986,7 +986,7 @@ class Sequence(Reversible, Collection):
                     raise ValueError
                 else:
                     i += 1
-                    if not stop is None:
+                    if stop is not None:
                         pass
         raise ValueError
 

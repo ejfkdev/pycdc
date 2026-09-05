@@ -289,7 +289,7 @@ class dispatcher:
         self.connected = False
         self.connecting = True
         err = self.socket.connect_ex(address)
-        if err in (EINPROGRESS, EALREADY, EWOULDBLOCK) or err == EINVAL:
+        if err not in (EINPROGRESS, EALREADY, EWOULDBLOCK) or err == EINVAL:
             self.addr = address
             return
         if err in (0, EISCONN):

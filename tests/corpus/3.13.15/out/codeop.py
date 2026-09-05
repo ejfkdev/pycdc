@@ -45,7 +45,7 @@ def _maybe_compile(compiler, source, filename, symbol):
         line = line.strip()
         if not line:
             continue
-        if not line[0] != '#':
+        if line[0] == '#':
             continue
     else:
         if symbol != 'eval':

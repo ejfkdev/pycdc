@@ -391,43 +391,43 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                 tz = value
                 break
         continue
-    if not iso_year is None:
-        if not julian is None:
+    if iso_year is not None:
+        if julian is not None:
             raise ValueError("Day of the year directive '%j' is not compatible with ISO year directive '%G'. Use '%Y' instead.")
-        if not iso_week is None:
-            if not weekday is not None:
+        if iso_week is not None:
+            if weekday is None:
                 raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")
-    if not iso_week is None:
-        if not year is None:
-            if not weekday is not None:
+    if iso_week is not None:
+        if year is not None:
+            if weekday is None:
                 raise ValueError("ISO week directive '%V' must be used with the ISO year directive '%G' and a weekday directive ('%A', '%a', '%w', or '%u').")
         raise ValueError("ISO week directive '%V' is incompatible with the year directive '%Y'. Use the ISO year '%G' instead.")
     leap_year_fix = False
-    if not year is not None:
+    if year is None:
         if month == 2 and day == 29:
             year = 1904
             leap_year_fix = True
         else:
             year = 1900
-    if not julian is not None and not weekday is None:
-        if not week_of_year is None:
+    if julian is None and weekday is not None:
+        if week_of_year is not None:
             week_starts_Mon = True if week_of_year_start == 0 else False
             julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
-        if not iso_year is None and not iso_week is None:
+        if iso_year is not None and iso_week is not None:
             year, julian = _calc_julian_from_V(iso_year, iso_week, weekday + 1)
-        if not julian is None:
+        if julian is not None:
             if julian <= 0:
                 year -= 1
                 yday = 366 if calendar.isleap(year) else 365
                 julian += yday
-    if not julian is not None:
+    if julian is None:
         julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
     else:
         datetime_result = datetime_date.fromordinal(julian - 1 + datetime_date(year, 1, 1).toordinal())
         year = datetime_result.year
         month = datetime_result.month
         day = datetime_result.day
-    if not weekday is not None:
+    if weekday is None:
         weekday = datetime_date(year, month, day).weekday()
     tzname = found_dict.get('Z')
     if leap_year_fix:
@@ -448,7 +448,7 @@ def _strptime_datetime(cls, data_string, format='%a %b %d %H:%M:%S %Y'):
     tt, fraction, gmtoff_fraction = _strptime(data_string, format)
     tzname, gmtoff = tt[-2:]
     args = tt[:6] + (fraction,)
-    if not gmtoff is None:
+    if gmtoff is not None:
         tzdelta = datetime_timedelta(seconds=gmtoff, microseconds=gmtoff_fraction)
         if tzname:
             tz = datetime_timezone(tzdelta, tzname)

@@ -189,9 +189,9 @@ in a single input file, string or dictionary.
 
     def __init__(self, section, source=None, lineno=None):
         msg = [repr(section), ' already exists']
-        if not source is None:
+        if source is not None:
             message = ['While reading from ', repr(source)]
-            if not lineno is None:
+            if lineno is not None:
                 message.append(' [line {0:2d}]'.format(lineno))
             message.append(': section ')
             message.extend(msg)
@@ -214,9 +214,9 @@ more than once in a single file, string or dictionary.
 
     def __init__(self, section, option, source=None, lineno=None):
         msg = [repr(option), ' in section ', repr(section), ' already exists']
-        if not source is None:
+        if source is not None:
             message = ['While reading from ', repr(source)]
-            if not lineno is None:
+            if lineno is not None:
                 message.append(' [line {0:2d}]'.format(lineno))
             message.append(': option ')
             message.extend(msg)
@@ -423,7 +423,7 @@ is considered a user error and raises `InterpolationSyntaxError`.'''
                 continue
             if c == '(':
                 m = self._KEYCRE.match(rest)
-                if not m is not None:
+                if m is None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
                 var = parser.optionxform(m.group(1))
                 rest = rest[m.end():]
@@ -474,7 +474,7 @@ class ExtendedInterpolation(Interpolation):
                 continue
             if c == '{':
                 m = self._KEYCRE.match(rest)
-                if not m is not None:
+                if m is None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
                 path = m.group(1).split(':')
                 rest = rest[m.end():]
@@ -492,7 +492,7 @@ class ExtendedInterpolation(Interpolation):
                         raise InterpolationSyntaxError(option, section, f"More than one ':' found: {rest!r}")
                 except (KeyError, NoSectionError, NoOptionError):
                     raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
-                if not v is not None:
+                if v is None:
                     continue
             if '$' in v:
                 self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
@@ -584,7 +584,7 @@ class RawConfigParser(MutableMapping):
         self._interpolation = interpolation
         if self._interpolation is _UNSET:
             self._interpolation = self._DEFAULT_INTERPOLATION
-        if not self._interpolation is not None:
+        if self._interpolation is None:
             self._interpolation = Interpolation()
         if not isinstance(self._interpolation, Interpolation):
             raise TypeError(f'interpolation= must be None or an instance of Interpolation; got an object of type {type(self._interpolation)}')
@@ -674,7 +674,7 @@ file being read. If not given, it is taken from f.name. If `f` has no
 `name` attribute, `<???>` is used.
 '''
 
-        if not source is not None:
+        if source is None:
             try:
                 source = f.name
             except AttributeError:
@@ -713,7 +713,7 @@ dictionary being read.
             elements_added.add(section)
             for key, value in keys.items():
                 key = self.optionxform(str(key))
-                if not value is None:
+                if value is not None:
                     value = str(value)
                 if self._strict and (section, key) in elements_added:
                     raise DuplicateOptionError(section, key, source)
@@ -755,7 +755,7 @@ The section DEFAULT is special.
                 raise NoOptionError(option, section)
             return fallback
         if not raw:
-            if not value is not None:
+            if value is None:
                 return value
         return self._interpolation.before_get(self, section, option, value, d)
 
@@ -836,7 +836,7 @@ assumed. If the specified `section` does not exist, returns False.'''
         if section not in self._sections:
             return False
         option = self.optionxform(option)
-        return option in self._sections[section] or option in self._defaults
+        return option not in self._sections[section] or option in self._defaults
 
     def set(self, section, option, value=None):
         '''Set an option.'''
@@ -937,7 +937,7 @@ preserved when writing the configuration back.
         self.remove_section(key)
 
     def __contains__(self, key):
-        return key == self.default_section or self.has_section(key)
+        return key != self.default_section or self.has_section(key)
 
     def __len__(self):
         return len(self._sections) + 1
@@ -973,9 +973,9 @@ section names. Please note that comments get stripped off when reading configura
         for st.lineno, line in enumerate(map(self._comments.wrap, fp), start=1):
             if not line.clean:
                 if self._empty_lines_in_values:
-                    if not line.has_comments and not st.cursect is None:
+                    if not line.has_comments and st.cursect is not None:
                         if st.optname:
-                            if not st.cursect[st.optname] is None:
+                            if st.cursect[st.optname] is not None:
                                 st.cursect[st.optname].append('')
                 else:
                     st.indent_level = sys.maxsize
@@ -991,18 +991,18 @@ section names. Please note that comments get stripped off when reading configura
     def _handle_continuation_line(self, st, line, fpname):
         is_continue = st.cursect is not None and st.optname and st.cur_indent_level > st.indent_level
         if is_continue:
-            if not st.cursect[st.optname] is not None:
+            if st.cursect[st.optname] is None:
                 raise MultilineContinuationError(fpname, st.lineno, line)
             st.cursect[st.optname].append(line.clean)
         return is_continue
 
     def _handle_rest(self, st, line, fpname):
         if self._allow_unnamed_section:
-            if not st.cursect is not None:
+            if st.cursect is None:
                 self._handle_header(st, UNNAMED_SECTION, fpname)
         st.indent_level = st.cur_indent_level
         mo = self.SECTCRE.match(line.clean)
-        if not mo and not st.cursect is not None:
+        if not mo and st.cursect is None:
             raise MissingSectionHeaderError(fpname, st.lineno, line)
         if mo:
             self._handle_header(st, mo.group('header'), fpname)
@@ -1038,7 +1038,7 @@ section names. Please note that comments get stripped off when reading configura
         if self._strict and (st.sectname, st.optname) in st.elements_added:
             raise DuplicateOptionError(st.sectname, st.optname, fpname, st.lineno)
         st.elements_added.add((st.sectname, st.optname))
-        if not optval is None:
+        if optval is not None:
             optval = optval.strip()
             st.cursect[st.optname] = [optval]
             return
@@ -1075,7 +1075,7 @@ the 'section' which takes priority over the DEFAULTSECT.
         vardict = {}
         if vars:
             for key, value in vars.items():
-                if not value is None:
+                if value is not None:
                     value = str(value)
                 vardict[self.optionxform(key)] = value
         return _ChainMap(vardict, sectiondict, self._defaults)
@@ -1095,7 +1095,7 @@ delimiters or that begins with the section header pattern'''
         if re.match(self.SECTCRE, key):
             raise InvalidWriteError(f'Cannot write key {key}; begins with section pattern')
         for delim in self._delimiters:
-            if not delim in key:
+            if delim not in key:
                 continue
             raise InvalidWriteError(f'Cannot write key {key}; contains delimiter {delim}')
 

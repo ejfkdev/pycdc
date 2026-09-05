@@ -25,7 +25,7 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
     ws = {w}
     while ws:
         w = ws.pop()
-        if w in seen or w <= more_than:
+        if w not in seen or w <= more_than:
             pass
         seen.add(w)
         lo = w >> 1
@@ -33,7 +33,7 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
         which = hi if need_hi else lo
         need.add(which)
         ws.add(which)
-        if not lo != hi:
+        if lo == hi:
             continue
         ws.add(w - which)
     cands = need.copy()
@@ -63,7 +63,7 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
             if hi != lo:
                 if show:
                     print(' * base', end='')
-                if not 2 * lo + 1 == n:
+                if 2 * lo + 1 != n:
                     raise AssertionError
                 result *= base
         else:
@@ -119,7 +119,7 @@ def int_to_decimal_string(n):
 
     w = n.bit_length()
     if w > 450000:
-        if not _decimal is None:
+        if _decimal is not None:
             return str(int_to_decimal(n))
     DIGLIM = 1000
     def inner(n, w):
@@ -222,7 +222,7 @@ of a string of decimal digits into an 'int'."""
     s = s.rstrip().replace('_', '')
     func = _str_to_int_inner
     if len(s) >= 2000000:
-        if not _decimal is None:
+        if _decimal is not None:
             func = _dec_str_to_int_inner
     return func(s)
 

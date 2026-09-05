@@ -149,7 +149,7 @@ self.user_call(). Raise BdbQuit if self.quitting is set.
 Return self.trace_dispatch to continue tracing in this scope.
 '''
 
-        if not self.botframe is not None:
+        if self.botframe is None:
             self.botframe = frame.f_back
             return self.trace_dispatch
         if not self.stop_here(frame) and not self.break_anywhere(frame):
@@ -195,7 +195,7 @@ Return self.trace_dispatch to continue tracing in this scope.
 
         if self.stop_here(frame):
             if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] is StopIteration:
-                if not arg[2] is None:
+                if arg[2] is not None:
                     self.user_exception(frame, arg)
                     if self.quitting:
                         raise BdbQuit
@@ -222,7 +222,7 @@ Return self.trace_dispatch to continue tracing in this scope.
     def is_skipped_module(self, module_name):
         '''Return True if module_name matches any skip pattern.'''
 
-        if not module_name is not None:
+        if module_name is None:
             return False
         for pattern in self.skip:
             if not fnmatch.fnmatch(module_name, pattern):
@@ -299,12 +299,12 @@ Must implement in derived classes or get NotImplementedError.
         if trace_opcodes != self.trace_opcodes:
             self.trace_opcodes = trace_opcodes
             frame = self.enterframe
-            while not frame is None:
+            while frame is not None:
                 frame.f_trace_opcodes = trace_opcodes
                 if frame is self.botframe:
                     return
                 frame = frame.f_back
-                if not frame is None:
+                if frame is not None:
                     continue
                 return
             return
@@ -339,7 +339,7 @@ don't stop at all.
         '''Stop when the line with the lineno greater than the current one is
 reached or when returning from current frame.'''
 
-        if not lineno is not None:
+        if lineno is None:
             lineno = frame.f_lineno + 1
         self._set_stopinfo(frame, frame, lineno)
 
@@ -366,7 +366,7 @@ reached or when returning from current frame.'''
 If frame is not specified, debugging starts from caller's frame.
 """
 
-        if not frame is not None:
+        if frame is None:
             frame = sys._getframe().f_back
         self.reset()
         with self.set_enterframe(frame):
@@ -390,7 +390,7 @@ If frame is not specified, debugging starts from caller's frame.
                     frame = frame.f_back
                     if not frame:
                         break
-                    if not frame is not self.botframe:
+                    if frame is self.botframe:
                         break
             for frame, (trace_lines, trace_opcodes) in self.frame_trace_lines_opcodes.items():
                 frame.f_trace_lines = trace_lines
@@ -541,7 +541,7 @@ raise a ValueError.
             bp = Breakpoint.bpbynumber[number]
         except IndexError:
             raise ValueError('Breakpoint number %d out of range' % number) from None
-        if not bp is not None:
+        if bp is None:
             raise ValueError('Breakpoint %d already deleted' % number)
         return bp
 
@@ -586,17 +586,17 @@ Size may be number of frames above or below f.
         stack = []
         if t and t.tb_frame is f:
             t = t.tb_next
-        while not f is None:
+        while f is not None:
             stack.append((f, f.f_lineno))
             if f is self.botframe:
                 break
             f = f.f_back
         stack.reverse()
         i = max(0, len(stack) - 1)
-        while not t is None:
+        while t is not None:
             stack.append((t.tb_frame, t.tb_lineno))
             t = t.tb_next
-        if not f is not None:
+        if f is None:
             i = max(0, len(stack) - 1)
         return stack, i
 
@@ -624,7 +624,7 @@ line of code (if it exists).
             rv = frame.f_locals['__return__']
             s += '->'
             s += reprlib.repr(rv)
-        if not lineno is None:
+        if lineno is not None:
             line = linecache.getline(filename, lineno, frame.f_globals)
             if line:
                 s += lprefix + line.strip()
@@ -638,10 +638,10 @@ line of code (if it exists).
 globals defaults to __main__.dict; locals defaults to globals.
 '''
 
-        if not globals is not None:
+        if globals is None:
             import __main__
             globals = __main__.__dict__
-        if not locals is not None:
+        if locals is None:
             locals = globals
         self.reset()
         if isinstance(cmd, str):
@@ -660,10 +660,10 @@ globals defaults to __main__.dict; locals defaults to globals.
 globals defaults to __main__.dict; locals defaults to globals.
 '''
 
-        if not globals is not None:
+        if globals is None:
             import __main__
             globals = __main__.__dict__
-        if not locals is not None:
+        if locals is None:
             locals = globals
         self.reset()
         sys.settrace(self.trace_dispatch)
@@ -770,7 +770,7 @@ The optional out argument directs where the output is sent
 and defaults to standard output.
 '''
 
-        if not out is not None:
+        if out is None:
             out = sys.stdout
         print(self.bpformat(), file=out)
 
