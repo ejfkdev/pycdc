@@ -17,10 +17,37 @@ import ast
 import sys
 
 
+# ---- compat shims: ast.Num/Str removed in 3.14; ast.SetComp absent in 2.6.
+# isinstance(node, ast.Num) itself raises AttributeError on 3.14, so every
+# deprecated-node touch goes through these helpers.
+def _is_num(node):
+    if hasattr(ast, 'Num') and isinstance(node, ast.Num):
+        return True
+    return (hasattr(ast, 'Constant') and isinstance(node, ast.Constant)
+            and isinstance(node.value, (int, float, complex))
+            and not isinstance(node.value, bool))
+
+
+def _num_of(node):
+    return node.n if hasattr(node, 'n') else node.value
+
+
+def _mk_num(v):
+    if hasattr(ast, 'Num'):
+        return ast.Num(n=v)
+    return ast.Constant(value=v)
+
+
+def _mk_str(s):
+    if hasattr(ast, 'Str'):
+        return ast.Str(s=s)
+    return ast.Constant(value=s)
+
+
 def const_key(node):
     """Canonical (kind, value) for constant-ish expression nodes."""
-    if isinstance(node, ast.Num):
-        v = node.n
+    if _is_num(node):
+        v = _num_of(node)
         if isinstance(v, bool):
             return ('bool', v)
         return ('num', repr(v))
@@ -220,8 +247,8 @@ class Normalizer(ast.NodeTransformer):
     # so the decompiled constant and the source expression compare equal
     # only after folding both sides ----
     def _numval(self, node):
-        if isinstance(node, ast.Num):
-            v = node.n
+        if _is_num(node):
+            v = _num_of(node)
             return int(v) if isinstance(v, bool) else v
         if hasattr(ast, 'Constant') and isinstance(node, ast.Constant):
             v = node.value
@@ -247,7 +274,7 @@ class Normalizer(ast.NodeTransformer):
                 return node
         except Exception:
             return node
-        return ast.Num(n=r)
+        return _mk_num(r)
 
     def _strval(self, node):
         if hasattr(ast, 'Str') and isinstance(node, ast.Str):
@@ -264,7 +291,7 @@ class Normalizer(ast.NodeTransformer):
             ls, rn = self._strval(node.left), self._numval(node.right)
             if ls is not None and isinstance(rn, int) and 0 <= rn <= 1000 \
                     and len(ls) * rn <= 4096:
-                return ast.Str(s=ls * rn)
+                return _mk_str(ls * rn)
         l = self._numval(node.left)
         r = self._numval(node.right)
         if l is None or r is None:
@@ -306,7 +333,7 @@ class Normalizer(ast.NodeTransformer):
         if isinstance(v, bool):
             v = int(v)
         if isinstance(v, (int, float, complex)):
-            return ast.Num(n=v)
+            return _mk_num(v)
         return node
 
     def visit_Yield(self, node):
@@ -315,6 +342,9 @@ class Normalizer(ast.NodeTransformer):
         if node.value is None:
             node.value = ast.Name(id='None', ctx=ast.Load())
         elif hasattr(ast, 'NameConstant') and isinstance(node.value, ast.NameConstant) \
+                and node.value.value is None:
+            node.value = ast.Name(id='None', ctx=ast.Load())
+        elif hasattr(ast, 'Constant') and isinstance(node.value, ast.Constant) \
                 and node.value.value is None:
             node.value = ast.Name(id='None', ctx=ast.Load())
         return node
@@ -348,6 +378,8 @@ class Normalizer(ast.NodeTransformer):
                 and isinstance(node.args[0], ast.GeneratorExp)):
             ge = node.args[0]
             if node.func.id == 'set':
+                if not hasattr(ast, 'SetComp'):
+                    return node  # py2.6: no set-comprehension node exists
                 return ast.SetComp(elt=ge.elt, generators=ge.generators)
             return ast.ListComp(elt=ge.elt, generators=ge.generators)
         return node
@@ -386,6 +418,11 @@ def sorted_node(node):
     return node
 
 
+def dump_stmts(stmts):
+    """ast.dump refuses lists; compare statement bodies position-wise."""
+    return '[' + ','.join(ast.dump(s) for s in stmts) + ']'
+
+
 def merge_nested_ifs(stmts):
     """`if a: if b: X` (no elses) compiles identically to `if a and b: X`;
     `if a: X else: if b: X` (same then) to `if a or b: X`; and
@@ -404,7 +441,7 @@ def merge_nested_ifs(stmts):
                     s = ast.If(test=merged_test, body=inner.body, orelse=[])
             # form 2: if a: X else: (if b: X2) with X == X2 -> if a or b: X
             elif (len(s.orelse) == 1 and isinstance(s.orelse[0], ast.If)
-                  and ast.dump(s.body) == ast.dump(s.orelse[0].body)):
+                  and dump_stmts(s.body) == dump_stmts(s.orelse[0].body)):
                 inner = s.orelse[0]
                 merged_test = ast.BoolOp(op=ast.Or(),
                                          values=[s.test, inner.test])

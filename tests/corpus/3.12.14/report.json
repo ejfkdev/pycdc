@@ -24,7 +24,7 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "",
+   "ast_detail": "diff at token 277: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
    "ndiff": 3636,
    "ntotal": 3711,
@@ -36,7 +36,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "",
+   "ast_detail": "diff at token 243: orig  ctx=Store())) | dec  ctx=Store()))]",
    "verdict": "SIG-DIFF",
    "ndiff": 224,
    "ntotal": 571,
@@ -44,7 +44,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "",
+   "ast_detail": "diff at token 174: orig  right=Constant(value=1))))] | dec  right=Constant(value=1))))",
    "verdict": "SIG-DIFF",
    "ndiff": 897,
    "ntotal": 1303,
@@ -52,7 +52,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "",
+   "ast_detail": "diff at token 43: orig  body=[If(test=Compare(left=Name(id='path' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 1301,
    "ntotal": 1489,
@@ -60,7 +60,7 @@
   },
   {
    "module": "_py_abc",
-   "ast_detail": "",
+   "ast_detail": "diff at token 99: orig  If(test=Call(func=Name(id='getattr' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 402,
    "ntotal": 504,
@@ -68,7 +68,7 @@
   },
   {
    "module": "_pylong",
-   "ast_detail": "",
+   "ast_detail": "diff at token 41: orig  body=[If(test=Compare(left=NamedExpr(target=Name(id='result' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 145,
    "ntotal": 997,
@@ -84,7 +84,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "",
+   "ast_detail": "diff at token 77: orig  body=[Break()] | dec  body=[Return()]",
    "verdict": "SIG-DIFF",
    "ndiff": 2178,
    "ntotal": 2287,
@@ -116,7 +116,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "",
+   "ast_detail": "diff at token 251: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 2666,
    "ntotal": 3367,
@@ -124,7 +124,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "",
+   "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
    "ndiff": 1685,
    "ntotal": 1936,
@@ -132,7 +132,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "",
+   "ast_detail": "diff at token 229: orig  orelse=[]) | dec  orelse=[])])",
    "verdict": "SIG-DIFF",
    "ndiff": 2398,
    "ntotal": 2530,
@@ -148,7 +148,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "",
+   "ast_detail": "diff at token 62: orig  If(test=UnaryOp(op=Not() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 744,
    "ntotal": 802,
@@ -164,7 +164,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "",
+   "ast_detail": "diff at token 593: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 3323,
    "ntotal": 3395,
@@ -172,7 +172,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "",
+   "ast_detail": "diff at token 63: orig  'logfile' | dec  'logfp'])",
    "verdict": "SIG-DIFF",
    "ndiff": 2772,
    "ntotal": 2899,
@@ -180,7 +180,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "",
+   "ast_detail": "diff at token 163: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 1083,
    "ntotal": 1484,
@@ -188,7 +188,7 @@
   },
   {
    "module": "chunk",
-   "ast_detail": "",
+   "ast_detail": "diff at token 74: orig  Try(body=[Assign(targets=[Attribute(value=Name(id='self' | dec  Try(body=[Try(body=[Assign(targets=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
    "ndiff": 355,
    "ntotal": 470,
@@ -196,7 +196,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "",
+   "ast_detail": "diff at token 71: orig  body=[If(test=Compare(left=Name(id='stdin' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 1265,
    "ntotal": 1452,
@@ -204,7 +204,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "",
+   "ast_detail": "diff at token 23: orig  body=[If(test=Compare(left=Name(id='locals' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 1000,
    "ntotal": 1036,
@@ -232,7 +232,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "",
+   "ast_detail": "diff at token 92: orig  orelse=[] | dec  orelse=[Expr(value=Call(func=Attribute(value=Name(id='names'",
    "verdict": "SIG-DIFF",
    "ndiff": 1622,
    "ntotal": 1696,
@@ -240,7 +240,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "",
+   "ast_detail": "diff at token 110: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
    "ndiff": 3189,
    "ntotal": 4262,
@@ -256,7 +256,7 @@
   },
   {
    "module": "copy",
-   "ast_detail": "",
+   "ast_detail": "diff at token 74: orig  If(test=Compare(left=Name(id='copier' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 635,
    "ntotal": 870,
@@ -272,7 +272,7 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "",
+   "ast_detail": "diff at token 94: orig  body=[If(test=Compare(left=Name(id='method' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 200,
    "ntotal": 462,
@@ -280,7 +280,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "",
+   "ast_detail": "diff at token 235: orig  values=[Compare(left=Call(func=Name(id='iter' | dec  values=[UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 1698,
    "ntotal": 1745,

@@ -130,7 +130,10 @@ def verify_module(interp, pycdc, vdir, pyc, outdir, keep):
         if a.returncode == 0:
             result["verdict"] = "AST-PASS"
             return result
-        result["ast_detail"] = (a.stdout or "").strip()[:200]
+        det = (a.stdout or "").strip()
+        if not det:
+            det = "CRASH: " + (a.stderr or "").strip()[-190:]
+        result["ast_detail"] = det[:200]
     if warned:
         result["verdict"] = "INCOMPLETE"
     else:
