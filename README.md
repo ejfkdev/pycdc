@@ -87,13 +87,13 @@ cargo build                                                 # 重新嵌入
 | PASS（字节码级一致） | 75（14.4%） |
 | AST-PASS（语义等价） | 27 |
 | **语义等价合计** | **102（19.6%）** |
-| INCOMPLETE（可编译、含占位） | 10 |
-| SIG-DIFF（可编译、结构有差） | 408 |
-| SYNTAX-ERR | **0（所有输出都能在对应版本编译）** |
+| INCOMPLETE（可编译、含占位） | **0** |
+| SIG-DIFF（可编译、结构有差） | 418 |
+| SYNTAX-ERR | **0（所有 520 个输出都能在对应版本编译）** |
 
 每个版本目录下的 `report.json` 保存逐模块判级与首个差异位置，便于聚类修复。
 
-### 行为等价矩阵（`tools/run_behavior.py`，37 用例 × 13 解释器）
+### 行为等价矩阵（`tools/run_behavior.py`，38 用例 × 13 解释器）
 
 用例编译为 pyc → 反编译 → **用同一解释器分别运行原始与反编译代码**，比较 stdout+返回码：
 
@@ -101,11 +101,11 @@ cargo build                                                 # 重新嵌入
 |---|---|---|---|
 | 2.6 | 22/22 | 3.9 | 32/32 |
 | 2.7 | 23/23 | 3.10 | 33/33 |
-| 3.3 | 24/24 | 3.11 | 35/35 |
-| 3.5 | 26/26 | 3.12 | 36/36 |
-| 3.6 | 27/27 | 3.13 | 36/36 |
-| 3.7 | 27/27 | 3.14 | 36/36 |
-| 3.8 | 32/32 | **合计** | **389/389 = 100%** |
+| 3.3 | 24/24 | 3.11 | 36/36 |
+| 3.5 | 26/26 | 3.12 | 37/37 |
+| 3.6 | 27/27 | 3.13 | 37/37 |
+| 3.7 | 27/27 | 3.14 | 37/37 |
+| 3.8 | 32/32 | **合计** | **393/393 = 100%** |
 
 （带 MIN/MAX_VERSION 门控的用例只在适用版本运行；用例源文件本身无法在
 某解释器编译时记 N/A 并排除出分母。）
@@ -119,11 +119,24 @@ cargo build                                                 # 重新嵌入
   循环内」的组合可能丢失循环嵌套结构。
 - `with a, b:` 多上下文输出为嵌套 with（语义等价）。
 - match/case（3.10–3.14）：字面量/捕获/通配/or/序列（含 `*rest`、字面量元素）/映射
-  （含值字面量模式与 `**rest`）/类模式（位置+关键字+字面量子模式）/singleton
-  （True/False/None）与 guard 均支持；or 臂在部分版本渲染为共享 body 的多个 case
-  （语义等价）。已知缺口：3.10 的旧式逐属性提取（BINARY_SUBSCR+ROT 栈序）、模式槽位
-  内递归嵌套（如 mapping 值内嵌序列/类模式）、非字面量模式间的 or 展开（序列|序列、
-  类|类，含共享捕获绑定）。
+  （含值字面量模式与 `**rest`）/类模式（位置+关键字+字面量子模式，含唯一非通配 case 的
+  无 subject-COPY 形状）/singleton（True/False/None）与 guard 均支持；循环内 match（case
+  体以 JUMP_BACKWARD 回到循环顶、尾随 `case _:` 位于失败目标）已还原；or 臂在部分版本
+  渲染为共享 body 的多个 case（语义等价）。已知缺口：3.10 的旧式逐属性提取
+  （BINARY_SUBSCR+ROT 栈序）、模式槽位内递归嵌套（如 mapping 值内嵌序列/类模式）、
+  非字面量模式间的 or 展开（序列|序列、类|类，含共享捕获绑定）、循环内「最后一个 case
+  用 PJIF_TRUE 跳 body + 失败 JUMP_BACKWARD」的倒置形状（如 `case 2: return`）会漏判为
+  通配/条件残桩（行为多数仍等价）。
+- 3.14 PEP 649 注解：函数/方法级 `__annotate__` 经 LOAD_FROM_DICT_OR_GLOBALS 重建为签名
+  注解（类作用域注解如 `Self`/`ast.AST` 已正确解析）。已知缺口：模块/类级**条件**注解
+  （`if False:`/TYPE_CHECKING 块内的纯注解语句，经 `__conditional_annotations__` 门控）
+  仍以 `__annotate__`/`__conditional_annotations__` 伪函数形式输出而非还原为注解语句。
+- PEP 750 模板字符串（3.14+ t-string，`BUILD_TEMPLATE`）不支持（语料中仅 annotationlib
+  的 `type(t"")` 一处）；该 opcode 处输出 `# UNIMPLEMENTED` 占位。
+- else 子句丢失/提升：`if/else` 与 `try/except/else` 的 else 体在部分形状下被提升到外层
+  （丢失 `else:` 关联），共 16 处、6 模块（_bootlocale/_compat_pickle/_weakrefset/abc/
+  copy/copyreg，跨 2.7–3.12），最常见于 else 体本身为嵌套 try 时；多数行为近似但条件为
+  真/异常路径下可能偏离。
 - PEP 695 类型参数语法（3.12+ `type X = ...`、`def f[T](...)`、`class C[T]`）不支持。
 - 异步：async def/await/async for/async with（含嵌套与多上下文）支持；已知缺口：
   内联 async 推导式、async 生成器 asend/athrow 协议、3.7 SETUP_EXCEPT 守卫式
