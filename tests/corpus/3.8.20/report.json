@@ -29,7 +29,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 320: orig  ctx=Store())) | dec  ctx=Store()))]",
+   "ast_detail": "diff at token 355: orig  type_comment=None)])] | dec  type_comment=None)]",
    "verdict": "SIG-DIFF",
    "ndiff": 213,
    "ntotal": 490,
@@ -65,7 +65,7 @@
   },
   {
    "module": "_sitebuiltins",
-   "ast_detail": "diff at token 216: orig  body=[Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  body=[Break()",
+   "ast_detail": "diff at token 216: orig  body=[Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  body=[Break()]",
    "verdict": "SIG-DIFF",
    "ndiff": 144,
    "ntotal": 362,
@@ -245,7 +245,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 193: orig  ctx=Load())))] | dec  ctx=Load())))",
+   "ast_detail": "diff at token 194: orig  orelse=[If(test=BoolOp(op=And() | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 769,
    "ntotal": 1094,
@@ -253,7 +253,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 1494: orig  type_comment=None)] | dec  type_comment=None)",
+   "ast_detail": "diff at token 1495: orig  orelse=[If(test=Compare(left=Name(id='c' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 2801,
    "ntotal": 4350,

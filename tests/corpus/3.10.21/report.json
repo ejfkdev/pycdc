@@ -37,7 +37,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 234: orig  ctx=Store())) | dec  ctx=Store()))]",
+   "ast_detail": "diff at token 264: orig  ctx=Load()))])]) | dec  ctx=Load()))])",
    "verdict": "SIG-DIFF",
    "ndiff": 302,
    "ntotal": 575,
@@ -221,7 +221,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 89: orig  If(test=Compare(left=Name(id='code' | dec  Return(value=Constant(value=True))",
+   "ast_detail": "diff at token 89: orig  If(test=Compare(left=Name(id='code' | dec  Return(value=Constant(value=True))]",
    "verdict": "SIG-DIFF",
    "ndiff": 638,
    "ntotal": 669,
@@ -249,7 +249,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 134: orig  ctx=Load())))] | dec  ctx=Load())))",
+   "ast_detail": "diff at token 135: orig  orelse=[If(test=BoolOp(op=And() | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 1420,
    "ntotal": 1512,
@@ -289,7 +289,7 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 359: orig  Try(body=[Assign(targets=[Name(id='result' | dec  Raise()",
+   "ast_detail": "diff at token 359: orig  Try(body=[Assign(targets=[Name(id='result' | dec  Raise()]",
    "verdict": "SIG-DIFF",
    "ndiff": 57,
    "ntotal": 452,

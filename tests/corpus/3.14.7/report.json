@@ -189,7 +189,7 @@
   },
   {
    "module": "bisect",
-   "ast_detail": "diff at token 105: orig  ctx=Load()))] | dec  ctx=Load()))",
+   "ast_detail": "diff at token 105: orig  ctx=Load()))] | dec  ctx=Load()))])",
    "verdict": "SIG-DIFF",
    "ndiff": 133,
    "ntotal": 269,

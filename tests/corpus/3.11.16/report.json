@@ -41,7 +41,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 234: orig  ctx=Store())) | dec  ctx=Store()))]",
+   "ast_detail": "diff at token 332: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 82,
    "ntotal": 619,
@@ -157,7 +157,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 312: orig  body=[Continue()])] | dec  body=[Pass()])]",
+   "ast_detail": "diff at token 477: orig  Try(body=[Return(value=Call(func=Name(id='func' | dec  Try(body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 297,
    "ntotal": 742,
@@ -233,7 +233,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 134: orig  ctx=Load())))] | dec  ctx=Load())))",
+   "ast_detail": "diff at token 135: orig  orelse=[If(test=BoolOp(op=And() | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 1491,
    "ntotal": 1572,
@@ -281,7 +281,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 962: orig  body=[Continue()])] | dec  body=[Pass()])]",
+   "ast_detail": "diff at token 1394: orig  orelse=[Assign(targets=[Subscript(value=Name(id='modes' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 1740,
    "ntotal": 1775,

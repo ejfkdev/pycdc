@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
   "PASS": 12,
-  "SIG-DIFF": 23,
-  "AST-PASS": 5
+  "SIG-DIFF": 22,
+  "AST-PASS": 6
  },
  "results": [
   {
@@ -29,7 +29,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 270: orig  ctx=Store())) | dec  ctx=Store()))]",
+   "ast_detail": "diff at token 388: orig  ctx=Load()))])) | dec  ctx=Load()))]))]",
    "verdict": "SIG-DIFF",
    "ndiff": 192,
    "ntotal": 490,
@@ -57,7 +57,7 @@
   },
   {
    "module": "_sitebuiltins",
-   "ast_detail": "diff at token 200: orig  body=[Pass()])] | dec  body=[Continue()])]",
+   "ast_detail": "diff at token 306: orig  body=[Try(body=[For(target=Name(id='i' | dec  body=[While(test=Compare(left=Name(id='key'",
    "verdict": "SIG-DIFF",
    "ndiff": 111,
    "ntotal": 368,
@@ -181,7 +181,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 248: orig  body=[Try(body=[Assign(targets=[Name(id='line' | dec  body=[Continue()]",
+   "ast_detail": "diff at token 248: orig  body=[Try(body=[Assign(targets=[Name(id='line' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1025,
    "ntotal": 1310,
@@ -189,11 +189,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 620: orig  value=Num(n=0))])] | dec  value=Num(n=0))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 618,
-   "ntotal": 653,
-   "detail": "line 16: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 20: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "codecs",
@@ -241,7 +237,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 455: orig  If(test=BoolOp(op=And() | dec  Continue()",
+   "ast_detail": "diff at token 698: orig  ctx=Del())]) | dec  ctx=Del())",
    "verdict": "SIG-DIFF",
    "ndiff": 335,
    "ntotal": 525,

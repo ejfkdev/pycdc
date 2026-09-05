@@ -29,7 +29,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 270: orig  ctx=Store())) | dec  ctx=Store()))]",
+   "ast_detail": "diff at token 388: orig  ctx=Load()))])) | dec  ctx=Load()))]))]",
    "verdict": "SIG-DIFF",
    "ndiff": 195,
    "ntotal": 497,
@@ -57,7 +57,7 @@
   },
   {
    "module": "_sitebuiltins",
-   "ast_detail": "diff at token 202: orig  body=[Pass()])] | dec  body=[Continue()])]",
+   "ast_detail": "diff at token 308: orig  body=[Try(body=[For(target=Name(id='i' | dec  body=[While(test=Compare(left=Name(id='key'",
    "verdict": "SIG-DIFF",
    "ndiff": 111,
    "ntotal": 369,
@@ -189,7 +189,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 105: orig  If(test=Compare(left=Name(id='code' | dec  Return(value=NameConstant(value=True))",
+   "ast_detail": "diff at token 105: orig  If(test=Compare(left=Name(id='code' | dec  Return(value=NameConstant(value=True))]",
    "verdict": "SIG-DIFF",
    "ndiff": 621,
    "ntotal": 672,
@@ -197,7 +197,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1243: orig  cause=None)] | dec  cause=None)",
+   "ast_detail": "diff at token 1245: orig  orelse=[Raise(exc=None | dec  orelse=[])])]",
    "verdict": "SIG-DIFF",
    "ndiff": 259,
    "ntotal": 2153,
@@ -245,7 +245,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 455: orig  If(test=BoolOp(op=And() | dec  Continue()",
+   "ast_detail": "diff at token 715: orig  ctx=Del())]) | dec  ctx=Del())",
    "verdict": "SIG-DIFF",
    "ndiff": 352,
    "ntotal": 542,

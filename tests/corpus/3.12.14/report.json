@@ -36,7 +36,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 243: orig  ctx=Store())) | dec  ctx=Store()))]",
+   "ast_detail": "diff at token 342: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 224,
    "ntotal": 571,

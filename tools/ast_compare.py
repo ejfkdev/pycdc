@@ -367,6 +367,29 @@ class Normalizer(ast.NodeTransformer):
                 return ast.BoolOp(op=ast.And(), values=parts)
         return node
 
+    def _expand_with(self, node):
+        self.generic_visit(node)
+        # 'with a, b:' desugars to nested single-item withs - the
+        # compiler emits identical bytecode, so canonicalize the AST the
+        # same way (decompilers render the nested form)
+        items = getattr(node, 'items', None)
+        if items is not None and len(items) > 1:
+            body = node.body
+            for item in reversed(list(items)[1:]):
+                inner = type(node)(items=[item], body=body)
+                body = [inner]
+            node.items = items[:1]
+            node.body = body
+        return node
+
+    def visit_With(self, node):
+        return self._expand_with(node)
+
+    def visit_AsyncWith(self, node):
+        if not hasattr(ast, 'AsyncWith'):
+            return node
+        return self._expand_with(node)
+
     def visit_Return(self, node):
         self.generic_visit(node)
         # 'return None' and bare 'return' compile identically
@@ -459,6 +482,79 @@ def sorted_node(node):
     if isinstance(node, ast.BoolOp):
         node.values.sort(key=lambda v: ast.dump(v))
     return node
+
+
+TERMINATORS = tuple(
+    [t for t in (getattr(ast, 'Break', None), getattr(ast, 'Return', None),
+                 getattr(ast, 'Raise', None), getattr(ast, 'Continue', None))
+     if t is not None])
+
+
+def strip_noop_continues(stmts, at_loop_tail):
+    """Canonicalize loop-tail artifacts decompilers emit:
+    - statements after a terminator in the same body are dead -> drop
+    - `continue` as the last executed statement of a loop body (possibly
+      through a tail try/if/with) is a no-op -> drop
+    An empty handler/branch body canonicalizes to [Pass]."""
+    out = []
+    terminated = False
+    for s in stmts:
+        if terminated:
+            continue
+        s = visit_noop_node(s, at_loop_tail)
+        if isinstance(s, ast.Continue):
+            if at_loop_tail:
+                continue  # no-op: the loop iterates anyway
+            terminated = True
+            out.append(s)
+            continue
+        if isinstance(s, TERMINATORS):
+            terminated = True
+        out.append(s)
+    return out
+
+
+def visit_noop_node(s, at_loop_tail):
+    if isinstance(s, (ast.While, ast.For)):
+        s.body = strip_noop_continues(s.body, True)
+        s.orelse = strip_noop_continues(s.orelse, at_loop_tail)
+        if not s.body:
+            s.body = [ast.Pass()]
+    elif hasattr(ast, 'AsyncFor') and isinstance(s, getattr(ast, 'AsyncFor')):
+        s.body = strip_noop_continues(s.body, True)
+        s.orelse = strip_noop_continues(s.orelse, at_loop_tail)
+        if not s.body:
+            s.body = [ast.Pass()]
+    elif isinstance(s, ast.If):
+        s.body = strip_noop_continues(s.body, at_loop_tail)
+        s.orelse = strip_noop_continues(s.orelse, at_loop_tail)
+        if not s.body:
+            s.body = [ast.Pass()]
+    elif isinstance(s, (ast.With, getattr(ast, 'AsyncWith', ast.With))):
+        s.body = strip_noop_continues(s.body, at_loop_tail)
+        if not s.body:
+            s.body = [ast.Pass()]
+    elif isinstance(s, ELSE_PASS_TYPES[3:] if len(ELSE_PASS_TYPES) > 3 else ()):
+        # try/try* (and py2 TryExcept/TryFinally): every clause that can
+        # be the loop-tail flow inherits the flag
+        s.body = strip_noop_continues(s.body, at_loop_tail)
+        for h in getattr(s, 'handlers', []) or []:
+            h.body = strip_noop_continues(h.body, at_loop_tail)
+            if not h.body:
+                h.body = [ast.Pass()]
+        # py2 TryFinally has no orelse; py2 TryExcept has no finalbody
+        if hasattr(s, 'orelse'):
+            s.orelse = strip_noop_continues(s.orelse, at_loop_tail)
+        if getattr(s, 'finalbody', None):
+            s.finalbody = strip_noop_continues(s.finalbody, at_loop_tail)
+        if not s.body:
+            s.body = [ast.Pass()]
+    elif isinstance(s, (ast.FunctionDef, ast.ClassDef,
+                        getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):
+        s.body = strip_noop_continues(s.body, False)
+        if not s.body:
+            s.body = [ast.Pass()]
+    return s
 
 
 ELSE_PASS_TYPES = tuple(
@@ -576,6 +672,8 @@ def dump(src):
     # re-run body normalization so merged/canonical forms settle
     tree = Normalizer().visit(tree)
     tree = prune_globals(tree)
+    if isinstance(tree, ast.Module):
+        tree.body = strip_noop_continues(tree.body, False)
     for node in ast.walk(tree):
         for field in ('body', 'orelse', 'finalbody'):
             val = getattr(node, field, None)
