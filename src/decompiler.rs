@@ -14036,6 +14036,11 @@ fn is_pure_value_op(op: Op) -> bool {
             | Op::CONTAINS_OP
             | Op::BINARY_OP
             | Op::BINARY_SUBSCR
+            | Op::BUILD_SLICE
+            | Op::SLICE_0
+            | Op::SLICE_1
+            | Op::SLICE_2
+            | Op::SLICE_3
             | Op::CALL
             | Op::CALL_FUNCTION
             | Op::CALL_METHOD

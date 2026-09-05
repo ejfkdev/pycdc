@@ -217,12 +217,9 @@ class HTMLParser(markupbase.ParserBase):
             attrname, rest, attrvalue = m.group(1, 2, 3)
             if not rest:
                 attrvalue = None
-            else:
-                "'" == attrvalue[attrvalue[:1] == "'" and -1:]
-                if not None:
-                    '"' == attrvalue[attrvalue[:1] == '"' and -1:]
-                    if None:
-                        attrvalue = attrvalue[1:-1]
+            elif not attrvalue[:1] == "'" == attrvalue[-1:]:
+                if attrvalue[:1] == '"' == attrvalue[-1:]:
+                    attrvalue = attrvalue[1:-1]
             if attrvalue:
                 attrvalue = self.unescape(attrvalue)
             attrs.append((attrname.lower(), attrvalue))
@@ -360,4 +357,3 @@ class HTMLParser(markupbase.ParserBase):
         return re.sub('&(#?[xX]?(?:[0-9a-fA-F]+|\\w{1,8}));', replaceEntities, s)
 
 
-# WARNING: Decompyle incomplete
