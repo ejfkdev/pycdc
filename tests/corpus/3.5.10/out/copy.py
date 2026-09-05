@@ -141,31 +141,32 @@ def deepcopy(x, memo=None, _nil=[]):
     copier = _deepcopy_dispatch.get(cls)
     if copier:
         y = copier(x, memo)
-    try:
-        issc = issubclass(cls, type)
-    except TypeError:
-        issc = 0
-    if issc:
-        y = _deepcopy_atomic(x, memo)
     else:
-        copier = getattr(x, '__deepcopy__', None)
-        if copier:
-            y = copier(memo)
+        try:
+            issc = issubclass(cls, type)
+        except TypeError:
+            issc = 0
+        if issc:
+            y = _deepcopy_atomic(x, memo)
         else:
-            reductor = dispatch_table.get(cls)
-            if reductor:
-                rv = reductor(x)
+            copier = getattr(x, '__deepcopy__', None)
+            if copier:
+                y = copier(memo)
             else:
-                reductor = getattr(x, '__reduce_ex__', None)
+                reductor = dispatch_table.get(cls)
                 if reductor:
-                    rv = reductor(4)
+                    rv = reductor(x)
                 else:
-                    reductor = getattr(x, '__reduce__', None)
+                    reductor = getattr(x, '__reduce_ex__', None)
                     if reductor:
-                        rv = reductor()
+                        rv = reductor(4)
                     else:
-                        raise Error('un(deep)copyable object of type %s' % cls)
-            y = _reconstruct(x, rv, 1, memo)
+                        reductor = getattr(x, '__reduce__', None)
+                        if reductor:
+                            rv = reductor()
+                        else:
+                            raise Error('un(deep)copyable object of type %s' % cls)
+                y = _reconstruct(x, rv, 1, memo)
     if y is not x:
         memo[d] = y
         _keep_alive(x, memo)

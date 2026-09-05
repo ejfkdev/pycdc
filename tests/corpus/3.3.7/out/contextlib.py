@@ -56,15 +56,16 @@ class _GeneratorContextManager(ContextDecorator):
                 return
             else:
                 raise RuntimeError("generator didn't stop")
-        elif value is None:
-            value = type()
-        if sys.exc_info()[1] is not value:
-            raise
-        try:
-            self.gen.throw(type, value, traceback)
-            raise RuntimeError("generator didn't stop after throw()")
-        except StopIteration as exc:
-            return exc is not value
+        else:
+            if value is None:
+                value = type()
+            if sys.exc_info()[1] is not value:
+                raise
+            try:
+                self.gen.throw(type, value, traceback)
+                raise RuntimeError("generator didn't stop after throw()")
+            except StopIteration as exc:
+                return exc is not value
 
 
 def contextmanager(func):

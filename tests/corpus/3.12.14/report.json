@@ -270,9 +270,9 @@
    "module": "copyreg",
    "ast_detail": "diff at token 38: orig  If(test=Compare(left=Name(id='constructor_ob' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 397,
+   "ndiff": 398,
    "ntotal": 611,
-   "detail": "line 189: orig ('FOR_ITER', 'to 228') | got ('FOR_ITER', 'to 226')\nline 195: orig ('POP_JUMP_IF_FALSE', 'to 136') | got ('POP_JUMP_IF_TRUE', 'to 96')\nline 196: orig ('LOAD_FAST', 'base') | got ('JUMP_BACKWARD', 'to 64')"
+   "detail": "line 189: orig ('FOR_ITER', 'to 228') | got ('FOR_ITER', 'to 238')\nline 195: orig ('POP_JUMP_IF_FALSE', 'to 136') | got ('POP_JUMP_IF_TRUE', 'to 96')\nline 196: orig ('LOAD_FAST', 'base') | got ('JUMP_BACKWARD', 'to 64')"
   },
   {
    "module": "crypt",

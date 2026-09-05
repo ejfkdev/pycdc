@@ -110,29 +110,30 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
                 return False
             else:
                 raise RuntimeError("generator didn't stop")
-        elif value is None:
-            value = typ()
-        if exc is value:
-            return False
-        if isinstance(value, StopIteration) and exc.__cause__ is value:
-            return False
-        raise
-        exc = None
-        del exc
-        try:
-            self.gen.throw(typ, value, traceback)
-        except StopIteration as exc:
-            return exc is not value
-        except RuntimeError as exc:
-            pass
-        exc = None
-        del exc, exc
-        try:
-            if exc is not value:
-                raise
-        finally:
+        else:
+            if value is None:
+                value = typ()
+            if exc is value:
+                return False
+            if isinstance(value, StopIteration) and exc.__cause__ is value:
+                return False
+            raise
             exc = None
-        return False
+            del exc
+            try:
+                self.gen.throw(typ, value, traceback)
+            except StopIteration as exc:
+                return exc is not value
+            except RuntimeError as exc:
+                pass
+            exc = None
+            del exc, exc
+            try:
+                if exc is not value:
+                    raise
+            finally:
+                exc = None
+            return False
 
 
 class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncContextManager):
@@ -153,29 +154,30 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 return False
             else:
                 raise RuntimeError("generator didn't stop")
-        elif value is None:
-            value = typ()
-        if exc is value:
-            return False
-        if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
-            return False
-        raise
-        exc = None
-        del exc
-        try:
-            await self.gen.athrow(typ, value, traceback)
-        except StopAsyncIteration as exc:
-            return exc is not value
-        except RuntimeError as exc:
-            pass
-        exc = None
-        del exc, exc
-        try:
-            if exc is not value:
-                raise
-        finally:
+        else:
+            if value is None:
+                value = typ()
+            if exc is value:
+                return False
+            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                return False
+            raise
             exc = None
-        return False
+            del exc
+            try:
+                await self.gen.athrow(typ, value, traceback)
+            except StopAsyncIteration as exc:
+                return exc is not value
+            except RuntimeError as exc:
+                pass
+            exc = None
+            del exc, exc
+            try:
+                if exc is not value:
+                    raise
+            finally:
+                exc = None
+            return False
 
 
 def contextmanager(func):

@@ -54,7 +54,6 @@ def _reduce_ex(self, proto):
             raise TypeError("can't pickle %s objects" % base.__name__)
         state = base(self)
     args = self.__class__, base, state
-    dict = getstate()
     try:
         getstate = self.__getstate__
     except AttributeError:
@@ -64,6 +63,8 @@ def _reduce_ex(self, proto):
             dict = self.__dict__
         except AttributeError:
             dict = None
+    else:
+        dict = getstate()
     if dict:
         return _reconstructor, args, dict
     return _reconstructor, args

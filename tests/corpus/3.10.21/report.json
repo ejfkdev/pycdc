@@ -215,7 +215,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1097,
+   "ndiff": 1100,
    "ntotal": 1324,
    "detail": "line 179: orig ('POP_JUMP_IF_FALSE', 'to 90') | got ('POP_JUMP_IF_FALSE', 'to 22')\nline 182: orig ('POP_JUMP_IF_FALSE', 'to 90') | got ('POP_JUMP_IF_FALSE', 'to 22')\nline 183: orig ('SETUP_FINALLY', 'to 72') | got ('NOP', '')"
   },
@@ -259,7 +259,7 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2831,
+   "ndiff": 2830,
    "ntotal": 4289,
    "detail": "line 1021: orig ('SETUP_FINALLY', 'to 246') | got ('LOAD_CONST', \"'%'\")\nline 1022: orig ('LOAD_FAST', 'map') | got ('LOAD_FAST', 'v')\nline 1023: orig ('LOAD_FAST', 'var') | got ('CONTAINS_OP', '')"
   },
@@ -283,7 +283,7 @@
    "module": "copyreg",
    "ast_detail": "diff at token 46: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 362,
+   "ndiff": 360,
    "ntotal": 597,
    "detail": "line 210: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 82')\nline 216: orig ('POP_JUMP_IF_FALSE', 'to 52') | got ('POP_JUMP_IF_FALSE', 'to 80')\nline 221: orig ('POP_JUMP_IF_TRUE', 'to 52') | got ('POP_JUMP_IF_TRUE', 'to 50')"
   },

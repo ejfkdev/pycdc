@@ -254,9 +254,9 @@
    "module": "codeop",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 314,
+   "ndiff": 297,
    "ntotal": 411,
-   "detail": "line 88: orig ('FOR_ITER', 'to L4') | got ('FOR_ITER', 'to L3')\nline 95: orig ('TO_BOOL', '') | got ('LOAD_SMALL_INT', '')\nline 96: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('BINARY_OP', '[]')"
+   "detail": "line 88: orig ('FOR_ITER', 'to L4') | got ('FOR_ITER', 'to L7')\nline 107: orig ('POP_TOP', '') | got ('LOAD_FAST_BORROW', 'symbol')\nline 108: orig ('JUMP_FORWARD', 'to L5') | got ('LOAD_CONST', \"'eval'\")"
   },
   {
    "module": "colorsys",
@@ -298,9 +298,9 @@
    "module": "copyreg",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 452,
+   "ndiff": 436,
    "ntotal": 691,
-   "detail": "line 211: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L3')\nline 228: orig ('LOAD_FAST_BORROW', 'base') | got ('JUMP_BACKWARD', 'to L2')"
+   "detail": "line 211: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')\nline 219: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L8')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L3')"
   }
  ]
 }

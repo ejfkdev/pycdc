@@ -103,9 +103,10 @@ class BZ2File(_compression.BaseStream):
                     self._compressor = None
             finally:
                 self._fp.close()
-            try:
                 if self._closefp:
                     pass
+            try:
+                pass
             finally:
                 self._fp = None
                 self._closefp = False

@@ -2,8 +2,8 @@
  "version": "3.6.15",
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
-  "PASS": 8,
-  "SIG-DIFF": 28,
+  "PASS": 9,
+  "SIG-DIFF": 27,
   "AST-PASS": 4
  },
  "results": [
@@ -13,11 +13,7 @@
   },
   {
    "module": "_bootlocale",
-   "ast_detail": "diff at token 30: orig  orelse=[Try(body=[Expr(value=Attribute(value=Name(id='_locale' | dec  orelse=[])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 68,
-   "ntotal": 92,
-   "detail": "line 22: orig ('JUMP_FORWARD', 'to 96') | got ('SETUP_EXCEPT', 'to 54')\nline 23: orig ('SETUP_EXCEPT', 'to 56') | got ('LOAD_NAME', '_locale')\nline 24: orig ('LOAD_NAME', '_locale') | got ('LOAD_ATTR', 'CODESET')"
+   "verdict": "PASS"
   },
   {
    "module": "_collections_abc",
@@ -199,7 +195,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 825,
+   "ndiff": 749,
    "ntotal": 1316,
    "detail": "line 441: orig ('SETUP_LOOP', 'to 152') | got ('SETUP_LOOP', 'to 194')\nline 458: orig ('POP_BLOCK', '') | got ('LOAD_FAST', 'line')\nline 459: orig ('LOAD_FAST', 'line') | got ('LOAD_CONST', 'None')"
   },
@@ -239,7 +235,7 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3946,
+   "ndiff": 3926,
    "ntotal": 4337,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },
@@ -253,17 +249,17 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 419: orig  orelse=[Try(body=[Assign(targets=[Name(id='issc' | dec  orelse=[])",
+   "ast_detail": "diff at token 1185: orig  If(test=Compare(left=Name(id='listiter' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 468,
+   "ndiff": 50,
    "ntotal": 964,
-   "detail": "line 471: orig ('JUMP_FORWARD', 'to 280') | got ('SETUP_EXCEPT', 'to 92')\nline 472: orig ('SETUP_EXCEPT', 'to 94') | got ('LOAD_GLOBAL', 'issubclass')\nline 473: orig ('LOAD_GLOBAL', 'issubclass') | got ('LOAD_FAST', 'cls')"
+   "detail": "line 870: orig ('POP_JUMP_IF_FALSE', '') | got ('EXTENDED_ARG', '')\nline 871: orig ('SETUP_LOOP', 'to 278') | got ('POP_JUMP_IF_FALSE', '')\nline 872: orig ('LOAD_FAST', 'listiter') | got ('SETUP_LOOP', 'to 278')"
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 266: orig  Try(body=[Assign(targets=[Name(id='getstate' | dec  Assign(targets=[Name(id='dict'",
+   "ast_detail": "diff at token 455: orig  If(test=BoolOp(op=And() | dec  Continue()",
    "verdict": "SIG-DIFF",
-   "ndiff": 354,
+   "ndiff": 352,
    "ntotal": 542,
    "detail": "line 169: orig ('SETUP_LOOP', 'to 58') | got ('SETUP_LOOP', 'to 56')\nline 174: orig ('FOR_ITER', 'to 52') | got ('FOR_ITER', 'to 50')\nline 185: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },
@@ -275,8 +271,8 @@
    "module": "csv",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1640,
-   "ntotal": 1678,
+   "ndiff": 1641,
+   "ntotal": 1679,
    "detail": "line 8: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 12: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 13: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   }
  ]

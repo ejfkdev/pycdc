@@ -1211,8 +1211,13 @@ impl<'a> Ctx<'a> {
                         })
                 })
             {
-                let l = self.legacy_try.take().unwrap();
+                // Flush the else region's pending stores BEFORE taking the
+                // legacy try, so push_stmt still routes them into lt.orelse
+                // (the else_start check needs legacy_try alive). Taking first
+                // would strand the else body's last store in the enclosing
+                // block, emitting it as a sibling before the Try.
                 self.flush_pending_stores();
+                let l = self.legacy_try.take().unwrap();
                 if let Some(depth) = self.finish_legacy_nest() {
                     while self.blocks.len() > depth.max(1) {
                         let p = self.blocks.last().map(|b| b.start).unwrap_or(pos);
@@ -4951,10 +4956,15 @@ impl<'a> Ctx<'a> {
         }
         // statements executed inside a collected try-else region belong to
         // the Try's orelse, not to the enclosing block; a 3.8-3.10 inline
-        // finally body collects into finalbody
+        // finally body collects into finalbody. The else_stop bound is
+        // INCLUSIVE: the legacy-try flush fires at the first offset >=
+        // else_stop and drains the else region's trailing pending stores
+        // there (cur_offset == else_stop) before taking the try, so those
+        // stores still belong to orelse. (Matches the inclusive checks used
+        // by the else-region probes elsewhere.)
         if let Some(lt) = self.legacy_try.as_mut() {
             if let Some(es) = lt.else_start {
-                if self.cur_offset >= es && self.cur_offset < lt.else_stop {
+                if self.cur_offset >= es && self.cur_offset <= lt.else_stop {
                     if lt.has_finally {
                         lt.finalbody.push(stmt);
                     } else {
@@ -12393,10 +12403,19 @@ impl<'a> Ctx<'a> {
                     return true;
                 }
                 BlockType::Else | BlockType::Except => {
-                    // jump out of an else/except body: close it now; when an
-                    // Else block was created from an elif region mark it so
-                    // the closer can rebuild the chain
-                    self.close_blocks_at(top.end);
+                    // A forward jump that EXITS the else/except body (strictly
+                    // past its end) closes it now; when an Else block was
+                    // created from an elif region mark it so the closer can
+                    // rebuild the chain. A forward jump landing INSIDE the
+                    // region, or exactly ON its end, is nested-structure
+                    // machinery — e.g. a legacy try's body-jump to its own
+                    // else, or its handler-exit jump to the merge (which is
+                    // the else block's end): the try's else body still lies
+                    // ahead and must be walked into the legacy try first. The
+                    // block closes naturally when the walk reaches its end.
+                    if target > top.end {
+                        self.close_blocks_at(top.end);
+                    }
                     return true;
                 }
                 BlockType::While | BlockType::For if target > top.end => {

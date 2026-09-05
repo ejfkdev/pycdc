@@ -13,11 +13,11 @@
   },
   {
    "module": "_bootlocale",
-   "ast_detail": "diff at token 45: orig  orelse=[Try(body=[Expr(value=Attribute(value=Name(id='_locale' | dec  orelse=[])",
+   "ast_detail": "diff at token 45: orig  orelse=[Try(body=[Expr(value=Attribute(value=Name(id='_locale' | dec  orelse=[If(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 100,
+   "ndiff": 29,
    "ntotal": 122,
-   "detail": "line 22: orig ('JUMP_FORWARD', 'to 118') | got ('LOAD_NAME', 'hasattr')\nline 23: orig ('SETUP_FINALLY', 'to 56') | got ('LOAD_NAME', 'sys')\nline 24: orig ('LOAD_NAME', '_locale') | got ('LOAD_CONST', \"'getandroidapilevel'\")"
+   "detail": "line 23: orig ('SETUP_FINALLY', 'to 56') | got ('LOAD_NAME', 'hasattr')\nline 24: orig ('LOAD_NAME', '_locale') | got ('LOAD_NAME', 'sys')\nline 25: orig ('LOAD_ATTR', 'CODESET') | got ('LOAD_CONST', \"'getandroidapilevel'\")"
   },
   {
    "module": "_collections_abc",
@@ -219,7 +219,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1068,
+   "ndiff": 1070,
    "ntotal": 1305,
    "detail": "line 219: orig ('SETUP_FINALLY', 'to 320') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 221: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -227,7 +227,7 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 635,
+   "ndiff": 636,
    "ntotal": 671,
    "detail": "line 12: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 16: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
@@ -263,7 +263,7 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2812,
+   "ndiff": 2813,
    "ntotal": 4350,
    "detail": "line 1088: orig ('JUMP_FORWARD', 'to 336') | got ('JUMP_ABSOLUTE', '')\nline 1414: orig ('JUMP_FORWARD', 'to 472') | got ('JUMP_ABSOLUTE', '')\nline 1472: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')"
   },
@@ -287,7 +287,7 @@
    "module": "copyreg",
    "ast_detail": "diff at token 207: orig  value=Constant(value=512) | dec  value=Constant(value=512",
    "verdict": "SIG-DIFF",
-   "ndiff": 356,
+   "ndiff": 353,
    "ntotal": 544,
    "detail": "line 175: orig ('FOR_ITER', 'to 54') | got ('FOR_ITER', 'to 40')\nline 182: orig ('LOAD_FAST', 'base') | got ('JUMP_ABSOLUTE', '')\nline 183: orig ('LOAD_ATTR', '__flags__') | got ('LOAD_FAST', 'base')"
   },

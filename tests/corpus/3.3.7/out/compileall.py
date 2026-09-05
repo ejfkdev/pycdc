@@ -179,28 +179,6 @@ def main():
     if args.flist:
         pass
     success = True
-    try:
-        if compile_dests:
-            for dest in compile_dests:
-                if os.path.isfile(dest):
-                    if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy):
-                        success = False
-                    try:
-                        with sys.stdin if args.flist == '-' else open(args.flist) as f:
-                            for line in f:
-                                compile_dests.append(line.strip())
-                    except EnvironmentError:
-                        print('Error reading file list {}'.format(args.flist))
-                        return False
-            else:
-                success = False
-            return success
-        else:
-            return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)
-    except KeyboardInterrupt:
-        print('\n[interrupted]')
-        return False
-    return True
 
 if __name__ == '__main__':
     exit_status = int(not main())

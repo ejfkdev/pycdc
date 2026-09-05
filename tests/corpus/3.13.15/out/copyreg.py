@@ -56,7 +56,7 @@ def _reduce_ex(self, proto):
                     continue
                 if not new.__self__ is base:
                     continue
-    base = object
+                base = object
     if base is object:
         state = None
     else:

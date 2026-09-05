@@ -238,11 +238,12 @@ class Cmd:
                 cmd, args, foo = self.parseline(line)
                 if cmd == '':
                     compfunc = self.completedefault
-            try:
-                compfunc = getattr(self, 'complete_' + cmd)
-            except AttributeError:
-                compfunc = self.completedefault
-            compfunc = self.completenames
+                else:
+                    try:
+                        compfunc = getattr(self, 'complete_' + cmd)
+                    except AttributeError:
+                        compfunc = self.completedefault
+                    compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
         try:
             return self.completion_matches[state]

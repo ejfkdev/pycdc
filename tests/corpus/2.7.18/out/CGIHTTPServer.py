@@ -231,31 +231,31 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             if '=' not in query:
                 cmdline.append(query)
             self.log_message('command: %s', subprocess.list2cmdline(cmdline))
-        try:
-            nbytes = int(length)
-        except (TypeError, ValueError):
-            nbytes = 0
-        p = subprocess.Popen(cmdline, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-        if self.command.lower() == 'post' and nbytes > 0:
-            data = self.rfile.read(nbytes)
-        else:
-            data = None
-        while select.select([self.rfile._sock], [], [], 0)[0]:
-            pass
-        else:
-            # WARNING: break outside loop (unrecovered structure)
-            pass
-        stdout, stderr = p.communicate(data)
-        self.wfile.write(stdout)
-        if stderr:
-            self.log_error('%s', stderr)
-        p.stderr.close()
-        p.stdout.close()
-        status = p.returncode
-        if status:
-            self.log_error('CGI script exit status %#x', status)
-        else:
-            self.log_message('CGI script exited OK')
+            try:
+                nbytes = int(length)
+            except (TypeError, ValueError):
+                nbytes = 0
+            p = subprocess.Popen(cmdline, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+            if self.command.lower() == 'post' and nbytes > 0:
+                data = self.rfile.read(nbytes)
+            else:
+                data = None
+            while select.select([self.rfile._sock], [], [], 0)[0]:
+                pass
+            else:
+                # WARNING: break outside loop (unrecovered structure)
+                pass
+            stdout, stderr = p.communicate(data)
+            self.wfile.write(stdout)
+            if stderr:
+                self.log_error('%s', stderr)
+            p.stderr.close()
+            p.stdout.close()
+            status = p.returncode
+            if status:
+                self.log_error('CGI script exit status %#x', status)
+            else:
+                self.log_message('CGI script exited OK')
 
 
 def _url_collapse_path(path):

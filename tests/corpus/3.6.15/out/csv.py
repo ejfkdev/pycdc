@@ -367,12 +367,13 @@ class Sniffer:
                     hasHeader += 1
                 else:
                     hasHeader -= 1
-            try:
-                colType(header[col])
-            except (ValueError, TypeError):
-                hasHeader += 1
             else:
-                hasHeader -= 1
+                try:
+                    colType(header[col])
+                except (ValueError, TypeError):
+                    hasHeader += 1
+                else:
+                    hasHeader -= 1
         return hasHeader > 0
 
 

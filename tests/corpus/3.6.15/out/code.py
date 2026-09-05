@@ -188,12 +188,13 @@ class InteractiveConsole(InteractiveInterpreter):
                     prompt = sys.ps2
                 else:
                     prompt = sys.ps1
-                more = self.push(line)
                 try:
                     line = self.raw_input(prompt)
                 except EOFError:
                     self.write('\n')
                     break
+                else:
+                    more = self.push(line)
             except KeyboardInterrupt:
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
@@ -246,10 +247,11 @@ def interact(banner=None, readfunc=None, local=None, exitmsg=None):
     console = InteractiveConsole(local)
     if readfunc is not None:
         console.raw_input = readfunc
-    try:
-        import readline
-    except ImportError:
-        pass
+    else:
+        try:
+            import readline
+        except ImportError:
+            pass
     console.interact(banner, exitmsg)
 
 if __name__ == '__main__':

@@ -17,11 +17,11 @@
   },
   {
    "module": "_bootlocale",
-   "ast_detail": "diff at token 33: orig  orelse=[Try(body=[Expr(value=Attribute(value=Name(id='_locale' | dec  orelse=[])",
+   "ast_detail": "diff at token 33: orig  orelse=[Try(body=[Expr(value=Attribute(value=Name(id='_locale' | dec  orelse=[If(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 99,
+   "ndiff": 29,
    "ntotal": 121,
-   "detail": "line 22: orig ('JUMP_FORWARD', 'to 116') | got ('LOAD_NAME', 'hasattr')\nline 23: orig ('SETUP_FINALLY', 'to 56') | got ('LOAD_NAME', 'sys')\nline 24: orig ('LOAD_NAME', '_locale') | got ('LOAD_CONST', \"'getandroidapilevel'\")"
+   "detail": "line 23: orig ('SETUP_FINALLY', 'to 56') | got ('LOAD_NAME', 'hasattr')\nline 24: orig ('LOAD_NAME', '_locale') | got ('LOAD_NAME', 'sys')\nline 25: orig ('LOAD_ATTR', 'CODESET') | got ('LOAD_CONST', \"'getandroidapilevel'\")"
   },
   {
    "module": "_bootsubprocess",
@@ -175,8 +175,8 @@
    "module": "bz2",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 972,
-   "ntotal": 1059,
+   "ndiff": 988,
+   "ntotal": 1062,
    "detail": "line 34: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 38: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
   {
@@ -223,7 +223,7 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1087,
+   "ndiff": 1083,
    "ntotal": 1329,
    "detail": "line 218: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'self')\nline 219: orig ('SETUP_FINALLY', 'to 380') | got ('LOAD_ATTR', 'use_rawinput')\nline 220: orig ('LOAD_FAST', 'intro') | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -231,7 +231,7 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 624,
+   "ndiff": 623,
    "ntotal": 665,
    "detail": "line 12: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 16: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
@@ -267,7 +267,7 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2821,
+   "ndiff": 2817,
    "ntotal": 4333,
    "detail": "line 1068: orig ('JUMP_FORWARD', 'to 334') | got ('JUMP_ABSOLUTE', '')\nline 1393: orig ('JUMP_FORWARD', 'to 470') | got ('JUMP_ABSOLUTE', '')\nline 1451: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')"
   },
@@ -275,7 +275,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 59: orig  body=[Return(value=Constant(value=None))] | dec  body=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1681,
+   "ndiff": 1687,
    "ntotal": 1750,
    "detail": "line 28: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 32: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
@@ -291,7 +291,7 @@
    "module": "copyreg",
    "ast_detail": "diff at token 191: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 356,
+   "ndiff": 358,
    "ntotal": 563,
    "detail": "line 188: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 189: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'base')\nline 190: orig ('LOAD_FAST', 'base') | got ('LOAD_ATTR', '__new__')"
   }

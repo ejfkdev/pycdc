@@ -217,11 +217,12 @@ class HTMLParser(markupbase.ParserBase):
             attrname, rest, attrvalue = m.group(1, 2, 3)
             if not rest:
                 attrvalue = None
-            "'" == attrvalue[attrvalue[:1] == "'" and -1:]
-            if not None:
-                '"' == attrvalue[attrvalue[:1] == '"' and -1:]
-                if None:
-                    attrvalue = attrvalue[1:-1]
+            else:
+                "'" == attrvalue[attrvalue[:1] == "'" and -1:]
+                if not None:
+                    '"' == attrvalue[attrvalue[:1] == '"' and -1:]
+                    if None:
+                        attrvalue = attrvalue[1:-1]
             if attrvalue:
                 attrvalue = self.unescape(attrvalue)
             attrs.append((attrname.lower(), attrvalue))

@@ -10,18 +10,19 @@ if sys.platform.startswith('win'):
     def getpreferredencoding(do_setlocale=True):
         return _locale._getdefaultlocale()[1]
 
-try:
-    _locale.CODESET
-except AttributeError:
-    def getpreferredencoding(do_setlocale=True):
-        import locale
-        return locale.getpreferredencoding(do_setlocale)
-
 else:
-    def getpreferredencoding(do_setlocale=True):
-        assert not do_setlocale
-        result = _locale.nl_langinfo(_locale.CODESET)
-        if not result and sys.platform == 'darwin':
-            result = 'UTF-8'
-        return result
+    try:
+        _locale.CODESET
+    except AttributeError:
+        def getpreferredencoding(do_setlocale=True):
+            import locale
+            return locale.getpreferredencoding(do_setlocale)
+
+    else:
+        def getpreferredencoding(do_setlocale=True):
+            assert not do_setlocale
+            result = _locale.nl_langinfo(_locale.CODESET)
+            if not result and sys.platform == 'darwin':
+                result = 'UTF-8'
+            return result
 

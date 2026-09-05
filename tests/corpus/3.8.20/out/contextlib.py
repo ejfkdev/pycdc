@@ -106,23 +106,24 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
                 return False
             else:
                 raise RuntimeError("generator didn't stop")
-        elif value is None:
-            value = type()
-        if exc is value:
-            return False
-        if type is StopIteration and exc.__cause__ is value:
-            return False
-        raise
-        if sys.exc_info()[1] is value:
-            return False
-        raise
-        try:
-            self.gen.throw(type, value, traceback)
-        except StopIteration as exc:
-            return exc is not value
-        except RuntimeError as exc:
-            pass
-        raise RuntimeError("generator didn't stop after throw()")
+        else:
+            if value is None:
+                value = type()
+            if exc is value:
+                return False
+            if type is StopIteration and exc.__cause__ is value:
+                return False
+            raise
+            if sys.exc_info()[1] is value:
+                return False
+            raise
+            try:
+                self.gen.throw(type, value, traceback)
+            except StopIteration as exc:
+                return exc is not value
+            except RuntimeError as exc:
+                pass
+            raise RuntimeError("generator didn't stop after throw()")
 
 
 class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncContextManager):
@@ -142,23 +143,24 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 return
             else:
                 raise RuntimeError("generator didn't stop")
-        elif value is None:
-            value = typ()
-        if exc is value:
-            return False
-        if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
-            return False
-        raise
-        try:
-            await self.gen.athrow(typ, value, traceback)
-            raise RuntimeError("generator didn't stop after athrow()")
-        except StopAsyncIteration as exc:
-            return exc is not value
-        except RuntimeError as exc:
-            pass
-        except BaseException as exc:
-            if exc is not value:
-                raise
+        else:
+            if value is None:
+                value = typ()
+            if exc is value:
+                return False
+            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                return False
+            raise
+            try:
+                await self.gen.athrow(typ, value, traceback)
+                raise RuntimeError("generator didn't stop after athrow()")
+            except StopAsyncIteration as exc:
+                return exc is not value
+            except RuntimeError as exc:
+                pass
+            except BaseException as exc:
+                if exc is not value:
+                    raise
 
 
 def contextmanager(func):

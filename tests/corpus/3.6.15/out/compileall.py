@@ -69,12 +69,13 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
     if workers is not None:
         if workers < 0:
             raise ValueError('workers must be greater or equal to 0')
-        elif workers != 1:
-            pass
-    try:
-        from concurrent.futures import ProcessPoolExecutor
-    except ImportError:
-        workers = 1
+        else:
+            if workers != 1:
+                pass
+            try:
+                from concurrent.futures import ProcessPoolExecutor
+            except ImportError:
+                workers = 1
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels, ddir=ddir)
     success = True
     if workers is not None and workers != 1 and ProcessPoolExecutor is not None:

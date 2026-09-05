@@ -43,21 +43,24 @@ PyCF_ALLOW_INCOMPLETE_INPUT = 16384
 def _maybe_compile(compiler, source, filename, symbol, flags):
     for line in source.split('\n'):
         line = line.strip()
-        if not line[0] != '#':
-            continue
-    if symbol != 'eval':
-        source = 'pass'
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
-    try:
-        compiler(source, filename, symbol, flags=flags)
-    except SyntaxError:
-        try:
-            compiler(source + '\n', filename, symbol, flags=flags)
-        except _IncompleteInputError as e:
-            return
-    None(None, None, None)
-    return compiler(source, filename, symbol, incomplete_input=False)
+        if not line:
+            pass
+        else:
+            if not line[0] != '#':
+                continue
+            if symbol != 'eval':
+                source = 'pass'
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
+            try:
+                compiler(source, filename, symbol, flags=flags)
+            except SyntaxError:
+                try:
+                    compiler(source + '\n', filename, symbol, flags=flags)
+                except _IncompleteInputError as e:
+                    return
+            None(None, None, None)
+            return compiler(source, filename, symbol, incomplete_input=False)
 
 def _compile(source, filename, symbol, incomplete_input=True, *, flags=0):
     if incomplete_input:

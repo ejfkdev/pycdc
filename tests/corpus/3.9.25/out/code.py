@@ -240,10 +240,11 @@ def interact(banner=None, readfunc=None, local=None, exitmsg=None):
     console = InteractiveConsole(local)
     if readfunc is not None:
         console.raw_input = readfunc
-    try:
-        import readline
-    except ImportError:
-        pass
+    else:
+        try:
+            import readline
+        except ImportError:
+            pass
     console.interact(banner, exitmsg)
 
 if __name__ == '__main__':

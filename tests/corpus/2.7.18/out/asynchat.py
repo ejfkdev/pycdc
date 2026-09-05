@@ -141,17 +141,7 @@ class async_chat(asyncore.dispatcher):
         self.producer_fifo.append(None)
 
     def initiate_send(self):
-        try:
-            with catch_warnings():
-                if py3kwarning:
-                    filterwarnings('ignore', '.*buffer', DeprecationWarning)
-                data = buffer(first, 0, obs)
-        except TypeError:
-            data = first.more()
-            if data:
-                self.producer_fifo.appendleft(data)
-            else:
-                del self.producer_fifo[0]
+        while self.producer_fifo:
             if self.connected:
                 first = self.producer_fifo[0]
                 if not first:
@@ -160,19 +150,30 @@ class async_chat(asyncore.dispatcher):
                         self.handle_close()
                         return
                 obs = self.ac_out_buffer_size
-            while self.producer_fifo:
-                pass
-        if num_sent:
-            if num_sent < len(data) or obs < len(first):
-                try:
-                    num_sent = self.send(data)
-                except socket.error:
-                    self.handle_error()
-                    return
-                else:
-                    self.producer_fifo[0] = first[num_sent:]
             else:
-                del self.producer_fifo[0]
+                try:
+                    with catch_warnings():
+                        if py3kwarning:
+                            filterwarnings('ignore', '.*buffer', DeprecationWarning)
+                        data = buffer(first, 0, obs)
+                except TypeError:
+                    data = first.more()
+                    if data:
+                        self.producer_fifo.appendleft(data)
+                    else:
+                        del self.producer_fifo[0]
+                if num_sent:
+                    if num_sent < len(data) or obs < len(first):
+                        try:
+                            num_sent = self.send(data)
+                        except socket.error:
+                            self.handle_error()
+                            return
+                        else:
+                            self.producer_fifo[0] = first[num_sent:]
+                        continue
+            del self.producer_fifo[0]
+            return
 
     def discard_buffers(self):
         self.ac_in_buffer = ''

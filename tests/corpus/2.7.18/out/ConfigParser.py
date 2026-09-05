@@ -369,10 +369,11 @@ class RawConfigParser:
 
         if not section or section == DEFAULTSECT:
             sectdict = self._defaults
-        try:
-            sectdict = self._sections[section]
-        except KeyError:
-            raise NoSectionError(section)
+        else:
+            try:
+                sectdict = self._sections[section]
+            except KeyError:
+                raise NoSectionError(section)
         sectdict[self.optionxform(option)] = value
 
     def write(self, fp):
@@ -398,10 +399,11 @@ class RawConfigParser:
 
         if not section or section == DEFAULTSECT:
             sectdict = self._defaults
-        try:
-            sectdict = self._sections[section]
-        except KeyError:
-            raise NoSectionError(section)
+        else:
+            try:
+                sectdict = self._sections[section]
+            except KeyError:
+                raise NoSectionError(section)
         option = self.optionxform(option)
         existed = option in sectdict
         if existed:

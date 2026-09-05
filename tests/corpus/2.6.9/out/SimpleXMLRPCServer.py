@@ -270,16 +270,17 @@ class SimpleXMLRPCDispatcher:
         Returns a string containing documentation for the specified method.'''
 
         method = None
-        try:
-            method = resolve_dotted_attribute(self.instance, method_name, self.allow_dotted_names)
-        except AttributeError:
-            if method_name in self.funcs:
-                method = self.funcs[method_name]
-            else:
-                if self.instance is not None and hasattr(self.instance, '_methodHelp'):
-                    return self.instance._methodHelp(method_name)
-                if not hasattr(self.instance, '_dispatch'):
-                    pass
+        if method_name in self.funcs:
+            method = self.funcs[method_name]
+        else:
+            if self.instance is not None and hasattr(self.instance, '_methodHelp'):
+                return self.instance._methodHelp(method_name)
+            if not hasattr(self.instance, '_dispatch'):
+                pass
+            try:
+                method = resolve_dotted_attribute(self.instance, method_name, self.allow_dotted_names)
+            except AttributeError:
+                pass
         if method is None:
             return ''
         import pydoc
@@ -475,13 +476,14 @@ class CGIXMLRPCRequestHandler(SimpleXMLRPCDispatcher):
 
         if request_text is None and os.environ.get('REQUEST_METHOD', None) == 'GET':
             self.handle_get()
-        try:
-            length = int(os.environ.get('CONTENT_LENGTH', None))
-        except (TypeError, ValueError):
-            length = -1
-        if request_text is None:
-            request_text = sys.stdin.read(length)
-        self.handle_xmlrpc(request_text)
+        else:
+            try:
+                length = int(os.environ.get('CONTENT_LENGTH', None))
+            except (TypeError, ValueError):
+                length = -1
+            if request_text is None:
+                request_text = sys.stdin.read(length)
+            self.handle_xmlrpc(request_text)
 
 
 if __name__ == '__main__':

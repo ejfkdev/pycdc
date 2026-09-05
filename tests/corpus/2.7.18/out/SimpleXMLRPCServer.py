@@ -551,13 +551,14 @@ class CGIXMLRPCRequestHandler(SimpleXMLRPCDispatcher):
 
         if request_text is None and os.environ.get('REQUEST_METHOD', None) == 'GET':
             self.handle_get()
-        try:
-            length = int(os.environ.get('CONTENT_LENGTH', None))
-        except (TypeError, ValueError):
-            length = -1
-        if request_text is None:
-            request_text = sys.stdin.read(length)
-        self.handle_xmlrpc(request_text)
+        else:
+            try:
+                length = int(os.environ.get('CONTENT_LENGTH', None))
+            except (TypeError, ValueError):
+                length = -1
+            if request_text is None:
+                request_text = sys.stdin.read(length)
+            self.handle_xmlrpc(request_text)
 
 
 if __name__ == '__main__':

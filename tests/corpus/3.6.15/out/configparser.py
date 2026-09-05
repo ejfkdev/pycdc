@@ -782,10 +782,11 @@ class RawConfigParser(MutableMapping):
             value = self._interpolation.before_set(self, section, option, value)
         if not section or section == self.default_section:
             sectdict = self._defaults
-        try:
-            sectdict = self._sections[section]
-        except KeyError:
-            raise NoSectionError(section) from None
+        else:
+            try:
+                sectdict = self._sections[section]
+            except KeyError:
+                raise NoSectionError(section) from None
         sectdict[self.optionxform(option)] = value
 
     def write(self, fp, space_around_delimiters=True):
@@ -820,10 +821,11 @@ class RawConfigParser(MutableMapping):
 
         if not section or section == self.default_section:
             sectdict = self._defaults
-        try:
-            sectdict = self._sections[section]
-        except KeyError:
-            raise NoSectionError(section) from None
+        else:
+            try:
+                sectdict = self._sections[section]
+            except KeyError:
+                raise NoSectionError(section) from None
         option = self.optionxform(option)
         existed = option in sectdict
         if existed:
