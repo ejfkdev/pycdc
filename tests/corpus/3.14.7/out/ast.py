@@ -22,7 +22,6 @@ that work tightly with the python syntax (template engines for example).
 '''
 
 from _ast import *
-None
 
 def parse(source, filename='<unknown>', mode='exec', *, type_comments=False, feature_version=None, optimize=-1):
     '''

@@ -399,6 +399,10 @@ struct Ctx<'a> {
     /// loop top of a loop that saw BREAK_LOOP: dead back edges after the
     /// break (<=3.7 padding) must not mark the output unclean
     broken_loop_top: Option<usize>,
+    /// 3.11/3.12: the import-star intrinsic's placeholder result is
+    /// discarded by the POP_TOP right after it — swallow that pop
+    /// instead of emitting a stray `None` expression statement
+    import_star_pop_pending: bool,
     /// py2 `if` statement: offset of the else-branch POP_TOP absorbed by
     /// the JUMP_IF_FALSE/TRUE rewrite (it must not pop a real value)
     py2_else_pop_at: Option<usize>,
@@ -652,6 +656,7 @@ pub fn decompile_in_scope(
         prev_op: None,
         prev_op_at_exec: None,
         skip_until: None,
+        import_star_pop_pending: false,
         dup_copy_redirect: HashMap::new(),
         dup_copy_skip: Vec::new(),
         broken_loop_top: None,
@@ -8860,6 +8865,7 @@ impl<'a> Ctx<'a> {
                     }
                     // the intrinsic leaves a result that POP_TOP discards
                     self.push(Rc::new(Expr::Const(Rc::new(PyObject::None))));
+                    self.import_star_pop_pending = true;
                 }
                 // 3.12+: INTRINSIC_LIST_TO_TUPLE (6) converts the
                 // star-unpack build list into a tuple display
@@ -15397,6 +15403,12 @@ fn cmp_from_index(idx: usize) -> CmpOp {
 
 impl<'a> Ctx<'a> {
     fn handle_pop_top(&mut self) {
+        // import-star intrinsic placeholder: pure cleanup, never a stmt
+        if self.import_star_pop_pending {
+            self.import_star_pop_pending = false;
+            self.pop();
+            return;
+        }
         // `return v` inside a loop: `SWAP 2; POP_TOP` (3.12+) or
         // `ROT_TWO; POP_TOP` (3.8-3.11) before the RETURN drops the loop
         // iterator, which the VM keeps below the value but our simulation
@@ -17802,6 +17814,165 @@ fn fold_py2_tuple_params(params: &mut Parameters, varnames: &[String], body: &mu
 /// * drop synthetic `__qualname__` / `__module__` assignments (class bodies)
 /// * convert leading `__doc__ = 'x'` assignments into docstring statements
 /// * drop a trailing `return None` in function bodies
+/// Conservative structural equality for the statements that can appear
+/// in a compiler-duplicated tail (assignments, expression statements,
+/// returns, imports, simple control flow). Anything exotic -> false.
+fn stmt_eq(a: &Stmt, b: &Stmt) -> bool {
+    match (a, b) {
+        (Stmt::Expr(x), Stmt::Expr(y)) => expr_eq(x, y),
+        (
+            Stmt::Assign {
+                targets: t1,
+                value: v1,
+            },
+            Stmt::Assign {
+                targets: t2,
+                value: v2,
+            },
+        ) => {
+            t1.len() == t2.len()
+                && t1.iter().zip(t2.iter()).all(|(x, y)| expr_eq(x, y))
+                && expr_eq(v1, v2)
+        }
+        (Stmt::Return(x), Stmt::Return(y)) => match (x, y) {
+            (None, None) => true,
+            (Some(a), Some(b)) => expr_eq(a, b),
+            _ => false,
+        },
+        (Stmt::Pass, Stmt::Pass) | (Stmt::Break, Stmt::Break) | (Stmt::Continue, Stmt::Continue) => {
+            true
+        }
+        (
+            Stmt::Import { names: n1 },
+            Stmt::Import { names: n2 },
+        ) => n1 == n2,
+        (
+            Stmt::ImportFrom {
+                module: m1,
+                level: l1,
+                names: n1,
+            },
+            Stmt::ImportFrom {
+                module: m2,
+                level: l2,
+                names: n2,
+            },
+        ) => m1 == m2 && l1 == l2 && n1 == n2,
+        (Stmt::Global(g1), Stmt::Global(g2)) => g1 == g2,
+        (Stmt::Nonlocal(g1), Stmt::Nonlocal(g2)) => g1 == g2,
+        (
+            Stmt::If {
+                cond: c1,
+                body: b1,
+                orelse: o1,
+            },
+            Stmt::If {
+                cond: c2,
+                body: b2,
+                orelse: o2,
+            },
+        ) => expr_eq(c1, c2) && stmts_eq(b1, b2) && stmts_eq(o1, o2),
+        _ => false,
+    }
+}
+
+fn stmts_eq(a: &[Stmt], b: &[Stmt]) -> bool {
+    a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| stmt_eq(x, y))
+}
+
+fn ends_scope(s: &Stmt) -> bool {
+    matches!(
+        s,
+        Stmt::Return(_) | Stmt::Raise { .. } | Stmt::Break | Stmt::Continue
+    )
+}
+
+/// 3.12+ tail-position try: instead of jumping back to the mainline
+/// continuation, the compiler sinks a copy of it into the last handler
+/// after POP_EXCEPT (datetime/decimal `try: from _x import * except
+/// ImportError: from _y import *` + module tail). The sub-walk emits
+/// the sunk copy inside the handler AND the mainline walk emits it
+/// again after the try. Strip the duplication: when the last handler's
+/// body ends with exactly the statements that follow the try through
+/// the END of the enclosing scope, and that tail is terminator-shaped
+/// (a source-level duplicate could not end the scope), the handler
+/// copy is the compiler artifact.
+fn dedup_sunk_handler_tails(stmts: &mut Vec<Stmt>, scope_end_open: bool) {
+    for s in stmts.iter_mut() {
+        match s {
+            Stmt::Try {
+                body,
+                handlers,
+                orelse,
+                finalbody,
+            } => {
+                dedup_sunk_handler_tails(body, false);
+                for h in handlers.iter_mut() {
+                    dedup_sunk_handler_tails(&mut h.body, false);
+                }
+                dedup_sunk_handler_tails(orelse, false);
+                dedup_sunk_handler_tails(finalbody, false);
+            }
+            Stmt::If { body, orelse, .. }
+            | Stmt::While { body, orelse, .. }
+            | Stmt::For { body, orelse, .. } => {
+                dedup_sunk_handler_tails(body, false);
+                dedup_sunk_handler_tails(orelse, false);
+            }
+            _ => {}
+        }
+    }
+    let n = stmts.len();
+    for i in 0..n.saturating_sub(1) {
+        // the tail must run to the end of the enclosing scope: either
+        // terminator-shaped, or the module top level (whose implicit
+        // `return None` never becomes a statement)
+        let tail = &stmts[i + 1..];
+        if tail.is_empty() || !(ends_scope(tail.last().unwrap()) || scope_end_open) {
+            continue;
+        }
+        let (k, hlen) = {
+            let Stmt::Try {
+                handlers,
+                finalbody,
+                ..
+            } = &stmts[i]
+            else {
+                continue;
+            };
+            if !finalbody.is_empty() {
+                continue;
+            }
+            let Some(last) = handlers.last() else {
+                continue;
+            };
+            if last.is_star {
+                continue;
+            }
+            let mut k = 0;
+            while k < tail.len() && k < last.body.len() {
+                let x = &last.body[last.body.len() - 1 - k];
+                let y = &tail[k];
+                if !stmt_eq(x, y) {
+                    break;
+                }
+                k += 1;
+            }
+            (k, last.body.len())
+        };
+        if k >= 1 && k <= hlen {
+            if let Stmt::Try { handlers, .. } = &mut stmts[i] {
+                if let Some(last) = handlers.last_mut() {
+                    last.body.truncate(hlen - k);
+                    if last.body.is_empty() {
+                        last.body.push(Stmt::Pass);
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
     // __module__ / __qualname__ / __doc__ handling for class bodies
     let mut idx = 0;
@@ -17886,6 +18057,9 @@ fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
             }
         }
     }
+    // 3.12+ sunk-tail duplication in tail-position try handlers
+    let is_module = code.name == "<module>";
+    dedup_sunk_handler_tails(&mut body, is_module);
     // empty-generator idiom: CPython dead-code-eliminates an unreachable
     // `while False: yield None` (the canonical empty generator, e.g.
     // _collections_abc Iterable.__iter__) leaving only the generator flag —

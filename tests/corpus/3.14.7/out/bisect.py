@@ -102,7 +102,6 @@ A custom key function can be supplied to customize the sort order.
 
 try:
     from _bisect import *
-    None
 except ImportError:
     pass
 bisect = bisect_right

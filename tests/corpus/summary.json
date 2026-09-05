@@ -33,15 +33,15 @@
  "3.12.14": {
   "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
   "counts": {
-   "PASS": 6,
-   "SIG-DIFF": 34
+   "PASS": 9,
+   "SIG-DIFF": 31
   }
  },
  "3.13.15": {
   "interp": "/opt/homebrew/bin/python3.13",
   "counts": {
-   "PASS": 9,
-   "SIG-DIFF": 31
+   "PASS": 12,
+   "SIG-DIFF": 28
   }
  },
  "3.14.7": {

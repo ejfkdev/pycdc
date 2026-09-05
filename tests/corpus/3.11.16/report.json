@@ -123,8 +123,8 @@
    "module": "asyncore",
    "ast_detail": "diff at token 136: orig  keywords=[]))])] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2280,
-   "ntotal": 2362,
+   "ndiff": 2257,
+   "ntotal": 2361,
    "detail": "line 29: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 33: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -199,7 +199,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 179: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  Try(body=[Try(body=[If(test=Compare(left=Name(id='intro'",
    "verdict": "SIG-DIFF",
-   "ndiff": 930,
+   "ndiff": 1204,
    "ntotal": 1453,
    "detail": "line 207: orig ('LOAD_FAST', 'intro') | got ('NOP', '')\nline 208: orig ('POP_JUMP_FORWARD_IF_NONE', 'to 294') | got ('LOAD_FAST', 'intro')\nline 209: orig ('LOAD_FAST', 'intro') | got ('POP_JUMP_FORWARD_IF_NONE', 'to 296')"
   },
@@ -267,8 +267,8 @@
    "module": "copyreg",
    "ast_detail": "diff at token 46: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 436,
-   "ntotal": 674,
+   "ndiff": 433,
+   "ntotal": 672,
    "detail": "line 219: orig ('FOR_ITER', 'to 196') | got ('FOR_ITER', 'to 194')\nline 226: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 116') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 192')\nline 231: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 116') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 114')"
   },
   {

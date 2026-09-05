@@ -1,6 +1,5 @@
 import sys
 from _ast import *
-None
 from ast import NodeVisitor
 from contextlib import contextmanager
 from contextlib import nullcontext

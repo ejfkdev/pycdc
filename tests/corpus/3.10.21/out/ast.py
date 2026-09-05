@@ -143,7 +143,6 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
                         value = getattr(node, name)
                     except AttributeError:
                         keywords = True
-                        continue
                     else:
                         keywords = True
                     continue
@@ -159,7 +158,7 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
                         try:
                             value = getattr(node, name)
                         except AttributeError:
-                            continue
+                            pass
                         continue
                     value, simple = _format(value, level)
                     allsimple = allsimple and simple

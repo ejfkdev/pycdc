@@ -12,7 +12,6 @@ import sys
 try:
     try:
         from _codecs import *
-        None
     except ImportError as why:
         raise SystemError('Failed to load the builtin codecs: %s' % why)
 except LookupError:

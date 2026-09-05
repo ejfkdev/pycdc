@@ -86,7 +86,6 @@ def _get_system_version_tuple():
                 _SYSTEM_VERSION_TUPLE = tuple((int(i) for i in osx_version.split('.')))
             except ValueError:
                 _SYSTEM_VERSION_TUPLE = ()
-                return _SYSTEM_VERSION_TUPLE
             return _SYSTEM_VERSION_TUPLE
     return _SYSTEM_VERSION_TUPLE
 

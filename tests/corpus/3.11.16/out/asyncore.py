@@ -352,7 +352,6 @@ class dispatcher:
             except OSError as why:
                 if why.errno not in (ENOTCONN, EBADF):
                     raise
-                return
             return
 
     def log(self, message):

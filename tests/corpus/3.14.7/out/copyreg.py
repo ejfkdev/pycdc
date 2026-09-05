@@ -135,7 +135,7 @@ defined.)
     try:
         cls.__slotnames__ = names
     except:
-        return names
+        pass
     return names
 
 _extension_registry = {}

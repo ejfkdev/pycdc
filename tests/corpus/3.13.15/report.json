@@ -2,8 +2,8 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 9,
-  "SIG-DIFF": 31
+  "PASS": 12,
+  "SIG-DIFF": 28
  },
  "results": [
   {
@@ -86,7 +86,7 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 117: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1335,
+   "ndiff": 1298,
    "ntotal": 1534,
    "detail": "line 169: orig ('NOP', '') | got ('LOAD_CONST', '0')\nline 170: orig ('LOAD_CONST', '0') | got ('LOAD_CONST', 'None')\nline 171: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'tempfile')"
   },
@@ -160,11 +160,7 @@
   },
   {
    "module": "bisect",
-   "ast_detail": "diff at token 111: orig  right=Constant(value=1)))])])] | dec  right=Constant(value=1)))])])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 214,
-   "ntotal": 260,
-   "detail": "line 46: orig ('LOAD_NAME', 'bisect_right') | got ('NOP', '')\nline 47: orig ('STORE_NAME', 'bisect') | got ('LOAD_NAME', 'bisect_right')\nline 48: orig ('LOAD_NAME', 'insort_right') | got ('STORE_NAME', 'bisect')"
+   "verdict": "PASS"
   },
   {
    "module": "bz2",
@@ -178,7 +174,7 @@
    "module": "cProfile",
    "ast_detail": "diff at token 240: orig  body=[If(test=Attribute(value=Name(id='entry' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 387,
+   "ndiff": 385,
    "ntotal": 703,
    "detail": "line 90: orig ('LOAD_FAST', 'locals') | got ('LOAD_FAST_LOAD_FAST', 'locals, filename')\nline 91: orig ('LOAD_FAST_LOAD_FAST', 'filename, sort') | got ('LOAD_FAST', 'sort')\nline 268: orig ('FOR_ITER', 'to L8') | got ('FOR_ITER', 'to L9')"
   },
@@ -210,8 +206,8 @@
    "module": "codecs",
    "ast_detail": "diff at token 2: orig  Try(body=[ImportFrom(module='_codecs' | dec  Try(body=[Try(body=[ImportFrom(module='_codecs'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2099,
-   "ntotal": 2164,
+   "ndiff": 2085,
+   "ntotal": 2163,
    "detail": "line 13: orig ('LOAD_CONST', '0') | got ('NOP', '')\nline 14: orig ('LOAD_CONST', \"('*',)\") | got ('LOAD_CONST', '0')\nline 15: orig ('IMPORT_NAME', '_codecs') | got ('LOAD_CONST', \"('*',)\")"
   },
   {
@@ -276,19 +272,11 @@
   },
   {
    "module": "datetime",
-   "ast_detail": "diff at token 1: orig  names=[alias(name='*') | dec  names=[alias(name='*')]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 37,
-   "ntotal": 45,
-   "detail": "line 8: orig ('LOAD_CONST', '0') | got ('NOP', '')\nline 9: orig ('LOAD_CONST', \"('__doc__',)\") | got ('LOAD_CONST', '0')\nline 10: orig ('IMPORT_NAME', '_datetime') | got ('LOAD_CONST', \"('__doc__',)\")"
+   "verdict": "PASS"
   },
   {
    "module": "decimal",
-   "ast_detail": "diff at token 1: orig  names=[alias(name='*') | dec  names=[alias(name='*')]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 41,
-   "ntotal": 51,
-   "detail": "line 10: orig ('LOAD_CONST', '0') | got ('NOP', '')\nline 11: orig ('LOAD_CONST', \"('__version__',)\") | got ('LOAD_CONST', '0')\nline 12: orig ('IMPORT_NAME', '_decimal') | got ('LOAD_CONST', \"('__version__',)\")"
+   "verdict": "PASS"
   }
  ]
 }

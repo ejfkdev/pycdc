@@ -100,11 +100,9 @@ NaN
 
 try:
     from _decimal import *
-    None
     from _decimal import __version__
     from _decimal import __libmpdec_version__
 except ImportError:
     from _pydecimal import *
-    None
     from _pydecimal import __version__
     from _pydecimal import __libmpdec_version__

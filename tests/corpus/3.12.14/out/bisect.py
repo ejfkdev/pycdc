@@ -102,7 +102,6 @@ def bisect_left(a, x, lo=0, hi=None, *, key=None):
 
 try:
     from _bisect import *
-    None
 except ImportError:
     pass
 bisect = bisect_right
