@@ -49,8 +49,7 @@ _HEAPTYPE = 512
 _new_type = type(int.__new__)
 
 def _reduce_ex(self, proto):
-    if not proto < 2:
-        raise AssertionError
+    assert proto < 2
     cls = self.__class__
     for base in cls.__mro__:
         if hasattr(base, '__flags__'):
@@ -81,9 +80,10 @@ def _reduce_ex(self, proto):
             dict = self.__dict__
         except AttributeError:
             dict = None
-    if type(self).__getstate__ is object.__getstate__ and getattr(self, '__slots__', None):
-        raise TypeError('a class that defines __slots__ without defining __getstate__ cannot be pickled')
-    dict = getstate()
+    else:
+        if type(self).__getstate__ is object.__getstate__ and getattr(self, '__slots__', None):
+            raise TypeError('a class that defines __slots__ without defining __getstate__ cannot be pickled')
+        dict = getstate()
     if dict:
         return _reconstructor, args, dict
     return _reconstructor, args

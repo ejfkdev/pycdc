@@ -2216,10 +2216,18 @@ impl<'a> Ctx<'a> {
                         .iter()
                         .filter(|x| x.offset >= handler)
                         .find(|x| {
-                            matches!(x.op, Op::JUMP_BACKWARD | Op::JUMP_ABSOLUTE)
-                                && x.target.map_or(false, |t| {
-                                    t > last_frag_end && t < handler
-                                })
+                            // 3.14 rejoins the mainline with
+                            // JUMP_BACKWARD_NO_INTERRUPT; the t < handler
+                            // bound excludes await-resume JBNIs (their
+                            // targets lie inside the chain region)
+                            matches!(
+                                x.op,
+                                Op::JUMP_BACKWARD
+                                    | Op::JUMP_ABSOLUTE
+                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                            ) && x.target.map_or(false, |t| {
+                                t > last_frag_end && t < handler
+                            })
                         })
                         .and_then(|x| x.target);
                     let merge = if let Some(m) = backward_merge {
@@ -12901,7 +12909,7 @@ impl<'a> Ctx<'a> {
         loop {
             let skip = matches!(
                 self.instrs.get(k).map(|x| x.op),
-                Some(Op::TO_BOOL) | Some(Op::COPY) | Some(Op::NOP)
+                Some(Op::TO_BOOL) | Some(Op::COPY) | Some(Op::NOP) | Some(Op::NOT_TAKEN)
             ) || (!self.version.at_least(3, 0)
                 && matches!(self.instrs.get(k).map(|x| x.op), Some(Op::POP_TOP)));
             if !skip {
@@ -12911,6 +12919,9 @@ impl<'a> Ctx<'a> {
         }
         let err_load = match self.instrs.get(k) {
             Some(ins) if ins.op == Op::LOAD_ASSERTION_ERROR => true,
+            // 3.14: LOAD_COMMON_CONSTANT arg 0 = AssertionError
+            // (dis._common_constants)
+            Some(ins) if ins.op == Op::LOAD_COMMON_CONSTANT => ins.arg == 0,
             Some(ins) if matches!(ins.op, Op::LOAD_GLOBAL | Op::LOAD_NAME) => {
                 let idx = if ins.op == Op::LOAD_GLOBAL && self.version.at_least(3, 10) {
                     (ins.arg as usize) >> 1

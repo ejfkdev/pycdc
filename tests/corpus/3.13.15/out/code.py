@@ -214,27 +214,74 @@ a default message is printed.
             self.write('\nKeyboardInterrupt\n')
             self.resetbuffer()
             more = 0
-        finally:
-            if _exit is not None:
-                builtins.exit = _exit
-            if _quit is not None:
-                builtins.quit = _quit
-            if exitmsg is None:
-                self.write('now exiting %s...\n' % self.__class__.__name__)
-            if exitmsg != '':
-                self.write('%s\n' % exitmsg)
-        try:
+        else:
             try:
                 try:
-                    sys.ps2
-                except AttributeError:
-                    sys.ps2 = '... '
-            except EOFError:
-                self.write('\n')
-        except KeyboardInterrupt:
-            self.write('\nKeyboardInterrupt\n')
-            self.resetbuffer()
-            more = 0
+                    try:
+                        sys.ps2
+                    except AttributeError:
+                        sys.ps2 = '... '
+                except EOFError:
+                    self.write('\n')
+            except KeyboardInterrupt:
+                self.write('\nKeyboardInterrupt\n')
+                self.resetbuffer()
+                more = 0
+            else:
+                cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
+                if banner is None:
+                    self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
+                elif banner:
+                    self.write('%s\n' % str(banner))
+                more = 0
+                _exit = None
+                _quit = None
+                if self.local_exit:
+                    if hasattr(builtins, 'exit'):
+                        _exit = builtins.exit
+                        builtins.exit = Quitter('exit')
+                    if hasattr(builtins, 'quit'):
+                        _quit = builtins.quit
+                        builtins.quit = Quitter('quit')
+                try:
+                    if more:
+                        prompt = sys.ps2
+                    else:
+                        prompt = sys.ps1
+                except KeyboardInterrupt:
+                    self.write('\nKeyboardInterrupt\n')
+                    self.resetbuffer()
+                    more = 0
+                else:
+                    try:
+                        try:
+                            line = self.raw_input(prompt)
+                        except EOFError:
+                            self.write('\n')
+                    except KeyboardInterrupt:
+                        self.write('\nKeyboardInterrupt\n')
+                        self.resetbuffer()
+                        more = 0
+                    else:
+                        more = self.push(line)
+                    finally:
+                        if _exit is not None:
+                            builtins.exit = _exit
+                        if _quit is not None:
+                            builtins.quit = _quit
+                        if exitmsg is None:
+                            self.write('now exiting %s...\n' % self.__class__.__name__)
+                        if exitmsg != '':
+                            self.write('%s\n' % exitmsg)
+            finally:
+                if _exit is not None:
+                    builtins.exit = _exit
+                if _quit is not None:
+                    builtins.quit = _quit
+                if exitmsg is None:
+                    self.write('now exiting %s...\n' % self.__class__.__name__)
+                if exitmsg != '':
+                    self.write('%s\n' % exitmsg)
         finally:
             if _exit is not None:
                 builtins.exit = _exit
@@ -269,25 +316,27 @@ a default message is printed.
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
                 more = 0
-            try:
+            else:
                 try:
-                    line = self.raw_input(prompt)
-                except EOFError:
-                    self.write('\n')
-            except KeyboardInterrupt:
-                self.write('\nKeyboardInterrupt\n')
-                self.resetbuffer()
-                more = 0
-            finally:
-                if _exit is not None:
-                    builtins.exit = _exit
-                if _quit is not None:
-                    builtins.quit = _quit
-                if exitmsg is None:
-                    self.write('now exiting %s...\n' % self.__class__.__name__)
-                if exitmsg != '':
-                    self.write('%s\n' % exitmsg)
-            more = self.push(line)
+                    try:
+                        line = self.raw_input(prompt)
+                    except EOFError:
+                        self.write('\n')
+                except KeyboardInterrupt:
+                    self.write('\nKeyboardInterrupt\n')
+                    self.resetbuffer()
+                    more = 0
+                else:
+                    more = self.push(line)
+                finally:
+                    if _exit is not None:
+                        builtins.exit = _exit
+                    if _quit is not None:
+                        builtins.quit = _quit
+                    if exitmsg is None:
+                        self.write('now exiting %s...\n' % self.__class__.__name__)
+                    if exitmsg != '':
+                        self.write('%s\n' % exitmsg)
             try:
                 # WARNING: unrecovered try/except structure
                 continue

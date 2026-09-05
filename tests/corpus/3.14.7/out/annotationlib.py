@@ -216,8 +216,7 @@ _Template = type(('',), ())
 class _Stringifier:
     __slots__ = _SLOTS
     def __init__(self, node, globals=None, owner=None, is_class=False, cell=None, *, stringifier_dict, extra_names=None):
-        if not isinstance(node, (ast.AST, str)):
-            raise AssertionError
+        assert isinstance(node, (ast.AST, str))
         self.__arg__ = None
         self.__forward_is_argument__ = False
         self.__forward_is_class__ = is_class
@@ -315,8 +314,7 @@ class _Stringifier:
             other = ast.Tuple(elts)
         else:
             other, extra_names = self.__convert_to_ast_getitem(other)
-        if not isinstance(other, ast.AST):
-            raise AssertionError(repr(other))
+        assert isinstance(other, ast.AST), repr(other)
         return self.__make_new(ast.Subscript(self.__get_ast(), other), extra_names)
 
     def __getattr__(self, attr):
@@ -543,7 +541,8 @@ def _build_closure(annotate, owner, is_class, stringifier_dict, *, allow_evaluat
                 cell.cell_contents
             except ValueError:
                 pass
-            new_cell = cell
+            else:
+                new_cell = cell
         if new_cell is None:
             fwdref = _Stringifier(name, cell=cell, owner=owner, globals=annotate.__globals__, is_class=is_class, stringifier_dict=stringifier_dict)
             stringifier_dict.stringifiers.append(fwdref)
@@ -636,8 +635,9 @@ default, contingent on type(obj):
                 ann = _get_dunder_annotations(obj)
             except Exception:
                 pass
-            if ann is not None:
-                return dict(ann)
+            else:
+                if ann is not None:
+                    return dict(ann)
         case Format.STRING:
             ann = _get_and_call_annotate(obj, format)
             if ann is not None:

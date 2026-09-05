@@ -114,53 +114,55 @@ sys.stdin and sys.stdout are used.
                     pass
             except EOFError:
                 line = 'EOF'
-        try:
-            try:
-                if intro is not None:
-                    self.intro = intro
-                if self.intro:
-                    self.stdout.write(str(self.intro) + '\n')
-            except:
-                if self.completekey:
-                    try:
-                        import readline
-                        readline.set_completer(self.old_completer)
-                    except ImportError:
-                        pass
-                    if ImportError:
-                        None
-        except ImportError:
-            pass
-        stop = None
-        while not stop:
-            try:
+            else:
                 try:
-                    if self.cmdqueue:
-                        line = self.cmdqueue.pop(0)
-                    elif self.use_rawinput:
-                        line = input(self.prompt)
-                    else:
-                        self.stdout.write(self.prompt)
-                        self.stdout.flush()
-                        line = self.stdin.readline()
-                        if not len(line):
-                            line = 'EOF'
+                    try:
+                        if intro is not None:
+                            self.intro = intro
+                        if self.intro:
+                            self.stdout.write(str(self.intro) + '\n')
+                    except:
+                        if self.completekey:
+                            try:
+                                import readline
+                                readline.set_completer(self.old_completer)
+                            except ImportError:
+                                pass
+                            if ImportError:
+                                None
+                except ImportError:
+                    pass
+                stop = None
+                while not stop:
+                    pass
+                try:
+                    try:
+                        if self.cmdqueue:
+                            line = self.cmdqueue.pop(0)
+                        elif self.use_rawinput:
+                            line = input(self.prompt)
                         else:
-                            line = line.rstrip('\r\n')
-                except:
-                    if self.completekey:
-                        try:
-                            import readline
-                            readline.set_completer(self.old_completer)
-                        except ImportError:
-                            pass
-                        if ImportError:
-                            None
-            except ImportError:
-                pass
-            line = self.precmd(line)
-            stop = self.onecmd(line)
-            stop = self.postcmd(stop, line)
+                            self.stdout.write(self.prompt)
+                            self.stdout.flush()
+                            line = self.stdin.readline()
+                            if not len(line):
+                                line = 'EOF'
+                            else:
+                                line = line.rstrip('\r\n')
+                    except:
+                        if self.completekey:
+                            try:
+                                import readline
+                                readline.set_completer(self.old_completer)
+                            except ImportError:
+                                pass
+                            if ImportError:
+                                None
+                except ImportError:
+                    pass
+        line = self.precmd(line)
+        stop = self.onecmd(line)
+        stop = self.postcmd(stop, line)
         self.postloop()
         if self.use_rawinput:
             if self.completekey:
@@ -309,8 +311,9 @@ Otherwise try to call complete_<command> to get list of completions.
                             compfunc = self.completedefault
                     except IndexError:
                         return
-        compfunc = self.completenames
-        self.completion_matches = compfunc(text, line, begidx, endidx)
+                    else:
+                        compfunc = self.completenames
+            self.completion_matches = compfunc(text, line, begidx, endidx)
         try:
             return self.completion_matches[state]
         except IndexError:

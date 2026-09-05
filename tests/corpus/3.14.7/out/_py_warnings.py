@@ -56,13 +56,11 @@ def _get_context():
         return _global_context
 
 def _set_context(context):
-    if not _use_context:
-        raise AssertionError
+    assert _use_context
     _wm._warnings_context.set(context)
 
 def _new_context():
-    if not _use_context:
-        raise AssertionError
+    assert _use_context
     old_context = _wm._get_context()
     new_context = old_context.copy()
     _wm._set_context(new_context)
@@ -126,7 +124,8 @@ def _formatwarnmsg_impl(msg):
                 tb = None
         except Exception:
             line = None
-    line = msg.line
+        else:
+            line = msg.line
     if line:
         line = line.strip()
         s += '  %s\n' % line
@@ -139,19 +138,37 @@ def _formatwarnmsg_impl(msg):
                 tb = None
         except Exception:
             line = None
-        try:
+        else:
             try:
                 try:
-                    suggest_tracemalloc = not tracemalloc.is_tracing()
-                    tb = tracemalloc.get_object_traceback(msg.source)
+                    try:
+                        suggest_tracemalloc = not tracemalloc.is_tracing()
+                        tb = tracemalloc.get_object_traceback(msg.source)
+                    except Exception:
+                        suggest_tracemalloc = False
+                        tb = None
                 except Exception:
                     suggest_tracemalloc = False
                     tb = None
             except Exception:
-                suggest_tracemalloc = False
-                tb = None
-        except Exception:
-            line = None
+                line = None
+            else:
+                if tb is not None:
+                    s += 'Object allocated at (most recent call last):\n'
+                    for frame in tb:
+                        s += f'  File "{frame.filename!s}", lineno {frame.lineno!s}\n'
+                try:
+                    if linecache is not None:
+                        line = linecache.getline(frame.filename, frame.lineno)
+                    else:
+                        line = None
+                except Exception:
+                    line = None
+                else:
+                    try:
+                        line = None
+                    except Exception:
+                        line = None
         if tb is not None:
             s += 'Object allocated at (most recent call last):\n'
             for frame in tb:
@@ -163,6 +180,11 @@ def _formatwarnmsg_impl(msg):
                         line = None
                 except Exception:
                     line = None
+                else:
+                    try:
+                        line = None
+                    except Exception:
+                        line = None
                 while line:
                     line = line.strip()
                     s += '    %s\n' % line
@@ -181,11 +203,12 @@ def _showwarnmsg(msg):
         sw = _wm.showwarning
     except AttributeError:
         pass
-    if sw is not _showwarning_orig:
-        if not callable(sw):
-            raise TypeError('warnings.showwarning() must be set to a function or method')
-        sw(msg.message, msg.category, msg.filename, msg.lineno, msg.file, msg.line)
-        return
+    else:
+        if sw is not _showwarning_orig:
+            if not callable(sw):
+                raise TypeError('warnings.showwarning() must be set to a function or method')
+            sw(msg.message, msg.category, msg.filename, msg.lineno, msg.file, msg.line)
+            return
     _wm._showwarnmsg_impl(msg)
 
 _formatwarning_orig = formatwarning
@@ -197,8 +220,9 @@ def _formatwarnmsg(msg):
         fw = _wm.formatwarning
     except AttributeError:
         pass
-    if fw is not _formatwarning_orig:
-        return fw(msg.message, msg.category, msg.filename, msg.lineno, msg.line)
+    else:
+        if fw is not _formatwarning_orig:
+            return fw(msg.message, msg.category, msg.filename, msg.lineno, msg.line)
     return _wm._formatwarnmsg_impl(msg)
 
 def filterwarnings(action, message='', category=Warning, module='', lineno=0, append=False):
@@ -400,9 +424,18 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
         globals = sys.__dict__
         filename = '<sys>'
         lineno = 0
-    globals = frame.f_globals
-    filename = frame.f_code.co_filename
-    lineno = frame.f_lineno
+    else:
+        if None is not None:
+            try:
+                raise ValueError
+            except ValueError:
+                globals = sys.__dict__
+                filename = '<sys>'
+                lineno = 0
+            else:
+                globals = frame.f_globals
+                filename = frame.f_code.co_filename
+                lineno = frame.f_lineno
     if '__name__' in globals:
         module = globals['__name__']
     else:

@@ -366,36 +366,37 @@ def get_platform_osx(_config_vars, osname, release, machine):
                 macrelease = tuple((int(i) for i in macrelease.split('.')[0:2]))
             except ValueError:
                 macrelease = (10, 3)
-    macrelease = (10, 3)
-    if macrelease >= (10, 4) and '-arch' in cflags.strip():
-        machine = 'fat'
-        archs = re.findall('-arch\\s+(\\S+)', cflags)
-        archs = tuple(sorted(set(archs)))
-        if len(archs) == 1:
-            machine = archs[0]
-        elif archs == ('arm64', 'x86_64'):
-            machine = 'universal2'
-        elif archs == ('i386', 'ppc'):
-            machine = 'fat'
-        elif archs == ('i386', 'x86_64'):
-            machine = 'intel'
-        elif archs == ('i386', 'ppc', 'x86_64'):
-            machine = 'fat3'
-        elif archs == ('ppc64', 'x86_64'):
-            machine = 'fat64'
-        else:
-            if archs == ('i386', 'ppc', 'ppc64', 'x86_64'):
-                machine = 'universal'
             else:
-                raise ValueError(f"Don't know machine value for archs={archs!r}")
-            if machine == 'i386':
-                if sys.maxsize >= 4294967296:
-                    machine = 'x86_64'
-            elif machine in ('PowerPC', 'Power_Macintosh'):
-                if sys.maxsize >= 4294967296:
-                    machine = 'ppc64'
+                macrelease = (10, 3)
+        if macrelease >= (10, 4) and '-arch' in cflags.strip():
+            machine = 'fat'
+            archs = re.findall('-arch\\s+(\\S+)', cflags)
+            archs = tuple(sorted(set(archs)))
+            if len(archs) == 1:
+                machine = archs[0]
+            elif archs == ('arm64', 'x86_64'):
+                machine = 'universal2'
+            elif archs == ('i386', 'ppc'):
+                machine = 'fat'
+            elif archs == ('i386', 'x86_64'):
+                machine = 'intel'
+            elif archs == ('i386', 'ppc', 'x86_64'):
+                machine = 'fat3'
+            elif archs == ('ppc64', 'x86_64'):
+                machine = 'fat64'
+            else:
+                if archs == ('i386', 'ppc', 'ppc64', 'x86_64'):
+                    machine = 'universal'
                 else:
-                    machine = 'ppc'
+                    raise ValueError(f"Don't know machine value for archs={archs!r}")
+                if machine == 'i386':
+                    if sys.maxsize >= 4294967296:
+                        machine = 'x86_64'
+                elif machine in ('PowerPC', 'Power_Macintosh'):
+                    if sys.maxsize >= 4294967296:
+                        machine = 'ppc64'
+                    else:
+                        machine = 'ppc'
     return osname, release, machine
 
 # WARNING: Decompyle incomplete
