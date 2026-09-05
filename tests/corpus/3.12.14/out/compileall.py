@@ -32,25 +32,26 @@ def _walk_dir(dir, maxlevels, quiet=0):
         if quiet < 2:
             print("Can't list {!r}".format(dir))
         names = []
-    names.sort()
-    for name in names:
-        if name == '__pycache__':
-            continue
-        fullname = os.path.join(dir, name)
-        if not os.path.isdir(fullname):
-            yield fullname
-            continue
-        if not maxlevels > 0:
-            continue
-        if not name != os.curdir:
-            continue
-        if not name != os.pardir:
-            continue
-        if not os.path.isdir(fullname):
-            continue
-        if os.path.islink(fullname):
-            continue
-        yield from _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
+    else:
+        names.sort()
+        for name in names:
+            if name == '__pycache__':
+                continue
+            fullname = os.path.join(dir, name)
+            if not os.path.isdir(fullname):
+                yield fullname
+                continue
+            if not maxlevels > 0:
+                continue
+            if not name != os.curdir:
+                continue
+            if not name != os.pardir:
+                continue
+            if not os.path.isdir(fullname):
+                continue
+            if os.path.islink(fullname):
+                continue
+            yield from _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     '''Byte-compile all modules in the given directory tree.

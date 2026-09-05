@@ -372,14 +372,14 @@ class Sniffer:
                         thisType = len(row[col])
                 except (ValueError, TypeError):
                     hasHeader += 1
-                if not thisType != columnTypes[col]:
-                    continue
-                if not columnTypes[col] is not None:
-                    columnTypes[col] = thisType
-                    continue
-                del columnTypes[col]
-        hasHeader = 0
-        for col, colType in columnTypes.items():
+                else:
+                    if not thisType != columnTypes[col]:
+                        pass
+                    if not columnTypes[col] is not None:
+                        columnTypes[col] = thisType
+                    del columnTypes[col]
+                    hasHeader = 0
+        for col, colType in thisType:
             if isinstance(colType, int):
                 if len(header[col]) != colType:
                     hasHeader += 1

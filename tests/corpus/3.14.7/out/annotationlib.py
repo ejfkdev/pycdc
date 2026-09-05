@@ -113,6 +113,8 @@ If the forward reference cannot be evaluated, raise an exception.
                         except Exception:
                             if not is_forwardref_format:
                                 raise
+                        else:
+                            return
                 except Exception:
                     if not is_forwardref_format:
                         raise

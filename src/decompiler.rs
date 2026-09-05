@@ -2140,32 +2140,79 @@ impl<'a> Ctx<'a> {
                             && x.offset >= tc.start
                             && x.offset < handler
                     });
-                    // A real `else:` terminator jumps to the merge point —
-                    // exactly where the handler chain lands (chain_extent).
-                    // A `break` (to a loop exit) overshoots it, and a with's
-                    // internal jump lands elsewhere; require an exact match
-                    // so those don't masquerade as an else.
+                    // Recover the MERGE point where the try-success path and
+                    // the handler both converge. Two layouts:
+                    //  * out-of-line handler (3.12+): the handler is laid out
+                    //    AFTER the post-try code and rejoins it with a
+                    //    BACKWARD jump whose target lands in (body_end,
+                    //    handler); the else body falls through to that merge
+                    //    with no delimiting jump.
+                    //  * inline handler: the else body ends in a JUMP_FORWARD
+                    //    to the merge, which is the handler chain's extent.
+                    // The else body is [body_end, merge). Guard: no with-
+                    // protocol op in it (a `with` in the try is its own stmt).
                     let chain_end = self.chain_extent(handler);
-                    let mut j = bi;
-                    let mut else_jf: Option<(usize, usize)> = None;
-                    while !is_with_region && j < self.instrs.len() {
-                        let x = self.instrs[j];
-                        if x.offset >= handler {
-                            break;
+                    // The try body may be FRAGMENTED into several exception
+                    // -table regions sharing this handler (3.12+ inlines a
+                    // comprehension in the try body as its own region). The
+                    // handler's backward jump can then target an earlier
+                    // fragment (comprehension unwinding), NOT an else merge.
+                    // A genuine out-of-line else merge lies AFTER the whole
+                    // try body — i.e. after the last fragment targeting this
+                    // handler — because the try-success path runs every
+                    // fragment, then the else, then merges.
+                    let last_frag_end = self
+                        .try_ctxs
+                        .values()
+                        .filter(|t| t.except_handler == Some(handler))
+                        .map(|t| t.body_end)
+                        .max()
+                        .unwrap_or(tc.body_end);
+                    let backward_merge = self
+                        .instrs
+                        .iter()
+                        .filter(|x| x.offset >= handler)
+                        .find(|x| {
+                            matches!(x.op, Op::JUMP_BACKWARD | Op::JUMP_ABSOLUTE)
+                                && x.target.map_or(false, |t| {
+                                    t > last_frag_end && t < handler
+                                })
+                        })
+                        .and_then(|x| x.target);
+                    let merge = if let Some(m) = backward_merge {
+                        Some((m, m))
+                    } else {
+                        let mut j = bi;
+                        let mut found = None;
+                        while !is_with_region && j < self.instrs.len() {
+                            let x = self.instrs[j];
+                            if x.offset >= handler {
+                                break;
+                            }
+                            if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                                && x.target == Some(chain_end)
+                            {
+                                found = Some(x.offset);
+                                break;
+                            }
+                            j += 1;
                         }
-                        if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
-                            && x.target == Some(chain_end)
-                        {
-                            else_jf = Some((x.offset, chain_end));
-                            break;
-                        }
-                        j += 1;
-                    }
-                    if let Some((jf_off, merge)) = else_jf {
-                        if jf_off > tc.body_end {
-                            orelse = self.decompile_region(tc.body_end, jf_off);
-                            if self.skip_until.map_or(true, |s| s < merge) {
-                                self.skip_until = Some(merge);
+                        found.map(|jf_off| (jf_off, chain_end))
+                    };
+                    if let Some((else_end, merge)) = merge {
+                        if else_end > tc.body_end && !is_with_region {
+                            let has_with = self.instrs.iter().any(|x| {
+                                matches!(
+                                    x.op,
+                                    Op::BEFORE_WITH | Op::WITH_EXCEPT_START
+                                ) && x.offset >= tc.body_end
+                                    && x.offset < else_end
+                            });
+                            if !has_with {
+                                orelse = self.decompile_region(tc.body_end, else_end);
+                                if self.skip_until.map_or(true, |s| s < merge) {
+                                    self.skip_until = Some(merge);
+                                }
                             }
                         }
                     }

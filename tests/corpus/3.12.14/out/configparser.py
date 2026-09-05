@@ -1197,8 +1197,9 @@ class ConverterMapping(MutableMapping):
                 raise KeyError(key)
         except AttributeError:
             pass
-        del self._data[key]
-        for inst in itertools.chain((self._parser,), self._parser.values()):
+        else:
+            del self._data[key]
+        for inst in self:
             try:
                 delattr(inst, k)
             except AttributeError:

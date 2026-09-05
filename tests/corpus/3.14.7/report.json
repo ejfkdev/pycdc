@@ -90,8 +90,8 @@
    "module": "_osx_support",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1498,
-   "ntotal": 1714,
+   "ndiff": 1499,
+   "ntotal": 1713,
    "detail": "line 176: orig ('NOP', '') | got ('LOAD_SMALL_INT', '')\nline 177: orig ('LOAD_SMALL_INT', '') | got ('LOAD_CONST', 'None')\nline 178: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'tempfile')"
   },
   {
@@ -174,8 +174,8 @@
    "module": "ast",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2377,
-   "ntotal": 2529,
+   "ndiff": 2306,
+   "ntotal": 2532,
    "detail": "line 9: orig ('LOAD_CONST', \"('<unknown>', 'exec')\") | got ('NOP', '')\nline 10: orig ('LOAD_CONST', \"'type_comments'\") | got ('LOAD_CONST', \"('<unknown>', 'exec')\")\nline 11: orig ('LOAD_CONST', 'False') | got ('LOAD_CONST', \"'type_comments'\")"
   },
   {
@@ -238,7 +238,7 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1507,
+   "ndiff": 1504,
    "ntotal": 1551,
    "detail": "line 17: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 21: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'compile_command') | got ('LOAD_SMALL_INT', '')"
   },
@@ -274,8 +274,8 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4902,
-   "ntotal": 5100,
+   "ndiff": 4924,
+   "ntotal": 5122,
    "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_SMALL_INT', '')"
   },
   {

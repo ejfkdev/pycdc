@@ -58,7 +58,7 @@
    "module": "_compression",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 227,
+   "ndiff": 307,
    "ntotal": 589,
    "detail": "line 232: orig ('STORE_FAST_LOAD_FAST', 'view, view') | got ('STORE_FAST', 'view')\nline 233: orig ('LOAD_ATTR', 'cast + NULL|self') | got ('LOAD_FAST', 'view')\nline 234: orig ('LOAD_CONST', \"'B'\") | got ('LOAD_ATTR', 'cast + NULL|self')"
   },
@@ -170,7 +170,7 @@
    "module": "bz2",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 800,
+   "ndiff": 795,
    "ntotal": 838,
    "detail": "line 29: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 33: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
@@ -238,8 +238,8 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 4184,
-   "ntotal": 4543,
+   "ndiff": 4176,
+   "ntotal": 4534,
    "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_CONST', '0')"
   },
   {
@@ -270,8 +270,8 @@
    "module": "csv",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1692,
-   "ntotal": 1729,
+   "ndiff": 1689,
+   "ntotal": 1726,
    "detail": "line 13: orig ('LOAD_CONST', \"('Error', 'writer', 'reader', 'register_dialect', 'unregister_dialect', 'get_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 17: orig ('IMPORT_FROM', 'writer') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'writer') | got ('LOAD_CONST', '0')"
   },
   {

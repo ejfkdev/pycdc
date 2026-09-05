@@ -144,37 +144,38 @@ will be omitted from the output for better readability.
                         continue
                 except AttributeError:
                     pass
-                if not value is not None and not getattr(cls, name, ...) is not None:
-                    keywords = True
-                    continue
-                if not show_empty:
-                    if value == []:
-                        field_type = cls._field_types.get(name, object)
-                        if getattr(field_type, '__origin__', ...) is list:
-                            if not keywords:
-                                args_buffer.append(repr(value))
-                            continue
-                if not keywords:
-                    args.extend(args_buffer)
-                    args_buffer = []
+                else:
+                    if not value is not None and not getattr(cls, name, ...) is not None:
+                        keywords = True
+                    if not show_empty:
+                        if value == []:
+                            field_type = cls._field_types.get(name, object)
+                            if getattr(field_type, '__origin__', ...) is list:
+                                if not keywords:
+                                    args_buffer.append(repr(value))
+                        if not keywords:
+                            args.extend(args_buffer)
+                            args_buffer = []
+                    value, simple = _format(value, level)
+                    if allsimple:
+                        allsimple
+                    allsimple = simple
+                    if keywords:
+                        args.append(f'{name!s}={value!s}')
+                    args.append(value)
+                    if include_attributes and node._attributes:
+                        pass
+            for name in value:
+                try:
+                    value = getattr(node, name)
+                except AttributeError:
+                    pass
+                if not value is not None:
+                    if not getattr(cls, name, ...) is not None:
+                        continue
                 value, simple = _format(value, level)
                 allsimple = allsimple and simple
-                if keywords:
-                    args.append(f'{name!s}={value!s}')
-                    continue
-                args.append(value)
-            if include_attributes and node._attributes:
-                for name in node._attributes:
-                    try:
-                        value = getattr(node, name)
-                    except AttributeError:
-                        pass
-                    if not value is not None:
-                        if not getattr(cls, name, ...) is not None:
-                            continue
-                    value, simple = _format(value, level)
-                    allsimple = allsimple and simple
-                    args.append(f'{name!s}={value!s}')
+                args.append(f'{name!s}={value!s}')
             if allsimple and len(args) <= 3:
                 return f'{node.__class__.__name__!s}({', '.join(args)!s})', not args
             return f'{node.__class__.__name__!s}({prefix!s}{sep.join(args)!s})', False

@@ -268,13 +268,14 @@ barf if multiple '-isysroot' arguments are present.
                     del compiler_so[index:index + 2]
                 except ValueError:
                     pass
-    if not _supports_arm64_builds():
-        for idx in reversed(range(len(compiler_so))):
-            if not compiler_so[idx] == '-arch':
-                continue
-            if not compiler_so[idx + 1] == 'arm64':
-                continue
-            del compiler_so[idx:idx + 2]
+                else:
+                    if not _supports_arm64_builds():
+                        for idx in reversed(range(len(compiler_so))):
+                            if not compiler_so[idx] == '-arch':
+                                continue
+                            if not compiler_so[idx + 1] == 'arm64':
+                                continue
+                            del compiler_so[idx:idx + 2]
     if 'ARCHFLAGS' in os.environ:
         if not stripArch:
             compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()

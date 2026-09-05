@@ -1263,9 +1263,17 @@ section proxies to find and use the implementation on the parser class.
                 raise KeyError(key)
         except AttributeError:
             pass
-        k = 'get' + (key or None)
-        del self._data[key]
-        for inst in itertools.chain((self._parser,), self._parser.values()):
+        else:
+            try:
+                try:
+                    k = None + None
+                except TypeError:
+                    raise KeyError(key)
+            except AttributeError:
+                pass
+            else:
+                del self._data[key]
+        for inst in 'get' + (key or None):
             try:
                 delattr(inst, k)
             except AttributeError:

@@ -286,10 +286,13 @@ For incremental decompression, use a BZ2Decompressor object instead.
             if results:
                 pass
             raise
-        results.append(res)
-        if not decomp.eof:
-            raise ValueError('Compressed data ended before the end-of-stream marker was reached')
-        data = decomp.unused_data
+        else:
+            results.append(res)
+            if not decomp.eof:
+                raise ValueError('Compressed data ended before the end-of-stream marker was reached')
+            data = decomp.unused_data
+            if data:
+                pass
     return b''.join(results)
 
 # WARNING: Decompyle incomplete

@@ -62,7 +62,8 @@ def _maybe_compile(compiler, source, filename, symbol):
             e = None
             del e, e
             e = None
-    None(None, None)
+    else:
+        None(None, None)
     return compiler(source, filename, symbol, incomplete_input=False)
 
 def _is_syntax_error(err1, err2):

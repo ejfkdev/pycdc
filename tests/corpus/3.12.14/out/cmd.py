@@ -108,40 +108,56 @@ class Cmd:
                     pass
             except EOFError:
                 line = 'EOF'
-        try:
-            try:
-                if not intro is None:
-                    self.intro = intro
-                if self.intro:
-                    self.stdout.write(str(self.intro) + '\n')
-                stop = None
-                while not stop:
-                    if self.cmdqueue:
-                        line = self.cmdqueue.pop(0)
-                    elif self.use_rawinput:
-                        line = input(self.prompt)
-                    else:
-                        self.stdout.write(self.prompt)
-                        self.stdout.flush()
-                        line = self.stdin.readline()
-                        if not len(line):
-                            line = 'EOF'
-                        else:
-                            line = line.rstrip('\r\n')
-                    line = self.precmd(line)
-                    stop = self.onecmd(line)
-                    stop = self.postcmd(stop, line)
-            except:
-                if self.completekey:
+            else:
+                try:
                     try:
-                        import readline
-                    except ImportError:
-                        pass
-                    if ImportError:
-                        pass
-        except ImportError:
-            pass
-        self.postloop()
+                        if not intro is None:
+                            self.intro = intro
+                        if self.intro:
+                            self.stdout.write(str(self.intro) + '\n')
+                        stop = None
+                        while not stop:
+                            if self.cmdqueue:
+                                line = self.cmdqueue.pop(0)
+                            elif self.use_rawinput:
+                                line = input(self.prompt)
+                            else:
+                                self.stdout.write(self.prompt)
+                                self.stdout.flush()
+                                line = self.stdin.readline()
+                                if not len(line):
+                                    line = 'EOF'
+                                else:
+                                    line = line.rstrip('\r\n')
+                    except:
+                        if self.completekey:
+                            try:
+                                import readline
+                                readline.set_completer(self.old_completer)
+                            except ImportError:
+                                pass
+                            if ImportError:
+                                None
+                except ImportError:
+                    pass
+        line = self.precmd(line)
+        stop = self.onecmd(line)
+        stop = self.postcmd(stop, line)
+        if not stop:
+            try:
+                try:
+                    self.postloop()
+                except:
+                    if self.completekey:
+                        try:
+                            import readline
+                            readline.set_completer(self.old_completer)
+                        except ImportError:
+                            pass
+                        if ImportError:
+                            None
+            except ImportError:
+                pass
         if self.use_rawinput:
             if self.completekey:
                 try:
@@ -295,8 +311,9 @@ class Cmd:
                             compfunc = self.completedefault
                     except IndexError:
                         return
-        compfunc = self.completenames
-        self.completion_matches = compfunc(text, line, begidx, endidx)
+                    else:
+                        compfunc = self.completenames
+            self.completion_matches = compfunc(text, line, begidx, endidx)
         try:
             return self.completion_matches[state]
         except IndexError:

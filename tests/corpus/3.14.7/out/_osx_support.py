@@ -261,51 +261,48 @@ barf if multiple '-isysroot' arguments are present.
                     del compiler_so[index:index + 2]
                 except ValueError:
                     pass
-    if not _supports_arm64_builds():
-        for idx in reversed(range(len(compiler_so))):
-            if not compiler_so[idx] == '-arch':
+                else:
+                    if not _supports_arm64_builds():
+                        for idx in reversed(range(len(compiler_so))):
+                            if not compiler_so[idx] == '-arch':
+                                pass
+                            else:
+                                if not compiler_so[idx + 1] == 'arm64':
+                                    continue
+                                del compiler_so[idx:idx + 2]
+    if 'ARCHFLAGS' in os.environ:
+        if not stripArch:
+            compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
+    if stripSysroot:
+        while True:
+            indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
+            if not indices:
                 pass
             else:
-                if not compiler_so[idx + 1] == 'arm64':
-                    continue
-                del compiler_so[idx:idx + 2]
-    else:
-        if 'ARCHFLAGS' in os.environ:
-            if not stripArch:
-                compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
-        if stripSysroot:
-            while True:
-                indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
-                if not indices:
-                    pass
-                else:
-                    index = indices[0]
-                    if not compiler_so[index] == '-isysroot':
-                        break
-                    del compiler_so[index:index + 2]
-                    continue
-            del compiler_so[index:index + 1]
-        sysroot = None
-        argvar = cc_args
-        indices = [i for i, x in enumerate(cc_args) if x.startswith('-isysroot')]
-        if not indices:
-            argvar = compiler_so
-            indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
-        for idx in indices:
-            if argvar[idx] == '-isysroot':
-                sysroot = argvar[idx + 1]
-                break
-            sysroot = argvar[idx][len('-isysroot'):]
+                index = indices[0]
+                if not compiler_so[index] == '-isysroot':
+                    break
+                del compiler_so[index:index + 2]
+                continue
+        del compiler_so[index:index + 1]
+    sysroot = None
+    argvar = cc_args
+    indices = [i for i, x in enumerate(cc_args) if x.startswith('-isysroot')]
+    if not indices:
+        argvar = compiler_so
+        indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
+    for idx in indices:
+        if argvar[idx] == '-isysroot':
+            sysroot = argvar[idx + 1]
             break
-        if sysroot:
-            if not os.path.isdir(sysroot):
-                sys.stderr.write(f"Compiling with an SDK that doesn't seem to exist: {sysroot}\n")
-                sys.stderr.write('Please check your Xcode installation\n')
-                sys.stderr.flush()
-        return compiler_so
-        x = i = None
-        x = i = None
-        x = i = None
+        sysroot = argvar[idx][len('-isysroot'):]
+        break
+    if sysroot:
+        if not os.path.isdir(sysroot):
+            sys.stderr.write(f"Compiling with an SDK that doesn't seem to exist: {sysroot}\n")
+            sys.stderr.write('Please check your Xcode installation\n')
+            sys.stderr.flush()
+    return compiler_so
 
 def customize_config_vars(_config_vars):
     '''Customize Python build configuration variables.

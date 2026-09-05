@@ -5,7 +5,8 @@ try:
     WindowsError
 except NameError:
     pass
-PYTHON2_EXCEPTIONS += ('WindowsError',)
+else:
+    PYTHON2_EXCEPTIONS += ('WindowsError',)
 for excname in PYTHON2_EXCEPTIONS:
     NAME_MAPPING['exceptions', excname] = 'builtins', excname
 MULTIPROCESSING_EXCEPTIONS = ('AuthenticationError', 'BufferTooShort', 'ProcessError', 'TimeoutError')

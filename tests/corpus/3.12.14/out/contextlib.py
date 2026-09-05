@@ -207,50 +207,51 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 return False
             # WARNING: unrecovered try/except structure
             raise RuntimeError("generator didn't stop")
-        if not value is not None:
-            value = typ()
-        try:
-            pass
-        except StopAsyncIteration as exc:
-            return exc is not value
-        except RuntimeError as exc:
-            if exc is value:
-                exc.__traceback__ = traceback
-                return False
-            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
-                value.__traceback__ = traceback
+            if not value is not None:
+                value = typ()
+            try:
+                pass
+            except StopAsyncIteration as exc:
+                return exc is not value
+            except RuntimeError as exc:
+                if exc is value:
+                    exc.__traceback__ = traceback
+                    return False
+                if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                    value.__traceback__ = traceback
+                    exc = None
+                    del exc
+                    return False
+                raise
                 exc = None
                 del exc
-                return False
-            raise
-            exc = None
-            del exc
-        except BaseException as exc:
-            if exc is not value:
-                raise
-            exc.__traceback__ = traceback
-            return False
-        try:
-            await self.gen.athrow(value)
-        except StopAsyncIteration as exc:
-            return exc is not value
-        except RuntimeError as exc:
-            if exc is value:
+            except BaseException as exc:
+                if exc is not value:
+                    raise
                 exc.__traceback__ = traceback
                 return False
-            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
-                value.__traceback__ = traceback
+            try:
+                pass
+            except StopAsyncIteration as exc:
+                return exc is not value
+            except RuntimeError as exc:
+                if exc is value:
+                    exc.__traceback__ = traceback
+                    return False
+                if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                    value.__traceback__ = traceback
+                    exc = None
+                    del exc
+                    return False
+                raise
                 exc = None
                 del exc
+            except BaseException as exc:
+                if exc is not value:
+                    raise
+                exc.__traceback__ = traceback
                 return False
-            raise
-            exc = None
-            del exc
-        except BaseException as exc:
-            if exc is not value:
-                raise
-            exc.__traceback__ = traceback
-            return False
+        value
         try:
             raise RuntimeError("generator didn't stop after athrow()")
         except StopAsyncIteration:
@@ -641,7 +642,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             _exit = cls.__aexit__
         except AttributeError:
             raise TypeError(f"'{cls.__module__}.{cls.__qualname__}' object does not support the asynchronous context manager protocol") from None
-        result = await _enter(cm)
+        result = None
         self._push_async_cm_exit(cm, _exit)
         return result
 
