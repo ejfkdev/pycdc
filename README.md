@@ -84,11 +84,11 @@ cargo build                                                 # 重新嵌入
 
 | 指标 | 数量 |
 |---|---|
-| PASS（字节码级一致） | 76（14.6%） |
+| PASS（字节码级一致） | 79（15.2%） |
 | AST-PASS（语义等价） | 28 |
-| **语义等价合计** | **104（20.0%）** |
+| **语义等价合计** | **107（20.6%）** |
 | INCOMPLETE（可编译、含占位） | **0** |
-| SIG-DIFF（可编译、结构有差） | 416 |
+| SIG-DIFF（可编译、结构有差） | 413 |
 | SYNTAX-ERR | **0（所有 520 个输出都能在对应版本编译）** |
 
 每个版本目录下的 `report.json` 保存逐模块判级与首个差异位置，便于聚类修复。
@@ -133,12 +133,12 @@ cargo build                                                 # 重新嵌入
   仍以 `__annotate__`/`__conditional_annotations__` 伪函数形式输出而非还原为注解语句。
 - PEP 750 模板字符串（3.14+ t-string，`BUILD_TEMPLATE`）不支持（语料中仅 annotationlib
   的 `type(t"")` 一处）；该 opcode 处输出 `# UNIMPLEMENTED` 占位。
-- else 子句：3.11+ 无 finally 的 `try/except/else`（handler 内联、else 体以 JUMP_FORWARD
-  跳到 merge）已正确还原为 `else:`（abc/_compat_pickle/contextlib/copyreg/code/cmd 等）。
-  已知缺口：①else 体直接流入 try 后代码、handler 外联（如 3.12 _compat_pickle，无 JUMP_FORWARD
-  定界）的变体仍把 else 体提升到外层；②legacy（≤3.10）的 `try/except/else` 与 `if/else`
-  （else 体为嵌套 try/ClassDef/AugAssign 等，_bootlocale/copy/_weakrefset 跨 2.7–3.10）可能
-  丢失 `else:` 关联；多数行为近似但条件为真/异常路径下可能偏离。
+- else 子句：①3.11+ 无 finally 的 `try/except/else`（handler 内联、else 体以 JUMP_FORWARD
+  跳到 merge）已还原为 `else:`；②legacy（≤3.10）的 `if/else` 与 `try/except/else`（含 else
+  体为嵌套 try/def/class 的复杂形状）已修复 else 体被提升到外层的根因（块结构化在嵌套块
+  场景下的子句extent推断 + legacy try flush 顺序 + else 区边界路由），_bootlocale/copy 等
+  已达 PASS。已知缺口：else 体直接流入 try 后代码、handler 外联（如 3.12 abc/_compat_pickle，
+  无 JUMP_FORWARD 定界 else 尾）的变体仍把 else 体提升到外层（需数据流推断 else/merge 边界）。
 - PEP 695 类型参数语法（3.12+ `type X = ...`、`def f[T](...)`、`class C[T]`）不支持。
 - 异步：async def/await/async for/async with（含嵌套与多上下文）支持；已知缺口：
   内联 async 推导式、async 生成器 asend/athrow 协议、3.7 SETUP_EXCEPT 守卫式
