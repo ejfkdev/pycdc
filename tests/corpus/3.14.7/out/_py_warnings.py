@@ -625,7 +625,7 @@ See PEP 702 for details.
 
 '''
 
-    def __init__(self, message: __classdict__, /, *, category: __classdict__[__classdict__] | None=DeprecationWarning, stacklevel: __classdict__=1) -> None:
+    def __init__(self, message: str, /, *, category: type[Warning] | None=DeprecationWarning, stacklevel: int=1) -> None:
         if not isinstance(message, str):
             raise TypeError(f"Expected an object of type str for 'message', not {type(message).__name__!r}")
         self.message = message

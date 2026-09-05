@@ -376,7 +376,7 @@ class Collection(Sized, Iterable, Container):
 class Buffer(metaclass=ABCMeta):
     __slots__ = ()
     @abstractmethod
-    def __buffer__(self, flags: __classdict__, /) -> __classdict__:
+    def __buffer__(self, flags: int, /) -> memoryview:
         raise NotImplementedError
 
     @classmethod

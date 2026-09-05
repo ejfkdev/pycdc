@@ -264,6 +264,7 @@ pub fn disasm_line(
             | Op::IMPORT_NAME
             | Op::IMPORT_FROM
             | Op::LOAD_METHOD
+            | Op::LOAD_FROM_DICT_OR_GLOBALS
             | Op::LOAD_SUPER_ATTR => {
                 // LOAD_GLOBAL (3.11+) and LOAD_SUPER_ATTR (3.12+) pack a
                 // "push NULL" flag into the low bits of the index.

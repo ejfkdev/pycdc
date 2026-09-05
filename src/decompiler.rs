@@ -307,6 +307,9 @@ struct Ctx<'a> {
     used_exc_info: bool,
     pending_gen_code: Option<std::rc::Rc<crate::code::CodeObject>>,
     recent_code_const: Option<std::rc::Rc<crate::code::CodeObject>>,
+    /// class expression for a no-dup `case Cls(...)` whose LOAD cls was
+    /// already consumed by the main loop before the MATCH_CLASS dispatch
+    pending_match_class: Option<ExprRef>,
     /// pending kw names for the next CALL (3.11/3.12 KW_NAMES)
     last_kw_names: Vec<Option<String>>,
     /// `global`/`nonlocal` collection (emitted at top of function bodies)
@@ -584,6 +587,7 @@ pub fn decompile_in_scope(
         used_exc_info: false,
         pending_gen_code: None,
         recent_code_const: None,
+        pending_match_class: None,
         last_kw_names: Vec::new(),
         globals: Vec::new(),
         nonlocals: Vec::new(),
@@ -5201,6 +5205,17 @@ impl<'a> Ctx<'a> {
                     .unwrap_or("/*bad-deref*/")
                     .to_string();
                 self.push(self.name_expr(n));
+                true
+            }
+            Op::LOAD_FROM_DICT_OR_GLOBALS => {
+                // 3.14+ (PEP 649 __annotate__): the class-body dict sits on
+                // the stack (LOAD_DEREF __classdict__); look up co_names[arg]
+                // in it, falling back to globals. For decompilation the
+                // resolved value IS that name, so pop the dict and push the
+                // name expression — this lets the annotation-reconstruction
+                // path see a clean `{'kwargs': str, 'return': Self}` map.
+                self.pop(); // the dict / classdict
+                self.push(self.name_expr(self.const_name(arg as usize)));
                 true
             }
             Op::STORE_DEREF => {
@@ -16364,21 +16379,44 @@ impl<'a> Ctx<'a> {
         let Some(&ci) = self.idx_of.get(&self.cur_offset) else {
             return false;
         };
+        // No-dup first case: `match subject: case Cls(...)` with a single
+        // non-wildcard case has no COPY/DUP before the class load, so the
+        // main loop already consumed `LOAD cls` + `LOAD_CONST names` and the
+        // stack is [subject, cls, names]. (When a dup IS present, this fn is
+        // triggered from the COPY/DUP op, so ci points there, not here.)
+        // Recover cls (parse_match_class can't re-simulate consumed ops) and
+        // leave subject on top so the normal head/subject checks apply.
+        if self.instrs[ci].op == Op::MATCH_CLASS
+            && ci > 0
+            && matches!(self.instrs.get(ci - 1).map(|x| x.op), Some(Op::LOAD_CONST))
+            && self.stack.len() >= 3
+        {
+            let names = self.pop_expr(); // names tuple const (read from bytecode instead)
+            let _ = names;
+            let cls = self.pop_expr(); // skips a NULL marker if LOAD cls pushed one
+            self.pending_match_class = Some(cls);
+        }
         let head_ok = self.match_case_head_at(ci);
         if !head_ok {
+            self.pending_match_class = None;
             return false;
         }
         // the subject must already be evaluated
         if !matches!(self.stack.last(), Some(Sv::E(_))) {
+            self.pending_match_class = None;
             return false;
         }
         // parse on a trial basis: the region parser must consume at least
         // one case and produce a bounded end offset
         let subject = match self.stack.last() {
             Some(Sv::E(e)) => e.clone(),
-            _ => return false,
+            _ => {
+                self.pending_match_class = None;
+                return false;
+            }
         };
         let Some((stmt, end_off)) = self.parse_match_region(subject, ci) else {
+            self.pending_match_class = None;
             return false;
         };
         self.pop();
@@ -16420,8 +16458,11 @@ impl<'a> Ctx<'a> {
         let mut steps = 0;
         while let Some(ins) = self.instrs.get(j) {
             if ins.op == Op::MATCH_CLASS {
-                return j > k
-                    && matches!(self.instrs.get(j - 1).map(|x| x.op), Some(Op::LOAD_CONST))
+                // `j >= k`: a no-dup first case (`match s: case Cls(...)`)
+                // has the cls/names already consumed by the main loop, so
+                // MATCH_CLASS sits at the head (j == k); the names tuple is
+                // still verifiable at instrs[j-1].
+                return matches!(self.instrs.get(j - 1).map(|x| x.op), Some(Op::LOAD_CONST))
                     && self
                         .code
                         .consts
@@ -17177,7 +17218,14 @@ impl<'a> Ctx<'a> {
                     .collect::<Option<Vec<_>>>()?,
                 _ => return None,
             };
-        let cls = self.sim_value_region(cls_start, i - 1)?;
+        // No-dup first case: the cls load was already consumed by the main
+        // loop and recovered onto pending_match_class (cls_start == i means
+        // there are no forward value ops to re-simulate).
+        let cls = if cls_start == i {
+            self.pending_match_class.take()?
+        } else {
+            self.sim_value_region(cls_start, i - 1)?
+        };
         // MATCH_CLASS arg = POSITIONAL pattern count in every version;
         // the names tuple holds the keyword names
         let mc_arg = mc.arg as usize;
@@ -17532,7 +17580,7 @@ impl<'a> Ctx<'a> {
         if self.instrs[i].op == Op::POP_TOP && !self.targets.contains(&self.instrs[i].offset) {
                 let mut bs = i + 1;
                 self.match_skip_pad(&mut bs);
-                let body = self.parse_match_case_body(bs)?;
+                let body = self.parse_match_case_body(bs, None)?;
                 cases.push(MatchCase {
                     pattern: Pattern::Wildcard,
                     guard: None,
@@ -17600,7 +17648,27 @@ impl<'a> Ctx<'a> {
                 bs += 1;
                 self.match_skip_pad(&mut bs);
             }
-            let body = self.parse_match_case_body(bs)?;
+            // Bound a fall-through body to the case's fail target so the
+            // LAST pattern case doesn't swallow the post-match code. Only
+            // valid when the body starts BEFORE the fail target — a 3.11+
+            // shared or-pattern body sits PAST the fail target, where a bound
+            // would truncate it to nothing.
+            let body_bound = if self.instrs[bs].offset < fail {
+                Some(fail)
+            } else {
+                None
+            };
+            let body = self.parse_match_case_body(bs, body_bound)?;
+            // Did this case's body end with a backward jump to an enclosing
+            // loop top? If so the fail target is reached ONLY by the fail
+            // jump (the body loops back, never falls through), so a non-head
+            // body there is a `case _:` wildcard — unlike a fall-through last
+            // case whose fail target is the post-match code.
+            let body_loop_back = body.1 > bs
+                && matches!(
+                    self.instrs.get(body.1 - 1).map(|x| x.op),
+                    Some(Op::JUMP_BACKWARD)
+                );
             cases.push(MatchCase {
                 pattern,
                 guard,
@@ -17611,10 +17679,14 @@ impl<'a> Ctx<'a> {
                 break;
             };
             let mut nk = fi;
+            let mut popped_cleanup = false;
             loop {
                 self.match_skip_pad(&mut nk);
                 match self.instrs.get(nk).map(|x| x.op) {
-                    Some(Op::POP_TOP) => nk += 1,
+                    Some(Op::POP_TOP) => {
+                        popped_cleanup = true;
+                        nk += 1;
+                    }
                     Some(Op::JUMP_FORWARD) | Some(Op::JUMP) | Some(Op::JUMP_ABSOLUTE) => {
                         let t = self.instrs[nk].target?;
                         if t <= self.instrs[nk].offset {
@@ -17631,9 +17703,68 @@ impl<'a> Ctx<'a> {
             if nk >= self.instrs.len() {
                 break;
             }
-            if !self.match_case_head_at(nk)
-                && self.instrs[nk].op != Op::POP_TOP
-            {
+            if !self.match_case_head_at(nk) {
+                if self.instrs[nk].op == Op::POP_TOP {
+                    // a cleanup pop still pending — let the loop-top
+                    // wildcard branch handle it
+                    i = nk;
+                    continue;
+                }
+                // A trailing `case _:` wildcard sits at the previous case's
+                // fail target with NO pattern test of its own. Recognize it
+                // when the scan skipped a cleanup POP_TOP, OR the previous
+                // case body looped back to an enclosing loop (so its fail
+                // target is reached only by the fail jump = wildcard, not a
+                // fall-through to post-match code). A forward jump out of the
+                // match is the real end, never a wildcard.
+                //
+                // Guard: a LAST case in a loop can compile to the inverted
+                // `<value>; COMPARE ==; POP_JUMP_IF_TRUE body; JUMP_BACKWARD`
+                // form, which match_case_head_at (PJIF_FALSE-oriented) does
+                // not flag as a head. Don't swallow it as a wildcard.
+                let inverted_head = {
+                    let mut s = nk;
+                    let mut steps = 0;
+                    let mut found = false;
+                    while let Some(ins) = self.instrs.get(s) {
+                        if matches!(
+                            ins.op,
+                            Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+                        ) && self.match_prev_real(s).map_or(false, |pj| {
+                            pj >= nk
+                                && matches!(self.instrs[pj].op, Op::COMPARE_OP)
+                                && cmp_from_index(compare_op_index(
+                                    self.instrs[pj].arg as u32,
+                                    self.version,
+                                )) == CmpOp::Eq
+                        }) {
+                            found = true;
+                            break;
+                        }
+                        if !is_pure_value_op(ins.op) || steps > 12 {
+                            break;
+                        }
+                        s += 1;
+                        steps += 1;
+                    }
+                    found
+                };
+                if (popped_cleanup || body_loop_back)
+                    && !inverted_head
+                    && !matches!(
+                        self.instrs[nk].op,
+                        Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+                    )
+                {
+                    let body = self.parse_match_case_body(nk, None)?;
+                    cases.push(MatchCase {
+                        pattern: Pattern::Wildcard,
+                        guard: None,
+                        body: body.0,
+                    });
+                    end_idx = Some(body.1);
+                    break;
+                }
                 end_idx = Some(nk);
                 break;
             }
@@ -17653,12 +17784,30 @@ impl<'a> Ctx<'a> {
         Some((Stmt::Match { subject, cases }, end_off))
     }
 
-    /// A case body runs to its RETURN/RAISE or its forward jump out of the
-    /// match. Returns (statements, index after the body).
-    fn parse_match_case_body(&mut self, from_idx: usize) -> Option<(Vec<Stmt>, usize)> {
+    /// A case body runs to its RETURN/RAISE, its forward jump out of the
+    /// match, its backward jump to an enclosing loop top, or — for a LAST
+    /// case whose body falls through with no terminating jump — to `bound`
+    /// (the case's fail target = match end). Bounding stops the last pattern
+    /// case from swallowing the post-match code. Returns (statements, index
+    /// after the body).
+    fn parse_match_case_body(
+        &mut self,
+        from_idx: usize,
+        bound: Option<usize>,
+    ) -> Option<(Vec<Stmt>, usize)> {
         let mut j = from_idx;
         while j < self.instrs.len() {
             let ins = self.instrs[j];
+            // fall-through body bound: stop AT the fail target (exclusive)
+            if j > from_idx {
+                if let Some(b) = bound {
+                    if ins.offset >= b {
+                        let stmts =
+                            self.decompile_region(self.instrs[from_idx].offset, b);
+                        return Some((stmts, j));
+                    }
+                }
+            }
             match ins.op {
                 Op::RETURN_VALUE | Op::RETURN_CONST | Op::RAISE_VARARGS => {
                     let to = ins.end();
@@ -17678,6 +17827,13 @@ impl<'a> Ctx<'a> {
                         }
                     }
                     return None;
+                }
+                Op::JUMP_BACKWARD => {
+                    // A case body inside a loop ends by jumping BACKWARD to
+                    // the loop top (not a forward jump out of the match).
+                    let to = ins.end();
+                    let stmts = self.decompile_region(self.instrs[from_idx].offset, to);
+                    return Some((stmts, j + 1));
                 }
                 _ => j += 1,
             }

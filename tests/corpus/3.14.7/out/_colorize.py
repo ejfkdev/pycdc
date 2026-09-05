@@ -82,7 +82,7 @@ methods.
             name_to_value[color_name] = getattr(self, color_name)
         super().__setattr__('_name_to_value', name_to_value.__getitem__)
 
-    def copy_with(self, **kwargs: __classdict__) -> __classdict__:
+    def copy_with(self, **kwargs: str) -> Self:
         color_state = {}
         for color_name in self.__dataclass_fields__:
             color_state[color_name] = getattr(self, color_name)
@@ -90,42 +90,26 @@ methods.
         return type(self)(**color_state)
 
     @classmethod
-    def no_colors(cls) -> __classdict__:
+    def no_colors(cls) -> Self:
         color_state = {}
         for color_name in cls.__dataclass_fields__:
             color_state[color_name] = ''
         return cls(**color_state)
 
-    def __getitem__(self, key: __classdict__) -> __classdict__:
+    def __getitem__(self, key: str) -> str:
         return self._name_to_value(key)
 
-    def __len__(self) -> __classdict__:
+    def __len__(self) -> int:
         return len(self.__dataclass_fields__)
 
-    def __iter__(self) -> __classdict__[__classdict__]:
+    def __iter__(self) -> Iterator[str]:
         return iter(self.__dataclass_fields__)
 
     def __annotate_func__(format, /):
         if format > 2:
             raise NotImplementedError
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
-        pass
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @30
-        pass
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @34
-        pass
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 3 @38
-        pass
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @42
-        pass
-        {}['__dataclass_fields__'] = __classdict__[__classdict__[__classdict__, __classdict__[__classdict__]]]
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 4 @92
-        pass
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @96
-        pass
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @102
-        pass
-        {}['_name_to_value'] = __classdict__[[__classdict__], __classdict__]
+        {}['__dataclass_fields__'] = ClassVar[dict[str, Field[str]]]
+        {}['_name_to_value'] = Callable[[str], str]
         return {}
 
 
@@ -147,45 +131,19 @@ class Argparse(ThemeSection):
     def __annotate_func__(format, /):
         if format > 2:
             raise NotImplementedError
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
-        pass
-        {}['usage'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38
-        pass
-        {}['prog'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50
-        pass
-        {}['prog_extra'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62
-        pass
-        {}['heading'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74
-        pass
-        {}['summary_long_option'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @86
-        pass
-        {}['summary_short_option'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @98
-        pass
-        {}['summary_label'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @110
-        pass
-        {}['summary_action'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @122
-        pass
-        {}['long_option'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @134
-        pass
-        {}['short_option'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @146
-        pass
-        {}['label'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @158
-        pass
-        {}['action'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @170
-        pass
-        {}['reset'] = __classdict__
+        {}['usage'] = str
+        {}['prog'] = str
+        {}['prog_extra'] = str
+        {}['heading'] = str
+        {}['summary_long_option'] = str
+        {}['summary_short_option'] = str
+        {}['summary_label'] = str
+        {}['summary_action'] = str
+        {}['long_option'] = str
+        {}['short_option'] = str
+        {}['label'] = str
+        {}['action'] = str
+        {}['reset'] = str
         return {}
 
 
@@ -205,39 +163,17 @@ class Syntax(ThemeSection):
     def __annotate_func__(format, /):
         if format > 2:
             raise NotImplementedError
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
-        pass
-        {}['prompt'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38
-        pass
-        {}['keyword'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50
-        pass
-        {}['keyword_constant'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62
-        pass
-        {}['builtin'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74
-        pass
-        {}['comment'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @86
-        pass
-        {}['string'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @98
-        pass
-        {}['number'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @110
-        pass
-        {}['op'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @122
-        pass
-        {}['definition'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @134
-        pass
-        {}['soft_keyword'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @146
-        pass
-        {}['reset'] = __classdict__
+        {}['prompt'] = str
+        {}['keyword'] = str
+        {}['keyword_constant'] = str
+        {}['builtin'] = str
+        {}['comment'] = str
+        {}['string'] = str
+        {}['number'] = str
+        {}['op'] = str
+        {}['definition'] = str
+        {}['soft_keyword'] = str
+        {}['reset'] = str
         return {}
 
 
@@ -254,30 +190,14 @@ class Traceback(ThemeSection):
     def __annotate_func__(format, /):
         if format > 2:
             raise NotImplementedError
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
-        pass
-        {}['type'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38
-        pass
-        {}['message'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50
-        pass
-        {}['filename'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62
-        pass
-        {}['line_no'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74
-        pass
-        {}['frame'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @86
-        pass
-        {}['error_highlight'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @98
-        pass
-        {}['error_range'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @110
-        pass
-        {}['reset'] = __classdict__
+        {}['type'] = str
+        {}['message'] = str
+        {}['filename'] = str
+        {}['line_no'] = str
+        {}['frame'] = str
+        {}['error_highlight'] = str
+        {}['error_range'] = str
+        {}['reset'] = str
         return {}
 
 
@@ -291,21 +211,11 @@ class Unittest(ThemeSection):
     def __annotate_func__(format, /):
         if format > 2:
             raise NotImplementedError
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
-        pass
-        {}['passed'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @38
-        pass
-        {}['warn'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @50
-        pass
-        {}['fail'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @62
-        pass
-        {}['fail_info'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @74
-        pass
-        {}['reset'] = __classdict__
+        {}['passed'] = str
+        {}['warn'] = str
+        {}['fail'] = str
+        {}['fail_info'] = str
+        {}['reset'] = str
         return {}
 
 
@@ -321,7 +231,7 @@ below.
     syntax = field(default_factory=Syntax)
     traceback = field(default_factory=Traceback)
     unittest = field(default_factory=Unittest)
-    def copy_with(self, *, argparse: __classdict__ | None=None, syntax: __classdict__ | None=None, traceback: __classdict__ | None=None, unittest: __classdict__ | None=None) -> __classdict__:
+    def copy_with(self, *, argparse: Argparse | None=None, syntax: Syntax | None=None, traceback: Traceback | None=None, unittest: Unittest | None=None) -> Self:
         '''Return a new Theme based on this instance with some sections replaced.
 
 Themes are immutable to protect against accidental modifications that
@@ -331,7 +241,7 @@ could lead to invalid terminal states.
         return type(self)(argparse=argparse or self.argparse, syntax=syntax or self.syntax, traceback=traceback or self.traceback, unittest=unittest or self.unittest)
 
     @classmethod
-    def no_colors(cls) -> __classdict__:
+    def no_colors(cls) -> Self:
         '''Return a new Theme where colors in all sections are empty strings.
 
 This allows writing user code as if colors are always used. The color
@@ -344,18 +254,10 @@ and possible, and empty strings otherwise.
     def __annotate_func__(format, /):
         if format > 2:
             raise NotImplementedError
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
-        pass
-        {}['argparse'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @38
-        pass
-        {}['syntax'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @50
-        pass
-        {}['traceback'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 3 @62
-        pass
-        {}['unittest'] = __classdict__
+        {}['argparse'] = Argparse
+        {}['syntax'] = Syntax
+        {}['traceback'] = Traceback
+        {}['unittest'] = Unittest
         return {}
 
 
@@ -447,4 +349,3 @@ def set_theme(t: Theme) -> None:
     _theme = t
 
 set_theme(default_theme)
-# WARNING: Decompyle incomplete

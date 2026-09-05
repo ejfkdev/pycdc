@@ -1,9 +1,9 @@
 {
- "3.11.16": {
-  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
+ "3.14.7": {
+  "interp": "/opt/homebrew/bin/python3.14",
   "counts": {
-   "PASS": 8,
-   "SIG-DIFF": 32
+   "PASS": 6,
+   "SIG-DIFF": 34
   }
  }
 }

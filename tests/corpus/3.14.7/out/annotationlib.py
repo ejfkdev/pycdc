@@ -347,7 +347,7 @@ class _Stringifier:
     def __format__(self, format_spec):
         raise TypeError('Cannot stringify annotation containing string formatting')
 
-    def _make_binop(op: __classdict__.AST):
+    def _make_binop(op: ast.AST):
         def binop(self, other):
             rhs, extra_names = self.__convert_to_ast(other)
             return self.__make_new(ast.BinOp(self.__get_ast(), op, rhs), extra_names)
@@ -368,7 +368,7 @@ class _Stringifier:
     __floordiv__ = _make_binop(ast.FloorDiv())
     __pow__ = _make_binop(ast.Pow())
     del _make_binop
-    def _make_rbinop(op: __classdict__.AST):
+    def _make_rbinop(op: ast.AST):
         def rbinop(self, other):
             new_other, extra_names = self.__convert_to_ast(other)
             return self.__make_new(ast.BinOp(new_other, op, self.__get_ast()), extra_names)
@@ -419,14 +419,12 @@ def _template_to_ast_constructor(template):
 
     args = []
     for part in template:
-        # UNIMPLEMENTED: match/case: MATCH_CLASS 0 @30
-        pass
-        if not () is None:
-            args.append(ast.Constant(value=part))
-            continue
-        str
-        interp = ast.Call(func=ast.Name(id='Interpolation'), args=[ast.Constant(value=part.value), ast.Constant(value=part.expression), ast.Constant(value=part.conversion), ast.Constant(value=part.format_spec)])
-        args.append(interp)
+        match part:
+            case str():
+                args.append(ast.Constant(value=part))
+            case _:
+                interp = ast.Call(func=ast.Name(id='Interpolation'), args=[ast.Constant(value=part.value), ast.Constant(value=part.expression), ast.Constant(value=part.conversion), ast.Constant(value=part.format_spec)])
+                args.append(interp)
     return ast.Call(func=ast.Name(id='Template'), args=args, keywords=[])
 
 def _template_to_ast_literal(template, parsed):
@@ -435,13 +433,12 @@ def _template_to_ast_literal(template, parsed):
     values = []
     interp_count = 0
     for part in template:
-        # UNIMPLEMENTED: match/case: MATCH_CLASS 0 @34
-        pass
-        if not () is None:
-            values.append(ast.Constant(value=part))
-            continue
-        str
-        interp = ast.Interpolation(str=part.expression, value=parsed[interp_count], conversion=ord(part.conversion) if part.conversion else -1, format_spec=ast.Constant(value=part.format_spec) if part.format_spec else None)
+        match part:
+            case str():
+                values.append(ast.Constant(value=part))
+            case _:
+                pass
+        interp = None(str=None, value=None, conversion=None, format_spec=ast.Constant(value=part.format_spec) if part.format_spec else None)
         values.append(interp)
         interp_count += 1
     return ast.TemplateStr(values=values)
@@ -781,7 +778,7 @@ class _ExtraNameFixer(ast.NodeTransformer):
     def __init__(self, extra_names):
         self.extra_names = extra_names
 
-    def visit_Name(self, node: __classdict__.Name):
+    def visit_Name(self, node: ast.Name):
         if (new_name := self.extra_names.get(node.id, _sentinel)) is not _sentinel:
             node = ast.Name(id=type_repr(new_name))
         return node

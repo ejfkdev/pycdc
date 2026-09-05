@@ -303,7 +303,7 @@ class ParsingError(Error):
         return self
 
     @staticmethod
-    def _raise_all(exceptions: __classdict__['ParsingError']):
+    def _raise_all(exceptions: Iterable['ParsingError']):
         '''
 Combine any number of ParsingErrors into one and raise it.
 '''
@@ -514,35 +514,13 @@ class _ReadState:
     def __annotate_func__(format, /):
         if format > 2:
             raise NotImplementedError
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 0 @26
-        pass
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @30
-        pass
-        {}['elements_added'] = __classdict__[__classdict__]
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 2 @54
-        pass
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @58
-        pass
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @62
-        pass
-        {}['cursect'] = __classdict__[__classdict__, __classdict__] | None
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @102
-        pass
-        {}['sectname'] = __classdict__ | None
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 1 @128
-        pass
-        {}['optname'] = __classdict__ | None
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 3 @154
-        pass
-        {}['lineno'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 3 @166
-        pass
-        {}['indent_level'] = __classdict__
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 4 @178
-        pass
-        # UNIMPLEMENTED: unsupported opcode: LOAD_FROM_DICT_OR_GLOBALS 5 @182
-        pass
-        {}['errors'] = __classdict__[__classdict__]
+        {}['elements_added'] = set[str]
+        {}['cursect'] = dict[str, str] | None
+        {}['sectname'] = str | None
+        {}['optname'] = str | None
+        {}['lineno'] = int
+        {}['indent_level'] = int
+        {}['errors'] = list[ParsingError]
         return {}
 
 

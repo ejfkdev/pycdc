@@ -54,8 +54,8 @@
    "module": "_colorize",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1657,
-   "ntotal": 1734,
+   "ndiff": 1621,
+   "ntotal": 1688,
    "detail": "line 1: orig ('MAKE_CELL', '__conditional_annotations__') | got ('RESUME', '')\nline 2: orig ('RESUME', '') | got ('LOAD_CONST', '<code __annotate__>')\nline 3: orig ('LOAD_CONST', '<code __annotate__>') | got ('MAKE_FUNCTION', '')"
   },
   {
@@ -166,7 +166,7 @@
    "module": "annotationlib",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3745,
+   "ndiff": 3756,
    "ntotal": 4129,
    "detail": "line 56: orig ('LOAD_NAME', 'type') | got ('NOP', '')\nline 57: orig ('PUSH_NULL', '') | got ('LOAD_NAME', 'type')\nline 58: orig ('LOAD_CONST', \"('',)\") | got ('PUSH_NULL', '')"
   },
@@ -274,8 +274,8 @@
    "module": "configparser",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3875,
-   "ntotal": 5115,
+   "ndiff": 4902,
+   "ntotal": 5100,
    "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_SMALL_INT', '')"
   },
   {
