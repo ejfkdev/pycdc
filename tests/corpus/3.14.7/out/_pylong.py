@@ -25,9 +25,8 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
     ws = {w}
     while ws:
         w = ws.pop()
-        if not w in seen:
-            if w <= more_than:
-                continue
+        if w in seen or w <= more_than:
+            pass
         seen.add(w)
         lo = w >> 1
         hi = w - lo

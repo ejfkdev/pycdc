@@ -343,11 +343,22 @@ impl<'a> MarshalReader<'a> {
                 return Ok(s);
             }
             TYPE_SLICE => {
-                // 3.14+: (start, stop, step)
+                // 3.14+: (start, stop, step). CPython r_ref_inserts the
+                // slice BEFORE serializing its fields — a FLAG_REF'd field
+                // (e.g. the TYPE_INT|FLAG_REF stop of `slice(None, 1)`)
+                // registers at the NEXT index. Reserving only in the common
+                // tail (after the fields) swapped those two indices, so
+                // every later TYPE_REF to the slice resolved to the wrong
+                // object (`v[:1]` decompiled as `v[1]`).
+                let slot = if flag_ref { self.r_ref_reserve() } else { usize::MAX };
                 let start_o = self.load_object()?;
                 let stop_o = self.load_object()?;
                 let step_o = self.load_object()?;
-                Rc::new(PyObject::Slice(start_o, stop_o, step_o))
+                let obj = Rc::new(PyObject::Slice(start_o, stop_o, step_o));
+                if flag_ref {
+                    self.r_ref_insert(slot, &obj);
+                }
+                return Ok(obj);
             }
             TYPE_CODE => {
                 let slot = if flag_ref { self.r_ref_reserve() } else { usize::MAX };

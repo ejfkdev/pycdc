@@ -369,10 +369,8 @@ def _next_external_frame(frame, skip_file_prefixes):
 
     frame = frame.f_back
     while not frame is None:
-        if not _is_internal_filename((filename := frame.f_code.co_filename)):
-            if not _is_filename_to_skip(filename, skip_file_prefixes):
-                break
-        frame = frame.f_back
+        if _is_internal_filename((filename := frame.f_code.co_filename)) or _is_filename_to_skip(filename, skip_file_prefixes):
+            frame = frame.f_back
     return frame
 
 def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixes=()):
@@ -704,10 +702,9 @@ version tuple (e.g. (3, 11)).
 '''
 
     remove_formatted = f'{remove[0]}.{remove[1]}'
-    if not _version[:2] > remove:
-        if _version[:2] == remove and _version[3] != 'alpha':
-            msg = f'{name!r} was slated for removal after Python {remove_formatted} alpha'
-            raise RuntimeError(msg)
+    if _version[:2] > remove or _version[:2] == remove:
+        msg = f'{name!r} was slated for removal after Python {remove_formatted} alpha'
+        raise RuntimeError(msg)
     msg = message.format(name=name, remove=remove_formatted)
     _wm.warn(msg, DeprecationWarning, stacklevel=3)
 

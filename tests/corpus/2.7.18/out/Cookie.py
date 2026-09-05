@@ -214,17 +214,14 @@ def _unquote(str):
         if Qmatch:
             k = Qmatch.start(0)
         if Qmatch:
-            if not not Omatch:
-                if k < j:
-                    res.append(str[i:k])
-                    res.append(str[k + 1])
-                    i = k + 2
-                else:
-                    res.append(str[i:j])
-                    res.append(chr(int(str[j + 1:j + 4], 8)))
-                    i = j + 4
-        else:
-            return _nulljoin(res)
+            if not Omatch or k < j:
+                res.append(str[i:k])
+                res.append(str[k + 1])
+                i = k + 2
+        res.append(str[i:j])
+        res.append(chr(int(str[j + 1:j + 4], 8)))
+        i = j + 4
+    return _nulljoin(res)
 
 _weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 _monthname = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

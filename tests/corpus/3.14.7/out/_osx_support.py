@@ -209,17 +209,12 @@ def _override_all_archs(_config_vars):
     if 'ARCHFLAGS' in os.environ:
         arch = os.environ['ARCHFLAGS']
         for cv in _UNIVERSAL_CONFIG_VARS:
-            if not cv in _config_vars:
-                pass
-            else:
-                if not '-arch' in _config_vars[cv]:
-                    continue
+            if cv in _config_vars and '-arch' in _config_vars[cv]:
                 flags = _config_vars[cv]
                 flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
                 flags = flags + ' ' + arch
                 _save_modified_value(_config_vars, cv, flags)
-    else:
-        return _config_vars
+    return _config_vars
 
 def _check_for_unavailable_sdk(_config_vars):
     '''Remove references to any SDKs not available'''
@@ -253,23 +248,21 @@ barf if multiple '-isysroot' arguments are present.
     else:
         stripArch = '-arch' in cc_args
         stripSysroot = any((arg for arg in cc_args if arg('-isysroot')))
-    if not stripArch:
-        if 'ARCHFLAGS' in os.environ:
-            while True:
-                try:
-                    index = compiler_so.index('-arch')
-                    del compiler_so[index:index + 2]
-                except ValueError:
-                    pass
-                else:
-                    if not _supports_arm64_builds():
-                        for idx in reversed(range(len(compiler_so))):
-                            if not compiler_so[idx] == '-arch':
-                                pass
-                            else:
-                                if not compiler_so[idx + 1] == 'arm64':
-                                    continue
-                                del compiler_so[idx:idx + 2]
+    if stripArch or 'ARCHFLAGS' in os.environ:
+        try:
+            index = compiler_so.index('-arch')
+            del compiler_so[index:index + 2]
+        except ValueError:
+            pass
+        else:
+            if not _supports_arm64_builds():
+                for idx in reversed(range(len(compiler_so))):
+                    if compiler_so[idx] == '-arch' and compiler_so[idx + 1] == 'arm64':
+                        del compiler_so[idx:idx + 2]
+    if not _supports_arm64_builds():
+        for idx in reversed(range(len(compiler_so))):
+            if compiler_so[idx] == '-arch' and compiler_so[idx + 1] == 'arm64':
+                del compiler_so[idx:idx + 2]
     if 'ARCHFLAGS' in os.environ:
         if not stripArch:
             compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()

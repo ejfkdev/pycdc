@@ -247,19 +247,17 @@ def compiler_fixup(compiler_so, cc_args):
     else:
         stripArch = '-arch' in cc_args
         stripSysroot = any((arg for arg in cc_args if arg.startswith('-isysroot')))
-    if not stripArch:
-        if 'ARCHFLAGS' in os.environ:
-            while True:
-                try:
-                    index = compiler_so.index('-arch')
-                    del compiler_so[index:index + 2]
-                except ValueError:
-                    pass
-        elif not _supports_arm64_builds():
-            for idx in reversed(range(len(compiler_so))):
-                if compiler_so[idx] == '-arch':
-                    if compiler_so[idx + 1] == 'arm64':
-                        del compiler_so[idx:idx + 2]
+    if not _supports_arm64_builds():
+        for idx in reversed(range(len(compiler_so))):
+            if compiler_so[idx] == '-arch':
+                if compiler_so[idx + 1] == 'arm64':
+                    del compiler_so[idx:idx + 2]
+                    try:
+                        index = compiler_so.index('-arch')
+                        del compiler_so[index:index + 2]
+                    except ValueError:
+                        if stripArch or 'ARCHFLAGS' in os.environ:
+                            pass
     if 'ARCHFLAGS' in os.environ:
         if not stripArch:
             compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()

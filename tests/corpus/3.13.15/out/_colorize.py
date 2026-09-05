@@ -53,9 +53,8 @@ for attr in dir(NoColors):
     setattr(NoColors, attr, '')
 
 def get_colors(colorize=False, *, file=None):
-    if not colorize:
-        if can_colorize(file=file):
-            return ANSIColors()
+    if colorize or can_colorize(file=file):
+        return ANSIColors()
     return NoColors
 
 def can_colorize(*, file=None):

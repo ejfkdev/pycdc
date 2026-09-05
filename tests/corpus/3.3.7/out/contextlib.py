@@ -223,9 +223,8 @@ class ExitStack(object):
                 exc_context = new_exc.__context__
                 if exc_context is old_exc:
                     return
-                if not exc_context is None:
-                    if exc_context is frame_exc:
-                        break
+                if exc_context is None or exc_context is frame_exc:
+                    break
                 new_exc = exc_context
                 continue
             new_exc.__context__ = old_exc

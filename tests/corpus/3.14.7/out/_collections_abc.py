@@ -415,9 +415,8 @@ Example: ``Callable[[int, str], float]`` sets ``__args__`` to
 
     def __reduce__(self):
         args = self.__args__
-        if len(args) == 2:
-            if not _is_param_expr(args[0]):
-                args = list(args[:-1]), args[-1]
+        if not len(args) == 2 or not _is_param_expr(args[0]):
+            args = list(args[:-1]), args[-1]
         return _CallableGenericAlias, (Callable, args)
 
     def __getitem__(self, item):
@@ -953,16 +952,14 @@ recommended.
                 stop += len(self)
         i = start
         while True:
-            if not stop is None:
-                if not i < stop:
-                    break
-            try:
-                v = self[i]
-            except IndexError:
-                raise ValueError
-            if v is value or v == value:
-                return i
-            i += 1
+            if stop is None or i < stop:
+                try:
+                    v = self[i]
+                except IndexError:
+                    raise ValueError
+                if v is value or v == value:
+                    return i
+                i += 1
         raise ValueError
 
     def count(self, value):

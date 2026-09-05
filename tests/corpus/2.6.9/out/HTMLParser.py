@@ -179,10 +179,9 @@ class HTMLParser(markupbase.ParserBase):
             attrname, rest, attrvalue = m.group(1, 2, 3)
             if not rest:
                 attrvalue = None
-            elif not attrvalue[:1] == "'" == attrvalue[-1:]:
-                if attrvalue[:1] == '"' == attrvalue[-1:]:
-                    attrvalue = attrvalue[1:-1]
-                    attrvalue = self.unescape(attrvalue)
+            elif attrvalue[:1] == "'" == attrvalue[-1:] or attrvalue[:1] == '"' == attrvalue[-1:]:
+                attrvalue = attrvalue[1:-1]
+                attrvalue = self.unescape(attrvalue)
             attrs.append((attrname.lower(), attrvalue))
             k = m.end()
         end = rawdata[k:endpos].strip()

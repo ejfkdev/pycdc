@@ -302,9 +302,8 @@ that can be uniformly removed from the second line onwards is removed.
 
     if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
-    if node.body:
-        if not isinstance(node.body[0], Expr):
-            return
+    if not node.body or not isinstance(node.body[0], Expr):
+        return
     node = node.body[0].value
     if isinstance(node, Constant) and isinstance(node.value, str):
         text = node.value

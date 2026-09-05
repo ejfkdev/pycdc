@@ -77,10 +77,9 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         path = self.path
         for x in self.cgi_directories:
             i = len(x)
-            if path[:i] == x:
-                if not path[i:] or path[i] == '/':
-                    self.cgi_info = path[:i], path[i + 1:]
-                    return True
+            if path[:i] == x and (not path[i:] or path[i] == '/'):
+                self.cgi_info = path[:i], path[i + 1:]
+                return True
         return False
 
     cgi_directories = ['/cgi-bin', '/htbin']

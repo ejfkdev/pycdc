@@ -34,6 +34,29 @@ def and_chain(a, b, c, d):
     return 'none'
 
 
+def or_chain_chain(a, b, c, d):
+    if a == b == c or d == a == b:
+        return 'cc'
+    return 'none'
+
+
+def quote_strip(s):
+    # the HTMLParser quote-check idiom: or of two slice chains
+    if s[:1] == "'" == s[-1:] or s[:1] == '"' == s[-1:]:
+        return s[1:-1]
+    return s
+
+
+def elif_ctx(rest, v):
+    # or-of-chains in an elif (the merged if must stay associated with the
+    # elif chain, not become a sibling if)
+    if not rest:
+        v = None
+    elif v[:1] == "'" == v[-1:] or v[:1] == '"' == v[-1:]:
+        v = v[1:-1]
+    return v
+
+
 print(or_chain(1, 1, 1, 9))
 print(or_chain(5, 1, 9, 5))
 print(or_chain(1, 2, 3, 4))
@@ -49,3 +72,12 @@ print(val_chain(5, 1, 9, 5))
 print(and_chain(1, 1, 1, 1))
 print(and_chain(1, 1, 1, 9))
 print(and_chain(1, 2, 3, 4))
+print(or_chain_chain(1, 1, 1, 9))
+print(or_chain_chain(5, 1, 9, 5))
+print(or_chain_chain(1, 2, 3, 4))
+print(quote_strip("'hi'"))
+print(quote_strip('"yo"'))
+print(quote_strip('plain'))
+print(elif_ctx('', "'q'"))
+print(elif_ctx('x', '"d"'))
+print(elif_ctx('x', 'raw'))

@@ -9412,13 +9412,27 @@ impl<'a> Ctx<'a> {
                     }
                     return None;
                 }
-                if !is_pure_value_op(ins.op) || ins.offset >= target {
+                if !is_pure_value_op(ins.op)
+                    && !matches!(
+                        ins.op,
+                        // chain-head bookkeeping for a chained-comparison
+                        // operand (DUP/ROT <=3.11, SWAP/COPY 3.12+): admit
+                        // locally — globally they delimit other scans
+                        Op::DUP_TOP | Op::ROT_TWO | Op::ROT_THREE | Op::SWAP
+                    )
+                    || ins.offset >= target
+                {
                     return None;
                 }
                 k += 1;
             }
             let jk = jidx?;
-            let operand = self.sim_value_region(region_start, jk)?;
+            // chain-head operand regions (DUP/ROT or SWAP/COPY + CMP) leave
+            // the retained middle operand under the comparison — tolerate
+            // that one residual, prefer the strict single-value sim
+            let operand = self
+                .sim_value_region(region_start, jk)
+                .or_else(|| self.sim_value_region_ex(region_start, jk, true))?;
             let jins = &self.instrs[jk];
             let jt = jump_true(jins.op);
             match jins.target {
@@ -9455,6 +9469,99 @@ impl<'a> Ctx<'a> {
                         operand
                     });
                     exit = Some(t);
+                    final_was_exit_jump = true;
+                    break;
+                }
+                Some(t)
+                    if !jt
+                        && t < target
+                        && self
+                            .idx_of
+                            .get(&t)
+                            .and_then(|&ci2| self.instrs.get(ci2))
+                            .map_or(false, |x| x.op == Op::POP_TOP) =>
+                {
+                    // chain-or-CHAIN: this operand is itself a chained
+                    // comparison whose mid-link PJIFs exit to [POP_TOP;
+                    // else-copy] stubs lexically BEFORE the (duplicated)
+                    // body — CPython small-block duplication for
+                    // `(a==b==c) or (d==e==f)`. Walk the chain's
+                    // continuation links, folding each into the operand via
+                    // merge_chain_compare, until the final link's exit jump
+                    // past the body: its target is the canonical else, and
+                    // the fall-through body ends there, so [target, exit)
+                    // is exactly the body copy the first chain's body-jump
+                    // already targets.
+                    let mut acc = operand;
+                    let mut k2 = jk + 1;
+                    let mut chain_exit: Option<usize> = None;
+                    loop {
+                        let rs = k2;
+                        let mut j2 = None;
+                        let mut steps = 0;
+                        while let Some(ins) = self.instrs.get(k2) {
+                            if is_cond_jump(ins.op) {
+                                j2 = Some(k2);
+                                break;
+                            }
+                            if !is_pure_value_op(ins.op) {
+                                break;
+                            }
+                            k2 += 1;
+                            steps += 1;
+                            if steps > 32 {
+                                break;
+                            }
+                        }
+                        let Some(j2i) = j2 else { return None };
+                        let j2ins = &self.instrs[j2i];
+                        let Some(t2) = j2ins.target else {
+                            return None;
+                        };
+                        // the continuation link's comparison sits right
+                        // before its jump; the region before the comparison
+                        // is the rhs — the lhs is the chain's retained
+                        // middle operand (= acc's last operand, not lexical)
+                        let cmp_i = match self.match_prev_real(j2i) {
+                            Some(x) if x >= rs => x,
+                            _ => return None,
+                        };
+                        if self.instrs[cmp_i].op != Op::COMPARE_OP {
+                            return None;
+                        }
+                        let rhs = self.sim_value_region(rs, cmp_i)?;
+                        let last = match &*acc {
+                            Expr::Compare { operands, .. } => {
+                                operands.last()?.clone()
+                            }
+                            _ => return None,
+                        };
+                        let link: ExprRef = Rc::new(Expr::Compare {
+                            operands: vec![last, rhs],
+                            ops: vec![cmp_from_index(compare_op_index(
+                                self.instrs[cmp_i].arg as u32,
+                                self.version,
+                            ))],
+                        });
+                        if t2 > target {
+                            // final link: false exits to the canonical else;
+                            // the fall-through body ends at that offset
+                            if jump_true(j2ins.op) {
+                                return None;
+                            }
+                            acc = merge_chain_compare(&acc, &link)?;
+                            chain_exit = Some(t2);
+                            break;
+                        }
+                        // mid link: fold and continue past it
+                        acc = merge_chain_compare(&acc, &link)?;
+                        k2 = j2i + 1;
+                    }
+                    let Some(ex) = chain_exit else {
+                        return None;
+                    };
+                    parts.push(acc);
+                    exit = Some(ex);
                     final_was_exit_jump = true;
                     break;
                 }
@@ -9919,6 +10026,19 @@ impl<'a> Ctx<'a> {
     /// scratch stack (py2 boolop condition merging). Returns None when any
     /// instruction is not pure value computation.
     fn sim_value_region(&self, from_idx: usize, to_idx: usize) -> Option<ExprRef> {
+        self.sim_value_region_ex(from_idx, to_idx, false)
+    }
+
+    /// Simulate a pure value region. `allow_chain_residual` tolerates ONE
+    /// leftover value under the result — the retained middle operand of a
+    /// chained-comparison head (`LOAD d; LOAD a; DUP; ROT_THREE; CMP` leaves
+    /// [a, cmp(d==a)]), which the chain-or operand scan needs.
+    fn sim_value_region_ex(
+        &self,
+        from_idx: usize,
+        to_idx: usize,
+        allow_chain_residual: bool,
+    ) -> Option<ExprRef> {
         let mut st: Vec<ExprRef> = Vec::new();
         let pop1 = |st: &mut Vec<ExprRef>| st.pop().unwrap_or_else(|| self.name_expr("???"));
         for k in from_idx..to_idx {
@@ -10026,12 +10146,26 @@ impl<'a> Ctx<'a> {
                 Op::BINARY_OP => {
                     let r = pop1(&mut st);
                     let l = pop1(&mut st);
-                    let name = binary_op_name(arg as u32, self.version)?;
-                    if name.ends_with('=') {
-                        return None;
+                    match binary_op_name(arg as u32, self.version) {
+                        Some(name) => {
+                            if name.ends_with('=') {
+                                return None;
+                            }
+                            let op = binop_from_text(name);
+                            st.push(Rc::new(Expr::Binary { op, left: l, right: r }));
+                        }
+                        // 3.14 folded BINARY_SUBSCR into BINARY_OP `[]`,
+                        // with constant slices as LOAD_CONST slice(...) —
+                        // mirror the main handler's subscript conversion
+                        None if self.version.at_least(3, 14) => {
+                            let idx = normalize_slice_call(r);
+                            st.push(Rc::new(Expr::Subscript {
+                                value: l,
+                                index: idx,
+                            }));
+                        }
+                        None => return None,
                     }
-                    let op = binop_from_text(name);
-                    st.push(Rc::new(Expr::Binary { op, left: l, right: r }));
                 }
                 Op::BINARY_ADD | Op::BINARY_SUBTRACT | Op::BINARY_MULTIPLY
                 | Op::BINARY_DIVIDE | Op::BINARY_TRUE_DIVIDE | Op::BINARY_FLOOR_DIVIDE
@@ -10084,19 +10218,141 @@ impl<'a> Ctx<'a> {
                         star_kwargs: None,
                     }));
                 }
+                // stack shuffles: chain heads (DUP_TOP+ROT_THREE <=3.11,
+                // SWAP+COPY 3.12+) and or-arm setups move values without
+                // consuming them
+                Op::DUP_TOP => {
+                    let t = pop1(&mut st);
+                    st.push(t.clone());
+                    st.push(t);
+                }
+                Op::ROT_TWO | Op::SWAP if arg == 2 || ins.op == Op::ROT_TWO => {
+                    let n = st.len();
+                    if n >= 2 {
+                        st.swap(n - 1, n - 2);
+                    }
+                }
+                Op::ROT_THREE => {
+                    // (x, y, z=TOS) -> (z, x, y): TOS lands at the bottom
+                    // of the top three
+                    let n = st.len();
+                    if n >= 3 {
+                        let t = st.pop().unwrap();
+                        st.insert(n - 3, t);
+                    }
+                }
+                Op::BUILD_SLICE => {
+                    let none_if = |e: ExprRef| -> Option<ExprRef> {
+                        match &*e {
+                            Expr::Const(o) if matches!(&**o, PyObject::None) => None,
+                            _ => Some(e),
+                        }
+                    };
+                    let (start, stop, step) = if arg == 3 {
+                        let step = none_if(pop1(&mut st));
+                        let stop = none_if(pop1(&mut st));
+                        let start = none_if(pop1(&mut st));
+                        (start, stop, step)
+                    } else {
+                        let stop = none_if(pop1(&mut st));
+                        let start = none_if(pop1(&mut st));
+                        (start, stop, None)
+                    };
+                    st.push(Rc::new(Expr::Slice(Box::new(SliceExpr {
+                        start,
+                        stop,
+                        step,
+                    }))));
+                }
+                // 3.12+ fused slice-subscript: TOS2[TOS1:TOS]
+                Op::BINARY_SLICE => {
+                    let none_if = |e: ExprRef| -> Option<ExprRef> {
+                        match &*e {
+                            Expr::Const(o) if matches!(&**o, PyObject::None) => None,
+                            _ => Some(e),
+                        }
+                    };
+                    let stop = none_if(pop1(&mut st));
+                    let start = none_if(pop1(&mut st));
+                    let val = pop1(&mut st);
+                    st.push(Rc::new(Expr::Subscript {
+                        value: val,
+                        index: Rc::new(Expr::Slice(Box::new(SliceExpr {
+                            start,
+                            stop,
+                            step: None,
+                        }))),
+                    }));
+                }
+                // py2 slice ops: SLICE_0 TOS[:], SLICE_1 TOS1[TOS:],
+                // SLICE_2 TOS1[:TOS], SLICE_3 TOS2[TOS1:TOS]
+                Op::SLICE_0 | Op::SLICE_1 | Op::SLICE_2 | Op::SLICE_3 => {
+                    let slice = |start: Option<ExprRef>,
+                                 stop: Option<ExprRef>| {
+                        Rc::new(Expr::Slice(Box::new(SliceExpr {
+                            start,
+                            stop,
+                            step: None,
+                        })))
+                    };
+                    let sub = match ins.op {
+                        Op::SLICE_0 => {
+                            let seq = pop1(&mut st);
+                            Expr::Subscript { value: seq, index: slice(None, None) }
+                        }
+                        Op::SLICE_1 => {
+                            let start = pop1(&mut st);
+                            let seq = pop1(&mut st);
+                            Expr::Subscript {
+                                value: seq,
+                                index: slice(Some(start), None),
+                            }
+                        }
+                        Op::SLICE_2 => {
+                            let stop = pop1(&mut st);
+                            let seq = pop1(&mut st);
+                            Expr::Subscript {
+                                value: seq,
+                                index: slice(None, Some(stop)),
+                            }
+                        }
+                        _ => {
+                            let stop = pop1(&mut st);
+                            let start = pop1(&mut st);
+                            let seq = pop1(&mut st);
+                            Expr::Subscript {
+                                value: seq,
+                                index: slice(Some(start), Some(stop)),
+                            }
+                        }
+                    };
+                    st.push(Rc::new(sub));
+                }
+                Op::SWAP => {
+                    let n = st.len();
+                    if arg >= 2 && n >= arg {
+                        st.swap(n - 1, n - arg);
+                    }
+                }
+                Op::COPY => {
+                    let n = st.len();
+                    if arg >= 1 && n >= arg {
+                        let v = st[n - arg].clone();
+                        st.push(v);
+                    }
+                }
                 Op::TO_BOOL
                 | Op::NOP
                 | Op::NOT_TAKEN
                 | Op::CACHE
                 | Op::EXTENDED_ARG
-                | Op::COPY
                 | Op::PUSH_NULL
                 | Op::PRECALL
                 | Op::RESUME => {}
                 _ => return None,
             }
         }
-        if st.len() == 1 {
+        if st.len() == 1 || (allow_chain_residual && st.len() == 2) {
             st.pop()
         } else {
             None
@@ -11167,6 +11423,77 @@ impl<'a> Ctx<'a> {
     }
 
     fn handle_cond_jump(&mut self, cond: ExprRef, jump_if_true: bool, target: usize) {
+        // py2 value-form boolop consumed by an if: `if X or Y:` where the
+        // operands are value-building chains (chained comparisons via
+        // JUMP_IF_*_OR_POP) — the FINAL operand's cond jump arrives while
+        // the first operand's statement If is still open (its end is the
+        // body start, past this jump), and this jump pops the last operand
+        // as its own cond. Emit the merged `if X or Y:` statement directly
+        // over the body region [blk.end, target); falling through to the
+        // generic block-open instead would let this jump (targeting the
+        // enclosing else label) trip the else-region arm and orphan any
+        // open elif Else block.
+        {
+            let top_info = self.blocks.last().map(|t| {
+                (
+                    t.kind == BlockType::If,
+                    t.short_circuit.is_none(),
+                    t.cond.clone(),
+                    t.end,
+                    t.stack_depth,
+                    t.stmts.is_empty(),
+                    t.jump_if_true,
+                )
+            });
+            if let Some((true, true, Some(blk_cond), body_start, depth, true, true)) = top_info {
+                if !jump_if_true
+                    && target > body_start
+                    && body_start > self.cur_offset
+                    && self.stack.len() == depth
+                {
+                    self.blocks.pop();
+                    // the block cond was stored NEGATED for the
+                    // jump_if_true polarity (`if not A: <region>`) — the
+                    // or-operand is the positive form
+                    let a = match &*blk_cond {
+                        Expr::Unary { op: UnaryOp::Not, operand } => {
+                            operand.clone()
+                        }
+                        _ => blk_cond,
+                    };
+                    let mut values = Vec::new();
+                    flatten_boolop(a, BoolOpKind::Or, &mut values);
+                    flatten_boolop(cond, BoolOpKind::Or, &mut values);
+                    let merged: ExprRef =
+                        Rc::new(Expr::BoolOp { op: BoolOpKind::Or, values });
+                    // else region [target, else_end): only when a forward
+                    // jump from inside the body already marked one on the
+                    // enclosing block (the body-end hop over the else)
+                    let mut orelse = Vec::new();
+                    let mut else_stop = target;
+                    if let Some(top) = self.blocks.last_mut() {
+                        if let Some(ee) = top.else_end.take() {
+                            if ee > target {
+                                else_stop = ee;
+                            }
+                        }
+                    }
+                    if else_stop > target {
+                        orelse = self.decompile_region(target, else_stop);
+                    }
+                    let body_stmts = self.decompile_region(body_start, target);
+                    self.push_stmt(Stmt::If {
+                        cond: merged,
+                        body: body_stmts,
+                        orelse,
+                    });
+                    if self.skip_until.map_or(true, |s| s < else_stop) {
+                        self.skip_until = Some(else_stop);
+                    }
+                    return;
+                }
+            }
+        }
         // 3.14+ continue-guard chain: pass-jumps forward, fail falls into
         // a NOT_TAKEN; JUMP_BACKWARD loop-top trampoline. The NOT_TAKEN
         // padding is mandatory: pre-3.14 `if c: continue` shapes have a
@@ -14116,6 +14443,7 @@ fn is_pure_value_op(op: Op) -> bool {
             | Op::CONTAINS_OP
             | Op::BINARY_OP
             | Op::BINARY_SUBSCR
+            | Op::BINARY_SLICE
             | Op::BUILD_SLICE
             | Op::SLICE_0
             | Op::SLICE_1
