@@ -44,24 +44,25 @@ def _maybe_compile(compiler, source, filename, symbol, flags):
     for line in source.split('\n'):
         line = line.strip()
         if not line:
-            pass
-        else:
-            if line[0] == '#':
-                continue
-            if symbol != 'eval':
-                source = 'pass'
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
-            try:
-                compiler(source, filename, symbol, flags=flags)
-            except SyntaxError:
-                try:
-                    compiler(source + '\n', filename, symbol, flags=flags)
-                except _IncompleteInputError as e:
-                    return
-            else:
-                None(None, None, None)
-            return compiler(source, filename, symbol, incomplete_input=False)
+            continue
+        if line[0] == '#':
+            continue
+        break
+    else:
+        if symbol != 'eval':
+            source = 'pass'
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
+    try:
+        compiler(source, filename, symbol, flags=flags)
+    except SyntaxError:
+        try:
+            compiler(source + '\n', filename, symbol, flags=flags)
+        except _IncompleteInputError as e:
+            return
+    else:
+        None(None, None, None)
+    return compiler(source, filename, symbol, incomplete_input=False)
 
 def _compile(source, filename, symbol, incomplete_input=True, *, flags=0):
     if incomplete_input:

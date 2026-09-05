@@ -221,11 +221,11 @@
   },
   {
    "module": "codeop",
-   "ast_detail": "diff at token 65: orig  body=[Break()] | dec  body=[Pass()]",
+   "ast_detail": "diff at token 91: orig  keywords=[])) | dec  keywords=[]))])",
    "verdict": "SIG-DIFF",
-   "ndiff": 303,
+   "ndiff": 278,
    "ntotal": 406,
-   "detail": "line 82: orig ('FOR_ITER', 'to 122') | got ('FOR_ITER', 'to 120')\nline 90: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 120') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 118')\nline 96: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 120') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 118')"
+   "detail": "line 121: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 122: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 123: orig ('LOAD_FAST', 'compiler') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "colorsys",

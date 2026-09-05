@@ -173,3 +173,20 @@ def mid_continue(n):
     return out
 
 print(mid_continue(6))
+
+# 3.12 for-else + and-chain break: the compiler turns `if a and b: break`
+# into guard links (PJIT next / JUMP_BACKWARD continue) and the break
+# becomes POP_TOP + JUMP_FORWARD over the else to the merge - a merge
+# the else body's own guards also target. The registration must accept
+# those in-region sources or the break is lost (loop always exhausts).
+def for_else_break(source, symbol):
+    for line in source.split('\n'):
+        line = line.strip()
+        if line and line[0] != '#':
+            break
+    else:
+        if symbol != 'eval':
+            source = 'pass'
+    return source.upper()
+
+print(for_else_break('a\nb', 'x'), for_else_break('#c\n', 'exec'), for_else_break('#c\n', 'eval'))

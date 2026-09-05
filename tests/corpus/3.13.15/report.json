@@ -211,9 +211,9 @@
    "module": "codeop",
    "ast_detail": "diff at token 50: orig  If(test=BoolOp(op=And() | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 267,
+   "ndiff": 235,
    "ntotal": 370,
-   "detail": "line 98: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 101: orig ('POP_TOP', '') | got ('JUMP_BACKWARD', 'to L1')\nline 102: orig ('JUMP_FORWARD', 'to L5') | got ('END_FOR', '')"
+   "detail": "line 98: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 99: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 126: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "colorsys",

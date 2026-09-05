@@ -679,18 +679,17 @@ default, contingent on type(obj):
                 while hasattr(unwrap, '__wrapped__'):
                     candidate = unwrap.__wrapped__
                     if id(candidate) in _seen_ids:
-                        pass
-                    else:
-                        _seen_ids.add(id(candidate))
-                        unwrap = candidate
-                        continue
-                if (functools := sys.modules.get('functools')) and isinstance(unwrap, functools.partial):
-                    candidate = unwrap.func
-                    if id(candidate) in _seen_ids:
-                        pass
-                    else:
-                        _seen_ids.add(id(candidate))
-                        unwrap = candidate
+                        break
+                    _seen_ids.add(id(candidate))
+                    unwrap = candidate
+                else:
+                    if (functools := sys.modules.get('functools')) and isinstance(unwrap, functools.partial):
+                        candidate = unwrap.func
+                        if id(candidate) in _seen_ids:
+                            pass
+                        else:
+                            _seen_ids.add(id(candidate))
+                            unwrap = candidate
                 if hasattr(unwrap, '__globals__'):
                     obj_globals = unwrap.__globals__
             if globals is None:

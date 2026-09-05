@@ -66,9 +66,10 @@ def _maybe_compile(compiler, source, filename, symbol):
     for line in source.split('\n'):
         line = line.strip()
         if line and line[0] != '#':
-            pass
-    if symbol != 'eval':
-        source = 'pass'
+            break
+    else:
+        if symbol != 'eval':
+            source = 'pass'
     err1 = err2 = (err := None)
     code1 = code2 = (code := None)
     try:

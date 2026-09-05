@@ -219,16 +219,15 @@ does not use the month name.
             else:
                 abbr_indices &= indices
             if full_indices:
-                pass
-            else:
-                if abbr_indices:
-                    continue
-                return (None, None)
-                if full_indices:
-                    return self.f_month, '%B'
-                if abbr_indices:
-                    return self.a_month, '%b'
-                return (None, None)
+                continue
+            if abbr_indices:
+                continue
+            return (None, None)
+        if full_indices:
+            return self.f_month, '%B'
+        if abbr_indices:
+            return self.a_month, '%b'
+        return (None, None)
 
     def __find_weekday_format(self, directive):
         '''Find the day of the week format appropriate for the current locale.
@@ -252,16 +251,15 @@ Similar to __find_month_format().
             else:
                 abbr_indices &= indices
             if full_indices:
-                pass
-            else:
-                if abbr_indices:
-                    continue
-                return (None, None)
-                if full_indices:
-                    return self.f_weekday, '%A'
-                if abbr_indices:
-                    return self.a_weekday, '%a'
-                return (None, None)
+                continue
+            if abbr_indices:
+                continue
+            return (None, None)
+        if full_indices:
+            return self.f_weekday, '%A'
+        if abbr_indices:
+            return self.a_weekday, '%a'
+        return (None, None)
 
     def __calc_timezone(self):
         try:
@@ -569,47 +567,44 @@ format string.'''
         found_zone = found_dict['Z'].lower()
         for value, tz_values in enumerate(locale_time.timezone):
             if found_zone not in tz_values:
-                pass
-            else:
-                if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                    continue
-                tz = value
                 continue
+            if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
                 continue
-                if iso_year is not None:
-                    if julian is not None:
-                        raise ValueError("Day of the year directive '%j' is not compatible with ISO year directive '%G'. Use '%Y' instead.")
-                    if iso_week is not None:
-                        if weekday is None:
-                            raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")
-                if iso_week is not None:
-                    if year is not None:
-                        if weekday is None:
-                            raise ValueError("ISO week directive '%V' must be used with the ISO year directive '%G' and a weekday directive ('%A', '%a', '%w', or '%u').")
-                    raise ValueError("ISO week directive '%V' is incompatible with the year directive '%Y'. Use the ISO year '%G' instead.")
-                leap_year_fix = False
-                if year is None:
-                    if month == 2 and day == 29:
-                        year = 1904
-                        leap_year_fix = True
-                    else:
-                        year = 1900
-                if julian is None and weekday is not None:
-                    if week_of_year is not None:
-                        if week_of_year_start == 0:
-                            break
-    week_starts_Mon = False
-    julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
-    if iso_year is not None and iso_week is not None:
-        datetime_result = datetime_date.fromisocalendar(iso_year, iso_week, weekday + 1)
-        year = datetime_result.year
-        month = datetime_result.month
-        day = datetime_result.day
-    if julian is not None:
-        if julian <= 0:
-            year -= 1
-            yday = 366 if calendar.isleap(year) else 365
-            julian += yday
+            tz = value
+            continue
+        continue
+    if iso_year is not None:
+        if julian is not None:
+            raise ValueError("Day of the year directive '%j' is not compatible with ISO year directive '%G'. Use '%Y' instead.")
+        if iso_week is not None:
+            if weekday is None:
+                raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")
+    if iso_week is not None:
+        if year is not None:
+            if weekday is None:
+                raise ValueError("ISO week directive '%V' must be used with the ISO year directive '%G' and a weekday directive ('%A', '%a', '%w', or '%u').")
+        raise ValueError("ISO week directive '%V' is incompatible with the year directive '%Y'. Use the ISO year '%G' instead.")
+    leap_year_fix = False
+    if year is None:
+        if month == 2 and day == 29:
+            year = 1904
+            leap_year_fix = True
+        else:
+            year = 1900
+    if julian is None and weekday is not None:
+        if week_of_year is not None:
+            week_starts_Mon = True if week_of_year_start == 0 else False
+            julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
+        if iso_year is not None and iso_week is not None:
+            datetime_result = datetime_date.fromisocalendar(iso_year, iso_week, weekday + 1)
+            year = datetime_result.year
+            month = datetime_result.month
+            day = datetime_result.day
+        if julian is not None:
+            if julian <= 0:
+                year -= 1
+                yday = 366 if calendar.isleap(year) else 365
+                julian += yday
     if julian is None:
         julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
     else:

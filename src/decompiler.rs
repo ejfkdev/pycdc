@@ -7166,24 +7166,7 @@ impl<'a> Ctx<'a> {
                 // record the else end so find_loop_exit can see it
                 // (mirrors the JUMP_ABSOLUTE registration)
                 if !over_handlers && target > self.cur_offset {
-                    for b in self.blocks.iter_mut().rev() {
-                        if matches!(b.kind, BlockType::While | BlockType::For) {
-                            if b.end < target && b.loop_else_end.is_none() {
-                                let others = self
-                                    .instrs
-                                    .iter()
-                                    .filter(|i| {
-                                        i.target == Some(target)
-                                            && i.offset != self.cur_offset
-                                    })
-                                    .count();
-                                if others == 0 {
-                                    b.loop_else_end = Some(target);
-                                }
-                            }
-                            break;
-                        }
-                    }
+                    self.register_break_over_else(target);
                 }
                 if !over_handlers && self.find_loop_exit(target).is_some() {
                     self.push_stmt(Stmt::Break);
@@ -7253,24 +7236,7 @@ impl<'a> Ctx<'a> {
                     // exhaustion exit to a continuation no other jump
                     // targets is a `break` over a for/while-else region:
                     // record the else end so the loop close can build it
-                    for b in self.blocks.iter_mut().rev() {
-                        if matches!(b.kind, BlockType::While | BlockType::For) {
-                            if b.end < target && b.loop_else_end.is_none() {
-                                let others = self
-                                    .instrs
-                                    .iter()
-                                    .filter(|i| {
-                                        i.target == Some(target)
-                                            && i.offset != self.cur_offset
-                                    })
-                                    .count();
-                                if others == 0 {
-                                    b.loop_else_end = Some(target);
-                                }
-                            }
-                            break;
-                        }
-                    }
+                    self.register_break_over_else(target);
                     if self.find_loop_exit(target).is_some() {
                         self.push_stmt(Stmt::Break);
                         self.close_inner_blocks_to_loop();
@@ -7438,7 +7404,23 @@ impl<'a> Ctx<'a> {
                                                 || prev.line == inst.line
                                         })
                                 };
+                            // a DEGENERATE guard (`if c: continue` from
+                            // an and/break chain transformation) has an
+                            // EMPTY then-region - only padding between the
+                            // block start and this back jump. A genuine
+                            // folded chain exit ends a nonempty branch
+                            // body. Misfolding the guard turns the whole
+                            // loop tail into an Else[MAX] chain region
+                            // (3.14 for-else + `if a and b: break`).
+                            let then_empty = (self.cur_offset..t.start.max(self.cur_offset))
+                                .next()
+                                .is_none()
+                                && self.padding_only_between(
+                                    t.start.min(self.cur_offset),
+                                    self.cur_offset,
+                                );
                             (at_end || hops_tail)
+                                && !then_empty
                                 && line_ok
                                 && (lands_on_back_edge
                                     || self
@@ -13553,6 +13535,33 @@ impl<'a> Ctx<'a> {
         false
     }
 
+    /// A forward jump flying over an enclosing loop's exhaustion exit to
+    /// the continuation is a `break` over a while/for-else region —
+    /// register the else end so find_loop_exit sees it. Other jumps
+    /// targeting the same merge are tolerated when they originate INSIDE
+    /// the else region (the else body's own guards converge on the merge;
+    /// e.g. 3.12 `if a and b: break` in a for-else loop, codeop).
+    fn register_break_over_else(&mut self, target: usize) {
+        for b in self.blocks.iter_mut().rev() {
+            if matches!(b.kind, BlockType::While | BlockType::For) {
+                if b.end < target && b.loop_else_end.is_none() {
+                    let b_end = b.end;
+                    let others_ok = self
+                        .instrs
+                        .iter()
+                        .filter(|i| {
+                            i.target == Some(target) && i.offset != self.cur_offset
+                        })
+                        .all(|i| i.offset >= b_end && i.offset < target);
+                    if others_ok {
+                        b.loop_else_end = Some(target);
+                    }
+                }
+                break;
+            }
+        }
+    }
+
     fn handle_jump_forward(&mut self, target: usize) -> bool {
         let target = self.dup_copy_redirect.get(&target).copied().unwrap_or(target);
         self.close_blocks_at(self.cur_offset);
@@ -13885,7 +13894,16 @@ impl<'a> Ctx<'a> {
         let Some(&pi) = self.idx_of.get(&pos) else {
             return None;
         };
+        // merge candidate: forward cond jumps inside the else body (its
+        // own guards) converge on the merge; unconditional forward jumps
+        // with no other source end a jump-terminated else body
+        let mut cand: Option<usize> = None;
         for ins in self.instrs.iter().skip(pi) {
+            if let Some(ct) = cand {
+                if ins.offset >= ct {
+                    return Some(ct);
+                }
+            }
             if let Some(t) = ins.target {
                 if matches!(
                     ins.op,
@@ -13899,10 +13917,47 @@ impl<'a> Ctx<'a> {
                 {
                     return Some(t);
                 }
+                let is_fwd_cond = !ins.is_backward
+                    && t > ins.offset
+                    && matches!(
+                        ins.op,
+                        Op::POP_JUMP_IF_FALSE
+                            | Op::POP_JUMP_IF_TRUE
+                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                            | Op::POP_JUMP_BACKWARD_IF_FALSE
+                            | Op::POP_JUMP_BACKWARD_IF_TRUE
+                            | Op::POP_JUMP_IF_NONE
+                            | Op::POP_JUMP_FORWARD_IF_NONE
+                            | Op::POP_JUMP_IF_NOT_NONE
+                            | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                    );
+                if is_fwd_cond {
+                    match cand {
+                        None => {
+                            cand = Some(t);
+                            continue;
+                        }
+                        Some(ct) if ct == t => continue,
+                        _ => return None, // divergent guards: nested structure
+                    }
+                }
                 // any other targeted jump: nested structure, no for-else
                 return None;
             }
-            if matches!(ins.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::POP_TOP) {
+            if matches!(
+                ins.op,
+                Op::NOP
+                    | Op::NOT_TAKEN
+                    | Op::CACHE
+                    | Op::POP_TOP
+                    | Op::END_FOR
+                    | Op::POP_ITER
+            ) {
+                continue;
+            }
+            if cand.is_some() {
+                // else-body statements: keep scanning toward the merge
                 continue;
             }
             // plain statement code with no jump: no else region

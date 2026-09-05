@@ -58,14 +58,13 @@ def _reduce_ex(self, proto):
             else:
                 new = base.__new__
                 if not isinstance(new, _new_type):
-                    pass
-                else:
-                    if new.__self__ is not base:
-                        continue
-                    base = object
-                    if base is object:
-                        state = None
-                        break
+                    continue
+        if new.__self__ is not base:
+            continue
+    else:
+        base = object
+    if base is object:
+        state = None
     else:
         if base is cls:
             raise TypeError(f'cannot pickle {cls.__name__!r} object')

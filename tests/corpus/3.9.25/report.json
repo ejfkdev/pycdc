@@ -237,11 +237,11 @@
   },
   {
    "module": "codeop",
-   "ast_detail": "diff at token 62: orig  body=[Break()] | dec  body=[Pass()]",
+   "ast_detail": "diff at token 72: orig  Assign(targets=[Name(id='err' | dec  Assign(targets=[Name(id='err1'",
    "verdict": "SIG-DIFF",
-   "ndiff": 264,
+   "ndiff": 141,
    "ntotal": 356,
-   "detail": "line 72: orig ('FOR_ITER', 'to 44') | got ('FOR_ITER', 'to 40')\nline 86: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 87: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'symbol')"
+   "detail": "line 214: orig ('SETUP_FINALLY', 'to 356') | got ('LOAD_CONST', 'None')\nline 215: orig ('LOAD_FAST', 'code') | got ('DUP_TOP', '')\nline 216: orig ('EXTENDED_ARG', '') | got ('STORE_FAST', 'err1')"
   },
   {
    "module": "colorsys",

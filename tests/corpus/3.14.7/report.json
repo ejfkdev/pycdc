@@ -123,8 +123,8 @@
    "module": "_strptime",
    "ast_detail": "diff at token 65: orig  body=[Break()]) | dec  body=[Return()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 3048,
-   "ntotal": 3196,
+   "ndiff": 3005,
+   "ntotal": 3202,
    "detail": "line 49: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 53: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 54: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_SMALL_INT', '')"
   },
   {
@@ -247,9 +247,9 @@
    "module": "codeop",
    "ast_detail": "diff at token 51: orig  If(test=BoolOp(op=And() | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 299,
+   "ndiff": 263,
    "ntotal": 411,
-   "detail": "line 88: orig ('FOR_ITER', 'to L4') | got ('FOR_ITER', 'to L7')\nline 103: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 104: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L3')"
+   "detail": "line 103: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 104: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 138: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "colorsys",
@@ -291,9 +291,9 @@
    "module": "copyreg",
    "ast_detail": "diff at token 38: orig  ctx=Load())]))])]) | dec  ctx=Load())]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 281,
+   "ndiff": 448,
    "ntotal": 691,
-   "detail": "line 219: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L8')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L3')\nline 228: orig ('LOAD_FAST_BORROW', 'base') | got ('JUMP_BACKWARD', 'to L2')"
+   "detail": "line 226: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 235: orig ('POP_TOP', '') | got ('JUMP_FORWARD', 'to L4')\nline 236: orig ('JUMP_FORWARD', 'to L7') | got ('LOAD_FAST_BORROW', 'base')"
   }
  ]
 }
