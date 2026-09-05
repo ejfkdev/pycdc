@@ -240,4 +240,3 @@ class DocCGIXMLRPCRequestHandler(CGIXMLRPCRequestHandler, XMLRPCDocGenerator):
         XMLRPCDocGenerator.__init__(self)
 
 
-# WARNING: Decompyle incomplete

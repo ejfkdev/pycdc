@@ -208,4 +208,3 @@ def find_prefix_at_end(haystack, needle):
         else:
             return l
 
-# WARNING: Decompyle incomplete

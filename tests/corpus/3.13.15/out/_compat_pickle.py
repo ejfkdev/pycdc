@@ -11,9 +11,9 @@ for excname in PYTHON2_EXCEPTIONS:
 MULTIPROCESSING_EXCEPTIONS = ('AuthenticationError', 'BufferTooShort', 'ProcessError', 'TimeoutError')
 for excname in MULTIPROCESSING_EXCEPTIONS:
     NAME_MAPPING['multiprocessing', excname] = 'multiprocessing.context', excname
-REVERSE_IMPORT_MAPPING = dict(((v, k) for _ in IMPORT_MAPPING.items()))
+REVERSE_IMPORT_MAPPING = dict(((v, k) for k, v in IMPORT_MAPPING.items()))
 assert len(REVERSE_IMPORT_MAPPING) == len(IMPORT_MAPPING)
-REVERSE_NAME_MAPPING = dict(((v, k) for _ in NAME_MAPPING.items()))
+REVERSE_NAME_MAPPING = dict(((v, k) for k, v in NAME_MAPPING.items()))
 assert len(REVERSE_NAME_MAPPING) == len(NAME_MAPPING)
 IMPORT_MAPPING.update({'cPickle': 'pickle', '_elementtree': 'xml.etree.ElementTree', 'FileDialog': 'tkinter.filedialog', 'SimpleDialog': 'tkinter.simpledialog', 'DocXMLRPCServer': 'xmlrpc.server', 'SimpleHTTPServer': 'http.server', 'CGIHTTPServer': 'http.server', 'UserDict': 'collections', 'UserList': 'collections', 'UserString': 'collections', 'whichdb': 'dbm', 'StringIO': 'io', 'cStringIO': 'io'})
 REVERSE_IMPORT_MAPPING.update({'_bz2': 'bz2', '_dbm': 'dbm', '_functools': 'functools', '_gdbm': 'gdbm', '_pickle': 'pickle'})

@@ -43,7 +43,6 @@ class _Printer(object):
                 break
             except OSError:
                 continue
-            continue
         if not data:
             data = self.__data
         self.__lines = data.split('\n')
@@ -95,4 +94,3 @@ class _Helper(object):
         return pydoc.help(*args, **kwds)
 
 
-# WARNING: Decompyle incomplete

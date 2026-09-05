@@ -449,8 +449,9 @@ class Aifc_read:
                     self._markers.append((id, pos, name))
                     continue
         except EOFError:
+            if len(self._markers) == 1:
+                pass
             print 'Warning: MARK chunk contains only', len(self._markers), 'marker', 'markers', 'instead of', nmarkers
-            None if len(self._markers) == 1 else None
 
 
 class Aifc_write:

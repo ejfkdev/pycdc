@@ -298,4 +298,3 @@ class HTMLParser(markupbase.ParserBase):
         return re.sub('&(#?[xX]?(?:[0-9a-fA-F]+|\\w{1,8}));', replaceEntities, s)
 
 
-# WARNING: Decompyle incomplete

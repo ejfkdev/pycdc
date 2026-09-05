@@ -51,7 +51,7 @@ class DecompressReader(io.RawIOBase):
     def readinto(self, b):
         with memoryview(b) as view:
             with view.cast('B') as byte_view:
-                data = self(len(byte_view))
+                data = self.read(len(byte_view))
                 byte_view[:len(data)] = data
         return len(data)
 
@@ -63,7 +63,7 @@ class DecompressReader(io.RawIOBase):
         data = None
         while True:
             if self._decompressor.eof:
-                rawblock = self._decompressor.unused_data or self._fp(BUFFER_SIZE)
+                rawblock = self._decompressor.unused_data or self._fp.read(BUFFER_SIZE)
                 if not rawblock:
                     break
                 self._decompressor = self._decomp_factory(**self._decomp_args)
@@ -104,7 +104,7 @@ class DecompressReader(io.RawIOBase):
         else:
             offset -= self._pos
         while offset > 0:
-            data = self(min(io.DEFAULT_BUFFER_SIZE, offset))
+            data = self.read(min(io.DEFAULT_BUFFER_SIZE, offset))
             if not data:
                 break
             offset -= len(data)
@@ -116,3 +116,4 @@ class DecompressReader(io.RawIOBase):
         return self._pos
 
 
+# WARNING: Decompyle incomplete

@@ -31,7 +31,7 @@ def b64encode(s, altchars=None):
     encoded = binascii.b2a_base64(s, newline=False)
     if altchars is not None:
         assert len(altchars) == 2, repr(altchars)
-        return encoded(bytes.maketrans(b'+/', altchars))
+        return encoded.translate(bytes.maketrans(b'+/', altchars))
     return encoded
 
 def b64decode(s, altchars=None, validate=False):
@@ -170,7 +170,7 @@ def b32decode(s, casefold=False, map01=None):
     if map01 is not None:
         map01 = _bytes_from_decode_data(map01)
         assert len(map01) == 1, repr(map01)
-        s = s(bytes.maketrans(b'01', b'O' + map01))
+        s = s.translate(bytes.maketrans(b'01', b'O' + map01))
     if casefold:
         s = s.upper()
     l = len(s)
@@ -399,11 +399,11 @@ def encode(input, output):
     '''Encode a file; input and output are binary files.'''
 
     while True:
-        s = input(MAXBINSIZE)
+        s = input.read(MAXBINSIZE)
         if not s:
             break
         while len(s) < MAXBINSIZE:
-            ns = input(MAXBINSIZE - len(s))
+            ns = input.read(MAXBINSIZE - len(s))
             if not ns:
                 break
             s += ns
@@ -438,7 +438,7 @@ def encodebytes(s):
     pieces = []
     for i in range(0, len(s), MAXBINSIZE):
         chunk = s[i:i + MAXBINSIZE]
-        pieces(binascii.b2a_base64(chunk))
+        pieces.append(binascii.b2a_base64(chunk))
     return b''.join(pieces)
 
 def decodebytes(s):

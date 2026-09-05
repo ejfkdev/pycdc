@@ -33,7 +33,7 @@ else:
             raise AssertionError
         if sys.flags.utf8_mode:
             return 'UTF-8'
-        result = _locale(_locale.CODESET)
+        result = _locale.nl_langinfo(_locale.CODESET)
         if not result:
             if sys.platform == 'darwin':
                 result = 'UTF-8'

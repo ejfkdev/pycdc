@@ -31,7 +31,7 @@ def _check_cmd(cmd):
     safe_chars = []
     for first, last in (('a', 'z'), ('A', 'Z'), ('0', '9')):
         for ch in range(ord(first), ord(last) + 1):
-            safe_chars(chr(ch))
+            safe_chars.append(chr(ch))
     safe_chars.append('./-')
     safe_chars = ''.join(safe_chars)
     if isinstance(cmd, (tuple, list)):
@@ -47,7 +47,6 @@ def _check_cmd(cmd):
             return False
         for ch in arg:
             if ch not in safe_chars:
-                safe_chars.append
                 return False
     return True
 
@@ -81,4 +80,3 @@ def check_output(cmd, **kwargs):
     except OSError:
         pass
 
-# WARNING: Decompyle incomplete

@@ -54,7 +54,7 @@ def b64decode(s, altchars=None, validate=False):
     if altchars is not None:
         altchars = _bytes_from_decode_data(altchars)
         assert len(altchars) == 2, repr(altchars)
-        s = s(bytes.maketrans(altchars, b'+/'))
+        s = s.translate(bytes.maketrans(altchars, b'+/'))
     if validate:
         if not re.fullmatch(b'[A-Za-z0-9+/]*={0,2}', s):
             raise binascii.Error('Non-base64 digit found')
@@ -399,11 +399,11 @@ def encode(input, output):
     '''Encode a file; input and output are binary files.'''
 
     while True:
-        s = input(MAXBINSIZE)
+        s = input.read(MAXBINSIZE)
         if not s:
             break
         while len(s) < MAXBINSIZE:
-            ns = input(MAXBINSIZE - len(s))
+            ns = input.read(MAXBINSIZE - len(s))
             if not ns:
                 break
             s += ns
@@ -438,7 +438,7 @@ def encodebytes(s):
     pieces = []
     for i in range(0, len(s), MAXBINSIZE):
         chunk = s[i:i + MAXBINSIZE]
-        pieces(binascii.b2a_base64(chunk))
+        pieces.append(binascii.b2a_base64(chunk))
     return b''.join(pieces)
 
 def encodestring(s):

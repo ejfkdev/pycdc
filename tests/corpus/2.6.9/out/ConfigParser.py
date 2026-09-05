@@ -604,4 +604,3 @@ class SafeConfigParser(ConfigParser):
         ConfigParser.set(self, section, option, value)
 
 
-# WARNING: Decompyle incomplete

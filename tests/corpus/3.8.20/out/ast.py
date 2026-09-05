@@ -381,7 +381,7 @@ class NodeVisitor(object):
 
     def visit_Constant(self, node):
         value = node.value
-        type_name = _const_node_type_names(type(value))
+        type_name = _const_node_type_names.get(type(value))
         if type_name is None:
             for cls, name in _const_node_type_names.items():
                 type_name = name

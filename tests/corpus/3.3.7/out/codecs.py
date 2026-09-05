@@ -973,4 +973,3 @@ if _false:
 if __name__ == '__main__':
     sys.stdout = EncodedFile(sys.stdout, 'latin-1', 'utf-8')
     sys.stdin = EncodedFile(sys.stdin, 'utf-8', 'latin-1')
-# WARNING: Decompyle incomplete

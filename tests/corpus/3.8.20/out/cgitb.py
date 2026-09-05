@@ -98,7 +98,7 @@ def html(einfo, context=5):
     if isinstance(etype, type):
         etype = etype.__name__
     pyver = 'Python ' + sys.version.split()[0] + ': ' + sys.executable
-    date = time(time.time())
+    date = time.ctime(time.time())
     head = '<body bgcolor="#f0f0f8">' + pydoc.html.heading('<big><big>%s</big></big>' % strong(pydoc.html.escape(str(etype))), '#ffffff', '#6622aa', pyver + '<br>' + date) + '\n<p>A problem occurred in a Python script.  Here is the sequence of\nfunction calls leading up to the error, in the order they occurred.</p>'
     indent = '<tt>' + small('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;') + '&nbsp;</tt>'
     frames = []
@@ -163,7 +163,7 @@ def html(einfo, context=5):
         else:
             value = pydoc.html.repr(getattr(evalue, name))
             exception.append('\n<br>%s%s&nbsp;=\n%s' % (indent, name, value))
-    return "\n\n\n<!-- The above is a description of an error in a Python program, formatted\n     for a Web browser because the 'cgitb' module was enabled.  In case you\n     are not reading this in a Web browser, here is the original traceback:\n\n%s\n-->\n" + pydoc.html.escape % pydoc.html(''(traceback.format_exception(etype, evalue, etb)))
+    return head + ''.join(frames) + ''.join(exception) + "\n\n\n<!-- The above is a description of an error in a Python program, formatted\n     for a Web browser because the 'cgitb' module was enabled.  In case you\n     are not reading this in a Web browser, here is the original traceback:\n\n%s\n-->\n" % pydoc.html.escape(''.join(traceback.format_exception(etype, evalue, etb)))
 
 def text(einfo, context=5):
     '''Return a plain text document describing a given traceback.'''
@@ -172,7 +172,7 @@ def text(einfo, context=5):
     if isinstance(etype, type):
         etype = etype.__name__
     pyver = 'Python ' + sys.version.split()[0] + ': ' + sys.executable
-    date = time(time.time())
+    date = time.ctime(time.time())
     head = '%s\n%s\n%s\n' % (str(etype), pyver, date) + '\nA problem occurred in a Python script.  Here is the sequence of\nfunction calls leading up to the error, in the order they occurred.\n'
     frames = []
     records = inspect.getinnerframes(etb, context)
@@ -224,7 +224,7 @@ def text(einfo, context=5):
     for name in dir(evalue):
         value = pydoc.text.repr(getattr(evalue, name))
         exception.append('\n%s%s = %s' % ('    ', name, value))
-    return '\n\nThe above is a description of an error in a Python program.  Here is\nthe original traceback:\n\n%s\n' + ''.join % ''(traceback.format_exception(etype, evalue, etb))
+    return head + ''.join(frames) + ''.join(exception) + '\n\nThe above is a description of an error in a Python program.  Here is\nthe original traceback:\n\n%s\n' % ''.join(traceback.format_exception(etype, evalue, etb))
 
 class Hook:
     '''A hook to replace sys.excepthook that shows tracebacks in HTML.'''
@@ -242,7 +242,7 @@ class Hook:
     def handle(self, info=None):
         info = info or sys.exc_info()
         if self.format == 'html':
-            self.file(reset())
+            self.file.write(reset())
         if self.format == 'html':
             pass
         formatter = html or text

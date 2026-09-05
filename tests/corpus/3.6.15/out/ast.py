@@ -172,7 +172,6 @@ def iter_fields(node):
             yield (field, getattr(node, field))
         except AttributeError:
             continue
-        continue
 
 def iter_child_nodes(node):
     '''
@@ -326,3 +325,4 @@ class NodeTransformer(NodeVisitor):
                 return node
 
 
+# WARNING: Decompyle incomplete

@@ -360,6 +360,10 @@ struct Ctx<'a> {
     /// receive the next push_legacy_try statement (the swapped-out chain
     /// that was active while this one parsed)
     legacy_body_redirect: Option<usize>,
+    /// 3.8-3.10 loop bodies that ARE a legacy try chain: the back edge
+    /// precedes the out-of-line handler in layout — defer the loop close
+    /// until the chain folds so the Try lands inside the loop body
+    pending_loop_close_at_chain: Option<usize>,
     pending_try_handlers: Vec<Vec<ExceptHandler>>,
     pending_loop: Vec<(Option<ExprRef>, Option<ExprRef>, Option<ExprRef>, Vec<Stmt>, bool)>,
     pending_with: Vec<Vec<WithItem>>,
@@ -604,6 +608,7 @@ pub fn decompile_in_scope(
         pending_try_body: Vec::new(),
         pending_orelse_mark: None,
         legacy_body_redirect: None,
+        pending_loop_close_at_chain: None,
         pending_try_handlers: Vec::new(),
         pending_loop: Vec::new(),
         pending_with: Vec::new(),
@@ -1094,6 +1099,14 @@ impl<'a> Ctx<'a> {
             self.cur_next = inst.end();
             if let Some(l) = inst.line {
                 self.cur_line = Some(l);
+            }
+            if std::env::var("PYCDC_STACK").is_ok() {
+                eprintln!(
+                    "ST {:>4} {:?} stack={:?}",
+                    pos,
+                    inst.op,
+                    self.stack.iter().map(short).collect::<Vec<_>>()
+                );
             }
             if std::env::var("PYCDC_TRACE2").is_ok() {
                 eprintln!("T2 {:>4} {:?} blocks={:?} skip={:?} lh={:?} lt={:?}", pos, inst.op,
@@ -4821,7 +4834,11 @@ impl<'a> Ctx<'a> {
                     arg as usize
                 };
                 let n = self.const_name(idx);
-                if arg & 1 != 0 {
+                // the low-bit NULL-push encoding exists only in 3.11+;
+                // pre-3.11 `arg` is the plain co_names index — an odd
+                // index must NOT push a marker (it desyncs CALL_METHOD's
+                // raw self-marker pop)
+                if arg & 1 != 0 && self.version.at_least(3, 11) {
                     if self.version.at_least(3, 14) {
                         // 3.14 CALL slots: [callable, NULL, args] — value
                         // first, NULL marker on top
@@ -8285,6 +8302,23 @@ impl<'a> Ctx<'a> {
             at -= 1;
         }
         top.stmts.insert(at, try_stmt);
+        // a loop kept open for this chain closes now that the Try is in
+        // its body
+        if let Some(loop_top) = self.pending_loop_close_at_chain.take() {
+            if self.legacy_try.is_none() {
+                let idx = self.blocks.iter().rposition(|b| {
+                    matches!(b.kind, BlockType::While | BlockType::For)
+                        && (b.start == loop_top || b.cond_end == loop_top)
+                });
+                if let Some(li) = idx {
+                    let close_at = self.cur_offset;
+                    while self.blocks.len() > li {
+                        self.force_close_top(close_at);
+                    }
+                    self.force_close_top(close_at);
+                }
+            }
+        }
     }
 
     /// py2.6 statement boolop chain fold. Every link compiles to
@@ -12397,6 +12431,32 @@ impl<'a> Ctx<'a> {
                 matches!(b.kind, BlockType::While | BlockType::For)
                     && (b.start == target || b.cond_end == target)
             });
+        if !fold_inline_fin
+            && !self.version.at_least(3, 11)
+            && self.legacy_try
+                .as_ref()
+                // only when the chain's handler region lies PAST this
+                // back edge (loop body IS the try); a chain already
+                // inside/past its handler folds through the regular path
+                .map_or(false, |l| l.handler_start > self.cur_offset)
+            && self.pending_loop_close_at_chain.is_none()
+            && self.blocks.iter().any(|b| {
+                matches!(b.kind, BlockType::While | BlockType::For)
+                    && (b.start == target || b.cond_end == target)
+            })
+        {
+            // the loop body IS an unfinished legacy try chain (an except
+            // chain whose handler lies past this back edge): keep the
+            // loop open, let the chain fold inside it, then close it
+            self.pending_loop_close_at_chain = Some(target);
+            if let Some(b) = self.blocks.iter_mut().rev().find(|b| {
+                matches!(b.kind, BlockType::While | BlockType::For)
+                    && (b.start == target || b.cond_end == target)
+            }) {
+                b.end = usize::MAX;
+            }
+            return;
+        }
         if fold_inline_fin {
             self.flush_pending_stores();
             if let Some(l) = self.legacy_try.take() {
@@ -17306,6 +17366,42 @@ impl<'a> Ctx<'a> {
                         Some(n) if n == ".0" => stack.push(iter0.clone()),
                         Some(n) => stack.push(Rc::new(Expr::Name(n))),
                         None => stack.push(Rc::new(Expr::Name("?".to_string()))),
+                    }
+                }
+                Op::STORE_FAST_STORE_FAST => {
+                    // 3.13+ paired store: feeds two names to the unpack
+                    // target (`for k, v in ...`) or binds simple targets
+                    let na = code
+                        .varnames
+                        .get(((inst.arg >> 4) & 0xF) as usize)
+                        .cloned()
+                        .unwrap_or_default();
+                    let nb = code
+                        .varnames
+                        .get((inst.arg & 0xF) as usize)
+                        .cloned()
+                        .unwrap_or_default();
+                    for name in [na, nb] {
+                        if unpack_remaining > 0 {
+                            unpack_names.push(Rc::new(Expr::Name(name)));
+                            unpack_remaining -= 1;
+                            if unpack_remaining == 0 {
+                                let tuple = Rc::new(Expr::Tuple(std::mem::take(
+                                    &mut unpack_names,
+                                )));
+                                if let Some(last) = partials.last_mut() {
+                                    last.target = Some(tuple);
+                                }
+                            }
+                            continue;
+                        }
+                        if let Some(last) = partials.last_mut() {
+                            if last.target.is_none() {
+                                last.target = Some(Rc::new(Expr::Name(name)));
+                                continue;
+                            }
+                        }
+                        stack.pop();
                     }
                 }
                 Op::STORE_FAST | Op::STORE_DEREF => {

@@ -28,7 +28,6 @@ def _run_exitfuncs():
         except SystemExit:
             exc_info = sys.exc_info()
             continue
-        continue
     if exc_info is not None:
         raise exc_info[0](exc_info[1])
 

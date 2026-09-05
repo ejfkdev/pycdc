@@ -443,7 +443,6 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
                 _fix_exception_context(new_exc_details[1], exc_details[1])
                 pending_raise = True
                 exc_details = new_exc_details
-            continue
         if pending_raise:
             pass
         try:
@@ -583,7 +582,6 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
                 _fix_exception_context(new_exc_details[1], exc_details[1])
                 pending_raise = True
                 exc_details = new_exc_details
-            continue
         if pending_raise:
             pass
         try:

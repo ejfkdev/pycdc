@@ -150,7 +150,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             else:
                 print('*** ', end='')
             msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
-            msg = msg(sys.stdout.encoding)
+            msg = msg.decode(sys.stdout.encoding)
             print(msg)
         if quiet >= 2:
             return success

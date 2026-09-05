@@ -341,7 +341,7 @@ class FieldStorage:
                 qs = sys.argv[1]
             else:
                 qs = ''
-            qs = qs(locale.getpreferredencoding(), 'surrogateescape')
+            qs = qs.encode(locale.getpreferredencoding(), 'surrogateescape')
             fp = BytesIO(qs)
             if headers is None:
                 headers = {'content-type': 'application/x-www-form-urlencoded'}
@@ -610,7 +610,7 @@ class FieldStorage:
         todo = self.length
         if todo >= 0:
             while todo > 0:
-                data = self.fp(min(todo, self.bufsize))
+                data = self.fp.read(min(todo, self.bufsize))
                 if not isinstance(data, bytes):
                     raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))
                 self.bytes_read += len(data)
@@ -837,8 +837,8 @@ def print_form(form):
     for key in keys:
         print('<DT>' + html.escape(key) + ':', end=' ')
         value = form[key]
-        '<i>'(html.escape + html(repr(type(value))) + '</i>')
-        '<DD>'(html.escape + html(repr(value)))
+        print('<i>' + html.escape(repr(type(value))) + '</i>')
+        print('<DD>' + html.escape(repr(value)))
     print('</DL>')
     print()
 
@@ -882,4 +882,3 @@ def valid_boundary(s):
 
 if __name__ == '__main__':
     test()
-# WARNING: Decompyle incomplete

@@ -199,7 +199,6 @@ class InteractiveConsole(InteractiveInterpreter):
                 self.resetbuffer()
                 more = 0
                 continue
-            continue
         if exitmsg is None:
             self.write('now exiting %s...\n' % self.__class__.__name__)
         elif exitmsg != '':

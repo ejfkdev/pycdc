@@ -2,8 +2,8 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 8,
-  "SIG-DIFF": 29,
+  "PASS": 9,
+  "SIG-DIFF": 28,
   "INCOMPLETE": 3
  },
  "results": [
@@ -53,11 +53,7 @@
   },
   {
    "module": "_compat_pickle",
-   "ast_detail": "diff at token 338: orig  body=[Pass()])] | dec  body=[Pass()])])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 6,
-   "ntotal": 451,
-   "detail": "line 418: orig ('UNPACK_SEQUENCE', '') | got ('STORE_FAST', '_')\nline 419: orig ('STORE_FAST_STORE_FAST', 'k, v') | got ('LOAD_GLOBAL', 'v')\nline 420: orig ('LOAD_FAST_LOAD_FAST', 'v, k') | got ('LOAD_GLOBAL', 'k')"
+   "verdict": "PASS"
   },
   {
    "module": "_compression",

@@ -217,4 +217,3 @@ class DictMixin:
         return len(self.keys())
 
 
-# WARNING: Decompyle incomplete

@@ -311,4 +311,3 @@ del d, types
 class _EmptyClass:
     pass
 
-# WARNING: Decompyle incomplete

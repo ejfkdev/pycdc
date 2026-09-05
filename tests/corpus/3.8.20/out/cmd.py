@@ -362,4 +362,3 @@ class Cmd:
             self.stdout.write('%s\n' % str('  '.join(texts)))
 
 
-# WARNING: Decompyle incomplete

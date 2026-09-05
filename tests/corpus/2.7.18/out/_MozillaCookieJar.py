@@ -119,4 +119,3 @@ class MozillaCookieJar(FileCookieJar):
             f.close()
 
 
-# WARNING: Decompyle incomplete

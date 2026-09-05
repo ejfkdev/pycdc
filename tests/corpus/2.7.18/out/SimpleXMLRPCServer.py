@@ -309,7 +309,6 @@ class SimpleXMLRPCDispatcher:
             except Fault, fault:
                 results.append({'faultCode': fault.faultCode, 'faultString': fault.faultString})
                 continue
-            continue
         return results
 
     def _dispatch(self, method, params):

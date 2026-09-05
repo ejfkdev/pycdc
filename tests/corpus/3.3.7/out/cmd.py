@@ -172,7 +172,7 @@ class Cmd:
                 line = 'shell ' + line[1:]
             else:
                 return None, None, line
-        i, n = len(line), 0
+        i, n = 0, len(line)
         while i < n:
             if line[i] in self.identchars:
                 i = i + 1
@@ -385,4 +385,3 @@ class Cmd:
                     continue
 
 
-# WARNING: Decompyle incomplete

@@ -236,7 +236,7 @@ class Hook:
             self.file.write(reset())
         if self.format == 'html':
             pass
-        formatter = html or text
+        formatter = html if html else text
         plain = False
         try:
             doc = formatter(info, self.context)

@@ -560,4 +560,3 @@ def test():
     t = Tdb()
     t.run('import bdb; bdb.foo(10)')
 
-# WARNING: Decompyle incomplete

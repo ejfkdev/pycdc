@@ -200,21 +200,21 @@ def _read_float(f):
     return sign * f
 
 def _write_short(f, x):
-    f(struct.pack('>h', x))
+    f.write(struct.pack('>h', x))
 
 def _write_ushort(f, x):
-    f(struct.pack('>H', x))
+    f.write(struct.pack('>H', x))
 
 def _write_long(f, x):
-    f(struct.pack('>l', x))
+    f.write(struct.pack('>l', x))
 
 def _write_ulong(f, x):
-    f(struct.pack('>L', x))
+    f.write(struct.pack('>L', x))
 
 def _write_string(f, s):
     if len(s) > 255:
         raise ValueError('string exceeds maximum pstring length')
-    f(struct.pack('B', len(s)))
+    f.write(struct.pack('B', len(s)))
     f.write(s)
     if len(s) & 1 == 0:
         f.write(b'\x00')

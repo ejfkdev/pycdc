@@ -198,8 +198,6 @@ class InteractiveConsole(InteractiveInterpreter):
                 self.resetbuffer()
                 more = 0
                 continue
-            continue
-            continue
 
     def push(self, line):
         self.buffer.append(line)

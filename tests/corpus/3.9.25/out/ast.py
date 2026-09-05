@@ -421,7 +421,7 @@ class NodeVisitor(object):
 
     def visit_Constant(self, node):
         value = node.value
-        type_name = _const_node_type_names(type(value))
+        type_name = _const_node_type_names.get(type(value))
         if type_name is None:
             for cls, name in _const_node_type_names.items():
                 type_name = name
@@ -790,12 +790,11 @@ class _Unparser(NodeVisitor):
         self.traverse(node.value)
 
     def visit_NamedExpr(self, node):
-        with self(_Precedence.TUPLE, node):
-            self(_Precedence.ATOM, node.target, node.value)
+        with self.require_parens(_Precedence.TUPLE, node):
+            self.set_precedence(_Precedence.ATOM, node.target, node.value)
             self.traverse(node.target)
             self.write(' := ')
             self.traverse(node.value)
-        self.set_precedence(None, None, None)
 
     def visit_Import(self, node):
         self.fill('import ')
@@ -869,31 +868,28 @@ class _Unparser(NodeVisitor):
         self.interleave((lambda: self.write(', ')), self.write, node.names)
 
     def visit_Await(self, node):
-        with self(_Precedence.AWAIT, node):
+        with self.require_parens(_Precedence.AWAIT, node):
             self.write('await')
             if node.value:
                 self.write(' ')
-                self(_Precedence.ATOM, node.value)
+                self.set_precedence(_Precedence.ATOM, node.value)
                 self.traverse(node.value)
-        self.set_precedence(None, None, None)
 
     def visit_Yield(self, node):
-        with self(_Precedence.YIELD, node):
+        with self.require_parens(_Precedence.YIELD, node):
             self.write('yield')
             if node.value:
                 self.write(' ')
-                self(_Precedence.ATOM, node.value)
+                self.set_precedence(_Precedence.ATOM, node.value)
                 self.traverse(node.value)
-        self.set_precedence(None, None, None)
 
     def visit_YieldFrom(self, node):
-        with self(_Precedence.YIELD, node):
+        with self.require_parens(_Precedence.YIELD, node):
             self.write('yield from ')
             if not node.value:
                 raise ValueError("Node can't be used without a value attribute.")
-            self(_Precedence.ATOM, node.value)
+            self.set_precedence(_Precedence.ATOM, node.value)
             self.traverse(node.value)
-        self.set_precedence(None, None, None)
 
     def visit_Raise(self, node):
         self.fill('raise')
@@ -1048,7 +1044,7 @@ class _Unparser(NodeVisitor):
                 return c.encode('unicode_escape').decode('ascii')
             return c
 
-        escaped_string = ''(map(escape_char, string))
+        escaped_string = ''.join(map(escape_char, string))
         possible_quotes = quote_types
         if '\n' in escaped_string:
             possible_quotes = [q for q in possible_quotes if q in _MULTI_QUOTES]
@@ -1194,7 +1190,7 @@ class _Unparser(NodeVisitor):
             self.write(' async for ')
         else:
             self.write(' for ')
-        self(_Precedence.TUPLE, node.target)
+        self.set_precedence(_Precedence.TUPLE, node.target)
         self.traverse(node.target)
         self.write(' in ')
         self.set_precedence(_Precedence.TEST.next(), node.iter, *node.ifs)
@@ -1204,15 +1200,14 @@ class _Unparser(NodeVisitor):
             self.traverse(if_clause)
 
     def visit_IfExp(self, node):
-        with self(_Precedence.TEST, node):
-            self(_Precedence.TEST.next(), node.body, node.test)
+        with self.require_parens(_Precedence.TEST, node):
+            self.set_precedence(_Precedence.TEST.next(), node.body, node.test)
             self.traverse(node.body)
             self.write(' if ')
             self.traverse(node.test)
             self.write(' else ')
-            self(_Precedence.TEST, node.orelse)
+            self.set_precedence(_Precedence.TEST, node.orelse)
             self.traverse(node.orelse)
-        self.set_precedence(None, None, None)
 
     def visit_Set(self, node):
         if node.elts:
@@ -1278,13 +1273,12 @@ class _Unparser(NodeVisitor):
 
     cmpops = {'Eq': '==', 'NotEq': '!=', 'Lt': '<', 'LtE': '<=', 'Gt': '>', 'GtE': '>=', 'Is': 'is', 'IsNot': 'is not', 'In': 'in', 'NotIn': 'not in'}
     def visit_Compare(self, node):
-        with self(_Precedence.CMP, node):
+        with self.require_parens(_Precedence.CMP, node):
             self.set_precedence(_Precedence.CMP.next(), node.left, *node.comparators)
             self.traverse(node.left)
             for o, e in zip(node.ops, node.comparators):
                 self.write(' ' + self.cmpops[o.__class__.__name__] + ' ')
                 self.traverse(e)
-        self.require_parens(None, None, None)
 
     boolops = {'And': 'and', 'Or': 'or'}
     boolop_precedence = {'and': _Precedence.AND, 'or': _Precedence.OR}
@@ -1302,7 +1296,7 @@ class _Unparser(NodeVisitor):
             self.interleave((lambda: self.write(s)), increasing_level_traverse, node.values)
 
     def visit_Attribute(self, node):
-        self(_Precedence.ATOM, node.value)
+        self.set_precedence(_Precedence.ATOM, node.value)
         self.traverse(node.value)
         if isinstance(node.value, Constant) and isinstance(node.value.value, int):
             self.write(' ')
@@ -1310,7 +1304,7 @@ class _Unparser(NodeVisitor):
         self.write(node.attr)
 
     def visit_Call(self, node):
-        self(_Precedence.ATOM, node.func)
+        self.set_precedence(_Precedence.ATOM, node.func)
         self.traverse(node.func)
         with self.delimit('(', ')'):
             comma = False
@@ -1326,20 +1320,18 @@ class _Unparser(NodeVisitor):
                 else:
                     comma = True
                 self.traverse(e)
-        self.set_precedence(None, None, None)
 
     def visit_Subscript(self, node):
         def is_simple_tuple(slice_value):
             return isinstance(slice_value, Tuple) and slice_value.elts and not any((isinstance(elt, Starred) for elt in slice_value.elts))
 
-        self(_Precedence.ATOM, node.value)
+        self.set_precedence(_Precedence.ATOM, node.value)
         self.traverse(node.value)
         with self.delimit('[', ']'):
             if is_simple_tuple(node.slice):
                 self.items_view(self.traverse, node.slice.elts)
             else:
                 self.traverse(node.slice)
-        self.set_precedence(None, None, None)
 
     def visit_Starred(self, node):
         self.write('*')
@@ -1418,13 +1410,12 @@ class _Unparser(NodeVisitor):
         self.traverse(node.value)
 
     def visit_Lambda(self, node):
-        with self(_Precedence.TEST, node):
+        with self.require_parens(_Precedence.TEST, node):
             self.write('lambda ')
             self.traverse(node.args)
             self.write(': ')
-            self(_Precedence.TEST, node.body)
+            self.set_precedence(_Precedence.TEST, node.body)
             self.traverse(node.body)
-        self.set_precedence(None, None, None)
 
     def visit_alias(self, node):
         self.write(node.name)

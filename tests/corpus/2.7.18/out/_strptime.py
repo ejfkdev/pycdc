@@ -87,14 +87,14 @@ class LocaleTime(object):
         return seq
 
     def __calc_weekday(self):
-        a_weekday = range(7)
-        f_weekday = range(7)
+        a_weekday = [calendar.day_abbr[i].lower() for i in range(7)]
+        f_weekday = [calendar.day_name[i].lower() for i in range(7)]
         self.a_weekday = a_weekday
         self.f_weekday = f_weekday
 
     def __calc_month(self):
-        a_month = range(13)
-        f_month = range(13)
+        a_month = [calendar.month_abbr[i].lower() for i in range(13)]
+        f_month = [calendar.month_name[i].lower() for i in range(13)]
         self.a_month = a_month
         self.f_month = f_month
 
@@ -365,4 +365,3 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
 def _strptime_time(data_string, format='%a %b %d %H:%M:%S %Y'):
     return _strptime(data_string, format)[0]
 
-# WARNING: Decompyle incomplete

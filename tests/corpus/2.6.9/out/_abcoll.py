@@ -536,4 +536,3 @@ class MutableSequence(Sequence):
 
 
 MutableSequence.register(list)
-# WARNING: Decompyle incomplete

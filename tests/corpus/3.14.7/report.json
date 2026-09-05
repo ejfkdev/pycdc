@@ -67,9 +67,9 @@
    "module": "_compat_pickle",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 8,
+   "ndiff": 2,
    "ntotal": 492,
-   "detail": "line 290: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 314: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 458: orig ('UNPACK_SEQUENCE', '') | got ('STORE_FAST', '_')"
+   "detail": "line 290: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')\nline 314: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "_ios_support",
@@ -224,7 +224,7 @@
    "module": "calendar",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2211,
+   "ndiff": 2203,
    "ntotal": 4326,
    "detail": "line 13: orig ('LOAD_CONST', \"('IntEnum', 'global_enum')\") | got ('LOAD_CONST', \"('IntEnum',)\")\nline 17: orig ('IMPORT_FROM', 'global_enum') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'global_enum') | got ('LOAD_SMALL_INT', '')"
   },

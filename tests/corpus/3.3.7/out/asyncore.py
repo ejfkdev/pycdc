@@ -471,10 +471,8 @@ def close_all(map=None, ignore_all=False):
         except _reraised_exceptions:
             raise
             continue
-        continue
-        if not ignore_all:
-            raise
-        continue
+    if not ignore_all:
+        raise
     map.clear()
 
 if os.name == 'posix':

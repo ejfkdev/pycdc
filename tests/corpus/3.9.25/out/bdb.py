@@ -222,7 +222,7 @@ class Bdb:
         if bp:
             self.currentbp = bp.number
             if flag and bp.temporary:
-                self(str(bp.number))
+                self.do_clear(str(bp.number))
             return True
         return False
 

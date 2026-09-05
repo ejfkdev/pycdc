@@ -138,21 +138,15 @@ def main():
             with io.open_code(progname) as fp:
                 code = compile(fp.read(), progname, 'exec')
         globs = {'__file__': progname, '__name__': '__main__', '__package__': None, '__cached__': None}
-        exc = None
-        del exc
         try:
             runctx(code, globs, None, options.outfile, options.sort)
             return parser
-        except BrokenPipeError:
-            exc = None
+        except BrokenPipeError as exc:
             sys.stdout = None
             sys.exit(exc.errno)
-            exc = None
-            del exc
             return parser
     parser.print_usage()
     return parser
 
 if __name__ == '__main__':
     main()
-# WARNING: Decompyle incomplete

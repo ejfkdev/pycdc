@@ -110,7 +110,7 @@ class Cmd:
             if intro is not None:
                 self.intro = intro
             if self.intro:
-                self.stdout(str(self.intro) + '\n')
+                self.stdout.write(str(self.intro) + '\n')
             stop = None
             while not stop:
                 if self.cmdqueue:
@@ -391,4 +391,3 @@ class Cmd:
                     continue
 
 
-# WARNING: Decompyle incomplete

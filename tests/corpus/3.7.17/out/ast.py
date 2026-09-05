@@ -120,7 +120,6 @@ def dump(node, annotate_fields=True, include_attributes=False):
                         args.append('%s=%s' % (a, _format(getattr(node, a))))
                     except AttributeError:
                         continue
-                    continue
             return '%s(%s)' % (node.__class__.__name__, ', '.join(args))
         else:
             if isinstance(node, list):
@@ -192,7 +191,6 @@ def iter_fields(node):
             yield (field, getattr(node, field))
         except AttributeError:
             continue
-        continue
 
 def iter_child_nodes(node):
     '''

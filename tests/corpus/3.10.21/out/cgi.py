@@ -332,7 +332,7 @@ class FieldStorage:
                 qs = sys.argv[1]
             else:
                 qs = ''
-            qs = qs(locale.getpreferredencoding(), 'surrogateescape')
+            qs = qs.encode(locale.getpreferredencoding(), 'surrogateescape')
             fp = BytesIO(qs)
             if headers is None:
                 headers = {'content-type': 'application/x-www-form-urlencoded'}
@@ -596,7 +596,7 @@ class FieldStorage:
         self.file = self.make_file()
         todo = self.length
         while todo >= 0 and todo > 0:
-            data = self.fp(min(todo, self.bufsize))
+            data = self.fp.read(min(todo, self.bufsize))
             if not isinstance(data, bytes):
                 raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))
             self.bytes_read += len(data)
@@ -824,8 +824,8 @@ def print_form(form):
     for key in keys:
         print('<DT>' + html.escape(key) + ':', end=' ')
         value = form[key]
-        '<i>'(html.escape + html(repr(type(value))) + '</i>')
-        '<DD>'(html.escape + html(repr(value)))
+        print('<i>' + html.escape(repr(type(value))) + '</i>')
+        print('<DD>' + html.escape(repr(value)))
     print('</DL>')
     print()
 
@@ -834,13 +834,8 @@ def print_directory():
     print('<H3>Current Working Directory:</H3>')
     try:
         pwd = os.getcwd()
-    except OSError:
-        msg = None
+    except OSError as msg:
         print('OSError:', html.escape(str(msg)))
-        msg = None
-        del msg
-        msg = None
-        del msg
     else:
         print(html.escape(pwd))
     print()

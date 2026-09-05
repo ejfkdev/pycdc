@@ -290,4 +290,3 @@ def _reconstruct(x, memo, func, args, state=None, listiter=None, dictiter=None, 
     return y
 
 del types, weakref, PyStringMap
-# WARNING: Decompyle incomplete

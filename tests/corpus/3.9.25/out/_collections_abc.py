@@ -117,7 +117,7 @@ class Coroutine(Awaitable):
         '''
 
         try:
-            self(GeneratorExit)
+            self.throw(GeneratorExit)
         except (GeneratorExit, StopIteration):
             pass
         else:
@@ -200,7 +200,7 @@ class AsyncGenerator(AsyncIterator):
         '''
 
         try:
-            await self(GeneratorExit)
+            await self.athrow(GeneratorExit)
         except (GeneratorExit, StopAsyncIteration):
             pass
         else:
@@ -310,7 +310,7 @@ class Generator(Iterator):
         '''
 
         try:
-            self(GeneratorExit)
+            self.throw(GeneratorExit)
         except (GeneratorExit, StopIteration):
             pass
         else:
@@ -957,7 +957,7 @@ class MutableSequence(Sequence):
         raise IndexError
 
     def append(self, value):
-        self(len(self), value)
+        self.insert(len(self), value)
 
     def clear(self):
         '''S.clear() -> None -- remove all items from S'''

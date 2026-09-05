@@ -319,7 +319,7 @@ Returns a formatted day.
 Returns a single week in a string (no newline).
 '''
 
-        return ' '.join((self(d, wd, width) for _ in theweek))
+        return ' '.join((self(d, wd, width) for d, wd in theweek))
 
     def formatweekday(self, day, width):
         '''
@@ -432,7 +432,7 @@ Return a day as a table cell.
 Return a complete week as a table row.
 '''
 
-        s = ''.join((self(d, wd) for _ in theweek))
+        s = ''.join((self(d, wd) for d, wd in theweek))
         return '<tr>%s</tr>' % s
 
     def formatweekday(self, day):
@@ -609,7 +609,7 @@ Returns a single week in a string (no newline).
             reset = ansi.RESET
         else:
             highlight = reset = ''
-        return ' '.join((self(d, wd, width) for _ in theweek if d == highlight_day))
+        return ' '.join((self(d, wd, width) for d, wd in theweek if d == highlight_day))
 
     def formatmonth(self, theyear, themonth, w=0, l=0):
         """

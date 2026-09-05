@@ -144,4 +144,3 @@ def remove_extension(module, name, code):
 def clear_extension_cache():
     _extension_cache.clear()
 
-# WARNING: Decompyle incomplete

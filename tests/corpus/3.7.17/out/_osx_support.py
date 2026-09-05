@@ -205,7 +205,6 @@ def compiler_fixup(compiler_so, cc_args):
             except ValueError:
                 break
                 continue
-            continue
     if 'ARCHFLAGS' in os.environ:
         if not stripArch:
             compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
@@ -319,4 +318,3 @@ def get_platform_osx(_config_vars, osname, release, machine):
                 machine = 'ppc'
     return osname, release, machine
 
-# WARNING: Decompyle incomplete

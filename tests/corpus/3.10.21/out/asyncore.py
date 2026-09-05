@@ -524,3 +524,4 @@ if os.name == 'posix':
             self.add_channel()
 
 
+# WARNING: Decompyle incomplete

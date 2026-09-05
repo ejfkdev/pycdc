@@ -655,4 +655,3 @@ def main(args):
 
 if __name__ == '__main__':
     main(sys.argv)
-# WARNING: Decompyle incomplete

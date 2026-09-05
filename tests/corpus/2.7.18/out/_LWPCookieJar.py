@@ -159,4 +159,3 @@ class LWPCookieJar(FileCookieJar):
             raise LoadError('invalid Set-Cookie3 format file %r: %r' % (filename, line))
 
 
-# WARNING: Decompyle incomplete

@@ -142,8 +142,8 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     if ddir is not None:
         dfile = os.path.join(ddir, name)
     if stripdir is not None:
-        fullname_parts = fullname(os.path.sep)
-        stripdir_parts = stripdir(os.path.sep)
+        fullname_parts = fullname.split(os.path.sep)
+        stripdir_parts = stripdir.split(os.path.sep)
         ddir_parts = list(fullname_parts)
         for spart, opart in zip(stripdir_parts, fullname_parts):
             if spart == opart:
@@ -176,8 +176,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 if filecmp.cmp(cfile, previous_cfile, shallow=False):
                     os.unlink(cfile)
                     os.link(previous_cfile, cfile)
-    except py_compile.PyCompileError:
-        err = None
+    except py_compile.PyCompileError as err:
         success = False
     except (SyntaxError, UnicodeError, OSError) as e:
         success = False
@@ -194,7 +193,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 for cfile in opt_cfiles.values():
                     with open(cfile, 'rb') as chandle:
                         actual = chandle.read(12)
-                    stripdir.split(None, None, None)
                     if expect != actual:
                         break
                 else:
@@ -204,8 +202,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
             if quiet >= 2:
-                err = None
-                del err
                 return success
             if quiet:
                 print('*** Error compiling {!r}...'.format(fullname))
@@ -214,8 +210,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             encoding = sys.stdout.encoding or sys.getdefaultencoding()
             msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
             print(msg)
-            err = None
-            del err
             return success
             err = None
             del err

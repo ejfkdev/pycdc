@@ -174,7 +174,7 @@ class Cmd:
             line = 'shell ' + line[1:]
         else:
             return None, None, line
-        i, n = len(line), 0
+        i, n = 0, len(line)
         while i < n and line[i] in self.identchars:
             i = i + 1
         cmd, arg = line[:i], line[i:].strip()
@@ -385,4 +385,3 @@ class Cmd:
             self.stdout.write('%s\n' % str('  '.join(texts)))
 
 
-# WARNING: Decompyle incomplete

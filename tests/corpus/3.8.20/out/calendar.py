@@ -531,7 +531,6 @@ class LocaleTextCalendar(TextCalendar):
             else:
                 names = day_abbr
             name = names[day]
-        return name[:width].center(width)
 
     def formatmonthname(self, theyear, themonth, width, withyear=True):
         with different_locale(self.locale):

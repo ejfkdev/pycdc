@@ -224,7 +224,7 @@ class Bdb:
         if bp:
             self.currentbp = bp.number
             if flag and bp.temporary:
-                self(str(bp.number))
+                self.do_clear(str(bp.number))
             return True
         return False
 
@@ -786,17 +786,17 @@ def effective(file, line, frame):
                 continue
         return b, True
         b, False
+        try:
+            val = eval(b.cond, frame.f_globals, frame.f_locals)
+            if val:
+                if b.ignore > 0:
+                    b.ignore -= 1
+                else:
+                    return b, True
+        except:
+            pass
         return
-    try:
-        val = eval(b.cond, frame.f_globals, frame.f_locals)
-        if val:
-            if b.ignore > 0:
-                b.ignore -= 1
-            else:
-                return b, True
-    except:
-        pass
-    return (None, None)
+        return (None, None)
 
 class Tdb(Bdb):
     def user_call(self, frame, args):

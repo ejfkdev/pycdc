@@ -138,18 +138,12 @@ def main():
         globs = {'__file__': progname, '__name__': '__main__', '__package__': None, '__cached__': None}
         try:
             runctx(code, globs, None, options.outfile, options.sort)
-        except BrokenPipeError:
-            exc = None
+        except BrokenPipeError as exc:
             sys.stdout = None
             sys.exit(exc.errno)
-            exc = None
-            del exc
-            exc = None
-            del exc
     else:
         parser.print_usage()
     return parser
 
 if __name__ == '__main__':
     main()
-# WARNING: Decompyle incomplete

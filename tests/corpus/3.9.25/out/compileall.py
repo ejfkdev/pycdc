@@ -189,8 +189,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
             if quiet >= 2:
-                err = None
-                del err
                 return success
             if quiet:
                 print('*** Error compiling {!r}...'.format(fullname))
@@ -199,21 +197,15 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             encoding = sys.stdout.encoding or sys.getdefaultencoding()
             msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
             print(msg)
-            err = None
-            del err
         err = None
         del err
         if quiet >= 2:
-            e = None
-            del e
             return success
         if quiet:
             print('*** Error compiling {!r}...'.format(fullname))
         else:
             print('*** ', end='')
         print(e.__class__.__name__ + ':', e)
-        e = None
-        del e
     e = None
     del e
     try:
@@ -226,11 +218,9 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     if filecmp.cmp(cfile, previous_cfile, shallow=False):
                         os.unlink(cfile)
                         os.link(previous_cfile, cfile)
-    except py_compile.PyCompileError:
-        err = None
+    except py_compile.PyCompileError as err:
         success = False
-    except (SyntaxError, UnicodeError, OSError):
-        e = None
+    except (SyntaxError, UnicodeError, OSError) as e:
         success = False
     else:
         success = False

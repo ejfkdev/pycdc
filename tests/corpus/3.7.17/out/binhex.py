@@ -165,7 +165,7 @@ class BinHex:
             fmt = '>h'
         else:
             fmt = '>H'
-        self.ofp(struct.pack(fmt, self.crc))
+        self.ofp.write(struct.pack(fmt, self.crc))
         self.crc = 0
 
     def write(self, data):
@@ -337,7 +337,7 @@ class HexBin:
 
     def _readheader(self):
         len = self._read(1)
-        fname = self(ord(len))
+        fname = self._read(ord(len))
         rest = self._read(19)
         self._checkcrc()
         type = rest[1:5]

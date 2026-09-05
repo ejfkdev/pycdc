@@ -278,7 +278,7 @@ class Sniffer:
         charFrequency = {}
         modes = {}
         delims = {}
-        start, end = min(chunkLength, len(data)), 0
+        start, end = 0, min(chunkLength, len(data))
         while start < len(data):
             iteration += 1
             for line in data[start:end]:
@@ -353,14 +353,17 @@ class Sniffer:
                         break
                     except (ValueError, OverflowError):
                         continue
+            else:
+                continue
+            continue
+            thisType = len(row[col])
+            if thisType != columnTypes[col]:
+                if columnTypes[col] is None:
+                    columnTypes[col] = thisType
                     continue
-                else:
-                    thisType = len(row[col])
-                if thisType != columnTypes[col]:
-                    if columnTypes[col] is None:
-                        columnTypes[col] = thisType
-                    else:
-                        del columnTypes[col]
+            del columnTypes[col]
+            continue
+            continue
         hasHeader = 0
         for col, colType in columnTypes.items():
             if type(colType) == type(0):
