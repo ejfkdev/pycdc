@@ -235,16 +235,26 @@ class InteractiveConsole(InteractiveInterpreter):
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
                 more = 0
-            try:
+            else:
                 try:
-                    line = self.raw_input(prompt)
-                except EOFError:
+                    try:
+                        line = self.raw_input(prompt)
+                    except EOFError:
+                        self.write('\n')
+                except KeyboardInterrupt:
+                    self.write('\nKeyboardInterrupt\n')
+                    self.resetbuffer()
+                    more = 0
+                more = self.push(line)
+                if AttributeError:
+                    None
+                    sys.ps1 = '>>> '
+                if AttributeError:
+                    None
+                    sys.ps2 = '... '
+                if EOFError:
+                    None
                     self.write('\n')
-            except KeyboardInterrupt:
-                self.write('\nKeyboardInterrupt\n')
-                self.resetbuffer()
-                more = 0
-            more = self.push(line)
         if not exitmsg is not None:
             self.write('now exiting %s...\n' % self.__class__.__name__)
             return

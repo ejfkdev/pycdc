@@ -87,7 +87,8 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
             _check_system_limits()
         except NotImplementedError:
             workers = 1
-        from concurrent.futures import ProcessPoolExecutor
+        else:
+            from concurrent.futures import ProcessPoolExecutor
     if not maxlevels is not None:
         maxlevels = sys.getrecursionlimit()
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels)

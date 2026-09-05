@@ -340,6 +340,8 @@ Otherwise try to call complete_<command> to get list of completions.
                         return
                 except AttributeError:
                     pass
+                else:
+                    return
             func()
             return
         names = self.get_names()

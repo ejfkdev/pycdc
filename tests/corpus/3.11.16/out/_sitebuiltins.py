@@ -62,14 +62,15 @@ class _Printer(object):
                     print(self.__lines[i])
             except IndexError:
                 return
-            lineno += self.MAXLINES
-            key = None
-            while not key is not None:
-                key = input(prompt)
-                if key not in ('', 'q'):
-                    key = None
-            if key == 'q':
-                return
+            else:
+                lineno += self.MAXLINES
+                key = None
+                while not key is not None:
+                    key = input(prompt)
+                    if key not in ('', 'q'):
+                        key = None
+                if key == 'q':
+                    return
 
 
 class _Helper(object):

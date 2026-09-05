@@ -107,8 +107,9 @@ class InteractiveInterpreter:
                 msg, (dummy_filename, lineno, offset, line) = value.args
             except ValueError:
                 pass
-            value = SyntaxError(msg, (filename, lineno, offset, line))
-            sys.last_value = value
+            else:
+                value = SyntaxError(msg, (filename, lineno, offset, line))
+                sys.last_value = value
         if sys.excepthook is sys.__excepthook__:
             lines = traceback.format_exception_only(type, value)
             self.write(''.join(lines))
@@ -198,16 +199,18 @@ class InteractiveConsole(InteractiveInterpreter):
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
                 more = 0
-            try:
+            else:
                 try:
-                    line = self.raw_input(prompt)
-                except EOFError:
-                    self.write('\n')
-            except KeyboardInterrupt:
-                self.write('\nKeyboardInterrupt\n')
-                self.resetbuffer()
-                more = 0
-            more = self.push(line)
+                    try:
+                        line = self.raw_input(prompt)
+                    except EOFError:
+                        self.write('\n')
+                except KeyboardInterrupt:
+                    self.write('\nKeyboardInterrupt\n')
+                    self.resetbuffer()
+                    more = 0
+                else:
+                    more = self.push(line)
         if not exitmsg is not None:
             self.write('now exiting %s...\n' % self.__class__.__name__)
             return

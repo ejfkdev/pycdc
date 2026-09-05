@@ -230,8 +230,8 @@
    "module": "cmd",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 1364,
-   "ntotal": 1550,
+   "ndiff": 1367,
+   "ntotal": 1551,
    "detail": "line 167: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')\nline 168: orig ('LOAD_CONST', 'None') | got ('LOAD_SMALL_INT', '')\nline 169: orig ('IMPORT_NAME', 'readline') | got ('LOAD_CONST', 'None')"
   },
   {

@@ -843,7 +843,8 @@ def print_directory():
         print('OSError:', html.escape(str(msg)))
         msg = None
         del msg
-    print(html.escape(pwd))
+    else:
+        print(html.escape(pwd))
     print()
 
 def print_arguments():

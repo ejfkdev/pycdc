@@ -63,9 +63,12 @@ def _get_system_version():
             f = open('/System/Library/CoreServices/SystemVersion.plist', encoding='utf-8')
         except OSError:
             pass
-        # WARNING: unrecovered try/except structure
-        m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
-        f.close()
+        else:
+            # WARNING: unrecovered try/except structure
+            m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
+            f.close()
+            if not m is None:
+                _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
         if not m is None:
             _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
     return _SYSTEM_VERSION

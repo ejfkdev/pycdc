@@ -2109,6 +2109,64 @@ impl<'a> Ctx<'a> {
             }
         }
         self.pending_nested_finally = None;
+        // try/except/else WITHOUT finally (3.11+): the else body lies inline
+        // between the try body (body_end) and the handler, ending in a
+        // JUMP_FORWARD to the merge point past the handler. It is NOT covered
+        // by the exception table, so region_end == body_end and the else
+        // capture above (region_end > body_end) missed it; the body sits
+        // AHEAD of pos, un-walked. Detect and decompile it here, then skip to
+        // the merge so the walk doesn't re-emit it at top level.
+        if orelse.is_empty()
+            && tc.finally_handler.is_none()
+            && tc.region_end == tc.body_end
+        {
+            if let Some(handler) = tc.except_handler {
+                if let Some(&bi) = self.idx_of.get(&tc.body_end) {
+                    // Skip WITH-statement protection regions: a `with` inside
+                    // the try splits the protected range around BEFORE_WITH /
+                    // the __exit__ call, and those regions also reach here.
+                    // The with's own exit jump targets the SAME merge point
+                    // as the handler chain (chain_extent), so target matching
+                    // can't tell them apart — detect the with protocol ops in
+                    // the region instead. A real try/except/else body never
+                    // contains the with protocol.
+                    let is_with_region = self.instrs.iter().any(|x| {
+                        matches!(x.op, Op::BEFORE_WITH | Op::WITH_EXCEPT_START)
+                            && x.offset >= tc.start
+                            && x.offset < handler
+                    });
+                    // A real `else:` terminator jumps to the merge point —
+                    // exactly where the handler chain lands (chain_extent).
+                    // A `break` (to a loop exit) overshoots it, and a with's
+                    // internal jump lands elsewhere; require an exact match
+                    // so those don't masquerade as an else.
+                    let chain_end = self.chain_extent(handler);
+                    let mut j = bi;
+                    let mut else_jf: Option<(usize, usize)> = None;
+                    while !is_with_region && j < self.instrs.len() {
+                        let x = self.instrs[j];
+                        if x.offset >= handler {
+                            break;
+                        }
+                        if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                            && x.target == Some(chain_end)
+                        {
+                            else_jf = Some((x.offset, chain_end));
+                            break;
+                        }
+                        j += 1;
+                    }
+                    if let Some((jf_off, merge)) = else_jf {
+                        if jf_off > tc.body_end {
+                            orelse = self.decompile_region(tc.body_end, jf_off);
+                            if self.skip_until.map_or(true, |s| s < merge) {
+                                self.skip_until = Some(merge);
+                            }
+                        }
+                    }
+                }
+            }
+        }
         if handlers.is_empty() && finalbody.is_empty() && orelse.is_empty() && body.is_empty()
         {
             return;

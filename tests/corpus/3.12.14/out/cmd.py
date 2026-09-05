@@ -324,6 +324,8 @@ class Cmd:
                         return
                 except AttributeError:
                     pass
+                else:
+                    return
             func()
             return
         names = self.get_names()

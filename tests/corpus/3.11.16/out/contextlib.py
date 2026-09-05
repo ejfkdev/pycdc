@@ -425,7 +425,8 @@ class _BaseExitStack:
             exit_method = _cb_type.__exit__
         except AttributeError:
             self._push_exit_callback(exit)
-        self._push_cm_exit(exit, exit_method)
+        else:
+            self._push_cm_exit(exit, exit_method)
         return exit
 
     def enter_context(self, cm):
@@ -586,7 +587,8 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             exit_method = _cb_type.__aexit__
         except AttributeError:
             self._push_exit_callback(exit, False)
-        self._push_async_cm_exit(exit, exit_method)
+        else:
+            self._push_async_cm_exit(exit, exit_method)
         return exit
 
     def push_async_callback(self, callback, /, *args, **kwds):
