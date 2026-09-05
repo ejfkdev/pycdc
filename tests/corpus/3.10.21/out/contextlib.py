@@ -69,8 +69,10 @@ class ContextDecorator(object):
         @wraps(func)
         def inner(*args, **kwds):
             with self._recreate_cm():
+                func(*args, **kwds)(None, None, None)
+                return
+            if not None:
                 pass
-            func(*args, **kwds)(None, None, None)
 
         return inner
 

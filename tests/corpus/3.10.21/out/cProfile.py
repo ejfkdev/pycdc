@@ -35,6 +35,9 @@ class Profile(_lsprof.Profiler):
         with open(file, 'wb') as f:
             self.create_stats()
             marshal.dump(self.stats, f)
+            return
+        if not None:
+            pass
 
     def create_stats(self):
         self.disable()
@@ -150,3 +153,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+# WARNING: Decompyle incomplete

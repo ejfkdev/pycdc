@@ -529,14 +529,20 @@ class LocaleTextCalendar(TextCalendar):
             else:
                 names = day_abbr
             name = names[day]
-        name[:width].center(width)(None, None, None)
+            name[:width].center(width)(None, None, None)
+            return
+        if not None:
+            pass
 
     def formatmonthname(self, theyear, themonth, width, withyear=True):
         with different_locale(self.locale):
             s = month_name[themonth]
             if withyear:
                 s = '%s %r' % (s, theyear)
-        s.center(width)(None, None, None)
+            s.center(width)(None, None, None)
+            return
+        if not None:
+            pass
 
 
 class LocaleHTMLCalendar(HTMLCalendar):
@@ -556,14 +562,20 @@ class LocaleHTMLCalendar(HTMLCalendar):
     def formatweekday(self, day):
         with different_locale(self.locale):
             s = day_abbr[day]
-        ('<th class="%s">%s</th>' % (self.cssclasses[day], s))(None, None, None)
+            ('<th class="%s">%s</th>' % (self.cssclasses[day], s))(None, None, None)
+            return
+        if not None:
+            pass
 
     def formatmonthname(self, theyear, themonth, withyear=True):
         with different_locale(self.locale):
             s = month_name[themonth]
             if withyear:
                 s = '%s %s' % (s, theyear)
-        ('<tr><th colspan="7" class="month">%s</th></tr>' % s)(None, None, None)
+            ('<tr><th colspan="7" class="month">%s</th></tr>' % s)(None, None, None)
+            return
+        if not None:
+            pass
 
 
 c = TextCalendar()

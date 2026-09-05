@@ -57,9 +57,9 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 212: orig  ctx=Load())))]) | dec  ctx=Load())))])])",
+   "ast_detail": "diff at token 213: orig  Return(value=IfExp(test=UnaryOp(op=Not() | dec  Expr(value=Call(func=IfExp(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1237,
+   "ndiff": 1238,
    "ntotal": 1437,
    "detail": "line 180: orig ('LOAD_CONST', 'None') | got ('_read_output', 2)\nline 181: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', '0')\nline 182: orig ('_read_output', 2) | got ('LOAD_CONST', 'None')"
   },
@@ -89,10 +89,10 @@
   },
   {
    "module": "_threading_local",
-   "ast_detail": "diff at token 374: orig  body=[Return(value=Call(func=Attribute(value=Name(id='object' | dec  body=[Pass()])",
+   "ast_detail": "diff at token 374: orig  body=[Return(value=Call(func=Attribute(value=Name(id='object' | dec  body=[Expr(value=Call(func=Call(func=Attribute(value=Name(id='object'",
    "verdict": "SIG-DIFF",
-   "ndiff": 386,
-   "ntotal": 451,
+   "ndiff": 394,
+   "ntotal": 454,
    "detail": "line 39: orig ('LOAD_CONST', \"('current_thread', 'RLock')\") | got ('LOAD_CONST', \"('current_thread',)\")\nline 43: orig ('IMPORT_FROM', 'RLock') | got ('POP_TOP', '')\nline 44: orig ('STORE_NAME', 'RLock') | got ('LOAD_CONST', '0')"
   },
   {
@@ -119,7 +119,7 @@
    "module": "ast",
    "ast_detail": "diff at token 641: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 6658,
+   "ndiff": 6595,
    "ntotal": 7116,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
@@ -171,8 +171,8 @@
    "module": "bz2",
    "ast_detail": "diff at token 347: orig  finalbody=[Try(body=[If(test=Attribute(value=Name(id='self' | dec  finalbody=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 985,
-   "ntotal": 1065,
+   "ndiff": 993,
+   "ntotal": 1075,
    "detail": "line 34: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 38: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
   },
   {
@@ -187,7 +187,7 @@
    "module": "calendar",
    "ast_detail": "diff at token 471: orig  right=Constant(value=400))))] | dec  right=Constant(value=400))))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2606,
+   "ndiff": 2613,
    "ntotal": 3063,
    "detail": "line 391: orig ('LOAD_CONST', 'None') | got ('<listcomp>', 1)\nline 392: orig ('RETURN_VALUE', '') | got ('BUILD_LIST', '')\nline 393: orig ('<listcomp>', 1) | got ('LOAD_FAST', '.0')"
   },
@@ -267,7 +267,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 59: orig  body=[Return()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1685,
+   "ndiff": 1695,
    "ntotal": 1750,
    "detail": "line 28: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 32: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },

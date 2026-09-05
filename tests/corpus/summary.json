@@ -65,23 +65,23 @@
   "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
   "counts": {
    "PASS": 12,
-   "SIG-DIFF": 24,
-   "AST-PASS": 4
+   "SIG-DIFF": 23,
+   "AST-PASS": 5
   }
  },
  "3.6.15": {
   "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
   "counts": {
    "PASS": 10,
-   "SIG-DIFF": 25,
-   "AST-PASS": 5
+   "SIG-DIFF": 24,
+   "AST-PASS": 6
   }
  },
  "3.7.17": {
   "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
   "counts": {
-   "PASS": 9,
-   "SIG-DIFF": 26,
+   "PASS": 10,
+   "SIG-DIFF": 25,
    "AST-PASS": 5
   }
  },

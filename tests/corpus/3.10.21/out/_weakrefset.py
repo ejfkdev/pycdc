@@ -59,6 +59,9 @@ class WeakSet:
                 item = itemref()
                 if item is not None:
                     yield item
+            return
+        if not None:
+            pass
 
     def __len__(self):
         return len(self.data) - len(self._pending_removals)
@@ -200,3 +203,4 @@ class WeakSet:
 
     __class_getitem__ = classmethod(GenericAlias)
 
+# WARNING: Decompyle incomplete

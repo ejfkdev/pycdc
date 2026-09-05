@@ -217,7 +217,7 @@ def binhex(inp, out):
             if not d:
                 break
             ofp.write(d)
-    ofp.close_data()
+        ofp.close_data()
     ifp = openrsrc(inp, 'rb')
     while True:
         d = ifp.read(128000)

@@ -97,7 +97,7 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
         with ProcessPoolExecutor(max_workers=workers) as executor:
             results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes), files)
             success = min(results, default=True)
-        return success
+            return success
         if not None:
             pass
         return success

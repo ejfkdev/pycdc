@@ -1000,8 +1000,9 @@ class _Unparser(NodeVisitor):
             self.traverse(node.test)
             with self.block():
                 self.traverse(node.body)
-        if not None:
-            pass
+                continue
+            if not None:
+                pass
         if node.orelse:
             self.fill('else')
             with self.block():
@@ -1144,14 +1145,6 @@ class _Unparser(NodeVisitor):
         if isinstance(value, tuple):
             with self.delimit('(', ')'):
                 self.items_view(self._write_constant, value)
-            if not None:
-                pass
-        elif value is ...:
-            self.write('...')
-        else:
-            if node.kind == 'u':
-                self.write('u')
-            self._write_constant(node.value)
 
     def visit_List(self, node):
         with self.delimit('[', ']'):
@@ -1211,10 +1204,6 @@ class _Unparser(NodeVisitor):
         if node.elts:
             with self.delimit('{', '}'):
                 self.interleave((lambda: self.write(', ')), self.traverse, node.elts)
-            if not None:
-                pass
-        else:
-            self.write('{*()}')
 
     def visit_Dict(self, node):
         def write_key_value_pair(k, v):

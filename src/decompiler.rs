@@ -14694,8 +14694,89 @@ impl<'a> Ctx<'a> {
                     self.force_close_top(end);
                 }
                 BlockType::With => {
-                    let end = top.end;
-                    self.force_close_top(end);
+                    // an inner loop/try may have closed via its back
+                    // edge/handler, orphaning ITS POP_BLOCK — only the
+                    // with's OWN POP_BLOCK closes it: the whole span from
+                    // here to the cleanup handler (top.end) must be
+                    // exit/cleanup material ([LOAD None;] WITH_CLEANUP*
+                    // for sync withs, LOAD None; DUP; DUP; CALL;
+                    // GET_AWAITABLE; YIELD_FROM; POP_TOP; JF for async).
+                    // An orphaned inner POP_BLOCK is followed by real
+                    // body statements and fails the scan.
+                    let own = match (
+                        self.idx_of.get(&self.cur_offset),
+                        self.idx_of.get(&top.end),
+                    ) {
+                        (Some(&pi), Some(&ei)) if ei > pi + 1 => {
+                            let mut all_clean = true;
+                            let mut saw_exit = false;
+                            for x in &self.instrs[pi + 1..ei] {
+                                match x.op {
+                                    Op::WITH_CLEANUP_START
+                                    | Op::WITH_CLEANUP_FINISH
+                                    | Op::WITH_CLEANUP
+                                    | Op::WITH_EXCEPT_START
+                                    | Op::GET_AWAITABLE
+                                    | Op::YIELD_FROM
+                                    | Op::END_ASYNC_FOR
+                                    | Op::END_FINALLY
+                                    | Op::END_SEND => saw_exit = true,
+                                    Op::LOAD_CONST
+                                    | Op::NOP
+                                    | Op::NOT_TAKEN
+                                    | Op::CACHE
+                                    | Op::DUP_TOP
+                                    | Op::DUP_TOP_TWO
+                                    | Op::ROT_TWO
+                                    | Op::ROT_THREE
+                                    | Op::ROT_FOUR
+                                    | Op::SWAP
+                                    | Op::COPY
+                                    | Op::POP_TOP
+                                    | Op::CALL
+                                    | Op::CALL_FUNCTION
+                                    | Op::CALL_METHOD
+                                    | Op::SEND
+                                    | Op::RESUME
+                                    | Op::RESUME_CHECK
+                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    | Op::EXTENDED_ARG => {}
+                                    Op::JUMP_FORWARD | Op::JUMP => {
+                                        if x.is_backward {
+                                            all_clean = false;
+                                            break;
+                                        }
+                                    }
+                                    // the success-path return may be sunk
+                                    // between the cleanup protocol and the
+                                    // out-of-line handler (3.10) — loads
+                                    // and returns are benign AFTER the
+                                    // protocol started
+                                    Op::LOAD_FAST
+                                    | Op::LOAD_NAME
+                                    | Op::LOAD_GLOBAL
+                                    | Op::LOAD_DEREF
+                                    | Op::LOAD_FAST_LOAD_FAST
+                                    | Op::LOAD_FAST_BORROW
+                                    | Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW
+                                    | Op::LOAD_SMALL_INT
+                                    | Op::RETURN_VALUE
+                                    | Op::RETURN_CONST
+                                        if saw_exit => {}
+                                    _ => {
+                                        all_clean = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            all_clean && saw_exit
+                        }
+                        _ => true,
+                    };
+                    if own {
+                        let end = top.end;
+                        self.force_close_top(end);
+                    }
                 }
                 BlockType::Container => {
                     // try/finally container closed at END_FINALLY; ignore

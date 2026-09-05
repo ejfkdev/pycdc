@@ -48,21 +48,21 @@ def _maybe_compile(compiler, source, filename, symbol):
             continue
     if symbol != 'eval':
         source = 'pass'
-    try:
-        compiler(source, filename, symbol)
-    except SyntaxError:
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
-        e = None
-        del e
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
         try:
-            compiler(source + '\n', filename, symbol)
-            return
-        except SyntaxError as e:
-            if 'incomplete input' in str(e):
-                None(None, None, None)
-            return
-    None(None, None, None)
+            compiler(source, filename, symbol)
+        except SyntaxError:
+            e = None
+            del e
+            try:
+                compiler(source + '\n', filename, symbol)
+                return
+            except SyntaxError as e:
+                if 'incomplete input' in str(e):
+                    None(None, None, None)
+                return
+        None(None, None, None)
     return compiler(source, filename, symbol)
 
 def _is_syntax_error(err1, err2):

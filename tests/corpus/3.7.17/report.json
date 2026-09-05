@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 9,
-  "SIG-DIFF": 26,
+  "PASS": 10,
+  "SIG-DIFF": 25,
   "AST-PASS": 5
  },
  "results": [
@@ -141,11 +141,7 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "diff at token 1291: orig  orelse=[]) | dec  orelse=[])])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 10,
-   "ntotal": 1815,
-   "detail": "line 920: orig ('SETUP_WITH', 'to 76') | got ('SETUP_WITH', 'to 68')\nline 938: orig ('LOAD_FAST', 'ofp') | got ('POP_BLOCK', '')\nline 939: orig ('LOAD_METHOD', 'close_data') | got ('LOAD_CONST', 'None')"
+   "verdict": "PASS"
   },
   {
    "module": "bisect",

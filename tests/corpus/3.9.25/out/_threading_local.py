@@ -199,22 +199,28 @@ class local:
 
     def __getattribute__(self, name):
         with _patch(self):
+            object.__getattribute__(self, name)(None, None, None)
+            return
+        if not None:
             pass
-        object.__getattribute__(self, name)(None, None, None)
 
     def __setattr__(self, name, value):
         if name == '__dict__':
             raise AttributeError("%r object attribute '__dict__' is read-only" % self.__class__.__name__)
         with _patch(self):
+            object.__setattr__(self, name, value)(None, None, None)
+            return
+        if not None:
             pass
-        object.__setattr__(self, name, value)(None, None, None)
 
     def __delattr__(self, name):
         if name == '__dict__':
             raise AttributeError("%r object attribute '__dict__' is read-only" % self.__class__.__name__)
         with _patch(self):
+            object.__delattr__(self, name)(None, None, None)
+            return
+        if not None:
             pass
-        object.__delattr__(self, name)(None, None, None)
 
 
 from threading import current_thread
