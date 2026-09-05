@@ -145,7 +145,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 44: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Pass()]",
+   "ast_detail": "diff at token 755: orig  comparators=[Set(elts=[Constant(value=0) | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
    "ndiff": 1070,
    "ntotal": 1868,
@@ -197,7 +197,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 59: orig  body=[Try(body=[Assign(targets=[Name(id='logfp' | dec  body=[Pass()]",
+   "ast_detail": "diff at token 118: orig  body=[Pass()] | dec  body=[]",
    "verdict": "SIG-DIFF",
    "ndiff": 2775,
    "ntotal": 2887,
@@ -221,11 +221,11 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 142: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()]",
+   "ast_detail": "diff at token 178: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1089,
+   "ndiff": 1096,
    "ntotal": 1329,
-   "detail": "line 218: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'self')\nline 219: orig ('SETUP_FINALLY', 'to 380') | got ('LOAD_ATTR', 'use_rawinput')\nline 220: orig ('LOAD_FAST', 'intro') | got ('POP_JUMP_IF_FALSE', '')"
+   "detail": "line 218: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', 'None')\nline 219: orig ('SETUP_FINALLY', 'to 380') | got ('RETURN_VALUE', '')\nline 220: orig ('LOAD_FAST', 'intro') | got ('precmd', 2)"
   },
   {
    "module": "code",
@@ -239,8 +239,8 @@
    "module": "codecs",
    "ast_detail": "diff at token 2: orig  Try(body=[ImportFrom(module='_codecs' | dec  Assign(targets=[Name(id='why'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1879,
-   "ntotal": 2152,
+   "ndiff": 2067,
+   "ntotal": 2151,
    "detail": "line 11: orig ('SETUP_FINALLY', 'to 34') | got ('LOAD_CONST', 'None')\nline 12: orig ('LOAD_CONST', '0') | got ('STORE_NAME', 'why')\nline 13: orig ('LOAD_CONST', \"('*',)\") | got ('DELETE_NAME', 'why')"
   },
   {
@@ -259,7 +259,7 @@
    "module": "compileall",
    "ast_detail": "diff at token 134: orig  ctx=Load())))] | dec  ctx=Load())))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1131,
+   "ndiff": 1127,
    "ntotal": 1513,
    "detail": "line 362: orig ('JUMP_FORWARD', 'to 330') | got ('LOAD_FAST', 'files')\nline 363: orig ('LOAD_FAST', 'files') | got ('GET_ITER', '')\nline 364: orig ('GET_ITER', '') | got ('FOR_ITER', 'to 290')"
   },

@@ -82,12 +82,12 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
         raise ValueError('workers must be greater or equal to 0')
     if workers != 1:
         from concurrent.futures.process import _check_system_limits
-    try:
-        _check_system_limits()
-    except NotImplementedError:
-        workers = 1
-    else:
-        from concurrent.futures import ProcessPoolExecutor
+        try:
+            _check_system_limits()
+        except NotImplementedError:
+            workers = 1
+        else:
+            from concurrent.futures import ProcessPoolExecutor
     if maxlevels is None:
         maxlevels = sys.getrecursionlimit()
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels)
@@ -184,19 +184,18 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             pass
         if tail == '.py':
             if not force:
-                pass
-            try:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
-                for cfile in opt_cfiles.values():
-                    with open(cfile, 'rb') as chandle:
-                        actual = chandle.read(12)
-                    if expect != actual:
-                        break
-                else:
-                    return success
-            except OSError:
-                pass
+                try:
+                    mtime = int(os.stat(fullname).st_mtime)
+                    expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+                    for cfile in opt_cfiles.values():
+                        with open(cfile, 'rb') as chandle:
+                            actual = chandle.read(12)
+                        if expect != actual:
+                            break
+                    else:
+                        return success
+                except OSError:
+                    pass
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
             if quiet >= 2:
@@ -299,8 +298,6 @@ def main():
     if args.ddir is not None:
         if args.stripdir is not None or args.prependdir is not None:
             parser.error('-d cannot be used in combination with -s or -p')
-    if args.flist:
-        pass
     if args.invalidation_mode:
         try:
             with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
@@ -311,6 +308,8 @@ def main():
                 print('Error reading file list {}'.format(args.flist))
             return False
         else:
+            if args.flist:
+                pass
             ivl_mode = args.invalidation_mode.replace('-', '_').upper()
             invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:

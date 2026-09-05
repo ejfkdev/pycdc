@@ -231,11 +231,10 @@ class dispatcher:
         elif self.connected:
             status.append('connected')
         if self.addr is not None:
-            pass
-        try:
-            status.append('%s:%d' % self.addr)
-        except TypeError:
-            status.append(repr(self.addr))
+            try:
+                status.append('%s:%d' % self.addr)
+            except TypeError:
+                status.append(repr(self.addr))
         return '<%s at %#x>' % (' '.join(status), id(self))
 
     __str__ = __repr__
@@ -340,11 +339,12 @@ class dispatcher:
         self.accepting = False
         self.connecting = False
         self.del_channel()
-        try:
-            self.socket.close()
-        except socket.error, why:
-            if why.args[0] not in (ENOTCONN, EBADF):
-                raise
+        if why.args[0] not in (ENOTCONN, EBADF):
+            raise
+            try:
+                self.socket.close()
+            except socket.error, why:
+                pass
 
     def __getattr__(self, attr):
         try:
@@ -469,9 +469,8 @@ def close_all(map=None, ignore_all=False):
         except OSError, x:
             if x.args[0] == EBADF:
                 pass
-            else:
-                if not ignore_all:
-                    raise
+            elif not ignore_all:
+                raise
                 continue
         except _reraised_exceptions:
             raise
@@ -479,7 +478,7 @@ def close_all(map=None, ignore_all=False):
         except:
             if not ignore_all:
                 raise
-            continue
+                continue
     map.clear()
 
 if os.name == 'posix':

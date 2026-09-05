@@ -205,11 +205,11 @@ class local(_localbase):
             except AttributeError:
                 continue
             if key in __dict__:
-                pass
-        try:
-            del __dict__[key]
-        except KeyError:
-            pass
+                try:
+                    del __dict__[key]
+                except KeyError:
+                    pass
+                continue
 
 
 from threading import current_thread

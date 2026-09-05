@@ -57,18 +57,18 @@ def _get_system_version():
     global _SYSTEM_VERSION
     if _SYSTEM_VERSION is None:
         _SYSTEM_VERSION = ''
-    try:
-        f = open('/System/Library/CoreServices/SystemVersion.plist')
-    except OSError:
-        pass
-    else:
-        m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
-    try:
-        pass
-    finally:
-        f.close()
-    if m is not None:
-        _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
+        try:
+            f = open('/System/Library/CoreServices/SystemVersion.plist')
+        except OSError:
+            pass
+        else:
+            m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
+        try:
+            pass
+        finally:
+            f.close()
+        if m is not None:
+            _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
     return _SYSTEM_VERSION
 
 _SYSTEM_VERSION_TUPLE = None
@@ -85,11 +85,10 @@ def _get_system_version_tuple():
     if _SYSTEM_VERSION_TUPLE is None:
         osx_version = _get_system_version()
         if osx_version:
-            pass
-    try:
-        _SYSTEM_VERSION_TUPLE = tuple((int(i) for i in osx_version.split('.')))
-    except ValueError:
-        _SYSTEM_VERSION_TUPLE = ()
+            try:
+                _SYSTEM_VERSION_TUPLE = tuple((int(i) for i in osx_version.split('.')))
+            except ValueError:
+                _SYSTEM_VERSION_TUPLE = ()
     return _SYSTEM_VERSION_TUPLE
 
 def _remove_original_values(_config_vars):

@@ -4456,6 +4456,7 @@ impl<'a> Ctx<'a> {
 
     /// Close the topmost block, converting it to statement(s).
     fn force_close_top(&mut self, pos: usize) {
+
         // stores that happened inside this block must land in it, not in
         // whatever block is open after closing
         self.flush_pending_stores();
@@ -13461,6 +13462,17 @@ impl<'a> Ctx<'a> {
                         return true;
                     }
                     if target == top.end {
+                        // a legacy try chain still open inside this if:
+                        // this jump is nested-structure machinery (the
+                        // body-end hop over the handler chain, or the
+                        // handler-exit hop to the merge) — closing now
+                        // would strand the chain's flush (RERAISE /
+                        // region end) outside the if, hoisting the Try.
+                        // The block closes naturally at its end, after
+                        // the flush landed inside it.
+                        if self.legacy_try.is_some() {
+                            return true;
+                        }
                         // dead-code skip: then-body complete, no else clause
                         // — close now so an enclosing block can transition
                         // to its own else region at the next instruction.

@@ -51,7 +51,7 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 210: orig  Return(value=IfExp(test=UnaryOp(op=Not() | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 967,
+   "ndiff": 968,
    "ntotal": 1157,
    "detail": "line 165: orig ('LOAD_CONST', 'None') | got ('_read_output', 1)\nline 166: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', '0')\nline 167: orig ('_read_output', 1) | got ('LOAD_CONST', 'None')"
   },
@@ -117,7 +117,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 49: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Pass()]",
+   "ast_detail": "diff at token 1065: orig  value=ListComp(elt=IfExp(test=BoolOp(op=And() | dec  value=ListComp(elt=BinOp(left=BinOp(left=Subscript(value=Name(id='chars2'",
    "verdict": "SIG-DIFF",
    "ndiff": 991,
    "ntotal": 1970,
@@ -165,7 +165,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 78: orig  body=[Try(body=[Assign(targets=[Name(id='logfp' | dec  body=[Pass()]",
+   "ast_detail": "diff at token 143: orig  body=[Pass()] | dec  body=[]",
    "verdict": "SIG-DIFF",
    "ndiff": 2910,
    "ntotal": 3049,
@@ -189,7 +189,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 153: orig  body=[Try(body=[Import(names=[alias(name='readline' | dec  body=[Pass()]",
+   "ast_detail": "diff at token 248: orig  body=[Try(body=[Assign(targets=[Name(id='line' | dec  body=[Continue()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1025,
    "ntotal": 1310,
@@ -197,7 +197,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 206: orig  body=[Try(body=[Assign(targets=[Tuple(elts=[Name(id='msg' | dec  body=[Pass()]",
+   "ast_detail": "diff at token 620: orig  value=Num(n=0))])] | dec  value=Num(n=0))",
    "verdict": "SIG-DIFF",
    "ndiff": 618,
    "ntotal": 653,
@@ -207,7 +207,7 @@
    "module": "codecs",
    "ast_detail": "diff at token 156: orig  kw_defaults=[NameConstant(value=None)] | dec  kw_defaults=[None]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1664,
+   "ndiff": 1774,
    "ntotal": 2151,
    "detail": "line 351: orig ('LOAD_CONST', 'None') | got ('LOAD_CONST', \"'_is_text_encoding'\")\nline 353: orig ('LOAD_CONST', \"'_is_text_encoding'\") | got ('LOAD_CONST', '<code __new__>')\nline 354: orig ('LOAD_CONST', 'None') | got ('LOAD_CONST', \"'CodecInfo.__new__'\")"
   },
@@ -261,7 +261,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 325: orig  body=[Try(body=[Assign(targets=[Attribute(value=Name(id='self' | dec  body=[Pass()]",
+   "ast_detail": "diff at token 1036: orig  values=[BoolOp(op=Or() | dec  values=[Name(id='key'",
    "verdict": "SIG-DIFF",
    "ndiff": 1626,
    "ntotal": 1660,

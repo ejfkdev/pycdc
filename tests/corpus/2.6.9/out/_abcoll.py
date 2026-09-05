@@ -25,17 +25,16 @@ class Hashable:
     @classmethod
     def __subclasshook__(cls, C):
         if cls is Hashable:
-            pass
-        try:
-            for B in C.__mro__:
-                if '__hash__' in B.__dict__:
-                    if B.__dict__['__hash__']:
-                        return True
-                    break
-                    continue
-        except AttributeError:
-            if getattr(C, '__hash__', None):
-                return True
+            try:
+                for B in C.__mro__:
+                    if '__hash__' in B.__dict__:
+                        if B.__dict__['__hash__']:
+                            return True
+                        break
+                        continue
+            except AttributeError:
+                if getattr(C, '__hash__', None):
+                    return True
         return NotImplemented
 
 

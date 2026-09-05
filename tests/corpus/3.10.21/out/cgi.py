@@ -50,11 +50,10 @@ def initlog(*allargs):
     warnings.warn('cgi.log() is deprecated as of 3.10. Use logging instead', DeprecationWarning, stacklevel=2)
     if logfile:
         if not logfp:
-            pass
-    try:
-        logfp = open(logfile, 'a', encoding='locale')
-    except OSError:
-        pass
+            try:
+                logfp = open(logfile, 'a', encoding='locale')
+            except OSError:
+                pass
     if not logfp:
         log = nolog
     else:

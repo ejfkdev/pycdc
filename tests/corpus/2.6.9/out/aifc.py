@@ -403,27 +403,26 @@ class Aifc_read:
                 chunk.file.seek(-1, 1)
             self._compname = _read_string(chunk)
             if self._comptype != 'NONE':
-                try:
-                    import audioop
-                except ImportError:
-                    if self._comptype == 'G722':
+                if self._comptype == 'G722':
+                    try:
+                        import audioop
+                    except ImportError:
                         pass
-                else:
-                    self._convert = self._adpcm2lin
-                    self._framesize = self._framesize // 4
-                    return
+                    else:
+                        self._convert = self._adpcm2lin
+                        self._framesize = self._framesize // 4
+                        return
                 try:
                     import cl
                 except ImportError:
                     if self._comptype == 'ULAW':
-                        pass
-                    try:
-                        import audioop
-                        self._convert = self._ulaw2lin
-                        self._framesize = self._framesize // 2
-                        return
-                    except ImportError:
-                        pass
+                        try:
+                            import audioop
+                            self._convert = self._ulaw2lin
+                            self._framesize = self._framesize // 2
+                            return
+                        except ImportError:
+                            pass
                     raise Error('cannot read compressed AIFF-C files')
                 if self._comptype == 'ULAW':
                     scheme = cl.G711_ULAW
@@ -665,25 +664,22 @@ class Aifc_write:
             self._write_header(datasize)
 
     def _init_compression(self):
-        import sys
         if self._comptype == 'G722':
             self._convert = self._lin2adpcm
             return
-        if self._comptype == 'ULAW':
-            try:
-                import cl
-            except ImportError:
-                if self._comptype == 'ULAW':
-                    pass
-                raise Error('cannot write compressed AIFF-C files')
+        try:
+            import cl
+        except ImportError:
+            if self._comptype == 'ULAW':
                 try:
                     import audioop
                     self._convert = self._lin2ulaw
                     return
                 except ImportError:
                     pass
-            else:
-                scheme = cl.G711_ULAW
+            raise Error('cannot write compressed AIFF-C files')
+        if self._comptype == 'ULAW':
+            scheme = cl.G711_ULAW
         elif self._comptype == 'ALAW':
             scheme = cl.G711_ALAW
         else:

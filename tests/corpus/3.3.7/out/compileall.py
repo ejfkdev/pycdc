@@ -99,16 +99,15 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=
         head, tail = name[:-3], name[-3:]
         if tail == '.py':
             if not force:
-                pass
-            try:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sl', imp.get_magic(), mtime)
-                with open(cfile, 'rb') as chandle:
-                    actual = chandle.read(8)
-                if expect == actual:
-                    return success
-            except IOError:
-                pass
+                try:
+                    mtime = int(os.stat(fullname).st_mtime)
+                    expect = struct.pack('<4sl', imp.get_magic(), mtime)
+                    with open(cfile, 'rb') as chandle:
+                        actual = chandle.read(8)
+                    if expect == actual:
+                        return success
+                except IOError:
+                    pass
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
             if ok == 0:
@@ -177,7 +176,13 @@ def main():
         import re
         args.rx = re.compile(args.rx)
     if args.flist:
-        pass
+        try:
+            with sys.stdin if args.flist == '-' else open(args.flist) as f:
+                for line in f:
+                    compile_dests.append(line.strip())
+        except EnvironmentError:
+            print('Error reading file list {}'.format(args.flist))
+            return False
     success = True
 
 if __name__ == '__main__':

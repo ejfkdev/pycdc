@@ -59,14 +59,15 @@ class _GeneratorContextManager(ContextDecorator):
         else:
             if value is None:
                 value = type()
+            if sys.exc_info()[1] is not value:
+                raise
             try:
                 self.gen.throw(type, value, traceback)
                 raise RuntimeError("generator didn't stop after throw()")
             except StopIteration as exc:
                 return exc is not value
             except:
-                if sys.exc_info()[1] is not value:
-                    raise
+                pass
 
 
 def contextmanager(func):
@@ -244,13 +245,12 @@ class ExitStack(object):
                 pending_raise = True
                 exc_details = new_exc_details
         if pending_raise:
-            pass
-        try:
-            fixed_ctx = exc_details[1].__context__
-            raise exc_details[1]
-        except BaseException:
-            exc_details[1].__context__ = fixed_ctx
-            raise
+            try:
+                fixed_ctx = exc_details[1].__context__
+                raise exc_details[1]
+            except BaseException:
+                exc_details[1].__context__ = fixed_ctx
+                raise
         return received_exc and suppressed_exc
 
 

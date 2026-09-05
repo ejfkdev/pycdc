@@ -97,12 +97,11 @@ class DictReader:
     @property
     def fieldnames(self):
         if self._fieldnames is None:
-            pass
+            try:
+                self._fieldnames = next(self.reader)
+            except StopIteration:
+                pass
         self.line_num = self.reader.line_num
-        try:
-            self._fieldnames = next(self.reader)
-        except StopIteration:
-            pass
         return self._fieldnames
 
     @fieldnames.setter

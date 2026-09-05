@@ -221,11 +221,10 @@ class dispatcher:
         if self.connected:
             status.append('connected')
         if self.addr is not None:
-            pass
-        try:
-            status.append('%s:%d' % self.addr)
-        except TypeError:
-            status.append(repr(self.addr))
+            try:
+                status.append('%s:%d' % self.addr)
+            except TypeError:
+                status.append(repr(self.addr))
         return '<%s at %#x>' % (' '.join(status), id(self))
 
     def add_channel(self, map=None):

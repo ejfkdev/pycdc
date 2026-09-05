@@ -283,12 +283,11 @@ class RawConfigParser:
         """
 
         if filename is None:
-            pass
+            try:
+                filename = fp.name
+            except AttributeError:
+                filename = '<???>'
         self._read(fp, filename)
-        try:
-            filename = fp.name
-        except AttributeError:
-            filename = '<???>'
 
     def get(self, section, option):
         opt = self.optionxform(option)

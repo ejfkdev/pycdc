@@ -299,12 +299,11 @@ class RawConfigParser:
         """
 
         if filename is None:
-            pass
+            try:
+                filename = fp.name
+            except AttributeError:
+                filename = '<???>'
         self._read(fp, filename)
-        try:
-            filename = fp.name
-        except AttributeError:
-            filename = '<???>'
 
     def get(self, section, option):
         opt = self.optionxform(option)
@@ -540,11 +539,12 @@ class ConfigParser(RawConfigParser):
         """
 
         sectiondict = {}
-        try:
-            sectiondict = self._sections[section]
-        except KeyError:
-            if section != DEFAULTSECT:
-                raise NoSectionError(section)
+        if section != DEFAULTSECT:
+            raise NoSectionError(section)
+            try:
+                sectiondict = self._sections[section]
+            except KeyError:
+                pass
         vardict = {}
         if vars:
             for key, value in vars.items():
@@ -573,11 +573,12 @@ class ConfigParser(RawConfigParser):
         """
 
         d = self._defaults.copy()
-        try:
-            d.update(self._sections[section])
-        except KeyError:
-            if section != DEFAULTSECT:
-                raise NoSectionError(section)
+        if section != DEFAULTSECT:
+            raise NoSectionError(section)
+            try:
+                d.update(self._sections[section])
+            except KeyError:
+                pass
         if vars:
             for key, value in vars.items():
                 d[self.optionxform(key)] = value

@@ -48,11 +48,10 @@ def initlog(*allargs):
     global logfp, log
     if logfile:
         if not logfp:
-            pass
-    try:
-        logfp = open(logfile, 'a')
-    except OSError:
-        pass
+            try:
+                logfp = open(logfile, 'a')
+            except OSError:
+                pass
     if not logfp:
         log = nolog
     else:

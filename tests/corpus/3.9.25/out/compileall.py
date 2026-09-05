@@ -80,11 +80,10 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
     if workers < 0:
         raise ValueError('workers must be greater or equal to 0')
     if workers != 1:
-        pass
-    try:
-        from concurrent.futures import ProcessPoolExecutor
-    except ImportError:
-        workers = 1
+        try:
+            from concurrent.futures import ProcessPoolExecutor
+        except ImportError:
+            workers = 1
     if maxlevels is None:
         maxlevels = sys.getrecursionlimit()
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels)
@@ -158,55 +157,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     if limit_sl_dest is not None and os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
         return success
     opt_cfiles = {}
-    if os.path.isfile(fullname):
-        for opt_level in optimize:
-            if legacy:
-                opt_cfiles[opt_level] = fullname + 'c'
-            elif opt_level >= 0:
-                opt = opt_level if opt_level >= 1 else ''
-                cfile = importlib.util.cache_from_source(fullname, optimization=opt)
-                opt_cfiles[opt_level] = cfile
-            else:
-                cfile = importlib.util.cache_from_source(fullname)
-                opt_cfiles[opt_level] = cfile
-        head, tail = name[:-3], name[-3:]
-        if tail == '.py':
-            if not force:
-                pass
-            try:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
-                for cfile in opt_cfiles.values():
-                    with open(cfile, 'rb') as chandle:
-                        actual = chandle.read(12)
-                    if expect != actual:
-                        break
-                else:
-                    return success
-            except OSError:
-                pass
-            if not quiet:
-                print('Compiling {!r}...'.format(fullname))
-            if quiet >= 2:
-                return success
-            if quiet:
-                print('*** Error compiling {!r}...'.format(fullname))
-            else:
-                print('*** ', end='')
-            encoding = sys.stdout.encoding or sys.getdefaultencoding()
-            msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
-            print(msg)
-        err = None
-        del err
-        if quiet >= 2:
-            return success
-        if quiet:
-            print('*** Error compiling {!r}...'.format(fullname))
-        else:
-            print('*** ', end='')
-        print(e.__class__.__name__ + ':', e)
-    e = None
-    del e
     try:
         for index, opt_level in enumerate(optimize):
             cfile = opt_cfiles[opt_level]
@@ -225,6 +175,54 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         success = False
         if ok == 0:
             pass
+        if tail == '.py':
+            if not force:
+                try:
+                    mtime = int(os.stat(fullname).st_mtime)
+                    expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+                    for cfile in opt_cfiles.values():
+                        with open(cfile, 'rb') as chandle:
+                            actual = chandle.read(12)
+                        if expect != actual:
+                            break
+                    else:
+                        return success
+                except OSError:
+                    pass
+            if not quiet:
+                print('Compiling {!r}...'.format(fullname))
+            if quiet >= 2:
+                return success
+            if quiet:
+                print('*** Error compiling {!r}...'.format(fullname))
+            else:
+                print('*** ', end='')
+            encoding = sys.stdout.encoding or sys.getdefaultencoding()
+            msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+            print(msg)
+            err = None
+            del err
+            if quiet >= 2:
+                return success
+            if quiet:
+                print('*** Error compiling {!r}...'.format(fullname))
+            else:
+                print('*** ', end='')
+            print(e.__class__.__name__ + ':', e)
+            e = None
+            del e
+        if os.path.isfile(fullname):
+            for opt_level in optimize:
+                if legacy:
+                    opt_cfiles[opt_level] = fullname + 'c'
+                elif opt_level >= 0:
+                    opt = opt_level if opt_level >= 1 else ''
+                    cfile = importlib.util.cache_from_source(fullname, optimization=opt)
+                    opt_cfiles[opt_level] = cfile
+                else:
+                    cfile = importlib.util.cache_from_source(fullname)
+                    opt_cfiles[opt_level] = cfile
+            head, tail = name[:-3], name[-3:]
         return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
@@ -290,8 +288,6 @@ def main():
     if args.ddir is not None:
         if args.stripdir is not None or args.prependdir is not None:
             parser.error('-d cannot be used in combination with -s or -p')
-    if args.flist:
-        pass
     if args.invalidation_mode:
         try:
             with sys.stdin if args.flist == '-' else open(args.flist) as f:
@@ -302,6 +298,8 @@ def main():
                 print('Error reading file list {}'.format(args.flist))
             return False
         else:
+            if args.flist:
+                pass
             ivl_mode = args.invalidation_mode.replace('-', '_').upper()
             invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:

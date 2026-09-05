@@ -57,15 +57,15 @@ def _get_system_version():
     global _SYSTEM_VERSION
     if _SYSTEM_VERSION is None:
         _SYSTEM_VERSION = ''
-    if m is not None:
-        try:
-            f = open('/System/Library/CoreServices/SystemVersion.plist')
-        except IOError:
-            pass
-        else:
-            m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
-            f.close()
-            _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
+        if m is not None:
+            try:
+                f = open('/System/Library/CoreServices/SystemVersion.plist')
+            except IOError:
+                pass
+            else:
+                m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
+                f.close()
+                _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
     return _SYSTEM_VERSION
 
 def _remove_original_values(_config_vars):
@@ -90,13 +90,12 @@ def _supports_universal_builds():
 
     osx_version = _get_system_version()
     if osx_version:
-        pass
+        try:
+            osx_version = tuple((int(i) for i in osx_version.split('.')))
+        except ValueError:
+            osx_version = ''
     if osx_version:
         return bool(osx_version >= (10, 4))
-    try:
-        osx_version = tuple((int(i) for i in osx_version.split('.')))
-    except ValueError:
-        osx_version = ''
     return False
 
 def _find_appropriate_compiler(_config_vars):

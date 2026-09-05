@@ -373,13 +373,12 @@ class TCPServer(BaseServer):
         BaseServer.__init__(self, server_address, RequestHandlerClass)
         self.socket = socket.socket(self.address_family, self.socket_type)
         if bind_and_activate:
-            pass
-        try:
-            self.server_bind()
-            self.server_activate()
-        except:
-            self.server_close()
-            raise
+            try:
+                self.server_bind()
+                self.server_activate()
+            except:
+                self.server_close()
+                raise
 
     def server_bind(self):
         '''Called by constructor to bind the socket.
@@ -482,7 +481,7 @@ class ForkingMixIn:
             except OSError, e:
                 if e.errno == errno.ECHILD:
                     self.active_children.discard(pid)
-                continue
+                    continue
 
     def handle_timeout(self):
         self.collect_children()
@@ -615,13 +614,12 @@ class StreamRequestHandler(BaseRequestHandler):
 
     def finish(self):
         if not self.wfile.closed:
-            pass
+            try:
+                self.wfile.flush()
+            except socket.error:
+                pass
         self.wfile.close()
         self.rfile.close()
-        try:
-            self.wfile.flush()
-        except socket.error:
-            pass
 
 
 class DatagramRequestHandler(BaseRequestHandler):

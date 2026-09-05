@@ -69,9 +69,7 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=0, leg
     if workers is not None:
         if workers < 0:
             raise ValueError('workers must be greater or equal to 0')
-        else:
-            if workers != 1:
-                pass
+        elif workers != 1:
             try:
                 from concurrent.futures import ProcessPoolExecutor
             except ImportError:
@@ -130,20 +128,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
         msg = msg.decode(sys.stdout.encoding)
         print(msg)
-        if tail == '.py':
-            if not force:
-                pass
-            try:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sl', importlib.util.MAGIC_NUMBER, mtime)
-                with open(cfile, 'rb') as chandle:
-                    actual = chandle.read(8)
-                if expect == actual:
-                    return success
-            except OSError:
-                pass
-            if not quiet:
-                print('Compiling {!r}...'.format(fullname))
     except (SyntaxError, UnicodeError, OSError) as e:
         success = False
         if quiet >= 2:
@@ -153,6 +137,23 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         else:
             print('*** ', end='')
         print(e.__class__.__name__ + ':', e)
+    else:
+        success = False
+        if ok == 0:
+            pass
+        if tail == '.py':
+            if not force:
+                try:
+                    mtime = int(os.stat(fullname).st_mtime)
+                    expect = struct.pack('<4sl', importlib.util.MAGIC_NUMBER, mtime)
+                    with open(cfile, 'rb') as chandle:
+                        actual = chandle.read(8)
+                    if expect == actual:
+                        return success
+                except OSError:
+                    pass
+            if not quiet:
+                print('Compiling {!r}...'.format(fullname))
         if os.path.isfile(fullname):
             if legacy:
                 cfile = fullname + 'c'
@@ -164,10 +165,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     cfile = importlib.util.cache_from_source(fullname)
                 cache_dir = os.path.dirname(cfile)
             head, tail = name[:-3], name[-3:]
-    else:
-        success = False
-        if ok == 0:
-            pass
         return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1):
@@ -216,8 +213,6 @@ def main():
         maxlevels = args.recursion
     else:
         maxlevels = args.maxlevels
-    if args.flist:
-        pass
     try:
         if compile_dests:
             for dest in compile_dests:
@@ -232,6 +227,8 @@ def main():
                                 print('Error reading file list {}'.format(args.flist))
                             return False
                         else:
+                            if args.flist:
+                                pass
                             args.workers = args.workers or None
                             if args.workers is not None:
                                 pass

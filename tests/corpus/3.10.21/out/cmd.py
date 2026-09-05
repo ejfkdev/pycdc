@@ -98,14 +98,13 @@ class Cmd:
     def cmdloop(self, intro=None):
         self.preloop()
         if self.use_rawinput and self.completekey:
-            pass
-        try:
-            import readline
-            self.old_completer = readline.get_completer()
-            readline.set_completer(self.complete)
-            readline.parse_and_bind(self.completekey + ': complete')
-        except ImportError:
-            pass
+            try:
+                import readline
+                self.old_completer = readline.get_completer()
+                readline.set_completer(self.complete)
+                readline.parse_and_bind(self.completekey + ': complete')
+            except ImportError:
+                pass
         if self.use_rawinput:
             if self.completekey:
                 try:

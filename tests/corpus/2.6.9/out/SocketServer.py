@@ -245,11 +245,11 @@ class BaseServer:
                 return
             else:
                 self.process_request(request, client_address)
-        try:
-            pass
-        except:
-            self.handle_error(request, client_address)
-            self.close_request(request)
+            try:
+                pass
+            except:
+                self.handle_error(request, client_address)
+                self.close_request(request)
 
     def handle_timeout(self):
         '''Called if no new request arrives within self.timeout.

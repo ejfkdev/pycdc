@@ -55,8 +55,6 @@ def _get_system_version():
     '''Return the OS X system version as a string'''
 
     global _SYSTEM_VERSION
-    if _SYSTEM_VERSION is None:
-        _SYSTEM_VERSION = ''
     try:
         f = open('/System/Library/CoreServices/SystemVersion.plist')
     except OSError:
@@ -67,6 +65,8 @@ def _get_system_version():
         _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
         if m is not None:
             pass
+        if _SYSTEM_VERSION is None:
+            _SYSTEM_VERSION = ''
         return _SYSTEM_VERSION
 
 def _remove_original_values(_config_vars):
@@ -90,11 +90,10 @@ def _supports_universal_builds():
 
     osx_version = _get_system_version()
     if osx_version:
-        pass
-    try:
-        osx_version = tuple((int(i) for i in osx_version.split('.')))
-    except ValueError:
-        osx_version = ''
+        try:
+            osx_version = tuple((int(i) for i in osx_version.split('.')))
+        except ValueError:
+            osx_version = ''
     if osx_version:
         return bool(osx_version >= (10, 4))
     return False

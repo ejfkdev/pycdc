@@ -189,9 +189,9 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 69: orig  body=[Try(body=[Assign(targets=[Name(id='logfp' | dec  body=[Pass()]",
+   "ast_detail": "diff at token 129: orig  body=[Pass()] | dec  body=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2780,
+   "ndiff": 2811,
    "ntotal": 2915,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
@@ -207,23 +207,23 @@
    "module": "chunk",
    "ast_detail": "diff at token 93: orig  If(test=Name(id='inclheader' | dec  Assign(targets=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 313,
-   "ntotal": 446,
+   "ndiff": 277,
+   "ntotal": 445,
    "detail": "line 122: orig ('LOAD_FAST', 'inclheader') | got ('LOAD_FAST', 'self')\nline 123: orig ('POP_JUMP_IF_FALSE', 'to 142') | got ('LOAD_ATTR', 'chunksize')\nline 124: orig ('LOAD_FAST', 'self') | got ('LOAD_CONST', '8')"
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 142: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()]",
+   "ast_detail": "diff at token 179: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1101,
+   "ndiff": 1072,
    "ntotal": 1324,
-   "detail": "line 179: orig ('POP_JUMP_IF_FALSE', 'to 90') | got ('POP_JUMP_IF_FALSE', 'to 22')\nline 182: orig ('POP_JUMP_IF_FALSE', 'to 90') | got ('POP_JUMP_IF_FALSE', 'to 22')\nline 183: orig ('SETUP_FINALLY', 'to 72') | got ('NOP', '')"
+   "detail": "line 218: orig ('SETUP_FINALLY', 'to 378') | got ('LOAD_FAST', 'self')\nline 219: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 220: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', 'to 394')"
   },
   {
    "module": "code",
    "ast_detail": "diff at token 89: orig  If(test=Compare(left=Name(id='code' | dec  Return(value=Constant(value=True))",
    "verdict": "SIG-DIFF",
-   "ndiff": 633,
+   "ndiff": 638,
    "ntotal": 669,
    "detail": "line 12: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 16: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
@@ -251,7 +251,7 @@
    "module": "compileall",
    "ast_detail": "diff at token 134: orig  ctx=Load())))] | dec  ctx=Load())))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1429,
+   "ndiff": 1432,
    "ntotal": 1512,
    "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
@@ -259,7 +259,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1150: orig  Try(body=[Assign(targets=[Name(id='v' | dec  If(test=Compare(left=Constant(value='%')",
    "verdict": "SIG-DIFF",
-   "ndiff": 2863,
+   "ndiff": 2694,
    "ntotal": 4289,
    "detail": "line 1021: orig ('SETUP_FINALLY', 'to 246') | got ('LOAD_CONST', \"'%'\")\nline 1022: orig ('LOAD_FAST', 'map') | got ('LOAD_FAST', 'v')\nline 1023: orig ('LOAD_FAST', 'var') | got ('CONTAINS_OP', '')"
   },

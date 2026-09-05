@@ -287,14 +287,13 @@ class FileInput:
         backupfilename = self._backupfilename
         self._backupfilename = 0
         if backupfilename and not self._backup:
-            pass
+            try:
+                os.unlink(backupfilename)
+            except OSError:
+                pass
         self._isstdin = False
         self._buffer = []
         self._bufindex = 0
-        try:
-            os.unlink(backupfilename)
-        except OSError:
-            pass
 
     def readline(self):
         try:

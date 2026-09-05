@@ -213,11 +213,10 @@ class dispatcher:
         elif self.connected:
             status.append('connected')
         if self.addr is not None:
-            pass
-        try:
-            status.append('%s:%d' % self.addr)
-        except TypeError:
-            status.append(repr(self.addr))
+            try:
+                status.append('%s:%d' % self.addr)
+            except TypeError:
+                status.append(repr(self.addr))
         return '<%s at %#x>' % (' '.join(status), id(self))
 
     def add_channel(self, map=None):
@@ -332,12 +331,11 @@ class dispatcher:
         self.connecting = False
         self.del_channel()
         if self.socket is not None:
-            pass
-        try:
-            self.socket.close()
-        except OSError as why:
-            if why.args[0] not in (ENOTCONN, EBADF):
-                raise
+            try:
+                self.socket.close()
+            except OSError as why:
+                if why.args[0] not in (ENOTCONN, EBADF):
+                    raise
 
     def log(self, message):
         sys.stderr.write('log: %s\n' % str(message))

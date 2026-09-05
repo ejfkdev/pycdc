@@ -423,8 +423,7 @@ class StreamReader(Codec):
                         lines = newchars.splitlines(keepends=True)
                         if len(lines) <= 1:
                             raise
-                    else:
-                        raise
+                            raise
                 self.bytebuffer = data[decodedbytes:]
                 self.charbuffer += newchars
         if chars < 0:

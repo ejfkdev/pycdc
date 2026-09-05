@@ -48,16 +48,15 @@ def initlog(*allargs):
 
     global logfp, log
     if logfile and not logfp:
-        pass
+        try:
+            logfp = open(logfile, 'a')
+        except IOError:
+            pass
     if not logfp:
         log = nolog
     else:
         log = dolog
     log(*allargs)
-    try:
-        logfp = open(logfile, 'a')
-    except IOError:
-        pass
 
 def dolog(fmt, *args):
     logfp.write(fmt % args + '\n')

@@ -278,11 +278,10 @@ class SimpleXMLRPCDispatcher:
             if hasattr(self.instance, '_methodHelp'):
                 return self.instance._methodHelp(method_name)
             if not hasattr(self.instance, '_dispatch'):
-                pass
-            try:
-                method = resolve_dotted_attribute(self.instance, method_name, self.allow_dotted_names)
-            except AttributeError:
-                pass
+                try:
+                    method = resolve_dotted_attribute(self.instance, method_name, self.allow_dotted_names)
+                except AttributeError:
+                    pass
         if method is None:
             return ''
         import pydoc
@@ -333,7 +332,6 @@ class SimpleXMLRPCDispatcher:
         not be called.
         """
 
-        import sys
         func = None
         try:
             func = self.funcs[method]
@@ -341,16 +339,13 @@ class SimpleXMLRPCDispatcher:
             if self.instance is not None:
                 if hasattr(self.instance, '_dispatch'):
                     return self.instance._dispatch(method, params)
-            if func is not None:
-                pass
-            raise Exception('method "%s" is not supported' % method)
-            return
-            try:
-                func = resolve_dotted_attribute(self.instance, method, self.allow_dotted_names)
-            except AttributeError:
-                pass
-            else:
-                return func(*params)
+                try:
+                    func = resolve_dotted_attribute(self.instance, method, self.allow_dotted_names)
+                except AttributeError:
+                    pass
+        if func is not None:
+            return func(*params)
+        raise Exception('method "%s" is not supported' % method)
 
 
 class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):

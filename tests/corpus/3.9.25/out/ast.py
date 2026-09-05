@@ -426,14 +426,14 @@ class NodeVisitor(object):
                 break
         if type_name is not None:
             method = 'visit_' + type_name
-        try:
-            visitor = getattr(self, method)
-        except AttributeError:
-            pass
-        else:
-            import warnings
-            warnings.warn(f'{method} is deprecated; add visit_Constant', DeprecationWarning, 2)
-            return visitor(node)
+            try:
+                visitor = getattr(self, method)
+            except AttributeError:
+                pass
+            else:
+                import warnings
+                warnings.warn(f'{method} is deprecated; add visit_Constant', DeprecationWarning, 2)
+                return visitor(node)
         return self.generic_visit(node)
 
 

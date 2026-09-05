@@ -336,16 +336,17 @@ class SimpleXMLRPCDispatcher:
         """
 
         func = None
-        try:
-            func = self.funcs[method]
-        except KeyError:
-            if self.instance is not None:
-                if hasattr(self.instance, '_dispatch'):
-                    return self.instance._dispatch(method, params)
-                try:
-                    func = resolve_dotted_attribute(self.instance, method, self.allow_dotted_names)
-                except AttributeError:
-                    pass
+        if self.instance is not None:
+            if hasattr(self.instance, '_dispatch'):
+                return self.instance._dispatch(method, params)
+            try:
+                func = resolve_dotted_attribute(self.instance, method, self.allow_dotted_names)
+            except AttributeError:
+                pass
+            try:
+                func = self.funcs[method]
+            except KeyError:
+                pass
         if func is not None:
             return func(*params)
         raise Exception('method "%s" is not supported' % method)

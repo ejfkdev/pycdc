@@ -98,7 +98,13 @@ class Cmd:
     def cmdloop(self, intro=None):
         self.preloop()
         if self.use_rawinput and self.completekey:
-            pass
+            try:
+                import readline
+                self.old_completer = readline.get_completer()
+                readline.set_completer(self.complete)
+                readline.parse_and_bind(self.completekey + ': complete')
+            except ImportError:
+                pass
         try:
             if intro is not None:
                 self.intro = intro
@@ -117,22 +123,14 @@ class Cmd:
                     line = input(self.prompt)
                 except EOFError:
                     line = 'EOF'
-                try:
-                    import readline
-                    self.old_completer = readline.get_completer()
-                    readline.set_completer(self.complete)
-                    readline.parse_and_bind(self.completekey + ': complete')
-                except ImportError:
-                    pass
             self.postloop()
         finally:
             if self.use_rawinput and self.completekey:
-                pass
-            try:
-                import readline
-                readline.set_completer(self.old_completer)
-            except ImportError:
-                pass
+                try:
+                    import readline
+                    readline.set_completer(self.old_completer)
+                except ImportError:
+                    pass
 
     def precmd(self, line):
         '''Hook method executed just before the command line is

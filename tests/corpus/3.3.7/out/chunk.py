@@ -151,12 +151,6 @@ class Chunk:
         if self.closed:
             raise ValueError('I/O operation on closed file')
         if self.seekable:
-            pass
-        while self.size_read < self.chunksize:
-            n = min(8192, self.chunksize - self.size_read)
-            dummy = self.read(n)
-        else:
-            raise EOFError
             try:
                 n = self.chunksize - self.size_read
                 if self.align:
@@ -167,6 +161,11 @@ class Chunk:
                 return
             except IOError:
                 pass
+        while self.size_read < self.chunksize:
+            n = min(8192, self.chunksize - self.size_read)
+            dummy = self.read(n)
+        else:
+            raise EOFError
 
 
 # WARNING: Decompyle incomplete

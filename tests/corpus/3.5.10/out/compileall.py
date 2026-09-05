@@ -121,20 +121,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
         msg = msg.decode(sys.stdout.encoding)
         print(msg)
-        if tail == '.py':
-            if not force:
-                pass
-            try:
-                mtime = int(os.stat(fullname).st_mtime)
-                expect = struct.pack('<4sl', importlib.util.MAGIC_NUMBER, mtime)
-                with open(cfile, 'rb') as chandle:
-                    actual = chandle.read(8)
-                if expect == actual:
-                    return success
-            except OSError:
-                pass
-            if not quiet:
-                print('Compiling {!r}...'.format(fullname))
     except (SyntaxError, UnicodeError, OSError) as e:
         success = 0
         if quiet >= 2:
@@ -144,6 +130,23 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         else:
             print('*** ', end='')
         print(e.__class__.__name__ + ':', e)
+    else:
+        success = 0
+        if ok == 0:
+            pass
+        if tail == '.py':
+            if not force:
+                try:
+                    mtime = int(os.stat(fullname).st_mtime)
+                    expect = struct.pack('<4sl', importlib.util.MAGIC_NUMBER, mtime)
+                    with open(cfile, 'rb') as chandle:
+                        actual = chandle.read(8)
+                    if expect == actual:
+                        return success
+                except OSError:
+                    pass
+            if not quiet:
+                print('Compiling {!r}...'.format(fullname))
         if os.path.isfile(fullname):
             if legacy:
                 cfile = fullname + 'c'
@@ -155,10 +158,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     cfile = importlib.util.cache_from_source(fullname)
                 cache_dir = os.path.dirname(cfile)
             head, tail = name[:-3], name[-3:]
-    else:
-        success = 0
-        if ok == 0:
-            pass
         return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1):
@@ -208,15 +207,14 @@ def main():
     else:
         maxlevels = args.maxlevels
     if args.flist:
-        pass
-    try:
-        with sys.stdin if args.flist == '-' else open(args.flist) as f:
-            for line in f:
-                compile_dests.append(line.strip())
-    except OSError:
-        if args.quiet < 2:
-            print('Error reading file list {}'.format(args.flist))
-        return False
+        try:
+            with sys.stdin if args.flist == '-' else open(args.flist) as f:
+                for line in f:
+                    compile_dests.append(line.strip())
+        except OSError:
+            if args.quiet < 2:
+                print('Error reading file list {}'.format(args.flist))
+            return False
     if args.workers is not None:
         args.workers = args.workers or None
     success = True

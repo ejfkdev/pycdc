@@ -159,15 +159,15 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 import base64
                 import binascii
                 env['AUTH_TYPE'] = authorization[0]
-                if len(authorization) == 2:
-                    try:
-                        authorization = base64.decodestring(authorization[1])
-                    except binascii.Error:
-                        if authorization[0].lower() == 'basic':
+                if authorization[0].lower() == 'basic':
+                    if len(authorization) == 2:
+                        try:
+                            authorization = base64.decodestring(authorization[1])
+                        except binascii.Error:
                             pass
-                    else:
-                        authorization = authorization.split(':')
-                        env['REMOTE_USER'] = authorization[0]
+                        else:
+                            authorization = authorization.split(':')
+                            env['REMOTE_USER'] = authorization[0]
         if self.headers.typeheader is None:
             env['CONTENT_TYPE'] = self.headers.type
         else:
