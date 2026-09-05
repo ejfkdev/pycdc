@@ -51,8 +51,8 @@
    "module": "_collections_abc",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 3994,
-   "ntotal": 4081,
+   "ndiff": 3999,
+   "ntotal": 4085,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_SMALL_INT', '')"
   },
   {
@@ -248,7 +248,7 @@
    "module": "codecs",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2316,
+   "ndiff": 2042,
    "ntotal": 2373,
    "detail": "line 18: orig ('BUILD_LIST', '') | got ('NOP', '')\nline 19: orig ('LOAD_CONST', \"'register'\") | got ('BUILD_LIST', '')\nline 20: orig ('LIST_APPEND', '') | got ('LOAD_CONST', \"'register'\")"
   },

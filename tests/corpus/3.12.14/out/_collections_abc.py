@@ -58,7 +58,7 @@ def _check_methods(C, *methods):
                 continue
             if not B.__dict__[method] is not None:
                 return NotImplemented
-            continue
+            break
         return NotImplemented
     return True
 

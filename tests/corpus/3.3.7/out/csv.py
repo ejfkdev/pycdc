@@ -318,19 +318,19 @@ class Sniffer:
                         return delim, skipinitialspace
                     start = end
                     end += chunkLength
-                    continue
-        if not delims:
-            return ('', 0)
-        if len(delims) > 1:
-            for d in self.preferred:
-                if d in delims.keys():
-                    skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
-                    return d, skipinitialspace
-        items = [(v, k) for k, v in delims.items()]
-        items.sort()
-        delim = items[-1][1]
-        skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
-        return delim, skipinitialspace
+                    break
+                    if not delims:
+                        return ('', 0)
+                    if len(delims) > 1:
+                        for d in self.preferred:
+                            if d in delims.keys():
+                                skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
+                                return d, skipinitialspace
+                    items = [(v, k) for k, v in delims.items()]
+                    items.sort()
+                    delim = items[-1][1]
+                    skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
+                    return delim, skipinitialspace
 
     def has_header(self, sample):
         rdr = reader(StringIO(sample), self.sniff(sample))

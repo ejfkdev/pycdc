@@ -22,9 +22,9 @@
    "module": "_bootsubprocess",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 88,
+   "ndiff": 87,
    "ntotal": 398,
-   "detail": "line 98: orig ('JUMP_FORWARD', 'to 420') | got ('JUMP_FORWARD', 'to 322')\nline 307: orig ('NOP', '') | got ('JUMP_FORWARD', 'to 392')\nline 308: orig ('LOAD_GLOBAL', 'NULL + open') | got ('PUSH_EXC_INFO', '')"
+   "detail": "line 307: orig ('NOP', '') | got ('JUMP_FORWARD', 'to 392')\nline 308: orig ('LOAD_GLOBAL', 'NULL + open') | got ('PUSH_EXC_INFO', '')\nline 309: orig ('LOAD_FAST', 'tmp_filename') | got ('LOAD_GLOBAL', 'OSError')"
   },
   {
    "module": "_collections_abc",

@@ -1920,6 +1920,77 @@ impl<'a> Ctx<'a> {
             }
         }
         let mut nested_inner_fin: Option<Vec<Stmt>> = None;
+        // inline-copy bound: a loop back edge inside the span ends the
+        // iteration, and the copy itself opcode-mirrors the out-of-line
+        // handler chain — statements AFTER the copy (post-try code inside
+        // a loop iteration) belong to the main walk, not the finally
+        let mut fin_span_stop = stop;
+        if early_fin.is_none() && tc.finally_handler.is_some() && stop > pos {
+            // NOTE: JUMP_BACKWARD_NO_INTERRUPT is the await-resume
+            // protocol / finally-flow jump — not a loop back edge
+            if let Some(be) = self
+                .instrs
+                .iter()
+                .find(|x| {
+                    x.offset >= pos
+                        && x.offset < stop
+                        && (x.op == Op::JUMP_BACKWARD
+                            || (x.op == Op::JUMP_ABSOLUTE && x.is_backward))
+                })
+                .map(|x| x.offset)
+            {
+                fin_span_stop = fin_span_stop.min(be);
+            }
+            if let Some(fh) = tc.finally_handler {
+                if let Some(&fhi) = self.idx_of.get(&fh) {
+                    let span_i = self
+                        .instrs
+                        .iter()
+                        .position(|x| x.offset >= pos);
+                    if let Some(si0) = span_i {
+                        // separate cursors: the chain has a PUSH_EXC_INFO
+                        // head the inline copy lacks
+                        let mut cn = 0usize;
+                        let mut sn = 0usize;
+                        let mut ok = true;
+                        let mut trim = None;
+                        while let Some(f) = self.instrs.get(fhi + cn) {
+                            if matches!(f.op, Op::RERAISE | Op::END_FINALLY) {
+                                if let Some(s) = self.instrs.get(si0 + sn) {
+                                    if s.offset <= fin_span_stop {
+                                        trim = Some(s.offset);
+                                    }
+                                }
+                                break;
+                            }
+                            if matches!(f.op, Op::PUSH_EXC_INFO | Op::CACHE) {
+                                cn += 1;
+                                continue;
+                            }
+                            match self.instrs.get(si0 + sn) {
+                                Some(s)
+                                    if s.op == f.op
+                                        && (!matches!(
+                                            s.op,
+                                            Op::LOAD_CONST | Op::LOAD_GLOBAL
+                                        ) || s.arg == f.arg) => {}
+                                _ => {
+                                    ok = false;
+                                    break;
+                                }
+                            }
+                            cn += 1;
+                            sn += 1;
+                        }
+                        if ok {
+                            if let Some(t) = trim {
+                                fin_span_stop = t;
+                            }
+                        }
+                    }
+                }
+            }
+        }
         let mut finalbody = if let Some(ef) = early_fin {
             // ef is the FIRST nested level's inline copy (already walked).
             // When the walk now stands at a deeper level's inline copy
@@ -1976,7 +2047,7 @@ impl<'a> Ctx<'a> {
                 }
                 None => tc.finally_handler,
             };
-            let span = self.decompose_finally_span(pos, stop, head);
+            let span = self.decompose_finally_span(pos, fin_span_stop, head);
             // the nested chain and its stubs are folded — never let the
             // main walk re-enter them
             if let Some(nh) = nested_head {
@@ -1991,10 +2062,10 @@ impl<'a> Ctx<'a> {
         } else {
             Vec::new()
         };
-        if tc.finally_handler.is_some() && stop > pos {
+        if tc.finally_handler.is_some() && fin_span_stop > pos {
             // main pass must not re-execute the inline finally body
-            if self.skip_until.map_or(true, |s| s < stop) {
-                self.skip_until = Some(stop);
+            if self.skip_until.map_or(true, |s| s < fin_span_stop) {
+                self.skip_until = Some(fin_span_stop);
             }
         }
         // except handlers (out-of-line)
@@ -2885,6 +2956,11 @@ impl<'a> Ctx<'a> {
                         break;
                     }
                     Op::CHECK_EXC_MATCH | Op::PUSH_EXC_INFO => break,
+                    // a backward jump inside the span is a continue/back
+                    // edge flow (3.13: POP_EXCEPT; finally-copy; JB top),
+                    // not a straight-line sunk continuation
+                    Op::JUMP_BACKWARD | Op::JUMP_BACKWARD_NO_INTERRUPT => break,
+                    Op::JUMP_ABSOLUTE if nx.is_backward => break,
                     _ => {}
                 }
                 if nx.offset >= limit {
@@ -2897,13 +2973,54 @@ impl<'a> Ctx<'a> {
                 k2 = m2;
             }
         }
+        // 3.12+ `continue` inside a handler: POP_EXCEPT; <finally copy>;
+        // JUMP_BACKWARD <loop top> — rebuild the body without the copy
+        // and append the Continue
+        let mut body_has_continue = false;
+        {
+            let mut j = pi + 1;
+            while j < self.instrs.len() {
+                let c = &self.instrs[j];
+                if c.offset >= limit {
+                    break;
+                }
+                if matches!(c.op, Op::JUMP_BACKWARD | Op::JUMP_BACKWARD_NO_INTERRUPT)
+                    || (c.op == Op::JUMP_ABSOLUTE && c.is_backward)
+                {
+                    let is_top = c.target.map_or(false, |t| {
+                        self.blocks.iter().any(|b| {
+                            matches!(b.kind, BlockType::While | BlockType::For)
+                                && (b.start == t || b.cond_end == t)
+                        })
+                    });
+                    if is_top {
+                        body_has_continue = true;
+                        // the copy between the clause POP_EXCEPT and this
+                        // jump is finally machinery — trim the body there
+                        let mut t = pi + 1;
+                        while t < j {
+                            if self.instrs[t].op == Op::POP_EXCEPT {
+                                body_end = self.instrs[t].offset.min(body_end);
+                                break;
+                            }
+                            t += 1;
+                        }
+                    }
+                    break;
+                }
+                if c.op == Op::RERAISE || c.op == Op::CHECK_EXC_MATCH {
+                    break;
+                }
+                j += 1;
+            }
+        }
         *pc = k2;
         let mut body = if body_end > body_start {
             self.decompile_region(body_start, body_end)
         } else {
             Vec::new()
         };
-        if trail_continue {
+        if trail_continue || body_has_continue {
             body.push(Stmt::Continue);
         }
         body
@@ -4107,8 +4224,20 @@ impl<'a> Ctx<'a> {
                 let body = std::mem::take(&mut b.stmts);
                 // 3.8+ rotated while-else: the exhaustion exit (b.end)
                 // closed the body; the else region runs to loop_else_end
-                let probed = if b.loop_else_end.is_none() && pos == b.end {
-                    self.probe_for_else(pos)
+                // the close may come from the back edge (cur_next == the
+                // exhaustion point) one instruction before b.end — probe
+                // there too so else regions still attach
+                let probe_at = if pos == b.end {
+                    Some(pos)
+                } else if self.cur_next <= b.end && b.end - self.cur_next <= 4 {
+                    // the back edge sits right before the exhaustion
+                    // point (small padding gap)
+                    Some(b.end)
+                } else {
+                    None
+                };
+                let probed = if b.loop_else_end.is_none() {
+                    probe_at.and_then(|p| self.probe_for_else(p))
                 } else {
                     None
                 };
@@ -4130,11 +4259,19 @@ impl<'a> Ctx<'a> {
                 let iter = b.iter.take().unwrap_or_else(|| self.name_expr("???"));
                 let body = std::mem::take(&mut b.stmts);
                 let is_async = b.is_async;
+                let probe_at = if pos == b.end {
+                    Some(pos)
+                } else if self.cur_next <= b.end && b.end - self.cur_next <= 4 {
+                    // closed via the back edge right before the exhaustion
+                    // point — the else region (if any) still follows
+                    Some(b.end)
+                } else {
+                    None
+                };
                 let probed_else = if b.loop_else_end.is_none()
                     && b.for_setup_end.is_none()
-                    && pos == b.end
                 {
-                    self.probe_for_else(pos)
+                    probe_at.and_then(|p| self.probe_for_else(p))
                 } else {
                     None
                 };
@@ -6748,6 +6885,117 @@ impl<'a> Ctx<'a> {
                     // A jump landing ON the loop's back edge just flows into
                     // the iteration end (compiler fusion), never a continue.
                     self.close_blocks_at(self.cur_offset);
+                    // 3.12+ nested-loop break threaded onto the enclosing
+                    // back edge: `POP_TOP <inner iterator>; JB outer-top`.
+                    // A real outer continue never pops the enclosing
+                    // iterator, so the POP_TOP discriminates.
+                    // a `continue` right after a nested try's handler
+                    // chain also shows POP_TOP + a backward jump to an
+                    // enclosing top — require no legacy chain in flight
+                    // (3.12+ never keeps one)
+                    let inner_break = self.legacy_try.is_none()
+                        && (!self.version.at_least(3, 12)
+                            || self
+                                .match_prev_real(
+                                    self.idx_of
+                                        .get(&self.cur_offset)
+                                        .copied()
+                                        .unwrap_or(usize::MAX),
+                                )
+                                .map_or(false, |pi| self.instrs[pi].op == Op::POP_TOP))
+                        && {
+                            let mut seen_inner = false;
+                            let mut matched_outer = false;
+                            for b in self.blocks.iter().rev() {
+                                if matches!(
+                                    b.kind,
+                                    BlockType::While | BlockType::For
+                                ) {
+                                    if b.start == target || b.cond_end == target {
+                                        matched_outer = true;
+                                        break;
+                                    }
+                                    seen_inner = true;
+                                }
+                            }
+                            seen_inner && matched_outer
+                        };
+                    if inner_break {
+                        // just the Break: the inner loop closes at its
+                        // OWN back edge further down (the linear walk
+                        // still renders the rest of its body and the
+                        // else region), and this jump re-enters the
+                        // outer loop's next iteration naturally
+                        self.push_stmt(Stmt::Break);
+                        // register the inner loop's else end: a backward
+                        // jump to the outer top on the BREAK's own source
+                        // line closes an else region (the compiler
+                        // threads the else's iteration end onto the outer
+                        // back edge); one on the loop header's line is
+                        // the outer loop's own back edge (no else)
+                        if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
+                            let mut inner_idx = None;
+                            let mut inner_end = None;
+                            for i in (0..self.blocks.len()).rev() {
+                                if matches!(
+                                    self.blocks[i].kind,
+                                    BlockType::While | BlockType::For
+                                ) {
+                                    if self.blocks[i].start == target
+                                        || self.blocks[i].cond_end == target
+                                    {
+                                        break;
+                                    }
+                                    if inner_idx.is_none() {
+                                        inner_idx = Some(i);
+                                        inner_end = Some(self.blocks[i].end);
+                                    }
+                                }
+                            }
+                            if let (Some(ii), Some(iend)) = (inner_idx, inner_end) {
+                                if let Some(jb) = self.instrs[ci + 1..].iter().find(|x| {
+                                    x.is_backward
+                                        && matches!(
+                                            x.op,
+                                            Op::JUMP_BACKWARD
+                                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                | Op::JUMP_ABSOLUTE
+                                        )
+                                        && x.target == Some(target)
+                                }) {
+                                    // an else region holds statements
+                                    // between the exhaustion point and
+                                    // the threaded jump; loop padding
+                                    // (END_FOR/POP_TOP) alone means the
+                                    // jump is the outer's plain back edge
+                                    let has_stmts = self
+                                        .instrs
+                                        .iter()
+                                        .any(|x| {
+                                            x.offset >= iend
+                                                && x.offset < jb.offset
+                                                && !matches!(
+                                                    x.op,
+                                                    Op::END_FOR
+                                                        | Op::POP_TOP
+                                                        | Op::POP_ITER
+                                                        | Op::NOP
+                                                        | Op::NOT_TAKEN
+                                                        | Op::CACHE
+                                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                )
+                                        });
+                                    if has_stmts
+                                        && self.blocks[ii].loop_else_end.is_none()
+                                    {
+                                        self.blocks[ii].loop_else_end =
+                                            Some(jb.offset);
+                                    }
+                                }
+                            }
+                        }
+                        return true;
+                    }
                     if !lands_on_back_edge && self.is_continue_jump(target) {
                         // continue of an outer loop: emit first, then close
                         // the inner blocks it jumps out of
@@ -12524,6 +12772,66 @@ impl<'a> Ctx<'a> {
         }
         self.close_blocks_at(self.cur_offset);
         let n = self.blocks.len();
+        if std::env::var("PYCDC_EG_DBG").is_ok() {
+            eprintln!(
+                "EG jb [{}] pos={} target={} blocks={:?}",
+                self.code.name, self.cur_offset, target,
+                self.blocks.iter().map(|b| format!("{:?}[{},{}]{}", b.kind, b.start, b.end, if b.cond_end!=usize::MAX { format!("c{}",b.cond_end) } else { String::new() })).collect::<Vec<_>>()
+            );
+        }
+        // a back edge to an ENCLOSING loop's top emitted from inside a
+        // nested loop is the nested loop's threaded `break` (3.13: the
+        // break jumps straight to the outer next-iteration edge)
+        {
+            let mut outer_i = None;
+            let mut inner_i = None;
+            for i in (0..n).rev() {
+                if matches!(self.blocks[i].kind, BlockType::While | BlockType::For) {
+                    if self.blocks[i].start == target || self.blocks[i].cond_end == target {
+                        outer_i = Some(i);
+                        break;
+                    }
+                    if inner_i.is_none() {
+                        inner_i = Some(i);
+                    }
+                }
+            }
+            if let (Some(oi), Some(ii)) = (outer_i, inner_i) {
+                if ii > oi {
+                    self.push_stmt(Stmt::Break);
+                    self.closed_loop_tops.push(self.blocks[ii].start);
+                    // close down to and including the broken loop; the
+                    // enclosing loop stays open (this jump is ITS back
+                    // edge — the iteration ends)
+                    while self.blocks.len() > oi + 1 {
+                        let p = self.blocks.last().map(|x| x.start).unwrap_or(target);
+                        self.force_close_top(p);
+                    }
+                    // skip the broken loop's exhaustion/else region: it
+                    // ends at the next back edge to the same outer top
+                    if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
+                        let inner_end = self.instrs[ci].end();
+                        if let Some(nx) = self.instrs[ci + 1..]
+                            .iter()
+                            .find(|x| {
+                                x.is_backward
+                                    && matches!(
+                                        x.op,
+                                        Op::JUMP_BACKWARD
+                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                            | Op::JUMP_ABSOLUTE
+                                    )
+                                    && x.target == Some(target)
+                            })
+                            .map(|x| x.end())
+                        {
+                            self.skip_until = Some(nx.max(inner_end));
+                        }
+                    }
+                    return;
+                }
+            }
+        }
         for i in (0..n).rev() {
             if matches!(self.blocks[i].kind, BlockType::While | BlockType::For) {
                 let b = &self.blocks[i];
@@ -17712,6 +18020,38 @@ impl<'a> Ctx<'a> {
                             stack.push(e);
                         }
                     }
+                }
+                Op::CALL_FUNCTION_EX => {
+                    // `f(*t)` / `f(*a, **k)` element: [callable(+marker),
+                    // args-iterable, (kwargs dict when arg&1)]
+                    let underflow = || Rc::new(Expr::Name("?".to_string()));
+                    let star_kw = if inst.arg & 1 != 0 {
+                        stack.pop()
+                    } else {
+                        None
+                    };
+                    let star = stack.pop().unwrap_or_else(underflow);
+                    let func = if self.version.at_least(3, 14) {
+                        if matches!(stack.last(), Some(m) if is_null_marker(m)) {
+                            stack.pop();
+                        }
+                        stack.pop().unwrap_or_else(underflow)
+                    } else if self.version.at_least(3, 11) {
+                        let f = stack.pop().unwrap_or_else(underflow);
+                        if matches!(stack.last(), Some(m) if is_null_marker(m)) {
+                            stack.pop();
+                        }
+                        f
+                    } else {
+                        stack.pop().unwrap_or_else(underflow)
+                    };
+                    stack.push(Rc::new(Expr::Call {
+                        func,
+                        args: Vec::new(),
+                        keywords: Vec::new(),
+                        star_args: Some(star),
+                        star_kwargs: star_kw,
+                    }));
                 }
                 Op::CALL_FUNCTION | Op::CALL | Op::CALL_METHOD => {
                     let n = if inst.op == Op::CALL_FUNCTION && !self.version.at_least(3, 6) {

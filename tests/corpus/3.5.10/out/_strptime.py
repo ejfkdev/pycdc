@@ -344,25 +344,27 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                             tz = value
                             break
                     else:
-                        continue
-        else:
-            leap_year_fix = False
-            if year is None and month == 2:
-                if day == 29:
-                    year = 1904
-                    leap_year_fix = True
-                elif year is None:
-                    year = 1900
-            if julian is None and week_of_year != -1:
-                if weekday is not None:
-                    if week_of_year_start == 0:
                         break
-    week_starts_Mon = False
-    julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
-    if julian <= 0:
-        year -= 1
-        yday = 366 if calendar.isleap(year) else 365
-        julian += yday
+                        leap_year_fix = False
+                        if year is None and month == 2:
+                            if day == 29:
+                                year = 1904
+                                leap_year_fix = True
+                            elif year is None:
+                                year = 1900
+                        if julian is None and week_of_year != -1:
+                            if weekday is not None:
+                                if week_of_year_start == 0:
+                                    break
+        else:
+            week_starts_Mon = False
+            julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
+            if julian <= 0:
+                year -= 1
+                if calendar.isleap(year):
+                    break
+    yday = 365
+    julian += yday
     if julian is None:
         julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
     else:

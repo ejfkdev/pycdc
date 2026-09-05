@@ -22,8 +22,9 @@ class Popen:
                     os.execv(self._cmd[0], self._cmd)
             finally:
                 os._exit(1)
-        _, status = os.waitpid(pid, 0)
-        self.returncode = os.waitstatus_to_exitcode(status)
+        else:
+            _, status = os.waitpid(pid, 0)
+            self.returncode = os.waitstatus_to_exitcode(status)
         return self.returncode
 
 

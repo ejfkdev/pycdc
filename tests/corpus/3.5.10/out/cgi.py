@@ -251,7 +251,8 @@ def _parseparam(s):
                 f = s[:end]
                 yield f.strip()
                 s = s[end:]
-                continue
+                break
+                return
 
 def parse_header(line):
     '''Parse a Content-type like header.

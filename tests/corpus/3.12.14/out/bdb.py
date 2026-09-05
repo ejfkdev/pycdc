@@ -169,12 +169,13 @@ class Bdb:
                 self.user_return(frame, arg)
             finally:
                 self.frame_returning = None
-                if self.quitting:
-                    raise BdbQuit
-                if self.stopframe is frame and self.stoplineno != -1:
-                    self._set_stopinfo(None, None)
-                if self.stoplineno != -1:
-                    self._set_caller_tracefunc(frame)
+            if self.quitting:
+                raise BdbQuit
+            if self.stopframe is frame and self.stoplineno != -1:
+                self._set_stopinfo(None, None)
+            if self.stoplineno != -1:
+                self._set_caller_tracefunc(frame)
+        return self.trace_dispatch
 
     def dispatch_exception(self, frame, arg):
         '''Invoke user function and return trace function for exception event.

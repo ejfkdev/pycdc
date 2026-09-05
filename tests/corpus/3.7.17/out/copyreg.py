@@ -115,7 +115,7 @@ def _slotnames(cls):
                         else:
                             names.append(name)
                     else:
-                        continue
+                        break
     try:
         cls.__slotnames__ = names
     except:

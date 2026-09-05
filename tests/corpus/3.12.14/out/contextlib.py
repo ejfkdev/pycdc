@@ -257,8 +257,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             return False
         finally:
             await self.gen.aclose()
-            if StopAsyncIteration:
-                None
         try:
             pass
         except StopAsyncIteration as exc:

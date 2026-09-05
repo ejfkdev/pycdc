@@ -917,15 +917,15 @@ class RawConfigParser(MutableMapping):
                             if comment_start is None and cursect is not None:
                                 if optname and cursect[optname] is not None:
                                     cursect[optname].append('')
-                                    continue
-            indent_level = sys.maxsize
-            continue
-            first_nonspace = self.NONSPACECRE.search(line)
-            cur_indent_level = first_nonspace.start() if first_nonspace else 0
-            if cursect is not None and optname:
-                if cur_indent_level > indent_level:
-                    cursect[optname].append(value)
-                else:
+                                    break
+                                    indent_level = sys.maxsize
+                        break
+                    first_nonspace = self.NONSPACECRE.search(line)
+                    cur_indent_level = first_nonspace.start() if first_nonspace else 0
+                    if cursect is not None and optname:
+                        if cur_indent_level > indent_level:
+                            cursect[optname].append(value)
+                            break
                     indent_level = cur_indent_level
                     mo = self.SECTCRE.match(value)
                     if mo:
@@ -943,30 +943,29 @@ class RawConfigParser(MutableMapping):
                             self._proxies[sectname] = SectionProxy(self, sectname)
                             elements_added.add(sectname)
                         optname = None
-                    elif cursect is None:
+                        break
+                    if cursect is None:
                         raise MissingSectionHeaderError(fpname, lineno, line)
-                    else:
-                        mo = self._optcre.match(value)
-                        if mo:
-                            optname, vi, optval = mo.group('option', 'vi', 'value')
-                            if not optname:
-                                e = self._handle_error(e, fpname, lineno, line)
-                            optname = self.optionxform(optname.rstrip())
-                            if self._strict and (sectname, optname) in elements_added:
-                                raise DuplicateOptionError(sectname, optname, fpname, lineno)
-                            elements_added.add((sectname, optname))
-                            if optval is not None:
-                                optval = optval.strip()
-                                cursect[optname] = [optval]
-                            else:
-                                cursect[optname] = None
-                        else:
+                        break
+                    mo = self._optcre.match(value)
+                    if mo:
+                        optname, vi, optval = mo.group('option', 'vi', 'value')
+                        if not optname:
                             e = self._handle_error(e, fpname, lineno, line)
-            else:
-                self._join_multiline_values()
-                if e:
-                    raise e
-                return
+                        optname = self.optionxform(optname.rstrip())
+                        if self._strict and (sectname, optname) in elements_added:
+                            raise DuplicateOptionError(sectname, optname, fpname, lineno)
+                        elements_added.add((sectname, optname))
+                        if optval is not None:
+                            optval = optval.strip()
+                            cursect[optname] = [optval]
+                            continue
+            cursect[optname] = None
+            continue
+            e = self._handle_error(e, fpname, lineno, line)
+        self._join_multiline_values()
+        if e:
+            raise e
 
     def _join_multiline_values(self):
         defaults = self.default_section, self._defaults
