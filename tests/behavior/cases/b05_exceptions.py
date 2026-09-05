@@ -118,3 +118,16 @@ try:
     assert_not(True)
 except AssertionError:
     print('AE')
+
+# always-raising handler chain (no POP_EXCEPT normal exit) + trailing
+# module-level loop: the body-jump target must stay a continuation, not
+# a phantom try-else swallowing the rest of the module (crypt family)
+try:
+    _guarded = 1
+except ZeroDivisionError:
+    raise ValueError('guard')
+
+_total = 0
+for _i in range(3):
+    _total += _i
+print('tail', _total, _guarded)

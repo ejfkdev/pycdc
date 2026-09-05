@@ -676,9 +676,8 @@ class MutableSet(Set):
             value = next(it)
         except StopIteration:
             raise KeyError from None
-        else:
-            self.discard(value)
-            return value
+        self.discard(value)
+        return value
 
     def clear(self):
         '''This is slow (creates N new iterators!) but effective.'''
@@ -885,10 +884,9 @@ class MutableMapping(Mapping):
             key = next(iter(self))
         except StopIteration:
             raise KeyError from None
-        else:
-            value = self[key]
-            del self[key]
-            return key, value
+        value = self[key]
+        del self[key]
+        return key, value
 
     def clear(self):
         '''D.clear() -> None.  Remove all items from D.'''

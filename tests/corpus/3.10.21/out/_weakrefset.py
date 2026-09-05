@@ -94,14 +94,13 @@ class WeakSet:
         if self._pending_removals:
             self._commit_removals()
         while True:
+            try:
+                itemref = self.data.pop()
+            except KeyError:
+                raise KeyError('pop from empty WeakSet') from None
+            item = itemref()
             if item is not None:
-                try:
-                    itemref = self.data.pop()
-                except KeyError:
-                    raise KeyError('pop from empty WeakSet') from None
-                else:
-                    item = itemref()
-                    return item
+                return item
 
     def remove(self, item):
         if self._pending_removals:

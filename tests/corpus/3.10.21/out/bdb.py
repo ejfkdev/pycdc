@@ -455,17 +455,13 @@ class Bdb:
             number = int(arg)
         except ValueError:
             raise ValueError('Non-numeric breakpoint number %s' % arg) from None
-        else:
-            bp = Breakpoint.bpbynumber[number]
         try:
-            pass
+            bp = Breakpoint.bpbynumber[number]
         except IndexError:
             raise ValueError('Breakpoint number %d out of range' % number) from None
-        else:
+        if bp is None:
             raise ValueError('Breakpoint %d already deleted' % number)
-            if bp is None:
-                pass
-            return bp
+        return bp
 
     def get_break(self, filename, lineno):
         '''Return True if there is a breakpoint for filename:lineno.'''

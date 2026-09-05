@@ -65,14 +65,11 @@ class Chunk:
             self.chunksize = struct.unpack_from(strflag + 'L', file.read(4))[0]
         except struct.error:
             raise EOFError from None
-        else:
+        if inclheader:
             self.chunksize = self.chunksize - 8
-            if inclheader:
-                pass
-            self.size_read = 0
-            self.offset = self.file.tell()
+        self.size_read = 0
         try:
-            pass
+            self.offset = self.file.tell()
         except (AttributeError, OSError):
             self.seekable = False
         else:

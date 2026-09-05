@@ -169,8 +169,7 @@ def _b32decode(alphabet, s, casefold=False, map01=None):
                 acc = (acc << 5) + b32rev[c]
         except KeyError:
             raise binascii.Error('Non-base32 digit found') from None
-        else:
-            decoded += acc.to_bytes(5, 'big')
+        decoded += acc.to_bytes(5, 'big')
     if l % 8 or padchars not in frozenset({0, 1, 3, 4, 6}):
         raise binascii.Error('Incorrect padding')
     if padchars and decoded:
@@ -322,8 +321,7 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
                     decoded_append(packI(acc))
                 except struct.error:
                     raise ValueError('Ascii85 overflow') from None
-                else:
-                    curr_clear()
+                curr_clear()
     if x == 122:
         if curr:
             raise ValueError('z inside Ascii85 5-tuple')
@@ -387,10 +385,8 @@ def b85decode(b):
                     raise ValueError('bad base85 character at position %d' % (i + j)) from None
                 continue
             raise
-        else:
-            out.append(packI(acc))
         try:
-            pass
+            out.append(packI(acc))
         except struct.error:
             raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
     result = b''.join(out)
@@ -432,15 +428,12 @@ def _input_type_check(s):
     except TypeError as err:
         msg = 'expected bytes-like object, not %s' % s.__class__.__name__
         raise TypeError(msg) from err
-    else:
+    if m.format not in ('c', 'b', 'B'):
         msg = 'expected single byte elements, not %r from %s' % (m.format, s.__class__.__name__)
         raise TypeError(msg)
-        if m.format not in ('c', 'b', 'B'):
-            pass
+    if m.ndim != 1:
         msg = 'expected 1-D data, not %d-D data from %s' % (m.ndim, s.__class__.__name__)
         raise TypeError(msg)
-        if m.ndim != 1:
-            pass
 
 def encodebytes(s):
     _input_type_check(s)

@@ -9,20 +9,19 @@ Written by Marc-Andre Lemburg (mal@lemburg.com).
 
 import builtins
 import sys
+try:
+    from _codecs import *
+except ImportError as why:
+    raise SystemError('Failed to load the builtin codecs: %s' % why)
+__all__ = ['register', 'lookup', 'open', 'EncodedFile', 'BOM', 'BOM_BE', 'BOM_LE', 'BOM32_BE', 'BOM32_LE', 'BOM64_BE', 'BOM64_LE', 'BOM_UTF8', 'BOM_UTF16', 'BOM_UTF16_LE', 'BOM_UTF16_BE', 'BOM_UTF32', 'BOM_UTF32_LE', 'BOM_UTF32_BE', 'CodecInfo', 'Codec', 'IncrementalEncoder', 'IncrementalDecoder', 'StreamReader', 'StreamWriter', 'StreamReaderWriter', 'StreamRecoder', 'getencoder', 'getdecoder', 'getincrementalencoder', 'getincrementaldecoder', 'getreader', 'getwriter', 'encode', 'decode', 'iterencode', 'iterdecode', 'strict_errors', 'ignore_errors', 'replace_errors', 'xmlcharrefreplace_errors', 'backslashreplace_errors', 'namereplace_errors', 'register_error', 'lookup_error']
+BOM_UTF8 = b'\xef\xbb\xbf'
+BOM_LE = BOM_UTF16_LE = b'\xff\xfe'
+BOM_BE = BOM_UTF16_BE = b'\xfe\xff'
+BOM_UTF32_LE = b'\xff\xfe\x00\x00'
+BOM_UTF32_BE = b'\x00\x00\xfe\xff'
 if sys.byteorder == 'little':
-    try:
-        from _codecs import *
-    except ImportError as why:
-        raise SystemError('Failed to load the builtin codecs: %s' % why)
-    else:
-        __all__ = ['register', 'lookup', 'open', 'EncodedFile', 'BOM', 'BOM_BE', 'BOM_LE', 'BOM32_BE', 'BOM32_LE', 'BOM64_BE', 'BOM64_LE', 'BOM_UTF8', 'BOM_UTF16', 'BOM_UTF16_LE', 'BOM_UTF16_BE', 'BOM_UTF32', 'BOM_UTF32_LE', 'BOM_UTF32_BE', 'CodecInfo', 'Codec', 'IncrementalEncoder', 'IncrementalDecoder', 'StreamReader', 'StreamWriter', 'StreamReaderWriter', 'StreamRecoder', 'getencoder', 'getdecoder', 'getincrementalencoder', 'getincrementaldecoder', 'getreader', 'getwriter', 'encode', 'decode', 'iterencode', 'iterdecode', 'strict_errors', 'ignore_errors', 'replace_errors', 'xmlcharrefreplace_errors', 'backslashreplace_errors', 'namereplace_errors', 'register_error', 'lookup_error']
-        BOM_UTF8 = b'\xef\xbb\xbf'
-        BOM_LE = BOM_UTF16_LE = b'\xff\xfe'
-        BOM_BE = BOM_UTF16_BE = b'\xfe\xff'
-        BOM_UTF32_LE = b'\xff\xfe\x00\x00'
-        BOM_UTF32_BE = b'\x00\x00\xfe\xff'
-        BOM = BOM_UTF16 = BOM_UTF16_LE
-        BOM_UTF32 = BOM_UTF32_LE
+    BOM = BOM_UTF16 = BOM_UTF16_LE
+    BOM_UTF32 = BOM_UTF32_LE
 else:
     BOM = BOM_UTF16 = BOM_UTF16_BE
     BOM_UTF32 = BOM_UTF32_BE

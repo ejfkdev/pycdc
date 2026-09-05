@@ -4259,6 +4259,32 @@ impl<'a> Ctx<'a> {
                         .legacy_try
                         .as_ref()
                         .map_or(false, |l| l.else_start.map_or(true, |es| pos >= es) == false);
+                    // every handler path raises (no POP_EXCEPT anywhere in
+                    // the chain): the region at the body-jump target has no
+                    // discoverable extent (a real else is delimited by the
+                    // handler's exit jump, which does not exist here) and
+                    // continuation treatment is semantically identical -
+                    // retract the presumed else (crypt's module-level
+                    // always-raising import guard)
+                    if has_else_after {
+                        let chain_start = self.legacy_try.as_ref().map(|l| l.handler_start);
+                        if let (Some(hs), Some(&hi)) =
+                            (chain_start, self.idx_of.get(&pos))
+                        {
+                            let always_raises = !self.instrs[..=hi]
+                                .iter()
+                                .any(|x| x.offset >= hs && x.op == Op::POP_EXCEPT);
+                            if always_raises {
+                                if let Some(l) = self.legacy_try.as_mut() {
+                                    l.else_start = None;
+                                }
+                            }
+                        }
+                    }
+                    let has_else_after = self
+                        .legacy_try
+                        .as_ref()
+                        .map_or(false, |l| l.else_start.map_or(true, |es| pos >= es) == false);
                     if has_else_after {
                         // an else region follows the chain: defer emission
                         // until the region is consumed
@@ -13693,9 +13719,11 @@ impl<'a> Ctx<'a> {
                 .skip_while(|i| i.offset < from)
                 .take_while(|i| i.offset < t)
                 .any(|i| i.target.map_or(false, |it| it > from && it <= t))
-                // a backward jump from inside the region landing on t
-                // makes t a loop TOP within the region (the back edge
-                // always sits after it), not an early boundary
+                // a loop BACK EDGE from inside the region landing on t
+                // makes t a loop top within the region (3.8+ has no
+                // SETUP_LOOP: an else-region for-loop's back edge targets
+                // its FOR_ITER), not an early boundary. Backward
+                // `continue` jumps from before t still bound the region.
                 || self
                     .instrs
                     .iter()
