@@ -123,6 +123,8 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
                 return exc is not value
             except RuntimeError as exc:
                 pass
+            except:
+                pass
             raise RuntimeError("generator didn't stop after throw()")
 
 

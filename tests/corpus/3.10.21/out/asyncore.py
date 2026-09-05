@@ -60,28 +60,31 @@ class ExitNow(Exception):
 _reraised_exceptions = ExitNow, KeyboardInterrupt, SystemExit
 
 def read(obj):
-    obj.handle_error()
     try:
         obj.handle_read_event()
         return
     except _reraised_exceptions:
         raise
+    except:
+        obj.handle_error()
 
 def write(obj):
-    obj.handle_error()
     try:
         obj.handle_write_event()
         return
     except _reraised_exceptions:
         raise
+    except:
+        obj.handle_error()
 
 def _exception(obj):
-    obj.handle_error()
     try:
         obj.handle_expt_event()
         return
     except _reraised_exceptions:
         raise
+    except:
+        obj.handle_error()
 
 def readwrite(obj, flags):
     if e.errno not in _DISCONNECTED:
@@ -470,6 +473,8 @@ def close_all(map=None, ignore_all=False):
             continue
         except _reraised_exceptions:
             raise
+        except:
+            pass
     map.clear()
 
 if os.name == 'posix':

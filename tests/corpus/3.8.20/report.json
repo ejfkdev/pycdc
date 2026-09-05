@@ -43,9 +43,9 @@
    "module": "_dummy_thread",
    "ast_detail": "diff at token 22: orig  value=Constant(value=2147483648) | dec  value=Constant(value=2147483648",
    "verdict": "SIG-DIFF",
-   "ndiff": 274,
+   "ndiff": 143,
    "ntotal": 387,
-   "detail": "line 99: orig ('SETUP_FINALLY', 'to 72') | got ('LOAD_CONST', '0')\nline 100: orig ('LOAD_FAST', 'function') | got ('LOAD_CONST', 'None')\nline 101: orig ('LOAD_FAST', 'args') | got ('IMPORT_NAME', 'traceback')"
+   "detail": "line 244: orig ('LOAD_CONST', 'None') | got ('__exit__', 4)\nline 245: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'self')\nline 246: orig ('__exit__', 4) | got ('LOAD_METHOD', 'release')"
   },
   {
    "module": "_markupbase",
@@ -135,8 +135,8 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2123,
-   "ntotal": 2206,
+   "ndiff": 2133,
+   "ntotal": 2218,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -227,7 +227,7 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 636,
+   "ndiff": 628,
    "ntotal": 671,
    "detail": "line 12: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 16: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
@@ -271,7 +271,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 86: orig  body=[Return(value=Constant(value=None | dec  body=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1505,
+   "ndiff": 1502,
    "ntotal": 1827,
    "detail": "line 296: orig ('LOAD_DEREF', 'func') | got ('LOAD_FAST', 'func')\nline 298: orig ('LOAD_CLOSURE', 'func') | got ('LOAD_CLOSURE', 'self')\nline 299: orig ('LOAD_CLOSURE', 'self') | got ('BUILD_TUPLE', '')"
   },

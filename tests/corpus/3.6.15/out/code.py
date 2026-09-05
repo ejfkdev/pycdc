@@ -71,11 +71,24 @@ class InteractiveInterpreter:
             return False
 
     def runcode(self, code):
-        self.showtraceback()
+        '''Execute a code object.
+
+        When an exception occurs, self.showtraceback() is called to
+        display a traceback.  All exceptions are caught except
+        SystemExit, which is reraised.
+
+        A note about KeyboardInterrupt: this exception may occur
+        elsewhere in this code, and may not always be caught.  The
+        caller should be prepared to deal with it.
+
+        '''
+
         try:
             exec(code, self.locals)
         except SystemExit:
             raise
+        except:
+            self.showtraceback()
 
     def showsyntaxerror(self, filename=None):
         '''Display the syntax error that just occurred.

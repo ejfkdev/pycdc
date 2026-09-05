@@ -36,12 +36,13 @@ def start_new_thread(function, args, kwargs={}):
     if type(kwargs) != type(dict()):
         raise TypeError('3rd arg must be a dict')
     _main = False
-    import traceback
-    traceback.print_exc()
     try:
         function(*args, **kwargs)
     except SystemExit:
         pass
+    except:
+        import traceback
+        traceback.print_exc()
     _main = True
     if _interrupt:
         _interrupt = False

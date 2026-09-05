@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
   "PASS": 11,
-  "SIG-DIFF": 26,
-  "AST-PASS": 3
+  "SIG-DIFF": 25,
+  "AST-PASS": 4
  },
  "results": [
   {
@@ -37,11 +37,7 @@
   },
   {
    "module": "_dummy_thread",
-   "ast_detail": "diff at token 73: orig  Try(body=[Expr(value=Call(func=Name(id='function' | dec  Import(names=[alias(name='traceback'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 194,
-   "ntotal": 291,
-   "detail": "line 89: orig ('SETUP_EXCEPT', 'to 104') | got ('LOAD_CONST', '0')\nline 90: orig ('LOAD_FAST', 'function') | got ('LOAD_CONST', 'None')\nline 91: orig ('LOAD_FAST', 'args') | got ('IMPORT_NAME', 'traceback')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_markupbase",
@@ -115,8 +111,8 @@
    "module": "asyncore",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 2178,
-   "ntotal": 2238,
+   "ndiff": 2198,
+   "ntotal": 2258,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -203,8 +199,8 @@
    "module": "code",
    "ast_detail": "",
    "verdict": "SIG-DIFF",
-   "ndiff": 532,
-   "ntotal": 648,
+   "ndiff": 618,
+   "ntotal": 653,
    "detail": "line 16: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 20: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
   {
@@ -243,7 +239,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 111: orig  Assign(targets=[Tuple(elts=[Attribute(value=Name(id='self' | dec  Assign(targets=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 680,
+   "ndiff": 683,
    "ntotal": 881,
    "detail": "line 181: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')\nline 182: orig ('LOAD_FAST', 'kwds') | got ('STORE_ATTR', 'func')\nline 183: orig ('ROT_THREE', '') | got ('LOAD_FAST', 'args')"
   },

@@ -229,8 +229,6 @@ class SimpleXMLRPCDispatcher:
         of changing method dispatch behavior.
         '''
 
-        exc_type, exc_value, exc_tb = sys.exc_info()
-        response = xmlrpclib.dumps(xmlrpclib.Fault(1, '%s:%s' % (exc_type, exc_value)), encoding=self.encoding, allow_none=self.allow_none)
         try:
             params, method = xmlrpclib.loads(data)
             if dispatch_method is not None:
@@ -241,6 +239,9 @@ class SimpleXMLRPCDispatcher:
             response = xmlrpclib.dumps(response, methodresponse=1, allow_none=self.allow_none, encoding=self.encoding)
         except Fault, fault:
             response = xmlrpclib.dumps(fault, allow_none=self.allow_none, encoding=self.encoding)
+        except:
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            response = xmlrpclib.dumps(xmlrpclib.Fault(1, '%s:%s' % (exc_type, exc_value)), encoding=self.encoding, allow_none=self.allow_none)
         return response
 
     def system_listMethods(self):
@@ -302,12 +303,14 @@ class SimpleXMLRPCDispatcher:
         for call in call_list:
             method_name = call['methodName']
             params = call['params']
-            exc_type, exc_value, exc_tb = sys.exc_info()
-            results.append({'faultCode': 1, 'faultString': '%s:%s' % (exc_type, exc_value)})
             try:
                 results.append([self._dispatch(method_name, params)])
             except Fault, fault:
                 results.append({'faultCode': fault.faultCode, 'faultString': fault.faultString})
+                continue
+            except:
+                exc_type, exc_value, exc_tb = sys.exc_info()
+                results.append({'faultCode': 1, 'faultString': '%s:%s' % (exc_type, exc_value)})
                 continue
         return results
 

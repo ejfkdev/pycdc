@@ -3709,6 +3709,79 @@ impl<'a> Ctx<'a> {
             }
         }
 
+        // bare `except:` continuation in a MULTI-handler chain: the previous
+        // (typed) handler just closed at its mismatch-jump target, which is
+        // this bare except's first POP_TOP. The entry check above only fires
+        // for a bare except as the FIRST handler (handlers.is_empty() && pos
+        // == handler_start); a trailing `except:` after `except E:` starts
+        // here instead. Open a typeless handler so its body is collected as a
+        // clause rather than hoisted to the enclosing block.
+        if self.legacy_handler.is_none()
+            && self.legacy_try.is_some()
+            && inst.op == Op::POP_TOP
+        {
+            let try_active = self
+                .legacy_try
+                .as_ref()
+                .map_or(false, |l| !l.handlers.is_empty() && l.else_start.is_none());
+            if try_active {
+                // confirm a bare-except shape: a run of POP_TOPs (the exc
+                // triple, possibly after a pending-as cleanup store) leading
+                // to a real body instruction — not a jump/terminal (which
+                // would be chain-end glue, not a handler body).
+                let mut k = self
+                    .idx_of
+                    .get(&pos)
+                    .map(|&i| i + 1)
+                    .unwrap_or(self.instrs.len());
+                let mut pops = 0;
+                let mut ok = false;
+                let mut hend = usize::MAX;
+                while k < self.instrs.len() && pops < 4 {
+                    let ins = &self.instrs[k];
+                    match ins.op {
+                        Op::POP_TOP => {
+                            pops += 1;
+                            k += 1;
+                        }
+                        Op::STORE_FAST | Op::STORE_NAME | Op::DELETE_FAST
+                        | Op::DELETE_NAME | Op::NOP => k += 1,
+                        Op::POP_EXCEPT | Op::END_FINALLY | Op::RERAISE
+                        | Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE | Op::JUMP
+                        | Op::DUP_TOP => break,
+                        _ => {
+                            if pops >= 1 {
+                                ok = true;
+                                // handler body ends at its POP_EXCEPT /
+                                // END_FINALLY / RERAISE
+                                for e in self.instrs[k..].iter() {
+                                    if matches!(
+                                        e.op,
+                                        Op::POP_EXCEPT | Op::END_FINALLY | Op::RERAISE
+                                    ) {
+                                        hend = e.offset;
+                                        break;
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                if ok {
+                    self.legacy_handler = Some(LegacyHandler {
+                        type_: None,
+                        name: None,
+                        body: Vec::new(),
+                        block_depth: self.blocks.len(),
+                        pop_seen: false,
+                    });
+                    self.legacy_handler_end = Some(hend);
+                    self.in_handler_prelude = true;
+                }
+            }
+        }
+
         // swallow the implicit `name = None; del name` handler cleanup
         if self.legacy_handler.is_some() {
             let hname = self

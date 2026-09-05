@@ -54,28 +54,30 @@ class ExitNow(Exception):
 _reraised_exceptions = ExitNow, KeyboardInterrupt, SystemExit
 
 def read(obj):
-    obj.handle_error()
     try:
         obj.handle_read_event()
     except _reraised_exceptions:
         raise
+    except:
+        obj.handle_error()
 
 def write(obj):
-    obj.handle_error()
     try:
         obj.handle_write_event()
     except _reraised_exceptions:
         raise
+    except:
+        obj.handle_error()
 
 def _exception(obj):
-    obj.handle_error()
     try:
         obj.handle_expt_event()
     except _reraised_exceptions:
         raise
+    except:
+        obj.handle_error()
 
 def readwrite(obj, flags):
-    obj.handle_error()
     try:
         if flags & select.POLLIN:
             obj.handle_read_event()
@@ -92,6 +94,8 @@ def readwrite(obj, flags):
             obj.handle_close()
     except _reraised_exceptions:
         raise
+    except:
+        obj.handle_error()
 
 def poll(timeout=0.0, map=None):
     if map is None:
@@ -438,16 +442,19 @@ def close_all(map=None, ignore_all=False):
     if map is None:
         map = socket_map
     for x in map.values():
-        if not ignore_all:
+        try:
+            x.close()
+        except OSError, x:
+            pass
+        except _reraised_exceptions:
             raise
-            try:
-                x.close()
-            except OSError, x:
-                pass
-            except _reraised_exceptions:
+            if not ignore_all:
                 raise
-                if not ignore_all:
-                    raise
+        except:
+            if not ignore_all:
+                raise
+            else:
+                continue
     map.clear()
 
 if os.name == 'posix':
