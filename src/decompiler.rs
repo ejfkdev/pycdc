@@ -6747,6 +6747,13 @@ impl<'a> Ctx<'a> {
                                         .map_or(false, |bt| self.find_loop_exit(bt).is_some())))
                     })
                     .unwrap_or(false);
+                if std::env::var("PYCDC_EG_DBG").is_ok() {
+                    eprintln!(
+                        "EG jbarm [{}] pos={} target={} lands={} iscont={} degen={} fused?",
+                        self.code.name, self.cur_offset, target,
+                        lands_on_back_edge, self.is_continue_jump(target), degenerate_break_fusion
+                    );
+                }
                 if !degenerate_break_fusion
                     && (lands_on_back_edge || self.is_continue_jump(target))
                 {
@@ -6826,6 +6833,9 @@ impl<'a> Ctx<'a> {
                         }
                         _ => false,
                     };
+                    if std::env::var("PYCDC_EG_DBG").is_ok() {
+                        eprintln!("EG jfold [{}] pos={} folded={}", self.code.name, self.cur_offset, folded);
+                    }
                     if folded {
                         let end = self.blocks.last().map(|t| t.end).unwrap_or(target);
                         // mark every enclosing open If/Else whose region
@@ -6920,6 +6930,14 @@ impl<'a> Ctx<'a> {
                             }
                             seen_inner && matched_outer
                         };
+                    if std::env::var("PYCDC_EG_DBG").is_ok() {
+                        eprintln!(
+                            "EG ib [{}] pos={} target={} inner_break={} blocks={:?} skip={:?}",
+                            self.code.name, self.cur_offset, target, inner_break,
+                            self.blocks.iter().map(|b| format!("{:?}[{},{}]", b.kind, b.start, b.end)).collect::<Vec<_>>(),
+                            self.skip_until
+                        );
+                    }
                     if inner_break {
                         // just the Break: the inner loop closes at its
                         // OWN back edge further down (the linear walk
@@ -6967,8 +6985,10 @@ impl<'a> Ctx<'a> {
                                     // between the exhaustion point and
                                     // the threaded jump; loop padding
                                     // (END_FOR/POP_TOP) alone means the
-                                    // jump is the outer's plain back edge
-                                    let has_stmts = self
+                                    // jump is the outer's plain back edge.
+                                    // A threaded inner exit (end BEFORE
+                                    // this break) has no local else span
+                                    let has_stmts = iend > self.cur_offset && self
                                         .instrs
                                         .iter()
                                         .any(|x| {
@@ -12778,59 +12798,6 @@ impl<'a> Ctx<'a> {
                 self.code.name, self.cur_offset, target,
                 self.blocks.iter().map(|b| format!("{:?}[{},{}]{}", b.kind, b.start, b.end, if b.cond_end!=usize::MAX { format!("c{}",b.cond_end) } else { String::new() })).collect::<Vec<_>>()
             );
-        }
-        // a back edge to an ENCLOSING loop's top emitted from inside a
-        // nested loop is the nested loop's threaded `break` (3.13: the
-        // break jumps straight to the outer next-iteration edge)
-        {
-            let mut outer_i = None;
-            let mut inner_i = None;
-            for i in (0..n).rev() {
-                if matches!(self.blocks[i].kind, BlockType::While | BlockType::For) {
-                    if self.blocks[i].start == target || self.blocks[i].cond_end == target {
-                        outer_i = Some(i);
-                        break;
-                    }
-                    if inner_i.is_none() {
-                        inner_i = Some(i);
-                    }
-                }
-            }
-            if let (Some(oi), Some(ii)) = (outer_i, inner_i) {
-                if ii > oi {
-                    self.push_stmt(Stmt::Break);
-                    self.closed_loop_tops.push(self.blocks[ii].start);
-                    // close down to and including the broken loop; the
-                    // enclosing loop stays open (this jump is ITS back
-                    // edge — the iteration ends)
-                    while self.blocks.len() > oi + 1 {
-                        let p = self.blocks.last().map(|x| x.start).unwrap_or(target);
-                        self.force_close_top(p);
-                    }
-                    // skip the broken loop's exhaustion/else region: it
-                    // ends at the next back edge to the same outer top
-                    if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
-                        let inner_end = self.instrs[ci].end();
-                        if let Some(nx) = self.instrs[ci + 1..]
-                            .iter()
-                            .find(|x| {
-                                x.is_backward
-                                    && matches!(
-                                        x.op,
-                                        Op::JUMP_BACKWARD
-                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
-                                            | Op::JUMP_ABSOLUTE
-                                    )
-                                    && x.target == Some(target)
-                            })
-                            .map(|x| x.end())
-                        {
-                            self.skip_until = Some(nx.max(inner_end));
-                        }
-                    }
-                    return;
-                }
-            }
         }
         for i in (0..n).rev() {
             if matches!(self.blocks[i].kind, BlockType::While | BlockType::For) {

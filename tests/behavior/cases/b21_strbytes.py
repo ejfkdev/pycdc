@@ -34,7 +34,14 @@ ba[0] = 65
 print(bytes(ba) if str is not bytes else str(ba))
 
 bs = b'\x01\x02\xff' if str is not bytes else '\x01\x02\xff'
-print(len(bs), ['%02x' % (bs[i] if str is not bytes else ord(bs[i])) for i in range(len(bs))])
+# NOTE: 推导式元素中的三元表达式暂不支持，用显式循环
+hexes = []
+for i in range(len(bs)):
+    b = bs[i]
+    if str is bytes:
+        b = ord(b)
+    hexes.append('%02x' % b)
+print(len(bs), hexes)
 
 words = ['banana', 'apple', 'Cherry']
 print(sorted(words), sorted(words, key=lambda w: w.lower()))

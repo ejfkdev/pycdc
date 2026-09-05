@@ -341,24 +341,29 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                             year = 1900
                     if julian is None and week_of_year != -1:
                         if weekday is not None:
-                            week_starts_Mon = True if week_of_year_start == 0 else False
-                            julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
-                            if julian <= 0:
-                                year -= 1
-                                yday = 366 if calendar.isleap(year) else 365
-                                julian += yday
-                    if julian is None:
-                        julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
-                    else:
-                        datetime_result = datetime_date.fromordinal(julian - 1 + datetime_date(year, 1, 1).toordinal())
-                        year = datetime_result.year
-                        month = datetime_result.month
-                        day = datetime_result.day
-                    if weekday is None:
-                        weekday = datetime_date(year, month, day).weekday()
-                    if leap_year_fix:
-                        year = 1900
-                    return time.struct_time((year, month, day, hour, minute, second, weekday, julian, tz)), fraction
+                            if week_of_year_start == 0:
+                                break
+        else:
+            week_starts_Mon = False
+            julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
+            if julian <= 0:
+                year -= 1
+                if calendar.isleap(year):
+                    break
+    yday = 365
+    julian += yday
+    if julian is None:
+        julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
+    else:
+        datetime_result = datetime_date.fromordinal(julian - 1 + datetime_date(year, 1, 1).toordinal())
+        year = datetime_result.year
+        month = datetime_result.month
+        day = datetime_result.day
+    if weekday is None:
+        weekday = datetime_date(year, month, day).weekday()
+    if leap_year_fix:
+        year = 1900
+    return time.struct_time((year, month, day, hour, minute, second, weekday, julian, tz)), fraction
 
 def _strptime_time(data_string, format='%a %b %d %H:%M:%S %Y'):
     return _strptime(data_string, format)[0]
