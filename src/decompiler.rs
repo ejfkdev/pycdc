@@ -12806,7 +12806,7 @@ impl<'a> Ctx<'a> {
         cond: &ExprRef,
         jump_if_true: bool,
         target: usize,
-    ) -> Option<(ExprRef, usize)> {
+    ) -> Option<(ExprRef, usize, usize)> {
         // PJIT pairs only: a same-polarity PJIF pair with a continue
         // trampoline before the target is the classic `if A and B: stmt;
         // continue` -- indistinguishable locally from the or-join, and
@@ -12833,13 +12833,6 @@ impl<'a> Ctx<'a> {
         if e0 < 2 || e_cur + 1 > e0 - 1 {
             return None;
         }
-        // only padding between this jump and the false-exit back jump
-        if !self.instrs[e_cur + 1..e0 - 1]
-            .iter()
-            .all(|x| matches!(x.op, Op::NOT_TAKEN | Op::NOP | Op::CACHE))
-        {
-            return None;
-        }
         // the false exit: unconditional backward jump to the enclosing
         // loop top right before the body
         let fx = &self.instrs[e0 - 1];
@@ -12857,6 +12850,18 @@ impl<'a> Ctx<'a> {
         {
             return None;
         }
+        // NOTHING but padding between this jump and the trampoline: any
+        // statement op or jump in between is an explicit guard-continue
+        // (ast 3.14 dump _format `if A and B: continue` -- absorbing it
+        // DeMorgans the guard and wraps the fall-through body; the 3.14
+        // continue-guard machinery renders the source form).
+        if !self.instrs[e_cur + 1..e0 - 1].iter().all(|x| {
+            x.target.is_none()
+                && matches!(x.op, Op::NOT_TAKEN | Op::NOP | Op::CACHE)
+        }) {
+            return None;
+        }
+        let tramp_end = fx.end();
         // pure value region between the two operand jumps
         if !self.instrs[s0..e_cur].iter().all(|x| {
             x.target.is_none()
@@ -12896,6 +12901,7 @@ impl<'a> Ctx<'a> {
         Some((
             Rc::new(Expr::BoolOp { op: BoolOpKind::Or, values }),
             body_end,
+            tramp_end,
         ))
     }
 
@@ -13846,7 +13852,9 @@ impl<'a> Ctx<'a> {
         // or-merge/try_or_and_chain machinery, and running this there
         // scrambled csv _sniffer 3.5/3.6 (+350 sig lines).
         if self.version.at_least(3, 12) {
-            if let Some((merged, body_end)) = self.try_or_join(&cond, jump_if_true, target) {
+            if let Some((merged, body_end, tramp_end)) =
+                self.try_or_join(&cond, jump_if_true, target)
+            {
             self.blocks.pop();
             let mut blk = Block::new(BlockType::If, target, body_end);
             blk.cond = Some(merged);
@@ -13854,7 +13862,9 @@ impl<'a> Ctx<'a> {
             blk.jump_if_true = false;
             blk.stack_depth = self.stack.len();
             self.blocks.push(blk);
-            self.skip_until = Some(target);
+            // skip the absorbed operand spans AND the false-exit
+            // trampoline; resume at the body
+            self.skip_until = Some(tramp_end.max(target));
             return;
             }
         }
