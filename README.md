@@ -84,18 +84,24 @@ cargo build                                                 # 重新嵌入
 
 | 指标 | 数量 |
 |---|---|
-| PASS（字节码级一致） | 106（20.4%） |
-| AST-PASS（语义等价） | 73 |
+| PASS（字节码级一致） | 120（23.1%） |
+| AST-PASS（语义等价） | 59 |
 | **语义等价合计** | **179（34.4%）** |
 | INCOMPLETE（可编译、含占位/警告） | 104 |
 | SIG-DIFF（可编译、结构有差） | 237 |
 | SYNTAX-ERR | **0（所有 520 个输出都能在对应版本编译）** |
 
-> 注：`INCOMPLETE` 此前长期显示为 0 是 verify_corpus 的检测 bug——warned
+> 注 1：`INCOMPLETE` 此前长期显示为 0 是 verify_corpus 的检测 bug——warned
 > 判定在 stderr 里找的是源码内注释标记的文案（`Decompyle incomplete`），
 > 而 CLI 的 stderr 文案是 `decompilation incomplete`，从未命中；带警告的
 > 模块被静默判成 SIG-DIFF/AST-PASS。修复后为诚实重基线（INCOMPLETE 集中在
 > 3.8–3.14 的 try/finally 与 match 族；2.6–3.7 全部干净）。
+>
+> 注 2：sig_dump 的 py2/3.0–3.3 路径此前对 code-object 常量输出原始 repr
+> （含内存地址与构建路径），原 pyc 与重编译 pyc 该行**永不相等**——任何带
+> 嵌套函数/类的 py2、3.3 模块被系统性挡在 PASS 之外。归一为 `<code 名>`
+> （与 py3 路径一致，嵌套代码本就递归全量对比）后 14 个 AST-PASS 直升
+> PASS（2.6 +4、2.7 +5、3.3 +5），零降级。
 
 每个版本目录下的 `report.json` 保存逐模块判级与首个差异位置，便于聚类修复。
 

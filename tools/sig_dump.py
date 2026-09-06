@@ -30,7 +30,14 @@ def describe2(code, op, arg, label):
     import opcode
     if op in opcode.hasconst:
         try:
-            return repr(code.co_consts[arg])[:60]
+            c = code.co_consts[arg]
+            if isinstance(c, types.CodeType):
+                # the raw repr carries a memory address and the build
+                # path - normalize like sig3 does so an original pyc and
+                # a recompiled pyc compare equal (the nested code's own
+                # instructions are dumped recursively below anyway)
+                return "<code %s>" % c.co_name
+            return repr(c)[:60]
         except Exception:
             return "<const>"
     if op in opcode.hasname:
@@ -108,7 +115,12 @@ def sig3_manual(code, out):
                 r = "#%s" % off2idx.get(arg, "?")
             elif op in opcode.hasconst:
                 try:
-                    r = repr(code.co_consts[arg])[:60]
+                    c = code.co_consts[arg]
+                    if isinstance(c, types.CodeType):
+                        # normalize away address/path noise (see describe2)
+                        r = "<code %s>" % c.co_name
+                    else:
+                        r = repr(c)[:60]
                 except Exception:
                     r = "<const>"
             elif op in opcode.hasname:
