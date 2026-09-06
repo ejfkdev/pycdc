@@ -75,8 +75,8 @@
    "module": "SimpleHTTPServer",
    "ast_detail": "diff at token 138: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 414,
-   "ntotal": 677,
+   "ndiff": 413,
+   "ntotal": 679,
    "detail": "line 210: orig ('JUMP_IF_FALSE', '#75') | got ('JUMP_IF_FALSE', '#42')\nline 217: orig ('JUMP_IF_TRUE', '#42') | got ('JUMP_IF_FALSE', '#42')\nline 240: orig ('SETUP_LOOP', '#76') | got ('SETUP_LOOP', '#75')"
   },
   {
@@ -173,11 +173,11 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 192: orig  body=[TryExcept(body=[Assign(targets=[Name(id='data' | dec  body=[While(test=Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 376: orig  kwargs=None)) | dec  kwargs=None))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 638,
+   "ndiff": 586,
    "ntotal": 854,
-   "detail": "line 190: orig ('SETUP_EXCEPT', '#9') | got ('SETUP_LOOP', '#213')\nline 192: orig ('LOAD_ATTR', 'recv') | got ('LOAD_ATTR', 'ac_in_buffer')\nline 193: orig ('LOAD_FAST', 'self') | got ('JUMP_IF_FALSE', '#211')"
+   "detail": "line 222: orig ('SETUP_LOOP', '#210') | got ('SETUP_LOOP', '#213')\nline 225: orig ('JUMP_IF_FALSE', '#208') | got ('JUMP_IF_FALSE', '#211')\nline 237: orig ('JUMP_IF_TRUE', '#59') | got ('JUMP_IF_TRUE', '#60')"
   },
   {
    "module": "asyncore",

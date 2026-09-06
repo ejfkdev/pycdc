@@ -4846,22 +4846,48 @@ impl<'a> Ctx<'a> {
                                                 .and_then(|&mi| self.instrs.get(mi))
                                                 .map_or(false, |x| x.op == Op::DUP_TOP)
                                     })))
-                            // a backward jump landing INSIDE the else region
-                            // is a nested loop's back edge (the region's own
-                            // while/for continuing), NOT the region end —
-                            // emitting the try here strands the rest of the
-                            // else body and hoists the nested loop out of the
-                            // try (_sitebuiltins _Printer.__call__: the inner
+                            // a jump landing INSIDE the else region is not
+                            // the region end. Backward: a nested loop's back
+                            // edge (the region's own while/for continuing)
+                            // (_sitebuiltins _Printer.__call__: the inner
                             // `while key is None` back edge at the else region
                             // fired the emit, scrambling try/else/loop order).
-                            // The genuine region end jumps OUT (target <
-                            // else_start, e.g. the outer loop's back edge).
+                            // Forward: an if/elif arm's merge jump to a
+                            // shared trampoline still inside the region
+                            // (asynchat 2.7 handle_read: the `if lb < n:`
+                            // arm's JABS to the merge back edge fired the
+                            // emit deep in the loop, stranding the Try
+                            // inside that arm with the loop hoisted above
+                            // it and the else body swallowed whole).
+                            // Emitting here strands the rest of the else
+                            // body either way. The genuine region end jumps
+                            // OUT (target < else_start, e.g. the outer
+                            // loop's back edge, or target >= else_stop).
                             && !lt
                                 .else_start
                                 .map_or(false, |es| {
-                                    target < pos
-                                        && target >= es
-                                        && pos < lt.else_stop
+                                    let lands_inside = target >= es
+                                        && target < lt.else_stop
+                                        && pos < lt.else_stop;
+                                    if target < pos {
+                                        // backward: a nested loop's back edge
+                                        lands_inside
+                                    } else {
+                                        // forward: only a jump executed with
+                                        // a loop open INSIDE the region is an
+                                        // intra-loop merge; at depth 0 it is
+                                        // the else arm's own end-of-arm jump
+                                        // to the merge point (code 3.3
+                                        // showsyntaxerror `JUMP_FORWARD 0`)
+                                        lands_inside
+                                            && self.blocks.iter().any(|b| {
+                                                matches!(
+                                                    b.kind,
+                                                    BlockType::While | BlockType::For
+                                                ) && b.start >= es
+                                                    && b.start <= pos
+                                            })
+                                    }
                                 })
                         {
                             // end of the else region (back edge or jump out):

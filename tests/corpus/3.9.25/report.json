@@ -122,11 +122,11 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 200: orig  body=[Try(body=[Assign(targets=[Name(id='data' | dec  body=[While(test=Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 213: orig  body=[Return()]) | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 557,
-   "ntotal": 797,
-   "detail": "line 219: orig ('SETUP_FINALLY', 'to 18') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'ac_in_buffer')\nline 221: orig ('LOAD_METHOD', 'recv') | got ('EXTENDED_ARG', '')"
+   "ndiff": 100,
+   "ntotal": 798,
+   "detail": "line 235: orig ('LOAD_CONST', 'None') | got ('EXTENDED_ARG', '')\nline 236: orig ('RETURN_VALUE', '') | got ('JUMP_FORWARD', 'to 446')\nline 248: orig ('LOAD_CONST', 'None') | got ('EXTENDED_ARG', '')"
   },
   {
    "module": "asyncore",
