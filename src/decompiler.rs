@@ -17536,21 +17536,48 @@ impl<'a> Ctx<'a> {
                 // then-part, open the Else region ending at the loop's own
                 // back edge, and let that back edge close everything.
                 if b.start == target || b.cond_end == target {
-                    let top_is_pending_if = matches!(
-                        self.blocks.last(),
-                        Some(t) if t.kind == BlockType::If
-                            && t.else_end.is_none()
-                            && t.short_circuit.is_none()
-                            && t.end > self.cur_offset
-                    );
-                    if top_is_pending_if {
+                    // pick the block this jump TERMINATES: an open pending
+                    // If whose arm ends exactly at this jump (the next
+                    // instruction is the block's end -- the jump is the
+                    // arm's last act) or which starts at this jump (the
+                    // degenerate `if c: break` fusion). An inner If that
+                    // merely ENCLOSES the jump keeps its own end
+                    // (compileall compile_path: the mechanism used to grab
+                    // the innermost `if quiet<2:` guard, park a degenerate
+                    // Else on it, and flatten the real else arm into the
+                    // loop body).
+                    let next_off = self
+                        .idx_of
+                        .get(&self.cur_offset)
+                        .and_then(|&ci2| self.instrs.get(ci2 + 1).map(|x| x.offset));
+                    let mut ti: Option<usize> = None;
+                    for j in (0..self.blocks.len()).rev() {
+                        let qualifies = matches!(self.blocks[j].kind, BlockType::If)
+                            && self.blocks[j].else_end.is_none()
+                            && self.blocks[j].short_circuit.is_none()
+                            && self.blocks[j].end > self.cur_offset;
+                        if !qualifies {
+                            break;
+                        }
+                        if self.blocks[j].start == self.cur_offset
+                            || Some(self.blocks[j].end) == next_off
+                        {
+                            ti = Some(j);
+                            break;
+                        }
+                    }
+                    if let Some(t_idx) = ti {
                         // degenerate fusion: the back edge IS the whole
                         // then-region (`if c: break` with fall-through
                         // continue) — record the continue and close; the
                         // Else region holds the break block and the close
                         // normalizer flips the polarity back
-                        if self.blocks.last().map(|t| t.start) == Some(self.cur_offset) {
-                            let end = self.blocks.last().unwrap().end;
+                        if self.blocks[t_idx].start == self.cur_offset {
+                            let end = self.blocks[t_idx].end;
+                            while self.blocks.len() > t_idx + 1 {
+                                let e2 = self.blocks.last().map(|t| t.end).unwrap_or(end);
+                                self.force_close_top(e2);
+                            }
                             let t = self.blocks.last_mut().unwrap();
                             t.stmts.push(Stmt::Continue);
                             self.force_close_top(end);
@@ -17567,6 +17594,14 @@ impl<'a> Ctx<'a> {
                             .map(|x| x.offset)
                             .next()
                             .unwrap_or(b.end);
+                        while self.blocks.len() > t_idx + 1 {
+                            let e2 = self
+                                .blocks
+                                .last()
+                                .map(|t| t.end)
+                                .unwrap_or(self.cur_offset);
+                            self.force_close_top(e2);
+                        }
                         let t = self.blocks.last_mut().unwrap();
                         t.else_end = Some(else_end);
                         let end = t.end;
