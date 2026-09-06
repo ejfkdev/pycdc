@@ -2,8 +2,8 @@
  "version": "3.14.7",
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
-  "PASS": 9,
-  "INCOMPLETE": 17,
+  "PASS": 10,
+  "INCOMPLETE": 16,
   "SIG-DIFF": 13,
   "AST-PASS": 1
  },
@@ -21,7 +21,7 @@
    "verdict": "INCOMPLETE",
    "ndiff": 230,
    "ntotal": 330,
-   "detail": "line 96: orig ('LOAD_FAST_BORROW', 'os') | got ('LOAD_CONST', 'None')\nline 97: orig ('LOAD_ATTR', 'system + NULL|self') | got ('LOAD_CONST', 'None')\nline 98: orig ('LOAD_FAST_BORROW', 'cmd') | got ('LOAD_CONST', 'None')"
+   "detail": "line 96: orig ('LOAD_FAST', 'os') | got ('LOAD_CONST', 'None')\nline 97: orig ('LOAD_ATTR', 'system + NULL|self') | got ('LOAD_CONST', 'None')\nline 98: orig ('LOAD_FAST', 'cmd') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "_android_support",
@@ -34,9 +34,9 @@
   {
    "module": "_ast_unparse",
    "verdict": "INCOMPLETE",
-   "ndiff": 5632,
+   "ndiff": 5628,
    "ntotal": 7127,
-   "detail": "line 754: orig ('LOAD_FAST_BORROW', 'seq') | got ('LOAD_FAST', 'seq')\nline 758: orig ('LOAD_FAST_BORROW', 'inter') | got ('LOAD_FAST', 'inter')\nline 762: orig ('LOAD_FAST_BORROW', 'f') | got ('LOAD_FAST', 'f')"
+   "detail": "line 1233: orig ('STORE_FAST', 'ignore') | got ('STORE_FAST_LOAD_FAST', 'ignore, ignore')\nline 1234: orig ('LOAD_FAST', 'ignore') | got ('LOAD_ATTR', 'lineno')\nline 1235: orig ('LOAD_ATTR', 'lineno') | got ('LOAD_CONST', \"'ignore'\")"
   },
   {
    "module": "_collections_abc",
@@ -92,7 +92,7 @@
    "verdict": "INCOMPLETE",
    "ndiff": 2637,
    "ntotal": 3254,
-   "detail": "line 553: orig ('JUMP_FORWARD', 'to L2') | got ('LOAD_FAST_BORROW', 'msg')\nline 554: orig ('LOAD_FAST_BORROW', 'msg') | got ('LOAD_ATTR', 'line')\nline 555: orig ('LOAD_ATTR', 'line') | got ('STORE_FAST', 'line')"
+   "detail": "line 553: orig ('JUMP_FORWARD', 'to L2') | got ('LOAD_FAST', 'msg')\nline 554: orig ('LOAD_FAST', 'msg') | got ('LOAD_ATTR', 'line')\nline 555: orig ('LOAD_ATTR', 'line') | got ('STORE_FAST', 'line')"
   },
   {
    "module": "_pylong",
@@ -107,7 +107,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 215,
    "ntotal": 372,
-   "detail": "line 152: orig ('STORE_FAST', 'dir') | got ('STORE_FAST_LOAD_FAST', 'dir, files')\nline 153: orig ('LOAD_FAST_BORROW', 'files') | got ('GET_ITER', '')\nline 154: orig ('GET_ITER', '') | got ('FOR_ITER', 'to L3')"
+   "detail": "line 152: orig ('STORE_FAST', 'dir') | got ('STORE_FAST_LOAD_FAST', 'dir, files')\nline 153: orig ('LOAD_FAST', 'files') | got ('GET_ITER', '')\nline 154: orig ('GET_ITER', '') | got ('FOR_ITER', 'to L3')"
   },
   {
    "module": "_strptime",
@@ -126,7 +126,7 @@
    "verdict": "INCOMPLETE",
    "ndiff": 296,
    "ntotal": 511,
-   "detail": "line 208: orig ('NOP', '') | got ('LOAD_FAST_BORROW', 'impl')\nline 209: orig ('LOAD_FAST_BORROW', 'impl') | got ('LOAD_ATTR', 'get_dict + NULL|self')\nline 210: orig ('LOAD_ATTR', 'get_dict + NULL|self') | got ('CALL', '')"
+   "detail": "line 208: orig ('NOP', '') | got ('LOAD_FAST', 'impl')\nline 209: orig ('LOAD_FAST', 'impl') | got ('LOAD_ATTR', 'get_dict + NULL|self')\nline 210: orig ('LOAD_ATTR', 'get_dict + NULL|self') | got ('CALL', '')"
   },
   {
    "module": "_weakrefset",
@@ -157,7 +157,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 2073,
    "ntotal": 2513,
-   "detail": "line 413: orig ('CALL_INTRINSIC_1', 'INTRINSIC_UNARY_POSITIVE') | got ('RETURN_VALUE', '')\nline 414: orig ('RETURN_VALUE', '') | got ('LOAD_FAST_BORROW', 'operand')\nline 415: orig ('LOAD_FAST_BORROW', 'operand') | got ('UNARY_NEGATIVE', '')"
+   "detail": "line 413: orig ('CALL_INTRINSIC_1', 'INTRINSIC_UNARY_POSITIVE') | got ('RETURN_VALUE', '')\nline 414: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'operand')\nline 415: orig ('LOAD_FAST', 'operand') | got ('UNARY_NEGATIVE', '')"
   },
   {
    "module": "base64",
@@ -165,12 +165,12 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1846,
    "ntotal": 2149,
-   "detail": "line 265: orig ('NOP', '') | got ('LOAD_FAST_BORROW', 's')\nline 266: orig ('LOAD_FAST_BORROW', 's') | got ('LOAD_ATTR', 'encode + NULL|self')\nline 267: orig ('LOAD_ATTR', 'encode + NULL|self') | got ('LOAD_CONST', \"'ascii'\")"
+   "detail": "line 265: orig ('NOP', '') | got ('LOAD_FAST', 's')\nline 266: orig ('LOAD_FAST', 's') | got ('LOAD_ATTR', 'encode + NULL|self')\nline 267: orig ('LOAD_ATTR', 'encode + NULL|self') | got ('LOAD_CONST', \"'ascii'\")"
   },
   {
    "module": "bdb",
    "verdict": "INCOMPLETE",
-   "ndiff": 3383,
+   "ndiff": 3382,
    "ntotal": 4001,
    "detail": "line 352: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 353: orig ('POP_JUMP_IF_TRUE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L5')\nline 519: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L4')"
   },
@@ -180,18 +180,15 @@
   },
   {
    "module": "bz2",
-   "verdict": "INCOMPLETE",
-   "ndiff": 11,
-   "ntotal": 881,
-   "detail": "line 840: orig ('LOAD_FAST', 'results') | got ('LOAD_FAST_BORROW', 'results')\nline 842: orig ('LOAD_FAST', 'res') | got ('LOAD_FAST_BORROW', 'res')\nline 845: orig ('LOAD_FAST', 'decomp') | got ('LOAD_FAST_BORROW', 'decomp')"
+   "verdict": "PASS"
   },
   {
    "module": "cProfile",
    "ast_detail": "diff at token 241: orig  body=[If(test=Attribute(value=Name(id='entry' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 439,
+   "ndiff": 436,
    "ntotal": 773,
-   "detail": "line 97: orig ('LOAD_FAST_BORROW', 'locals') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'locals, filename')\nline 98: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'filename, sort') | got ('LOAD_FAST_BORROW', 'sort')\nline 294: orig ('FOR_ITER', 'to L8') | got ('FOR_ITER', 'to L9')"
+   "detail": "line 97: orig ('LOAD_FAST', 'locals') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'locals, filename')\nline 98: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'filename, sort') | got ('LOAD_FAST', 'sort')\nline 294: orig ('FOR_ITER', 'to L8') | got ('FOR_ITER', 'to L9')"
   },
   {
    "module": "calendar",
@@ -203,16 +200,16 @@
   {
    "module": "cmd",
    "verdict": "INCOMPLETE",
-   "ndiff": 1219,
+   "ndiff": 1218,
    "ntotal": 1458,
-   "detail": "line 217: orig ('LOAD_FAST_BORROW', 'intro') | got ('NOP', '')\nline 218: orig ('POP_JUMP_IF_NONE', 'to L5') | got ('LOAD_FAST_BORROW', 'intro')\nline 219: orig ('NOT_TAKEN', '') | got ('POP_JUMP_IF_NONE', 'to L5')"
+   "detail": "line 217: orig ('LOAD_FAST', 'intro') | got ('NOP', '')\nline 218: orig ('POP_JUMP_IF_NONE', 'to L5') | got ('LOAD_FAST', 'intro')\nline 219: orig ('NOT_TAKEN', '') | got ('POP_JUMP_IF_NONE', 'to L5')"
   },
   {
    "module": "code",
    "verdict": "INCOMPLETE",
    "ndiff": 560,
    "ntotal": 1243,
-   "detail": "line 382: orig ('COPY', '') | got ('LOAD_GLOBAL', 'sys')\nline 383: orig ('LOAD_GLOBAL', 'sys') | got ('STORE_ATTR', 'last_exc')\nline 384: orig ('STORE_ATTR', 'last_exc') | got ('LOAD_FAST_BORROW', 'value')"
+   "detail": "line 382: orig ('COPY', '') | got ('LOAD_GLOBAL', 'sys')\nline 383: orig ('LOAD_GLOBAL', 'sys') | got ('STORE_ATTR', 'last_exc')\nline 384: orig ('STORE_ATTR', 'last_exc') | got ('LOAD_FAST', 'value')"
   },
   {
    "module": "codecs",
@@ -220,7 +217,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1048,
    "ntotal": 2373,
-   "detail": "line 1048: orig ('POP_JUMP_IF_FALSE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L9')\nline 1102: orig ('LOAD_FAST_LOAD_FAST', 'data, decodedbytes') | got ('LOAD_FAST_BORROW', 'data')\nline 1103: orig ('LOAD_CONST', 'None') | got ('LOAD_FAST_CHECK', 'decodedbytes')"
+   "detail": "line 1048: orig ('POP_JUMP_IF_FALSE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L9')\nline 1102: orig ('LOAD_FAST_LOAD_FAST', 'data, decodedbytes') | got ('LOAD_FAST', 'data')\nline 1103: orig ('LOAD_CONST', 'None') | got ('LOAD_FAST', 'decodedbytes')"
   },
   {
    "module": "codeop",
@@ -244,16 +241,16 @@
    "module": "configparser",
    "ast_detail": "diff at token 94: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 3642,
+   "ndiff": 3638,
    "ntotal": 5071,
-   "detail": "line 1215: orig ('POP_JUMP_IF_FALSE', 'to L8') | got ('POP_JUMP_IF_FALSE', 'to L7')\nline 1273: orig ('POP_JUMP_IF_FALSE', 'to L7') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 1326: orig ('LOAD_FAST', 'accum') | got ('LOAD_FAST_BORROW', 'accum')"
+   "detail": "line 1215: orig ('POP_JUMP_IF_FALSE', 'to L8') | got ('POP_JUMP_IF_FALSE', 'to L7')\nline 1273: orig ('POP_JUMP_IF_FALSE', 'to L7') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 1342: orig ('LOAD_CONST', 'None') | got ('PUSH_EXC_INFO', '')"
   },
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 2065,
+   "ndiff": 2064,
    "ntotal": 2587,
-   "detail": "line 388: orig ('LOAD_DEREF', 'func') | got ('NOP', '')\nline 389: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 390: orig ('LOAD_FAST_BORROW', 'args') | got ('LOAD_CONST', 'None')"
+   "detail": "line 388: orig ('LOAD_DEREF', 'func') | got ('NOP', '')\nline 389: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 390: orig ('LOAD_FAST', 'args') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "copy",
@@ -267,9 +264,9 @@
    "module": "copyreg",
    "ast_detail": "diff at token 198: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 448,
+   "ndiff": 447,
    "ntotal": 691,
-   "detail": "line 226: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 235: orig ('POP_TOP', '') | got ('JUMP_FORWARD', 'to L4')\nline 236: orig ('JUMP_FORWARD', 'to L7') | got ('LOAD_FAST_BORROW', 'base')"
+   "detail": "line 226: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 235: orig ('POP_TOP', '') | got ('JUMP_FORWARD', 'to L4')\nline 236: orig ('JUMP_FORWARD', 'to L7') | got ('LOAD_FAST', 'base')"
   }
  ]
 }

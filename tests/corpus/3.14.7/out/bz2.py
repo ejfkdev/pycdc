@@ -282,7 +282,9 @@ For incremental decompression, use a BZ2Decompressor object instead.
             res = decomp.decompress(data)
         except OSError:
             if results:
-                pass
+                break
+            else:
+                raise
         else:
             results.append(res)
             if not decomp.eof:

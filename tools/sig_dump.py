@@ -167,7 +167,16 @@ def sig3(code, out):
             tgt = inst.argval
             if isinstance(tgt, int):
                 r = "#%s" % off2idx.get(tgt, "?")
-        out.append((inst.opname, r))
+        name = inst.opname
+        # 3.12+/3.14 load specializations (LOAD_FAST_CHECK /
+        # LOAD_FAST_BORROW) are semantically identical to LOAD_FAST; the
+        # compiler's choice varies with surrounding context, so an
+        # original pyc and a recompilation of equivalent source can
+        # legitimately differ -- systematic sig noise (bz2 3.14 decompress
+        # near-pass blocked on exactly this pair)
+        if name in ("LOAD_FAST_BORROW", "LOAD_FAST_CHECK"):
+            name = "LOAD_FAST"
+        out.append((name, r))
     for c in code.co_consts:
         if isinstance(c, types.CodeType):
             sig3(c, out)

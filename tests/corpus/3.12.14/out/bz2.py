@@ -272,7 +272,9 @@ def decompress(data):
             res = decomp.decompress(data)
         except OSError:
             if results:
-                pass
+                break
+            else:
+                raise
         else:
             results.append(res)
             if not decomp.eof:

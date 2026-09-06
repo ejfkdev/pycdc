@@ -139,9 +139,9 @@
   {
    "module": "cProfile",
    "verdict": "INCOMPLETE",
-   "ndiff": 291,
+   "ndiff": 290,
    "ntotal": 700,
-   "detail": "line 297: orig ('LOAD_FAST', 'callers') | got ('LOAD_FAST_CHECK', 'callers')\nline 347: orig ('JUMP_BACKWARD', 'to 404') | got ('JUMP_BACKWARD', 'to 460')\nline 403: orig ('PUSH_NULL', '') | got ('NOP', '')"
+   "detail": "line 347: orig ('JUMP_BACKWARD', 'to 404') | got ('JUMP_BACKWARD', 'to 460')\nline 403: orig ('PUSH_NULL', '') | got ('NOP', '')\nline 404: orig ('LOAD_FAST', 'func') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "calendar",

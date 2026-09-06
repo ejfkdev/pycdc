@@ -3351,6 +3351,10 @@ impl<'a> Ctx<'a> {
         // backward exits except finally-flow JBNI, which never targets a
         // loop block)
         let mut trail_continue = false;
+        // 3.12+ `break` inside a handler: POP_EXCEPT; JUMP_BACKWARD to
+        // the enclosing loop's EXIT (not its top -- the out-of-line
+        // handler sits past the exit). tb2/bz2 3.14 decompress shape.
+        let mut trail_break: Option<usize> = None;
         // the trail scan consumed a handler exit jump (JF over the
         // mismatch stubs, or JB to the loop top): what follows is
         // exception-path machinery (as-cleanup copy + RERAISE), never a
@@ -3413,6 +3417,8 @@ impl<'a> Ctx<'a> {
                         })
                     {
                         trail_continue = true;
+                    } else if c.target.map_or(false, |t| self.find_loop_exit(t).is_some()) {
+                        trail_break = Some(k2);
                     }
                     if !matches!(c.op, Op::RERAISE) {
                         trail_exit_jump = true;
@@ -3519,6 +3525,46 @@ impl<'a> Ctx<'a> {
         };
         if trail_continue || body_has_continue {
             body.push(Stmt::Continue);
+        }
+        if let Some(jidx) = trail_break {
+            // the break flow sat on the trail (POP_EXCEPT; JUMP_BACKWARD
+            // loop-exit), so the body region's trailing guard If closed
+            // EMPTY (`if results: pass`) and the else arm (a bare RAISE
+            // at [jump_end, limit)) was orphaned. Rebuild the source
+            // shape `if <guard>: break else: raise` (bz2 3.14 decompress,
+            // t_trybrk2 3.12/3.14); without a trailing guard the whole
+            // clause is `except E: break`.
+            let else_off = self
+                .instrs
+                .get(jidx + 1)
+                .map(|x| x.offset)
+                .unwrap_or(limit);
+            let mut attached = false;
+            if let Some(Stmt::If { body: ib, orelse, .. }) = body.last_mut() {
+                if ib.is_empty() || ib.iter().all(|s| matches!(s, Stmt::Pass)) {
+                    ib.clear();
+                    ib.push(Stmt::Break);
+                    if else_off < limit {
+                        if let Some(&ei) = self.idx_of.get(&limit) {
+                            if self.instrs.get(ei).map(|x| x.op) == Some(Op::RERAISE)
+                                && self.instrs[jidx + 1..ei]
+                                    .iter()
+                                    .all(|x| !matches!(x.op, Op::NOT_TAKEN | Op::NOP | Op::CACHE))
+                            {
+                                // the span is a real else arm, not a
+                                // mismatch stub -- decompile it (region
+                                // walks are reentrant; the outer parse
+                                // resumes at *pc = k2)
+                                *orelse = self.decompile_region(else_off, limit);
+                            }
+                        }
+                    }
+                    attached = true;
+                }
+            }
+            if !attached {
+                body.push(Stmt::Break);
+            }
         }
         body
     }
