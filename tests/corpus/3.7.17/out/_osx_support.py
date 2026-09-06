@@ -235,7 +235,7 @@ def compiler_fixup(compiler_so, cc_args):
                 from distutils import log
                 log.warn("Compiling with an SDK that doesn't seem to exist: %s", sysroot)
                 log.warn('Please check your Xcode installation')
-        return compiler_so
+    return compiler_so
 
 def customize_config_vars(_config_vars):
     '''Customize Python build configuration variables.

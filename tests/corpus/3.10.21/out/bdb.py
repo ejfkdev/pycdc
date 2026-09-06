@@ -783,7 +783,7 @@ def effective(file, line, frame):
         except:
             pass
         return
-        return (None, None)
+    return (None, None)
 
 class Tdb(Bdb):
     def user_call(self, frame, args):

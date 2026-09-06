@@ -254,7 +254,7 @@
    "module": "csv",
    "ast_detail": "diff at token 965: orig  body=[Continue()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1404,
+   "ndiff": 1400,
    "ntotal": 1724,
    "detail": "line 299: orig ('NOP', '') | got ('LOAD_CONST', \"(None, None, None, 'excel')\")\nline 300: orig ('NOP', '') | got ('LOAD_CONST', '<code __init__>')\nline 301: orig ('LOAD_CONST', \"(None, None, None, 'excel')\") | got ('MAKE_FUNCTION', 'defaults')"
   }

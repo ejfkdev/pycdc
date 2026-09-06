@@ -182,8 +182,7 @@ class ParserBase:
                     else:
                         self.updatepos(declstartpos, j)
                         self.error('unexpected char %r in internal subset' % c)
-                else:
-                    return -1
+        return -1
 
     def _parse_doctype_element(self, i, declstartpos):
         name, j = self._scan_name(i, declstartpos)

@@ -297,18 +297,17 @@ class NodeTransformer(NodeVisitor):
                         value = self.visit(value)
                         if value is None:
                             continue
-                    if not isinstance(value, AST):
-                        new_values.extend(value)
-                        continue
+                        elif not isinstance(value, AST):
+                            new_values.extend(value)
+                            continue
                     new_values.append(value)
                 old_value[:] = new_values
-            else:
-                if isinstance(old_value, AST):
-                    new_node = self.visit(old_value)
-                    if new_node is None:
-                        delattr(node, field)
-                    else:
-                        setattr(node, field, new_node)
-                return node
+            elif isinstance(old_value, AST):
+                new_node = self.visit(old_value)
+                if new_node is None:
+                    delattr(node, field)
+                else:
+                    setattr(node, field, new_node)
+        return node
 
 

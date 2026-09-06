@@ -23,8 +23,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 534: orig  If(test=Compare(left=Name(id='c' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 974,
-   "ntotal": 1410,
+   "ndiff": 978,
+   "ntotal": 1408,
    "detail": "line 303: orig ('SETUP_LOOP', '#230') | got ('SETUP_LOOP', '#238')\nline 307: orig ('POP_JUMP_IF_FALSE', '#229') | got ('POP_JUMP_IF_FALSE', '#237')\nline 360: orig ('JUMP_FORWARD', '#222') | got ('JUMP_FORWARD', '#197')"
   },
   {

@@ -120,10 +120,9 @@ def dump(node, annotate_fields=True, include_attributes=False):
                     except AttributeError:
                         pass
             return '%s(%s)' % (node.__class__.__name__, ', '.join(args))
-        else:
-            if isinstance(node, list):
-                return '[%s]' % ', '.join((_format(x) for x in node))
-            return repr(node)
+        elif isinstance(node, list):
+            return '[%s]' % ', '.join((_format(x) for x in node))
+        return repr(node)
 
     if not isinstance(node, AST):
         raise TypeError('expected AST, got %r' % node.__class__.__name__)
@@ -331,18 +330,17 @@ class NodeTransformer(NodeVisitor):
                         value = self.visit(value)
                         if value is None:
                             continue
-                    if not isinstance(value, AST):
-                        new_values.extend(value)
-                        continue
+                        elif not isinstance(value, AST):
+                            new_values.extend(value)
+                            continue
                     new_values.append(value)
                 old_value[:] = new_values
-            else:
-                if isinstance(old_value, AST):
-                    new_node = self.visit(old_value)
-                    if new_node is None:
-                        delattr(node, field)
-                    else:
-                        setattr(node, field, new_node)
-                return node
+            elif isinstance(old_value, AST):
+                new_node = self.visit(old_value)
+                if new_node is None:
+                    delattr(node, field)
+                else:
+                    setattr(node, field, new_node)
+        return node
 
 

@@ -1027,6 +1027,23 @@ pub fn decompile_in_scope(
     }
 
     // Fold any blocks still open at EOF into statements.
+    // a function-tail `return v` trapped in an unclosed folded-chain
+    // region: the chain has no collecting back edge (every arm
+    // terminates), so the EOF fold would seal the return inside the
+    // last arm — record it for relocation to function level after the
+    // assembly (ast 3.6 NodeTransformer.generic_visit `return node`)
+    let trapped_tail_return = {
+        let trapped = match ctx.blocks.last() {
+            Some(b) if !matches!(b.kind, BlockType::Main) && b.end == usize::MAX => {
+                match b.stmts.last() {
+                    Some(Stmt::Return(v)) => Some(Stmt::Return(v.clone())),
+                    _ => None,
+                }
+            }
+            _ => None,
+        };
+        trapped
+    };
     while ctx.blocks.len() > 1 {
         let pos = ctx.instrs.last().map(|i| i.end()).unwrap_or(0);
         // an open chained-comparison link at EOF: its else arm (the last
@@ -1046,6 +1063,44 @@ pub fn decompile_in_scope(
 
     let mut root = ctx.blocks.remove(0);
     let mut body = std::mem::take(&mut root.stmts);
+
+    // relocate the trapped tail return: pop it from wherever the EOF
+    // fold sealed it (possibly nested through folded If/Else arms) and
+    // re-append at function level. Only value returns are relocated — a
+    // bare trailing `return None` stays where it is (postprocess strips
+    // it, and relocating would expose it as a sibling of a loop that
+    // lexically encloses it, 'return outside loop').
+    if let Some(Stmt::Return(Some(_))) = trapped_tail_return {
+        fn pop_trailing_return(stmts: &mut Vec<Stmt>) -> Option<Stmt> {
+            match stmts.last_mut() {
+                Some(Stmt::Return(Some(_))) => stmts.pop(),
+                Some(Stmt::If { orelse, .. }) if !orelse.is_empty() => {
+                    pop_trailing_return(orelse)
+                }
+                Some(Stmt::If { body, .. }) if !body.is_empty() => {
+                    pop_trailing_return(body)
+                }
+                Some(Stmt::While { orelse, .. }) if !orelse.is_empty() => {
+                    pop_trailing_return(orelse)
+                }
+                Some(Stmt::While { body, .. }) if !body.is_empty() => {
+                    pop_trailing_return(body)
+                }
+                Some(Stmt::For { orelse, .. }) if !orelse.is_empty() => {
+                    pop_trailing_return(orelse)
+                }
+                Some(Stmt::For { body, .. }) if !body.is_empty() => {
+                    pop_trailing_return(body)
+                }
+                _ => None,
+            }
+        }
+        if pop_trailing_return(&mut body).is_some() {
+            if let Some(ret) = trapped_tail_return {
+                body.push(ret);
+            }
+        }
+    }
 
     // `global`/`nonlocal` declarations first (only meaningful in functions)
     if code.name != "<module>" {
@@ -14630,6 +14685,61 @@ impl<'a> Ctx<'a> {
                 b.else_end = Some(target);
             }
         }
+        // 3.6 elif scaffolding: `if c1: continue elif c2: body2` — the
+        // then arm terminates with the loop back edge (the continue) and
+        // the compiler STILL emits the else-skip JUMP_FORWARD right after
+        // it (dead: unreachable fall-through, untargeted). The continue
+        // machinery already closed the If (its statement sits at the top
+        // of the enclosing block), so the elif chain breaks: the elif
+        // test renders as an independent if, changing semantics for
+        // non-c1 values (ast 3.6 NodeTransformer.generic_visit:
+        // `elif not isinstance(value, AST): extend` ran for every
+        // non-AST value). Re-open the chain: pop the closed If back off
+        // and treat [cur_next, target) as its Else region.
+        if target > self.cur_next && !self.targets.contains(&self.cur_offset) {
+            let dead_after_continue = self
+                .idx_of
+                .get(&self.cur_offset)
+                .and_then(|&ci| {
+                    (ci > 0).then(|| &self.instrs[ci - 1])
+                })
+                .map_or(false, |prev| {
+                    prev.is_backward
+                        && matches!(
+                            prev.op,
+                            Op::JUMP_ABSOLUTE
+                                | Op::JUMP_BACKWARD
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                | Op::JUMP
+                        )
+                        && prev
+                            .target
+                            .map_or(false, |t| self.is_loop_top_target(t))
+                })
+                && self.blocks.last().map_or(false, |b| {
+                    matches!(
+                        b.stmts.last(),
+                        Some(Stmt::If { orelse, body, .. })
+                            if orelse.is_empty()
+                                && matches!(body.last(), Some(Stmt::Continue))
+                    )
+                });
+            if dead_after_continue {
+                if let Some(top) = self.blocks.last_mut() {
+                    if let Some(Stmt::If { cond, body, .. }) = top.stmts.pop() {
+                        let else_start = self.cur_next;
+                        self.pending_then.push(body);
+                        let mut else_blk =
+                            Block::new(BlockType::Else, else_start, target);
+                        else_blk.cond = Some(cond);
+                        else_blk.is_elif =
+                            self.starts_with_cond_jump(else_start, target);
+                        self.blocks.push(else_blk);
+                        return true;
+                    }
+                }
+            }
+        }
         if let Some(top) = self.blocks.last() {
             match top.kind {
                 BlockType::If if top.else_end.is_none() && top.short_circuit.is_none() => {
@@ -15190,6 +15300,15 @@ impl<'a> Ctx<'a> {
 
     fn is_continue_jump(&self, target: usize) -> bool {
         let mut depth = 0usize;
+        // a still-live region block above the loop (an open folded-chain
+        // Else[MAX], an unclosed If) means the loop is not done: the jump
+        // may be the chain's collecting back edge, which must fold the
+        // chain instead of falling through to handle_jump_backward
+        // (ast 3.6 NodeTransformer.generic_visit: the elif chain's tail
+        // edge saw the layout-exhausted For as transparent, the Else
+        // never folded, and the function's final `return node` landed
+        // inside the else arm)
+        let mut live_region_above = false;
         for b in self.blocks.iter().rev() {
             if matches!(b.kind, BlockType::Main) {
                 break;
@@ -15199,9 +15318,16 @@ impl<'a> Ctx<'a> {
                 && b.end <= self.cur_offset
             {
                 // layout-exhausted loop awaiting its close: transparent
+                // only when nothing above it is still live
+                if live_region_above {
+                    return depth > 0;
+                }
                 continue;
             }
             if !matches!(b.kind, BlockType::While | BlockType::For) {
+                if b.end == usize::MAX || b.end > self.cur_offset {
+                    live_region_above = true;
+                }
                 depth += 1;
                 continue;
             }

@@ -95,8 +95,8 @@
    "module": "ast",
    "ast_detail": "diff at token 492: orig  body=[AugAssign(target=Name(id='rv' | dec  body=[If(test=Name(id='fields'",
    "verdict": "SIG-DIFF",
-   "ndiff": 64,
-   "ntotal": 1020,
+   "ndiff": 4,
+   "ntotal": 1019,
    "detail": "line 399: orig ('LOAD_FAST', 'rv') | got ('LOAD_FAST', 'fields')\nline 400: orig ('LOAD_FAST', 'fields') | got ('POP_JUMP_IF_FALSE', '')\nline 401: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_FAST', 'rv')"
   },
   {

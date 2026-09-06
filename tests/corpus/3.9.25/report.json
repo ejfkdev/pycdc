@@ -116,7 +116,7 @@
   {
    "module": "ast",
    "verdict": "INCOMPLETE",
-   "ndiff": 5374,
+   "ndiff": 5318,
    "ntotal": 7116,
    "detail": "line 1049: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1460: orig ('SETUP_FINALLY', 'to 64') | got ('LOAD_FAST', 'padded')\nline 1461: orig ('LOAD_FAST', 'node') | got ('POP_JUMP_IF_FALSE', '')"
   },

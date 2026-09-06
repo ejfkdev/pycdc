@@ -205,6 +205,5 @@ def find_prefix_at_end(haystack, needle):
     while l:
         if not haystack.endswith(needle[:l]):
             l -= 1
-        else:
-            return l
+    return l
 

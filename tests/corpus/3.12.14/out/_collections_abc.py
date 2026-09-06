@@ -806,7 +806,7 @@ class ValuesView(MappingView, Collection):
                 pass
             else:
                 return True
-                return False
+        return False
 
     def __iter__(self):
         for key in self._mapping:
@@ -930,7 +930,7 @@ class Sequence(Reversible, Collection):
                 pass
             else:
                 return True
-                return False
+        return False
 
     def __reversed__(self):
         for i in reversed(range(len(self))):

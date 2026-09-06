@@ -314,7 +314,7 @@ class Sniffer:
             items.sort()
             delim = items[-1][1]
             skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
-            return delim, skipinitialspace
+        return delim, skipinitialspace
 
     def has_header(self, sample):
         rdr = reader(StringIO(sample), self.sniff(sample))
