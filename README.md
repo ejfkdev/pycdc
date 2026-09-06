@@ -78,18 +78,24 @@ cargo build                                                 # 重新嵌入
 3. 对比原始 pyc 与重编译 pyc 的**结构化字节码签名**（opname + argrepr，跳转目标归一为标签）；
 4. 签名不一致时再用 `tools/ast_compare.py` 做**归一化 AST 语义对比**（同版本解释器执行；归一化：相邻 import 合并、global/nonlocal 提升、`while 1`≡`while True`、终结分支 else 展平、set/list(genexpr)≡推导式、数值常量折叠）。
 
-判级：`PASS`（字节码签名一致）＞ `AST-PASS`（AST 语义等价，即用户验收标准"执行逻辑语义相等"）＞ `INCOMPLETE`（含占位标记）＞ `SIG-DIFF`（可编译但结构有差）＞ `SYNTAX-ERR`。
+判级：`PASS`（字节码签名一致）＞ `AST-PASS`（AST 语义等价，即用户验收标准"执行逻辑语义相等"）＞ `INCOMPLETE`（可编译，但含占位标记或 decompilation-incomplete 警告）＞ `SIG-DIFF`（可编译、结构有差）＞ `SYNTAX-ERR`。
 
 当前结果（520 模块）：
 
 | 指标 | 数量 |
 |---|---|
 | PASS（字节码级一致） | 104（20.0%） |
-| AST-PASS（语义等价） | 75 |
-| **语义等价合计** | **179（34.4%）** |
-| INCOMPLETE（可编译、含占位） | **0** |
-| SIG-DIFF（可编译、结构有差） | 341 |
+| AST-PASS（语义等价） | 73 |
+| **语义等价合计** | **177（34.0%）** |
+| INCOMPLETE（可编译、含占位/警告） | 114 |
+| SIG-DIFF（可编译、结构有差） | 229 |
 | SYNTAX-ERR | **0（所有 520 个输出都能在对应版本编译）** |
+
+> 注：`INCOMPLETE` 此前长期显示为 0 是 verify_corpus 的检测 bug——warned
+> 判定在 stderr 里找的是源码内注释标记的文案（`Decompyle incomplete`），
+> 而 CLI 的 stderr 文案是 `decompilation incomplete`，从未命中；带警告的
+> 模块被静默判成 SIG-DIFF/AST-PASS。修复后为诚实重基线（INCOMPLETE 集中在
+> 3.8–3.14 的 try/finally 与 match 族；2.6–3.7 全部干净）。
 
 每个版本目录下的 `report.json` 保存逐模块判级与首个差异位置，便于聚类修复。
 
@@ -127,7 +133,11 @@ cargo build                                                 # 重新嵌入
   sibling try（import-guard 形状）已不再误嵌套/幻影 else 吞并（异常表覆盖判别 +
   backward-merge 限定在本链 [handler, chain_extent) 内）；已知残留：内联嵌套
   try（try 体或 handler 体内再套 try，contextlib.__exit__ 形状）仍可能平铺化
-  并留下 `unrecovered try/except structure` 占位。
+  并留下 `unrecovered try/except structure` 占位。3.11+ 函数尾 try/except/else
+  的隐式 `return None` 下沉副本（成功路径+末子句各一份）已识别并还原为标准
+  else 形（chunk.__init__ 族）；尾位 try 的 handler 出口以回跳恢复主流程时
+  （chunk.skip：`except OSError: pass` 后 JUMP_BACKWARD 到 while 顶）回跳仍会
+  mark_unclean（输出正确但带警告）。
 - `with a, b:` 多上下文输出为嵌套 with（语义等价）。
 - match/case（3.10–3.14）：字面量/捕获/通配/or/序列（含 `*rest`、字面量元素）/映射
   （含值字面量模式与 `**rest`）/类模式（位置+关键字+字面量子模式，含唯一非通配 case 的
