@@ -392,7 +392,10 @@ class BaseCookie(dict):
                 break
             K, V = match.group('key'), match.group('val')
             i = match.end(0)
-            if K[0] == '$' and M or K.lower() in Morsel._reserved:
+            if K[0] == '$':
+                if M:
+                    M[K[1:]] = V
+            elif K.lower() in Morsel._reserved:
                 if M:
                     if V is None:
                         if K.lower() in Morsel._flags:

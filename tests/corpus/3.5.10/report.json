@@ -2,8 +2,8 @@
  "version": "3.5.10",
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
-  "PASS": 18,
-  "SIG-DIFF": 20,
+  "PASS": 19,
+  "SIG-DIFF": 19,
   "AST-PASS": 2
  },
  "results": [
@@ -51,7 +51,7 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 144: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 970,
+   "ndiff": 939,
    "ntotal": 1157,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 182') | got ('SETUP_LOOP', 'to 189')\nline 161: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 189')\nline 162: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')"
   },
@@ -65,7 +65,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 478,
    "ntotal": 1848,
-   "detail": "line 99: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 1240: orig ('SETUP_LOOP', 'to 1607') | got ('SETUP_LOOP', 'to 1598')\nline 1245: orig ('FOR_ITER', 'to 1606') | got ('FOR_ITER', 'to 1597')"
+   "detail": "line 99: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 1240: orig ('SETUP_LOOP', 'to 1607') | got ('SETUP_LOOP', 'to 1604')\nline 1245: orig ('FOR_ITER', 'to 1606') | got ('FOR_ITER', 'to 1603')"
   },
   {
    "module": "_sysconfigdata",
@@ -133,11 +133,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 1002: orig  body=[If(test=Compare(left=Str(s='t') | dec  body=[If(test=BoolOp(op=Or()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 116,
-   "ntotal": 899,
-   "detail": "line 769: orig ('POP_JUMP_IF_FALSE', '') | got ('POP_JUMP_IF_TRUE', '')\nline 770: orig ('LOAD_GLOBAL', 'ValueError') | got ('LOAD_FAST', 'encoding')\nline 771: orig ('LOAD_CONST', \"'Invalid mode: %r'\") | got ('LOAD_CONST', 'None')"
+   "verdict": "PASS"
   },
   {
    "module": "cProfile",
@@ -161,11 +157,11 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 150: orig  If(test=Compare(left=Call(func=Name(id='type' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 259: orig  values=[Compare(left=Name(id='token' | dec  values=[Compare(left=Name(id='lasttoken'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1188,
+   "ndiff": 1113,
    "ntotal": 1420,
-   "detail": "line 187: orig ('LOAD_CONST', \"'builtin'\") | got ('LOAD_GLOBAL', 'hasattr')\nline 190: orig ('BINARY_SUBSCR', '') | got ('CALL_FUNCTION', '2 positional, 0 keyword pair')\nline 191: orig ('BUILD_TUPLE', '') | got ('POP_JUMP_IF_FALSE', '')"
+   "detail": "line 223: orig ('SETUP_LOOP', 'to 296') | got ('SETUP_LOOP', 'to 293')\nline 229: orig ('FOR_ITER', 'to 295') | got ('FOR_ITER', 'to 292')\nline 293: orig ('JUMP_FORWARD', 'to 286') | got ('LOAD_FAST', 'token')"
   },
   {
    "module": "chunk",

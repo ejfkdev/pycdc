@@ -5032,6 +5032,25 @@ impl<'a> Ctx<'a> {
                                     && x.target
                                         .map_or(false, |t| t > pos && t < pair_at)
                             })
+                            // an unconditional forward hop landing EXACTLY
+                            // on pos makes pos a merge point of two arms
+                            // (an enclosing then arm hops over the else to
+                            // the same label this guard's PJIF targets):
+                            // [pos, pair_at) is then post-merge mainline
+                            // flow, NOT this guard's else arm. Rebuilding
+                            // traps the whole function tail inside the
+                            // guard's else (bz2 3.5-3.7 open(): bz_mode/
+                            // binary_file/returns landed in the newline
+                            // guard's else, dead in text mode).
+                            && !self.instrs.iter().any(|x| {
+                                x.offset < pos
+                                    && !x.is_backward
+                                    && matches!(
+                                        x.op,
+                                        Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+                                    )
+                                    && x.target == Some(pos)
+                            })
                             // the span must not cross a try structure: a
                             // function ending in try/except(/else) also
                             // grows the implicit tail pair, but the pair
@@ -10182,6 +10201,27 @@ impl<'a> Ctx<'a> {
         }
         let (j0k, e0, j0op) = match j0 { Some(x) => x, None => bail!("no j0") };
         let _ = (j0k, j0op);
+        // a genuine merged boolop chain is contiguous: the lhs region's
+        // terminating cond jump falls THROUGH straight into the rhs operand
+        // region. Any bytecode between j0 and `target` is a statement arm
+        // (bz2 3.5-3.7 open(): `if 't' in mode: [if 'b' in mode: raise;
+        // JUMP_FORWARD end] else: [encoding guard...]` -- the then arm's
+        // raise + hop sat in the gap and the whole if/else was folded into
+        // a bogus `'t' in mode and 'b' in mode or encoding is not None`
+        // condition, dropping the Invalid-mode raise).
+        if instrs.get(j0k + 1).map(|x| x.offset) != Some(target) {
+            // tolerate inter-instruction padding, nothing else
+            let mut g = j0k + 1;
+            while matches!(
+                instrs.get(g).map(|x| x.op),
+                Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE) | Some(Op::EXTENDED_ARG)
+            ) {
+                g += 1;
+            }
+            if instrs.get(g).map(|x| x.offset) != Some(target) {
+                bail!("gap after j0");
+            }
+        }
         // scan the target (rhs) region [target, e0): value ops then a cond
         // jump. Shape A: that jump also targets e0 (shared exit E):
         //   (c1 OP c2) AND c3. Shape B: it targets some E != e0 (e0 is the

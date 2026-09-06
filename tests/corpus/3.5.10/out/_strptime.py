@@ -297,9 +297,12 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
         elif group_key == 'I':
             hour = int(found_dict['I'])
             ampm = found_dict.get('p', '').lower()
-            if (ampm in ('', locale_time.am_pm[0]) and hour == 12 or ampm == locale_time.am_pm[1]) and hour != 12:
-                hour += 12
-                continue
+            if ampm in ('', locale_time.am_pm[0]):
+                if hour == 12:
+                    hour = 0
+                    if ampm == locale_time.am_pm[1] and hour != 12:
+                        hour += 12
+                        continue
         if group_key == 'M':
             minute = int(found_dict['M'])
         elif group_key == 'S':

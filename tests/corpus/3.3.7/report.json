@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
   "PASS": 10,
-  "AST-PASS": 8,
-  "SIG-DIFF": 22
+  "AST-PASS": 9,
+  "SIG-DIFF": 21
  },
  "results": [
   {
@@ -31,17 +31,13 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 165: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 767,
-   "ntotal": 1146,
+   "ndiff": 771,
+   "ntotal": 1150,
    "detail": "line 145: orig ('POP_JUMP_IF_TRUE', '#73') | got ('POP_JUMP_IF_TRUE', '#72')\nline 146: orig ('SETUP_LOOP', '#71') | got ('SETUP_LOOP', '#74')\nline 168: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', '#74')"
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1956: orig  If(test=Compare(left=Name(id='ampm' | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1325,
-   "ntotal": 1832,
-   "detail": "line 97: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 470: orig ('SETUP_LOOP', '#152') | got ('SETUP_LOOP', '#153')\nline 473: orig ('FOR_ITER', '#151') | got ('FOR_ITER', '#152')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_sysconfigdata",
@@ -65,11 +61,11 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 259: orig  If(test=Call(func=Name(id='isinstance' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 748: orig  values=[Call(func=Name(id='hasattr' | dec  values=[Compare(left=Name(id='attr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 768,
-   "ntotal": 1045,
-   "detail": "line 206: orig ('POP_JUMP_IF_FALSE', '#94') | got ('POP_JUMP_IF_FALSE', '#88')\nline 211: orig ('POP_JUMP_IF_FALSE', '#190') | got ('POP_JUMP_IF_TRUE', '#93')\nline 212: orig ('LOAD_DEREF', '_safe_names') | got ('LOAD_GLOBAL', 'isinstance')"
+   "ndiff": 785,
+   "ntotal": 1051,
+   "detail": "line 211: orig ('POP_JUMP_IF_FALSE', '#190') | got ('POP_JUMP_IF_FALSE', '#188')\nline 217: orig ('JUMP_FORWARD', '#190') | got ('JUMP_FORWARD', '#188')\nline 222: orig ('POP_JUMP_IF_FALSE', '#134') | got ('POP_JUMP_IF_FALSE', '#133')"
   },
   {
    "module": "asynchat",
@@ -93,11 +89,11 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 790: orig  orelse=[])] | dec  orelse=[])",
+   "ast_detail": "diff at token 2470: orig  Try(body=[Expr(value=Call(func=Name(id='exec' | dec  Try(body=[Try(body=[Expr(value=Call(func=Name(id='exec'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1137,
+   "ndiff": 1103,
    "ntotal": 2286,
-   "detail": "line 663: orig ('POP_JUMP_IF_FALSE', '#38') | got ('POP_JUMP_IF_FALSE', '#70')\nline 674: orig ('POP_JUMP_IF_FALSE', '#38') | got ('POP_JUMP_IF_FALSE', '#37')\nline 677: orig ('JUMP_FORWARD', '#38') | got ('LOAD_GLOBAL', 'effective')"
+   "detail": "line 1159: orig ('SETUP_LOOP', '#20') | got ('SETUP_LOOP', '#21')\nline 1163: orig ('FOR_ITER', '#19') | got ('FOR_ITER', '#20')\nline 1173: orig ('POP_BLOCK', '') | got ('JUMP_ABSOLUTE', '#9')"
   },
   {
    "module": "binhex",
@@ -141,11 +137,11 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 160: orig  If(test=Compare(left=Call(func=Name(id='type' | dec  If(test=BoolOp(op=Or()",
+   "ast_detail": "diff at token 160: orig  If(test=Compare(left=Call(func=Name(id='type' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1226,
+   "ndiff": 1232,
    "ntotal": 1435,
-   "detail": "line 169: orig ('POP_JUMP_IF_FALSE', '#64') | got ('POP_JUMP_IF_FALSE', '#57')\nline 182: orig ('POP_JUMP_IF_FALSE', '#51') | got ('POP_JUMP_IF_FALSE', '#44')\nline 186: orig ('POP_JUMP_IF_FALSE', '#63') | got ('POP_JUMP_IF_TRUE', '#49')"
+   "detail": "line 169: orig ('POP_JUMP_IF_FALSE', '#64') | got ('POP_JUMP_IF_FALSE', '#65')\nline 182: orig ('POP_JUMP_IF_FALSE', '#51') | got ('POP_JUMP_IF_FALSE', '#65')\nline 186: orig ('POP_JUMP_IF_FALSE', '#63') | got ('POP_JUMP_IF_FALSE', '#64')"
   },
   {
    "module": "chunk",

@@ -61,7 +61,10 @@ def literal_eval(node_or_string):
             return set(map(_convert, node.elts))
         if isinstance(node, Dict):
             return dict(((_convert(k), _convert(v)) for k, v in zip(node.keys, node.values)))
-        if (isinstance(node, Name) and node.id in _safe_names or isinstance(node, UnaryOp)) and isinstance(node.op, (UAdd, USub)) and isinstance(node.operand, (Num, UnaryOp, BinOp)):
+        if isinstance(node, Name):
+            if node.id in _safe_names:
+                return _safe_names[node.id]
+        elif isinstance(node, UnaryOp) and isinstance(node.op, (UAdd, USub)) and isinstance(node.operand, (Num, UnaryOp, BinOp)):
             operand = _convert(node.operand)
             if isinstance(node.op, UAdd):
                 return +operand

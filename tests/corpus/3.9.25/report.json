@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
   "PASS": 12,
-  "SIG-DIFF": 20,
-  "INCOMPLETE": 8
+  "SIG-DIFF": 21,
+  "INCOMPLETE": 7
  },
  "results": [
   {
@@ -78,9 +78,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1729: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 723,
-   "ntotal": 2142,
-   "detail": "line 80: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 1250: orig ('FOR_ITER', 'to 1608') | got ('FOR_ITER', 'to 1604')\nline 1411: orig ('POP_JUMP_IF_FALSE', '') | got ('POP_JUMP_IF_TRUE', '')"
+   "ndiff": 720,
+   "ntotal": 2144,
+   "detail": "line 80: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 1250: orig ('FOR_ITER', 'to 1608') | got ('FOR_ITER', 'to 1612')\nline 1414: orig ('JUMP_FORWARD', 'to 846') | got ('EXTENDED_ARG', '')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -130,8 +130,9 @@
   },
   {
    "module": "asyncore",
-   "verdict": "INCOMPLETE",
-   "ndiff": 1691,
+   "ast_detail": "diff at token 371: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1682,
    "ntotal": 2212,
    "detail": "line 473: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 474: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 475: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'r')"
   },
@@ -166,8 +167,8 @@
   {
    "module": "bz2",
    "verdict": "INCOMPLETE",
-   "ndiff": 673,
-   "ntotal": 1062,
+   "ndiff": 677,
+   "ntotal": 1069,
    "detail": "line 323: orig ('SETUP_WITH', 'to 256') | got ('SETUP_WITH', 'to 188')\nline 338: orig ('SETUP_FINALLY', 'to 168') | got ('LOAD_FAST', 'self')\nline 339: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', '_mode')"
   },
   {
@@ -194,11 +195,11 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 125: orig  If(test=Compare(left=Call(func=Name(id='type' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 229: orig  values=[Compare(left=Name(id='token' | dec  values=[Compare(left=Name(id='lasttoken'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1218,
+   "ndiff": 1148,
    "ntotal": 1456,
-   "detail": "line 184: orig ('LOAD_CONST', \"'builtin'\") | got ('LOAD_GLOBAL', 'hasattr')\nline 187: orig ('BINARY_SUBSCR', '') | got ('CALL_FUNCTION', '')\nline 188: orig ('BUILD_TUPLE', '') | got ('POP_JUMP_IF_FALSE', '')"
+   "detail": "line 225: orig ('FOR_ITER', 'to 206') | got ('FOR_ITER', 'to 204')\nline 290: orig ('JUMP_FORWARD', 'to 200') | got ('LOAD_FAST', 'token')\nline 291: orig ('LOAD_FAST', 'token') | got ('LOAD_CONST', \"'.'\")"
   },
   {
    "module": "chunk",

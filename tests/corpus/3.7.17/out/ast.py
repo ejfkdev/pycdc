@@ -48,7 +48,10 @@ def literal_eval(node_or_string):
     if isinstance(node_or_string, Expression):
         node_or_string = node_or_string.body
     def _convert_num(node):
-        if (isinstance(node, Constant) and isinstance(node.value, (int, float, complex))) and isinstance(node, Num):
+        if isinstance(node, Constant):
+            if isinstance(node.value, (int, float, complex)):
+                return node.value
+        elif isinstance(node, Num):
             return node.n
         raise ValueError('malformed node or string: ' + repr(node))
 

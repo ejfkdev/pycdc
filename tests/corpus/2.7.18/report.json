@@ -2,9 +2,9 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "SIG-DIFF": 22,
+  "SIG-DIFF": 21,
   "PASS": 9,
-  "AST-PASS": 9
+  "AST-PASS": 10
  },
  "results": [
   {
@@ -67,9 +67,9 @@
    "module": "Queue",
    "ast_detail": "diff at token 385: orig  TryFinally(body=[If(test=Compare(left=Attribute(value=Name(id='self' | dec  TryFinally(body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 327,
+   "ndiff": 325,
    "ntotal": 679,
-   "detail": "line 337: orig ('SETUP_FINALLY', '#106') | got ('SETUP_FINALLY', '#60')\nline 342: orig ('POP_JUMP_IF_FALSE', '#87') | got ('POP_JUMP_IF_FALSE', '#41')\nline 351: orig ('POP_JUMP_IF_FALSE', '#86') | got ('POP_JUMP_IF_TRUE', '#24')"
+   "detail": "line 337: orig ('SETUP_FINALLY', '#106') | got ('SETUP_FINALLY', '#61')\nline 342: orig ('POP_JUMP_IF_FALSE', '#87') | got ('POP_JUMP_IF_FALSE', '#42')\nline 344: orig ('POP_JUMP_IF_TRUE', '#24') | got ('POP_JUMP_IF_TRUE', '#20')"
   },
   {
    "module": "SimpleHTTPServer",
@@ -139,17 +139,13 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 161: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 805,
-   "ntotal": 1166,
+   "ndiff": 809,
+   "ntotal": 1170,
    "detail": "line 129: orig ('POP_JUMP_IF_TRUE', '#73') | got ('POP_JUMP_IF_TRUE', '#72')\nline 130: orig ('SETUP_LOOP', '#71') | got ('SETUP_LOOP', '#74')\nline 152: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', '#74')"
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1888: orig  If(test=Compare(left=Name(id='ampm' | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1167,
-   "ntotal": 1649,
-   "detail": "line 89: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 441: orig ('SETUP_LOOP', '#164') | got ('SETUP_LOOP', '#165')\nline 447: orig ('FOR_ITER', '#163') | got ('FOR_ITER', '#164')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_sysconfigdata",
@@ -181,11 +177,11 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 219: orig  If(test=Call(func=Name(id='isinstance' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 624: orig  values=[Call(func=Name(id='hasattr' | dec  values=[Compare(left=Name(id='attr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 689,
-   "ntotal": 960,
-   "detail": "line 185: orig ('POP_JUMP_IF_FALSE', '#78') | got ('POP_JUMP_IF_FALSE', '#136')\nline 190: orig ('POP_JUMP_IF_FALSE', '#143') | got ('POP_JUMP_IF_FALSE', '#136')\nline 191: orig ('LOAD_DEREF', '_safe_names') | got ('LOAD_GLOBAL', 'isinstance')"
+   "ndiff": 695,
+   "ntotal": 966,
+   "detail": "line 190: orig ('POP_JUMP_IF_FALSE', '#143') | got ('POP_JUMP_IF_FALSE', '#142')\nline 196: orig ('JUMP_FORWARD', '#143') | got ('JUMP_FORWARD', '#142')\nline 201: orig ('POP_JUMP_IF_FALSE', '#143') | got ('POP_JUMP_IF_FALSE', '#142')"
   },
   {
    "module": "asynchat",
@@ -221,11 +217,11 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 731: orig  orelse=[])] | dec  orelse=[])",
+   "ast_detail": "diff at token 885: orig  ctx=Load())) | dec  ctx=Load()))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1049,
+   "ndiff": 1015,
    "ntotal": 2155,
-   "detail": "line 606: orig ('POP_JUMP_IF_FALSE', '#38') | got ('POP_JUMP_IF_FALSE', '#70')\nline 617: orig ('POP_JUMP_IF_FALSE', '#38') | got ('POP_JUMP_IF_FALSE', '#37')\nline 620: orig ('JUMP_FORWARD', '#38') | got ('LOAD_GLOBAL', 'effective')"
+   "detail": "line 1117: orig ('SETUP_LOOP', '#20') | got ('SETUP_LOOP', '#21')\nline 1121: orig ('FOR_ITER', '#19') | got ('FOR_ITER', '#20')\nline 1131: orig ('POP_BLOCK', '') | got ('JUMP_ABSOLUTE', '#9')"
   },
   {
    "module": "binhex",

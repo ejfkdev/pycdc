@@ -303,7 +303,10 @@ def get_platform_osx(_config_vars, osname, release, machine):
                     machine = 'universal'
                 else:
                     raise ValueError("Don't know machine value for archs=%r" % (archs,))
-                if machine == 'i386' and sys.maxint >= 4294967296L or machine in ('PowerPC', 'Power_Macintosh'):
+                if machine == 'i386':
+                    if sys.maxint >= 4294967296L:
+                        machine = 'x86_64'
+                elif machine in ('PowerPC', 'Power_Macintosh'):
                     if sys.maxint >= 4294967296L:
                         machine = 'ppc64'
                     else:

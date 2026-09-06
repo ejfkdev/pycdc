@@ -160,9 +160,13 @@ def loop(timeout=30.0, use_poll=False, map=None, count=None):
         poll_fun = poll2
     else:
         poll_fun = poll
-    if count is None and map and map and count > 0:
-        poll_fun(timeout, map)
-        count = count - 1
+    while count is None:
+        while map:
+            poll_fun(timeout, map)
+    else:
+        while map and count > 0:
+            poll_fun(timeout, map)
+            count = count - 1
 
 class dispatcher:
     debug = False
@@ -495,4 +499,3 @@ if os.name == 'posix':
             self.add_channel()
 
 
-# WARNING: Decompyle incomplete
