@@ -3,7 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 9,
-  "SIG-DIFF": 31
+  "SIG-DIFF": 30,
+  "AST-PASS": 1
  },
  "results": [
   {
@@ -68,11 +69,7 @@
   },
   {
    "module": "_pylong",
-   "ast_detail": "diff at token 338: orig  body=[Assign(targets=[Name(id='d' | dec  body=[Assign(targets=[Subscript(value=Name(id='pow10_cache'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 145,
-   "ntotal": 997,
-   "detail": "line 852: orig ('LOAD_CONST', '0') | got ('RETURN_CONST', '0')\nline 853: orig ('RETURN_VALUE', '') | got ('inner', 2)\nline 854: orig ('inner', 2) | got ('COPY_FREE_VARS', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_sitebuiltins",

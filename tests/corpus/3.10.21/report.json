@@ -53,7 +53,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 202: orig  Return(value=IfExp(test=UnaryOp(op=Not() | dec  Return()]",
+   "ast_detail": "diff at token 202: orig  If(test=UnaryOp(op=Not() | dec  Return()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1151,
    "ntotal": 1429,

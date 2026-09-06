@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
   "PASS": 12,
-  "SIG-DIFF": 27,
-  "AST-PASS": 1
+  "SIG-DIFF": 26,
+  "AST-PASS": 2
  },
  "results": [
   {
@@ -93,11 +93,7 @@
   },
   {
    "module": "_pylong",
-   "ast_detail": "diff at token 1078: orig  Return(value=IfExp(test=Name(id='digits' | dec  If(test=Name(id='digits'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 131,
-   "ntotal": 1025,
-   "detail": "line 894: orig ('LOAD_CONST', '0') | got ('RETURN_CONST', '0')\nline 895: orig ('RETURN_VALUE', '') | got ('inner', 2)\nline 896: orig ('inner', 2) | got ('COPY_FREE_VARS', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_sitebuiltins",

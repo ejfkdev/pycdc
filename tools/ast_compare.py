@@ -403,6 +403,16 @@ class Normalizer(ast.NodeTransformer):
             return node
         return self._expand_with(node)
 
+    def visit_Assign(self, node):
+        self.generic_visit(node)
+        # decompilers may render a chained assignment whose earlier
+        # target is a plain name as `rest = (name := value)` - fold the
+        # walrus back into the target list (both directions canonical)
+        if hasattr(ast, 'NamedExpr') and isinstance(node.value, ast.NamedExpr):
+            node = ast.Assign(targets=[node.value.target] + list(node.targets),
+                              value=node.value.value)
+        return node
+
     def visit_Return(self, node):
         self.generic_visit(node)
         # 'return None' and bare 'return' compile identically
@@ -503,16 +513,38 @@ TERMINATORS = tuple(
      if t is not None])
 
 
+def split_tail_ternary_return(stmts):
+    """Tail `return A if c else B` lowers (3.13) to `if c: return A`
+    followed by `return B` - split both sides to the statement form.
+    Tail position only, so it is exactly meaning-preserving."""
+    changed = True
+    while changed and stmts:
+        changed = False
+        last = stmts[-1]
+        if isinstance(last, ast.Return) and isinstance(last.value, ast.IfExp):
+            ie = last.value
+            stmts = list(stmts[:-1])
+            stmts.append(ast.If(
+                test=ie.test,
+                body=split_tail_ternary_return([ast.Return(value=ie.body)]),
+                orelse=[]))
+            stmts.append(ast.Return(value=ie.orelse))
+            changed = True
+    return stmts
+
+
 def _flatten_node(s):
     """Recurse into statement-holding fields (the walk-based passes in
     dump() never reach nested If bodies)."""
     for field in ('body', 'orelse', 'finalbody'):
         val = getattr(s, field, None)
         if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
-            setattr(s, field, flatten_terminating_else(val))
+            setattr(s, field,
+                    split_tail_ternary_return(flatten_terminating_else(val)))
     for h in getattr(s, 'handlers', None) or []:
         if getattr(h, 'body', None):
-            h.body = flatten_terminating_else(h.body)
+            h.body = split_tail_ternary_return(
+                flatten_terminating_else(h.body))
     return s
 
 
@@ -750,7 +782,8 @@ def dump(src):
             val = getattr(node, field, None)
             if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
                 setattr(node, field,
-                        flatten_terminating_else(merge_nested_ifs(val)))
+                        split_tail_ternary_return(
+                            flatten_terminating_else(merge_nested_ifs(val))))
         # a docstring-only body normalizes to empty; the source may have
         # carried a redundant `pass` after it (no bytecode) - canonicalize
         # an empty statement body to [Pass()] on both sides
