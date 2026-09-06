@@ -131,8 +131,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 773: orig  body=[Try(body=[Assign(targets=[Name(id='bytes' | dec  body=[Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2436,
-   "ntotal": 3055,
+   "ndiff": 2440,
+   "ntotal": 3054,
    "detail": "line 523: orig ('SETUP_LOOP', '#250') | got ('SETUP_LOOP', '#254')\nline 527: orig ('POP_JUMP_IF_FALSE', '#249') | got ('POP_JUMP_IF_FALSE', '#253')\nline 533: orig ('POP_JUMP_IF_FALSE', '#107') | got ('POP_JUMP_IF_FALSE', '#68')"
   },
   {

@@ -11,7 +11,8 @@ import sys
 #                          （or_cond 曾误折成 `if not a or not b: if c:`）
 #   `while a or b:`     —— 3.5-3.7 多跳旋转条件曾退化成
 #                          `while True: if a or b:`（条件假时运行期死循环）
-#   循环内 `A or B: 末语句`（仅 <3.8）—— 融合 skip+continue
+#   循环内 `A or B: 末语句`（<3.12）—— 融合 skip+continue
+#   循环内 `A or (B and C)`（3.5-3.11）—— fused try_or_and_chain
 #   值位 `a and b or c`（仅 <3.14）—— try_and_or_value_chain
 #
 # 已知缺口（各自独立 bug，另行处理，勿在本用例覆盖）：
@@ -20,9 +21,10 @@ import sys
 #   * 2.6 语句级 `(a and b) or c`（py2 JUMP_IF_* 值保留链）。
 #   * 2.6 `(a or b) and c` / `not a or b` 嵌套分组错（同族值保留链）。
 #   * 2.6 值位 `a and b or c` 分组错（同族）。
-#   * 3.8+ 循环内 or 家族：3.8/3.9 `if flag or x>1:` 反转成
-#     `if not flag: if x>1:`；3.10+ `flag is None or (B and C)` 丢 body；
-#     3.12+ 循环内简单 or 丢 body。
+#   * 3.12+ 循环内 or 家族（TO_BOOL/COPY 新布局）：`if flag or x>1:`
+#     DeMorgan 反转成 `if not flag and not x>1:`；`A or (B and C)` 反转。
+#   * 3.8+ 退化形 `if A or B: continue`（循环末语句、无后继）仍折成
+#     `if not A: if B: pass`（语义等价的 no-op，仅不保真）。
 #   * 3.14 值位 boolop 重新分组：`a and b or c` 折成 `a and (b or c)`；
 #     3.14 语句级 (a and b) or c 同样反转。
 #   * 3.10+ 链式比较 if（`(3,5) <= V[:2] < (3,14)`）的 body 被甩出守卫
@@ -41,6 +43,9 @@ if (3, 5) <= V:
 LT38 = 0
 if V < (3, 8):
     LT38 = 1
+LT312 = 0
+if V < (3, 12):
+    LT312 = 1
 LT314 = 0
 if V < (3, 14):
     LT314 = 1
@@ -59,6 +64,13 @@ def g_not_or(a, b, c):
             return 'inner'
         return 'outer'
     return 'none'
+
+def g_loop_and_or(items, flag, lim):
+    out = []
+    for x in items:
+        if flag is None or (x > 0 and x < lim):
+            out.append(x)
+    return out
 
 def g_while_or(a, b):
     n = 0
@@ -104,6 +116,11 @@ if VAL27_313:
             for c in (0, 1):
                 print(g_val(a, b, c))
 
-if LT38:
+if LT312:
     print(g_loop_or([0, 1, 2, 3], 0))
     print(g_loop_or([0, 1, 2, 3], 1))
+
+B35_311 = GE35 * LT312
+if B35_311:
+    print(g_loop_and_or([0, 1, 2, 3], None, 3))
+    print(g_loop_and_or([0, 1, 2, 3], 0, 3))

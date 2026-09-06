@@ -31,9 +31,9 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 275: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 346,
+   "ndiff": 345,
    "ntotal": 3420,
-   "detail": "line 1580: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 2747: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 3061: orig ('JUMP_FORWARD', 'to 54') | got ('JUMP_FORWARD', 'to 52')"
+   "detail": "line 1580: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 3061: orig ('JUMP_FORWARD', 'to 54') | got ('JUMP_FORWARD', 'to 52')\nline 3069: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 52')"
   },
   {
    "module": "_compat_pickle",
@@ -116,9 +116,9 @@
   {
    "module": "ast",
    "verdict": "INCOMPLETE",
-   "ndiff": 5317,
+   "ndiff": 5316,
    "ntotal": 7116,
-   "detail": "line 1049: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1460: orig ('SETUP_FINALLY', 'to 64') | got ('LOAD_FAST', 'padded')\nline 1461: orig ('LOAD_FAST', 'node') | got ('POP_JUMP_IF_FALSE', '')"
+   "detail": "line 1460: orig ('SETUP_FINALLY', 'to 64') | got ('LOAD_FAST', 'padded')\nline 1461: orig ('LOAD_FAST', 'node') | got ('POP_JUMP_IF_FALSE', '')\nline 1462: orig ('LOAD_ATTR', 'end_lineno') | got ('LOAD_GLOBAL', '_pad_whitespace')"
   },
   {
    "module": "asynchat",
@@ -130,7 +130,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 371: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 385: orig  If(test=Compare(left=List(elts=[] | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 1682,
    "ntotal": 2212,

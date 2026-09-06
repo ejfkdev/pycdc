@@ -263,10 +263,9 @@ class dispatcher:
         self.connected = False
         self.connecting = True
         err = self.socket.connect_ex(address)
-        if err not in (EINPROGRESS, EALREADY, EWOULDBLOCK):
-            if err == EINVAL and os.name == 'nt':
-                self.addr = address
-                return
+        if err in (EINPROGRESS, EALREADY, EWOULDBLOCK) or err == EINVAL and os.name == 'nt':
+            self.addr = address
+            return
         if err in (0, EISCONN):
             self.addr = address
             self.handle_connect_event()

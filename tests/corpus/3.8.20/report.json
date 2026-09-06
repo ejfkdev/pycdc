@@ -19,9 +19,9 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 297: orig  body=Yield(value=None)) | dec  body=Yield(value=Constant(value=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 348,
+   "ndiff": 346,
    "ntotal": 3084,
-   "detail": "line 2403: orig ('COMPARE_OP', 'is') | got ('COMPARE_OP', 'is not')\nline 2404: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 2722: orig ('JUMP_FORWARD', 'to 56') | got ('JUMP_FORWARD', 'to 54')"
+   "detail": "line 2722: orig ('JUMP_FORWARD', 'to 56') | got ('JUMP_FORWARD', 'to 54')\nline 2731: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 54')\nline 2732: orig ('RETURN_VALUE', '') | got ('END_FINALLY', '')"
   },
   {
    "module": "_compat_pickle",
@@ -109,7 +109,7 @@
    "module": "ast",
    "ast_detail": "diff at token 572: orig  body=[Try(body=[Assign(targets=[Name(id='value' | dec  body=[If(test=Name(id='keywords'",
    "verdict": "SIG-DIFF",
-   "ndiff": 625,
+   "ndiff": 623,
    "ntotal": 1734,
    "detail": "line 561: orig ('SETUP_FINALLY', 'to 44') | got ('LOAD_FAST', 'keywords')\nline 562: orig ('LOAD_GLOBAL', 'getattr') | got ('POP_JUMP_IF_FALSE', '')\nline 563: orig ('LOAD_FAST', 'node') | got ('LOAD_FAST', 'args')"
   },
@@ -123,7 +123,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 460: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 475: orig  If(test=Compare(left=List(elts=[] | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 1677,
    "ntotal": 2206,

@@ -13427,7 +13427,12 @@ impl<'a> Ctx<'a> {
         // jumps straight to the body; the rest form an and-chain whose
         // false-jumps share a `skip` label. Merge into one if-condition
         // instead of `if not A: if B and C:` (configparser/asyncore/crypt).
-        if jump_if_true && !self.version.at_least(3, 8) {
+        // The in-loop fused variant (and-chain PJIFs landing on the loop
+        // top) is byte-identical on 3.8-3.13 (t_orac/b27), so this runs on
+        // ALL versions; the recognizer's guards (pure-value operand sim,
+        // shared skip, loop-top admission, e>=e0, statement-headed body)
+        // are version-independent and bail to the paths below otherwise.
+        if jump_if_true {
             if let Some(body_start) = self.try_or_and_chain(cond.clone(), target) {
                 self.skip_until = Some(body_start);
                 return;
@@ -13464,7 +13469,15 @@ impl<'a> Ctx<'a> {
         // generic block-open instead would let this jump (targeting the
         // enclosing else label) trip the else-region arm and orphan any
         // open elif Else block.
-        if !self.version.at_least(3, 8) {
+        //
+        // Version scope: the NON-fused form (second operand's false jump
+        // lands past the body) is py2/<=3.7 machinery -- 3.8+ handles that
+        // shape elsewhere and must not be disturbed. The FUSED form (false
+        // jump == enclosing loop top, `if A or B: <last stmt of loop>`) is
+        // identical bytecode on 3.8/3.9 and currently mis-degrades to
+        // `if not A: if B:` (semantics inverted) there, so it is admitted
+        // on ALL versions via the inner condition.
+        {
             let top_info = self.blocks.last().map(|t| {
                 (
                     t.kind == BlockType::If,
@@ -13525,7 +13538,8 @@ impl<'a> Ctx<'a> {
                             })
                     });
                 if !jump_if_true
-                    && (target > body_start || fused_continue)
+                    && ((target > body_start && !self.version.at_least(3, 8))
+                        || fused_continue)
                     && !gap_has_cond_jump
                     && body_start > self.cur_offset
                     && self.stack.len() == depth
@@ -13564,6 +13578,28 @@ impl<'a> Ctx<'a> {
                     // continue landing (POP_TOP cleanup; back edge to the
                     // loop top; padding hop) - emit Continue instead of
                     // walking it (the region walk has no loop context)
+                    // fused shape: the body runs to the loop's
+                    // unconditional back edge (JABS/JUMP_BACKWARD to the
+                    // loop top == this jump's target)
+                    let fused_back_edge = if fused_continue {
+                        self.idx_of.get(&body_start).and_then(|&bi| {
+                            self.instrs[bi..]
+                                .iter()
+                                .find(|x| {
+                                    x.is_backward
+                                        && x.target == Some(target)
+                                        && matches!(
+                                            x.op,
+                                            Op::JUMP_ABSOLUTE
+                                                | Op::JUMP_BACKWARD
+                                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                        )
+                                })
+                                .map(|x| x.offset)
+                        })
+                    } else {
+                        None
+                    };
                     let body_stmts = {
                         let mut is_cont = false;
                         if orelse.is_empty() && !fused_continue {
@@ -13605,23 +13641,7 @@ impl<'a> Ctx<'a> {
                             // to the back edge naturally (an explicit continue
                             // would recompile to CONTINUE_LOOP and shift the
                             // sig off the original fused PJIF->loop_top).
-                            let back_edge = self
-                                .idx_of
-                                .get(&body_start)
-                                .and_then(|&bi| {
-                                    self.instrs[bi..].iter().find(|x| {
-                                        x.is_backward
-                                            && x.target == Some(target)
-                                            && matches!(
-                                                x.op,
-                                                Op::JUMP_ABSOLUTE
-                                                    | Op::JUMP_BACKWARD
-                                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
-                                            )
-                                    })
-                                })
-                                .map(|x| x.offset)
-                                .unwrap_or(body_start);
+                            let back_edge = fused_back_edge.unwrap_or(body_start);
                             self.decompile_region(body_start, back_edge)
                         } else {
                             self.decompile_region(body_start, target)
@@ -13633,25 +13653,38 @@ impl<'a> Ctx<'a> {
                         orelse,
                     });
                     if fused_continue {
-                        // skip the body (decompiled as a region) and its back
-                        // edge; resume at the loop's exhaustion exit
-                        if let Some(&bi) = self.idx_of.get(&body_start) {
-                            if let Some(exit) = self.instrs[bi..]
-                                .iter()
-                                .find(|x| {
-                                    matches!(x.op, Op::FOR_ITER | Op::POP_BLOCK)
-                                        && x.offset > body_start
-                                })
-                                .map(|x| {
-                                    if x.op == Op::FOR_ITER {
-                                        x.target.unwrap_or(x.end())
-                                    } else {
-                                        x.offset
-                                    }
-                                })
-                            {
-                                self.skip_until = Some(exit);
-                            }
+                        // skip the decompiled-as-region body. Resume point:
+                        // <=3.7 the loop's own exit marker (POP_BLOCK /
+                        // FOR_ITER target) sits right past the back edge --
+                        // skip the back edge too (5550c41 behavior; letting
+                        // it re-process regressed asyncore 2.7/3.3 by ~300
+                        // sig lines). 3.8+ rotated loops have NEITHER marker
+                        // after the body, and an unbounded scan runs away to
+                        // an unrelated later POP_BLOCK (asyncore 3.8/3.9
+                        // poll() lost the post-loop select chain) -- resume
+                        // AT the back edge and let the loop machinery see
+                        // it naturally.
+                        let exit = if !self.version.at_least(3, 8) {
+                            self.idx_of.get(&body_start).and_then(|&bi| {
+                                self.instrs[bi..]
+                                    .iter()
+                                    .find(|x| {
+                                        matches!(x.op, Op::FOR_ITER | Op::POP_BLOCK)
+                                            && x.offset > body_start
+                                    })
+                                    .map(|x| {
+                                        if x.op == Op::FOR_ITER {
+                                            x.target.unwrap_or(x.end())
+                                        } else {
+                                            x.offset
+                                        }
+                                    })
+                            })
+                        } else {
+                            None
+                        };
+                        if let Some(e2) = exit.or(fused_back_edge) {
+                            self.skip_until = Some(e2);
                         }
                     } else if self.skip_until.map_or(true, |s| s < else_stop) {
                         self.skip_until = Some(else_stop);

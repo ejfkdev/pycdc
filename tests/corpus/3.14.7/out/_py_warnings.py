@@ -695,10 +695,9 @@ version tuple (e.g. (3, 11)).
 '''
 
     remove_formatted = f'{remove[0]}.{remove[1]}'
-    if not _version[:2] > remove:
-        if _version[:2] == remove and _version[3] != 'alpha':
-            msg = f'{name!r} was slated for removal after Python {remove_formatted} alpha'
-            raise RuntimeError(msg)
+    if _version[:2] > remove or _version[:2] == remove and _version[3] != 'alpha':
+        msg = f'{name!r} was slated for removal after Python {remove_formatted} alpha'
+        raise RuntimeError(msg)
     msg = message.format(name=name, remove=remove_formatted)
     _wm.warn(msg, DeprecationWarning, stacklevel=3)
 
