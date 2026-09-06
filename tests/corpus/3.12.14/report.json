@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 9,
-  "SIG-DIFF": 30,
+  "PASS": 10,
+  "SIG-DIFF": 29,
   "AST-PASS": 1
  },
  "results": [
@@ -83,7 +83,7 @@
    "module": "_strptime",
    "ast_detail": "diff at token 77: orig  body=[Break()] | dec  body=[Return()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2178,
+   "ndiff": 2180,
    "ntotal": 2287,
    "detail": "line 41: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 45: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 46: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
@@ -235,8 +235,8 @@
    "module": "configparser",
    "ast_detail": "diff at token 110: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 3188,
-   "ntotal": 4261,
+   "ndiff": 3198,
+   "ntotal": 4262,
    "detail": "line 850: orig ('POP_JUMP_IF_FALSE', 'to 654') | got ('POP_JUMP_IF_FALSE', 'to 662')\nline 977: orig ('POP_JUMP_IF_FALSE', 'to 652') | got ('POP_JUMP_IF_FALSE', 'to 650')\nline 978: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 652')"
   },
   {
@@ -265,11 +265,7 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 223: orig  If(test=Compare(left=Attribute(value=Name(id='method' | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 142,
-   "ntotal": 462,
-   "detail": "line 287: orig ('JUMP_FORWARD', 'to 586') | got ('JUMP_FORWARD', 'to 552')\nline 292: orig ('POP_JUMP_IF_FALSE', 'to 554') | got ('POP_JUMP_IF_FALSE', 'to 552')\nline 294: orig ('POP_JUMP_IF_NONE', 'to 586') | got ('POP_JUMP_IF_NONE', 'to 552')"
+   "verdict": "PASS"
   },
   {
    "module": "csv",

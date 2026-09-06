@@ -250,8 +250,8 @@ handling behavior, and line ending(s).
             raise ValueError("Argument 'encoding' not supported in binary mode")
         if errors is not None:
             raise ValueError("Argument 'errors' not supported in binary mode")
-    if newline is not None:
-        raise ValueError("Argument 'newline' not supported in binary mode")
+        if newline is not None:
+            raise ValueError("Argument 'newline' not supported in binary mode")
     bz_mode = mode.replace('t', '')
     binary_file = BZ2File(filename, bz_mode, compresslevel=compresslevel)
     if 't' in mode:

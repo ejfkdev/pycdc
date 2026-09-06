@@ -102,11 +102,11 @@ class Bdb:
                 self.user_exception(frame, arg)
                 if self.quitting:
                     raise BdbQuit
-                if self.stopframe and frame is not self.stopframe:
-                    if self.stopframe.f_code.co_flags & CO_GENERATOR and arg[0] in (StopIteration, GeneratorExit):
-                        self.user_exception(frame, arg)
-                        if self.quitting:
-                            raise BdbQuit
+        elif self.stopframe and frame is not self.stopframe:
+            if self.stopframe.f_code.co_flags & CO_GENERATOR and arg[0] in (StopIteration, GeneratorExit):
+                self.user_exception(frame, arg)
+                if self.quitting:
+                    raise BdbQuit
         return self.trace_dispatch
 
     def is_skipped_module(self, module_name):

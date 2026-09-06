@@ -54,7 +54,7 @@ def mksalt(method=None, *, rounds=None):
             if not 1000 <= rounds <= 999999999:
                 raise ValueError('rounds out of the range 1000 to 999_999_999')
             s += f'rounds={rounds}$'
-    if rounds is not None:
+    elif rounds is not None:
         raise ValueError(f'{method} doesn\'t support the rounds argument')
     s += ''.join((_sr.choice(_saltchars) for char in range(method.salt_chars)))
     return s

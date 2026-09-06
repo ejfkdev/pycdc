@@ -768,8 +768,8 @@ Does not return a fresh dictionary.
             return
     else:
         ann = getattr(obj, '__annotations__', None)
-    if ann is None:
-        return
+        if ann is None:
+            return
     if not isinstance(ann, dict):
         raise ValueError(f'{obj!r}.__annotations__ is neither a dict nor None')
     return ann

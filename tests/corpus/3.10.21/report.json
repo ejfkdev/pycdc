@@ -131,7 +131,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 82: orig  body=[Return(value=Subscript(value=Name(id='errorcode' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2112,
+   "ndiff": 2114,
    "ntotal": 2191,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },

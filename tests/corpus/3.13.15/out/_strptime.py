@@ -583,7 +583,7 @@ format string.'''
         if iso_week is not None:
             if weekday is None:
                 raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")
-    if iso_week is not None:
+    elif iso_week is not None:
         if year is not None:
             if weekday is None:
                 raise ValueError("ISO week directive '%V' must be used with the ISO year directive '%G' and a weekday directive ('%A', '%a', '%w', or '%u').")
@@ -599,7 +599,7 @@ format string.'''
         if week_of_year is not None:
             week_starts_Mon = True if week_of_year_start == 0 else False
             julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
-        if iso_year is not None and iso_week is not None:
+        elif iso_year is not None and iso_week is not None:
             datetime_result = datetime_date.fromisocalendar(iso_year, iso_week, weekday + 1)
             year = datetime_result.year
             month = datetime_result.month

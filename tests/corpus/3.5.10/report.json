@@ -125,11 +125,11 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 544: orig  body=[If(test=Call(func=Attribute(value=Name(id='self' | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 1270: orig  While(test=BoolOp(op=And() | dec  While(test=Name(id='frame'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1284,
+   "ndiff": 1532,
    "ntotal": 2332,
-   "detail": "line 612: orig ('JUMP_FORWARD', 'to 193') | got ('LOAD_FAST', 'self')\nline 613: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'stopframe')\nline 614: orig ('LOAD_ATTR', 'stopframe') | got ('POP_JUMP_IF_FALSE', '')"
+   "detail": "line 778: orig ('LOAD_CONST', 'None') | got ('do_clear', 2)\nline 779: orig ('RETURN_VALUE', '') | got ('LOAD_GLOBAL', 'NotImplementedError')\nline 780: orig ('do_clear', 2) | got ('LOAD_CONST', \"'subclass of bdb must implement do_clear()'\")"
   },
   {
    "module": "binhex",

@@ -133,9 +133,9 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 558: orig  body=[If(test=Call(func=Attribute(value=Name(id='self' | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 1284: orig  While(test=BoolOp(op=And() | dec  While(test=Name(id='frame'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2213,
+   "ndiff": 2229,
    "ntotal": 2350,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },

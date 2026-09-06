@@ -13999,6 +13999,10 @@ impl<'a> Ctx<'a> {
     }
 
     fn handle_jump_forward(&mut self, target: usize) -> bool {
+        self.handle_jump_forward_depth(target, 0)
+    }
+
+    fn handle_jump_forward_depth(&mut self, target: usize, pass: usize) -> bool {
         let target = self.dup_copy_redirect.get(&target).copied().unwrap_or(target);
         self.close_blocks_at(self.cur_offset);
         // a jump to an enclosing loop's exit is a `break` flying over the
@@ -14059,6 +14063,36 @@ impl<'a> Ctx<'a> {
                         self.force_close_top(self.cur_next);
                         if is_chain_merge {
                             self.skip_until = Some(target);
+                            return true;
+                        }
+                        // an elif arm's nested if may share the chain
+                        // merge as its end (3.12 threads `if rounds is
+                        // not None:` straight to the merge): after
+                        // closing it, the NEW top's else transition must
+                        // still see this jump — re-dispatch once
+                        // walk past inner blocks whose region already
+                        // ended at/before here (they close naturally at
+                        // the target) and re-dispatch on the first block
+                        // that must still process this jump (the elif
+                        // Else spanning the merge); bounded recursion
+                        if pass < 3 {
+                            let mut idx = None;
+                            let n = self.blocks.len();
+                            for j in (0..n).rev() {
+                                let b = &self.blocks[j];
+                                if matches!(b.kind, BlockType::If | BlockType::Else)
+                                    && b.end == target
+                                {
+                                    idx = Some(j);
+                                    break;
+                                }
+                                if b.end > target {
+                                    break;
+                                }
+                            }
+                            if idx.is_some() {
+                                return self.handle_jump_forward_depth(target, pass + 1);
+                            }
                         }
                         return true;
                     }
@@ -14145,6 +14179,12 @@ impl<'a> Ctx<'a> {
                         | Op::POP_JUMP_FORWARD_IF_TRUE
                         | Op::POP_JUMP_BACKWARD_IF_FALSE
                         | Op::POP_JUMP_BACKWARD_IF_TRUE
+                        | Op::POP_JUMP_IF_NONE
+                        | Op::POP_JUMP_FORWARD_IF_NONE
+                        | Op::POP_JUMP_BACKWARD_IF_NONE
+                        | Op::POP_JUMP_IF_NOT_NONE
+                        | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                        | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
                 );
             }
             if matches!(inst.op, Op::RETURN_VALUE | Op::RETURN_CONST | Op::RAISE_VARARGS) {
@@ -16947,37 +16987,69 @@ impl<'a> Ctx<'a> {
         // (POP_EXCEPT; LOAD None; RETURN) - a scan that wandered past
         // the chain's RERAISE would find the function's own implicit
         // tail return and misfire on genuine source-level `return` in
-        // the try body (chunk.skip)
+        // the try body (chunk.skip). An `except E as e` handler wraps
+        // its body in an as-cleanup SETUP_FINALLY whose region also
+        // holds the sunk pair - walk through it, bounded.
         let mut m = k;
+        let mut steps = 0;
         while let Some(ins) = self.instrs.get(m) {
+            steps += 1;
+            if steps > 120 {
+                break;
+            }
             match ins.op {
                 Op::POP_EXCEPT => {
+                    let is_none_load = |k: usize| {
+                        self.instrs.get(k).map(|x| {
+                            x.op == Op::LOAD_CONST
+                                && matches!(
+                                    self.code.consts.get(x.arg as usize).map(|o| &**o),
+                                    Some(PyObject::None)
+                                )
+                        }) == Some(true)
+                    };
                     let mut j = m + 1;
-                    while matches!(
-                        self.instrs.get(j).map(|x| x.op),
-                        Some(Op::NOP) | Some(Op::CACHE) | Some(Op::NOT_TAKEN)
-                    ) {
-                        j += 1;
-                    }
-                    let none_load = self.instrs.get(j).map(|x| {
-                        x.op == Op::LOAD_CONST
-                            && matches!(
-                                self.code.consts.get(x.arg as usize).map(|o| &**o),
-                                Some(PyObject::None)
-                            )
-                    }) == Some(true);
-                    if none_load {
-                        if matches!(
-                            self.instrs.get(j + 1).map(|x| x.op),
-                            Some(Op::RETURN_VALUE) | Some(Op::RETURN_CONST)
+                    loop {
+                        while matches!(
+                            self.instrs.get(j).map(|x| x.op),
+                            Some(Op::NOP) | Some(Op::CACHE) | Some(Op::NOT_TAKEN)
                         ) {
+                            j += 1;
+                        }
+                        // `except E as e` cleanup: LOAD None; STORE e;
+                        // DELETE e sits between POP_EXCEPT and the sunk
+                        // tail return - skip the run
+                        if is_none_load(j)
+                            && matches!(
+                                self.instrs.get(j + 1).map(|x| x.op),
+                                Some(Op::STORE_FAST)
+                                    | Some(Op::STORE_NAME)
+                                    | Some(Op::STORE_DEREF)
+                            )
+                            && matches!(
+                                self.instrs.get(j + 2).map(|x| x.op),
+                                Some(Op::DELETE_FAST)
+                                    | Some(Op::DELETE_NAME)
+                                    | Some(Op::DELETE_DEREF)
+                            )
+                        {
+                            j += 3;
+                            continue;
+                        }
+                        if is_none_load(j)
+                            && matches!(
+                                self.instrs.get(j + 1).map(|x| x.op),
+                                Some(Op::RETURN_VALUE) | Some(Op::RETURN_CONST)
+                            )
+                        {
                             return true;
                         }
+                        break;
                     }
                 }
                 // the chain's mismatch tail: nothing past it belongs to
                 // the handler
-                Op::RERAISE | Op::END_FINALLY | Op::SETUP_FINALLY => break,
+                Op::RERAISE | Op::END_FINALLY => break,
                 _ => {}
             }
             m += 1;

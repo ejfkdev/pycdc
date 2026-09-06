@@ -934,7 +934,8 @@ class RawConfigParser(MutableMapping):
                         if optname:
                             if cursect[optname] is not None:
                                 cursect[optname].append('')
-                            indent_level = sys.maxsize
+                else:
+                    indent_level = sys.maxsize
                 continue
             first_nonspace = self.NONSPACECRE.search(line)
             cur_indent_level = first_nonspace.start() if first_nonspace else 0

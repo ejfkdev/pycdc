@@ -505,7 +505,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
         if week_of_year is not None:
             week_starts_Mon = True if week_of_year_start == 0 else False
             julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
-        if iso_year is not None and iso_week is not None:
+        elif iso_year is not None and iso_week is not None:
             datetime_result = datetime_date.fromisocalendar(iso_year, iso_week, weekday + 1)
             year = datetime_result.year
             month = datetime_result.month

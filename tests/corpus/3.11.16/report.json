@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 10,
-  "SIG-DIFF": 29,
+  "PASS": 11,
+  "SIG-DIFF": 28,
   "AST-PASS": 1
  },
  "results": [
@@ -75,8 +75,8 @@
    "module": "_strptime",
    "ast_detail": "diff at token 977: orig  value=BinOp(left=Constant(value='(?P<%s>%s') | dec  value=JoinedStr(values=[Constant(value='(?P<')",
    "verdict": "SIG-DIFF",
-   "ndiff": 2127,
-   "ntotal": 2248,
+   "ndiff": 2173,
+   "ntotal": 2249,
    "detail": "line 35: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 39: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 40: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {
@@ -269,11 +269,7 @@
   },
   {
    "module": "crypt",
-   "ast_detail": "diff at token 221: orig  If(test=Compare(left=Attribute(value=Name(id='method' | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 157,
-   "ntotal": 492,
-   "detail": "line 304: orig ('JUMP_FORWARD', 'to 562') | got ('JUMP_FORWARD', 'to 520')\nline 309: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 522') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 520')\nline 336: orig ('JUMP_FORWARD', 'to 562') | got ('LOAD_FAST', 'rounds')"
+   "verdict": "PASS"
   },
   {
    "module": "csv",
