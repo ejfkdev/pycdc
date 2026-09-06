@@ -64,9 +64,8 @@ class InteractiveInterpreter:
             self.showsyntaxerror(filename)
             return False
         else:
-            return True
             if code is None:
-                pass
+                return True
             self.runcode(code)
             return False
 

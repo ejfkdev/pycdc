@@ -100,7 +100,11 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         '''
 
         for name in list:
+            fullname = os.path.join(path, name)
+            displayname = linkname = name
             if os.path.isdir(fullname):
+                displayname = name + '/'
+                linkname = name + '/'
                 try:
                     list = os.listdir(path)
                 except os.error:
@@ -114,10 +118,6 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     f.write('<html>\n<title>Directory listing for %s</title>\n' % displaypath)
                     f.write('<body>\n<h2>Directory listing for %s</h2>\n' % displaypath)
                     f.write('<hr>\n<ul>\n')
-                    fullname = os.path.join(path, name)
-                    displayname = linkname = name
-                    displayname = name + '/'
-                    linkname = name + '/'
             if os.path.islink(fullname):
                 displayname = name + '@'
             f.write('<li><a href="%s">%s</a>\n' % (urllib.quote(linkname), cgi.escape(displayname)))

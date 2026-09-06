@@ -247,9 +247,8 @@ class Bdb:
         except IndexError:
             return 'Breakpoint number (%d) out of range' % number
         else:
-            return 'Breakpoint (%d) already deleted' % number
             if not bp:
-                pass
+                return 'Breakpoint (%d) already deleted' % number
             bp.deleteMe()
             self._prune_breaks(bp.file, bp.line)
 

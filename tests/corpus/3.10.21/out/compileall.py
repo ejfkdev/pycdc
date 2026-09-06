@@ -180,17 +180,28 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     except py_compile.PyCompileError as err:
         success = False
         if quiet >= 2:
-            pass
+            return success
+        if quiet:
+            print('*** Error compiling {!r}...'.format(fullname))
+        else:
+            print('*** ', end='')
+        encoding = sys.stdout.encoding or sys.getdefaultencoding()
+        msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+        print(msg)
         return success
     except (SyntaxError, UnicodeError, OSError) as e:
         success = False
         if quiet >= 2:
-            pass
+            return success
+        if quiet:
+            print('*** Error compiling {!r}...'.format(fullname))
+        else:
+            print('*** ', end='')
+        print(e.__class__.__name__ + ':', e)
         return success
     else:
-        success = False
         if ok == 0:
-            pass
+            success = False
         if tail == '.py':
             if not force:
                 try:
@@ -207,24 +218,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     pass
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
-            if quiet:
-                print('*** Error compiling {!r}...'.format(fullname))
-            else:
-                print('*** ', end='')
-            encoding = sys.stdout.encoding or sys.getdefaultencoding()
-            msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
-            print(msg)
-            return success
-            err = None
-            del err
-            if quiet:
-                print('*** Error compiling {!r}...'.format(fullname))
-            else:
-                print('*** ', end='')
-            print(e.__class__.__name__ + ':', e)
-            return success
-            e = None
-            del e
         if os.path.isfile(fullname):
             for opt_level in optimize:
                 if legacy:
@@ -304,6 +297,8 @@ def main():
         if args.stripdir is not None or args.prependdir is not None:
             parser.error('-d cannot be used in combination with -s or -p')
     if args.invalidation_mode:
+        ivl_mode = args.invalidation_mode.replace('-', '_').upper()
+        invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
         try:
             with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
                 for line in f:
@@ -315,8 +310,6 @@ def main():
         else:
             if args.flist:
                 pass
-            ivl_mode = args.invalidation_mode.replace('-', '_').upper()
-            invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:
         invalidation_mode = None
     success = True

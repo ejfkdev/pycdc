@@ -137,9 +137,8 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             print('*** ', end='')
         print(e.__class__.__name__ + ':', e)
     else:
-        success = False
         if ok == 0:
-            pass
+            success = False
         if tail == '.py':
             if not force:
                 try:
@@ -217,6 +216,7 @@ def main():
             for dest in compile_dests:
                 if os.path.isfile(dest):
                     if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy):
+                        success = False
                         try:
                             with sys.stdin if args.flist == '-' else open(args.flist) as f:
                                 for line in f:
@@ -228,11 +228,9 @@ def main():
                         else:
                             if args.flist:
                                 pass
-                            args.workers = args.workers or None
                             if args.workers is not None:
-                                pass
+                                args.workers = args.workers or None
                             success = True
-                            success = False
                 elif not compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers):
                     success = False
             return success

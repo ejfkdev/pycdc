@@ -50,9 +50,8 @@ def _strerror(err):
         return os.strerror(err)
     except (ValueError, OverflowError, NameError):
         if err in errorcode:
-            pass
-        return errorcode[err]
-    return 'Unknown error %s' % err
+            return errorcode[err]
+        return 'Unknown error %s' % err
 
 class ExitNow(Exception):
     pass
@@ -84,9 +83,6 @@ def _exception(obj):
         obj.handle_error()
 
 def readwrite(obj, flags):
-    return
-    e = None
-    del e
     try:
         if flags & select.POLLIN:
             obj.handle_read_event()
@@ -102,6 +98,7 @@ def readwrite(obj, flags):
             obj.handle_error()
         else:
             obj.handle_close()
+            return
         return
     obj.handle_error()
 
@@ -289,7 +286,6 @@ class dispatcher:
         raise OSError(err, errorcode[err])
 
     def accept(self):
-        raise
         try:
             conn, addr = self.socket.accept()
             return conn, addr
@@ -297,26 +293,22 @@ class dispatcher:
             pass
         except OSError as why:
             if why.errno in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
-                pass
-            return
+                return
+            raise
 
     def send(self, data):
-        if why.errno in _DISCONNECTED:
-            self.handle_close()
-            return 0
-        raise
-        why = None
-        del why
         try:
             result = self.socket.send(data)
             return result
         except OSError as why:
             if why.errno == EWOULDBLOCK:
-                pass
-            return 0
+                return 0
+            if why.errno in _DISCONNECTED:
+                self.handle_close()
+                return 0
+            raise
 
     def recv(self, buffer_size):
-        raise
         try:
             data = self.socket.recv(buffer_size)
             if not data:
@@ -326,7 +318,8 @@ class dispatcher:
         except OSError as why:
             if why.errno in _DISCONNECTED:
                 self.handle_close()
-            return b''
+                return b''
+            raise
 
     def close(self):
         self.connected = False

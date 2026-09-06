@@ -243,10 +243,8 @@ class BaseServer:
                 request, client_address = self.get_request()
             except socket.error:
                 return
-            else:
-                self.process_request(request, client_address)
             try:
-                pass
+                self.process_request(request, client_address)
             except:
                 self.handle_error(request, client_address)
                 self.close_request(request)

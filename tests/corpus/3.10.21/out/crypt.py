@@ -80,18 +80,16 @@ def _add_method(name, *args, rounds=None):
     globals()['METHOD_' + name] = method
     salt = mksalt(method, rounds=rounds)
     result = None
-    raise
     try:
         result = crypt('', salt)
     except OSError as e:
         if e.errno in {errno.EINVAL, errno.EPERM, errno.ENOSYS}:
-            pass
-        return False
+            return False
+        raise
     else:
-        methods.append(method)
-        return True
         if result and len(result) == method.total_size:
-            pass
+            methods.append(method)
+            return True
         return False
 
 _add_method('SHA512', '6', 16, 106)

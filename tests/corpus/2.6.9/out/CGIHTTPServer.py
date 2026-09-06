@@ -162,13 +162,13 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 env['AUTH_TYPE'] = authorization[0]
                 if authorization[0].lower() == 'basic':
                     if len(authorization) == 2:
+                        env['REMOTE_USER'] = authorization[0]
                         try:
                             authorization = base64.decodestring(authorization[1])
                         except binascii.Error:
                             pass
                         else:
                             authorization = authorization.split(':')
-                            env['REMOTE_USER'] = authorization[0]
         if self.headers.typeheader is None:
             env['CONTENT_TYPE'] = self.headers.type
         else:
@@ -269,10 +269,8 @@ def nobody_uid():
         import pwd
     except ImportError:
         return -1
-    else:
-        nobody = pwd.getpwnam('nobody')[2]
     try:
-        pass
+        nobody = pwd.getpwnam('nobody')[2]
     except KeyError:
         nobody = 1 + max(map((lambda x: x[2]), pwd.getpwall()))
     return nobody

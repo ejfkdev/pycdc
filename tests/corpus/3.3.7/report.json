@@ -31,8 +31,8 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 165: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 888,
-   "ntotal": 1144,
+   "ndiff": 771,
+   "ntotal": 1148,
    "detail": "line 145: orig ('POP_JUMP_IF_TRUE', '#73') | got ('POP_JUMP_IF_TRUE', '#72')\nline 146: orig ('SETUP_LOOP', '#71') | got ('SETUP_LOOP', '#74')\nline 168: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', '#74')"
   },
   {
@@ -187,7 +187,7 @@
    "module": "compileall",
    "ast_detail": "diff at token 204: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
    "verdict": "SIG-DIFF",
-   "ndiff": 649,
+   "ndiff": 648,
    "ntotal": 860,
    "detail": "line 130: orig ('SETUP_LOOP', '#142') | got ('SETUP_LOOP', '#145')\nline 133: orig ('FOR_ITER', '#141') | got ('FOR_ITER', '#144')\nline 177: orig ('POP_JUMP_IF_TRUE', '#140') | got ('POP_JUMP_IF_TRUE', '#143')"
   },
@@ -255,7 +255,7 @@
    "module": "fileinput",
    "ast_detail": "diff at token 1108: orig  Try(body=[Assign(targets=[Name(id='perm' | dec  If(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 119,
+   "ndiff": 123,
    "ntotal": 1132,
    "detail": "line 753: orig ('SETUP_EXCEPT', '#152') | got ('LOAD_GLOBAL', 'hasattr')\nline 755: orig ('LOAD_ATTR', 'fstat') | got ('LOAD_CONST', \"'O_BINARY'\")\nline 756: orig ('LOAD_FAST', 'self') | got ('CALL_FUNCTION', '2')"
   }

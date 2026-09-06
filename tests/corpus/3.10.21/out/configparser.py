@@ -596,9 +596,8 @@ class RawConfigParser(MutableMapping):
             except OSError:
                 continue
             else:
-                filename = os.fspath(filename)
                 if isinstance(filename, os.PathLike):
-                    pass
+                    filename = os.fspath(filename)
                 read_ok.append(filename)
         return read_ok
 
@@ -684,17 +683,15 @@ class RawConfigParser(MutableMapping):
             return fallback
         else:
             option = self.optionxform(option)
-            value = d[option]
         try:
-            pass
+            value = d[option]
         except KeyError:
             if fallback is _UNSET:
                 raise NoOptionError(option, section)
             return fallback
         else:
-            return value
             if raw or value is None:
-                pass
+                return value
             return self._interpolation.before_get(self, section, option, value, d)
 
     def _get(self, section, conv, option, **kwargs):

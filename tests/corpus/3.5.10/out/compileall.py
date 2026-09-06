@@ -130,9 +130,8 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             print('*** ', end='')
         print(e.__class__.__name__ + ':', e)
     else:
-        success = 0
         if ok == 0:
-            pass
+            success = 0
         if tail == '.py':
             if not force:
                 try:

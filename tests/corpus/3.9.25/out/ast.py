@@ -340,6 +340,7 @@ def get_source_segment(source, node, *, padded=False):
     '''
 
     if padded:
+        padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
         try:
             if node.end_lineno is None or node.end_col_offset is None:
                 return
@@ -351,10 +352,8 @@ def get_source_segment(source, node, *, padded=False):
             pass
         else:
             lines = _splitlines_no_ff(source)
-            return lines[lineno].encode()[col_offset:end_col_offset].decode()
             if end_lineno == lineno:
-                pass
-            padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
+                return lines[lineno].encode()[col_offset:end_col_offset].decode()
     else:
         padding = ''
     first = padding + lines[lineno].encode()[col_offset:].decode()
@@ -657,13 +656,12 @@ class _Unparser(NodeVisitor):
 
         seq = iter(seq)
         for x in seq:
+            inter()
+            f(x)
             try:
                 f(next(seq))
             except StopIteration:
                 pass
-            else:
-                inter()
-                f(x)
 
     def items_view(self, traverser, items):
         '''Traverse and separate the given *items* with a comma and append it to

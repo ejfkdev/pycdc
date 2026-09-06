@@ -114,12 +114,11 @@ def dump(node, annotate_fields=True, include_attributes=False):
             keywords = annotate_fields
             for field in node._fields:
                 if keywords:
+                    args.append('%s=%s' % (field, _format(value)))
                     try:
                         value = getattr(node, field)
                     except AttributeError:
                         keywords = True
-                    else:
-                        args.append('%s=%s' % (field, _format(value)))
                     continue
                 args.append(_format(value))
             if include_attributes and node._attributes:
@@ -302,6 +301,7 @@ def get_source_segment(source, node, *, padded=False):
     '''
 
     if padded:
+        padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
         try:
             lineno = node.lineno - 1
             end_lineno = node.end_lineno - 1
@@ -311,10 +311,8 @@ def get_source_segment(source, node, *, padded=False):
             pass
         else:
             lines = _splitlines_no_ff(source)
-            return lines[lineno].encode()[col_offset:end_col_offset].decode()
             if end_lineno == lineno:
-                pass
-            padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
+                return lines[lineno].encode()[col_offset:end_col_offset].decode()
     else:
         padding = ''
     first = padding + lines[lineno].encode()[col_offset:].decode()

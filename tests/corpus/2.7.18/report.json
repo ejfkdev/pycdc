@@ -11,7 +11,7 @@
    "module": "BaseHTTPServer",
    "ast_detail": "diff at token 191: orig  ctx=Store()) | dec  ctx=Store())]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1103,
+   "ndiff": 1104,
    "ntotal": 1162,
    "detail": "line 22: orig ('LOAD_CONST', \"('filterwarnings', 'catch_warnings')\") | got ('LOAD_CONST', \"('filterwarnings',)\")\nline 26: orig ('IMPORT_FROM', 'catch_warnings') | got ('POP_TOP', '')\nline 27: orig ('STORE_NAME', 'catch_warnings') | got ('LOAD_CONST', '-1')"
   },
@@ -23,7 +23,7 @@
    "module": "CGIHTTPServer",
    "ast_detail": "diff at token 776: orig  If(test=Compare(left=Call(func=Attribute(value=Subscript(value=Name(id='authorization' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 502,
+   "ndiff": 509,
    "ntotal": 1247,
    "detail": "line 48: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 524: orig ('SETUP_EXCEPT', '#323') | got ('LOAD_GLOBAL', 'len')\nline 525: orig ('LOAD_FAST', 'base64') | got ('LOAD_FAST', 'authorization')"
   },
@@ -73,9 +73,9 @@
   },
   {
    "module": "SimpleHTTPServer",
-   "ast_detail": "diff at token 321: orig  TryExcept(body=[Expr(value=Call(func=Attribute(value=Name(id='self' | dec  Expr(value=Call(func=Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 425: orig  body=[TryExcept(body=[Assign(targets=[Name(id='list' | dec  body=[For(target=Name(id='name'",
    "verdict": "SIG-DIFF",
-   "ndiff": 365,
+   "ndiff": 413,
    "ntotal": 701,
    "detail": "line 208: orig ('POP_JUMP_IF_FALSE', '#97') | got ('POP_JUMP_IF_FALSE', '#98')\nline 262: orig ('SETUP_LOOP', '#97') | got ('SETUP_LOOP', '#98')\nline 265: orig ('FOR_ITER', '#90') | got ('FOR_ITER', '#91')"
   },
@@ -83,7 +83,7 @@
    "module": "SimpleXMLRPCServer",
    "ast_detail": "diff at token 115: orig  ifs=[BoolOp(op=And() | dec  ifs=[Call(func=Attribute(value=Name(id='member'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1387,
+   "ndiff": 1397,
    "ntotal": 1550,
    "detail": "line 51: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 66: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 110: orig ('POP_JUMP_IF_FALSE', '#140') | got ('POP_JUMP_IF_FALSE', '#138')"
   },
@@ -91,7 +91,7 @@
    "module": "SocketServer",
    "ast_detail": "diff at token 86: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1099,
+   "ndiff": 1098,
    "ntotal": 1392,
    "detail": "line 215: orig ('SETUP_LOOP', '#34') | got ('SETUP_LOOP', '#36')\nline 217: orig ('POP_JUMP_IF_FALSE', '#33') | got ('POP_JUMP_IF_FALSE', '#35')\nline 231: orig ('POP_JUMP_IF_FALSE', '#31') | got ('POP_JUMP_IF_FALSE', '#33')"
   },
@@ -139,8 +139,8 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 161: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 919,
-   "ntotal": 1162,
+   "ndiff": 805,
+   "ntotal": 1166,
    "detail": "line 129: orig ('POP_JUMP_IF_TRUE', '#73') | got ('POP_JUMP_IF_TRUE', '#72')\nline 130: orig ('SETUP_LOOP', '#71') | got ('SETUP_LOOP', '#74')\nline 152: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', '#74')"
   },
   {
@@ -191,7 +191,7 @@
    "module": "asynchat",
    "ast_detail": "diff at token 213: orig  body=[TryExcept(body=[Assign(targets=[Name(id='data' | dec  body=[While(test=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 766,
+   "ndiff": 761,
    "ntotal": 817,
    "detail": "line 28: orig ('LOAD_CONST', \"('filterwarnings', 'catch_warnings')\") | got ('LOAD_CONST', \"('filterwarnings',)\")\nline 32: orig ('IMPORT_FROM', 'catch_warnings') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'catch_warnings') | got ('LOAD_CONST', '-1')"
   },
@@ -223,7 +223,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 731: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1120,
+   "ndiff": 1035,
    "ntotal": 2155,
    "detail": "line 606: orig ('POP_JUMP_IF_FALSE', '#38') | got ('POP_JUMP_IF_FALSE', '#70')\nline 617: orig ('POP_JUMP_IF_FALSE', '#38') | got ('POP_JUMP_IF_FALSE', '#37')\nline 620: orig ('JUMP_FORWARD', '#38') | got ('LOAD_GLOBAL', 'effective')"
   },

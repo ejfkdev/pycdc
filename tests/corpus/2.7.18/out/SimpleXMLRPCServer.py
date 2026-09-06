@@ -392,6 +392,7 @@ class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.report_404()
             return
         if self.encode_threshold is not None and len(response) > self.encode_threshold:
+            q = self.accept_encodings().get('gzip', 0)
             if q:
                 try:
                     max_chunk_size = 10485760
@@ -419,11 +420,9 @@ class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 else:
                     self.send_response(200)
                     self.send_header('Content-type', 'text/xml')
-                    q = self.accept_encodings().get('gzip', 0)
+                try:
                     response = xmlrpclib.gzip_encode(response)
                     self.send_header('Content-Encoding', 'gzip')
-                try:
-                    pass
                 except NotImplementedError:
                     pass
         self.send_header('Content-length', str(len(response)))

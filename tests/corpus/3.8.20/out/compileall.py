@@ -123,17 +123,26 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     except py_compile.PyCompileError as err:
         success = False
         if quiet >= 2:
-            pass
-        return success
+            return success
+        if quiet:
+            print('*** Error compiling {!r}...'.format(fullname))
+        else:
+            print('*** ', end='')
+        msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
+        msg = msg.decode(sys.stdout.encoding)
+        print(msg)
     except (SyntaxError, UnicodeError, OSError) as e:
         success = False
         if quiet >= 2:
-            pass
-        return success
+            return success
+        if quiet:
+            print('*** Error compiling {!r}...'.format(fullname))
+        else:
+            print('*** ', end='')
+        print(e.__class__.__name__ + ':', e)
     else:
-        success = False
         if ok == 0:
-            pass
+            success = False
         if tail == '.py':
             if not force:
                 try:
@@ -147,18 +156,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     pass
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
-            if quiet:
-                print('*** Error compiling {!r}...'.format(fullname))
-            else:
-                print('*** ', end='')
-            msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
-            msg = msg.decode(sys.stdout.encoding)
-            print(msg)
-            if quiet:
-                print('*** Error compiling {!r}...'.format(fullname))
-            else:
-                print('*** ', end='')
-            print(e.__class__.__name__ + ':', e)
         if os.path.isfile(fullname):
             if legacy:
                 cfile = fullname + 'c'
@@ -222,6 +219,8 @@ def main():
     else:
         maxlevels = args.maxlevels
     if args.invalidation_mode:
+        ivl_mode = args.invalidation_mode.replace('-', '_').upper()
+        invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
         try:
             with sys.stdin if args.flist == '-' else open(args.flist) as f:
                 for line in f:
@@ -233,8 +232,6 @@ def main():
         else:
             if args.flist:
                 pass
-            ivl_mode = args.invalidation_mode.replace('-', '_').upper()
-            invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:
         invalidation_mode = None
     success = True

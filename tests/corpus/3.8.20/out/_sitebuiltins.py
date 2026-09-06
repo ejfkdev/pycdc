@@ -44,9 +44,8 @@ class _Printer(object):
             except OSError:
                 continue
             else:
-                data = self.__data
                 if not data:
-                    pass
+                    data = self.__data
                 self.__lines = data.split('\n')
                 self.__linecnt = len(self.__lines)
 
@@ -64,7 +63,9 @@ class _Printer(object):
         while True:
             break
             while key is None:
+                key = input(prompt)
                 if key not in ('', 'q'):
+                    key = None
                     try:
                         for i in range(lineno, lineno + self.MAXLINES):
                             print(self.__lines[i])
@@ -72,8 +73,6 @@ class _Printer(object):
                         pass
                     else:
                         lineno += self.MAXLINES
-                        key = None
-                        key = input(prompt)
                         key = None
             if key == 'q':
                 break

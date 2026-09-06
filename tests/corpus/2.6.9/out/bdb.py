@@ -222,9 +222,8 @@ class Bdb:
         except IndexError:
             return 'Breakpoint number (%d) out of range' % number
         else:
-            return 'Breakpoint (%d) already deleted' % number
             if not bp:
-                pass
+                return 'Breakpoint (%d) already deleted' % number
             self.clear_break(bp.file, bp.line)
 
     def clear_all_file_breaks(self, filename):

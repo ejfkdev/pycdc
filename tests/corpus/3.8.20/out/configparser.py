@@ -673,14 +673,16 @@ class RawConfigParser(MutableMapping):
         except NoSectionError:
             if fallback is _UNSET:
                 raise
-            return fallback
+            else:
+                return fallback
         option = self.optionxform(option)
         try:
             value = d[option]
         except KeyError:
             if fallback is _UNSET:
                 raise NoOptionError(option, section)
-            return fallback
+            else:
+                return fallback
         if raw or value is None:
             return value
         else:

@@ -111,6 +111,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
             if ok == 0:
+                success = 0
                 try:
                     ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
                 except py_compile.PyCompileError as err:
@@ -128,8 +129,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=
                     else:
                         print('*** ', end='')
                     print(e.__class__.__name__ + ':', e)
-                    success = 0
-                else:
                     success = 0
     return success
 

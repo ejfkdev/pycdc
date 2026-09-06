@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
   "PASS": 13,
-  "SIG-DIFF": 23,
-  "AST-PASS": 4
+  "SIG-DIFF": 22,
+  "AST-PASS": 5
  },
  "results": [
   {
@@ -51,15 +51,15 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 145: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 736,
-   "ntotal": 1168,
+   "ndiff": 977,
+   "ntotal": 1169,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 128') | got ('SETUP_LOOP', 'to 134')\nline 161: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 134')\nline 162: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')"
   },
   {
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 308: orig  body=[Try(body=[For(target=Name(id='i' | dec  body=[While(test=Compare(left=Name(id='key'",
    "verdict": "SIG-DIFF",
-   "ndiff": 163,
+   "ndiff": 164,
    "ntotal": 371,
    "detail": "line 176: orig ('SETUP_LOOP', 'to 88') | got ('SETUP_LOOP', 'to 90')\nline 180: orig ('FOR_ITER', 'to 86') | got ('FOR_ITER', 'to 88')\nline 208: orig ('POP_EXCEPT', '') | got ('CONTINUE_LOOP', '')"
   },
@@ -103,9 +103,9 @@
    "module": "asynchat",
    "ast_detail": "diff at token 874: orig  Try(body=[Assign(targets=[Name(id='num_sent' | dec  If(test=Name(id='num_sent'",
    "verdict": "SIG-DIFF",
-   "ndiff": 38,
-   "ntotal": 812,
-   "detail": "line 647: orig ('SETUP_EXCEPT', 'to 184') | got ('LOAD_FAST', 'num_sent')\nline 648: orig ('LOAD_FAST', 'self') | got ('EXTENDED_ARG', '')\nline 649: orig ('LOAD_ATTR', 'send') | got ('POP_JUMP_IF_FALSE', '')"
+   "ndiff": 164,
+   "ntotal": 813,
+   "detail": "line 564: orig ('SETUP_LOOP', 'to 278') | got ('SETUP_LOOP', 'to 280')\nline 647: orig ('SETUP_EXCEPT', 'to 184') | got ('LOAD_FAST', 'num_sent')\nline 648: orig ('LOAD_FAST', 'self') | got ('EXTENDED_ARG', '')"
   },
   {
    "module": "asyncore",
@@ -189,11 +189,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 105: orig  If(test=Compare(left=Name(id='code' | dec  Return(value=NameConstant(value=True))]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 621,
-   "ntotal": 672,
-   "detail": "line 16: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 20: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "codecs",
@@ -215,7 +211,7 @@
    "module": "compileall",
    "ast_detail": "diff at token 169: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
    "verdict": "SIG-DIFF",
-   "ndiff": 820,
+   "ndiff": 822,
    "ntotal": 1036,
    "detail": "line 135: orig ('SETUP_LOOP', 'to 284') | got ('SETUP_LOOP', 'to 282')\nline 138: orig ('FOR_ITER', 'to 282') | got ('FOR_ITER', 'to 280')\nline 201: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },

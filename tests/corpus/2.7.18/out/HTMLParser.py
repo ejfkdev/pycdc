@@ -333,7 +333,10 @@ class HTMLParser(markupbase.ParserBase):
         def replaceEntities(s):
             s = s.groups()[0]
             if HTMLParser.entitydefs is None:
+                import htmlentitydefs
+                entitydefs = {'apos': "'"}
                 for k, v in htmlentitydefs.name2codepoint.iteritems():
+                    entitydefs[k] = unichr(v)
                     try:
                         if s[0] == '#':
                             s = s[1:]
@@ -344,10 +347,6 @@ class HTMLParser(markupbase.ParserBase):
                             return unichr(c)
                     except ValueError:
                         return '&#' + s + ';'
-                    else:
-                        import htmlentitydefs
-                        entitydefs = {'apos': "'"}
-                        entitydefs[k] = unichr(v)
                 HTMLParser.entitydefs = entitydefs
             try:
                 return self.entitydefs[s]

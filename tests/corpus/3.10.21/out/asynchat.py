@@ -69,7 +69,11 @@ class async_chat(asyncore.dispatcher):
 
     def handle_read(self):
         while self.ac_in_buffer:
+            lb = len(self.ac_in_buffer)
+            terminator = self.get_terminator()
             if not terminator:
+                self.collect_incoming_data(self.ac_in_buffer)
+                self.ac_in_buffer = b''
                 try:
                     data = self.recv(self.ac_in_buffer_size)
                 except BlockingIOError:
@@ -77,14 +81,9 @@ class async_chat(asyncore.dispatcher):
                 except OSError:
                     self.handle_error()
                 else:
-                    data = bytes(str, self.encoding)
                     if isinstance(data, str) and self.use_encoding:
-                        pass
+                        data = bytes(str, self.encoding)
                     self.ac_in_buffer = self.ac_in_buffer + data
-                    lb = len(self.ac_in_buffer)
-                    terminator = self.get_terminator()
-                    self.collect_incoming_data(self.ac_in_buffer)
-                    self.ac_in_buffer = b''
             elif isinstance(terminator, int):
                 n = terminator
                 if lb < n:
@@ -150,17 +149,15 @@ class async_chat(asyncore.dispatcher):
 
     def initiate_send(self):
         try:
-            pass
+            num_sent = self.send(data)
         except OSError:
             self.handle_error()
         else:
-            self.producer_fifo[0] = first[num_sent:]
-            return
-            if num_sent < len(data) or obs < len(first):
-                pass
-            del self.producer_fifo[0]
             if num_sent:
-                pass
+                if num_sent < len(data) or obs < len(first):
+                    self.producer_fifo[0] = first[num_sent:]
+                    return
+                del self.producer_fifo[0]
             return
             while self.producer_fifo:
                 if self.connected:
@@ -182,10 +179,8 @@ class async_chat(asyncore.dispatcher):
                         del self.producer_fifo[0]
                     continue
                 else:
-                    data = bytes(data, self.encoding)
                     if isinstance(data, str) and self.use_encoding:
-                        pass
-                    num_sent = self.send(data)
+                        data = bytes(data, self.encoding)
             return
 
     def discard_buffers(self):

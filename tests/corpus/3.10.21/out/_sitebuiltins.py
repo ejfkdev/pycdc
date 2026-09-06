@@ -46,9 +46,8 @@ class _Printer(object):
         else:
             for filename in self.__filenames:
                 pass
-            data = self.__data
             if not data:
-                pass
+                data = self.__data
             self.__lines = data.split('\n')
             self.__linecnt = len(self.__lines)
 
@@ -72,13 +71,11 @@ class _Printer(object):
                 else:
                     lineno += self.MAXLINES
                     key = None
-                    key = input(prompt)
-                    key = None
-                    if key not in ('', 'q'):
-                        pass
                     while key is None:
-                        pass
-                    return
+                        key = input(prompt)
+                        if key not in ('', 'q'):
+                            key = None
+                return
 
 
 class _Helper(object):

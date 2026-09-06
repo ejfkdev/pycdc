@@ -115,26 +115,19 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
         else:
             if value is None:
                 value = typ()
-            if isinstance(value, StopIteration) and exc.__cause__ is value:
-                return False
-            raise
-            exc = None
-            del exc
             try:
                 self.gen.throw(typ, value, traceback)
             except StopIteration as exc:
                 return exc is not value
             except RuntimeError as exc:
                 if exc is value:
-                    pass
-                return False
-            exc = None
-            del exc, exc
-            try:
-                if exc is not value:
-                    raise
-            finally:
-                exc = None
+                    return False
+                if isinstance(value, StopIteration) and exc.__cause__ is value:
+                    return False
+                raise
+            # WARNING: unrecovered try/except structure
+            if exc is not value:
+                raise
             return False
 
 
@@ -159,26 +152,19 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
         else:
             if value is None:
                 value = typ()
-            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
-                return False
-            raise
-            exc = None
-            del exc
             try:
                 await self.gen.athrow(typ, value, traceback)
             except StopAsyncIteration as exc:
                 return exc is not value
             except RuntimeError as exc:
                 if exc is value:
-                    pass
-                return False
-            exc = None
-            del exc, exc
-            try:
-                if exc is not value:
-                    raise
-            finally:
-                exc = None
+                    return False
+                if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                    return False
+                raise
+            # WARNING: unrecovered try/except structure
+            if exc is not value:
+                raise
             return False
 
 

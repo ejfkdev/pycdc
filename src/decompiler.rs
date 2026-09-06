@@ -5633,6 +5633,24 @@ impl<'a> Ctx<'a> {
                 }
             }
         }
+        // a block opened INSIDE the else region (an if/loop of the else
+        // body) collects its own statements; only redirect when the
+        // innermost structure is the region itself. Without this, arm
+        // statements of an if inside the else leak out flat and the if
+        // closes empty (crypt _add_method's merge-flow `if result and
+        // len(result)==total: append; return True` rendered as
+        // `append; return True; if ...: pass`). A block that STRADDLES
+        // the region start (opened before it, e.g. the 324ffb5 nested-
+        // else shape) still redirects — its close lands past the region.
+        let else_region_block_open = self
+            .legacy_try
+            .as_ref()
+            .and_then(|l| l.else_start)
+            .map_or(false, |es| {
+                self.blocks
+                    .last()
+                    .map_or(false, |b| b.start >= es && b.kind != BlockType::Main)
+            });
         // statements executed inside a collected try-else region belong to
         // the Try's orelse, not to the enclosing block; a 3.8-3.10 inline
         // finally body collects into finalbody. The else_stop bound is
@@ -5641,15 +5659,17 @@ impl<'a> Ctx<'a> {
         // there (cur_offset == else_stop) before taking the try, so those
         // stores still belong to orelse. (Matches the inclusive checks used
         // by the else-region probes elsewhere.)
-        if let Some(lt) = self.legacy_try.as_mut() {
-            if let Some(es) = lt.else_start {
-                if self.cur_offset >= es && self.cur_offset <= lt.else_stop {
-                    if lt.has_finally {
-                        lt.finalbody.push(stmt);
-                    } else {
-                        lt.orelse.push(stmt);
+        if !else_region_block_open {
+            if let Some(lt) = self.legacy_try.as_mut() {
+                if let Some(es) = lt.else_start {
+                    if self.cur_offset >= es && self.cur_offset <= lt.else_stop {
+                        if lt.has_finally {
+                            lt.finalbody.push(stmt);
+                        } else {
+                            lt.orelse.push(stmt);
+                        }
+                        return;
                     }
-                    return;
                 }
             }
         }
@@ -7098,6 +7118,19 @@ impl<'a> Ctx<'a> {
                     .legacy_handler
                     .as_ref()
                     .map_or(false, |h| h.pop_seen);
+                // the return sits inside a block opened WITHIN the handler
+                // (`except E as e: if cond: return v` — the POP_BLOCK/
+                // POP_EXCEPT/cleanup prefix unwinds the nested wrappers
+                // for the escape): it belongs to that block's arm. Folding
+                // now force-closes the block with an empty arm (`pass`)
+                // and strands the return at handler level (crypt
+                // _add_method) — leave the handler open; the chain-end
+                // RERAISE folds it after the block closes naturally.
+                let inner_open = self
+                    .legacy_handler
+                    .as_ref()
+                    .map_or(false, |h| self.blocks.len() > h.block_depth);
+                let defer_fold = defer_fold && !inner_open;
                 if defer_fold {
                     self.close_handler_blocks();
                 }

@@ -64,7 +64,11 @@ class async_chat(asyncore.dispatcher):
 
     def handle_read(self):
         while self.ac_in_buffer:
+            lb = len(self.ac_in_buffer)
+            terminator = self.get_terminator()
             if not terminator:
+                self.collect_incoming_data(self.ac_in_buffer)
+                self.ac_in_buffer = ''
                 try:
                     data = self.recv(self.ac_in_buffer_size)
                 except socket.error, why:
@@ -74,10 +78,6 @@ class async_chat(asyncore.dispatcher):
                     return
                 else:
                     self.ac_in_buffer = self.ac_in_buffer + data
-                    lb = len(self.ac_in_buffer)
-                    terminator = self.get_terminator()
-                    self.collect_incoming_data(self.ac_in_buffer)
-                    self.ac_in_buffer = ''
             elif isinstance(terminator, (int, long)):
                 n = terminator
                 if lb < n:
@@ -162,13 +162,12 @@ class async_chat(asyncore.dispatcher):
                     del self.producer_fifo[0]
             if num_sent:
                 if num_sent < len(data) or obs < len(first):
+                    self.producer_fifo[0] = first[num_sent:]
                     try:
                         num_sent = self.send(data)
                     except socket.error:
                         self.handle_error()
                         return
-                    else:
-                        self.producer_fifo[0] = first[num_sent:]
                     continue
             del self.producer_fifo[0]
             return

@@ -179,6 +179,7 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
                 self.send_error(400, 'Bad request version (%r)' % version)
                 return False
             if version_number >= (1, 1) and self.protocol_version >= 'HTTP/1.1':
+                self.close_connection = 0
                 try:
                     base_version_number = version.split('/', 1)[1]
                     version_number = base_version_number.split('.')
@@ -188,8 +189,6 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
                 except (ValueError, IndexError):
                     self.send_error(400, 'Bad request version (%r)' % version)
                     return False
-                else:
-                    self.close_connection = 0
             if version_number >= (2, 0):
                 self.send_error(505, 'Invalid HTTP Version (%s)' % base_version_number)
                 return False

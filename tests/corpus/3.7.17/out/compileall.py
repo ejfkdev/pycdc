@@ -141,9 +141,8 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
             print('*** ', end='')
         print(e.__class__.__name__ + ':', e)
     else:
-        success = False
         if ok == 0:
-            pass
+            success = False
         if tail == '.py':
             if not force:
                 try:
@@ -220,6 +219,8 @@ def main():
     else:
         maxlevels = args.maxlevels
     if args.invalidation_mode:
+        ivl_mode = args.invalidation_mode.replace('-', '_').upper()
+        invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
         try:
             with sys.stdin if args.flist == '-' else open(args.flist) as f:
                 for line in f:
@@ -231,11 +232,8 @@ def main():
         else:
             if args.flist:
                 pass
-            args.workers = args.workers or None
             if args.workers is not None:
-                pass
-            ivl_mode = args.invalidation_mode.replace('-', '_').upper()
-            invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
+                args.workers = args.workers or None
     else:
         invalidation_mode = None
     success = True

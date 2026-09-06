@@ -285,14 +285,14 @@ class Aifc_read:
         while True:
             self._ssnd_seek_needed = 1
             if chunkname == b'COMM':
+                self._read_comm_chunk(chunk)
+                self._comm_chunk_read = 1
                 try:
                     chunk = Chunk(self._file)
                 except EOFError:
                     pass
                 else:
                     chunkname = chunk.getname()
-                    self._read_comm_chunk(chunk)
-                    self._comm_chunk_read = 1
             elif chunkname == b'SSND':
                 self._ssnd_chunk = chunk
                 dummy = chunk.read(8)

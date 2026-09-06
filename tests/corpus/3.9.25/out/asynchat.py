@@ -67,7 +67,11 @@ class async_chat(asyncore.dispatcher):
 
     def handle_read(self):
         while self.ac_in_buffer:
+            lb = len(self.ac_in_buffer)
+            terminator = self.get_terminator()
             if not terminator:
+                self.collect_incoming_data(self.ac_in_buffer)
+                self.ac_in_buffer = b''
                 try:
                     data = self.recv(self.ac_in_buffer_size)
                 except BlockingIOError:
@@ -75,14 +79,9 @@ class async_chat(asyncore.dispatcher):
                 except OSError:
                     self.handle_error()
                 else:
-                    data = bytes(str, self.encoding)
                     if isinstance(data, str) and self.use_encoding:
-                        pass
+                        data = bytes(str, self.encoding)
                     self.ac_in_buffer = self.ac_in_buffer + data
-                    lb = len(self.ac_in_buffer)
-                    terminator = self.get_terminator()
-                    self.collect_incoming_data(self.ac_in_buffer)
-                    self.ac_in_buffer = b''
                 continue
             if isinstance(terminator, int):
                 n = terminator
@@ -170,12 +169,11 @@ class async_chat(asyncore.dispatcher):
                 data = bytes(data, self.encoding)
             if num_sent:
                 if num_sent < len(data) or obs < len(first):
+                    self.producer_fifo[0] = first[num_sent:]
                     try:
                         num_sent = self.send(data)
                     except OSError:
                         self.handle_error()
-                    else:
-                        self.producer_fifo[0] = first[num_sent:]
                 else:
                     del self.producer_fifo[0]
             return
