@@ -332,8 +332,6 @@ class Sniffer:
                         break
                     except (ValueError, OverflowError):
                         pass
-            else:
-                continue
             thisType = len(row[col])
             if thisType != columnTypes[col]:
                 if columnTypes[col] is None:

@@ -303,9 +303,7 @@ class Bdb:
 
     def get_breaks(self, filename, lineno):
         filename = self.canonic(filename)
-        if filename in self.breaks and lineno in self.breaks[filename]:
-            pass
-        return Breakpoint.bplist[filename, lineno] or []
+        return filename in self.breaks and lineno in self.breaks[filename] and Breakpoint.bplist[filename, lineno] or []
 
     def get_file_breaks(self, filename):
         filename = self.canonic(filename)

@@ -411,9 +411,7 @@ def _test():
             line = line[:-1]
         if line[-1:] == '\r':
             line = line[:-1]
-        if isfirstline():
-            pass
-        print('%d: %s[%d]%s %s' % (lineno(), filename(), filelineno(), '*' or '', line))
+        print('%d: %s[%d]%s %s' % (lineno(), filename(), filelineno(), isfirstline() and '*' or '', line))
     print('%d: %s[%d]' % (lineno(), filename(), filelineno()))
 
 if __name__ == '__main__':

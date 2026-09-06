@@ -279,9 +279,7 @@ class NodeVisitor(object):
                 for item in value:
                     if isinstance(item, AST):
                         self.visit(item)
-                else:
-                    continue
-            if isinstance(value, AST):
+            elif isinstance(value, AST):
                 self.visit(value)
 
 

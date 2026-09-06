@@ -330,8 +330,6 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                     else:
                         tz = value
                         break
-            else:
-                continue
     leap_year_fix = False
     if year is None and month == 2 and day == 29:
         year = 1904

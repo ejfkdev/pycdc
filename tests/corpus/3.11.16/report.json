@@ -127,7 +127,7 @@
   {
    "module": "bdb",
    "verdict": "INCOMPLETE",
-   "ndiff": 2318,
+   "ndiff": 2310,
    "ntotal": 2548,
    "detail": "line 190: orig ('NOP', '') | got ('LOAD_CONST', '(False, None, None)')\nline 191: orig ('NOP', '') | got ('LOAD_CONST', '<code set_break>')\nline 192: orig ('LOAD_CONST', '(False, None, None)') | got ('MAKE_FUNCTION', 'defaults')"
   },
@@ -168,8 +168,8 @@
   {
    "module": "cgitb",
    "verdict": "INCOMPLETE",
-   "ndiff": 738,
-   "ntotal": 1609,
+   "ndiff": 717,
+   "ntotal": 1607,
    "detail": "line 858: orig ('LOAD_GLOBAL', 'NULL + linecache') | got ('NOP', '')\nline 859: orig ('LOAD_ATTR', 'getline') | got ('NOP', '')\nline 860: orig ('LOAD_DEREF', 'file') | got ('LOAD_FAST', 'lnum')"
   },
   {

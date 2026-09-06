@@ -340,8 +340,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                     else:
                         tz = value
                         break
-            else:
-                continue
+            continue
     if julian == -1:
         if week_of_year != -1:
             if weekday != -1:

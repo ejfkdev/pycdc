@@ -113,8 +113,7 @@ class Profile(_lsprof.Profiler):
                         tt += prev[2]
                         ct += prev[3]
                     callers[func] = nc, cc, tt, ct
-                else:
-                    continue
+                continue
 
     def run(self, cmd):
         import __main__

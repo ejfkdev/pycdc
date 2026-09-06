@@ -39,7 +39,7 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1956: orig  If(test=Compare(left=Name(id='ampm' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1322,
+   "ndiff": 1325,
    "ntotal": 1832,
    "detail": "line 97: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 470: orig ('SETUP_LOOP', '#152') | got ('SETUP_LOOP', '#153')\nline 473: orig ('FOR_ITER', '#151') | got ('FOR_ITER', '#152')"
   },
@@ -71,8 +71,8 @@
    "module": "ast",
    "ast_detail": "diff at token 259: orig  If(test=Call(func=Name(id='isinstance' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 731,
-   "ntotal": 1049,
+   "ndiff": 768,
+   "ntotal": 1045,
    "detail": "line 206: orig ('POP_JUMP_IF_FALSE', '#94') | got ('POP_JUMP_IF_FALSE', '#88')\nline 211: orig ('POP_JUMP_IF_FALSE', '#190') | got ('POP_JUMP_IF_TRUE', '#93')\nline 212: orig ('LOAD_DEREF', '_safe_names') | got ('LOAD_GLOBAL', 'isinstance')"
   },
   {
@@ -99,7 +99,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 790: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1125,
+   "ndiff": 1137,
    "ntotal": 2286,
    "detail": "line 663: orig ('POP_JUMP_IF_FALSE', '#38') | got ('POP_JUMP_IF_FALSE', '#70')\nline 674: orig ('POP_JUMP_IF_FALSE', '#38') | got ('POP_JUMP_IF_FALSE', '#37')\nline 677: orig ('JUMP_FORWARD', '#38') | got ('LOAD_GLOBAL', 'effective')"
   },
@@ -147,7 +147,7 @@
    "module": "cgitb",
    "ast_detail": "diff at token 160: orig  If(test=Compare(left=Call(func=Name(id='type' | dec  If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1222,
+   "ndiff": 1226,
    "ntotal": 1435,
    "detail": "line 169: orig ('POP_JUMP_IF_FALSE', '#64') | got ('POP_JUMP_IF_FALSE', '#57')\nline 182: orig ('POP_JUMP_IF_FALSE', '#51') | got ('POP_JUMP_IF_FALSE', '#44')\nline 186: orig ('POP_JUMP_IF_FALSE', '#63') | got ('POP_JUMP_IF_TRUE', '#49')"
   },
@@ -231,8 +231,8 @@
    "module": "csv",
    "ast_detail": "diff at token 1740: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
-   "ndiff": 812,
-   "ntotal": 1661,
+   "ndiff": 809,
+   "ntotal": 1660,
    "detail": "line 811: orig ('SETUP_LOOP', '#28') | got ('SETUP_LOOP', '#29')\nline 814: orig ('FOR_ITER', '#27') | got ('FOR_ITER', '#28')\nline 836: orig ('POP_BLOCK', '') | got ('JUMP_ABSOLUTE', '#5')"
   },
   {
@@ -255,8 +255,8 @@
    "module": "fileinput",
    "ast_detail": "diff at token 1108: orig  Try(body=[Assign(targets=[Name(id='perm' | dec  If(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 123,
-   "ntotal": 1132,
+   "ndiff": 124,
+   "ntotal": 1131,
    "detail": "line 753: orig ('SETUP_EXCEPT', '#152') | got ('LOAD_GLOBAL', 'hasattr')\nline 755: orig ('LOAD_ATTR', 'fstat') | got ('LOAD_CONST', \"'O_BINARY'\")\nline 756: orig ('LOAD_FAST', 'self') | got ('CALL_FUNCTION', '2')"
   }
  ]

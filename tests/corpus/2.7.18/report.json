@@ -45,10 +45,10 @@
   },
   {
    "module": "DocXMLRPCServer",
-   "ast_detail": "diff at token 441: orig  body=[Assign(targets=[Name(id='anchor' | dec  body=[If(test=Name(id='cl'",
+   "ast_detail": "diff at token 1090: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
-   "ndiff": 716,
-   "ntotal": 886,
+   "ndiff": 731,
+   "ntotal": 885,
    "detail": "line 151: orig ('SETUP_LOOP', '#155') | got ('SETUP_LOOP', '#157')\nline 152: orig ('LOAD_FAST', 'pattern') | got ('LOAD_GLOBAL', 'True')\nline 153: orig ('LOAD_ATTR', 'search') | got ('POP_JUMP_IF_FALSE', '#156')"
   },
   {
@@ -147,7 +147,7 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1888: orig  If(test=Compare(left=Name(id='ampm' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1164,
+   "ndiff": 1167,
    "ntotal": 1649,
    "detail": "line 89: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 441: orig ('SETUP_LOOP', '#164') | got ('SETUP_LOOP', '#165')\nline 447: orig ('FOR_ITER', '#163') | got ('FOR_ITER', '#164')"
   },
@@ -183,8 +183,8 @@
    "module": "ast",
    "ast_detail": "diff at token 219: orig  If(test=Call(func=Name(id='isinstance' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 691,
-   "ntotal": 964,
+   "ndiff": 689,
+   "ntotal": 960,
    "detail": "line 185: orig ('POP_JUMP_IF_FALSE', '#78') | got ('POP_JUMP_IF_FALSE', '#136')\nline 190: orig ('POP_JUMP_IF_FALSE', '#143') | got ('POP_JUMP_IF_FALSE', '#136')\nline 191: orig ('LOAD_DEREF', '_safe_names') | got ('LOAD_GLOBAL', 'isinstance')"
   },
   {
@@ -223,7 +223,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 731: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1035,
+   "ndiff": 1049,
    "ntotal": 2155,
    "detail": "line 606: orig ('POP_JUMP_IF_FALSE', '#38') | got ('POP_JUMP_IF_FALSE', '#70')\nline 617: orig ('POP_JUMP_IF_FALSE', '#38') | got ('POP_JUMP_IF_FALSE', '#37')\nline 620: orig ('JUMP_FORWARD', '#38') | got ('LOAD_GLOBAL', 'effective')"
   },

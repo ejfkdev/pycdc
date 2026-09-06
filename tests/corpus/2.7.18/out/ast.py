@@ -85,9 +85,7 @@ def dump(node, annotate_fields=True, include_attributes=False):
             fields = [(a, _format(b)) for a, b in iter_fields(node)]
             rv = '%s(%s' % (node.__class__.__name__, ', '.join(('%s=%s' % field for field in fields) if annotate_fields else (b for a, b in fields)))
             if include_attributes and node._attributes:
-                if fields:
-                    pass
-                rv += ', ' or ' '
+                rv += fields and ', ' or ' '
                 rv += ', '.join(('%s=%s' % (a, _format(getattr(node, a))) for a in node._attributes))
             return rv + ')'
         if isinstance(node, list):
@@ -176,8 +174,6 @@ def iter_child_nodes(node):
                 if isinstance(item, AST):
                     yield item
                 continue
-            else:
-                continue
 
 def get_docstring(node, clean=True):
     '''
@@ -245,11 +241,8 @@ class NodeVisitor(object):
                     if isinstance(item, AST):
                         self.visit(item)
                     continue
-                else:
-                    continue
-            if isinstance(value, AST):
+            elif isinstance(value, AST):
                 self.visit(value)
-            continue
 
 
 class NodeTransformer(NodeVisitor):

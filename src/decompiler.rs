@@ -12920,6 +12920,161 @@ impl<'a> Ctx<'a> {
         Some((merged as ExprRef, body_start, body_end))
     }
 
+    /// Recognize a value-position `A and B or C` chain. CPython (3.x)
+    /// compiles the merged boolop — whose first operand is an `and` — to:
+    ///   LOAD A; POP_JUMP_IF_FALSE T; <B region>; JUMP_IF_TRUE_OR_POP M;
+    ///   T: <C region>; M: <consumer>
+    /// The `and`'s PJIF target T is exactly the `or`'s second-operand start,
+    /// so the whole thing is one value `Or(And(A, B), C)`. The plain PJIF
+    /// path instead opens a control-flow `if A: pass` and drops A from the
+    /// value (ast 3.6 _format `rv += fields and ', ' or ' '` rendered as
+    /// `if fields: pass` + `rv += ', ' or ' '`). Returns the merged value and
+    /// the merge offset M to skip to; None when the shape doesn't hold or a
+    /// region carries statements (the caller restores and falls through).
+    fn try_and_or_value_chain(
+        &mut self,
+        cond: ExprRef,
+        target: usize,
+    ) -> Option<(ExprRef, usize)> {
+        let b_start = self.cur_next;
+        if target <= b_start {
+            return None;
+        }
+        let bi = *self.idx_of.get(&b_start)?;
+        let ti = *self.idx_of.get(&target)?;
+        if ti <= bi {
+            return None;
+        }
+        // Walk the and-chain in [b_start, target). CPython compiles
+        // `A1 and A2 and ... and An or C` so that every and-operand's
+        // short-circuit PJIF lands on the or's second operand (target T),
+        // and the LAST and-operand feeds the or's JTPOP -> merge M:
+        //   <A1>; PJIF T; <A2>; PJIF T; ...; <An>; JTPOP M; T: <C>; M:
+        // Collect each operand's value span; bail if the shape deviates
+        // (a cond jump not targeting T, or no terminating JTPOP).
+        let mut spans: Vec<(usize, usize)> = Vec::new();
+        let mut j = None;
+        let mut k = bi;
+        let mut seg = b_start;
+        while k < ti {
+            let off = self.instrs[k].offset;
+            match self.instrs[k].op {
+                Op::POP_JUMP_IF_FALSE
+                | Op::POP_JUMP_FORWARD_IF_FALSE
+                | Op::POP_JUMP_BACKWARD_IF_FALSE
+                | Op::POP_JUMP_IF_TRUE
+                | Op::POP_JUMP_FORWARD_IF_TRUE
+                | Op::POP_JUMP_BACKWARD_IF_TRUE => {
+                    // intermediate and-operand short-circuit: must target T
+                    if self.instrs[k].target != Some(target) {
+                        return None;
+                    }
+                    spans.push((seg, off));
+                    seg = self.instrs[k].end();
+                }
+                Op::JUMP_IF_TRUE_OR_POP => {
+                    // last and-operand feeds the or
+                    spans.push((seg, off));
+                    j = Some(k);
+                    break;
+                }
+                _ => {}
+            }
+            k += 1;
+        }
+        let j = j?;
+        if spans.is_empty() {
+            return None;
+        }
+        let m = self.instrs[j].target?;
+        let mi = *self.idx_of.get(&m)?;
+        // the or's second-operand region [T, M) must be non-empty
+        if mi <= ti {
+            return None;
+        }
+        // no jump inside [T, M) may land back in the and-chain region, and
+        // no instruction strictly inside the C region may be a jump target
+        // (the entry T and the merge M are legitimately targeted by the
+        // boolop's own PJIF/JTPOP; a label inside means shared control flow)
+        for kk in ti..mi {
+            if let Some(t) = self.instrs[kk].target {
+                if t >= b_start && t < target {
+                    return None;
+                }
+            }
+            if kk > ti && self.targets.contains(&self.instrs[kk].offset) {
+                return None;
+            }
+        }
+        // speculative: snapshot mutable walk state so an abandoned match
+        // (a region carrying statements) restores cleanly
+        let blocks = self.blocks.clone();
+        let stack = self.stack.clone();
+        let skip = self.skip_until;
+        let pend = self.pending_stores.clone();
+        // evaluate each and-operand value span; all must be statement-free
+        let mut and_vals: Vec<ExprRef> = Vec::new();
+        let mut ok = true;
+        for &(s, e) in &spans {
+            if s >= e {
+                ok = false;
+                break;
+            }
+            self.region_result_expr = None;
+            let stmts = self.decompile_region(s, e);
+            let val = self.region_result_expr.take();
+            if !stmts.is_empty() {
+                ok = false;
+                break;
+            }
+            match val {
+                Some(v) => and_vals.push(v),
+                None => {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+        if !ok {
+            self.blocks = blocks;
+            self.stack = stack;
+            self.skip_until = skip;
+            self.pending_stores = pend;
+            return None;
+        }
+        // C region [target, m) -> value C (statement-free)
+        self.region_result_expr = None;
+        let c_stmts = self.decompile_region(target, m);
+        let c_val = self.region_result_expr.take();
+        if !c_stmts.is_empty() || c_val.is_none() {
+            self.blocks = blocks;
+            self.stack = stack;
+            self.skip_until = skip;
+            self.pending_stores = pend;
+            return None;
+        }
+        let c = c_val.unwrap();
+        // build And(cond, operand-spans...) then Or(and, C), flattening
+        // same-kind nested boolops so `A and B and C or D` stays flat
+        let mut and_flat: Vec<ExprRef> = Vec::new();
+        flatten_boolop(cond, BoolOpKind::And, &mut and_flat);
+        for v in and_vals {
+            flatten_boolop(v, BoolOpKind::And, &mut and_flat);
+        }
+        let and = Rc::new(Expr::BoolOp {
+            op: BoolOpKind::And,
+            values: and_flat,
+        });
+        let mut or_vals = Vec::new();
+        flatten_boolop(and as ExprRef, BoolOpKind::Or, &mut or_vals);
+        flatten_boolop(c, BoolOpKind::Or, &mut or_vals);
+        let merged = Rc::new(Expr::BoolOp {
+            op: BoolOpKind::Or,
+            values: or_vals,
+        });
+        Some((merged, m))
+    }
+
     fn handle_cond_jump(&mut self, cond: ExprRef, jump_if_true: bool, target: usize) {
         // tail-duplicated body copy: aim the jump at the original body
         let target = self.dup_copy_redirect.get(&target).copied().unwrap_or(target);
@@ -12951,6 +13106,19 @@ impl<'a> Ctx<'a> {
             .unwrap_or(target);
         if target != raw_target {
             self.cond_jump_redirect.insert(self.cur_offset, target);
+        }
+        // value-form `A and B or C`: the `and`'s PJIF target is the `or`'s
+        // second operand, so the chain merges into one BoolOp value instead
+        // of an `if A: pass` + a truncated `B or C` (ast 3.6 _format).
+        if !jump_if_true {
+            if let Some((merged, m)) = self.try_and_or_value_chain(cond.clone(), target) {
+                if std::env::var("PYCDC_AOR_DBG").is_ok() {
+                    eprintln!("AOR: off={} target={} merge={} -> {:?}", self.cur_offset, target, m, merged);
+                }
+                self.push(merged);
+                self.skip_until = Some(m);
+                return;
+            }
         }
         // 3.8+ forward or-continue chain: `if A or B: continue` compiles
         // to  PJIT(A) -> top; <B ops>; PJIF(B) -> body; BACK_EDGE -> top;
@@ -15117,6 +15285,20 @@ impl<'a> Ctx<'a> {
                 Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
             ) && !ins.is_backward
                 && ins.target == Some(setup_end)
+            {
+                return false;
+            }
+            // a backward jump out of the loop-exit region is NOT a for-else
+            // body start: it's the enclosing if/loop body's exit (compiler
+            // optimized a `JUMP_FORWARD else_end` into `JUMP_ABSOLUTE
+            // loop_top` because the for sits at the end of an if body inside
+            // a loop). Treating [exit, setup_end) as a for-else here swallows
+            // the following elif into a phantom `else: continue` and flattens
+            // the elif (ast 3.6 NodeVisitor.generic_visit).
+            if matches!(
+                ins.op,
+                Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP_BACKWARD_NO_INTERRUPT
+            ) && ins.is_backward
             {
                 return false;
             }
