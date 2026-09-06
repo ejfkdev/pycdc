@@ -10255,6 +10255,74 @@ impl<'a> Ctx<'a> {
         let j2op = match j2 { Some(x) => x, None => bail!("no j2") };
         let then_start = instrs[j2k].end();
         let e = j2_target;
+        // every false-exit of a merged boolop chain lands at or past the
+        // chain's shared skip (e0): shape And shares it outright, shape Or
+        // exits past the body. A j2 landing BEFORE e0 is an inner statement
+        // guard of the enclosing if's BODY (abc 2.7 __instancecheck__: the
+        // body opens with `if B and C: return False`, whose B/C PJIFs skip
+        // to the body-internal return) -- folding it as a chain operand
+        // swallows the nested guard and flattens the bodies.
+        if e < e0 {
+            bail!("j2 before shared exit");
+        }
+        // Shape sanity: the captured rhs operand must be the LAST one and
+        // [then_start, e) must be the real BODY.
+        if j2_target == e0 {
+            // shape And (shared skip): the body may open with a nested if
+            // guard, but that guard's cond jump must skip to the shared
+            // exit e0 (compileall compile_path `if quiet<2: print` guards
+            // to the back edge at 54... its PJIF targets 80 which is the
+            // loop back edge PAST e0 -- accept targets >= e0). abc 2.7
+            // __instancecheck__ misfire: the "body" opened with the nested
+            // guard's PJIF targeting 143, strictly BEFORE e0=156 -- the
+            // span was an inner if's condition, not this chain's body.
+            // the "body" [then_start, e) must not itself be an operand
+            // region (pure value ops terminated by a cond jump): that is
+            // the `if not A or B: if not C: stmt` inversion, where J1 is
+            // the folded-not or-join landing on the BODY and j2 is the
+            // nested guard whose skip coincides with the outer skip
+            // (configparser 3.7-3.9 _validate_value_types folded into
+            // `if (A and B) and C: raise`). Genuine And-shape bodies may
+            // OPEN with a nested guard (compileall compile_path), but a
+            // statement op always follows it before e.
+            let mut k2 = j2k + 1;
+            let mut all_value = true;
+            while let Some(ins) = instrs.get(k2) {
+                if ins.offset >= e {
+                    break;
+                }
+                if is_cond_jump(ins.op) {
+                    k2 += 1;
+                    continue;
+                }
+                if !is_value_op(ins.op) {
+                    all_value = false;
+                    break;
+                }
+                k2 += 1;
+            }
+            if all_value {
+                bail!("and-shape body is operand material");
+            }
+        } else {
+            // shape Or: j0 jumps straight to the body (e0 == body start)
+            // and j2 must be the LAST instruction before it. `(A1 and A2)
+            // or (B1 and B2)` (codecs 3.6-3.9 StreamReader.read) leaves
+            // the un-captured B2 operand between j2 and e0; folding only
+            // B1 produced `((A1 and A2) or B1) and B2`, applying B2 to
+            // str data.
+            if e0 != then_start {
+                bail!("or-shape rhs continues past j2");
+            }
+        }
+        // the rhs operand region must not contain a terminator before j2:
+        // an operand is a pure value, it cannot RETURN/RAISE mid-region
+        if instrs[ti..j2k]
+            .iter()
+            .any(|x| matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST | Op::RAISE_VARARGS))
+        {
+            bail!("rhs terminator");
+        }
         // J1 semantics: c1_jit=true means c1 joins when TRUE (or)
         let c1_true = jump_if_true;
         let c2_true = matches!(
@@ -13717,6 +13785,73 @@ impl<'a> Ctx<'a> {
                 && (!b.cond_set || b.cond_end != usize::MAX)
         });
         if !while_top {
+            // `(a and b) or c`: when THIS jump is a PJIF (jump_if_true
+            // false) AND the chain's second jump is a polarity-FLIPPED
+            // PJIT, try the STRICT merged-boolop recognizer first. The
+            // f1 shape's first operand jumps on FALSE to the or's second
+            // operand and the and's last operand joins on TRUE straight
+            // to the body; try_merge_or_cond misreads that operand region
+            // as the body and the real body as the exit, inverting the
+            // condition to `if not a or not b: if c:`. The strict
+            // recognizer gets it right (Or(And(a,b),c)).
+            //
+            // The flipped-polarity requirement keeps the 3.8+ folded
+            // `not A or B` shape out: there PJIF(A->BODY) is the or-join
+            // and the following PJIF(B->skip) is SAME-polarity; capturing
+            // the body's nested guard as j2 (its skip coinciding with the
+            // outer skip) inverted `if not A or B: if not C: raise` into
+            // `if (A and B) and C: raise` (configparser 3.7-3.9
+            // _validate_value_types -- the RAISE body defeats the
+            // body-is-operand veto inside the recognizer).
+            //
+            // Do NOT preempt when jump_if_true is TRUE (a PJIT-headed
+            // shape-A `(a or b) and c`, e.g. compileall compile_path):
+            // preempting there reshuffled the continue/print nesting on
+            // 3.10-3.13. ADOPT the strict result only when it carries no
+            // Not(): the bogus folds are exactly the DeMorgan-negated
+            // ones (abc 2.7).
+            if !jump_if_true {
+                let j0_is_pjit = self
+                    .idx_of
+                    .get(&self.cur_next)
+                    .and_then(|&bi2| {
+                        (bi2..self.instrs.len())
+                            .take_while(|&k| self.instrs[k].offset < target)
+                            .find(|&k| {
+                                matches!(
+                                    self.instrs[k].op,
+                                    Op::POP_JUMP_IF_FALSE
+                                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                                        | Op::POP_JUMP_IF_TRUE
+                                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                                )
+                            })
+                            .map(|k| {
+                                matches!(
+                                    self.instrs[k].op,
+                                    Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+                                )
+                            })
+                    })
+                    .unwrap_or(false);
+                if j0_is_pjit {
+                    if let Some((merged, then_start, e)) =
+                        self.try_merge_py2_boolop(&cond, jump_if_true, target)
+                    {
+                        if !expr_contains_not(&merged) {
+                            let mut blk = Block::new(BlockType::If, then_start, e);
+                            blk.cond = Some(merged);
+                            blk.cond_set = true;
+                            blk.jump_if_true = false;
+                            blk.stack_depth = self.stack.len();
+                            self.blocks.push(blk);
+                            // the operand regions were consumed by the scratch sim
+                            self.skip_until = Some(then_start);
+                            return;
+                        }
+                    }
+                }
+            }
             // `if a or b:` (and mixed-polarity and-chains): this cond jump
             // targets the BODY start; the region up to it is the second
             // operand ending in an opposite-polarity cond jump to the if's
@@ -13739,6 +13874,8 @@ impl<'a> Ctx<'a> {
                 self.skip_until = Some(body_start);
                 return;
             }
+            // historical-order retry of the strict recognizer (the Not-free
+            // preference above declined its result)
             if let Some((merged, then_start, e)) =
                 self.try_merge_py2_boolop(&cond, jump_if_true, target)
             {
@@ -14135,6 +14272,169 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 return;
+            }
+        }
+
+        // 3c) SETUP_LOOP-era rotated while with a MULTI-JUMP condition
+        // (`while a or b:`, 3.0-3.7): the first cond jump lands on the
+        // BODY start and the following operand jumps land on the loop
+        // exit (or the POP_BLOCK right before the SETUP_LOOP target).
+        // Without this the loop degrades to `while True: if a or b:
+        // <body>` -- the or-merge consumes the exit jump as the if's
+        // skip, leaving the loop with NO exit path: a runtime INFINITE
+        // LOOP whenever the condition starts false (b27_boolgroup
+        // g_while_or, 3.5-3.7). Fold the operands (jump-to-body links
+        // contribute positively, jump-to-exit links negated, Or-joined
+        // in layout order -- the same convention section 6's 3.10+
+        // multijump handler uses), decompile [body, back_edge) as the
+        // loop body, and close the While right here.
+        if !self.version.at_least(3, 8) {
+            let while_info = self.blocks.last().and_then(|t| {
+                if matches!(t.kind, BlockType::While)
+                    && !t.cond_set
+                    && t.start <= self.cur_offset
+                    && target > self.cur_offset
+                    && target < t.end
+                {
+                    Some((t.start, t.end))
+                } else {
+                    None
+                }
+            });
+            if let Some((loop_start, while_end)) = while_info {
+                let exit_ok = |t: usize| {
+                    t == while_end || self.is_pop_block_before(t, while_end)
+                };
+                let is_cj = |o: Op| {
+                    matches!(
+                        o,
+                        Op::POP_JUMP_IF_FALSE
+                            | Op::POP_JUMP_IF_TRUE
+                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                    )
+                };
+                let is_jt = |o: Op| {
+                    matches!(o, Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE)
+                };
+                let mut ok = false;
+                if let (Some(&ci), Some(&ti)) =
+                    (self.idx_of.get(&self.cur_offset), self.idx_of.get(&target))
+                {
+                    // J1 joins the body: it contributes positively when
+                    // it jumps on TRUE, negated when it jumps on FALSE
+                    let mut operands: Vec<ExprRef> = vec![if jump_if_true {
+                        cond.clone()
+                    } else {
+                        simplify_not(cond.clone())
+                    }];
+                    let mut region_start = ci + 1;
+                    let mut k = ci + 1;
+                    let mut last_end = None;
+                    let mut good = true;
+                    while k < ti {
+                        let ins = self.instrs[k];
+                        if is_cj(ins.op) {
+                            let t = match ins.target {
+                                Some(t) => t,
+                                None => {
+                                    good = false;
+                                    break;
+                                }
+                            };
+                            if !exit_ok(t) {
+                                good = false;
+                                break;
+                            }
+                            match self.sim_value_region(region_start, k) {
+                                Some(v) => {
+                                    operands.push(if is_jt(ins.op) {
+                                        simplify_not(v)
+                                    } else {
+                                        v
+                                    });
+                                }
+                                None => {
+                                    good = false;
+                                    break;
+                                }
+                            }
+                            last_end = Some(ins.end());
+                            region_start = k + 1;
+                        } else if !is_pure_value_op(ins.op)
+                            && !matches!(
+                                ins.op,
+                                Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG
+                            )
+                        {
+                            good = false;
+                            break;
+                        }
+                        k += 1;
+                    }
+                    // the last operand jump must land right at the body
+                    // the body start may only be targeted by J1 itself
+                    // (the or-join); any OTHER jump landing on it means a
+                    // shared label / duplicated body -- not a plain
+                    // rotated-while condition
+                    let extra_target = self.instrs.iter().any(|x| {
+                        x.offset != self.cur_offset && x.target == Some(target)
+                    });
+                    if good
+                        && last_end == Some(target)
+                        && operands.len() >= 2
+                        && !extra_target
+                    {
+                        ok = true;
+                    }
+                    if ok {
+                        let mut flat: Vec<ExprRef> = Vec::new();
+                        for v in operands {
+                            flatten_boolop(v, BoolOpKind::Or, &mut flat);
+                        }
+                        let merged = Rc::new(Expr::BoolOp {
+                            op: BoolOpKind::Or,
+                            values: flat,
+                        });
+                        // the loop's own back edge bounds the body
+                        let back_edge = self
+                            .idx_of
+                            .get(&target)
+                            .and_then(|&bi| {
+                                self.instrs[bi..]
+                                    .iter()
+                                    .find(|x| {
+                                        x.is_backward
+                                            && x.target == Some(loop_start)
+                                            && matches!(
+                                                x.op,
+                                                Op::JUMP_ABSOLUTE
+                                                    | Op::JUMP_BACKWARD
+                                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                            )
+                                    })
+                                    .map(|x| x.offset)
+                            })
+                            .unwrap_or(while_end);
+                        let body = self.decompile_region(target, back_edge);
+                        let blk_idx = self
+                            .blocks
+                            .iter()
+                            .rposition(|b| {
+                                matches!(b.kind, BlockType::While)
+                                    && b.start == loop_start
+                                    && !b.cond_set
+                            })
+                            .unwrap();
+                        let mut blk = self.blocks.remove(blk_idx);
+                        blk.cond = Some(merged);
+                        blk.stmts = body;
+                        self.blocks.push(blk);
+                        self.close_blocks_at(target);
+                        self.skip_until = Some(back_edge);
+                        return;
+                    }
+                }
             }
         }
 
@@ -17293,6 +17593,21 @@ fn is_comp_callable(e: &ExprRef) -> bool {
             "<listcomp>" | "<setcomp>" | "<dictcomp>" | "<genexpr>"
         ),
         Expr::Name(n) => n == "/*generator*/",
+        _ => false,
+    }
+}
+
+/// True when the condition tree carries an explicit boolean NOT anywhere
+/// in its boolop/compare structure. Used to decide merge precedence: the
+/// strict merged-boolop recognizer is adopted first only for Not-free
+/// results (bogus DeMorgan folds are exactly the Not-carrying ones).
+fn expr_contains_not(e: &ExprRef) -> bool {
+    match &**e {
+        Expr::Unary { op, operand } => {
+            matches!(op, UnaryOp::Not) || expr_contains_not(operand)
+        }
+        Expr::BoolOp { values, .. } => values.iter().any(expr_contains_not),
+        Expr::Compare { operands, .. } => operands.iter().any(expr_contains_not),
         _ => false,
     }
 }

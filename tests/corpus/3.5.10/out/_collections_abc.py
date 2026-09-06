@@ -761,9 +761,8 @@ class Sequence(Sized, Iterable, Container):
         if stop is not None and stop < 0:
             stop += len(self)
         i = start
-        while True:
-            if stop is None or i < stop:
-                pass
+        while stop is None or i < stop:
+            pass
         raise ValueError
         try:
             if self[i] == value:
