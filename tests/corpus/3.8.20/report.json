@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
   "PASS": 9,
-  "SIG-DIFF": 30,
-  "AST-PASS": 1
+  "SIG-DIFF": 29,
+  "AST-PASS": 2
  },
  "results": [
   {
@@ -29,7 +29,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 355: orig  type_comment=None)])] | dec  type_comment=None)]",
+   "ast_detail": "diff at token 356: orig  type_comment=None)])] | dec  type_comment=None)]",
    "verdict": "SIG-DIFF",
    "ndiff": 185,
    "ntotal": 490,
@@ -37,15 +37,11 @@
   },
   {
    "module": "_dummy_thread",
-   "ast_detail": "diff at token 22: orig  value=Constant(value=2147483648) | dec  value=Constant(value=2147483648",
-   "verdict": "SIG-DIFF",
-   "ndiff": 143,
-   "ntotal": 387,
-   "detail": "line 244: orig ('LOAD_CONST', 'None') | got ('__exit__', 4)\nline 245: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'self')\nline 246: orig ('__exit__', 4) | got ('LOAD_METHOD', 'release')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 594: orig  comparators=[Set(elts=[Constant(value='attlist' | dec  comparators=[Call(func=Name(id='frozenset'",
+   "ast_detail": "diff at token 596: orig  comparators=[Set(elts=[Constant(value='attlist' | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
    "ndiff": 954,
    "ntotal": 1403,
@@ -105,7 +101,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 325: orig  ops=[Eq() | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 326: orig  ops=[Eq() | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 2548,
    "ntotal": 3091,
@@ -113,7 +109,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 571: orig  body=[Try(body=[Assign(targets=[Name(id='value' | dec  body=[If(test=Name(id='keywords'",
+   "ast_detail": "diff at token 572: orig  body=[Try(body=[Assign(targets=[Name(id='value' | dec  body=[If(test=Name(id='keywords'",
    "verdict": "SIG-DIFF",
    "ndiff": 1074,
    "ntotal": 1734,
@@ -137,7 +133,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 981: orig  comparators=[Set(elts=[Constant(value=0 | dec  comparators=[Call(func=Name(id='frozenset'",
+   "ast_detail": "diff at token 985: orig  comparators=[Set(elts=[Constant(value=0 | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
    "ndiff": 1025,
    "ntotal": 1917,
@@ -145,7 +141,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 631: orig  body=[If(test=Call(func=Attribute(value=Name(id='self' | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 633: orig  body=[If(test=Call(func=Attribute(value=Name(id='self' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 1878,
    "ntotal": 2369,
@@ -173,7 +169,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 607: orig  type_comment=None)] | dec  type_comment=None)",
+   "ast_detail": "diff at token 610: orig  type_comment=None)] | dec  type_comment=None)",
    "verdict": "SIG-DIFF",
    "ndiff": 255,
    "ntotal": 715,
@@ -225,7 +221,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1430: orig  type_comment=None)] | dec  type_comment=None)",
+   "ast_detail": "diff at token 1432: orig  type_comment=None)] | dec  type_comment=None)",
    "verdict": "SIG-DIFF",
    "ndiff": 1076,
    "ntotal": 2187,
@@ -245,7 +241,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 647: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  Try(body=[Assign(targets=[Name(id='ok'",
+   "ast_detail": "diff at token 649: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  Try(body=[Assign(targets=[Name(id='ok'",
    "verdict": "SIG-DIFF",
    "ndiff": 678,
    "ntotal": 1094,
@@ -273,7 +269,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 210: orig  value=Constant(value=512) | dec  value=Constant(value=512",
+   "ast_detail": "diff at token 557: orig  body=[Continue()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 253,
    "ntotal": 544,

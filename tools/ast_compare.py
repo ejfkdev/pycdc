@@ -32,16 +32,29 @@ def _num_of(node):
     return node.n if hasattr(node, 'n') else node.value
 
 
-def _mk_num(v):
-    if hasattr(ast, 'Num'):
+def _mk_const(v):
+    """Build a constant node whose dump matches the PARSER's output on
+    every version: 3.8's parser sets kind=None on every Constant (the
+    field was removed in 3.9), and a hand-built ast.Num/Constant there
+    dumps without it."""
+    if hasattr(ast, 'Constant') and 'kind' in getattr(ast.Constant, '_fields', ()):
+        c = ast.Constant(value=v)
+        c.kind = None
+        return c
+    if isinstance(v, str):
+        if hasattr(ast, 'Str'):
+            return ast.Str(s=v)
+    elif hasattr(ast, 'Num'):
         return ast.Num(n=v)
     return ast.Constant(value=v)
 
 
+def _mk_num(v):
+    return _mk_const(v)
+
+
 def _mk_str(s):
-    if hasattr(ast, 'Str'):
-        return ast.Str(s=s)
-    return ast.Constant(value=s)
+    return _mk_const(s)
 
 
 def const_key(node):
