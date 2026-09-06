@@ -403,6 +403,11 @@ struct Ctx<'a> {
     /// discarded by the POP_TOP right after it — swallow that pop
     /// instead of emitting a stray `None` expression statement
     import_star_pop_pending: bool,
+    /// cond-jump offset -> normalized target when the raw target landed
+    /// on a loop back edge (3.8+ continue threading); the fused
+    /// continue-chain scanner compares raw jump targets against block
+    /// ends built from normalized ones
+    cond_jump_redirect: std::collections::HashMap<usize, usize>,
     /// py2 `if` statement: offset of the else-branch POP_TOP absorbed by
     /// the JUMP_IF_FALSE/TRUE rewrite (it must not pop a real value)
     py2_else_pop_at: Option<usize>,
@@ -657,6 +662,7 @@ pub fn decompile_in_scope(
         prev_op_at_exec: None,
         skip_until: None,
         import_star_pop_pending: false,
+        cond_jump_redirect: std::collections::HashMap::new(),
         dup_copy_redirect: HashMap::new(),
         dup_copy_skip: Vec::new(),
         broken_loop_top: None,
@@ -9986,6 +9992,180 @@ impl<'a> Ctx<'a> {
         )
     }
 
+    /// Forward or-continue chain probe: see handle_cond_jump. Returns
+    /// (merged Or condition, offset just past the back edge = skip
+    /// target). The current jump is the FIRST operand (PJIT to the loop
+    /// top); the second operand's PJIF skips the back edge into the body.
+    fn is_loop_top_target(&self, t: usize) -> bool {
+        self.blocks.iter().any(|b| {
+            matches!(b.kind, BlockType::While | BlockType::For)
+                && (b.start == t
+                    || (b.cond_end != usize::MAX && b.start <= t && t < b.cond_end))
+        })
+    }
+
+    fn try_fwd_or_continue(&self, target: usize, first: &ExprRef) -> Option<(ExprRef, usize)> {
+        let dbg = std::env::var("PYCDC_FOC_DBG").is_ok();
+        // pre-3.8 has no back-edge redirect: the target may be the back
+        // edge instruction itself - normalize to the loop top
+        let top_target = self
+            .idx_of
+            .get(&target)
+            .and_then(|&ti| {
+                let ins = self.instrs.get(ti)?;
+                if ins.is_backward
+                    && matches!(
+                        ins.op,
+                        Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    )
+                {
+                    ins.target
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(target);
+        macro_rules! bail {
+            ($why:expr) => {{
+                if dbg { eprintln!("FOC[{}] off={}: bail {}", self.code.name, self.cur_offset, $why); }
+                return None;
+            }};
+        }
+        // enclosing loop whose top is the redirect target
+        let loop_blk = self.blocks.iter().rev().find(|b| {
+            matches!(b.kind, BlockType::While | BlockType::For)
+                && (b.start == top_target
+                    || (b.cond_end != usize::MAX && b.cond_end == top_target))
+        }) else { bail!("no-loop") };
+        let _ = loop_blk;
+        let ci = *self.idx_of.get(&self.cur_offset)?;
+        // second operand region: pure value ops up to its cond jump
+        let mut k = ci + 1;
+        let mut steps = 0;
+        while let Some(ins) = self.instrs.get(k) {
+            if matches!(
+                ins.op,
+                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+            ) {
+                break;
+            }
+            if !is_pure_value_op(ins.op)
+                && !matches!(
+                    ins.op,
+                    Op::NOP
+                        | Op::NOT_TAKEN
+                        | Op::CACHE
+                        | Op::TO_BOOL
+                        | Op::COMPARE_OP
+                        | Op::IS_OP
+                        | Op::CONTAINS_OP
+                        | Op::UNARY_NOT
+                        | Op::UNARY_NEGATIVE
+                        | Op::UNARY_POSITIVE
+                        | Op::UNARY_INVERT
+                        | Op::BINARY_ADD
+                        | Op::BINARY_SUBTRACT
+                        | Op::BINARY_MULTIPLY
+                        | Op::BINARY_TRUE_DIVIDE
+                        | Op::BINARY_FLOOR_DIVIDE
+                        | Op::BINARY_MODULO
+                        | Op::BINARY_POWER
+                        | Op::BINARY_LSHIFT
+                        | Op::BINARY_RSHIFT
+                        | Op::BINARY_AND
+                        | Op::BINARY_OR
+                        | Op::BINARY_XOR
+                )
+            {
+                bail!(format!("scan-op {:?}", ins.op));
+            }
+            k += 1;
+            steps += 1;
+            if steps > 64 {
+                bail!("scan-len");
+            }
+        }
+        let Some(j2) = self.instrs.get(k) else { bail!("scan-end") };
+        if !matches!(
+            j2.op,
+            Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+        ) {
+            bail!("no-j2");
+        }
+        let Some(body_at) = j2.target else { bail!("j2-no-target") };
+        if body_at <= j2.offset {
+            bail!("j2-back");
+        }
+        // operand 2 = the value region before j2's comparison
+        // operand 2 = the whole region up to j2, simulated through its
+        // comparison (the region yields exactly one value: the test)
+        if k <= ci + 1 {
+            bail!("empty-region");
+        }
+        let Some(second) = self.sim_value_region_ex(ci + 1, k, false) else {
+            bail!("sim");
+        };
+        // between j2 and the body: exactly the loop's back edge
+        let mut m = k + 1;
+        while matches!(
+            self.instrs.get(m).map(|x| x.op),
+            Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE)
+        ) {
+            m += 1;
+        }
+        let e = self.instrs.get(m)?;
+        if !(e.is_backward
+            && e.target == Some(top_target)
+            && matches!(
+                e.op,
+                Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP_BACKWARD_NO_INTERRUPT
+            ))
+        {
+            bail!(format!("no-backedge at {:?} tgt={:?} want={}", e.op, e.target, top_target));
+        }
+        let mut m2 = m + 1;
+        loop {
+            while matches!(
+                self.instrs.get(m2).map(|x| x.op),
+                Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE)
+            ) {
+                m2 += 1;
+            }
+            // py2 pads the continue landing with a zero-hop JUMP_FORWARD
+            // onto the body start
+            let pad_hop = self
+                .instrs
+                .get(m2)
+                .map(|x| {
+                    matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                        && !x.is_backward
+                        && x.target == Some(body_at)
+                        && x.offset != body_at
+                })
+                .unwrap_or(false);
+            if pad_hop {
+                m2 += 1;
+                continue;
+            }
+            break;
+        }
+        if self.instrs.get(m2).map(|x| x.offset) != Some(body_at) {
+            bail!("body-mismatch");
+        }
+        let mut values = Vec::new();
+        flatten_boolop(first.clone(), BoolOpKind::Or, &mut values);
+        flatten_boolop(second, BoolOpKind::Or, &mut values);
+        Some((
+            Rc::new(Expr::BoolOp {
+                op: BoolOpKind::Or,
+                values,
+            }),
+            self.instrs.get(m2).map(|x| x.offset).unwrap_or(body_at),
+        ))
+    }
+
     fn try_or_continue_chain(
         &self,
         loop_top: usize,
@@ -12172,6 +12352,56 @@ impl<'a> Ctx<'a> {
     fn handle_cond_jump(&mut self, cond: ExprRef, jump_if_true: bool, target: usize) {
         // tail-duplicated body copy: aim the jump at the original body
         let target = self.dup_copy_redirect.get(&target).copied().unwrap_or(target);
+        let raw_target = target;
+        // 3.8+ `continue` threading: the jump may land ON the loop's back
+        // edge instruction instead of the loop top (3.10 `if a or b:
+        // continue`); executing the back edge IS the continue - normalize
+        // to the top so the jump reads identically to the direct form
+        // (3.8 targets FOR_ITER/the top outright)
+        let target = self
+            .idx_of
+            .get(&target)
+            .and_then(|&ti| {
+                let ins = self.instrs.get(ti)?;
+                if self.version.at_least(3, 8)
+                    && ins.is_backward
+                    && matches!(
+                        ins.op,
+                        Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    )
+                {
+                    ins.target
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(target);
+        if target != raw_target {
+            self.cond_jump_redirect.insert(self.cur_offset, target);
+        }
+        // 3.8+ forward or-continue chain: `if A or B: continue` compiles
+        // to  PJIT(A) -> top; <B ops>; PJIF(B) -> body; BACK_EDGE -> top;
+        // body:  (3.10+ threads the continue onto the back edge; 3.13
+        // _pylong / b16 orcont family). Recognize the two-operand shape
+        // and emit `if A or B: continue` directly; anything else falls
+        // through to the historical per-version machinery.
+        if jump_if_true
+            && (self.version.major >= 3 || self.version.at_least(2, 7))
+        {
+            if let Some((merged, body_end)) = self.try_fwd_or_continue(target, &cond) {
+                self.push_stmt(Stmt::If {
+                    cond: merged,
+                    body: vec![Stmt::Continue],
+                    orelse: Vec::new(),
+                });
+                if self.skip_until.map_or(true, |s| s < body_end) {
+                    self.skip_until = Some(body_end);
+                }
+                return;
+            }
+        }
         // py2 value-form boolop consumed by an if: `if X or Y:` where the
         // operands are value-building chains (chained comparisons via
         // JUMP_IF_*_OR_POP) — the FINAL operand's cond jump arrives while
@@ -12182,7 +12412,7 @@ impl<'a> Ctx<'a> {
         // generic block-open instead would let this jump (targeting the
         // enclosing else label) trip the else-region arm and orphan any
         // open elif Else block.
-        {
+        if !self.version.at_least(3, 8) {
             let top_info = self.blocks.last().map(|t| {
                 (
                     t.kind == BlockType::If,
@@ -12203,13 +12433,11 @@ impl<'a> Ctx<'a> {
                     self.blocks.pop();
                     // the block cond was stored NEGATED for the
                     // jump_if_true polarity (`if not A: <region>`) — the
-                    // or-operand is the positive form
-                    let a = match &*blk_cond {
-                        Expr::Unary { op: UnaryOp::Not, operand } => {
-                            operand.clone()
-                        }
-                        _ => blk_cond,
-                    };
+                    // or-operand is the positive form. negate_cond is an
+                    // involution on every form it produces (Not(x) and
+                    // inverted single-op compares), so it restores the
+                    // operand regardless of whether the negation folded
+                    let a = negate_cond(blk_cond);
                     let mut values = Vec::new();
                     flatten_boolop(a, BoolOpKind::Or, &mut values);
                     flatten_boolop(cond, BoolOpKind::Or, &mut values);
@@ -12230,7 +12458,47 @@ impl<'a> Ctx<'a> {
                     if else_stop > target {
                         orelse = self.decompile_region(target, else_stop);
                     }
-                    let body_stmts = self.decompile_region(body_start, target);
+                    // py2 or-continue: the "body" region is the loop's
+                    // continue landing (POP_TOP cleanup; back edge to the
+                    // loop top; padding hop) - emit Continue instead of
+                    // walking it (the region walk has no loop context)
+                    let body_stmts = {
+                        let mut is_cont = false;
+                        if orelse.is_empty() {
+                            if let (Some(&bi), Some(&ti2)) =
+                                (self.idx_of.get(&body_start), self.idx_of.get(&target))
+                            {
+                                let mut saw_back = false;
+                                is_cont = self.instrs[bi..ti2].iter().all(|x| {
+                                    if matches!(x.op, Op::POP_TOP | Op::NOP) {
+                                        return true;
+                                    }
+                                    if x.is_backward
+                                        && matches!(
+                                            x.op,
+                                            Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD
+                                        )
+                                        && self.is_loop_top_target(x.target.unwrap_or(0))
+                                    {
+                                        saw_back = true;
+                                        return true;
+                                    }
+                                    if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                                        && !x.is_backward
+                                        && x.target == Some(target)
+                                    {
+                                        return true;
+                                    }
+                                    false
+                                }) && saw_back;
+                            }
+                        }
+                        if is_cont {
+                            vec![Stmt::Continue]
+                        } else {
+                            self.decompile_region(body_start, target)
+                        }
+                    };
                     self.push_stmt(Stmt::If {
                         cond: merged,
                         body: body_stmts,

@@ -55,8 +55,8 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 202: orig  Return(value=IfExp(test=UnaryOp(op=Not() | dec  Return()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1138,
-   "ntotal": 1428,
+   "ndiff": 1151,
+   "ntotal": 1429,
    "detail": "line 219: orig ('SETUP_WITH', 'to 160') | got ('SETUP_WITH', 'to 172')\nline 253: orig ('POP_BLOCK', '') | got ('LOAD_CONST', 'None')\nline 254: orig ('ROT_TWO', '') | got ('LOAD_CONST', 'None')"
   },
   {
@@ -75,8 +75,8 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1444: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2048,
-   "ntotal": 2148,
+   "ndiff": 2064,
+   "ntotal": 2153,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {
@@ -115,8 +115,8 @@
    "module": "ast",
    "ast_detail": "diff at token 376: orig  ops=[Eq() | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 7557,
-   "ntotal": 7968,
+   "ndiff": 7652,
+   "ntotal": 7966,
    "detail": "line 12: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 16: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_CONST', '0')"
   },
   {
@@ -131,7 +131,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 82: orig  body=[Return(value=Subscript(value=Name(id='errorcode' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2118,
+   "ndiff": 2112,
    "ntotal": 2191,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
@@ -191,7 +191,7 @@
    "module": "cgi",
    "ast_detail": "diff at token 649: orig  While(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='end'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2811,
+   "ndiff": 2797,
    "ntotal": 2915,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
@@ -227,7 +227,7 @@
    "module": "codecs",
    "ast_detail": "diff at token 784: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1784,
+   "ndiff": 1779,
    "ntotal": 2129,
    "detail": "line 300: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, None, None, None)')\nline 301: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 302: orig ('LOAD_CONST', '(None, None, None, None, None)') | got ('LOAD_CONST', \"('_is_text_encoding',)\")"
   },
@@ -245,7 +245,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 391: orig  value=Constant(value=True))]))]) | dec  value=Constant(value=True))]))",
+   "ast_detail": "diff at token 138: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
    "verdict": "SIG-DIFF",
    "ndiff": 1420,
    "ntotal": 1512,
@@ -255,7 +255,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 2239: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2085,
+   "ndiff": 2082,
    "ntotal": 4289,
    "detail": "line 2102: orig ('FOR_ITER', 'to 160') | got ('FOR_ITER', 'to 162')\nline 2144: orig ('LOAD_GLOBAL', 'isinstance') | got ('LOAD_GLOBAL', 'os')\nline 2145: orig ('LOAD_FAST', 'filename') | got ('LOAD_METHOD', 'fspath')"
   },

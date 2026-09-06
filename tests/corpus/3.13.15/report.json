@@ -83,7 +83,7 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 117: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1313,
+   "ndiff": 1325,
    "ntotal": 1534,
    "detail": "line 169: orig ('NOP', '') | got ('LOAD_CONST', '0')\nline 170: orig ('LOAD_CONST', '0') | got ('LOAD_CONST', 'None')\nline 171: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'tempfile')"
   },
@@ -93,11 +93,11 @@
   },
   {
    "module": "_pylong",
-   "ast_detail": "diff at token 37: orig  ops=[In()] | dec  ops=[LtE()]",
+   "ast_detail": "diff at token 1078: orig  Return(value=IfExp(test=Name(id='digits' | dec  If(test=Name(id='digits'",
    "verdict": "SIG-DIFF",
-   "ndiff": 150,
+   "ndiff": 131,
    "ntotal": 1025,
-   "detail": "line 109: orig ('POP_JUMP_IF_FALSE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L5')\nline 116: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L2')\nline 119: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L3')"
+   "detail": "line 894: orig ('LOAD_CONST', '0') | got ('RETURN_CONST', '0')\nline 895: orig ('RETURN_VALUE', '') | got ('inner', 2)\nline 896: orig ('inner', 2) | got ('COPY_FREE_VARS', '')"
   },
   {
    "module": "_sitebuiltins",
@@ -111,8 +111,8 @@
    "module": "_strptime",
    "ast_detail": "diff at token 65: orig  body=[Break()]) | dec  body=[Return()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2756,
-   "ntotal": 2946,
+   "ndiff": 2662,
+   "ntotal": 2941,
    "detail": "line 49: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 53: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 54: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {
@@ -203,8 +203,8 @@
    "module": "codecs",
    "ast_detail": "diff at token 2: orig  Try(body=[ImportFrom(module='_codecs' | dec  Try(body=[Try(body=[ImportFrom(module='_codecs'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2082,
-   "ntotal": 2163,
+   "ndiff": 2078,
+   "ntotal": 2159,
    "detail": "line 13: orig ('LOAD_CONST', '0') | got ('NOP', '')\nline 14: orig ('LOAD_CONST', \"('*',)\") | got ('LOAD_CONST', '0')\nline 15: orig ('IMPORT_NAME', '_codecs') | got ('LOAD_CONST', \"('*',)\")"
   },
   {
@@ -223,8 +223,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 77: orig  value=List(ctx=Load()))])]) | dec  value=List(ctx=Load()))])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1607,
-   "ntotal": 1685,
+   "ndiff": 1609,
+   "ntotal": 1684,
    "detail": "line 49: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 51: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
   {

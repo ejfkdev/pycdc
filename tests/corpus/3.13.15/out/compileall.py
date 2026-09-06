@@ -300,7 +300,7 @@ invalidation_mode: as for compiler_dir()
         if (dir and dir == os.curdir) and skip_curdir:
             if quiet < 2:
                 print('Skipping current directory')
-                continue
+            continue
     success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
     return success
 
@@ -370,8 +370,9 @@ def main():
             for dest in compile_dests:
                 if os.path.isfile(dest):
                     if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
-                        success = False
-                        continue
+                        pass
+                    success = False
+                    continue
                     continue
                 if compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
                     continue

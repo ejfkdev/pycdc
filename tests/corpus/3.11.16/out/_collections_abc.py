@@ -927,26 +927,16 @@ class Sequence(Reversible, Collection):
             if stop < 0:
                 stop += len(self)
         i = start
-        if stop is not None or i < stop:
-            try:
-                v = self[i]
-            except IndexError:
-                pass
-            if IndexError:
-                None
-            else:
-                if v is value or v == value:
-                    return i
-                i += 1
-                if stop is not None:
-                    pass
-                if not i < stop:
-                    pass
-        if v is value or v == value:
-            return i
-        i += 1
         if stop is not None:
-            pass
+            while i < stop:
+                try:
+                    v = self[i]
+                except IndexError:
+                    break
+                if v is not value:
+                    if v == value:
+                        return i
+                i += 1
         if not i < stop:
             pass
         raise ValueError
@@ -1046,4 +1036,3 @@ class MutableSequence(Sequence):
 
 MutableSequence.register(list)
 MutableSequence.register(bytearray)
-# WARNING: Decompyle incomplete

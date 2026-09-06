@@ -151,7 +151,8 @@ will be omitted from the output for better readability.
                             field_type = cls._field_types.get(name, object)
                             if getattr(field_type, '__origin__', ...) is list:
                                 if not keywords:
-                                    args_buffer.append(repr(value))
+                                    pass
+                                args_buffer.append(repr(value))
                         if not keywords:
                             args.extend(args_buffer)
                             args_buffer = []

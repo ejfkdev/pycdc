@@ -31,8 +31,8 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 275: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 3763,
-   "ntotal": 3922,
+   "ndiff": 3721,
+   "ntotal": 3898,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
   {
@@ -55,7 +55,7 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 167: orig  args=[BinOp(left=Constant(value='/tmp/_osx_support.%s') | dec  args=[JoinedStr(values=[Constant(value='/tmp/_osx_support.')",
    "verdict": "SIG-DIFF",
-   "ndiff": 1274,
+   "ndiff": 1295,
    "ntotal": 1552,
    "detail": "line 234: orig ('LOAD_GLOBAL', 'NULL + os') | got ('LOAD_CONST', 'None')\nline 235: orig ('LOAD_ATTR', 'system') | got ('LOAD_CONST', 'None')\nline 236: orig ('LOAD_FAST', 'cmd') | got ('LOAD_CONST', 'None')"
   },
@@ -75,8 +75,8 @@
    "module": "_strptime",
    "ast_detail": "diff at token 977: orig  value=BinOp(left=Constant(value='(?P<%s>%s') | dec  value=JoinedStr(values=[Constant(value='(?P<')",
    "verdict": "SIG-DIFF",
-   "ndiff": 2176,
-   "ntotal": 2253,
+   "ndiff": 2127,
+   "ntotal": 2248,
    "detail": "line 35: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 39: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 40: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {
@@ -119,8 +119,8 @@
    "module": "asyncore",
    "ast_detail": "diff at token 136: orig  keywords=[]))])] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2257,
-   "ntotal": 2358,
+   "ndiff": 2248,
+   "ntotal": 2363,
    "detail": "line 29: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 33: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -171,8 +171,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 803: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
-   "ndiff": 3010,
-   "ntotal": 3176,
+   "ndiff": 2768,
+   "ntotal": 3170,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {
@@ -229,7 +229,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 223: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Name(id='ddir'",
+   "ast_detail": "diff at token 138: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
    "verdict": "SIG-DIFF",
    "ndiff": 1491,
    "ntotal": 1572,
@@ -239,8 +239,8 @@
    "module": "configparser",
    "ast_detail": "diff at token 108: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 3038,
-   "ntotal": 4747,
+   "ndiff": 3014,
+   "ntotal": 4746,
    "detail": "line 1597: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 270') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 268')\nline 1630: orig ('JUMP_FORWARD', 'to 266') | got ('JUMP_FORWARD', 'to 264')\nline 1656: orig ('JUMP_FORWARD', 'to 270') | got ('LOAD_FAST', 'depth')"
   },
   {

@@ -54,7 +54,7 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 126: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1258,
+   "ndiff": 1300,
    "ntotal": 1489,
    "detail": "line 166: orig ('NOP', '') | got ('LOAD_CONST', '0')\nline 167: orig ('LOAD_CONST', '0') | got ('LOAD_CONST', 'None')\nline 168: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'tempfile')"
   },
@@ -170,8 +170,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 665: orig  While(test=BoolOp(op=And() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2772,
-   "ntotal": 2899,
+   "ndiff": 2760,
+   "ntotal": 2894,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {
@@ -210,8 +210,8 @@
    "module": "codecs",
    "ast_detail": "diff at token 2: orig  Try(body=[ImportFrom(module='_codecs' | dec  Try(body=[Try(body=[ImportFrom(module='_codecs'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2075,
-   "ntotal": 2155,
+   "ndiff": 2053,
+   "ntotal": 2152,
    "detail": "line 13: orig ('LOAD_CONST', '0') | got ('NOP', '')\nline 14: orig ('LOAD_CONST', \"('*',)\") | got ('LOAD_CONST', '0')\nline 15: orig ('IMPORT_NAME', '_codecs') | got ('LOAD_CONST', \"('*',)\")"
   },
   {

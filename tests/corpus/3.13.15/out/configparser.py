@@ -1213,9 +1213,8 @@ section proxies to find and use the implementation on the parser class.
         self._data = {}
         for getter in dir(self._parser):
             m = self.GETTERCRE.match(getter)
-            if m:
-                if not callable(getattr(self._parser, getter)):
-                    continue
+            if m or not callable(getattr(self._parser, getter)):
+                continue
             self._data[m.group('name')] = None
 
     def __getitem__(self, key):

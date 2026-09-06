@@ -186,10 +186,13 @@ def copy_location(new_node, old_node):
     '''
 
     for attr in ('lineno', 'col_offset', 'end_lineno', 'end_col_offset'):
-        if attr in old_node._attributes and attr in new_node._attributes:
-            value = getattr(old_node, attr, None)
-            if value is None or hasattr(old_node, attr):
-                setattr(new_node, attr, value)
+        if attr in old_node._attributes:
+            if attr in new_node._attributes:
+                value = getattr(old_node, attr, None)
+                if value is None:
+                    if hasattr(old_node, attr):
+                        if attr.startswith('end_'):
+                            setattr(new_node, attr, value)
     return new_node
 
 def fix_missing_locations(node):
@@ -426,9 +429,8 @@ class NodeVisitor(object):
         type_name = _const_node_type_names.get(type(value))
         if type_name is None:
             for cls, name in _const_node_type_names.items():
-                if isinstance(value, cls):
-                    type_name = name
-                    break
+                type_name = name
+                break
         if type_name is not None:
             method = 'visit_' + type_name
             try:

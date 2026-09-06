@@ -47,8 +47,8 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 220: orig  body=Yield()))])) | dec  body=Yield(value=Constant(value=None))))]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 4025,
-   "ntotal": 4121,
+   "ndiff": 4029,
+   "ntotal": 4123,
    "detail": "line 5: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 9: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_SMALL_INT', '')"
   },
   {
@@ -71,7 +71,7 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 352: orig  ctx=Load())))] | dec  ctx=Load())))",
    "verdict": "SIG-DIFF",
-   "ndiff": 950,
+   "ndiff": 952,
    "ntotal": 1352,
    "detail": "line 293: orig ('POP_JUMP_IF_FALSE', 'to L19') | got ('POP_JUMP_IF_FALSE', 'to L18')\nline 351: orig ('JUMP_FORWARD', 'to L17') | got ('JUMP_FORWARD', 'to L16')\nline 363: orig ('JUMP_FORWARD', 'to L17') | got ('JUMP_FORWARD', 'to L16')"
   },
@@ -83,8 +83,8 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 117: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1616,
-   "ntotal": 1833,
+   "ndiff": 1568,
+   "ntotal": 1796,
    "detail": "line 176: orig ('NOP', '') | got ('LOAD_SMALL_INT', '')\nline 177: orig ('LOAD_SMALL_INT', '') | got ('LOAD_CONST', 'None')\nline 178: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'tempfile')"
   },
   {
@@ -99,17 +99,17 @@
    "module": "_py_warnings",
    "ast_detail": "diff at token 330: orig  body=[Pass()])])]) | dec  body=[Return()])])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2893,
-   "ntotal": 3453,
+   "ndiff": 2906,
+   "ntotal": 3462,
    "detail": "line 538: orig ('POP_JUMP_IF_NOT_NONE', 'to L1') | got ('POP_JUMP_IF_NOT_NONE', 'to L2')\nline 541: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')\nline 542: orig ('LOAD_CONST', 'None') | got ('NOP', '')"
   },
   {
    "module": "_pylong",
-   "ast_detail": "diff at token 39: orig  ops=[In()] | dec  ops=[LtE()]",
+   "ast_detail": "diff at token 89: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 622,
+   "ndiff": 620,
    "ntotal": 1531,
-   "detail": "line 146: orig ('CONTAINS_OP', 'in') | got ('CONTAINS_OP', 'not in')\nline 153: orig ('JUMP_BACKWARD', 'to L1') | got ('NOP', '')\nline 185: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')"
+   "detail": "line 185: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 186: orig ('POP_JUMP_IF_TRUE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 257: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')"
   },
   {
    "module": "_sitebuiltins",
@@ -123,8 +123,8 @@
    "module": "_strptime",
    "ast_detail": "diff at token 65: orig  body=[Break()]) | dec  body=[Return()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 3005,
-   "ntotal": 3202,
+   "ndiff": 2956,
+   "ntotal": 3197,
    "detail": "line 49: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 53: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 54: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_SMALL_INT', '')"
   },
   {
@@ -167,8 +167,8 @@
    "module": "ast",
    "ast_detail": "diff at token 229: orig  body=[Return(value=UnaryOp(op=UAdd() | dec  body=[Return(value=Name(id='operand'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2052,
-   "ntotal": 2531,
+   "ndiff": 2012,
+   "ntotal": 2532,
    "detail": "line 413: orig ('CALL_INTRINSIC_1', 'INTRINSIC_UNARY_POSITIVE') | got ('RETURN_VALUE', '')\nline 414: orig ('RETURN_VALUE', '') | got ('LOAD_FAST_BORROW', 'operand')\nline 415: orig ('LOAD_FAST_BORROW', 'operand') | got ('UNARY_NEGATIVE', '')"
   },
   {
@@ -255,7 +255,7 @@
    "module": "compileall",
    "ast_detail": "diff at token 77: orig  value=List(ctx=Load()))])]) | dec  value=List(ctx=Load()))])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1374,
+   "ndiff": 1371,
    "ntotal": 1666,
    "detail": "line 158: orig ('FOR_ITER', 'to L14') | got ('FOR_ITER', 'to L13')\nline 163: orig ('POP_JUMP_IF_FALSE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 165: orig ('JUMP_BACKWARD', 'to L4') | got ('JUMP_BACKWARD', 'to L3')"
   },
@@ -271,8 +271,8 @@
    "module": "contextlib",
    "ast_detail": "diff at token 54: orig  body=[Return()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2391,
-   "ntotal": 2458,
+   "ndiff": 2438,
+   "ntotal": 2508,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_SMALL_INT', '')"
   },
   {

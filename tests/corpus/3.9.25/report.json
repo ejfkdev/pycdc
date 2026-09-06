@@ -31,8 +31,8 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 275: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 3311,
-   "ntotal": 3420,
+   "ndiff": 3317,
+   "ntotal": 3422,
    "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
   },
   {
@@ -51,8 +51,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 479: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 959,
-   "ntotal": 1397,
+   "ndiff": 968,
+   "ntotal": 1393,
    "detail": "line 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 385: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')"
   },
   {
@@ -79,8 +79,8 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1444: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2043,
-   "ntotal": 2144,
+   "ndiff": 2047,
+   "ntotal": 2145,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {
@@ -135,8 +135,8 @@
    "module": "asyncore",
    "ast_detail": "diff at token 73: orig  body=[Return(value=Subscript(value=Name(id='errorcode' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2153,
-   "ntotal": 2231,
+   "ndiff": 2148,
+   "ntotal": 2236,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -259,7 +259,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1199: orig  keywords=[])) | dec  keywords=[]))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2826,
+   "ndiff": 2816,
    "ntotal": 4333,
    "detail": "line 1068: orig ('JUMP_FORWARD', 'to 334') | got ('JUMP_ABSOLUTE', '')\nline 1393: orig ('JUMP_FORWARD', 'to 470') | got ('JUMP_ABSOLUTE', '')\nline 1451: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')"
   },

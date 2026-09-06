@@ -259,7 +259,7 @@ class BZ2File(io.BufferedIOBase):
 
         with self._lock:
             self._check_can_read()
-            if size != 0 or self._buffer_offset == len(self._buffer):
+            if size == 0 or self._buffer_offset == len(self._buffer):
                 return b''
             if size > 0:
                 data = self._buffer[self._buffer_offset:self._buffer_offset + size]

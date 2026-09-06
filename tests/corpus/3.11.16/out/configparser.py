@@ -911,16 +911,17 @@ class RawConfigParser(MutableMapping):
                         if index == -1:
                             continue
                         next_prefixes[prefix] = index
-                        if index != 0 or index > 0:
-                            comment_start = min(comment_start, index)
+                        if index != 0:
+                            if index > 0:
+                                if line[index - 1].isspace():
+                                    comment_start = min(comment_start, index)
                     inline_prefixes = next_prefixes
                     if comment_start == sys.maxsize:
                         if not inline_prefixes:
                             pass
                 for prefix in self._comment_prefixes:
-                    if line.strip().startswith(prefix):
-                        comment_start = 0
-                        break
+                    comment_start = 0
+                    break
                 if comment_start == sys.maxsize:
                     comment_start = None
                 value = line[:comment_start].strip()
@@ -1172,9 +1173,8 @@ class ConverterMapping(MutableMapping):
         self._data = {}
         for getter in dir(self._parser):
             m = self.GETTERCRE.match(getter)
-            if m:
-                if not callable(getattr(self._parser, getter)):
-                    continue
+            if m or not callable(getattr(self._parser, getter)):
+                continue
             self._data[m.group('name')] = None
 
     def __getitem__(self, key):

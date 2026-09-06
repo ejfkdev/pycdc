@@ -153,7 +153,7 @@ since changing the timezone is worthless without that call.
                         replacement_pairs.append((s, d))
                         if n < 10:
                             replacement_pairs.append((s[1], d))
-                            continue
+                        continue
                 if len(self.LC_alt_digits) > n:
                     replacement_pairs.append((self.LC_alt_digits[n], d))
                 replacement_pairs.append((time.strftime(d, time_tuple), d))
@@ -488,14 +488,17 @@ format string.'''
             ampm = found_dict.get('p', '').lower()
             if ampm in ('', locale_time.am_pm[0]):
                 if hour == 12:
-                    hour = 0
-                    continue
+                    pass
+                hour = 0
+                continue
                 continue
             if ampm == locale_time.am_pm[1]:
-                if hour != 12:
-                    hour += 12
-                    continue
-                continue
+                pass
+            if hour != 12:
+                pass
+            hour += 12
+            continue
+            continue
             continue
         if group_key == 'M':
             minute = parse_int(found_dict['M'])
@@ -558,9 +561,10 @@ format string.'''
             gmtoff_remainder_padding = '0' * (6 - len(gmtoff_remainder))
             gmtoff_fraction = int(gmtoff_remainder + gmtoff_remainder_padding)
             if z.startswith('-'):
-                gmtoff = -gmtoff
-                gmtoff_fraction = -gmtoff_fraction
-                continue
+                pass
+            gmtoff = -gmtoff
+            gmtoff_fraction = -gmtoff_fraction
+            continue
             continue
         if group_key != 'Z':
             continue

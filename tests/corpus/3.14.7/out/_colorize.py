@@ -262,8 +262,9 @@ and possible, and empty strings otherwise.
 
 
 def get_colors(colorize: bool=False, *, file: IO[str] | IO[bytes] | None=None) -> ANSIColors:
-    if colorize or can_colorize(file=file):
-        return ANSIColors()
+    if not colorize:
+        if can_colorize(file=file):
+            return ANSIColors()
     return NoColors
 
 def decolor(text: str) -> str:

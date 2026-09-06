@@ -218,3 +218,28 @@ def comp_read(items, limit):
 print(comp_read([1, 2, 30, 4], 10))
 print(comp_read([], 10))
 print(comp_read([5, 6], 10))
+
+# or-continue chain: 3.10+ threads `if a or b: continue` onto the loop
+# back edge (PJIT operand1 -> back-edge/top, PJIF operand2 -> body).
+# Mis-merged polarity (not A or B) or a lost continue re-runs the body
+# for skipped elements (_pylong.compute_powers family).
+def or_continue(vals, seen):
+    out = []
+    for w in vals:
+        if w in seen or w <= 0:
+            continue
+        out.append(w)
+    return out
+
+def or_continue_while(n):
+    out = []
+    i = 0
+    while i < n:
+        i += 1
+        if i % 2 == 0 or i % 3 == 0:
+            continue
+        out.append(i)
+    return out
+
+print(or_continue([1, -2, 3, 0, 5, 3], set([3, 5])))
+print(or_continue_while(12))

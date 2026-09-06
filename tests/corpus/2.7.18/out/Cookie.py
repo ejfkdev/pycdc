@@ -214,7 +214,7 @@ def _unquote(str):
         if Qmatch:
             k = Qmatch.start(0)
         if Qmatch:
-            if Omatch or k < j:
+            if not Omatch or k < j:
                 res.append(str[i:k])
                 res.append(str[k + 1])
                 i = k + 2

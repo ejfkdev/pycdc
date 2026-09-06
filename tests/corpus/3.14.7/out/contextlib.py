@@ -588,31 +588,31 @@ For example:
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
             assert is_sync
-        if pending_raise:
             try:
-                if exc is None:
-                    exc_details = (None, None, None)
-                else:
-                    exc_details = type(exc), exc, exc.__traceback__
-                if cb(*exc_details):
-                    suppressed_exc = True
-                    pending_raise = False
-                    exc = None
-                    # WARNING: continue outside loop (unrecovered structure)
+                try:
+                    if exc is None:
+                        exc_details = (None, None, None)
+                    else:
+                        exc_details = type(exc), exc, exc.__traceback__
+                    if cb(*exc_details):
+                        suppressed_exc = True
+                        pending_raise = False
+                        exc = None
+                except BaseException as new_exc:
+                    _fix_exception_context(new_exc, exc)
+                    pending_raise = True
+                    exc = new_exc
+                    continue
             except BaseException:
                 exc.__context__ = fixed_ctx
                 raise
-                try:
-                    try:
-                        fixed_ctx = exc.__context__
-                        raise exc
-                    except BaseException as new_exc:
-                        _fix_exception_context(new_exc, exc)
-                        pending_raise = True
-                        exc = new_exc
-                except BaseException:
-                    exc.__context__ = fixed_ctx
-                    raise
+        if pending_raise:
+            try:
+                fixed_ctx = exc.__context__
+                raise exc
+            except BaseException:
+                exc.__context__ = fixed_ctx
+                raise
         return received_exc and suppressed_exc
 
     def close(self):
@@ -752,7 +752,6 @@ method.'''
                 except BaseException:
                     exc.__context__ = fixed_ctx
                     raise
-                continue
         if pending_raise:
             try:
                 fixed_ctx = exc.__context__

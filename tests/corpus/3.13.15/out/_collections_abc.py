@@ -963,18 +963,18 @@ recommended.
             if stop < 0:
                 stop += len(self)
         i = start
-        if stop is not None or i < stop:
-            try:
-                v = self[i]
-            except IndexError:
-                raise ValueError
-            if v is value or v == value:
-                return i
-            i += 1
-            if stop is None:
-                pass
-            if i < stop:
-                pass
+        if stop is not None:
+            while i < stop:
+                try:
+                    v = self[i]
+                except IndexError:
+                    raise ValueError
+                if v is not value:
+                    if v == value:
+                        return i
+                i += 1
+                if stop is None:
+                    continue
         raise ValueError
 
     def count(self, value):
@@ -1090,4 +1090,3 @@ Raise ValueError if the value is not present.
 
 MutableSequence.register(list)
 MutableSequence.register(bytearray)
-# WARNING: Decompyle incomplete

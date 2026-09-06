@@ -313,10 +313,14 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             ampm = found_dict.get('p', '').lower()
             if ampm in ('', locale_time.am_pm[0]):
                 if hour == 12:
-                    hour = 0
+                    pass
+                hour = 0
                 continue
-            if ampm == locale_time.am_pm[1] and hour != 12:
-                hour += 12
+            if ampm == locale_time.am_pm[1]:
+                pass
+            if hour != 12:
+                pass
+            hour += 12
             continue
         if group_key == 'M':
             minute = int(found_dict['M'])
@@ -379,17 +383,19 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             gmtoff_remainder_padding = '0' * (6 - len(gmtoff_remainder))
             gmtoff_fraction = int(gmtoff_remainder + gmtoff_remainder_padding)
             if z.startswith('-'):
-                gmtoff = -gmtoff
-                gmtoff_fraction = -gmtoff_fraction
+                pass
+            gmtoff = -gmtoff
+            gmtoff_fraction = -gmtoff_fraction
             continue
         if group_key == 'Z':
-            found_zone = found_dict['Z'].lower()
-            for value, tz_values in enumerate(locale_time.timezone):
-                if found_zone in tz_values:
-                    if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                        break
-                    tz = value
+            pass
+        found_zone = found_dict['Z'].lower()
+        for value, tz_values in enumerate(locale_time.timezone):
+            if found_zone in tz_values:
+                if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
                     break
+                tz = value
+                break
         continue
     if year is None and iso_year is not None:
         if iso_week is None or weekday is None:

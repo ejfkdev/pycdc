@@ -440,8 +440,7 @@ else:
                             raise
                 self.bytebuffer = data[decodedbytes:]
                 self.charbuffer += newchars
-                if not newdata:
-                    break
+                break
             if chars < 0:
                 result = self.charbuffer
                 self.charbuffer = self._empty_charbuffer

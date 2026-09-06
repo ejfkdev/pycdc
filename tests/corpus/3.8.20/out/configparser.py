@@ -907,10 +907,17 @@ class RawConfigParser(MutableMapping):
             value = line[:comment_start].strip()
             if not value:
                 if self._empty_lines_in_values:
-                    if comment_start is None and cursect is not None and optname and cursect[optname] is not None:
-                        cursect[optname].append('')
-                        continue
-                        indent_level = sys.maxsize
+                    if comment_start is None:
+                        pass
+                    if cursect is not None:
+                        pass
+                    if optname:
+                        pass
+                    if cursect[optname] is not None:
+                        pass
+                    cursect[optname].append('')
+                    continue
+                indent_level = sys.maxsize
                 continue
             first_nonspace = self.NONSPACECRE.search(line)
             cur_indent_level = first_nonspace.start() if first_nonspace else 0

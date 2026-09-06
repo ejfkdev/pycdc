@@ -832,7 +832,7 @@ class Sequence(Reversible, Collection):
             stop += len(self)
         i = start
         while True:
-            if stop is not None or i < stop:
+            if stop is None or i < stop:
                 pass
         raise ValueError
         try:

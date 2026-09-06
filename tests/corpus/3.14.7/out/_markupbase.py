@@ -163,7 +163,8 @@ by the SGML/HTML and XHTML parsers.'''
             if j < 0:
                 return j
             if rawdata[j] == ';':
-                j = j + 1
+                pass
+            j = j + 1
         if c == ']':
             j = j + 1
             while j < n:
