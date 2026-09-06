@@ -68,21 +68,21 @@ class async_chat(asyncore.dispatcher):
             if not terminator:
                 self.collect_incoming_data(self.ac_in_buffer)
                 self.ac_in_buffer = ''
-                try:
-                    data = self.recv(self.ac_in_buffer_size)
-                except socket.error, why:
-                    if why.args[0] in _BLOCKING_IO_ERRORS:
-                        return
-                    self.handle_error()
-                    return
-                else:
-                    self.ac_in_buffer = self.ac_in_buffer + data
             elif isinstance(terminator, (int, long)):
                 n = terminator
                 if lb < n:
                     self.collect_incoming_data(self.ac_in_buffer)
                     self.ac_in_buffer = ''
                     self.terminator = self.terminator - lb
+                    try:
+                        data = self.recv(self.ac_in_buffer_size)
+                    except socket.error, why:
+                        if why.args[0] in _BLOCKING_IO_ERRORS:
+                            return
+                        self.handle_error()
+                        return
+                    else:
+                        self.ac_in_buffer = self.ac_in_buffer + data
                 else:
                     self.collect_incoming_data(self.ac_in_buffer[:n])
                     self.ac_in_buffer = self.ac_in_buffer[n:]

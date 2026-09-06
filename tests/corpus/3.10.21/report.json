@@ -109,8 +109,8 @@
   {
    "module": "ast",
    "verdict": "INCOMPLETE",
-   "ndiff": 7098,
-   "ntotal": 7976,
+   "ndiff": 7092,
+   "ntotal": 7978,
    "detail": "line 611: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 617: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 623: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')"
   },
   {

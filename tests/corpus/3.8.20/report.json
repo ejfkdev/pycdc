@@ -124,7 +124,7 @@
   {
    "module": "asyncore",
    "verdict": "INCOMPLETE",
-   "ndiff": 1675,
+   "ndiff": 1674,
    "ntotal": 2206,
    "detail": "line 478: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 479: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 480: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'r')"
   },
@@ -146,11 +146,11 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "diff at token 1658: orig  While(test=Name(id='True' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 1658: orig  While(test=Name(id='True' | dec  Try(body=[Assign(targets=[Tuple(elts=[Name(id='decdatacur'",
    "verdict": "SIG-DIFF",
-   "ndiff": 766,
+   "ndiff": 755,
    "ntotal": 1798,
-   "detail": "line 1030: orig ('SETUP_FINALLY', 'to 80') | got ('LOAD_FAST', 'decdata')\nline 1031: orig ('LOAD_GLOBAL', 'binascii') | got ('POP_JUMP_IF_TRUE', '')\nline 1032: orig ('LOAD_METHOD', 'a2b_hqx') | got ('LOAD_FAST', 'self')"
+   "detail": "line 1030: orig ('SETUP_FINALLY', 'to 80') | got ('SETUP_FINALLY', 'to 76')\nline 1041: orig ('POP_BLOCK', '') | got ('DUP_TOP', '')\nline 1042: orig ('JUMP_FORWARD', 'to 102') | got ('LOAD_GLOBAL', 'binascii')"
   },
   {
    "module": "bisect",

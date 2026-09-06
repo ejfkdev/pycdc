@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 15,
-  "SIG-DIFF": 23,
+  "PASS": 16,
+  "SIG-DIFF": 22,
   "AST-PASS": 2
  },
  "results": [
@@ -61,11 +61,7 @@
   },
   {
    "module": "_sitebuiltins",
-   "ast_detail": "diff at token 308: orig  body=[Try(body=[For(target=Name(id='i' | dec  body=[While(test=Compare(left=Name(id='key'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 100,
-   "ntotal": 368,
-   "detail": "line 268: orig ('SETUP_LOOP', 'to 148') | got ('SETUP_LOOP', 'to 150')\nline 269: orig ('SETUP_EXCEPT', 'to 64') | got ('SETUP_LOOP', 'to 136')\nline 270: orig ('SETUP_LOOP', 'to 60') | got ('LOAD_FAST', 'key')"
+   "verdict": "PASS"
   },
   {
    "module": "_strptime",
@@ -119,7 +115,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 427: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1669,
+   "ndiff": 1662,
    "ntotal": 2207,
    "detail": "line 475: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 476: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 477: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'r')"
   },

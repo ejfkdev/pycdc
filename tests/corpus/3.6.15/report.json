@@ -2,8 +2,8 @@
  "version": "3.6.15",
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
-  "PASS": 15,
-  "SIG-DIFF": 21,
+  "PASS": 16,
+  "SIG-DIFF": 20,
   "AST-PASS": 4
  },
  "results": [
@@ -57,11 +57,7 @@
   },
   {
    "module": "_sitebuiltins",
-   "ast_detail": "diff at token 308: orig  body=[Try(body=[For(target=Name(id='i' | dec  body=[While(test=Compare(left=Name(id='key'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 100,
-   "ntotal": 370,
-   "detail": "line 270: orig ('SETUP_LOOP', 'to 148') | got ('SETUP_LOOP', 'to 150')\nline 271: orig ('SETUP_EXCEPT', 'to 64') | got ('SETUP_LOOP', 'to 136')\nline 272: orig ('SETUP_LOOP', 'to 60') | got ('LOAD_FAST', 'key')"
+   "verdict": "PASS"
   },
   {
    "module": "_strptime",
@@ -107,7 +103,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 427: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1463,
+   "ndiff": 1464,
    "ntotal": 2210,
    "detail": "line 703: orig ('SETUP_LOOP', 'to 102') | got ('SETUP_LOOP', 'to 100')\nline 713: orig ('JUMP_FORWARD', 'to 102') | got ('SETUP_LOOP', 'to 100')\nline 714: orig ('SETUP_LOOP', 'to 102') | got ('LOAD_FAST', 'map')"
   },
@@ -247,8 +243,8 @@
    "module": "csv",
    "ast_detail": "diff at token 1537: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
-   "ndiff": 111,
-   "ntotal": 1618,
+   "ndiff": 75,
+   "ntotal": 1617,
    "detail": "line 1220: orig ('COMPARE_OP', 'is') | got ('COMPARE_OP', 'is not')\nline 1222: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1449: orig ('SETUP_LOOP', 'to 254') | got ('SETUP_LOOP', 'to 256')"
   }
  ]

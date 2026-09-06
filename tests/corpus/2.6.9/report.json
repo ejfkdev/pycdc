@@ -175,7 +175,7 @@
    "module": "asynchat",
    "ast_detail": "diff at token 192: orig  body=[TryExcept(body=[Assign(targets=[Name(id='data' | dec  body=[While(test=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 639,
+   "ndiff": 638,
    "ntotal": 854,
    "detail": "line 190: orig ('SETUP_EXCEPT', '#9') | got ('SETUP_LOOP', '#213')\nline 192: orig ('LOAD_ATTR', 'recv') | got ('LOAD_ATTR', 'ac_in_buffer')\nline 193: orig ('LOAD_FAST', 'self') | got ('JUMP_IF_FALSE', '#211')"
   },

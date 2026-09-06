@@ -440,7 +440,6 @@ def close_all(map=None, ignore_all=False):
             continue
         except _reraised_exceptions:
             raise
-            continue
     if not ignore_all:
         raise
     map.clear()

@@ -4523,7 +4523,19 @@ impl<'a> Ctx<'a> {
                         && !self
                             .legacy_handler
                             .as_ref()
-                            .map_or(true, |h| matches!(h.body.last(), Some(Stmt::Continue)));
+                            // a handler body already ending in a terminator
+                            // (break/continue/return/raise) makes the trailing
+                            // JABS-to-loop-top dead code, NOT a source-level
+                            // continue: `except IndexError: break` compiles to
+                            // BREAK_LOOP; POP_EXCEPT; JABS loop_top, and that
+                            // JABS is the break's post-terminator padding. The
+                            // forward-walk in handler_exit_jabs_is_continue
+                            // can't see this (it counts the layout-adjacent
+                            // else region as real statements) — guard on the
+                            // terminator here (_sitebuiltins _Printer.__call__).
+                            .map_or(true, |h| {
+                                h.body.last().map_or(false, ends_scope)
+                            });
                     if add_cont {
                         // only a continue that SKIPS real body statements
                         // is source-level; the implicit fall-through edge
@@ -4788,10 +4800,37 @@ impl<'a> Ctx<'a> {
                                                 .and_then(|&mi| self.instrs.get(mi))
                                                 .map_or(false, |x| x.op == Op::DUP_TOP)
                                     })))
+                            // a backward jump landing INSIDE the else region
+                            // is a nested loop's back edge (the region's own
+                            // while/for continuing), NOT the region end —
+                            // emitting the try here strands the rest of the
+                            // else body and hoists the nested loop out of the
+                            // try (_sitebuiltins _Printer.__call__: the inner
+                            // `while key is None` back edge at the else region
+                            // fired the emit, scrambling try/else/loop order).
+                            // The genuine region end jumps OUT (target <
+                            // else_start, e.g. the outer loop's back edge).
+                            && !lt
+                                .else_start
+                                .map_or(false, |es| {
+                                    target < pos
+                                        && target >= es
+                                        && pos < lt.else_stop
+                                })
                         {
                             // end of the else region (back edge or jump out):
                             // emit the complete try statement; flush first so
                             // else-region stores land in orelse, not after it
+                            //
+                            // close any else-region block still open at `pos`
+                            // FIRST (e.g. a trailing `if key=='q': break`
+                            // whose If block ends exactly here): its statement
+                            // redirects into orelse and the innermost block
+                            // becomes the try's real parent. legacy_chain_step
+                            // runs before the main loop's close_blocks_at, so
+                            // without this the Try is pushed into the still-open
+                            // trailing If (_sitebuiltins _Printer.__call__).
+                            self.close_blocks_at(pos);
                             self.flush_pending_stores();
                             let l = self.legacy_try.take().unwrap();
                             self.restore_legacy_nest();

@@ -62,19 +62,19 @@ class _Printer(object):
         lineno = 0
         while True:
             break
-            while key is None:
-                key = input(prompt)
-                if key not in ('', 'q'):
-                    key = None
-                    try:
-                        for i in range(lineno, lineno + self.MAXLINES):
-                            print(self.__lines[i])
-                    except IndexError:
-                        pass
-                    else:
-                        lineno += self.MAXLINES
-                        key = None
             if key == 'q':
+                try:
+                    for i in range(lineno, lineno + self.MAXLINES):
+                        print(self.__lines[i])
+                except IndexError:
+                    pass
+                else:
+                    lineno += self.MAXLINES
+                    key = None
+                    while key is None:
+                        key = input(prompt)
+                        if key not in ('', 'q'):
+                            key = None
                 break
 
 

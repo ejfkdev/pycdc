@@ -72,16 +72,6 @@ class async_chat(asyncore.dispatcher):
             if not terminator:
                 self.collect_incoming_data(self.ac_in_buffer)
                 self.ac_in_buffer = b''
-                try:
-                    data = self.recv(self.ac_in_buffer_size)
-                except BlockingIOError:
-                    pass
-                except OSError:
-                    self.handle_error()
-                else:
-                    if isinstance(data, str) and self.use_encoding:
-                        data = bytes(str, self.encoding)
-                    self.ac_in_buffer = self.ac_in_buffer + data
                 continue
             if isinstance(terminator, int):
                 n = terminator
@@ -89,6 +79,16 @@ class async_chat(asyncore.dispatcher):
                     self.collect_incoming_data(self.ac_in_buffer)
                     self.ac_in_buffer = b''
                     self.terminator = self.terminator - lb
+                    try:
+                        data = self.recv(self.ac_in_buffer_size)
+                    except BlockingIOError:
+                        pass
+                    except OSError:
+                        self.handle_error()
+                    else:
+                        if isinstance(data, str) and self.use_encoding:
+                            data = bytes(str, self.encoding)
+                        self.ac_in_buffer = self.ac_in_buffer + data
                 else:
                     self.collect_incoming_data(self.ac_in_buffer[:n])
                     self.ac_in_buffer = self.ac_in_buffer[n:]

@@ -70,10 +70,10 @@ class DecompressReader(io.RawIOBase):
                 continue
             if data:
                 break
-                try:
-                    data = self._decompressor.decompress(rawblock, size)
-                except self._trailing_error:
-                    break
+            try:
+                data = self._decompressor.decompress(rawblock, size)
+            except self._trailing_error:
+                break
         if not data:
             self._eof = True
             self._size = self._pos

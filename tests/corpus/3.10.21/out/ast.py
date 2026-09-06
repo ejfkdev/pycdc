@@ -659,13 +659,14 @@ class _Unparser(NodeVisitor):
         '''Call f on each item in seq, calling inter() in between.'''
 
         seq = iter(seq)
-        for x in seq:
-            inter()
-            f(x)
-            try:
-                f(next(seq))
-            except StopIteration:
-                pass
+        try:
+            f(next(seq))
+        except StopIteration:
+            pass
+        else:
+            for x in seq:
+                inter()
+                f(x)
 
     def items_view(self, traverser, items):
         '''Traverse and separate the given *items* with a comma and append it to

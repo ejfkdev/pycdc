@@ -55,7 +55,7 @@
    "module": "HTMLParser",
    "ast_detail": "diff at token 752: orig  right=Num(n=1)))] | dec  right=Num(n=1)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1067,
+   "ndiff": 1066,
    "ntotal": 1607,
    "detail": "line 359: orig ('SETUP_LOOP', '#378') | got ('SETUP_LOOP', '#253')\nline 363: orig ('POP_JUMP_IF_FALSE', '#377') | got ('POP_JUMP_IF_FALSE', '#252')\nline 417: orig ('POP_JUMP_IF_FALSE', '#199') | got ('POP_JUMP_IF_FALSE', '#182')"
   },
@@ -191,7 +191,7 @@
    "module": "asynchat",
    "ast_detail": "diff at token 213: orig  body=[TryExcept(body=[Assign(targets=[Name(id='data' | dec  body=[While(test=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 118,
+   "ndiff": 139,
    "ntotal": 813,
    "detail": "line 204: orig ('SETUP_EXCEPT', '#9') | got ('SETUP_LOOP', '#197')\nline 206: orig ('LOAD_ATTR', 'recv') | got ('LOAD_ATTR', 'ac_in_buffer')\nline 207: orig ('LOAD_FAST', 'self') | got ('POP_JUMP_IF_FALSE', '#196')"
   },
