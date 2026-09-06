@@ -203,7 +203,6 @@ class InteractiveConsole(InteractiveInterpreter):
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
                 more = 0
-                continue
 
     def push(self, line):
         self.buffer.append(line)

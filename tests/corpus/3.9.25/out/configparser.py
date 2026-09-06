@@ -1196,7 +1196,7 @@ class ConverterMapping(MutableMapping):
             try:
                 delattr(inst, k)
             except AttributeError:
-                continue
+                pass
 
     def __iter__(self):
         return iter(self._data)

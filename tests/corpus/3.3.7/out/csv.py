@@ -334,7 +334,7 @@ class Sniffer:
                         thisType(row[col])
                         break
                     except (ValueError, OverflowError):
-                        continue
+                        pass
             else:
                 continue
             thisType = len(row[col])

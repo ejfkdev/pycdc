@@ -62,9 +62,9 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 216: orig  body=[Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  body=[Break()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 123,
+   "ndiff": 182,
    "ntotal": 362,
-   "detail": "line 177: orig ('FOR_ITER', 'to 88') | got ('FOR_ITER', 'to 124')\nline 179: orig ('SETUP_FINALLY', 'to 66') | got ('POP_TOP', '')\nline 180: orig ('LOAD_GLOBAL', 'open') | got ('JUMP_ABSOLUTE', '')"
+   "detail": "line 177: orig ('FOR_ITER', 'to 88') | got ('FOR_ITER', 'to 120')\nline 179: orig ('SETUP_FINALLY', 'to 66') | got ('POP_TOP', '')\nline 180: orig ('LOAD_GLOBAL', 'open') | got ('JUMP_ABSOLUTE', '')"
   },
   {
    "module": "_strptime",
@@ -109,7 +109,7 @@
    "module": "ast",
    "ast_detail": "diff at token 572: orig  body=[Try(body=[Assign(targets=[Name(id='value' | dec  body=[If(test=Name(id='keywords'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1103,
+   "ndiff": 616,
    "ntotal": 1734,
    "detail": "line 561: orig ('SETUP_FINALLY', 'to 44') | got ('LOAD_FAST', 'keywords')\nline 562: orig ('LOAD_GLOBAL', 'getattr') | got ('POP_JUMP_IF_FALSE', '')\nline 563: orig ('LOAD_FAST', 'node') | got ('LOAD_FAST', 'args')"
   },
@@ -132,7 +132,7 @@
    "module": "base64",
    "ast_detail": "diff at token 985: orig  comparators=[Set(elts=[Constant(value=0 | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1025,
+   "ndiff": 1013,
    "ntotal": 1917,
    "detail": "line 732: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 733: orig ('COMPARE_OP', 'not in') | got ('LOAD_CONST', '0')\nline 734: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', '1')"
   },

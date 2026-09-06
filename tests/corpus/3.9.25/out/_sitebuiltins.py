@@ -42,7 +42,7 @@ class _Printer(object):
                 with open(filename, 'r') as fp:
                     data = fp.read()
             except OSError:
-                continue
+                pass
             else:
                 if not data:
                     data = self.__data

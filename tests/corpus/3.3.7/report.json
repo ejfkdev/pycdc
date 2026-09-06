@@ -2,8 +2,8 @@
  "version": "3.3.7",
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
-  "PASS": 9,
-  "AST-PASS": 8,
+  "PASS": 10,
+  "AST-PASS": 7,
   "SIG-DIFF": 23
  },
  "results": [
@@ -31,8 +31,8 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 165: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 771,
-   "ntotal": 1148,
+   "ndiff": 767,
+   "ntotal": 1146,
    "detail": "line 145: orig ('POP_JUMP_IF_TRUE', '#73') | got ('POP_JUMP_IF_TRUE', '#72')\nline 146: orig ('SETUP_LOOP', '#71') | got ('SETUP_LOOP', '#74')\nline 168: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', '#74')"
   },
   {
@@ -71,8 +71,8 @@
    "module": "ast",
    "ast_detail": "diff at token 259: orig  If(test=Call(func=Name(id='isinstance' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 765,
-   "ntotal": 1050,
+   "ndiff": 731,
+   "ntotal": 1049,
    "detail": "line 206: orig ('POP_JUMP_IF_FALSE', '#94') | got ('POP_JUMP_IF_FALSE', '#88')\nline 211: orig ('POP_JUMP_IF_FALSE', '#190') | got ('POP_JUMP_IF_TRUE', '#93')\nline 212: orig ('LOAD_DEREF', '_safe_names') | got ('LOAD_GLOBAL', 'isinstance')"
   },
   {
@@ -165,7 +165,7 @@
   },
   {
    "module": "code",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "codecs",
@@ -231,8 +231,8 @@
    "module": "csv",
    "ast_detail": "diff at token 1740: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
-   "ndiff": 811,
-   "ntotal": 1662,
+   "ndiff": 812,
+   "ntotal": 1661,
    "detail": "line 811: orig ('SETUP_LOOP', '#28') | got ('SETUP_LOOP', '#29')\nline 814: orig ('FOR_ITER', '#27') | got ('FOR_ITER', '#28')\nline 836: orig ('POP_BLOCK', '') | got ('JUMP_ABSOLUTE', '#5')"
   },
   {

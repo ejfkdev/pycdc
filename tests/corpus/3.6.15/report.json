@@ -51,17 +51,17 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 145: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 977,
-   "ntotal": 1169,
+   "ndiff": 989,
+   "ntotal": 1168,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 128') | got ('SETUP_LOOP', 'to 134')\nline 161: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 134')\nline 162: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')"
   },
   {
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 308: orig  body=[Try(body=[For(target=Name(id='i' | dec  body=[While(test=Compare(left=Name(id='key'",
    "verdict": "SIG-DIFF",
-   "ndiff": 164,
-   "ntotal": 371,
-   "detail": "line 176: orig ('SETUP_LOOP', 'to 88') | got ('SETUP_LOOP', 'to 90')\nline 180: orig ('FOR_ITER', 'to 86') | got ('FOR_ITER', 'to 88')\nline 208: orig ('POP_EXCEPT', '') | got ('CONTINUE_LOOP', '')"
+   "ndiff": 100,
+   "ntotal": 370,
+   "detail": "line 270: orig ('SETUP_LOOP', 'to 148') | got ('SETUP_LOOP', 'to 150')\nline 271: orig ('SETUP_EXCEPT', 'to 64') | got ('SETUP_LOOP', 'to 136')\nline 272: orig ('SETUP_LOOP', 'to 60') | got ('LOAD_FAST', 'key')"
   },
   {
    "module": "_strptime",
@@ -95,8 +95,8 @@
    "module": "ast",
    "ast_detail": "diff at token 492: orig  body=[AugAssign(target=Name(id='rv' | dec  body=[If(test=Name(id='fields'",
    "verdict": "SIG-DIFF",
-   "ndiff": 303,
-   "ntotal": 1021,
+   "ndiff": 64,
+   "ntotal": 1020,
    "detail": "line 399: orig ('LOAD_FAST', 'rv') | got ('LOAD_FAST', 'fields')\nline 400: orig ('LOAD_FAST', 'fields') | got ('POP_JUMP_IF_FALSE', '')\nline 401: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_FAST', 'rv')"
   },
   {
@@ -119,7 +119,7 @@
    "module": "base64",
    "ast_detail": "diff at token 823: orig  comparators=[Set(elts=[Num(n=0) | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1182,
+   "ndiff": 1189,
    "ntotal": 1949,
    "detail": "line 737: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 738: orig ('COMPARE_OP', 'not in') | got ('LOAD_CONST', '0')\nline 739: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', '1')"
   },
@@ -251,9 +251,9 @@
    "module": "csv",
    "ast_detail": "diff at token 1537: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
-   "ndiff": 117,
-   "ntotal": 1620,
-   "detail": "line 1220: orig ('COMPARE_OP', 'is') | got ('COMPARE_OP', 'is not')\nline 1222: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1449: orig ('SETUP_LOOP', 'to 254') | got ('SETUP_LOOP', 'to 260')"
+   "ndiff": 114,
+   "ntotal": 1619,
+   "detail": "line 1220: orig ('COMPARE_OP', 'is') | got ('COMPARE_OP', 'is not')\nline 1222: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1449: orig ('SETUP_LOOP', 'to 254') | got ('SETUP_LOOP', 'to 258')"
   }
  ]
 }

@@ -4470,8 +4470,19 @@ impl<'a> Ctx<'a> {
                             .as_ref()
                             .map_or(true, |h| matches!(h.body.last(), Some(Stmt::Continue)));
                     if add_cont {
-                        if let Some(h) = self.legacy_handler.as_mut() {
-                            h.body.push(Stmt::Continue);
+                        // only a continue that SKIPS real body statements
+                        // is source-level; the implicit fall-through edge
+                        // must not render (code.py 3.5 interact)
+                        let jabs_real = self
+                            .idx_of
+                            .get(&self.cur_next)
+                            .map_or(false, |&ni| {
+                                self.handler_exit_jabs_is_continue(ni)
+                            });
+                        if jabs_real {
+                            if let Some(h) = self.legacy_handler.as_mut() {
+                                h.body.push(Stmt::Continue);
+                            }
                         }
                     }
                     if let Some(h) = self.legacy_handler.take() {
@@ -15142,6 +15153,41 @@ impl<'a> Ctx<'a> {
     /// inner blocks (ifs or nested loops) are still open — a `continue`.
     /// The final back edge of a loop arrives with the loop as the topmost
     /// block and closes it instead.
+    /// py3 legacy (3.0-3.10): the handler-exit back edge right after
+    /// POP_EXCEPT is a source-level `continue` only when it flies over
+    /// real loop-body statements (b15: try is not the loop's last
+    /// statement). When only chain material (cleanup pops, END_FINALLY/
+    /// RERAISE stubs, the next clause's match prelude) lies between it
+    /// and the loop's natural back edge / POP_BLOCK, it is the implicit
+    /// fall-through — rendering a Continue inserts a CONTINUE_LOOP the
+    /// original bytecode does not have (code.py 3.5 interact).
+    fn handler_exit_jabs_is_continue(&self, jabs_idx: usize) -> bool {
+        let mut saw_real = false;
+        for x in self.instrs[jabs_idx + 1..].iter() {
+            match x.op {
+                Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    if x.is_backward =>
+                {
+                    return saw_real;
+                }
+                Op::POP_BLOCK | Op::FOR_ITER => return saw_real,
+                Op::POP_TOP | Op::POP_EXCEPT | Op::END_FINALLY | Op::RERAISE
+                | Op::DUP_TOP | Op::COPY | Op::SWAP | Op::NOP | Op::NOT_TAKEN
+                | Op::CACHE | Op::EXTENDED_ARG | Op::LOAD_CONST
+                | Op::STORE_FAST | Op::STORE_NAME | Op::STORE_DEREF
+                | Op::DELETE_FAST | Op::DELETE_NAME | Op::DELETE_DEREF
+                | Op::LOAD_FAST | Op::LOAD_NAME | Op::LOAD_GLOBAL
+                | Op::LOAD_DEREF | Op::LOAD_ATTR | Op::COMPARE_OP
+                | Op::JUMP_IF_NOT_EXC_MATCH | Op::CHECK_EXC_MATCH
+                | Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_IF_TRUE
+                | Op::POP_JUMP_FORWARD_IF_FALSE | Op::POP_JUMP_FORWARD_IF_TRUE
+                | Op::JUMP_IF_FALSE_OR_POP | Op::JUMP_IF_TRUE_OR_POP => {}
+                _ => saw_real = true,
+            }
+        }
+        saw_real
+    }
+
     fn is_continue_jump(&self, target: usize) -> bool {
         let mut depth = 0usize;
         for b in self.blocks.iter().rev() {

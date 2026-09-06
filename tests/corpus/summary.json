@@ -59,17 +59,17 @@
  "3.3.7": {
   "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
   "counts": {
-   "PASS": 9,
-   "AST-PASS": 8,
+   "PASS": 10,
+   "AST-PASS": 7,
    "SIG-DIFF": 23
   }
  },
  "3.5.10": {
   "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
   "counts": {
-   "PASS": 16,
+   "PASS": 17,
    "SIG-DIFF": 21,
-   "AST-PASS": 3
+   "AST-PASS": 2
   }
  },
  "3.6.15": {
