@@ -196,6 +196,7 @@ class InteractiveConsole(InteractiveInterpreter):
                 line = self.raw_input(prompt)
             except EOFError:
                 self.write('\n')
+                break
             else:
                 more = self.push(line)
             try:

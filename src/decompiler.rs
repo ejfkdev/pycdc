@@ -4190,7 +4190,32 @@ impl<'a> Ctx<'a> {
         // current handler body ends at the mismatch jump
         if self.legacy_handler.is_some() {
             let end = self.legacy_handler_end.unwrap_or(usize::MAX);
-            if pos >= end {
+            // `except E: if c: break else: raise` (bz2 3.8-3.10
+            // decompress): the mismatch target IS the inner guard arm's
+            // break hop (POP_EXCEPT; JABS/JF -> loop exit). Collecting
+            // the clause now leaves the inner If open with no fold
+            // routing and leaks the break/raise to loop level (`break;
+            // raise` rendered before the try). Defer: the arms rebuild
+            // below and the chain end (RERAISE / END_FINALLY / JUMP arm)
+            // folds the clause.
+            let at_inner_break = self
+                .legacy_handler
+                .as_ref()
+                .map_or(false, |h| self.blocks.len() > h.block_depth)
+                && pos >= end
+                && self
+                    .idx_of
+                    .get(&pos)
+                    .and_then(|&pi| self.instrs.get(pi + 1))
+                    .map_or(false, |nx| {
+                        matches!(
+                            nx.op,
+                            Op::JUMP_ABSOLUTE | Op::JUMP_FORWARD | Op::JUMP
+                        ) && nx
+                            .target
+                            .map_or(false, |t| t > pos && self.find_loop_exit(t).is_some())
+                    });
+            if pos >= end && !at_inner_break {
                 if self.legacy_handler.is_some() {
                     self.flush_pending_stores();
                 }
@@ -4400,7 +4425,28 @@ impl<'a> Ctx<'a> {
                             .legacy_handler_end
                             .map_or(true, |e| nx.offset < e)
                     });
-                if next_is_body {
+                // the same inner-arm break shape one instruction later:
+                // POP_EXCEPT here belongs to the guard arm's escape, the
+                // handler stays open for the arm rebuild
+                let inner_break_pop = self
+                    .legacy_handler
+                    .as_ref()
+                    .map_or(false, |h| self.blocks.len() > h.block_depth)
+                    && self
+                        .idx_of
+                        .get(&pos)
+                        .and_then(|&pi| self.instrs.get(pi + 1))
+                        .map_or(false, |nx| {
+                            nx.offset > pos
+                                && matches!(
+                                    nx.op,
+                                    Op::JUMP_ABSOLUTE | Op::JUMP_FORWARD | Op::JUMP
+                                )
+                                && nx.target.map_or(false, |t| {
+                                    t > nx.offset && self.find_loop_exit(t).is_some()
+                                })
+                        });
+                if next_is_body || inner_break_pop {
                     if let Some(h) = self.legacy_handler.as_mut() {
                         h.pop_seen = true;
                     }
@@ -4678,6 +4724,7 @@ impl<'a> Ctx<'a> {
                     self.close_handler_blocks();
                     self.flush_pending_stores();
                 }
+                let mut folded_last_clause = false;
                 if let Some(h) = self.legacy_handler.take() {
                     if let Some(he) = &h.name {
                         if let Expr::Name(n) = &**he {
@@ -4693,6 +4740,29 @@ impl<'a> Ctx<'a> {
                             is_star: false,
                         });
                     }
+                    // the just-collected clause may BE the last one: a
+                    // clause whose arms all escape (bz2 3.10 decompress
+                    // `except OSError: if results: break else: raise`)
+                    // has NO normal-exit edge jumping to the merge, so
+                    // nothing else ever runs the else-region decision —
+                    // the presumed else would swallow the whole loop
+                    // body. With no pending clause head ahead, this
+                    // mismatch RERAISE is the chain end: run the
+                    // decision now.
+                    folded_last_clause = self
+                        .legacy_try
+                        .as_ref()
+                        .map_or(false, |l| {
+                            !l.handlers.is_empty()
+                                && !l.pending_mismatch.iter().any(|&m| {
+                                    m > pos
+                                        && self
+                                            .idx_of
+                                            .get(&m)
+                                            .and_then(|&mi| self.instrs.get(mi))
+                                            .map_or(false, |x| x.op == Op::DUP_TOP)
+                                })
+                        });
                 } else if self
                     .legacy_try
                     .as_ref()
@@ -4732,6 +4802,39 @@ impl<'a> Ctx<'a> {
                     if has_else_after {
                         // an else region follows the chain: defer emission
                         // until the region is consumed
+                        if let Some(l) = self.legacy_try.as_mut() {
+                            l.chain_done = true;
+                        }
+                        self.retract_escaping_else(pos);
+                    } else {
+                        let l = self.legacy_try.take().unwrap();
+                        self.restore_legacy_nest();
+                        self.push_legacy_try(l);
+                    }
+                }
+                // the just-collected clause may BE the last one: a clause
+                // whose arms all escape (bz2 3.10 decompress `except
+                // OSError: if results: break else: raise`) has NO
+                // normal-exit edge jumping to the merge, so no later
+                // instruction ever runs the else-region decision — the
+                // presumed else would swallow the whole loop body. With
+                // no pending clause head ahead AND no live as-cleanup
+                // copy (its RERAISE 1/2 re-raises mid-chain: b25
+                // patterns clause 1), this RERAISE is the chain end: run
+                // the decision now.
+                if folded_last_clause
+                    && inst.arg == 0
+                    && self.legacy_handler.is_none()
+                    && self.legacy_try.is_some()
+                    && !self.as_cleanup_wrappers.iter().any(|(_, e)| *e > pos)
+                {
+                    let has_else_after = self
+                        .legacy_try
+                        .as_ref()
+                        .map_or(false, |l| {
+                            l.else_start.map_or(true, |es| pos >= es) == false
+                        });
+                    if has_else_after {
                         if let Some(l) = self.legacy_try.as_mut() {
                             l.chain_done = true;
                         }
@@ -7930,6 +8033,36 @@ impl<'a> Ctx<'a> {
                         self.close_inner_blocks_to_loop();
                     }
                 }
+                // 3.10 inner handler-arm break (`except E: if c: break
+                // else: raise` — bz2 decompress): the break IS this
+                // forward jump to the loop exit, with no dead glue
+                // after it. Push the Break into the open guard arm and
+                // close the arm blocks only down to the handler depth —
+                // a full close_inner_blocks_to_loop would let the
+                // handle_jump_forward below mark the else arm's tiny
+                // [raise] region as stretching to the loop exit and
+                // swallow the whole continuation (while/return sank
+                // into a phantom else). Mirrors the JUMP_ABSOLUTE arm's
+                // over_handlers-guarded break push.
+                if over_handlers
+                    && self.legacy_handler.is_some()
+                    && self.find_loop_exit(target).is_some()
+                    && self.blocks.iter().any(|b| {
+                        matches!(b.kind, BlockType::While | BlockType::For)
+                    })
+                {
+                    self.push_stmt(Stmt::Break);
+                    let depth = self
+                        .legacy_handler
+                        .as_ref()
+                        .map(|h| h.block_depth)
+                        .unwrap_or(1);
+                    while self.blocks.len() > depth.max(1) {
+                        let p = self.blocks.last().map(|b| b.start).unwrap_or(target);
+                        self.force_close_top(p);
+                    }
+                    return true;
+                }
                 let r = self.handle_jump_forward(target);
                 // <=3.10 with normal exit: the jump flies over the whole
                 // exception-time cleanup handler (the SETUP_WITH /
@@ -10114,7 +10247,15 @@ impl<'a> Ctx<'a> {
                                     x.op,
                                     Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE | Op::JUMP
                                 )
-                                && x.target.map_or(false, |t| t > es)
+                                // a jump to a loop exit is a break
+                                // escape, not the dead else-merge
+                                // cleanup (bz2 3.10 decompress `if
+                                // results: break` overflew the
+                                // continuation and blocked the
+                                // legitimate retraction)
+                                && x.target.map_or(false, |t| {
+                                    t > es && self.find_loop_exit(t).is_none()
+                                })
                         })
                     })
                     // dead function-tail epilogue discriminator: when

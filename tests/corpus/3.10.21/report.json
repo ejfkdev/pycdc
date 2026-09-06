@@ -158,7 +158,7 @@
    "module": "bz2",
    "ast_detail": "diff at token 274: orig  Continue()] | dec  Return()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 762,
+   "ndiff": 763,
    "ntotal": 830,
    "detail": "line 50: orig ('NOP', '') | got ('LOAD_CONST', \"('rb', 9, None, None, None)\")\nline 51: orig ('NOP', '') | got ('LOAD_CONST', '<code open>')\nline 52: orig ('LOAD_CONST', \"('rb', 9, None, None, None)\") | got ('LOAD_CONST', \"'open'\")"
   },
@@ -208,7 +208,7 @@
    "module": "code",
    "ast_detail": "diff at token 252: orig  Continue()] | dec  Return()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 158,
+   "ndiff": 157,
    "ntotal": 669,
    "detail": "line 508: orig ('SETUP_FINALLY', 'to 224') | got ('SETUP_FINALLY', 'to 160')\nline 509: orig ('LOAD_FAST', 'more') | got ('LOAD_FAST', 'self')\nline 510: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('LOAD_METHOD', 'raw_input')"
   },

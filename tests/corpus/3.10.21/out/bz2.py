@@ -271,18 +271,17 @@ def decompress(data):
     '''
 
     results = []
-    try:
-        res = decomp.decompress(data)
-    except OSError:
-        if results:
-            pass
-    else:
+    while data:
+        decomp = BZ2Decompressor()
+        try:
+            res = decomp.decompress(data)
+        except OSError:
+            if results:
+                break
+            raise
         results.append(res)
         if not decomp.eof:
             raise ValueError('Compressed data ended before the end-of-stream marker was reached')
         data = decomp.unused_data
-        while data:
-            decomp = BZ2Decompressor()
-            raise
-        return b''.join(results)
+    return b''.join(results)
 
