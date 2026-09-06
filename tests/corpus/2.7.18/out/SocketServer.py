@@ -144,7 +144,6 @@ def _eintr_retry(func, *args):
                 break
             raise
             break
-            continue
 
 class BaseServer:
     '''Base class for server classes.
@@ -473,7 +472,6 @@ class ForkingMixIn:
                     break
                 break
                 break
-                continue
         for pid in self.active_children.copy():
             try:
                 pid, _ = os.waitpid(pid, os.WNOHANG)

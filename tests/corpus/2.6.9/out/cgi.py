@@ -786,7 +786,6 @@ class InterpFormContentDict(SvFormContentDict):
                 result.append(self[key])
             except IndexError:
                 result.append(self.dict[key])
-                continue
         return result
 
     def items(self):
@@ -796,7 +795,6 @@ class InterpFormContentDict(SvFormContentDict):
                 result.append((key, self[key]))
             except IndexError:
                 result.append((key, self.dict[key]))
-                continue
         return result
 
 

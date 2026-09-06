@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
   "SIG-DIFF": 23,
-  "PASS": 7,
-  "AST-PASS": 10
+  "PASS": 8,
+  "AST-PASS": 9
  },
  "results": [
   {
@@ -31,7 +31,7 @@
    "module": "ConfigParser",
    "ast_detail": "diff at token 1947: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 777,
+   "ndiff": 776,
    "ntotal": 2273,
    "detail": "line 1305: orig ('SETUP_LOOP', '#242') | got ('SETUP_LOOP', '#224')\nline 1307: orig ('POP_JUMP_IF_FALSE', '#241') | got ('POP_JUMP_IF_FALSE', '#223')\nline 1371: orig ('POP_JUMP_IF_FALSE', '#240') | got ('POP_JUMP_IF_FALSE', '#206')"
   },
@@ -83,7 +83,7 @@
    "module": "SimpleXMLRPCServer",
    "ast_detail": "diff at token 115: orig  ifs=[BoolOp(op=And() | dec  ifs=[Call(func=Attribute(value=Name(id='member'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1360,
+   "ndiff": 1387,
    "ntotal": 1550,
    "detail": "line 51: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 66: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 110: orig ('POP_JUMP_IF_FALSE', '#140') | got ('POP_JUMP_IF_FALSE', '#138')"
   },
@@ -91,9 +91,9 @@
    "module": "SocketServer",
    "ast_detail": "diff at token 86: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1109,
-   "ntotal": 1394,
-   "detail": "line 215: orig ('SETUP_LOOP', '#34') | got ('SETUP_LOOP', '#37')\nline 217: orig ('POP_JUMP_IF_FALSE', '#33') | got ('POP_JUMP_IF_FALSE', '#36')\nline 231: orig ('POP_JUMP_IF_FALSE', '#31') | got ('POP_JUMP_IF_FALSE', '#34')"
+   "ndiff": 1099,
+   "ntotal": 1392,
+   "detail": "line 215: orig ('SETUP_LOOP', '#34') | got ('SETUP_LOOP', '#36')\nline 217: orig ('POP_JUMP_IF_FALSE', '#33') | got ('POP_JUMP_IF_FALSE', '#35')\nline 231: orig ('POP_JUMP_IF_FALSE', '#31') | got ('POP_JUMP_IF_FALSE', '#33')"
   },
   {
    "module": "StringIO",
@@ -139,8 +139,8 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 161: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 924,
-   "ntotal": 1164,
+   "ndiff": 919,
+   "ntotal": 1162,
    "detail": "line 129: orig ('POP_JUMP_IF_TRUE', '#73') | got ('POP_JUMP_IF_TRUE', '#72')\nline 130: orig ('SETUP_LOOP', '#71') | got ('SETUP_LOOP', '#74')\nline 152: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', '#74')"
   },
   {
@@ -183,8 +183,8 @@
    "module": "ast",
    "ast_detail": "diff at token 219: orig  If(test=Call(func=Name(id='isinstance' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 750,
-   "ntotal": 965,
+   "ndiff": 691,
+   "ntotal": 964,
    "detail": "line 185: orig ('POP_JUMP_IF_FALSE', '#78') | got ('POP_JUMP_IF_FALSE', '#136')\nline 190: orig ('POP_JUMP_IF_FALSE', '#143') | got ('POP_JUMP_IF_FALSE', '#136')\nline 191: orig ('LOAD_DEREF', '_safe_names') | got ('LOAD_GLOBAL', 'isinstance')"
   },
   {
@@ -205,7 +205,7 @@
   },
   {
    "module": "atexit",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "audiodev",
@@ -255,8 +255,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 654: orig  body=[TryExcept(body=[Assign(targets=[Name(id='bytes' | dec  body=[Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2922,
-   "ntotal": 3056,
+   "ndiff": 2940,
+   "ntotal": 3054,
    "detail": "line 28: orig ('LOAD_CONST', \"('filterwarnings', 'catch_warnings', 'warn')\") | got ('LOAD_CONST', \"('filterwarnings',)\")\nline 32: orig ('IMPORT_FROM', 'catch_warnings') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'catch_warnings') | got ('LOAD_CONST', '-1')"
   }
  ]

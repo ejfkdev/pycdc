@@ -304,11 +304,9 @@ class SimpleXMLRPCDispatcher:
                 results.append([self._dispatch(method_name, params)])
             except Fault, fault:
                 results.append({'faultCode': fault.faultCode, 'faultString': fault.faultString})
-                continue
             except:
                 exc_type, exc_value, exc_tb = sys.exc_info()
                 results.append({'faultCode': 1, 'faultString': '%s:%s' % (exc_type, exc_value)})
-                continue
         return results
 
     def _dispatch(self, method, params):

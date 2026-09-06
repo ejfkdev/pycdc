@@ -15649,7 +15649,103 @@ impl<'a> Ctx<'a> {
                     .legacy_handler
                     .as_ref()
                     .map_or(false, |h| matches!(h.body.last(), Some(Stmt::Continue)));
+                // py2 has no POP_EXCEPT fold, so the handler is STILL
+                // open at its back edge, and a LONE JABS to the loop top
+                // is ambiguous: the implicit handler fall-through (try is
+                // the loop's last statement — atexit _run_exitfuncs) and
+                // an explicit standalone `except: continue` that skips
+                // the rest of the body (anydbm import loop) compile
+                // identically. Discriminate by what the jump flies over:
+                // real body statements between the chain and the loop's
+                // natural back edge / POP_BLOCK make it a continue;
+                // hitting the chain end first makes it implicit (the
+                // emitted Continue would duplicate the fall-through edge
+                // on recompile). An explicit continue after body
+                // statements still shows the dead duplicate JABS (py2
+                // emits it right after), caught mid-scan.
+                let explicit = if self.version.major == 2 {
+                    match self.idx_of.get(&self.cur_offset) {
+                        Some(&ci) => {
+                            let jt = self.instrs[ci].target;
+                            let bound = self
+                                .blocks
+                                .iter()
+                                .rev()
+                                .find(|b| {
+                                    matches!(b.kind, BlockType::While | BlockType::For)
+                                        && b.start == target
+                                })
+                                .map(|b| b.end)
+                                .unwrap_or(usize::MAX);
+                            // explicit continue after body statements:
+                            // py2 emits the dead duplicate JABS ADJACENT
+                            // to the statement's own jump (a same-target
+                            // backward jump further out is the NEXT
+                            // handler's edge — atexit misfire lesson)
+                            let dup_adjacent = self
+                                .instrs
+                                .get(ci + 1)
+                                .map_or(false, |x| {
+                                    x.is_backward
+                                        && matches!(
+                                            x.op,
+                                            Op::JUMP_ABSOLUTE | Op::JUMP
+                                        )
+                                        && x.target == jt
+                                });
+                            let mut verdict = if dup_adjacent {
+                                Some(true)
+                            } else {
+                                None
+                            };
+                            for x in self.instrs[ci + 1..].iter() {
+                                if verdict.is_some() || x.offset >= bound {
+                                    break;
+                                }
+                                match x.op {
+                                    // the loop's natural back edge / exit:
+                                    // the chain ended with nothing skipped
+                                    Op::JUMP_ABSOLUTE | Op::JUMP if x.is_backward => {
+                                        verdict = Some(false);
+                                        break;
+                                    }
+                                    Op::POP_BLOCK | Op::BREAK_LOOP => {
+                                        verdict = Some(false);
+                                        break;
+                                    }
+                                    // END_FINALLY is chain glue: the
+                                    // loop's natural back edge sits AFTER
+                                    // it — an explicit continue's own
+                                    // jump precedes it (ast 2.6
+                                    // iter_fields), an implicit
+                                    // fall-through shows no edge before
+                                    // it (atexit)
+                                    Op::END_FINALLY => {}
+                                    // forward jump past the chain: the
+                                    // handler exit hops over following
+                                    // body flow
+                                    Op::JUMP_FORWARD
+                                    | Op::JUMP
+                                    | Op::JUMP_ABSOLUTE
+                                        if !x.is_backward
+                                            && x.target
+                                                .map_or(false, |t| t > x.offset) =>
+                                    {
+                                        verdict = Some(true);
+                                        break;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            verdict.unwrap_or(true)
+                        }
+                        None => true,
+                    }
+                } else {
+                    true
+                };
                 if !already
+                    && explicit
                     && self
                         .blocks
                         .iter()

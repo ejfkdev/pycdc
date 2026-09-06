@@ -509,7 +509,7 @@ class _Chainmap(_UserDict.DictMixin):
             try:
                 return mapping[key]
             except KeyError:
-                continue
+                pass
         raise KeyError(key)
 
     def keys(self):
