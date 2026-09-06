@@ -43,8 +43,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 484: orig  If(test=Compare(left=Name(id='c' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 966,
-   "ntotal": 1397,
+   "ndiff": 968,
+   "ntotal": 1395,
    "detail": "line 299: orig ('SETUP_LOOP', 'to 621') | got ('SETUP_LOOP', 'to 636')\nline 356: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 532')\nline 369: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 532')"
   },
   {

@@ -307,7 +307,6 @@ Must implement in derived classes or get NotImplementedError.
                 if frame is not None:
                     continue
                 return
-            return
 
     def _set_stopinfo(self, stopframe, returnframe, stoplineno=0, opcode=False, cmdframe=None, cmdlineno=None):
         """Set the attributes for stopping.
@@ -331,9 +330,6 @@ don't stop at all.
             if not caller_frame.f_trace:
                 if caller_frame is not self.botframe:
                     caller_frame.f_trace = self.trace_dispatch
-                    return
-                return
-            return
 
     def set_until(self, frame, lineno=None):
         '''Stop when the line with the lineno greater than the current one is
@@ -396,7 +392,6 @@ If frame is not specified, debugging starts from caller's frame.
                 frame.f_trace_lines = trace_lines
                 frame.f_trace_opcodes = trace_opcodes
             self.frame_trace_lines_opcodes = {}
-            return
 
     def set_quit(self):
         '''Set quitting attribute to True.
@@ -415,7 +410,6 @@ Raises BdbQuit exception in the next call to a dispatch_*() method.
         bp_linenos = self.breaks.setdefault(filename, [])
         if lineno not in bp_linenos:
             bp_linenos.append(lineno)
-            return
 
     def set_break(self, filename, lineno, temporary=False, cond=None, funcname=None):
         """Set a new breakpoint for filename:lineno.
@@ -462,7 +456,6 @@ Bdb instance.
             self.breaks[filename].remove(lineno)
         if not self.breaks[filename]:
             del self.breaks[filename]
-            return
 
     def clear_break(self, filename, lineno):
         '''Delete breakpoints for filename:lineno.
@@ -748,7 +741,6 @@ the entry for the file:line.
         self.bplist[index].remove(self)
         if not self.bplist[index]:
             del self.bplist[index]
-            return
 
     def enable(self):
         '''Mark the breakpoint as enabled.'''

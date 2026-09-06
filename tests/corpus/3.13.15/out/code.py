@@ -87,7 +87,6 @@ caller should be prepared to deal with it.
             raise
         except:
             self.showtraceback()
-            return
 
     def showsyntaxerror(self, filename=None, **kwargs):
         '''Display the syntax error that just occurred.
@@ -153,7 +152,6 @@ The output is written by self.write(), below.
             print(file=sys.stderr)
             print('Original exception was:', file=sys.stderr)
             sys.__excepthook__(typ, value, tb)
-            return
 
     def _excepthook(self, typ, value, tb):
         lines = traceback.format_exception(typ, value, tb)

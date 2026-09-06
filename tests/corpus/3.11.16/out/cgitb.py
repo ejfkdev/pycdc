@@ -282,7 +282,7 @@ class Hook:
         try:
             self.file.flush()
         except:
-            return
+            pass
 
 
 handler = Hook().handle

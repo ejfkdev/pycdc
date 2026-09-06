@@ -301,7 +301,6 @@ class ParserBase:
                     name, j = self._scan_name(j, declstartpos)
                     if j < 0:
                         return j
-            return
 
     def _scan_name(self, i, declstartpos):
         rawdata = self.rawdata

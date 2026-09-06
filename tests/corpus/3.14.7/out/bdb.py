@@ -66,7 +66,6 @@ class _MonitoringTracer:
     def restart_events(self):
         if sys.monitoring.get_tool(self._tool_id) == self._name:
             sys.monitoring.restart_events()
-            return
 
     def callback_wrapper(self, func, event):
         import functools
@@ -103,25 +102,19 @@ class _MonitoringTracer:
             frame.f_trace = local_tracefunc
             if self._enabled:
                 sys.monitoring.set_local_events(self._tool_id, code, self.LOCAL_EVENTS)
-                return
-            return
 
     def return_callback(self, frame, code, offset, retval):
         if frame.f_trace:
             frame.f_trace(frame, 'return', retval)
-            return
 
     def unwind_callback(self, frame, code, *args):
         if frame.f_trace:
             frame.f_trace(frame, 'return', None)
-            return
 
     def line_callback(self, frame, code, *args):
         if frame.f_trace:
             if frame.f_trace_lines:
                 frame.f_trace(frame, 'line', None)
-                return
-            return
 
     def jump_callback(self, frame, code, inst_offset, dest_offset):
         if dest_offset > inst_offset:
@@ -133,8 +126,6 @@ class _MonitoringTracer:
         if frame.f_trace:
             if frame.f_trace_lines:
                 frame.f_trace(frame, 'line', None)
-                return
-            return
 
     def exception_callback(self, frame, code, offset, exc):
         if frame.f_trace:
@@ -145,14 +136,11 @@ class _MonitoringTracer:
                         return
                     tb = tb.tb_next
             frame.f_trace(frame, 'exception', (type(exc), exc, exc.__traceback__))
-            return
 
     def opcode_callback(self, frame, code, offset):
         if frame.f_trace:
             if frame.f_trace_opcodes:
                 frame.f_trace(frame, 'opcode', None)
-                return
-            return
 
     def update_local_events(self, frame=None):
         if sys.monitoring.get_tool(self._tool_id) != self._name:
@@ -513,8 +501,6 @@ Must implement in derived classes or get NotImplementedError.
                 frame = frame.f_back
             if self.monitoring_tracer:
                 self.monitoring_tracer.update_local_events()
-                return
-            return
 
     def _set_stopinfo(self, stopframe, returnframe, stoplineno=0, opcode=False, cmdframe=None, cmdlineno=None):
         """Set the attributes for stopping.
@@ -538,9 +524,6 @@ don't stop at all.
             if not caller_frame.f_trace:
                 if caller_frame is not self.botframe:
                     caller_frame.f_trace = self.trace_dispatch
-                    return
-                return
-            return
 
     def set_until(self, frame, lineno=None):
         '''Stop when the line with the lineno greater than the current one is
@@ -597,7 +580,6 @@ reached or when returning from current frame.'''
             if self.backend == 'monitoring':
                 self.monitoring_tracer.update_local_events()
             self.frame_trace_lines_opcodes = {}
-            return
 
     def set_quit(self):
         '''Set quitting attribute to True.
@@ -616,7 +598,6 @@ Raises BdbQuit exception in the next call to a dispatch_*() method.
         bp_linenos = self.breaks.setdefault(filename, [])
         if lineno not in bp_linenos:
             bp_linenos.append(lineno)
-            return
 
     def set_break(self, filename, lineno, temporary=False, cond=None, funcname=None):
         """Set a new breakpoint for filename:lineno.
@@ -663,7 +644,6 @@ Bdb instance.
             self.breaks[filename].remove(lineno)
         if not self.breaks[filename]:
             del self.breaks[filename]
-            return
 
     def clear_break(self, filename, lineno):
         '''Delete breakpoints for filename:lineno.
@@ -835,14 +815,12 @@ line of code (if it exists).
 
         if self.backend == 'monitoring':
             self.monitoring_tracer.disable_current_event()
-            return
 
     def restart_events(self):
         '''Restart all events.'''
 
         if self.backend == 'monitoring':
             self.monitoring_tracer.restart_events()
-            return
 
     def run(self, cmd, globals=None, locals=None):
         '''Debug a statement executed via the exec() function.
@@ -963,7 +941,6 @@ the entry for the file:line.
         self.bplist[index].remove(self)
         if not self.bplist[index]:
             del self.bplist[index]
-            return
 
     def enable(self):
         '''Mark the breakpoint as enabled.'''

@@ -19,8 +19,6 @@ class _IterationGuard:
             s.remove(self)
             if not s:
                 w._commit_removals()
-                return
-                return
 
 
 class WeakSet:
@@ -33,14 +31,12 @@ class WeakSet:
                     self._pending_removals.append(item)
                     return
                 self.data.discard(item)
-                return
 
         self._remove = _remove
         self._pending_removals = []
         self._iterating = set()
         if data is not None:
             self.update(data)
-            return
 
     def _commit_removals(self):
         pop = self._pending_removals.pop

@@ -145,9 +145,7 @@ class Cmd:
                     import readline
                     readline.set_completer(self.old_completer)
                 except ImportError:
-                    pass
-                return
-            return
+                    return
 
     def precmd(self, line):
         '''Hook method executed just before the command line is
@@ -303,7 +301,6 @@ class Cmd:
                     doc = getattr(self, 'do_' + arg).__doc__
                     if doc:
                         self.stdout.write('%s\n' % str(doc))
-                        return
                 except AttributeError:
                     pass
                 else:
@@ -347,7 +344,6 @@ class Cmd:
                 self.stdout.write('%s\n' % str(self.ruler * len(header)))
             self.columnize(cmds, maxcol - 1)
             self.stdout.write('\n')
-            return
 
     def columnize(self, list, displaywidth=80):
         '''Display a list of strings as a compact set of columns.

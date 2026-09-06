@@ -347,7 +347,6 @@ class dispatcher:
     def log_info(self, message, type='info'):
         if type not in self.ignore_log_types:
             print('%s: %s' % (type, message))
-            return
 
     def handle_read_event(self):
         if self.accepting:
@@ -408,7 +407,6 @@ class dispatcher:
         pair = self.accept()
         if pair is not None:
             self.handle_accepted(*pair)
-            return
 
     def handle_accepted(self, sock, addr):
         sock.close()

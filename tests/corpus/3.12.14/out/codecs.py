@@ -330,8 +330,6 @@ class StreamWriter(Codec):
         if whence == 0:
             if offset == 0:
                 self.reset()
-                return
-            return
 
     def __getattr__(self, name, getattr=getattr):
         ''' Inherit all other methods from the underlying stream.
@@ -621,8 +619,6 @@ class StreamReaderWriter:
         if whence == 0:
             if offset == 0:
                 self.writer.reset()
-                return
-            return
 
     def __getattr__(self, name, getattr=getattr):
         ''' Inherit all other methods from the underlying stream.
@@ -913,7 +909,6 @@ def iterencode(iterator, encoding, errors='strict', **kwargs):
     output = encoder.encode('', True)
     if output:
         yield output
-        return
 
 def iterdecode(iterator, encoding, errors='strict', **kwargs):
     '''
@@ -934,7 +929,6 @@ def iterdecode(iterator, encoding, errors='strict', **kwargs):
     output = decoder.decode(b'', True)
     if output:
         yield output
-        return
 
 def make_identity_dict(rng):
     ''' make_identity_dict(rng) -> dict

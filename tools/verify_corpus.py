@@ -91,7 +91,13 @@ def verify_module(interp, pycdc, vdir, pyc, outdir, keep):
     src = p.stdout
     # only real decompiler markers count (source strings may legitimately
     # contain "/*", e.g. sysconfigdata C-comment values)
-    warned = ("WARNING: Decompyle incomplete" in (p.stderr or "")
+    # NB: the CLI's stderr wording is "decompilation incomplete" while the
+    # in-source marker comment is "# WARNING: Decompyle incomplete" - the
+    # old check only knew the marker text and looked for it in stderr, so
+    # it NEVER fired and incomplete outputs were judged SIG-DIFF/AST-PASS
+    warned = ("WARNING: decompilation incomplete" in (p.stderr or "")
+              or re.search(r"^# WARNING: Decompyle incomplete", src,
+                           re.MULTILINE) is not None
               or re.search(r"/\* (unsupported|unknown) ", src) is not None
               or "/*bad-" in src)
     with open(out_py, "w") as f:

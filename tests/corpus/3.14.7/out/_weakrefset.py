@@ -9,12 +9,10 @@ class WeakSet:
             self = selfref()
             if self is not None:
                 self.data.discard(item)
-                return
 
         self._remove = _remove
         if data is not None:
             self.update(data)
-            return
 
     def __iter__(self):
         for itemref in self.data.copy():

@@ -96,7 +96,6 @@ class _Hqxcoderengine:
         self.hqxdata = self.hqxdata[first:]
         if force:
             self.ofp.write(self.hqxdata + b':\r')
-            return
 
     def close(self):
         if self.data:

@@ -411,7 +411,7 @@ class FieldStorage:
         try:
             self.file.close()
         except AttributeError:
-            return
+            pass
 
     def __enter__(self):
         return self
@@ -779,7 +779,6 @@ def test(environ=os.environ):
         print_environ(environ)
     except:
         print_exception()
-        return
 
 def print_exception(type=None, value=None, tb=None, limit=None):
     if type is None:

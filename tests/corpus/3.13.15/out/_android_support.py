@@ -55,7 +55,6 @@ class TextLogStream(io.TextIOWrapper):
         self._pending_bytes_count += len(b)
         if self.write_through or b.endswith(b'\n') or self._pending_bytes_count > MAX_BYTES_PER_WRITE:
             self.flush()
-            return
 
     def flush(self):
         with self._lock:

@@ -86,7 +86,6 @@ class InteractiveInterpreter:
             raise
         except:
             self.showtraceback()
-            return
 
     def showsyntaxerror(self, filename=None):
         '''Display the syntax error that just occurred.
@@ -219,7 +218,6 @@ class InteractiveConsole(InteractiveInterpreter):
             return
         if exitmsg != '':
             self.write('%s\n' % exitmsg)
-            return
 
     def push(self, line):
         self.buffer.append(line)

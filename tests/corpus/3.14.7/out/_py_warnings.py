@@ -101,7 +101,7 @@ def _showwarnmsg_impl(msg):
     try:
         file.write(text)
     except OSError:
-        return
+        pass
 
 def _formatwarnmsg_impl(msg):
     category = msg.category.__name__

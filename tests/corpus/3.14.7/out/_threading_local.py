@@ -36,13 +36,11 @@ defined.'''
             thread = wrthread()
             if thread is not None:
                 del thread.__dict__[key]
-                return
 
         def thread_deleted(_, idt=idt):
             local = wrlocal()
             if local is not None:
                 dct = local.dicts.pop(idt)
-                return
 
         wrlocal = ref(self, local_deleted)
         wrthread = ref(thread, thread_deleted)

@@ -83,14 +83,12 @@ will be added.'''
 
         if self._source:
             self.write('\n')
-            return
 
     def maybe_semicolon(self):
         '''Adds a "; " delimiter if it isn't the start of generated source'''
 
         if self._source:
             self.write('; ')
-            return
 
     def fill(self, text='', *, allow_semicolon=True):
         '''Indent a piece of text and append it, according to the current
@@ -164,7 +162,6 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         if isinstance(node, Constant):
             if isinstance(node.value, str):
                 return node
-            return
 
     def get_type_comment(self, node):
         comment = self._type_ignores.get(node.lineno) or node.type_comment
@@ -246,7 +243,6 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.traverse(node.value)
         if (type_comment := self.get_type_comment(node)):
             self.write(type_comment)
-            return
 
     def visit_AugAssign(self, node):
         self.fill()
@@ -263,14 +259,12 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         if node.value:
             self.write(' = ')
             self.traverse(node.value)
-            return
 
     def visit_Return(self, node):
         self.fill('return')
         if node.value:
             self.write(' ')
             self.traverse(node.value)
-            return
 
     def visit_Pass(self, node):
         self.fill('pass')
@@ -291,7 +285,6 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         if node.msg:
             self.write(', ')
             self.traverse(node.msg)
-            return
 
     def visit_Global(self, node):
         self.fill('global ')
@@ -336,7 +329,6 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         if node.cause:
             self.write(' from ')
             self.traverse(node.cause)
-            return
 
     def do_visit_try(self, node):
         self.fill('try', allow_semicolon=False)
@@ -352,7 +344,6 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             self.fill('finally', allow_semicolon=False)
             with self.block():
                 self.traverse(node.finalbody)
-            return
 
     def visit_Try(self, node):
         prev_in_try_star = self._in_try_star
@@ -434,8 +425,6 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             if len(type_params) > 0:
                 with self.delimit('[', ']'):
                     self.interleave((lambda: self.write(', ')), self.traverse, type_params)
-                return
-            return
 
     def visit_TypeVar(self, node):
         self.write(node.name)
@@ -445,21 +434,18 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         if node.default_value:
             self.write(' = ')
             self.traverse(node.default_value)
-            return
 
     def visit_TypeVarTuple(self, node):
         self.write('*' + node.name)
         if node.default_value:
             self.write(' = ')
             self.traverse(node.default_value)
-            return
 
     def visit_ParamSpec(self, node):
         self.write('**' + node.name)
         if node.default_value:
             self.write(' = ')
             self.traverse(node.default_value)
-            return
 
     def visit_TypeAlias(self, node):
         self.fill('type ')
@@ -486,7 +472,6 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             self.fill('else', allow_semicolon=False)
             with self.block():
                 self.traverse(node.orelse)
-            return
 
     def visit_If(self, node):
         self.fill('if ', allow_semicolon=False)
@@ -503,7 +488,6 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             self.fill('else', allow_semicolon=False)
             with self.block():
                 self.traverse(node.orelse)
-            return
 
     def visit_While(self, node):
         self.fill('while ', allow_semicolon=False)
@@ -514,7 +498,6 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             self.fill('else', allow_semicolon=False)
             with self.block():
                 self.traverse(node.orelse)
-            return
 
     def visit_With(self, node):
         self.fill('with ', allow_semicolon=False)
@@ -881,7 +864,6 @@ Returns the tuple (string literal to write, possible quote types).
         if node.step:
             self.write(':')
             self.traverse(node.step)
-            return
 
     def visit_Match(self, node):
         self.fill('match ', allow_semicolon=False)
@@ -895,7 +877,6 @@ Returns the tuple (string literal to write, possible quote types).
         if node.annotation:
             self.write(': ')
             self.traverse(node.annotation)
-            return
 
     def visit_arguments(self, node):
         first = True
@@ -942,8 +923,6 @@ Returns the tuple (string literal to write, possible quote types).
             if node.kwarg.annotation:
                 self.write(': ')
                 self.traverse(node.kwarg.annotation)
-                return
-            return
 
     def visit_keyword(self, node):
         if node.arg is None:
@@ -968,14 +947,12 @@ Returns the tuple (string literal to write, possible quote types).
         self.write(node.name)
         if node.asname:
             self.write(' as ' + node.asname)
-            return
 
     def visit_withitem(self, node):
         self.traverse(node.context_expr)
         if node.optional_vars:
             self.write(' as ')
             self.traverse(node.optional_vars)
-            return
 
     def visit_match_case(self, node):
         self.fill('case ', allow_semicolon=False)

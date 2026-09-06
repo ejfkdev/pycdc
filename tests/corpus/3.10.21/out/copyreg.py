@@ -13,7 +13,6 @@ def pickle(ob_type, pickle_function, constructor_ob=None):
     dispatch_table[ob_type] = pickle_function
     if constructor_ob is not None:
         constructor(constructor_ob)
-        return
 
 def constructor(object):
     if not callable(object):
@@ -166,7 +165,6 @@ def remove_extension(module, name, code):
     del _extension_registry[key], _inverted_registry[code]
     if code in _extension_cache:
         del _extension_cache[code]
-        return
 
 def clear_extension_cache():
     _extension_cache.clear()

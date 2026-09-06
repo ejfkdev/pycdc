@@ -810,9 +810,6 @@ class FormContent(FormContentDict):
         if key in self.dict:
             if len(self.dict[key]) > location:
                 return self.dict[key][location]
-            return
-        else:
-            return
 
     def value(self, key):
         if key in self.dict:

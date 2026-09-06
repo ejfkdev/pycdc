@@ -688,7 +688,6 @@ class _Unparser(NodeVisitor):
 
         if self._source:
             self.write('\n')
-            return
 
     def fill(self, text=''):
         self.maybe_newline()
@@ -753,7 +752,6 @@ class _Unparser(NodeVisitor):
         if isinstance(node, Constant):
             if isinstance(node.value, str):
                 return node
-                return
 
     def get_type_comment(self, node):
         comment = self._type_ignores.get(node.lineno) or node.type_comment
@@ -828,7 +826,6 @@ class _Unparser(NodeVisitor):
         self.traverse(node.value)
         if (type_comment := self.get_type_comment(node)):
             self.write(type_comment)
-            return
 
     def visit_AugAssign(self, node):
         self.fill()
@@ -845,14 +842,12 @@ class _Unparser(NodeVisitor):
         if node.value:
             self.write(' = ')
             self.traverse(node.value)
-            return
 
     def visit_Return(self, node):
         self.fill('return')
         if node.value:
             self.write(' ')
             self.traverse(node.value)
-            return
 
     def visit_Pass(self, node):
         self.fill('pass')
@@ -873,7 +868,6 @@ class _Unparser(NodeVisitor):
         if node.msg:
             self.write(', ')
             self.traverse(node.msg)
-            return
 
     def visit_Global(self, node):
         self.fill('global ')
@@ -931,7 +925,6 @@ class _Unparser(NodeVisitor):
         if node.cause:
             self.write(' from ')
             self.traverse(node.cause)
-            return
 
     def visit_Try(self, node):
         self.fill('try')
@@ -950,7 +943,6 @@ class _Unparser(NodeVisitor):
                 return
             if not None:
                 pass
-            return
 
     def visit_ExceptHandler(self, node):
         self.fill('except')
@@ -1036,7 +1028,6 @@ class _Unparser(NodeVisitor):
                 return
             if not None:
                 pass
-            return
 
     def visit_If(self, node):
         self.fill('if ')
@@ -1056,7 +1047,6 @@ class _Unparser(NodeVisitor):
                 return
             if not None:
                 pass
-            return
 
     def visit_While(self, node):
         self.fill('while ')
@@ -1070,7 +1060,6 @@ class _Unparser(NodeVisitor):
                 return
             if not None:
                 pass
-            return
 
     def visit_With(self, node):
         self.fill('with ')
@@ -1457,7 +1446,6 @@ class _Unparser(NodeVisitor):
         if node.step:
             self.write(':')
             self.traverse(node.step)
-            return
 
     def visit_Match(self, node):
         self.fill('match ')
@@ -1474,7 +1462,6 @@ class _Unparser(NodeVisitor):
         if node.annotation:
             self.write(': ')
             self.traverse(node.annotation)
-            return
 
     def visit_arguments(self, node):
         first = True
@@ -1519,8 +1506,6 @@ class _Unparser(NodeVisitor):
             if node.kwarg.annotation:
                 self.write(': ')
                 self.traverse(node.kwarg.annotation)
-                return
-                return
 
     def visit_keyword(self, node):
         if node.arg is None:
@@ -1545,14 +1530,12 @@ class _Unparser(NodeVisitor):
         self.write(node.name)
         if node.asname:
             self.write(' as ' + node.asname)
-            return
 
     def visit_withitem(self, node):
         self.traverse(node.context_expr)
         if node.optional_vars:
             self.write(' as ')
             self.traverse(node.optional_vars)
-            return
 
     def visit_match_case(self, node):
         self.fill('case ')

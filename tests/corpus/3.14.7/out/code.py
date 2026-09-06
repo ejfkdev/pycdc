@@ -87,7 +87,6 @@ caller should be prepared to deal with it.
             raise
         except:
             self.showtraceback()
-            return
 
     def showsyntaxerror(self, filename=None, **kwargs):
         '''Display the syntax error that just occurred.

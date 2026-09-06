@@ -618,7 +618,6 @@ class FieldStorage:
                 if todo > 0:
                     continue
                 return
-            return
 
     def read_lines(self):
         '''Internal: read lines until EOF or outerboundary.'''
@@ -801,7 +800,6 @@ def test(environ=os.environ):
         print_environ(environ)
     except:
         print_exception()
-        return
 
 def print_exception(type=None, value=None, tb=None, limit=None):
     if type is None:

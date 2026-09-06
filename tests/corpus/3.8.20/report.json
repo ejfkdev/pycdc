@@ -3,8 +3,9 @@
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
   "PASS": 9,
-  "SIG-DIFF": 29,
-  "AST-PASS": 2
+  "SIG-DIFF": 22,
+  "AST-PASS": 2,
+  "INCOMPLETE": 7
  },
  "results": [
   {
@@ -49,8 +50,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 267: orig  If(test=UnaryOp(op=Not() | dec  Continue()]",
-   "verdict": "SIG-DIFF",
+   "verdict": "INCOMPLETE",
    "ndiff": 1227,
    "ntotal": 1434,
    "detail": "line 182: orig ('LOAD_CONST', 'None') | got ('_read_output', 2)\nline 183: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', '0')\nline 184: orig ('_read_output', 2) | got ('LOAD_CONST', 'None')"
@@ -81,8 +81,7 @@
   },
   {
    "module": "_threading_local",
-   "ast_detail": "diff at token 477: orig  body=[Return(value=Call(func=Attribute(value=Name(id='object' | dec  body=[Pass()]",
-   "verdict": "SIG-DIFF",
+   "verdict": "INCOMPLETE",
    "ndiff": 350,
    "ntotal": 406,
    "detail": "line 39: orig ('LOAD_CONST', \"('current_thread', 'RLock')\") | got ('LOAD_CONST', \"('current_thread',)\")\nline 43: orig ('IMPORT_FROM', 'RLock') | got ('POP_TOP', '')\nline 44: orig ('STORE_NAME', 'RLock') | got ('LOAD_CONST', '0')"
@@ -125,8 +124,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 80: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='os' | dec  body=[Return(value=BinOp(left=Constant(value='Unknown error %s'",
-   "verdict": "SIG-DIFF",
+   "verdict": "INCOMPLETE",
    "ndiff": 2144,
    "ntotal": 2232,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
@@ -161,8 +159,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 484: orig  finalbody=[Try(body=[If(test=Attribute(value=Name(id='self' | dec  finalbody=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self'",
-   "verdict": "SIG-DIFF",
+   "verdict": "INCOMPLETE",
    "ndiff": 875,
    "ntotal": 941,
    "detail": "line 42: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 46: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 47: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
@@ -177,16 +174,14 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 665: orig  type_comment=None)] | dec  type_comment=None)",
-   "verdict": "SIG-DIFF",
+   "verdict": "INCOMPLETE",
    "ndiff": 2587,
    "ntotal": 3067,
    "detail": "line 424: orig ('LOAD_CONST', 'None') | got ('<listcomp>', 1)\nline 425: orig ('RETURN_VALUE', '') | got ('BUILD_LIST', '')\nline 426: orig ('<listcomp>', 1) | got ('LOAD_FAST', '.0')"
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 997: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Call(func=Name(id='len'",
-   "verdict": "SIG-DIFF",
+   "verdict": "INCOMPLETE",
    "ndiff": 2766,
    "ntotal": 2900,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
@@ -257,8 +252,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 86: orig  body=[Return(value=None)] | dec  body=[Pass()]",
-   "verdict": "SIG-DIFF",
+   "verdict": "INCOMPLETE",
    "ndiff": 1503,
    "ntotal": 1827,
    "detail": "line 296: orig ('LOAD_DEREF', 'func') | got ('LOAD_FAST', 'func')\nline 298: orig ('LOAD_CLOSURE', 'func') | got ('LOAD_CLOSURE', 'self')\nline 299: orig ('LOAD_CLOSURE', 'self') | got ('BUILD_TUPLE', '')"

@@ -2144,7 +2144,7 @@ impl<'a> Ctx<'a> {
             }
         }
         // except handlers (out-of-line)
-        let handlers = match tc.except_handler {
+        let mut handlers = match tc.except_handler {
             Some(h) => self.parse_except_dispatch(h),
             None => Vec::new(),
         };
@@ -2279,7 +2279,35 @@ impl<'a> Ctx<'a> {
                             }
                             j += 1;
                         }
-                        found.map(|jf_off| (jf_off, chain_end))
+                        found
+                            .map(|jf_off| (jf_off, chain_end))
+                            .or_else(|| {
+                                // function-tail try with the implicit
+                                // `return None` SUNK into both exits
+                                // (3.11+): no jump delimits the else —
+                                // the success-side return copy itself is
+                                // the boundary and the skip target is the
+                                // chain end (the copy and the chain are
+                                // both machinery)
+                                let pair = self.try_tail_sunk_pair(
+                                    last_frag_end.max(tc.body_end),
+                                    handler,
+                                    chain_end,
+                                );
+                                if pair.is_some() {
+                                    // the pair is confirmed: the handler-
+                                    // side sunk copy (3.11 extends the
+                                    // clause body over `LOAD None;
+                                    // RETURN_VALUE`) is machinery too —
+                                    // drop it from the last clause
+                                    if let Some(h) = handlers.last_mut() {
+                                        if matches!(h.body.last(), Some(Stmt::Return(None))) {
+                                            h.body.pop();
+                                        }
+                                    }
+                                }
+                                pair
+                            })
                     };
                     if let Some((else_end, merge)) = merge {
                         if else_end > tc.body_end && !is_with_region {
@@ -3192,6 +3220,11 @@ impl<'a> Ctx<'a> {
         // exception-path machinery (as-cleanup copy + RERAISE), never a
         // sunk continuation
         let mut trail_exit_jump = false;
+        // the clause ends with the sunk implicit tail `return None` copy
+        // (3.11+ function-tail try): the region between POP_EXCEPT and
+        // the mismatch RERAISE holds ONLY that copy, so the sunk-
+        // continuation extension below must not re-swallow it
+        let mut sunk_tail_copy = false;
         // skip cleanup: [LOAD_CONST None; STORE; DELETE], closing jump
         while k2 < self.instrs.len() {
             let c = &self.instrs[k2];
@@ -3202,7 +3235,30 @@ impl<'a> Ctx<'a> {
                     k2 += 1;
                 }
                 Op::RETURN_VALUE | Op::RETURN_CONST => {
-                    body_end = c.end();
+                    // a sunk implicit tail `return None` (3.12+
+                    // function-tail try: POP_EXCEPT; RETURN_CONST None —
+                    // a single instruction, no value load) is the tail
+                    // copy, not a computed return value — extending the
+                    // body over it makes the clause spuriously
+                    // terminating (the try/else flattens and the handler
+                    // grows a `return`). emit_try_tail's sunk-pair
+                    // recovery uses the success-side copy as the else
+                    // boundary. Deliberately RETURN_CONST-only: the
+                    // 3.11 `LOAD None; RETURN_VALUE` shape is
+                    // indistinguishable from a genuine sunk `return`
+                    // continuation here (both follow the as-cleanup skip)
+                    // and only costs the handler-side drop there.
+                    let sunk_none = match c.op {
+                        Op::RETURN_CONST => matches!(
+                            self.code.consts.get(c.arg as usize).map(|o| &**o),
+                            Some(PyObject::None)
+                        ),
+                        _ => false,
+                    };
+                    if !sunk_none {
+                        body_end = c.end();
+                    }
+                    sunk_tail_copy = sunk_none;
                     k2 += 1;
                     break;
                 }
@@ -3240,6 +3296,7 @@ impl<'a> Ctx<'a> {
         if k2 < self.instrs.len()
             && self.instrs[k2].offset < limit
             && !trail_exit_jump
+            && !sunk_tail_copy
             // a normal handler exit (JUMP_FORWARD over the mismatch
             // stubs) is NOT a sunk continuation — extending over it
             // would swallow the exception-path as-cleanup
@@ -17207,6 +17264,151 @@ impl<'a> Ctx<'a> {
         self.push_stmt(Stmt::Delete(vec![target]));
     }
 
+    /// 3.11+ function-tail try/except[/else] whose implicit `return None`
+    /// the compiler SANK into both exits: the success path ends with a
+    /// RETURN None right before the out-of-line chain, and the chain's
+    /// last clause ends `POP_EXCEPT; RETURN_CONST None` (3.12+) or
+    /// `POP_EXCEPT; LOAD None; RETURN_VALUE` (3.11). Neither copy is a
+    /// source statement and NO jump delimits an else region — the
+    /// success-side copy at offset R is the boundary: else = [body_end, R).
+    /// Returns (R, chain_end); the caller skips to chain_end so both the
+    /// copy and the chain (already parsed as handlers) are not re-walked.
+    fn try_tail_sunk_pair(
+        &self,
+        body_end: usize,
+        handler: usize,
+        chain_end: usize,
+    ) -> Option<(usize, usize)> {
+        if !self.version.at_least(3, 11)
+            || self.code.is_generator()
+            || self.code.is_async_generator()
+            // module level: the gap before the chain holds the module's
+            // real tail statements (sunk into the handler by 3.12+, see
+            // dedup_sunk_handler_tails) far more often than an else —
+            // datetime/decimal `__all__` reads as a phantom else body
+            || self.code.name == "<module>"
+        {
+            return None;
+        }
+        // the chain must be the function's LAST code: the sunk tail pair
+        // only exists for a tail-position try (its handler copies the
+        // implicit function terminator). A try nested inside a finally
+        // copy or a loop has real code after its chain (cmd.cmdloop's
+        // readline import inside the finally fired without this bound
+        // and decompiled the whole following span as a phantom else)
+        let he = self.idx_of.get(&handler).copied()?;
+        let ce = self.idx_of.get(&chain_end).copied().unwrap_or(self.instrs.len());
+        let mut tail_only = true;
+        for x in &self.instrs[ce.min(self.instrs.len())..] {
+            if x.offset <= chain_end {
+                continue;
+            }
+            if !matches!(
+                x.op,
+                Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::RESUME | Op::RETURN_CONST
+            ) {
+                tail_only = false;
+                break;
+            }
+        }
+        if !tail_only {
+            return None;
+        }
+        // chain tail: skipping cleanup stubs backward (bounded — stub
+        // runs are short; an unbounded skip could wander into an earlier
+        // clause's genuine return), the last real instruction must be a
+        // bare None return
+        let mut ri = None;
+        let mut k = ce;
+        let mut hops = 0;
+        while k > he && hops < 16 {
+            k -= 1;
+            hops += 1;
+            let x = &self.instrs[k];
+            match x.op {
+                Op::RERAISE | Op::POP_EXCEPT | Op::COPY | Op::SWAP | Op::NOP
+                | Op::NOT_TAKEN | Op::CACHE | Op::END_FINALLY => continue,
+                Op::RETURN_VALUE | Op::RETURN_CONST => {
+                    ri = Some(k);
+                    break;
+                }
+                _ => return None,
+            }
+        }
+        let ri = ri?;
+        let ret = &self.instrs[ri];
+        let bare = match ret.op {
+            Op::RETURN_CONST => matches!(
+                self.code.consts.get(ret.arg as usize).map(|o| &**o),
+                Some(PyObject::None)
+            ),
+            Op::RETURN_VALUE => ri > 0 && {
+                let p = &self.instrs[ri - 1];
+                p.op == Op::LOAD_CONST
+                    && matches!(
+                        self.code.consts.get(p.arg as usize).map(|o| &**o),
+                        Some(PyObject::None)
+                    )
+            },
+            _ => false,
+        };
+        if !bare {
+            return None;
+        }
+        // success-side copy: the LAST bare None return in the gap between
+        // the try body and the chain head; the else body lies before it
+        let be = self.idx_of.get(&body_end).copied()?;
+        let mut r_off = None;
+        for x in self.instrs[be..he].iter() {
+            let bare_x = match x.op {
+                Op::RETURN_CONST => matches!(
+                    self.code.consts.get(x.arg as usize).map(|o| &**o),
+                    Some(PyObject::None)
+                ),
+                Op::RETURN_VALUE => x.offset > 0 && {
+                    // the value LOAD sits immediately before the return
+                    self.idx_of
+                        .get(&x.offset)
+                        .and_then(|&xi| xi.checked_sub(1).map(|p| &self.instrs[p]))
+                        .map(|p| {
+                            p.op == Op::LOAD_CONST
+                                && matches!(
+                                    self.code.consts.get(p.arg as usize).map(|o| &**o),
+                                    Some(PyObject::None)
+                                )
+                        })
+                        .unwrap_or(false)
+                },
+                _ => false,
+            };
+            if bare_x {
+                r_off = Some(x.offset);
+            }
+        }
+        let r = r_off?;
+        if r <= body_end {
+            return None;
+        }
+        // the gap must be plain else-body flow: a chain head or a loop
+        // back edge there means this is not the sunk-tail shape
+        for x in self.instrs[be..he].iter() {
+            if x.offset >= r {
+                break;
+            }
+            if x.op == Op::PUSH_EXC_INFO {
+                return None;
+            }
+            if (x.op == Op::JUMP_BACKWARD
+                || x.op == Op::JUMP_BACKWARD_NO_INTERRUPT
+                || ((x.op == Op::JUMP_ABSOLUTE || x.op == Op::JUMP) && x.is_backward))
+                && x.offset < r
+            {
+                return None;
+            }
+        }
+        Some((r, chain_end))
+    }
+
     /// 3.10 tail-position try: the compiler sinks the implicit
     /// function/module terminator `return None` into BOTH the success
     /// path (just before handler_start) and each handler exit
@@ -19125,11 +19327,27 @@ fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
             i += 1;
         }
     }
-    // trailing `return None`
+    // trailing `return None` — including the tail-position copies the
+    // compiler sinks into ending `if` branches (3.11+ emits one
+    // RETURN_CONST None per ending branch: `if c: try:.. finally:..`
+    // leaks a spurious `return` after the try inside the then-arm)
     if code.name != "<module>" && code.name != "<lambda>" {
-        if let Some(Stmt::Return(None)) = body.last() {
-            body.pop();
+        fn strip_tail_returns(stmts: &mut Vec<Stmt>) {
+            loop {
+                match stmts.last_mut() {
+                    Some(Stmt::Return(None)) => {
+                        stmts.pop();
+                    }
+                    Some(Stmt::If { body, orelse, .. }) => {
+                        strip_tail_returns(body);
+                        strip_tail_returns(orelse);
+                        return;
+                    }
+                    _ => return,
+                }
+            }
         }
+        strip_tail_returns(&mut body);
     }
     // class bodies using zero-arg super() end with `return __class__`
     // (3.13+: an unnamed cell local shows up as a bad-local marker)

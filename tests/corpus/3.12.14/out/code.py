@@ -86,7 +86,6 @@ class InteractiveInterpreter:
             raise
         except:
             self.showtraceback()
-            return
 
     def showsyntaxerror(self, filename=None):
         '''Display the syntax error that just occurred.
@@ -154,7 +153,6 @@ class InteractiveInterpreter:
             print(file=sys.stderr)
             print('Original exception was:', file=sys.stderr)
             sys.__excepthook__(typ, value, tb)
-            return
 
     def write(self, data):
         sys.stderr.write(data)
@@ -235,7 +233,6 @@ class InteractiveConsole(InteractiveInterpreter):
             return
         if exitmsg != '':
             self.write('%s\n' % exitmsg)
-            return
 
     def push(self, line):
         self.buffer.append(line)

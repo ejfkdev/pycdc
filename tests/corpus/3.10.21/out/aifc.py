@@ -218,7 +218,6 @@ def _write_string(f, s):
     f.write(s)
     if len(s) & 1 == 0:
         f.write(b'\x00')
-        return
 
 def _write_float(f, x):
     import math
@@ -335,7 +334,6 @@ class Aifc_read:
         if file is not None:
             self._file = None
             file.close()
-            return
 
     def tell(self):
         return self._soundpos
@@ -631,7 +629,6 @@ class Aifc_write:
         self.writeframesraw(data)
         if self._nframeswritten != self._nframes or self._datalength != self._datawritten:
             self._patchheader()
-            return
 
     def close(self):
         if self._file is None:
@@ -684,7 +681,6 @@ class Aifc_write:
             if not self._framerate:
                 raise Error('sampling rate not specified')
             self._write_header(datasize)
-            return
 
     def _init_compression(self):
         if self._comptype == b'G722':
@@ -695,7 +691,6 @@ class Aifc_write:
             return
         if self._comptype in (b'alaw', b'ALAW'):
             self._convert = self._lin2alaw
-            return
 
     def _write_header(self, initlength):
         if self._aifc and self._comptype != b'NONE':

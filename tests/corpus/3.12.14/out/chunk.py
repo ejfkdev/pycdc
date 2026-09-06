@@ -75,8 +75,8 @@ class Chunk:
             self.offset = self.file.tell()
         except (AttributeError, OSError):
             self.seekable = False
-            return
-        self.seekable = True
+        else:
+            self.seekable = True
 
     def getname(self):
         '''Return the name (ID) of the current chunk.'''
@@ -94,7 +94,6 @@ class Chunk:
                 self.skip()
             finally:
                 self.closed = True
-            return
 
     def isatty(self):
         if self.closed:

@@ -287,7 +287,6 @@ class ParsingError(Error):
         self.args = (source,)
         if args:
             self.append(*args)
-            return
 
     def append(self, lineno, line):
         self.errors.append((lineno, line))
@@ -1115,7 +1114,6 @@ access and in ConfigParser.set().
         if not self._allow_no_value or value:
             if not isinstance(value, str):
                 raise TypeError('option values must be strings')
-            return
 
     @property
     def converters(self):

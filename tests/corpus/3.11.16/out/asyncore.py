@@ -66,7 +66,6 @@ def read(obj):
         raise
     except:
         obj.handle_error()
-        return
 
 def write(obj):
     try:
@@ -75,7 +74,6 @@ def write(obj):
         raise
     except:
         obj.handle_error()
-        return
 
 def _exception(obj):
     try:
@@ -84,7 +82,6 @@ def _exception(obj):
         raise
     except:
         obj.handle_error()
-        return
 
 def readwrite(obj, flags):
     try:
@@ -266,7 +263,7 @@ class dispatcher:
         try:
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR) | 1)
         except OSError:
-            return
+            pass
 
     def readable(self):
         return True
@@ -353,7 +350,7 @@ class dispatcher:
             except OSError as why:
                 if why.errno not in (ENOTCONN, EBADF):
                     raise
-            return
+                return
 
     def log(self, message):
         sys.stderr.write('log: %s\n' % str(message))
@@ -361,7 +358,6 @@ class dispatcher:
     def log_info(self, message, type='info'):
         if type not in self.ignore_log_types:
             print(f'{type!s}: {message!s}')
-            return
 
     def handle_read_event(self):
         if self.accepting:
@@ -422,7 +418,6 @@ class dispatcher:
         pair = self.accept()
         if pair is not None:
             self.handle_accepted(*pair)
-            return
 
     def handle_accepted(self, sock, addr):
         sock.close()

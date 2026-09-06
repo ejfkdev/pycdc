@@ -208,7 +208,6 @@ class InteractiveConsole(InteractiveInterpreter):
             return
         if exitmsg != '':
             self.write('%s\n' % exitmsg)
-            return
 
     def push(self, line):
         self.buffer.append(line)

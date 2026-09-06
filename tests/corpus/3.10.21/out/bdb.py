@@ -319,7 +319,6 @@ class Bdb:
                 frame = frame.f_back
                 if frame:
                     pass
-            return
 
     def set_quit(self):
         '''Set quitting attribute to True.
@@ -338,7 +337,6 @@ class Bdb:
         bp_linenos = self.breaks.setdefault(filename, [])
         if lineno not in bp_linenos:
             bp_linenos.append(lineno)
-            return
 
     def set_break(self, filename, lineno, temporary=False, cond=None, funcname=None):
         """Set a new breakpoint for filename:lineno.
@@ -380,7 +378,6 @@ class Bdb:
             self.breaks[filename].remove(lineno)
         if not self.breaks[filename]:
             del self.breaks[filename]
-            return
 
     def clear_break(self, filename, lineno):
         '''Delete breakpoints for filename:lineno.
@@ -672,7 +669,6 @@ class Breakpoint:
         self.bplist[index].remove(self)
         if not self.bplist[index]:
             del self.bplist[index]
-            return
 
     def enable(self):
         '''Mark the breakpoint as enabled.'''

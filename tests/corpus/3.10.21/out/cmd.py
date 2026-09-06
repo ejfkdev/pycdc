@@ -140,7 +140,6 @@ class Cmd:
                     pass
                 except ImportError:
                     pass
-                return
 
     def precmd(self, line):
         '''Hook method executed just before the command line is
@@ -331,7 +330,6 @@ class Cmd:
                 self.stdout.write('%s\n' % str(self.ruler * len(header)))
             self.columnize(cmds, maxcol - 1)
             self.stdout.write('\n')
-            return
 
     def columnize(self, list, displaywidth=80):
         '''Display a list of strings as a compact set of columns.

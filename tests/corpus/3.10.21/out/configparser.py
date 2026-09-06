@@ -531,7 +531,6 @@ class RawConfigParser(MutableMapping):
             self._converters.update(converters)
         if defaults:
             self._read_defaults(defaults)
-            return
 
     def defaults(self):
         return self._defaults
@@ -1049,7 +1048,6 @@ class RawConfigParser(MutableMapping):
         if not self._allow_no_value or value:
             if not isinstance(value, str):
                 raise TypeError('option values must be strings')
-            return
 
     @property
     def converters(self):
