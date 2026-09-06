@@ -277,7 +277,6 @@ class _Hqxdecoderengine:
             if not decdata:
                 if not self.eof:
                     raise Error, 'Premature EOF on binhex file'
-            continue
         return decdata
 
     def close(self):
@@ -455,4 +454,3 @@ def _test():
 
 if __name__ == '__main__':
     _test()
-# WARNING: Decompyle incomplete

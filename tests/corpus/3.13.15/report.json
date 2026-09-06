@@ -47,8 +47,8 @@
    "module": "_colorize",
    "ast_detail": "diff at token 8: orig  If(test=Constant(value=False) | dec  ClassDef(name='ANSIColors'",
    "verdict": "SIG-DIFF",
-   "ndiff": 328,
-   "ntotal": 351,
+   "ndiff": 317,
+   "ntotal": 338,
    "detail": "line 18: orig ('NOP', '') | got ('LOAD_BUILD_CLASS', '')\nline 19: orig ('LOAD_BUILD_CLASS', '') | got ('PUSH_NULL', '')\nline 20: orig ('PUSH_NULL', '') | got ('LOAD_CONST', '<code ANSIColors>')"
   },
   {
@@ -139,7 +139,7 @@
    "module": "base64",
    "ast_detail": "diff at token 43: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1801,
+   "ndiff": 1808,
    "ntotal": 2100,
    "detail": "line 260: orig ('NOP', '') | got ('LOAD_FAST', 's')\nline 261: orig ('LOAD_FAST', 's') | got ('LOAD_ATTR', 'encode + NULL|self')\nline 262: orig ('LOAD_ATTR', 'encode + NULL|self') | got ('LOAD_CONST', \"'ascii'\")"
   },
@@ -147,7 +147,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 203: orig  body=[Return()]) | dec  body=[Return()])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2637,
+   "ndiff": 2617,
    "ntotal": 2733,
    "detail": "line 23: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 27: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 28: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -181,27 +181,27 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 131: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Try(body=[Try(body=[Import(names=[alias(name='readline')])",
+   "ast_detail": "diff at token 190: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  Try(body=[Try(body=[If(test=Compare(left=Name(id='intro'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1314,
-   "ntotal": 1501,
-   "detail": "line 163: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('EXTENDED_ARG', '')\nline 164: orig ('LOAD_FAST', 'self') | got ('POP_JUMP_IF_FALSE', 'to L12')\nline 165: orig ('LOAD_ATTR', 'completekey') | got ('LOAD_FAST', 'self')"
+   "ndiff": 1019,
+   "ntotal": 1363,
+   "detail": "line 217: orig ('LOAD_FAST', 'intro') | got ('NOP', '')\nline 218: orig ('POP_JUMP_IF_NONE', 'to L5') | got ('LOAD_FAST', 'intro')\nline 219: orig ('LOAD_FAST_LOAD_FAST', 'intro, self') | got ('POP_JUMP_IF_NONE', 'to L5')"
   },
   {
    "module": "code",
    "ast_detail": "diff at token 106: orig  ctx=Load())))])])]) | dec  ctx=Load())))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1442,
-   "ntotal": 1492,
+   "ndiff": 972,
+   "ntotal": 1016,
    "detail": "line 17: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 21: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 22: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 2: orig  Try(body=[ImportFrom(module='_codecs' | dec  Try(body=[Try(body=[ImportFrom(module='_codecs'",
+   "ast_detail": "diff at token 606: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='whence'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2078,
-   "ntotal": 2159,
-   "detail": "line 13: orig ('LOAD_CONST', '0') | got ('NOP', '')\nline 14: orig ('LOAD_CONST', \"('*',)\") | got ('LOAD_CONST', '0')\nline 15: orig ('IMPORT_NAME', '_codecs') | got ('LOAD_CONST', \"('*',)\")"
+   "ndiff": 1823,
+   "ntotal": 2145,
+   "detail": "line 278: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, None, None, None)')\nline 279: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 280: orig ('LOAD_CONST', '(None, None, None, None, None)') | got ('LOAD_CONST', \"('_is_text_encoding',)\")"
   },
   {
    "module": "codeop",
@@ -219,24 +219,24 @@
    "module": "compileall",
    "ast_detail": "diff at token 77: orig  value=List(ctx=Load()))])]) | dec  value=List(ctx=Load()))])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1609,
-   "ntotal": 1684,
+   "ndiff": 1452,
+   "ntotal": 1551,
    "detail": "line 49: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 51: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "configparser",
    "ast_detail": "diff at token 93: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 4176,
-   "ntotal": 4534,
+   "ndiff": 4201,
+   "ntotal": 4508,
    "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "contextlib",
    "ast_detail": "diff at token 54: orig  body=[Return()] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2166,
-   "ntotal": 2238,
+   "ndiff": 2250,
+   "ntotal": 2327,
    "detail": "line 33: orig ('LOAD_CONST', \"('MethodType', 'GenericAlias')\") | got ('LOAD_CONST', \"('MethodType',)\")\nline 37: orig ('IMPORT_FROM', 'GenericAlias') | got ('POP_TOP', '')\nline 38: orig ('STORE_NAME', 'GenericAlias') | got ('LOAD_CONST', '0')"
   },
   {
@@ -257,10 +257,10 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 846: orig  Try(body=[Assign(targets=[Name(id='n' | dec  Try(body=[Try(body=[Assign(targets=[Name(id='n'",
+   "ast_detail": "diff at token 863: orig  body=[Continue()])]) | dec  body=[Pass()])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1689,
-   "ntotal": 1726,
+   "ndiff": 1658,
+   "ntotal": 1697,
    "detail": "line 13: orig ('LOAD_CONST', \"('Error', 'writer', 'reader', 'register_dialect', 'unregister_dialect', 'get_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 17: orig ('IMPORT_FROM', 'writer') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'writer') | got ('LOAD_CONST', '0')"
   },
   {

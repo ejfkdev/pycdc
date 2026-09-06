@@ -156,15 +156,15 @@ by the SGML/HTML and XHTML parsers.'''
             j = meth(j, declstartpos)
             if j < 0:
                 return j
-        if c == '%':
-            if j + 1 == n:
-                return -1
-            s, j = self._scan_name(j + 1, declstartpos)
-            if j < 0:
-                return j
-            if rawdata[j] == ';':
-                pass
-            j = j + 1
+            if c == '%':
+                if j + 1 == n:
+                    return -1
+                s, j = self._scan_name(j + 1, declstartpos)
+                if j < 0:
+                    return j
+                if rawdata[j] == ';':
+                    j = j + 1
+                continue
         if c == ']':
             j = j + 1
             while j < n and rawdata[j].isspace():

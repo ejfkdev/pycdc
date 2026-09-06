@@ -114,7 +114,7 @@ def parse(fp=None, environ=os.environ, keep_blank_values=0, strict_parsing=0):
             if qs:
                 qs = qs + '&'
             qs = qs + environ['QUERY_STRING']
-        if sys.argv[1:]:
+        elif sys.argv[1:]:
             if qs:
                 qs = qs + '&'
             qs = qs + sys.argv[1]
@@ -210,7 +210,7 @@ def parse_multipart(fp, pdict):
                 line = lines[-1]
                 if line[-2:] == '\r\n':
                     line = line[:-2]
-                if line[-1:] == '\n':
+                elif line[-1:] == '\n':
                     line = line[:-1]
                 lines[-1] = line
                 data = ''.join(lines)
@@ -952,4 +952,3 @@ def valid_boundary(s, _vb_pattern='^[ -~]{0,200}[!-~]$'):
 
 if __name__ == '__main__':
     test()
-# WARNING: Decompyle incomplete

@@ -119,7 +119,7 @@
    "module": "base64",
    "ast_detail": "diff at token 823: orig  comparators=[Set(elts=[Num(n=0) | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1184,
+   "ndiff": 1182,
    "ntotal": 1949,
    "detail": "line 737: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 738: orig ('COMPARE_OP', 'not in') | got ('LOAD_CONST', '0')\nline 739: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', '1')"
   },
@@ -223,7 +223,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 3189: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(arg=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 3919,
+   "ndiff": 3926,
    "ntotal": 4337,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },
@@ -255,8 +255,8 @@
    "module": "csv",
    "ast_detail": "diff at token 1537: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1640,
-   "ntotal": 1673,
+   "ndiff": 1639,
+   "ntotal": 1672,
    "detail": "line 8: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 12: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 13: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   }
  ]

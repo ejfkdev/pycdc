@@ -860,4 +860,3 @@ class MutableSequence(Sequence):
 
 MutableSequence.register(list)
 MutableSequence.register(bytearray)
-# WARNING: Decompyle incomplete

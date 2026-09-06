@@ -240,7 +240,6 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
         if not isinstance(arg, str):
             msg = 'strptime() argument {} must be str, not {}'
             raise TypeError(msg.format(index, type(arg)))
-        continue
     with _cache_lock:
         if _getlang() != _TimeRE_cache.locale_time.lang:
             _TimeRE_cache = TimeRE()

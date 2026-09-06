@@ -107,7 +107,7 @@ class Chunk:
             raise IOError, 'cannot seek'
         if whence == 1:
             pos = pos + self.size_read
-        if whence == 2:
+        elif whence == 2:
             pos = pos + self.chunksize
         if pos < 0 or pos > self.chunksize:
             raise RuntimeError
@@ -167,4 +167,3 @@ class Chunk:
                 continue
 
 
-# WARNING: Decompyle incomplete

@@ -51,8 +51,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 479: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 980,
-   "ntotal": 1400,
+   "ndiff": 966,
+   "ntotal": 1403,
    "detail": "line 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 385: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')"
   },
   {
@@ -143,7 +143,7 @@
    "module": "base64",
    "ast_detail": "diff at token 773: orig  comparators=[Set(elts=[Constant(value=0) | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1070,
+   "ndiff": 1062,
    "ntotal": 1868,
    "detail": "line 705: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 706: orig ('CONTAINS_OP', '') | got ('BUILD_SET', '')\nline 707: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})')"
   },
@@ -259,7 +259,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1199: orig  keywords=[])) | dec  keywords=[]))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2823,
+   "ndiff": 2821,
    "ntotal": 4333,
    "detail": "line 1068: orig ('JUMP_FORWARD', 'to 334') | got ('JUMP_ABSOLUTE', '')\nline 1393: orig ('JUMP_FORWARD', 'to 470') | got ('JUMP_ABSOLUTE', '')\nline 1451: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')"
   },

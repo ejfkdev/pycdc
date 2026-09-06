@@ -190,4 +190,3 @@ def test(HandlerClass=SimpleHTTPRequestHandler, ServerClass=BaseHTTPServer.HTTPS
 
 if __name__ == '__main__':
     test()
-# WARNING: Decompyle incomplete

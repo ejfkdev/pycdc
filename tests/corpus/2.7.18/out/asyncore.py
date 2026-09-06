@@ -471,7 +471,6 @@ def close_all(map=None, ignore_all=False):
                 continue
         except _reraised_exceptions:
             raise
-            continue
         except:
             if not ignore_all:
                 raise
@@ -527,4 +526,3 @@ if os.name == 'posix':
             self.add_channel()
 
 
-# WARNING: Decompyle incomplete

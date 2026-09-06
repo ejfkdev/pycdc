@@ -228,11 +228,8 @@ class Sniffer:
             if key:
                 quotes[key] = quotes.get(key, 0) + 1
             try:
-                try:
-                    n = groupindex['delim'] - 1
-                    key = m[n]
-                except KeyError:
-                    pass
+                n = groupindex['delim'] - 1
+                key = m[n]
             except KeyError:
                 pass
             if key:
@@ -366,20 +363,17 @@ class Sniffer:
             for col in list(columnTypes.keys()):
                 thisType = complex
                 try:
-                    try:
-                        thisType(row[col])
-                    except (ValueError, OverflowError):
-                        thisType = len(row[col])
-                except (ValueError, TypeError):
-                    hasHeader += 1
-                else:
-                    if thisType == columnTypes[col]:
-                        pass
-                    if columnTypes[col] is None:
-                        columnTypes[col] = thisType
-                    del columnTypes[col]
-                    hasHeader = 0
-        for col, colType in thisType:
+                    thisType(row[col])
+                except (ValueError, OverflowError):
+                    thisType = len(row[col])
+                if thisType == columnTypes[col]:
+                    continue
+                if columnTypes[col] is None:
+                    columnTypes[col] = thisType
+                    continue
+                del columnTypes[col]
+        hasHeader = 0
+        for col, colType in columnTypes.items():
             if isinstance(colType, int):
                 if len(header[col]) != colType:
                     hasHeader += 1

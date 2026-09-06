@@ -916,4 +916,3 @@ def valid_boundary(s, _vb_pattern=None):
 
 if __name__ == '__main__':
     test()
-# WARNING: Decompyle incomplete

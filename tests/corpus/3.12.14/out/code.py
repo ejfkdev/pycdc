@@ -196,61 +196,13 @@ class InteractiveConsole(InteractiveInterpreter):
         """
 
         try:
-            try:
-                try:
-                    try:
-                        sys.ps1
-                    except AttributeError:
-                        sys.ps1 = '>>> '
-                except AttributeError:
-                    sys.ps2 = '... '
-            except EOFError:
-                self.write('\n')
-        except KeyboardInterrupt:
-            self.write('\nKeyboardInterrupt\n')
-            self.resetbuffer()
-            more = 0
-        else:
-            try:
-                try:
-                    try:
-                        sys.ps2
-                    except AttributeError:
-                        sys.ps2 = '... '
-                except EOFError:
-                    self.write('\n')
-            except KeyboardInterrupt:
-                self.write('\nKeyboardInterrupt\n')
-                self.resetbuffer()
-                more = 0
-            else:
-                cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
-                if banner is None:
-                    self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
-                elif banner:
-                    self.write('%s\n' % str(banner))
-                more = 0
-                try:
-                    if more:
-                        prompt = sys.ps2
-                    else:
-                        prompt = sys.ps1
-                except KeyboardInterrupt:
-                    self.write('\nKeyboardInterrupt\n')
-                    self.resetbuffer()
-                    more = 0
-                else:
-                    try:
-                        try:
-                            line = self.raw_input(prompt)
-                        except EOFError:
-                            self.write('\n')
-                    except KeyboardInterrupt:
-                        self.write('\nKeyboardInterrupt\n')
-                        self.resetbuffer()
-                        more = 0
-                    else:
-                        more = self.push(line)
+            sys.ps1
+        except AttributeError:
+            sys.ps1 = '>>> '
+        try:
+            sys.ps2
+        except AttributeError:
+            sys.ps2 = '... '
         cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
         if banner is None:
             self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
@@ -277,8 +229,7 @@ class InteractiveConsole(InteractiveInterpreter):
                     self.write('\nKeyboardInterrupt\n')
                     self.resetbuffer()
                     more = 0
-                else:
-                    more = self.push(line)
+                more = self.push(line)
         if exitmsg is None:
             self.write('now exiting %s...\n' % self.__class__.__name__)
             return

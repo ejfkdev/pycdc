@@ -479,12 +479,9 @@ class Bdb:
         if not arg:
             raise ValueError('Breakpoint number expected')
         try:
-            try:
-                number = int(arg)
-            except ValueError:
-                raise ValueError('Non-numeric breakpoint number %s' % arg) from None
-        except IndexError:
-            raise ValueError('Breakpoint number %d out of range' % number) from None
+            number = int(arg)
+        except ValueError:
+            raise ValueError('Non-numeric breakpoint number %s' % arg) from None
         try:
             bp = Breakpoint.bpbynumber[number]
         except IndexError:

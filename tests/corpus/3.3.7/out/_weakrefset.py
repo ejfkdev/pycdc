@@ -88,7 +88,6 @@ class WeakSet:
             item = itemref()
             if item is not None:
                 return item
-            continue
 
     def remove(self, item):
         if self._pending_removals:

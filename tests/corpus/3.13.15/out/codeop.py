@@ -60,8 +60,7 @@ def _maybe_compile(compiler, source, filename, symbol):
             compiler(source + '\n', filename, symbol)
         except _IncompleteInputError as e:
             return
-    else:
-        None(None, None)
+    None(None, None)
     return compiler(source, filename, symbol, incomplete_input=False)
 
 def _compile(source, filename, symbol, incomplete_input=True):

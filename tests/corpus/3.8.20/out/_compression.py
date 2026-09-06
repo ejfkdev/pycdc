@@ -116,4 +116,3 @@ class DecompressReader(io.RawIOBase):
         return self._pos
 
 
-# WARNING: Decompyle incomplete

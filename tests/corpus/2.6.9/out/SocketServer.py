@@ -222,7 +222,7 @@ class BaseServer:
         timeout = self.socket.gettimeout()
         if timeout is None:
             timeout = self.timeout
-        if self.timeout is not None:
+        elif self.timeout is not None:
             timeout = min(timeout, self.timeout)
         fd_sets = select.select([self], [], [], timeout)
         if not fd_sets[0]:
@@ -440,7 +440,6 @@ class ForkingMixIn:
                 self.active_children.remove(pid)
             except ValueError, e:
                 raise ValueError('%s. x=%d and list=%r' % (e.message, pid, self.active_children))
-                continue
 
     def handle_timeout(self):
         self.collect_children()
@@ -588,4 +587,3 @@ class DatagramRequestHandler(BaseRequestHandler):
         self.socket.sendto(self.wfile.getvalue(), self.client_address)
 
 
-# WARNING: Decompyle incomplete

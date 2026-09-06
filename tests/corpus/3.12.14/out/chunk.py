@@ -65,13 +65,9 @@ class Chunk:
         if len(self.chunkname) < 4:
             raise EOFError
         try:
-            try:
-                self.chunksize = struct.unpack_from(strflag + 'L', file.read(4))[0]
-            except struct.error:
-                raise EOFError from None
-        except (AttributeError, OSError):
-            self.seekable = False
-            return
+            self.chunksize = struct.unpack_from(strflag + 'L', file.read(4))[0]
+        except struct.error:
+            raise EOFError from None
         if inclheader:
             self.chunksize = self.chunksize - 8
         self.size_read = 0

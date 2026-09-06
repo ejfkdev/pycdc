@@ -518,4 +518,3 @@ class Ellipsis(Constant, metaclass=_ABC):
 _const_types = {Num: (int, float, complex), Str: (str,), Bytes: (bytes,), NameConstant: (type(None), bool), Ellipsis: (type(...),)}
 _const_types_not = {Num: (bool,)}
 _const_node_type_names = {bool: 'NameConstant', type(None): 'NameConstant', int: 'Num', float: 'Num', complex: 'Num', str: 'Str', bytes: 'Bytes', type(...): 'Ellipsis'}
-# WARNING: Decompyle incomplete

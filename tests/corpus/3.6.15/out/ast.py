@@ -325,4 +325,3 @@ class NodeTransformer(NodeVisitor):
                 return node
 
 
-# WARNING: Decompyle incomplete

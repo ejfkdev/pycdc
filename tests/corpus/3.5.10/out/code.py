@@ -263,4 +263,3 @@ if __name__ == '__main__':
     else:
         banner = None
     interact(banner)
-# WARNING: Decompyle incomplete

@@ -169,7 +169,7 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
         requestline = self.raw_requestline
         if requestline[-2:] == '\r\n':
             requestline = requestline[:-2]
-        if requestline[-1:] == '\n':
+        elif requestline[-1:] == '\n':
             requestline = requestline[:-1]
         self.requestline = requestline
         words = requestline.split()
@@ -211,7 +211,7 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
         conntype = self.headers.get('Connection', '')
         if conntype.lower() == 'close':
             self.close_connection = 1
-        if conntype.lower() == 'keep-alive' and self.protocol_version >= 'HTTP/1.1':
+        elif conntype.lower() == 'keep-alive' and self.protocol_version >= 'HTTP/1.1':
             self.close_connection = 0
         return True
 
@@ -374,4 +374,3 @@ def test(HandlerClass=BaseHTTPRequestHandler, ServerClass=HTTPServer, protocol='
 
 if __name__ == '__main__':
     test()
-# WARNING: Decompyle incomplete

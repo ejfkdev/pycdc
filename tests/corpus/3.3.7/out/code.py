@@ -262,4 +262,3 @@ def interact(banner=None, readfunc=None, local=None):
 
 if __name__ == '__main__':
     interact()
-# WARNING: Decompyle incomplete

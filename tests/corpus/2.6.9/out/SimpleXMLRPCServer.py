@@ -274,7 +274,7 @@ class SimpleXMLRPCDispatcher:
         method = None
         if method_name in self.funcs:
             method = self.funcs[method_name]
-        if self.instance is not None:
+        elif self.instance is not None:
             if hasattr(self.instance, '_methodHelp'):
                 return self.instance._methodHelp(method_name)
             if not hasattr(self.instance, '_dispatch'):
@@ -495,4 +495,3 @@ if __name__ == '__main__':
     server.register_function(pow)
     server.register_function((lambda x, y: x + y), 'add')
     server.serve_forever()
-# WARNING: Decompyle incomplete

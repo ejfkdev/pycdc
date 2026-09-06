@@ -381,7 +381,6 @@ def b85decode(b):
             for j, c in enumerate(chunk):
                 if _b85dec[c] is None:
                     raise ValueError('bad base85 character at position %d' % (i + j)) from None
-                continue
             raise
         try:
             out.append(packI(acc))
@@ -500,4 +499,3 @@ def test():
 
 if __name__ == '__main__':
     main()
-# WARNING: Decompyle incomplete

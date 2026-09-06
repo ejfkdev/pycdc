@@ -208,7 +208,7 @@ def text(einfo, context=5):
             if value is not __UNDEF__:
                 if where == 'global':
                     name = 'global ' + name
-                if where != 'local':
+                elif where != 'local':
                     name = where + name.split('.')[-1]
                 dump.append('%s = %s' % (name, pydoc.text.repr(value)))
                 continue

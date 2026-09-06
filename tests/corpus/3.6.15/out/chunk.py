@@ -168,4 +168,3 @@ class Chunk:
                 raise EOFError
 
 
-# WARNING: Decompyle incomplete

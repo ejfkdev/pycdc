@@ -194,47 +194,18 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         if tail == '.py':
             if not force:
                 try:
-                    try:
-                        mtime = int(os.stat(fullname).st_mtime)
-                        expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
-                        for cfile in opt_cfiles.values():
-                            with open(cfile, 'rb') as chandle:
-                                actual = chandle.read(12)
-                            if expect == actual:
-                                continue
-                            break
-                        else:
-                            return success
-                    except OSError:
-                        pass
-                except py_compile.PyCompileError as err:
-                    success = False
-                    if quiet >= 2:
-                        return success
-                    if quiet:
-                        print('*** Error compiling {!r}...'.format(fullname))
+                    mtime = int(os.stat(fullname).st_mtime)
+                    expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+                    for cfile in opt_cfiles.values():
+                        with open(cfile, 'rb') as chandle:
+                            actual = chandle.read(12)
+                        if expect == actual:
+                            continue
+                        break
                     else:
-                        print('*** ', end='')
-                    if not sys.stdout.encoding:
-                        sys.stdout.encoding
-                    encoding = sys.getdefaultencoding()
-                    msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
-                    print(msg)
-                    err = None
-                    del err
-                    return success
-                except (SyntaxError, UnicodeError, OSError) as e:
-                    success = False
-                    if quiet >= 2:
                         return success
-                    if quiet:
-                        print('*** Error compiling {!r}...'.format(fullname))
-                    else:
-                        print('*** ', end='')
-                    print(e.__class__.__name__ + ':', e)
-                    e = None
-                    del e
-                    return success
+                except OSError:
+                    pass
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
             try:
@@ -350,28 +321,18 @@ def main():
                 parser.error('-d cannot be used in combination with -s or -p')
     if args.flist:
         try:
-            try:
-                with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
-                    for line in f:
-                        compile_dests.append(line.strip())
-            except OSError:
-                if args.quiet < 2:
-                    print('Error reading file list {}'.format(args.flist))
-                return False
-        except KeyboardInterrupt:
+            with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
+                for line in f:
+                    compile_dests.append(line.strip())
+        except OSError:
             if args.quiet < 2:
-                print('\n[interrupted]')
+                print('Error reading file list {}'.format(args.flist))
             return False
         try:
-            try:
-                pass
-            except OSError:
-                if args.quiet < 2:
-                    print('Error reading file list {}'.format(args.flist))
-                return False
-        except KeyboardInterrupt:
+            pass
+        except OSError:
             if args.quiet < 2:
-                print('\n[interrupted]')
+                print('Error reading file list {}'.format(args.flist))
             return False
     if args.invalidation_mode:
         ivl_mode = args.invalidation_mode.replace('-', '_').upper()

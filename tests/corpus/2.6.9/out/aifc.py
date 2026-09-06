@@ -274,7 +274,7 @@ class Aifc_read:
                 self._ssnd_seek_needed = 0
             elif chunkname == 'FVER':
                 self._version = _read_ulong(chunk)
-            if chunkname == 'MARK':
+            elif chunkname == 'MARK':
                 self._readmark(chunk)
             chunk.skip()
             continue
@@ -710,7 +710,7 @@ class Aifc_write:
                 self._datalength = self._datalength // 2
                 if self._datalength & 1:
                     self._datalength = self._datalength + 1
-            if self._comptype == 'G722':
+            elif self._comptype == 'G722':
                 self._datalength = (self._datalength + 3) // 4
                 if self._datalength & 1:
                     self._datalength = self._datalength + 1
@@ -832,4 +832,3 @@ if __name__ == '__main__':
         g.close()
         f.close()
         print 'Done.'
-# WARNING: Decompyle incomplete

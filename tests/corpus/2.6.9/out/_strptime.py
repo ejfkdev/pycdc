@@ -295,7 +295,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             if ampm in ('', locale_time.am_pm[0]):
                 if hour == 12:
                     hour = 0
-            if ampm == locale_time.am_pm[1]:
+            elif ampm == locale_time.am_pm[1]:
                 if hour != 12:
                     hour += 12
         elif group_key == 'M':
@@ -330,7 +330,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                 week_of_year_start = 6
             else:
                 week_of_year_start = 0
-        if group_key == 'Z':
+        elif group_key == 'Z':
             found_zone = found_dict['Z'].lower()
             for value, tz_values in enumerate(locale_time.timezone):
                 if found_zone in tz_values:

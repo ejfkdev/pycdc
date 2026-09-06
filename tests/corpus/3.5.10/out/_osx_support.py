@@ -306,4 +306,3 @@ def get_platform_osx(_config_vars, osname, release, machine):
                         machine = 'ppc'
     return osname, release, machine
 
-# WARNING: Decompyle incomplete

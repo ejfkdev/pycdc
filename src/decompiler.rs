@@ -186,6 +186,11 @@ struct LegacyTry {
     else_stop: usize,
     /// handler chain fully parsed (END_FINALLY passed); emit on next jump
     chain_done: bool,
+    /// mismatch-jump targets of clauses opened via open_except_block; a
+    /// pending target still holding a DUP_TOP clause head means the chain
+    /// continues past this point and a backward jump here is a handler
+    /// body's loop back edge, not the try's emit point
+    pending_mismatch: Vec<usize>,
     /// enclosing block's statement count when this chain's inline
     /// finally region opened — stmts past the mark are the inline body
     else_stmt_mark: usize,
@@ -2233,6 +2238,14 @@ impl<'a> Ctx<'a> {
                         .instrs
                         .iter()
                         .filter(|x| x.offset >= handler)
+                        // the rejoin jump belongs to THIS handler's own
+                        // chain: a LATER sibling try's chain also holds a
+                        // backward resume jump (its target lands between
+                        // this body_end and this handler when the tries
+                        // are sequential at module level) and misreads as
+                        // an else merge, swallowing the code between the
+                        // tries into a phantom else region
+                        .filter(|x| x.offset < chain_end)
                         .find(|x| {
                             // 3.14 rejoins the mainline with
                             // JUMP_BACKWARD_NO_INTERRUPT; the t < handler
@@ -2499,6 +2512,18 @@ impl<'a> Ctx<'a> {
             None => false,
         };
         let nested = region_end > from && adj_reraise && (extent == region_end || tramp_gap)
+            // the exception table must confirm the enclosure: a chain
+            // genuinely nested inside the adjacent one has (part of) its
+            // own region protected by an entry targeting the adjacent
+            // head. SEQUENTIAL sibling tries also lay out stub-adjacent
+            // (chain1 RERAISE/cleanup, then chain2 PUSH_EXC_INFO) but the
+            // sibling's protected range is its own try body BEFORE this
+            // chain — without this check chain2 reads as the enclosing
+            // dispatch and swallows the code between the tries as an else
+            // region (duplicating it)
+            && self.exc_entries.iter().any(|e| {
+                e.target == region_end && e.start < region_end && e.end > from
+            })
             && self
                 .idx_of
                 .get(&region_end)
@@ -4531,7 +4556,28 @@ impl<'a> Ctx<'a> {
                                 l.else_start = Some(target);
                                 l.else_stop = stop;
                             }
-                        } else if !lt.handlers.is_empty() && (in_else || (past_chain && target < pos)) {
+                        } else if !lt.handlers.is_empty()
+                            && (in_else
+                                || (past_chain
+                                    && target < pos
+                                    // a handler body's loop back edge
+                                    // arrives while clause heads are
+                                    // still pending (its mismatch target
+                                    // holds the next DUP_TOP+match head):
+                                    // emitting here strands the remaining
+                                    // clauses and tears down the enclosing
+                                    // loop; the chain's own RERAISE stub
+                                    // follows the LAST clause, so a real
+                                    // chain end never has a pending head
+                                    && !lt.pending_mismatch.iter().any(|&m| {
+                                        m > pos
+                                            && self
+                                                .idx_of
+                                                .get(&m)
+                                                .and_then(|&mi| self.instrs.get(mi))
+                                                .map_or(false, |x| x.op == Op::DUP_TOP)
+                                    })))
+                        {
                             // end of the else region (back edge or jump out):
                             // emit the complete try statement; flush first so
                             // else-region stores land in orelse, not after it
@@ -5125,6 +5171,7 @@ impl<'a> Ctx<'a> {
                         },
                         else_stop: inline_end,
                         chain_done: false,
+                        pending_mismatch: Vec::new(),
                         else_stmt_mark: mark,
                     });
 
@@ -6507,13 +6554,41 @@ impl<'a> Ctx<'a> {
                 } else if self
                     .idx_of
                     .get(&inst.offset)
-                    .and_then(|&ci| self.instrs.get(ci + 2))
-                    .map_or(false, |x| {
-                        x.op == Op::COMPARE_OP
-                            && cmp_from_index(compare_op_index(
-                                x.arg as u32,
-                                self.version,
-                            )) == CmpOp::ExceptionMatch
+                    .map_or(false, |&ci| {
+                        // the match pattern can span several pure value
+                        // loads (`except struct.error:` / `except (A, B):`),
+                        // so scan forward for the COMPARE_OP instead of
+                        // pinning ci+2
+                        let mut k = ci + 1;
+                        for _ in 0..8 {
+                            let Some(x) = self.instrs.get(k) else {
+                                return false;
+                            };
+                            if x.op == Op::CACHE {
+                                k += 1;
+                                continue;
+                            }
+                            if x.op == Op::COMPARE_OP {
+                                return cmp_from_index(compare_op_index(
+                                    x.arg as u32,
+                                    self.version,
+                                )) == CmpOp::ExceptionMatch;
+                            }
+                            if !matches!(
+                                x.op,
+                                Op::LOAD_FAST
+                                    | Op::LOAD_GLOBAL
+                                    | Op::LOAD_NAME
+                                    | Op::LOAD_ATTR
+                                    | Op::LOAD_CONST
+                                    | Op::LOAD_DEREF
+                                    | Op::BUILD_TUPLE
+                            ) {
+                                return false;
+                            }
+                            k += 1;
+                        }
+                        false
                     })
                 {
                     // handler-entry DUP_TOP over the exception value, which
@@ -9352,6 +9427,12 @@ impl<'a> Ctx<'a> {
                         self.force_close_top(close_at);
                     }
                     self.force_close_top(close_at);
+                    // the loop closed HERE, not through the back-edge
+                    // handler: register its top so the chain-end back
+                    // edge that flows into handle_jump_backward next (and
+                    // any dead duplicate padding) reads as closed-loop
+                    // padding instead of marking the frame incomplete
+                    self.closed_loop_tops.push(loop_top);
                 }
             }
         }
@@ -13898,6 +13979,9 @@ impl<'a> Ctx<'a> {
             self.pending_as_cleanup = None;
             self.held_cleanup_store = None;
             self.legacy_handler_end = Some(target);
+            if let Some(l) = self.legacy_try.as_mut() {
+                l.pending_mismatch.push(target);
+            }
             self.in_handler_prelude = true;
             return;
         }
@@ -14299,6 +14383,11 @@ impl<'a> Ctx<'a> {
                     inst.op,
                     Op::POP_JUMP_IF_FALSE
                         | Op::POP_JUMP_IF_TRUE
+                        // py2.6 peek-style statement cond jumps: an elif in
+                        // 2.6 starts its else region with JUMP_IF_* the same
+                        // way 2.7+ does with POP_JUMP_IF_*
+                        | Op::JUMP_IF_FALSE
+                        | Op::JUMP_IF_TRUE
                         | Op::POP_JUMP_FORWARD_IF_FALSE
                         | Op::POP_JUMP_FORWARD_IF_TRUE
                         | Op::POP_JUMP_BACKWARD_IF_FALSE
@@ -15133,6 +15222,27 @@ impl<'a> Ctx<'a> {
     }
 
     fn handle_jump_backward(&mut self, target: usize) {
+        // unreachable back-edge padding: unoptimized compilers (py2.6)
+        // emit JUMP_ABSOLUTE to the loop top right after a RAISE/RETURN
+        // ending a then-arm. Fall-through from a terminator is impossible
+        // and nothing jumps onto this edge, so it is dead — emitting a
+        // `continue` for it lands inside the terminating arm and flags
+        // the frame incomplete before the real back edge arrives.
+        {
+            let dominated_by_terminator = self
+                .idx_of
+                .get(&self.cur_offset)
+                .and_then(|&ci| ci.checked_sub(1).map(|p| &self.instrs[p]))
+                .map_or(false, |prev| {
+                    matches!(
+                        prev.op,
+                        Op::RAISE_VARARGS | Op::RETURN_VALUE | Op::RETURN_CONST
+                    )
+                });
+            if dominated_by_terminator && !self.targets.contains(&self.cur_offset) {
+                return;
+            }
+        }
         // 3.8-3.10 inline finally inside a loop body: the back edge
         // follows the inline finally copy — fold the chain FIRST so the
         // Try lands in the loop body before the loop closes

@@ -291,4 +291,3 @@ def test(HandlerClass=CGIHTTPRequestHandler, ServerClass=BaseHTTPServer.HTTPServ
 
 if __name__ == '__main__':
     test()
-# WARNING: Decompyle incomplete

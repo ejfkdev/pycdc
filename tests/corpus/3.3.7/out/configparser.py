@@ -1093,4 +1093,3 @@ class SectionProxy(MutableMapping):
         return self._name
 
 
-# WARNING: Decompyle incomplete

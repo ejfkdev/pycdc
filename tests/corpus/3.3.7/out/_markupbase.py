@@ -244,7 +244,6 @@ class ParserBase:
                     return -1
             if c == '>':
                 return j + 1
-            continue
 
     def _parse_doctype_notation(self, i, declstartpos):
         name, j = self._scan_name(i, declstartpos)

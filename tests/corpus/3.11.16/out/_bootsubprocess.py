@@ -74,11 +74,7 @@ def check_output(cmd, **kwargs):
     except FileNotFoundError:
         stdout = b''
     try:
-        # WARNING: unrecovered try/except structure
-        try:
-            os.unlink(tmp_filename)
-        except OSError:
-            pass
+        os.unlink(tmp_filename)
     except OSError:
         pass
     return stdout

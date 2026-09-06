@@ -319,4 +319,3 @@ class ExitStack(object):
         return received_exc and suppressed_exc
 
 
-# WARNING: Decompyle incomplete

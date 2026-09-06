@@ -168,7 +168,7 @@ class Cmd:
             return None, None, line
         if line[0] == '?':
             line = 'help ' + line[1:]
-        if line[0] == '!':
+        elif line[0] == '!':
             if hasattr(self, 'do_shell'):
                 line = 'shell ' + line[1:]
             else:

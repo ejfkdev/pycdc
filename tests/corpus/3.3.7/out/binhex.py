@@ -257,7 +257,6 @@ class _Hqxdecoderengine:
             if not decdata:
                 if not self.eof:
                     raise Error('Premature EOF on binhex file')
-            continue
         return decdata
 
     def close(self):
@@ -424,4 +423,3 @@ def hexbin(inp, out):
         ofp.close()
     ifp.close()
 
-# WARNING: Decompyle incomplete

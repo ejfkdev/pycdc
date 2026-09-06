@@ -76,10 +76,9 @@ def _reduce_ex(self, proto):
         if AttributeError:
             None
             dict = None
-    else:
-        if type(self).__getstate__ is object.__getstate__ and getattr(self, '__slots__', None):
-            raise TypeError('a class that defines __slots__ without defining __getstate__ cannot be pickled')
-        dict = getstate()
+    if type(self).__getstate__ is object.__getstate__ and getattr(self, '__slots__', None):
+        raise TypeError('a class that defines __slots__ without defining __getstate__ cannot be pickled')
+    dict = getstate()
     if dict:
         return _reconstructor, args, dict
     return _reconstructor, args

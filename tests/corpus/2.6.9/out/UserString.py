@@ -230,13 +230,13 @@ class MutableString(UserString, collections.MutableSequence):
         if isinstance(index, slice):
             if isinstance(sub, UserString):
                 sub = sub.data
-            if not isinstance(sub, basestring):
+            elif not isinstance(sub, basestring):
                 sub = str(sub)
             start, stop, step = index.indices(len(self.data))
             if step == -1:
                 start, stop = stop + 1, start + 1
                 sub = sub[::-1]
-            if step != 1:
+            elif step != 1:
                 raise TypeError, 'invalid step in slicing assignment'
             start = min(start, stop)
             self.data = self.data[:start] + sub + self.data[stop:]
@@ -252,7 +252,7 @@ class MutableString(UserString, collections.MutableSequence):
             start, stop, step = index.indices(len(self.data))
             if step == -1:
                 start, stop = stop + 1, start + 1
-            if step != 1:
+            elif step != 1:
                 raise TypeError, 'invalid step in slicing deletion'
             start = min(start, stop)
             self.data = self.data[:start] + self.data[stop:]

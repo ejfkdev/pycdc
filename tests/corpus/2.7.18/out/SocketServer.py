@@ -638,4 +638,3 @@ class DatagramRequestHandler(BaseRequestHandler):
         self.socket.sendto(self.wfile.getvalue(), self.client_address)
 
 
-# WARNING: Decompyle incomplete

@@ -136,46 +136,41 @@ will be omitted from the output for better readability.
             keywords = annotate_fields
             for name in node._fields:
                 try:
+                    value = getattr(node, name)
+                except AttributeError:
+                    keywords = True
+                    continue
+                if value is None and getattr(cls, name, ...) is None:
+                    keywords = True
+                    continue
+                if not show_empty:
+                    if value == []:
+                        field_type = cls._field_types.get(name, object)
+                        if getattr(field_type, '__origin__', ...) is list:
+                            if not keywords:
+                                args_buffer.append(repr(value))
+                            continue
+                if not keywords:
+                    args.extend(args_buffer)
+                    args_buffer = []
+                value, simple = _format(value, level)
+                allsimple = allsimple and simple
+                if keywords:
+                    args.append(f'{name!s}={value!s}')
+                    continue
+                args.append(value)
+            if include_attributes and node._attributes:
+                for name in node._attributes:
                     try:
                         value = getattr(node, name)
                     except AttributeError:
-                        keywords = True
-                        continue
-                except AttributeError:
-                    pass
-                else:
-                    if value is None and getattr(cls, name, ...) is None:
-                        keywords = True
-                    if not show_empty:
-                        if value == []:
-                            field_type = cls._field_types.get(name, object)
-                            if getattr(field_type, '__origin__', ...) is list:
-                                if not keywords:
-                                    pass
-                                args_buffer.append(repr(value))
-                        if not keywords:
-                            args.extend(args_buffer)
-                            args_buffer = []
-                    value, simple = _format(value, level)
-                    if allsimple:
-                        allsimple
-                    allsimple = simple
-                    if keywords:
-                        args.append(f'{name!s}={value!s}')
-                    args.append(value)
-                    if include_attributes and node._attributes:
                         pass
-            for name in value:
-                try:
-                    value = getattr(node, name)
-                except AttributeError:
-                    pass
-                if value is None:
-                    if getattr(cls, name, ...) is None:
-                        continue
-                value, simple = _format(value, level)
-                allsimple = allsimple and simple
-                args.append(f'{name!s}={value!s}')
+                    if value is None:
+                        if getattr(cls, name, ...) is None:
+                            continue
+                    value, simple = _format(value, level)
+                    allsimple = allsimple and simple
+                    args.append(f'{name!s}={value!s}')
             if allsimple and len(args) <= 3:
                 return f'{node.__class__.__name__!s}({', '.join(args)!s})', not args
             return f'{node.__class__.__name__!s}({prefix!s}{sep.join(args)!s})', False

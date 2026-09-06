@@ -963,4 +963,3 @@ def valid_boundary(s, _vb_pattern='^[ -~]{0,200}[!-~]$'):
 
 if __name__ == '__main__':
     test()
-# WARNING: Decompyle incomplete

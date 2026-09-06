@@ -672,15 +672,10 @@ class RawConfigParser(MutableMapping):
         '''
 
         try:
-            try:
-                d = self._unify_values(section, vars)
-            except NoSectionError:
-                if fallback is _UNSET:
-                    raise
-                return fallback
-        except KeyError:
+            d = self._unify_values(section, vars)
+        except NoSectionError:
             if fallback is _UNSET:
-                raise NoOptionError(option, section)
+                raise
             return fallback
         option = self.optionxform(option)
         try:
@@ -1191,15 +1186,11 @@ class ConverterMapping(MutableMapping):
 
     def __delitem__(self, key):
         try:
-            try:
-                k = 'get' + (key or None)
-            except TypeError:
-                raise KeyError(key)
-        except AttributeError:
-            pass
-        else:
-            del self._data[key]
-        for inst in self:
+            k = 'get' + (key or None)
+        except TypeError:
+            raise KeyError(key)
+        del self._data[key]
+        for inst in itertools.chain((self._parser,), self._parser.values()):
             try:
                 delattr(inst, k)
             except AttributeError:

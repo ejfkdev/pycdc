@@ -376,17 +376,14 @@ def b85decode(b):
         chunk = b[i:i + 5]
         acc = 0
         try:
-            try:
-                for c in chunk:
-                    acc = acc * 85 + _b85dec[c]
-            except TypeError:
-                for j, c in enumerate(chunk):
-                    if _b85dec[c] is not None:
-                        continue
-                    raise ValueError('bad base85 character at position %d' % (i + j)) from None
-                raise
-        except struct.error:
-            raise ValueError('base85 overflow in hunk starting at byte %d' % i) from None
+            for c in chunk:
+                acc = acc * 85 + _b85dec[c]
+        except TypeError:
+            for j, c in enumerate(chunk):
+                if _b85dec[c] is not None:
+                    continue
+                raise ValueError('bad base85 character at position %d' % (i + j)) from None
+            raise
         try:
             out.append(packI(acc))
         except struct.error:

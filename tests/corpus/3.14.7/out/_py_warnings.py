@@ -108,22 +108,11 @@ def _formatwarnmsg_impl(msg):
     s = f'{msg.filename}:{msg.lineno}: {category}: {msg.message}\n'
     if msg.line is None:
         try:
-            try:
-                try:
-                    try:
-                        import linecache
-                        line = linecache.getline(msg.filename, msg.lineno)
-                    except Exception:
-                        line = None
-                        linecache = None
-                except Exception:
-                    suggest_tracemalloc = False
-                    tb = None
-            except Exception:
-                suggest_tracemalloc = False
-                tb = None
+            import linecache
+            line = linecache.getline(msg.filename, msg.lineno)
         except Exception:
             line = None
+            linecache = None
         else:
             line = msg.line
     if line:
@@ -131,44 +120,17 @@ def _formatwarnmsg_impl(msg):
         s += '  %s\n' % line
     if msg.source is not None:
         try:
+            import tracemalloc
+        except Exception:
+            suggest_tracemalloc = False
+            tb = None
+        else:
             try:
-                import tracemalloc
+                suggest_tracemalloc = not tracemalloc.is_tracing()
+                tb = tracemalloc.get_object_traceback(msg.source)
             except Exception:
                 suggest_tracemalloc = False
                 tb = None
-        except Exception:
-            line = None
-        else:
-            try:
-                try:
-                    try:
-                        suggest_tracemalloc = not tracemalloc.is_tracing()
-                        tb = tracemalloc.get_object_traceback(msg.source)
-                    except Exception:
-                        suggest_tracemalloc = False
-                        tb = None
-                except Exception:
-                    suggest_tracemalloc = False
-                    tb = None
-            except Exception:
-                line = None
-            else:
-                if tb is not None:
-                    s += 'Object allocated at (most recent call last):\n'
-                    for frame in tb:
-                        s += f'  File "{frame.filename!s}", lineno {frame.lineno!s}\n'
-                try:
-                    if linecache is not None:
-                        line = linecache.getline(frame.filename, frame.lineno)
-                    else:
-                        line = None
-                except Exception:
-                    line = None
-                else:
-                    try:
-                        line = None
-                    except Exception:
-                        line = None
         if tb is not None:
             s += 'Object allocated at (most recent call last):\n'
             for frame in tb:
@@ -356,12 +318,9 @@ def _getcategory(category):
     else:
         module, _, klass = category.rpartition('.')
         try:
-            try:
-                m = __import__(module, None, None, [klass])
-            except ImportError:
-                raise _wm._OptionError(f'invalid module name: {module!r}') from None
-        except AttributeError:
-            raise _wm._OptionError(f'unknown warning category: {category!r}') from None
+            m = __import__(module, None, None, [klass])
+        except ImportError:
+            raise _wm._OptionError(f'invalid module name: {module!r}') from None
     try:
         cat = getattr(m, klass)
     except AttributeError:

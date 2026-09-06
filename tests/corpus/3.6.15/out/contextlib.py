@@ -337,4 +337,3 @@ class ExitStack(AbstractContextManager):
         return received_exc and suppressed_exc
 
 
-# WARNING: Decompyle incomplete

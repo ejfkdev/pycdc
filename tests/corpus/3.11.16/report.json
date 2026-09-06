@@ -23,8 +23,8 @@
    "module": "_bootsubprocess",
    "ast_detail": "diff at token 358: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 87,
-   "ntotal": 398,
+   "ndiff": 84,
+   "ntotal": 396,
    "detail": "line 307: orig ('NOP', '') | got ('JUMP_FORWARD', 'to 392')\nline 308: orig ('LOAD_GLOBAL', 'NULL + open') | got ('PUSH_EXC_INFO', '')\nline 309: orig ('LOAD_FAST', 'tmp_filename') | got ('LOAD_GLOBAL', 'OSError')"
   },
   {

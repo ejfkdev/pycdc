@@ -115,7 +115,7 @@
    "module": "base64",
    "ast_detail": "diff at token 1091: orig  value=ListComp(elt=IfExp(test=BoolOp(op=And() | dec  value=ListComp(elt=BinOp(left=BinOp(left=Subscript(value=Name(id='chars2'",
    "verdict": "SIG-DIFF",
-   "ndiff": 991,
+   "ndiff": 992,
    "ntotal": 1970,
    "detail": "line 960: orig ('FOR_ITER', 'to 100') | got ('FOR_ITER', 'to 87')\nline 965: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')\nline 966: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_DEREF', 'foldspaces')"
   },
@@ -247,8 +247,8 @@
    "module": "csv",
    "ast_detail": "diff at token 1530: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1616,
-   "ntotal": 1656,
+   "ndiff": 1617,
+   "ntotal": 1655,
    "detail": "line 8: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 12: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 13: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   }
  ]

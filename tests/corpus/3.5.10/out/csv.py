@@ -347,7 +347,6 @@ class Sniffer:
                         continue
             else:
                 continue
-            continue
             thisType = len(row[col])
             if thisType != columnTypes[col]:
                 if columnTypes[col] is None:
@@ -372,4 +371,3 @@ class Sniffer:
         return hasHeader > 0
 
 
-# WARNING: Decompyle incomplete

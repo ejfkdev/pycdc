@@ -184,59 +184,30 @@ hardlink_dupes: hardlink duplicated pyc files
         if tail == '.py':
             if not force:
                 try:
-                    try:
-                        mtime = int(os.stat(fullname).st_mtime)
-                        expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
-                        for cfile in opt_cfiles.values():
-                            with open(cfile, 'rb') as chandle:
-                                actual = chandle.read(12)
-                            while expect != actual:
-                                return success
-                                if not quiet:
-                                    print('Compiling {!r}...'.format(fullname))
-                                for index, opt_level in enumerate(optimize):
-                                    cfile = opt_cfiles[opt_level]
-                                    ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
-                                    if index > 0 and hardlink_dupes:
-                                        previous_cfile = opt_cfiles[optimize[index - 1]]
-                                        if not filecmp.cmp(cfile, previous_cfile, shallow=False):
-                                            continue
-                                    os.unlink(cfile)
-                                    os.link(previous_cfile, cfile)
-                                if ok == 0:
-                                    success = False
-                                return success
-                                return success
-                    except OSError:
-                        pass
-                except py_compile.PyCompileError as err:
-                    success = False
-                    if quiet >= 2:
-                        return success
-                    if quiet:
-                        print('*** Error compiling {!r}...'.format(fullname))
-                    else:
-                        print('*** ', end='')
-                    if not sys.stdout.encoding:
-                        sys.stdout.encoding
-                    encoding = sys.getdefaultencoding()
-                    msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
-                    print(msg)
-                    err = None
-                    del err
-                    return success
-                except (SyntaxError, UnicodeError, OSError) as e:
-                    success = False
-                    if quiet >= 2:
-                        return success
-                    if quiet:
-                        print('*** Error compiling {!r}...'.format(fullname))
-                    else:
-                        print('*** ', end='')
-                    print(e.__class__.__name__ + ':', e)
-                    e = None
-                    del e
-                    return success
+                    mtime = int(os.stat(fullname).st_mtime)
+                    expect = struct.pack('<4sLL', importlib.util.MAGIC_NUMBER, 0, mtime & 4294967295)
+                    for cfile in opt_cfiles.values():
+                        with open(cfile, 'rb') as chandle:
+                            actual = chandle.read(12)
+                        while expect != actual:
+                            return success
+                            if not quiet:
+                                print('Compiling {!r}...'.format(fullname))
+                            for index, opt_level in enumerate(optimize):
+                                cfile = opt_cfiles[opt_level]
+                                ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
+                                if index > 0 and hardlink_dupes:
+                                    previous_cfile = opt_cfiles[optimize[index - 1]]
+                                    if not filecmp.cmp(cfile, previous_cfile, shallow=False):
+                                        continue
+                                os.unlink(cfile)
+                                os.link(previous_cfile, cfile)
+                            if ok == 0:
+                                success = False
+                            return success
+                            return success
+                except OSError:
+                    pass
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     '''Byte-compile all module on sys.path.
@@ -305,15 +276,10 @@ def main():
                 parser.error('-d cannot be used in combination with -s or -p')
     if args.flist:
         try:
-            try:
-                with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
-                    for line in f:
-                        compile_dests.append(line.strip())
-            except OSError:
-                if args.quiet < 2:
-                    pass
-                return False
-        except KeyboardInterrupt:
+            with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
+                for line in f:
+                    compile_dests.append(line.strip())
+        except OSError:
             if args.quiet < 2:
                 pass
             return False

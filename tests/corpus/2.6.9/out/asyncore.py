@@ -218,7 +218,7 @@ class dispatcher:
         status = [self.__class__.__module__ + '.' + self.__class__.__name__]
         if self.accepting and self.addr:
             status.append('listening')
-        if self.connected:
+        elif self.connected:
             status.append('connected')
         if self.addr is not None:
             try:
@@ -501,4 +501,3 @@ if os.name == 'posix':
             self.add_channel()
 
 
-# WARNING: Decompyle incomplete

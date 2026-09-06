@@ -119,15 +119,15 @@
    "module": "asyncore",
    "ast_detail": "diff at token 427: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2143,
-   "ntotal": 2233,
+   "ndiff": 2155,
+   "ntotal": 2244,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "base64",
    "ast_detail": "diff at token 823: orig  comparators=[Set(elts=[Num(n=0) | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1131,
+   "ndiff": 1133,
    "ntotal": 1946,
    "detail": "line 736: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 737: orig ('COMPARE_OP', 'not in') | got ('LOAD_CONST', '0')\nline 738: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', '1')"
   },
@@ -231,7 +231,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 3172: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(arg=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 3957,
+   "ndiff": 3966,
    "ntotal": 4369,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },

@@ -199,8 +199,8 @@ class HTMLParser(markupbase.ParserBase):
             self.handle_startendtag(tag, attrs)
         else:
             self.handle_starttag(tag, attrs)
-        if tag in self.CDATA_CONTENT_ELEMENTS:
-            self.set_cdata_mode()
+            if tag in self.CDATA_CONTENT_ELEMENTS:
+                self.set_cdata_mode()
         return endpos
 
     def check_for_whole_start_tag(self, i):

@@ -942,7 +942,6 @@ class RawConfigParser(MutableMapping):
                 continue
             if cursect is None:
                 raise MissingSectionHeaderError(fpname, lineno, line)
-                continue
             mo = self._optcre.match(value)
             if mo:
                 optname, vi, optval = mo.group('option', 'vi', 'value')
@@ -1174,4 +1173,3 @@ class ConverterMapping(MutableMapping):
         return len(self._data)
 
 
-# WARNING: Decompyle incomplete

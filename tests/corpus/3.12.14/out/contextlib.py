@@ -125,28 +125,8 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
     def __exit__(self, typ, value, traceback):
         if typ is None:
             try:
-                try:
-                    next(self.gen)
-                except StopIteration:
-                    return False
-            except StopIteration as exc:
-                return exc is not value
-            except RuntimeError as exc:
-                if exc is value:
-                    exc.__traceback__ = traceback
-                    return False
-                if isinstance(value, StopIteration) and exc.__cause__ is value:
-                    value.__traceback__ = traceback
-                    exc = None
-                    del exc
-                    return False
-                raise
-                exc = None
-                del exc
-            except BaseException as exc:
-                if exc is not value:
-                    raise
-                exc.__traceback__ = traceback
+                next(self.gen)
+            except StopIteration:
                 return False
             # WARNING: unrecovered try/except structure
             raise RuntimeError("generator didn't stop")
@@ -207,51 +187,50 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 return False
             # WARNING: unrecovered try/except structure
             raise RuntimeError("generator didn't stop")
-            if value is None:
-                value = typ()
-            try:
-                pass
-            except StopAsyncIteration as exc:
-                return exc is not value
-            except RuntimeError as exc:
-                if exc is value:
-                    exc.__traceback__ = traceback
-                    return False
-                if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
-                    value.__traceback__ = traceback
-                    exc = None
-                    del exc
-                    return False
-                raise
-                exc = None
-                del exc
-            except BaseException as exc:
-                if exc is not value:
-                    raise
+        if value is None:
+            value = typ()
+        try:
+            pass
+        except StopAsyncIteration as exc:
+            return exc is not value
+        except RuntimeError as exc:
+            if exc is value:
                 exc.__traceback__ = traceback
                 return False
-            try:
-                pass
-            except StopAsyncIteration as exc:
-                return exc is not value
-            except RuntimeError as exc:
-                if exc is value:
-                    exc.__traceback__ = traceback
-                    return False
-                if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
-                    value.__traceback__ = traceback
-                    exc = None
-                    del exc
-                    return False
-                raise
+            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                value.__traceback__ = traceback
                 exc = None
                 del exc
-            except BaseException as exc:
-                if exc is not value:
-                    raise
+                return False
+            raise
+            exc = None
+            del exc
+        except BaseException as exc:
+            if exc is not value:
+                raise
+            exc.__traceback__ = traceback
+            return False
+        try:
+            await self.gen.athrow(value)
+        except StopAsyncIteration as exc:
+            return exc is not value
+        except RuntimeError as exc:
+            if exc is value:
                 exc.__traceback__ = traceback
                 return False
-        value
+            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
+                value.__traceback__ = traceback
+                exc = None
+                del exc
+                return False
+            raise
+            exc = None
+            del exc
+        except BaseException as exc:
+            if exc is not value:
+                raise
+            exc.__traceback__ = traceback
+            return False
         try:
             raise RuntimeError("generator didn't stop after athrow()")
         except StopAsyncIteration:
@@ -584,19 +563,15 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
             is_sync, cb = self._exit_callbacks.pop()
             assert is_sync
             try:
-                try:
-                    if cb(*exc_details):
-                        suppressed_exc = True
-                        pending_raise = False
-                        exc_details = (None, None, None)
-                except:
-                    new_exc_details = sys.exc_info()
-                    _fix_exception_context(new_exc_details[1], exc_details[1])
-                    pending_raise = True
-                    exc_details = new_exc_details
-            except BaseException:
-                exc_details[1].__context__ = fixed_ctx
-                raise
+                if cb(*exc_details):
+                    suppressed_exc = True
+                    pending_raise = False
+                    exc_details = (None, None, None)
+            except:
+                new_exc_details = sys.exc_info()
+                _fix_exception_context(new_exc_details[1], exc_details[1])
+                pending_raise = True
+                exc_details = new_exc_details
         if pending_raise:
             try:
                 fixed_ctx = exc_details[1].__context__
@@ -647,7 +622,7 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             _exit = cls.__aexit__
         except AttributeError:
             raise TypeError(f"'{cls.__module__}.{cls.__qualname__}' object does not support the asynchronous context manager protocol") from None
-        result = None
+        result = await _enter(cm)
         self._push_async_cm_exit(cm, _exit)
         return result
 
@@ -711,19 +686,15 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
             try:
-                try:
-                    if is_sync:
-                        cb_suppress = cb(*exc_details)
-                    else:
-                        cb_suppress = await cb(*exc_details)
-                except:
-                    new_exc_details = sys.exc_info()
-                    _fix_exception_context(new_exc_details[1], exc_details[1])
-                    pending_raise = True
-                    exc_details = new_exc_details
-            except BaseException:
-                exc_details[1].__context__ = fixed_ctx
-                raise
+                if is_sync:
+                    cb_suppress = cb(*exc_details)
+                else:
+                    cb_suppress = await cb(*exc_details)
+            except:
+                new_exc_details = sys.exc_info()
+                _fix_exception_context(new_exc_details[1], exc_details[1])
+                pending_raise = True
+                exc_details = new_exc_details
             if cb_suppress:
                 suppressed_exc = True
                 pending_raise = False
