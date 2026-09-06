@@ -10209,6 +10209,25 @@ impl<'a> Ctx<'a> {
         // raise + hop sat in the gap and the whole if/else was folded into
         // a bogus `'t' in mode and 'b' in mode or encoding is not None`
         // condition, dropping the Invalid-mode raise).
+        // SAME-POLARITY j0 (both links jump on the same truth value) is
+        // NOT a py2-boolop mixed chain: it is either a flat and/or chain
+        // (split_cond's job -- `if i==1 and j==1:` in b16) or a folded
+        // `not A or B` first operand (3.7 compiles `not dir or dir==curdir`
+        // to PJIF(dir->C) with no UNARY_NOT; merging here yielded
+        // `(dir and dir==curdir) and skip_curdir` in compileall 3.7,
+        // dropping the negation). Genuine mixed chains always flip
+        // polarity between J1 and j0 (PJIT+PJIF or PJIF+PJIT). Defer to
+        // split_cond, which merges same-target same-polarity pairs with
+        // the correct And semantics.
+        let j0_polarity_true = matches!(
+            j0op,
+            Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE | Op::POP_JUMP_BACKWARD_IF_TRUE
+        );
+        if j0_polarity_true == jump_if_true
+            && self.is_split_cond_region(self.cur_next, instrs[j0k].offset, target, jump_if_true)
+        {
+            bail!("same-polarity lhs: split_cond territory");
+        }
         if instrs.get(j0k + 1).map(|x| x.offset) != Some(target) {
             // tolerate inter-instruction padding, nothing else
             let mut g = j0k + 1;
@@ -14511,6 +14530,9 @@ impl<'a> Ctx<'a> {
                 // innermost-first; their bytecode is covered by the skip
                 for _ in 0..chain_blocks {
                     self.blocks.pop();
+                }
+                if std::env::var("PYCDC_ORC_DBG").is_ok() {
+                    eprintln!("ORC off={} merged={:?} body=[{},{}) chain={}", self.cur_offset, merged_cond, body_start, exit, chain_blocks);
                 }
                 let mut blk = Block::new(BlockType::If, body_start, exit);
                 blk.cond = Some(merged_cond);
