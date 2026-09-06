@@ -109,13 +109,14 @@ class LockType(object):
         if waitflag is None or waitflag:
             self.locked_status = True
             return True
-        if not self.locked_status:
+        elif not self.locked_status:
             self.locked_status = True
             return True
-        if timeout > 0:
-            import time
-            time.sleep(timeout)
-        return False
+        else:
+            if timeout > 0:
+                import time
+                time.sleep(timeout)
+            return False
 
     __enter__ = acquire
     def __exit__(self, typ, val, tb):

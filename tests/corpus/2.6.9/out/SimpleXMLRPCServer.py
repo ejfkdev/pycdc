@@ -283,8 +283,9 @@ class SimpleXMLRPCDispatcher:
                     pass
         if method is None:
             return ''
-        import pydoc
-        return pydoc.getdoc(method)
+        else:
+            import pydoc
+            return pydoc.getdoc(method)
 
     def system_multicall(self, call_list):
         """system.multicall([{'methodName': 'add', 'params': [2, 2]}, ...]) => [[4], ...]
@@ -358,7 +359,8 @@ class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def is_rpc_path_valid(self):
         if self.rpc_paths:
             return self.path in self.rpc_paths
-        return True
+        else:
+            return True
 
     def do_POST(self):
         """Handles the HTTP POST request.

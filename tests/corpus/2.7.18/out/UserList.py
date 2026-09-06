@@ -37,7 +37,8 @@ class UserList(collections.MutableSequence):
     def __cast(self, other):
         if isinstance(other, UserList):
             return other.data
-        return other
+        else:
+            return other
 
     def __cmp__(self, other):
         return cmp(self.data, self.__cast(other))
@@ -81,16 +82,18 @@ class UserList(collections.MutableSequence):
     def __add__(self, other):
         if isinstance(other, UserList):
             return self.__class__(self.data + other.data)
-        if isinstance(other, type(self.data)):
+        elif isinstance(other, type(self.data)):
             return self.__class__(self.data + other)
-        return self.__class__(self.data + list(other))
+        else:
+            return self.__class__(self.data + list(other))
 
     def __radd__(self, other):
         if isinstance(other, UserList):
             return self.__class__(other.data + self.data)
-        if isinstance(other, type(self.data)):
+        elif isinstance(other, type(self.data)):
             return self.__class__(other + self.data)
-        return self.__class__(list(other) + self.data)
+        else:
+            return self.__class__(list(other) + self.data)
 
     def __iadd__(self, other):
         if isinstance(other, UserList):

@@ -192,7 +192,8 @@ def get_docstring(node, clean=True):
         if clean:
             import inspect
             return inspect.cleandoc(node.body[0].value.s)
-        return node.body[0].value.s
+        else:
+            return node.body[0].value.s
 
 def walk(node):
     """

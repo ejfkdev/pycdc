@@ -195,9 +195,10 @@ class simple_producer:
             result = self.data[:self.buffer_size]
             self.data = self.data[self.buffer_size:]
             return result
-        result = self.data
-        self.data = b''
-        return result
+        else:
+            result = self.data
+            self.data = b''
+            return result
 
 
 def find_prefix_at_end(haystack, needle):

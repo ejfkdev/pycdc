@@ -112,12 +112,14 @@ class Play_Audio_sgi:
     def getfilled(self):
         if self.port:
             return self.port.getfilled()
-        return 0
+        else:
+            return 0
 
     def getfillable(self):
         if self.port:
             return self.port.getfillable()
-        return self.config.getqueuesize()
+        else:
+            return self.config.getqueuesize()
 
     def ulaw2lin(self, data):
         import audioop
@@ -186,7 +188,8 @@ class Play_Audio_sun:
     def getfilled(self):
         if self.port:
             return self.port.obufcount()
-        return 0
+        else:
+            return 0
 
 
 def AudioDev():

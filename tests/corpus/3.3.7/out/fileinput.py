@@ -383,10 +383,11 @@ def hook_compressed(filename, mode):
     if ext == '.gz':
         import gzip
         return gzip.open(filename, mode)
-    if ext == '.bz2':
+    elif ext == '.bz2':
         import bz2
         return bz2.BZ2File(filename, mode)
-    return open(filename, mode)
+    else:
+        return open(filename, mode)
 
 def hook_encoded(encoding):
     def openhook(filename, mode):

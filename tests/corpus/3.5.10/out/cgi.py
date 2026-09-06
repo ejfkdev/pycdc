@@ -506,15 +506,17 @@ class FieldStorage:
 
         if self.list is None:
             raise TypeError('not indexable')
-        found = []
-        for item in self.list:
-            if item.name == key:
-                found.append(item)
-        if not found:
-            raise KeyError(key)
-        if len(found) == 1:
-            return found[0]
-        return found
+        else:
+            found = []
+            for item in self.list:
+                if item.name == key:
+                    found.append(item)
+            if not found:
+                raise KeyError(key)
+            elif len(found) == 1:
+                return found[0]
+            else:
+                return found
 
     def getvalue(self, key, default=None):
         """Dictionary style get() method, including 'value' lookup."""
@@ -795,7 +797,8 @@ class FieldStorage:
 
         if self._binary_file:
             return tempfile.TemporaryFile('wb+')
-        return tempfile.TemporaryFile('w+', encoding=self.encoding, newline='\n')
+        else:
+            return tempfile.TemporaryFile('w+', encoding=self.encoding, newline='\n')
 
 
 def test(environ=os.environ):

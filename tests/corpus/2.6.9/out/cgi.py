@@ -465,7 +465,8 @@ class FieldStorage:
             raise KeyError, key
         if len(found) == 1:
             return found[0]
-        return found
+        else:
+            return found
 
     def getvalue(self, key, default=None):
         """Dictionary style get() method, including 'value' lookup."""

@@ -228,8 +228,9 @@ def _calc_julian_from_U_or_W(year, week_of_year, day_of_week, week_starts_Mon):
     week_0_length = (7 - first_weekday) % 7
     if week_of_year == 0:
         return 1 + day_of_week - first_weekday
-    days_to_week = week_0_length + 7 * (week_of_year - 1)
-    return 1 + days_to_week + day_of_week
+    else:
+        days_to_week = week_0_length + 7 * (week_of_year - 1)
+        return 1 + days_to_week + day_of_week
 
 def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
     '''Return a 2-tuple consisting of a time struct and an int containing

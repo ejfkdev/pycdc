@@ -189,9 +189,10 @@ class simple_producer:
             result = self.data[:self.buffer_size]
             self.data = self.data[self.buffer_size:]
             return result
-        result = self.data
-        self.data = ''
-        return result
+        else:
+            result = self.data
+            self.data = ''
+            return result
 
 
 class fifo:
@@ -216,7 +217,8 @@ class fifo:
     def pop(self):
         if self.list:
             return 1, self.list.popleft()
-        return (0, None)
+        else:
+            return (0, None)
 
 
 def find_prefix_at_end(haystack, needle):

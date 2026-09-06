@@ -41,7 +41,8 @@ class _localized_month:
         funcs = self._months[i]
         if isinstance(i, slice):
             return [f(self.format) for f in funcs]
-        return funcs(self.format)
+        else:
+            return funcs(self.format)
 
     def __len__(self):
         return 13
@@ -56,7 +57,8 @@ class _localized_day:
         funcs = self._days[i]
         if isinstance(i, slice):
             return [f(self.format) for f in funcs]
-        return funcs(self.format)
+        else:
+            return funcs(self.format)
 
     def __len__(self):
         return 7
@@ -370,7 +372,8 @@ class HTMLCalendar(Calendar):
 
         if day == 0:
             return '<td class="noday">&nbsp;</td>'
-        return '<td class="%s">%d</td>' % (self.cssclasses[weekday], day)
+        else:
+            return '<td class="%s">%d</td>' % (self.cssclasses[weekday], day)
 
     def formatweek(self, theweek):
         '''

@@ -52,7 +52,8 @@ class _Printer(object):
         self.__setup()
         if len(self.__lines) <= self.MAXLINES:
             return '\n'.join(self.__lines)
-        return 'Type %s() to see the full %s text' % ((self.__name,) * 2)
+        else:
+            return 'Type %s() to see the full %s text' % ((self.__name,) * 2)
 
     def __call__(self):
         self.__setup()

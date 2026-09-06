@@ -188,7 +188,8 @@ _idmap = ''.join((chr(x) for x in xrange(256)))
 def _quote(str, LegalChars=_LegalChars, idmap=_idmap, translate=string.translate):
     if '' == translate(str, idmap, LegalChars):
         return str
-    return '"' + _nulljoin(map(_Translator.get, str, str)) + '"'
+    else:
+        return '"' + _nulljoin(map(_Translator.get, str, str)) + '"'
 
 _OctalPatt = re.compile('\\\\[0-3][0-7][0-7]')
 _QuotePatt = re.compile('[\\\\].')
@@ -474,7 +475,8 @@ class SmartCookie(BaseCookie):
     def value_encode(self, val):
         if type(val) == type(''):
             return val, _quote(val)
-        return val, _quote(dumps(val))
+        else:
+            return val, _quote(dumps(val))
 
 
 Cookie = SmartCookie

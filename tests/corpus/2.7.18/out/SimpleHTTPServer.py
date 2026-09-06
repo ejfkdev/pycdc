@@ -188,10 +188,12 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         base, ext = posixpath.splitext(path)
         if ext in self.extensions_map:
             return self.extensions_map[ext]
-        ext = ext.lower()
-        if ext in self.extensions_map:
-            return self.extensions_map[ext]
-        return self.extensions_map['']
+        else:
+            ext = ext.lower()
+            if ext in self.extensions_map:
+                return self.extensions_map[ext]
+            else:
+                return self.extensions_map['']
 
     if not mimetypes.inited:
         mimetypes.init()

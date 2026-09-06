@@ -28,7 +28,8 @@ class UserDict:
     def __cmp__(self, dict):
         if isinstance(dict, UserDict):
             return cmp(self.data, dict.data)
-        return cmp(self.data, dict)
+        else:
+            return cmp(self.data, dict)
 
     __hash__ = None
     def __len__(self):

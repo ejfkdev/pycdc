@@ -26,8 +26,8 @@ def _find_executable(executable, path=None):
             f = os.path.join(p, executable)
             if os.path.isfile(f):
                 return f
-        return
-    return executable
+    else:
+        return executable
 
 def _read_output(commandstring):
     '''Output from successful command execution or None'''

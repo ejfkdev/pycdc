@@ -202,20 +202,21 @@ class BZ2File(io.BufferedIOBase):
             if return_data:
                 return data
             return
-        self._buffer = self._buffer[self._buffer_offset:]
-        self._buffer_offset = 0
-        blocks = []
-        while n > 0 and self._fill_buffer():
-            if n < len(self._buffer):
-                data = self._buffer[:n]
-                self._buffer_offset = n
-            else:
-                data = self._buffer
-                self._buffer = b''
-            if return_data:
-                blocks.append(data)
-            self._pos += len(data)
-            n -= len(data)
+        else:
+            self._buffer = self._buffer[self._buffer_offset:]
+            self._buffer_offset = 0
+            blocks = []
+            while n > 0 and self._fill_buffer():
+                if n < len(self._buffer):
+                    data = self._buffer[:n]
+                    self._buffer_offset = n
+                else:
+                    data = self._buffer
+                    self._buffer = b''
+                if return_data:
+                    blocks.append(data)
+                self._pos += len(data)
+                n -= len(data)
         if return_data:
             return b''.join(blocks)
 
@@ -419,11 +420,13 @@ def open(filename, mode='rb', compresslevel=9, encoding=None, errors=None, newli
         raise ValueError("Argument 'errors' not supported in binary mode")
     if newline is not None:
         raise ValueError("Argument 'newline' not supported in binary mode")
-    bz_mode = mode.replace('t', '')
-    binary_file = BZ2File(filename, bz_mode, compresslevel=compresslevel)
-    if 't' in mode:
-        return io.TextIOWrapper(binary_file, encoding, errors, newline)
-    return binary_file
+    else:
+        bz_mode = mode.replace('t', '')
+        binary_file = BZ2File(filename, bz_mode, compresslevel=compresslevel)
+        if 't' in mode:
+            return io.TextIOWrapper(binary_file, encoding, errors, newline)
+        else:
+            return binary_file
 
 def compress(data, compresslevel=9):
     '''Compress a block of data.

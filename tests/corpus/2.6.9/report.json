@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "SIG-DIFF": 24,
-  "PASS": 5,
-  "AST-PASS": 11
+  "PASS": 6,
+  "AST-PASS": 10
  },
  "results": [
   {
@@ -23,24 +23,24 @@
    "module": "CGIHTTPServer",
    "ast_detail": "diff at token 796: orig  If(test=Compare(left=Call(func=Attribute(value=Subscript(value=Name(id='authorization' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 973,
-   "ntotal": 1251,
-   "detail": "line 41: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 150: orig ('LOAD_CONST', 'None') | got ('is_cgi', 1)\nline 151: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'self')"
+   "ndiff": 960,
+   "ntotal": 1253,
+   "detail": "line 41: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 243: orig ('SETUP_LOOP', '#67') | got ('SETUP_LOOP', '#68')\nline 247: orig ('JUMP_IF_FALSE', '#65') | got ('JUMP_IF_FALSE', '#66')"
   },
   {
    "module": "ConfigParser",
    "ast_detail": "diff at token 1802: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 935,
-   "ntotal": 2156,
-   "detail": "line 1019: orig ('LOAD_CONST', 'None') | got ('set', 4)\nline 1020: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'section')\nline 1021: orig ('set', 4) | got ('UNARY_NOT', '')"
+   "ndiff": 985,
+   "ntotal": 2162,
+   "detail": "line 1114: orig ('SETUP_LOOP', '#101') | got ('SETUP_LOOP', '#102')\nline 1118: orig ('FOR_ITER', '#100') | got ('FOR_ITER', '#101')\nline 1127: orig ('SETUP_LOOP', '#94') | got ('SETUP_LOOP', '#95')"
   },
   {
    "module": "Cookie",
    "ast_detail": "diff at token 890: orig  ctx=Store()) | dec  ctx=Store())]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1845,
-   "ntotal": 1900,
+   "ndiff": 1843,
+   "ntotal": 1904,
    "detail": "line 7: orig ('SETUP_EXCEPT', '#17') | got ('SETUP_EXCEPT', '#21')\nline 9: orig ('LOAD_CONST', \"('dumps', 'loads')\") | got ('LOAD_CONST', \"('dumps',)\")\nline 13: orig ('IMPORT_FROM', 'loads') | got ('POP_TOP', '')"
   },
   {
@@ -75,8 +75,8 @@
    "module": "SimpleHTTPServer",
    "ast_detail": "diff at token 138: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 413,
-   "ntotal": 676,
+   "ndiff": 414,
+   "ntotal": 677,
    "detail": "line 210: orig ('JUMP_IF_FALSE', '#75') | got ('JUMP_IF_FALSE', '#42')\nline 217: orig ('JUMP_IF_TRUE', '#42') | got ('JUMP_IF_FALSE', '#42')\nline 240: orig ('SETUP_LOOP', '#76') | got ('SETUP_LOOP', '#75')"
   },
   {
@@ -105,7 +105,7 @@
   },
   {
    "module": "UserList",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "UserString",
@@ -135,8 +135,8 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1658: orig  value=Num(n=2000))] | dec  value=Num(n=2000))",
    "verdict": "SIG-DIFF",
-   "ndiff": 986,
-   "ntotal": 1707,
+   "ndiff": 1200,
+   "ntotal": 1709,
    "detail": "line 89: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 448: orig ('SETUP_LOOP', '#172') | got ('SETUP_LOOP', '#173')\nline 454: orig ('FOR_ITER', '#171') | got ('FOR_ITER', '#172')"
   },
   {
@@ -175,8 +175,8 @@
    "module": "asynchat",
    "ast_detail": "diff at token 192: orig  body=[TryExcept(body=[Assign(targets=[Name(id='data' | dec  body=[While(test=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 786,
-   "ntotal": 854,
+   "ndiff": 785,
+   "ntotal": 858,
    "detail": "line 24: orig ('LOAD_CONST', \"('filterwarnings', 'catch_warnings')\") | got ('LOAD_CONST', \"('filterwarnings',)\")\nline 28: orig ('IMPORT_FROM', 'catch_warnings') | got ('POP_TOP', '')\nline 29: orig ('STORE_NAME', 'catch_warnings') | got ('LOAD_CONST', '-1')"
   },
   {
@@ -195,8 +195,8 @@
    "module": "audiodev",
    "ast_detail": "diff at token 221: orig  ctx=Load())) | dec  ctx=Load()))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 610,
-   "ntotal": 1020,
+   "ndiff": 613,
+   "ntotal": 1026,
    "detail": "line 352: orig ('SETUP_LOOP', '#29') | got ('SETUP_LOOP', '#30')\nline 356: orig ('FOR_ITER', '#25') | got ('FOR_ITER', '#26')\nline 363: orig ('JUMP_IF_FALSE', '#23') | got ('JUMP_IF_FALSE', '#24')"
   },
   {
@@ -207,7 +207,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 534: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='frame'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1646,
+   "ndiff": 1594,
    "ntotal": 2242,
    "detail": "line 537: orig ('SETUP_LOOP', '#49') | got ('SETUP_LOOP', '#43')\nline 541: orig ('JUMP_IF_FALSE', '#47') | got ('JUMP_IF_FALSE', '#41')\nline 545: orig ('LOAD_ATTR', 'stopframe') | got ('LOAD_ATTR', 'botframe')"
   },
@@ -231,25 +231,25 @@
    "module": "calendar",
    "ast_detail": "diff at token 1020: orig  body=[Assign(targets=[Name(id='months' | dec  body=[For(target=Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2418,
+   "ndiff": 2100,
    "ntotal": 2868,
-   "detail": "line 383: orig ('LOAD_CONST', 'None') | got ('__len__', 1)\nline 384: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', '13')\nline 385: orig ('__len__', 1) | got ('RETURN_VALUE', '')"
+   "detail": "line 704: orig ('SETUP_LOOP', '#61') | got ('SETUP_LOOP', '#62')\nline 706: orig ('JUMP_IF_FALSE', '#59') | got ('JUMP_IF_FALSE', '#60')\nline 719: orig ('JUMP_IF_FALSE', '#57') | got ('JUMP_IF_FALSE', '#58')"
   },
   {
    "module": "cgi",
    "ast_detail": "diff at token 655: orig  body=[TryExcept(body=[Assign(targets=[Name(id='bytes' | dec  body=[Continue()]",
    "verdict": "SIG-DIFF",
    "ndiff": 3110,
-   "ntotal": 3253,
+   "ntotal": 3255,
    "detail": "line 32: orig ('LOAD_CONST', \"('filterwarnings', 'catch_warnings', 'warn')\") | got ('LOAD_CONST', \"('filterwarnings',)\")\nline 36: orig ('IMPORT_FROM', 'catch_warnings') | got ('POP_TOP', '')\nline 37: orig ('STORE_NAME', 'catch_warnings') | got ('LOAD_CONST', '-1')"
   },
   {
    "module": "cgitb",
    "ast_detail": "diff at token 299: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1430,
+   "ndiff": 1254,
    "ntotal": 1541,
-   "detail": "line 75: orig ('LOAD_CONST', 'None') | got ('strong', 1)\nline 76: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'text')\nline 77: orig ('strong', 1) | got ('JUMP_IF_FALSE', '#9')"
+   "detail": "line 209: orig ('SETUP_LOOP', '#125') | got ('SETUP_LOOP', '#93')\nline 215: orig ('FOR_ITER', '#124') | got ('FOR_ITER', '#92')\nline 235: orig ('JUMP_IF_FALSE', '#101') | got ('JUMP_IF_FALSE', '#88')"
   },
   {
    "module": "chunk",

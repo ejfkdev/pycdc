@@ -68,7 +68,8 @@ def _reduce_ex(self, proto):
         dict = getstate()
     if dict:
         return _reconstructor, args, dict
-    return _reconstructor, args
+    else:
+        return _reconstructor, args
 
 def __newobj__(cls, *args):
     return cls.__new__(cls, *args)

@@ -41,7 +41,8 @@ class UserString(collections.Sequence):
     def __cmp__(self, string):
         if isinstance(string, UserString):
             return cmp(self.data, string.data)
-        return cmp(self.data, string)
+        else:
+            return cmp(self.data, string)
 
     def __contains__(self, char):
         return char in self.data
@@ -60,14 +61,16 @@ class UserString(collections.Sequence):
     def __add__(self, other):
         if isinstance(other, UserString):
             return self.__class__(self.data + other.data)
-        if isinstance(other, basestring):
+        elif isinstance(other, basestring):
             return self.__class__(self.data + other)
-        return self.__class__(self.data + str(other))
+        else:
+            return self.__class__(self.data + str(other))
 
     def __radd__(self, other):
         if isinstance(other, basestring):
             return self.__class__(other + self.data)
-        return self.__class__(str(other) + self.data)
+        else:
+            return self.__class__(str(other) + self.data)
 
     def __mul__(self, n):
         return self.__class__(self.data * n)

@@ -342,10 +342,11 @@ class RawConfigParser:
         if not section or section == DEFAULTSECT:
             option = self.optionxform(option)
             return option in self._defaults
-        if section not in self._sections:
+        elif section not in self._sections:
             return False
-        option = self.optionxform(option)
-        return option in self._sections[section] or option in self._defaults
+        else:
+            option = self.optionxform(option)
+            return option in self._sections[section] or option in self._defaults
 
     def set(self, section, option, value):
         '''Set an option.'''
@@ -496,7 +497,8 @@ class ConfigParser(RawConfigParser):
             raise NoOptionError(option, section)
         if raw:
             return value
-        return self._interpolate(section, option, value, d)
+        else:
+            return self._interpolate(section, option, value, d)
 
     def items(self, section, raw=False, vars=None):
         """Return a list of tuples with (name, value) for each option
@@ -525,7 +527,8 @@ class ConfigParser(RawConfigParser):
             options.remove('__name__')
         if raw:
             return [(option, d[option]) for option in options]
-        return [(option, self._interpolate(section, option, d[option], d)) for option in options]
+        else:
+            return [(option, self._interpolate(section, option, d[option], d)) for option in options]
 
     def _interpolate(self, section, option, rawval, vars):
         value = rawval
@@ -549,7 +552,8 @@ class ConfigParser(RawConfigParser):
         s = match.group(1)
         if s is None:
             return match.group()
-        return '%%(%s)s' % self.optionxform(s)
+        else:
+            return '%%(%s)s' % self.optionxform(s)
 
 
 class SafeConfigParser(ConfigParser):

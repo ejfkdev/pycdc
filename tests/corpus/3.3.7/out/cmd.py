@@ -202,6 +202,7 @@ class Cmd:
         except AttributeError:
             return self.default(line)
         return func(arg)
+        return
 
     def emptyline(self):
         '''Called when an empty line is entered in response to the prompt.

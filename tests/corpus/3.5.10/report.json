@@ -2,9 +2,9 @@
  "version": "3.5.10",
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
-  "PASS": 12,
+  "PASS": 15,
   "SIG-DIFF": 21,
-  "AST-PASS": 7
+  "AST-PASS": 4
  },
  "results": [
   {
@@ -37,7 +37,7 @@
   },
   {
    "module": "_dummy_thread",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "_markupbase",
@@ -49,26 +49,26 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 233: orig  Return(value=NameConstant(value=None))])] | dec  Return(value=None)])]",
+   "ast_detail": "diff at token 144: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 968,
+   "ndiff": 980,
    "ntotal": 1157,
-   "detail": "line 165: orig ('LOAD_CONST', 'None') | got ('_read_output', 1)\nline 166: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', '0')\nline 167: orig ('_read_output', 1) | got ('LOAD_CONST', 'None')"
+   "detail": "line 139: orig ('SETUP_LOOP', 'to 182') | got ('SETUP_LOOP', 'to 189')\nline 161: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 189')\nline 162: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')"
   },
   {
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 306: orig  body=[Try(body=[For(target=Name(id='i' | dec  body=[While(test=Compare(left=Name(id='key'",
    "verdict": "SIG-DIFF",
-   "ndiff": 117,
-   "ntotal": 368,
+   "ndiff": 163,
+   "ntotal": 370,
    "detail": "line 175: orig ('SETUP_LOOP', 'to 102') | got ('SETUP_LOOP', 'to 105')\nline 179: orig ('FOR_ITER', 'to 101') | got ('FOR_ITER', 'to 104')\nline 207: orig ('POP_EXCEPT', '') | got ('CONTINUE_LOOP', '')"
   },
   {
    "module": "_strptime",
    "ast_detail": "diff at token 1621: orig  value=Num(n=2000))] | dec  value=Num(n=2000))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1754,
-   "ntotal": 1851,
+   "ndiff": 1755,
+   "ntotal": 1853,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {
@@ -101,7 +101,7 @@
   },
   {
    "module": "asynchat",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "asyncore",
@@ -121,11 +121,11 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 1864: orig  Return(value=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 818: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1506,
+   "ndiff": 194,
    "ntotal": 2332,
-   "detail": "line 778: orig ('LOAD_CONST', 'None') | got ('do_clear', 2)\nline 779: orig ('RETURN_VALUE', '') | got ('LOAD_GLOBAL', 'NotImplementedError')\nline 780: orig ('do_clear', 2) | got ('LOAD_CONST', \"'subclass of bdb must implement do_clear()'\")"
+   "detail": "line 2098: orig ('SETUP_LOOP', 'to 240') | got ('SETUP_LOOP', 'to 123')\nline 2101: orig ('FOR_ITER', 'to 239') | got ('FOR_ITER', 'to 122')\nline 2137: orig ('LOAD_FAST', 'b') | got ('POP_BLOCK', '')"
   },
   {
    "module": "binhex",
@@ -145,31 +145,31 @@
   },
   {
    "module": "cProfile",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "calendar",
    "ast_detail": "diff at token 903: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2418,
+   "ndiff": 1975,
    "ntotal": 2894,
-   "detail": "line 403: orig ('LOAD_CONST', 'None') | got ('<listcomp>', 1)\nline 404: orig ('RETURN_VALUE', '') | got ('BUILD_LIST', '')\nline 405: orig ('<listcomp>', 1) | got ('LOAD_FAST', '.0')"
+   "detail": "line 881: orig ('STORE_DEREF', 'dates') | got ('STORE_FAST', 'dates')\nline 882: orig ('LOAD_CLOSURE', 'dates') | got ('LOAD_CONST', '<code <listcomp>>')\nline 883: orig ('BUILD_TUPLE', '') | got ('LOAD_CONST', \"'Calendar.monthdatescalendar.<locals>.<listcomp>'\")"
   },
   {
    "module": "cgi",
    "ast_detail": "diff at token 1839: orig  ctx=Store()) | dec  ctx=Store())]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2882,
-   "ntotal": 3042,
+   "ndiff": 2920,
+   "ntotal": 3048,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "cgitb",
    "ast_detail": "diff at token 150: orig  If(test=Compare(left=Call(func=Name(id='type' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1259,
+   "ndiff": 1188,
    "ntotal": 1420,
-   "detail": "line 114: orig ('LOAD_CONST', 'None') | got ('strong', 1)\nline 115: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'text')\nline 116: orig ('strong', 1) | got ('POP_JUMP_IF_FALSE', '')"
+   "detail": "line 187: orig ('LOAD_CONST', \"'builtin'\") | got ('LOAD_GLOBAL', 'hasattr')\nline 190: orig ('BINARY_SUBSCR', '') | got ('CALL_FUNCTION', '2 positional, 0 keyword pair')\nline 191: orig ('BUILD_TUPLE', '') | got ('POP_JUMP_IF_FALSE', '')"
   },
   {
    "module": "chunk",
@@ -215,7 +215,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 2172: orig  kw_defaults=[Tuple(elts=[Str(s='=') | dec  kw_defaults=[None",
    "verdict": "SIG-DIFF",
-   "ndiff": 4149,
+   "ndiff": 4148,
    "ntotal": 4295,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },
@@ -235,7 +235,7 @@
    "module": "copyreg",
    "ast_detail": "diff at token 418: orig  body=[Pass() | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 337,
+   "ndiff": 336,
    "ntotal": 525,
    "detail": "line 169: orig ('SETUP_LOOP', 'to 77') | got ('SETUP_LOOP', 'to 76')\nline 174: orig ('FOR_ITER', 'to 70') | got ('FOR_ITER', 'to 69')\nline 185: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },

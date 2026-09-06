@@ -24,6 +24,11 @@ pub struct Decompiled {
     pub body: Vec<Stmt>,
     /// False when at least one construct could not be fully recovered.
     pub clean: bool,
+    /// the bytecode tail holds the implicit `LOAD None; RETURN` pair
+    /// right after a preceding return — the source's last statement was
+    /// an all-arms-returning if/else; a flattened rendering must append
+    /// an explicit `return None` to regenerate the pair (sig fidelity)
+    pub tail_pair: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -342,6 +347,11 @@ struct Ctx<'a> {
     /// tail-return recovery in emit_return uses it to verify the stray
     /// return starts exactly at the body end (narrowed protected range)
     last_try_body_end: Option<usize>,
+    /// offset of the implicit tail `LOAD None` when the instruction tail
+    /// is `RETURN; LOAD None; RETURN` — proves the source's last
+    /// statement was an if/else whose arms all return, so function-tail
+    /// If closes with no jump-built Else must reconstruct one ending here
+    tail_pair_at: Option<usize>,
     /// try context awaiting else/finally emission
     pending_try_ctx: Option<TryCtx>,
     /// finally body of the enclosing try in a nested-chain wrap, consumed
@@ -645,6 +655,7 @@ pub fn decompile_in_scope(
         with_regions: with_regions.clone(),
         active_try: None,
         last_try_body_end: None,
+        tail_pair_at: None,
         pending_try_ctx: None,
         pending_nested_finally: None,
         nested_inner_handlers: Vec::new(),
@@ -924,6 +935,7 @@ pub fn decompile_in_scope(
         }
     }
 
+    ctx.tail_pair_at = tail_pair_load_offset(code, &ctx.instrs, version);
     ctx.run();
 
     // a legacy try whose emission stayed deferred for the else region:
@@ -1045,9 +1057,11 @@ pub fn decompile_in_scope(
         }
     }
 
+    let tail_pair = bytecode_tail_return_pair(code, &ctx.instrs, version);
     Ok(Decompiled {
         body: postprocess_body(body, code),
         clean: ctx.clean,
+        tail_pair,
     })
 }
 
@@ -4871,6 +4885,71 @@ impl<'a> Ctx<'a> {
                     flatten_boolop(right, kind, &mut values);
                     self.push(Rc::new(Expr::BoolOp { op: kind, values }));
                     return;
+                }
+                // function-tail if/else whose arms all return: the
+                // compiler omits the else jump when the then arm
+                // terminates, so no Else region was built — but the
+                // implicit tail `LOAD None; RETURN` pair (tail_pair_at)
+                // proves the source nested an else. Without rebuilding
+                // it here the else arm flattens to sibling statements
+                // whose recompile drops the pair (DCE after the arm's
+                // return) and the sig loses its last two lines
+                // (_dummy_thread 3.3 acquire). The else arm runs to the
+                // pair; a jump targeting INSIDE the span means this if's
+                // false path resumes mid-function (a plain guard) — no
+                // rebuild then.
+                if b.else_end.is_none()
+                    && !body.is_empty()
+                    // the then arm must TERMINATE (that is why the else
+                    // jump was omitted); a non-terminal arm means this is
+                    // a plain guard whose flow merges before the pair
+                    // (`if timeout > 0: sleep` then `return False`,
+                    // _dummy_thread innermost if)
+                    && matches!(
+                        body.last(),
+                        Some(Stmt::Return(_)) | Some(Stmt::Raise { .. })
+                    )
+                {
+                    if let Some(pair_at) = self.tail_pair_at {
+                        if pos < pair_at
+                            && !self.instrs.iter().any(|x| {
+                                // an OUTSIDE jump landing inside the span
+                                // means the flow resumes mid-function —
+                                // internal arm jumps are fine
+                                x.offset < pos
+                                    && x.target
+                                        .map_or(false, |t| t > pos && t < pair_at)
+                            })
+                            // the span must not cross a try structure: a
+                            // function ending in try/except(/else) also
+                            // grows the implicit tail pair, but the pair
+                            // then belongs to the TRY — rebuilding a flat
+                            // guard before it wraps the whole try and
+                            // scrambles the emission order (cmd 3.6
+                            // onecmd). SETUP_EXCEPT/SETUP_FINALLY mark
+                            // legacy (<=3.10) try starts inside the span;
+                            // PUSH_EXC_INFO marks 3.11+ chains (always
+                            // laid out past the inline flow). A clean
+                            // span is pure if/else material.
+                            && !self.instrs.iter().any(|x| {
+                                x.offset >= pos
+                                    && x.offset < pair_at
+                                    && matches!(
+                                        x.op,
+                                        Op::PUSH_EXC_INFO
+                                            | Op::SETUP_EXCEPT
+                                            | Op::SETUP_FINALLY
+                                    )
+                            })
+                        {
+                            let mut else_blk =
+                                Block::new(BlockType::Else, pos, pair_at);
+                            else_blk.cond = Some(cond);
+                            self.pending_then.push(body);
+                            self.blocks.push(else_blk);
+                            return;
+                        }
+                    }
                 }
                 if let Some(else_end) = b.else_end {
                     // value-merge block (COPY+cond jump) with a forward jump:
@@ -19111,6 +19190,16 @@ impl<'a> Ctx<'a> {
                         }
                     }
                 }
+                // regenerate the implicit tail pair the flat rendering
+                // of an all-arms-returning if/else would drop on
+                // recompile (see bytecode_tail_return_pair); only when
+                // the body still ends in a VALUE return — a bare
+                // trailing return already reproduces the pair
+                if d.tail_pair
+                    && matches!(body.last(), Some(Stmt::Return(Some(_))))
+                {
+                    body.push(Stmt::Return(None));
+                }
                 Some(body)
             }
             Err(_) => {
@@ -19664,6 +19753,68 @@ fn dedup_sunk_handler_tails(stmts: &mut Vec<Stmt>, scope_end_open: bool) {
             }
         }
     }
+}
+
+/// Sig fidelity for flattened terminal if/else chains: when the source's
+/// last statement was an if/else whose arms all return, the compiler
+/// appends the implicit `LOAD None; RETURN` pair (it cannot prove the
+/// arms exhaustive). A terminal then-arm makes the compiler omit the
+/// else jump, so the walk flattens the else to sequential statements
+/// ending in the arm's own `return v` — recompiling that flat form
+/// drops the tail pair and the sig misses its last two lines
+/// (_dummy_thread 3.3 acquire). True when the instruction tail shows
+/// the pair right after a preceding return; the caller (after ALL body
+/// postprocessing — postprocess_body runs twice and its tail-return
+/// strip would eat the synthesized statement) appends an explicit
+/// `return None` only if the body still ends in a value return.
+/// Offset of the implicit tail pair's first instruction when the code's
+/// instruction tail is `RETURN; LOAD None; RETURN` (<=3.11) or
+/// `RETURN; RETURN_CONST None` (3.12+) — the pair proves the source's
+/// last statement was an if/else whose arms all return (a flat chain of
+/// terminal-armed ifs recompiles without the pair). None for modules,
+/// lambdas and generators.
+fn tail_pair_load_offset(
+    code: &CodeObject,
+    instrs: &[Instruction],
+    version: PythonVersion,
+) -> Option<usize> {
+    if code.name == "<module>"
+        || code.name == "<lambda>"
+        || code.is_generator()
+        || code.is_async_generator()
+    {
+        return None;
+    }
+    // 3.8+ sinks one `return None` copy per ending branch — adjacent
+    // copies at the code end forge the tail-pair signature for shapes
+    // that never had an implicit pair (if c: try/finally), and the
+    // rebuild then misfires badly (aifc 3.11 +653). The genuine
+    // shared-pair shape this reconstructs is the pre-3.8 compiler's.
+    if version.at_least(3, 8) {
+        return None;
+    }
+    let is_none_load = |i: usize| {
+        instrs[i].op == Op::LOAD_CONST
+            && matches!(
+                code.consts.get(instrs[i].arg as usize).map(|o| &**o),
+                Some(PyObject::None)
+            )
+    };
+    let is_ret = |i: usize| matches!(instrs[i].op, Op::RETURN_VALUE | Op::RETURN_CONST);
+    let n = instrs.len();
+    // pair: RETURN; LOAD None; RETURN (the LOAD sits between the two)
+    if n >= 3 && is_ret(n - 3) && is_none_load(n - 2) && is_ret(n - 1) {
+        return Some(instrs[n - 2].offset);
+    }
+    None
+}
+
+fn bytecode_tail_return_pair(
+    code: &CodeObject,
+    instrs: &[Instruction],
+    version: PythonVersion,
+) -> bool {
+    tail_pair_load_offset(code, instrs, version).is_some()
 }
 
 fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {

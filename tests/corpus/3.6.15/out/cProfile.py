@@ -96,7 +96,8 @@ class Profile(_lsprof.Profiler):
 def label(code):
     if isinstance(code, str):
         return '~', 0, code
-    return code.co_filename, code.co_firstlineno, code.co_name
+    else:
+        return code.co_filename, code.co_firstlineno, code.co_name
 
 def main():
     import os

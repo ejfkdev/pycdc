@@ -43,17 +43,20 @@ __UNDEF__ = []
 def small(text):
     if text:
         return '<small>' + text + '</small>'
-    return ''
+    else:
+        return ''
 
 def strong(text):
     if text:
         return '<strong>' + text + '</strong>'
-    return ''
+    else:
+        return ''
 
 def grey(text):
     if text:
         return '<font color="#909090">' + text + '</font>'
-    return ''
+    else:
+        return ''
 
 def lookup(name, frame, locals):
     '''Find the value for a given name in the given environment.'''

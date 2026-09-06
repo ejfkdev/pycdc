@@ -58,7 +58,8 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
         if self.is_cgi():
             return self.run_cgi()
-        return SimpleHTTPServer.SimpleHTTPRequestHandler.send_head(self)
+        else:
+            return SimpleHTTPServer.SimpleHTTPRequestHandler.send_head(self)
 
     def is_cgi(self):
         """Test whether self.path corresponds to a CGI script.
