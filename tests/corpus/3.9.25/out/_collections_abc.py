@@ -909,13 +909,12 @@ class Sequence(Reversible, Collection):
             if stop is not None:
                 if not i < stop:
                     break
-            break
             try:
                 v = self[i]
                 if v is value or v == value:
                     return i
             except IndexError:
-                pass
+                break
             i += 1
         raise ValueError
 

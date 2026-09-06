@@ -177,12 +177,15 @@ def parse_multipart(fp, pdict):
             headers = mimetools.Message(fp)
             clength = headers.getheader('content-length')
             if clength:
+                try:
+                    bytes = int(clength)
+                except ValueError:
+                    pass
+            if bytes > 0:
+                if maxlen and bytes > maxlen:
+                    raise ValueError, 'Maximum content length exceeded'
+                data = fp.read(bytes)
                 continue
-        if bytes > 0:
-            if maxlen and bytes > maxlen:
-                raise ValueError, 'Maximum content length exceeded'
-            data = fp.read(bytes)
-            continue
         data = ''
         lines = []
         while True:
@@ -196,10 +199,6 @@ def parse_multipart(fp, pdict):
                     break
                     continue
             lines.append(line)
-            try:
-                bytes = int(clength)
-            except ValueError:
-                pass
             continue
         if data is None:
             continue

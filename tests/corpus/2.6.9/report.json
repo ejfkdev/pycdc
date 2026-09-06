@@ -47,8 +47,8 @@
    "module": "DocXMLRPCServer",
    "ast_detail": "diff at token 377: orig  body=[Assign(targets=[Name(id='anchor' | dec  body=[If(test=Name(id='cl'",
    "verdict": "SIG-DIFF",
-   "ndiff": 762,
-   "ntotal": 909,
+   "ndiff": 767,
+   "ntotal": 911,
    "detail": "line 116: orig ('SETUP_LOOP', '#167') | got ('SETUP_LOOP', '#173')\nline 117: orig ('LOAD_FAST', 'pattern') | got ('LOAD_GLOBAL', 'True')\nline 118: orig ('LOAD_ATTR', 'search') | got ('JUMP_IF_FALSE', '#171')"
   },
   {
@@ -237,11 +237,11 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 655: orig  body=[TryExcept(body=[Assign(targets=[Name(id='bytes' | dec  body=[Continue()]",
+   "ast_detail": "diff at token 703: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2564,
-   "ntotal": 3245,
-   "detail": "line 570: orig ('SETUP_LOOP', '#276') | got ('SETUP_LOOP', '#287')\nline 574: orig ('JUMP_IF_FALSE', '#274') | got ('JUMP_IF_FALSE', '#285')\nline 581: orig ('JUMP_IF_FALSE', '#114') | got ('JUMP_IF_FALSE', '#70')"
+   "ndiff": 2513,
+   "ntotal": 3244,
+   "detail": "line 570: orig ('SETUP_LOOP', '#276') | got ('SETUP_LOOP', '#286')\nline 574: orig ('JUMP_IF_FALSE', '#274') | got ('JUMP_IF_FALSE', '#284')\nline 581: orig ('JUMP_IF_FALSE', '#114') | got ('JUMP_IF_FALSE', '#113')"
   },
   {
    "module": "cgitb",
@@ -260,8 +260,8 @@
    "ast_detail": "diff at token 240: orig  While(test=UnaryOp(op=Not() | dec  While(test=Name(id='True'",
    "verdict": "SIG-DIFF",
    "ndiff": 1076,
-   "ntotal": 1350,
-   "detail": "line 210: orig ('SETUP_FINALLY', '#180') | got ('SETUP_FINALLY', '#149')\nline 240: orig ('SETUP_LOOP', '#174') | got ('SETUP_LOOP', '#147')\nline 241: orig ('LOAD_FAST', 'stop') | got ('LOAD_GLOBAL', 'True')"
+   "ntotal": 1356,
+   "detail": "line 210: orig ('SETUP_FINALLY', '#180') | got ('SETUP_FINALLY', '#179')\nline 240: orig ('SETUP_LOOP', '#174') | got ('SETUP_LOOP', '#177')\nline 241: orig ('LOAD_FAST', 'stop') | got ('LOAD_GLOBAL', 'True')"
   }
  ]
 }

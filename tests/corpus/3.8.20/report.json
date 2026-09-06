@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 14,
-  "SIG-DIFF": 20,
+  "PASS": 15,
+  "SIG-DIFF": 19,
   "INCOMPLETE": 6
  },
  "results": [
@@ -19,7 +19,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 297: orig  body=Yield(value=None)) | dec  body=Yield(value=Constant(value=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 346,
+   "ndiff": 151,
    "ntotal": 3084,
    "detail": "line 2722: orig ('JUMP_FORWARD', 'to 56') | got ('JUMP_FORWARD', 'to 54')\nline 2731: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 54')\nline 2732: orig ('RETURN_VALUE', '') | got ('END_FINALLY', '')"
   },
@@ -29,11 +29,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 356: orig  type_comment=None)])] | dec  type_comment=None)]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 184,
-   "ntotal": 490,
-   "detail": "line 298: orig ('SETUP_FINALLY', 'to 104') | got ('JUMP_ABSOLUTE', '')\nline 299: orig ('LOAD_FAST', 'self') | got ('JUMP_ABSOLUTE', '')\nline 300: orig ('LOAD_ATTR', '_decompressor') | got ('LOAD_FAST', 'data')"
+   "verdict": "PASS"
   },
   {
    "module": "_dummy_thread",
@@ -62,7 +58,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 216: orig  body=[Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  body=[Break()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 182,
+   "ndiff": 181,
    "ntotal": 362,
    "detail": "line 177: orig ('FOR_ITER', 'to 88') | got ('FOR_ITER', 'to 120')\nline 179: orig ('SETUP_FINALLY', 'to 66') | got ('POP_TOP', '')\nline 180: orig ('LOAD_GLOBAL', 'open') | got ('JUMP_ABSOLUTE', '')"
   },
@@ -97,7 +93,7 @@
    "module": "aifc",
    "ast_detail": "diff at token 326: orig  ops=[Eq() | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2548,
+   "ndiff": 2595,
    "ntotal": 3091,
    "detail": "line 477: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 478: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 479: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },

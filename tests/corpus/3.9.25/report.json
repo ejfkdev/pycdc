@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 12,
-  "SIG-DIFF": 21,
+  "PASS": 13,
+  "SIG-DIFF": 20,
   "INCOMPLETE": 7
  },
  "results": [
@@ -31,7 +31,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 275: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 345,
+   "ndiff": 152,
    "ntotal": 3420,
    "detail": "line 1580: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 3061: orig ('JUMP_FORWARD', 'to 54') | got ('JUMP_FORWARD', 'to 52')\nline 3069: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 52')"
   },
@@ -41,11 +41,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 345: orig  Try(body=[Assign(targets=[Name(id='data' | dec  Continue()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 187,
-   "ntotal": 515,
-   "detail": "line 322: orig ('SETUP_FINALLY', 'to 108') | got ('JUMP_ABSOLUTE', '')\nline 323: orig ('LOAD_FAST', 'self') | got ('JUMP_ABSOLUTE', '')\nline 324: orig ('LOAD_ATTR', '_decompressor') | got ('LOAD_FAST', 'data')"
+   "verdict": "PASS"
   },
   {
    "module": "_markupbase",
@@ -70,7 +66,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 156: orig  body=[Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  body=[Break()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 189,
+   "ndiff": 188,
    "ntotal": 372,
    "detail": "line 177: orig ('FOR_ITER', 'to 106') | got ('FOR_ITER', 'to 138')\nline 179: orig ('SETUP_FINALLY', 'to 86') | got ('POP_TOP', '')\nline 180: orig ('LOAD_GLOBAL', 'open') | got ('JUMP_ABSOLUTE', '')"
   },
@@ -109,7 +105,7 @@
    "module": "aifc",
    "ast_detail": "diff at token 240: orig  ops=[Eq() | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2542,
+   "ndiff": 2590,
    "ntotal": 3098,
    "detail": "line 489: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 490: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 491: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },

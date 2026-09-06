@@ -53,8 +53,8 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1151,
-   "ntotal": 1429,
+   "ndiff": 1149,
+   "ntotal": 1430,
    "detail": "line 219: orig ('SETUP_WITH', 'to 160') | got ('SETUP_WITH', 'to 172')\nline 253: orig ('POP_BLOCK', '') | got ('LOAD_CONST', 'None')\nline 254: orig ('ROT_TWO', '') | got ('LOAD_CONST', 'None')"
   },
   {
@@ -102,8 +102,8 @@
   {
    "module": "aifc",
    "verdict": "INCOMPLETE",
-   "ndiff": 1812,
-   "ntotal": 3104,
+   "ndiff": 2599,
+   "ntotal": 3116,
    "detail": "line 170: orig ('SETUP_WITH', 'to 602') | got ('SETUP_WITH', 'to 598')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to 586') | got ('POP_JUMP_IF_FALSE', 'to 572')\nline 286: orig ('POP_BLOCK', '') | got ('JUMP_FORWARD', 'to 584')"
   },
   {

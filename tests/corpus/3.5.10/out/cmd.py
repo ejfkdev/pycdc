@@ -115,14 +115,21 @@ class Cmd:
                 if self.cmdqueue:
                     line = self.cmdqueue.pop(0)
                 elif self.use_rawinput:
-                    continue
+                    try:
+                        line = input(self.prompt)
+                    except EOFError:
+                        line = 'EOF'
+                else:
+                    self.stdout.write(self.prompt)
+                    self.stdout.flush()
+                    line = self.stdin.readline()
+                    if not len(line):
+                        line = 'EOF'
+                    else:
+                        line = line.rstrip('\r\n')
                 line = self.precmd(line)
                 stop = self.onecmd(line)
                 stop = self.postcmd(stop, line)
-                try:
-                    line = input(self.prompt)
-                except EOFError:
-                    line = 'EOF'
             self.postloop()
         finally:
             if self.use_rawinput and self.completekey:

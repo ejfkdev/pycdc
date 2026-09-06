@@ -170,14 +170,15 @@ class BZ2File(io.BufferedIOBase):
                 raise EOFError('Compressed file ended before the end-of-stream marker was reached')
             if self._decompressor.eof:
                 self._decompressor = BZ2Decompressor()
-                continue
-            self._buffer_offset = 0
-            try:
+                try:
+                    self._buffer = self._decompressor.decompress(rawblock)
+                except OSError:
+                    self._mode = _MODE_READ_EOF
+                    self._size = self._pos
+                    return False
+            else:
                 self._buffer = self._decompressor.decompress(rawblock)
-            except OSError:
-                self._mode = _MODE_READ_EOF
-                self._size = self._pos
-                return False
+            self._buffer_offset = 0
         return True
 
     def _read_all(self, return_data=True):

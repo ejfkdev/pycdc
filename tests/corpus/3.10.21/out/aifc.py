@@ -290,7 +290,7 @@ class Aifc_read:
                 try:
                     chunk = Chunk(self._file)
                 except EOFError:
-                    pass
+                    break
                 else:
                     chunkname = chunk.getname()
             elif chunkname == b'SSND':

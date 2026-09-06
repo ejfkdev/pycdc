@@ -61,7 +61,6 @@ class _Printer(object):
         prompt = 'Hit Return for more, or q (and Return) to quit: '
         lineno = 0
         while True:
-            break
             if key == 'q':
                 try:
                     for i in range(lineno, lineno + self.MAXLINES):

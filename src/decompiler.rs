@@ -4405,6 +4405,60 @@ impl<'a> Ctx<'a> {
                         h.pop_seen = true;
                     }
                 } else {
+                    // 3.8-3.10 `except E: break`: the break body IS the
+                    // exit jump (POP_EXCEPT; JABS loop-exit) — a forward
+                    // JABS to a loop exit with an empty collected body is
+                    // the clause's break, not the normal-exit cleanup
+                    // (_compression read 3.9: the late close rendered
+                    // `except: pass` and leaked the Break into the
+                    // enclosing then-arm). Push it and skip the jump; the
+                    // dead second cleanup pair stays in the linear walk's
+                    // path and is consumed by the chain machinery.
+                    let handler_break = self
+                        .legacy_handler
+                        .as_ref()
+                        // no block open inside the handler: with an inner
+                        // If/loop still open (bz2 3.9 decompress `except
+                        // OSError: if results: break else: raise`) the
+                        // POP_EXCEPT;JABS is the inner arm's break path —
+                        // normal dispatch routes it into the open arm
+                        .map_or(false, |h| {
+                            h.body.is_empty() && self.blocks.len() <= h.block_depth
+                        })
+                        && self
+                            .instrs
+                            .get(
+                                self.idx_of
+                                    .get(&pos)
+                                    .map(|&pi| pi + 1)
+                                    .unwrap_or(usize::MAX),
+                            )
+                            .map_or(false, |nx| {
+                                nx.offset > pos
+                                    && matches!(
+                                        nx.op,
+                                        Op::JUMP_ABSOLUTE
+                                            | Op::JUMP_FORWARD
+                                            | Op::JUMP
+                                    )
+                                    && nx.target
+                                        .map_or(false, |t| {
+                                            t > nx.offset
+                                                && self.find_loop_exit(t).is_some()
+                                        })
+                            });
+                    if handler_break {
+                        self.close_handler_blocks();
+                        self.flush_pending_stores();
+                        if let Some(h) = self.legacy_handler.as_mut() {
+                            h.body.push(Stmt::Break);
+                        }
+                        if let Some(&pi) = self.idx_of.get(&pos) {
+                            if let Some(nx) = self.instrs.get(pi + 1) {
+                                self.skip_until = Some(nx.end());
+                            }
+                        }
+                    }
                     if self.legacy_handler.is_some() {
                         self.close_handler_blocks();
                         self.flush_pending_stores();
@@ -4804,7 +4858,30 @@ impl<'a> Ctx<'a> {
                                                     || (b.cond_end != usize::MAX && b.cond_end == t))
                                         })
                                     })
-                            });
+                            })
+                            // landing on a conditional back edge is an
+                            // if/else MERGE trampoline, not a loop back
+                            // edge: presuming an else there swallows the
+                            // merge into a phantom else region and leaves
+                            // the enclosing If's else arm orphaned
+                            // (_compression read 3.5-3.7: the try-in-then
+                            // arm's exit JABS landed on the merge's
+                            // PJIF-to-loop-top and the whole else arm —
+                            // needs_input/EOFError/decompress — vanished)
+                            && !self
+                                .idx_of
+                                .get(&target)
+                                .and_then(|&ti| self.instrs.get(ti))
+                                .map_or(false, |x| {
+                                    matches!(
+                                        x.op,
+                                        Op::POP_JUMP_IF_FALSE
+                                            | Op::POP_JUMP_IF_TRUE
+                                            | Op::JUMP_IF_FALSE_OR_POP
+                                            | Op::JUMP_IF_TRUE_OR_POP
+                                            | Op::FOR_ITER
+                                    )
+                                });
                         // a handler chain starting with POP_TOP (no
                         // DUP_TOP+match) is a bare `except:` — the body-end
                         // jump flies over the whole chain, there is no else
@@ -8390,7 +8467,45 @@ impl<'a> Ctx<'a> {
                             }
                         }
                     }
-                    if !lands_on_back_edge && self.is_continue_jump(target) {
+                    // a legacy chain's body-end hop over the handler
+                    // region to the merge point is NOT a continue: the
+                    // chain must parse inline and the enclosing If's
+                    // else arm (between the chain and the merge) must
+                    // stay attached (_compression read 3.5-3.7: the
+                    // then-arm's JABS-to-merge classified as continue
+                    // tore the If down, orphaned the else arm and sank
+                    // the try to the loop tail)
+                    let chain_body_hop = self
+                        .legacy_try
+                        .as_ref()
+                        .map_or(false, |l| {
+                            // body-end hop: the chain is unparsed and the
+                            // jump flies over it
+                            (l.handlers.is_empty()
+                                && l.handler_start > self.cur_offset
+                                && l.handler_start < target)
+                                // handler-exit hop: this jump leaves the
+                                // chain region (which lies between the
+                                // enclosing If's start and its else arm)
+                                // for the merge — a continue here tears
+                                // the If down and flattens the else arm
+                                // into the loop. The clause may still be
+                                // OPEN (an empty `except: pass` body
+                                // collects only at the chain end) or
+                                // already collected (_compression 3.7)
+                                || (l.handler_start <= self.cur_offset
+                                    && (self.legacy_handler.is_some()
+                                        || !l.handlers.is_empty())
+                                    && self.blocks.iter().any(|b| {
+                                        matches!(b.kind, BlockType::If)
+                                            && b.start < l.handler_start
+                                            && b.end > l.handler_start
+                                    }))
+                        });
+                    if !lands_on_back_edge
+                        && !chain_body_hop
+                        && self.is_continue_jump(target)
+                    {
                         // continue of an outer loop: emit first, then close
                         // the inner blocks it jumps out of
                         self.push_stmt(Stmt::Continue);

@@ -160,16 +160,15 @@ class async_chat(asyncore.dispatcher):
                     return
                 del self.producer_fifo[0]
             return
-            while self.producer_fifo:
-                if self.connected:
-                    first = self.producer_fifo[0]
-                    if not first:
-                        del self.producer_fifo[0]
-                        if first is None:
-                            self.handle_close()
-                            return
-                    obs = self.ac_out_buffer_size
-                    continue
+            return
+            if self.connected:
+                first = self.producer_fifo[0]
+                if not first:
+                    del self.producer_fifo[0]
+                    if first is None:
+                        self.handle_close()
+                        return
+                obs = self.ac_out_buffer_size
                 try:
                     data = first[:obs]
                 except TypeError:
@@ -178,11 +177,12 @@ class async_chat(asyncore.dispatcher):
                         self.producer_fifo.appendleft(data)
                     else:
                         del self.producer_fifo[0]
-                    continue
+                    # WARNING: continue outside loop (unrecovered structure)
                 else:
                     if isinstance(data, str) and self.use_encoding:
                         data = bytes(data, self.encoding)
-            return
+            while self.producer_fifo:
+                pass
 
     def discard_buffers(self):
         self.ac_in_buffer = b''

@@ -47,8 +47,8 @@
    "module": "DocXMLRPCServer",
    "ast_detail": "diff at token 1090: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
-   "ndiff": 731,
-   "ntotal": 885,
+   "ndiff": 730,
+   "ntotal": 887,
    "detail": "line 151: orig ('SETUP_LOOP', '#155') | got ('SETUP_LOOP', '#157')\nline 152: orig ('LOAD_FAST', 'pattern') | got ('LOAD_GLOBAL', 'True')\nline 153: orig ('LOAD_ATTR', 'search') | got ('POP_JUMP_IF_FALSE', '#156')"
   },
   {
@@ -241,11 +241,11 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 654: orig  body=[TryExcept(body=[Assign(targets=[Name(id='bytes' | dec  body=[Continue()]",
+   "ast_detail": "diff at token 702: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2441,
-   "ntotal": 3046,
-   "detail": "line 515: orig ('SETUP_LOOP', '#236') | got ('SETUP_LOOP', '#241')\nline 519: orig ('POP_JUMP_IF_FALSE', '#235') | got ('POP_JUMP_IF_FALSE', '#240')\nline 525: orig ('POP_JUMP_IF_FALSE', '#99') | got ('POP_JUMP_IF_FALSE', '#62')"
+   "ndiff": 2389,
+   "ntotal": 3045,
+   "detail": "line 515: orig ('SETUP_LOOP', '#236') | got ('SETUP_LOOP', '#240')\nline 519: orig ('POP_JUMP_IF_FALSE', '#235') | got ('POP_JUMP_IF_FALSE', '#239')\nline 525: orig ('POP_JUMP_IF_FALSE', '#99') | got ('POP_JUMP_IF_FALSE', '#98')"
   }
  ]
 }

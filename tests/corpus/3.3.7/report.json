@@ -2,9 +2,9 @@
  "version": "3.3.7",
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
-  "PASS": 10,
+  "PASS": 11,
   "AST-PASS": 9,
-  "SIG-DIFF": 21
+  "SIG-DIFF": 20
  },
  "results": [
   {
@@ -109,11 +109,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 873: orig  Try(body=[Assign(targets=[Attribute(value=Name(id='self' | dec  Continue()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 809,
-   "ntotal": 1461,
-   "detail": "line 582: orig ('SETUP_LOOP', '#96') | got ('SETUP_LOOP', '#90')\nline 590: orig ('POP_JUMP_IF_FALSE', '#95') | got ('POP_JUMP_IF_FALSE', '#89')\nline 624: orig ('POP_JUMP_IF_FALSE', '#84') | got ('POP_JUMP_IF_FALSE', '#56')"
+   "verdict": "PASS"
   },
   {
    "module": "cProfile",
@@ -129,11 +125,11 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 773: orig  body=[Try(body=[Assign(targets=[Name(id='bytes' | dec  body=[Continue()]",
+   "ast_detail": "diff at token 821: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2440,
-   "ntotal": 3054,
-   "detail": "line 523: orig ('SETUP_LOOP', '#250') | got ('SETUP_LOOP', '#254')\nline 527: orig ('POP_JUMP_IF_FALSE', '#249') | got ('POP_JUMP_IF_FALSE', '#253')\nline 533: orig ('POP_JUMP_IF_FALSE', '#107') | got ('POP_JUMP_IF_FALSE', '#68')"
+   "ndiff": 2392,
+   "ntotal": 3053,
+   "detail": "line 523: orig ('SETUP_LOOP', '#250') | got ('SETUP_LOOP', '#253')\nline 527: orig ('POP_JUMP_IF_FALSE', '#249') | got ('POP_JUMP_IF_FALSE', '#252')\nline 533: orig ('POP_JUMP_IF_FALSE', '#107') | got ('POP_JUMP_IF_FALSE', '#106')"
   },
   {
    "module": "cgitb",
@@ -149,11 +145,11 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 276: orig  body=[Try(body=[Assign(targets=[Name(id='line' | dec  body=[Continue()]",
+   "ast_detail": "diff at token 863: orig  Return(value=ListComp(elt=Subscript(value=Name(id='a' | dec  Return(value=ListComp(elt=Subscript(value=Num(n=3)",
    "verdict": "SIG-DIFF",
-   "ndiff": 1048,
+   "ndiff": 759,
    "ntotal": 1328,
-   "detail": "line 224: orig ('SETUP_FINALLY', '#163') | got ('SETUP_FINALLY', '#135')\nline 250: orig ('SETUP_LOOP', '#157') | got ('SETUP_LOOP', '#129')\nline 252: orig ('POP_JUMP_IF_TRUE', '#156') | got ('POP_JUMP_IF_TRUE', '#128')"
+   "detail": "line 556: orig ('LOAD_CONST', 'None') | got ('emptyline', 1)\nline 557: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'self')\nline 558: orig ('emptyline', 1) | got ('LOAD_ATTR', 'lastcmd')"
   },
   {
    "module": "code",
