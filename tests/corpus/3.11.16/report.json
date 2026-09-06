@@ -41,11 +41,11 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 332: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 569: orig  body=[If(test=Compare(left=Attribute(value=Name(id='self' | dec  body=[While(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 82,
+   "ndiff": 79,
    "ntotal": 619,
-   "detail": "line 336: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 334') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 198')\nline 371: orig ('JUMP_FORWARD', 'to 514') | got ('JUMP_FORWARD', 'to 334')\nline 379: orig ('JUMP_FORWARD', 'to 522') | got ('JUMP_FORWARD', 'to 334')"
+   "detail": "line 509: orig ('JUMP_FORWARD', 'to 360') | got ('JUMP_FORWARD', 'to 382')\nline 520: orig ('JUMP_FORWARD', 'to 360') | got ('JUMP_FORWARD', 'to 382')\nline 525: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 292') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 314')"
   },
   {
    "module": "_markupbase",
@@ -79,8 +79,8 @@
    "module": "_strptime",
    "ast_detail": "diff at token 977: orig  value=BinOp(left=Constant(value='(?P<%s>%s') | dec  value=JoinedStr(values=[Constant(value='(?P<')",
    "verdict": "SIG-DIFF",
-   "ndiff": 2162,
-   "ntotal": 2251,
+   "ndiff": 2176,
+   "ntotal": 2253,
    "detail": "line 35: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 39: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 40: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {
@@ -107,7 +107,7 @@
    "module": "aifc",
    "ast_detail": "diff at token 250: orig  ops=[Eq() | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2997,
+   "ndiff": 583,
    "ntotal": 3700,
    "detail": "line 571: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 572: orig ('COPY', '') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 266')\nline 573: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },

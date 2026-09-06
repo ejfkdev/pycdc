@@ -36,11 +36,11 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 342: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 373: orig  body=[Break()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 224,
+   "ndiff": 223,
    "ntotal": 571,
-   "detail": "line 307: orig ('POP_JUMP_IF_FALSE', 'to 366') | got ('POP_JUMP_IF_FALSE', 'to 240')\nline 322: orig ('JUMP_FORWARD', 'to 566') | got ('JUMP_FORWARD', 'to 560')\nline 338: orig ('LOAD_FAST', 'rawblock') | got ('LOAD_FAST_CHECK', 'rawblock')"
+   "detail": "line 307: orig ('POP_JUMP_IF_FALSE', 'to 366') | got ('POP_JUMP_IF_FALSE', 'to 558')\nline 322: orig ('JUMP_FORWARD', 'to 566') | got ('JUMP_FORWARD', 'to 560')\nline 342: orig ('JUMP_FORWARD', 'to 558') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "_markupbase",

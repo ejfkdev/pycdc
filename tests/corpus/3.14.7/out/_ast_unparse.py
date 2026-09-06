@@ -574,13 +574,14 @@ Returns the tuple (string literal to write, possible quote types).
                 if set(new_quote_types).isdisjoint(quote_types):
                     fallback_to_repr = True
                     break
-            quote_types = new_quote_types
-            if '\n' in value:
-                quote_types = [q for q in quote_types if q in _MULTI_QUOTES]
-                assert quote_types
-            new_quote_types = [q for q in quote_types if q not in value]
-            if new_quote_types:
                 quote_types = new_quote_types
+            else:
+                if '\n' in value:
+                    quote_types = [q for q in quote_types if q in _MULTI_QUOTES]
+                    assert quote_types
+                new_quote_types = [q for q in quote_types if q not in value]
+                if new_quote_types:
+                    quote_types = new_quote_types
             new_parts.append(value)
         if fallback_to_repr:
             quote_types = ["'''"]

@@ -190,3 +190,31 @@ def for_else_break(source, symbol):
     return source.upper()
 
 print(for_else_break('a\nb', 'x'), for_else_break('#c\n', 'exec'), for_else_break('#c\n', 'eval'))
+
+# 3.11+ `while True: if A: ...; if x: break; ...; else: ...` + loop-level
+# tail statement: the break jump flies over the enclosing branch's whole
+# remainder to the loop exit - it must not (a) close the enclosing if
+# (degenerate-break close must stop at the break's own block) nor
+# (b) mark the branch's else_end at the loop exit (which stretched the
+# else over the loop tail). (_compression.read family.)
+def comp_read(items, limit):
+    out = []
+    data = None
+    while True:
+        if items:
+            data = items.pop(0)
+            if data > limit:
+                break
+            out.append(('head', data))
+        else:
+            out.append(('empty',))
+            data = 0
+        if data:
+            out.append(('tail', data))
+            if len(out) > 6:
+                break
+    return out
+
+print(comp_read([1, 2, 30, 4], 10))
+print(comp_read([], 10))
+print(comp_read([5, 6], 10))

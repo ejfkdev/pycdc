@@ -290,7 +290,7 @@ class Aifc_read:
             try:
                 chunk = Chunk(self._file)
             except EOFError:
-                pass
+                break
             chunkname = chunk.getname()
             if chunkname == b'COMM':
                 self._read_comm_chunk(chunk)

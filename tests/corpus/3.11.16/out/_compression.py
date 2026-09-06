@@ -67,18 +67,19 @@ class DecompressReader(io.RawIOBase):
                 rawblock = self._decompressor.unused_data or self._fp.read(BUFFER_SIZE)
                 if not rawblock:
                     break
-            self._decompressor = self._decomp_factory(**self._decomp_args)
-            try:
-                data = self._decompressor.decompress(rawblock, size)
-            except self._trailing_error:
-                pass
-            if self._decompressor.needs_input:
-                rawblock = self._fp.read(BUFFER_SIZE)
-                if not rawblock:
-                    raise EOFError('Compressed file ended before the end-of-stream marker was reached')
+                self._decompressor = self._decomp_factory(**self._decomp_args)
+                try:
+                    data = self._decompressor.decompress(rawblock, size)
+                except self._trailing_error:
+                    break
             else:
-                rawblock = b''
-            data = self._decompressor.decompress(rawblock, size)
+                if self._decompressor.needs_input:
+                    rawblock = self._fp.read(BUFFER_SIZE)
+                    if not rawblock:
+                        raise EOFError('Compressed file ended before the end-of-stream marker was reached')
+                else:
+                    rawblock = b''
+                data = self._decompressor.decompress(rawblock, size)
             if data:
                 break
         if not data:

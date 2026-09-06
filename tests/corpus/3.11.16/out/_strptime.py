@@ -388,8 +388,8 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                 if found_zone in tz_values:
                     if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
                         break
-                tz = value
-                break
+                    tz = value
+                    break
         continue
     if iso_year is not None:
         if julian is not None:

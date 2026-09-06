@@ -285,25 +285,27 @@ class ParserBase:
                     break
                 break
                 j = i
-        name, j = self._scan_name(j, declstartpos)
-        if j < 0:
-            return j
-        while True:
-            c = self.rawdata[j:j + 1]
-            if not c:
-                return -1
-            if c in '\'"':
-                m = _declstringlit_match(rawdata, j)
-                if m:
-                    j = m.end()
-                else:
+        else:
+            name, j = self._scan_name(j, declstartpos)
+            if j < 0:
+                return j
+            while True:
+                c = self.rawdata[j:j + 1]
+                if not c:
                     return -1
-            else:
-                if c == '>':
-                    return j + 1
-                name, j = self._scan_name(j, declstartpos)
-                if j < 0:
-                    return j
+                if c in '\'"':
+                    m = _declstringlit_match(rawdata, j)
+                    if m:
+                        j = m.end()
+                    else:
+                        return -1
+                else:
+                    if c == '>':
+                        return j + 1
+                    name, j = self._scan_name(j, declstartpos)
+                    if j < 0:
+                        return j
+            return
 
     def _scan_name(self, i, declstartpos):
         rawdata = self.rawdata

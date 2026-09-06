@@ -39,7 +39,7 @@
    "module": "_compression",
    "ast_detail": "diff at token 264: orig  ctx=Load()))])]) | dec  ctx=Load()))])",
    "verdict": "SIG-DIFF",
-   "ndiff": 302,
+   "ndiff": 300,
    "ntotal": 575,
    "detail": "line 228: orig ('SETUP_WITH', 'to 122') | got ('SETUP_WITH', 'to 104')\nline 257: orig ('JUMP_FORWARD', 'to 102') | got ('JUMP_FORWARD', 'to 82')\nline 266: orig ('POP_BLOCK', '') | got ('LOAD_GLOBAL', 'len')"
   },
@@ -75,8 +75,8 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1444: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2049,
-   "ntotal": 2145,
+   "ndiff": 2048,
+   "ntotal": 2148,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {

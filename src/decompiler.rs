@@ -3101,6 +3101,39 @@ impl<'a> Ctx<'a> {
             }
             let body_from = self.instrs.get(m).map(|i| i.offset).unwrap_or(limit);
             *pc = m;
+            // `except E: break` — the body's forward jump targets an
+            // enclosing loop's exit; the region sub-walk swaps the block
+            // stack and cannot see the loop, so rebuild the Break here
+            // while the live blocks are still on the stack
+            if limit > body_from {
+                let mut bj = None;
+                if let (Some(&bi), Some(&li)) =
+                    (self.idx_of.get(&body_from), self.idx_of.get(&limit))
+                {
+                    for j in bi..li {
+                        let ins = self.instrs[j];
+                        if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP)
+                            && !ins.is_backward
+                            && ins.target.map_or(false, |t| {
+                                self.find_loop_exit(t).is_some()
+                            })
+                        {
+                            bj = Some(j);
+                            break;
+                        }
+                    }
+                }
+                if let Some(j) = bj {
+                    let joff = self.instrs[j].offset;
+                    let mut body = if joff > body_from {
+                        self.decompile_region(body_from, joff)
+                    } else {
+                        Vec::new()
+                    };
+                    body.push(Stmt::Break);
+                    return body;
+                }
+            }
             return if limit > body_from {
                 self.decompile_region(body_from, limit)
             } else {
@@ -7192,8 +7225,24 @@ impl<'a> Ctx<'a> {
                     self.register_break_over_else(target);
                 }
                 if !over_handlers && self.find_loop_exit(target).is_some() {
+                    // degenerate `if c: break`: this jump IS the whole
+                    // body of the just-opened If — close ONLY that block
+                    // (it renders `if c: break`). Enclosing branch
+                    // blocks continue past it: their then arms resume at
+                    // the next instruction, and closing them here drops
+                    // the rest of the arm out of the branch
+                    // (3.11 _compression.read's `if eof:` arm).
+                    let degenerate = matches!(
+                        self.blocks.last().map(|b| (b.kind, b.end)),
+                        Some((BlockType::If, end)) if end == self.cur_next
+                    );
                     self.push_stmt(Stmt::Break);
-                    self.close_inner_blocks_to_loop();
+                    if degenerate {
+                        let pos = self.blocks.last().map(|b| b.start).unwrap_or(0);
+                        self.force_close_top(pos);
+                    } else {
+                        self.close_inner_blocks_to_loop();
+                    }
                 }
                 let r = self.handle_jump_forward(target);
                 // <=3.10 with normal exit: the jump flies over the whole
@@ -13588,12 +13637,18 @@ impl<'a> Ctx<'a> {
     fn handle_jump_forward(&mut self, target: usize) -> bool {
         let target = self.dup_copy_redirect.get(&target).copied().unwrap_or(target);
         self.close_blocks_at(self.cur_offset);
+        // a jump to an enclosing loop's exit is a `break` flying over the
+        // whole loop tail — it says nothing about else regions of the
+        // branch blocks it passes (marking them here stretches an else to
+        // the loop exit: 3.11 _compression.read's `if eof:` arm)
+        let to_loop_exit = self.find_loop_exit(target).is_some();
         // a forward jump flying over an OPEN (non-top) If block's end
         // boundary implies an else region [end, target) for that block
         for b in self.blocks.iter_mut().rev().skip(1) {
             if matches!(b.kind, BlockType::If)
                 && b.short_circuit.is_none()
                 && b.else_end.is_none()
+                && !to_loop_exit
                 && b.end < target
                 && b.end > self.cur_offset
             {
@@ -13603,6 +13658,11 @@ impl<'a> Ctx<'a> {
         if let Some(top) = self.blocks.last() {
             match top.kind {
                 BlockType::If if top.else_end.is_none() && top.short_circuit.is_none() => {
+                    if to_loop_exit {
+                        // a consumed `break` flying over this branch's
+                        // remainder to the loop exit — not an else hop
+                        return true;
+                    }
                     if target > top.end {
                         // end of then-body jumping over the else branch
                         if let Some(t) = self.blocks.last_mut() {

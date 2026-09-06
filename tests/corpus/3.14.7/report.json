@@ -39,7 +39,7 @@
    "module": "_ast_unparse",
    "ast_detail": "diff at token 198: orig  body=[Pass()])] | dec  body=[Return()])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 6738,
+   "ndiff": 6726,
    "ntotal": 7127,
    "detail": "line 18: orig ('LOAD_CONST', \"('contextmanager', 'nullcontext')\") | got ('LOAD_CONST', \"('contextmanager',)\")\nline 22: orig ('IMPORT_FROM', 'nullcontext') | got ('POP_TOP', '')\nline 23: orig ('STORE_NAME', 'nullcontext') | got ('LOAD_SMALL_INT', '')"
   },
