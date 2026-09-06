@@ -155,8 +155,8 @@
    "module": "ast",
    "ast_detail": "diff at token 229: orig  body=[Return(value=UnaryOp(op=UAdd() | dec  body=[Return(value=Name(id='operand'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2080,
-   "ntotal": 2514,
+   "ndiff": 2073,
+   "ntotal": 2513,
    "detail": "line 413: orig ('CALL_INTRINSIC_1', 'INTRINSIC_UNARY_POSITIVE') | got ('RETURN_VALUE', '')\nline 414: orig ('RETURN_VALUE', '') | got ('LOAD_FAST_BORROW', 'operand')\nline 415: orig ('LOAD_FAST_BORROW', 'operand') | got ('UNARY_NEGATIVE', '')"
   },
   {

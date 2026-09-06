@@ -12793,6 +12793,150 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    /// 3.12+ statement `A or (B and C ...)` where the and-group uses the
+    /// guard-chain idiom: each link passes FORWARD via PJIT and fails via
+    /// a JUMP_BACKWARD trampoline to the shared skip:
+    ///   <A>; PJIT BODY; <B>; PJIT next; JB SKIP; <C>; PJIT BODY; JB SKIP;
+    ///   BODY: ...; back edge; [SKIP]
+    /// (t_orac 3.12+: `if flag is None or (x>0 and x<lim): append` --
+    /// without this the guard-chain machinery inverts to
+    /// `if not A: if not B: continue; if not C: continue` and ejects the
+    /// body). Returns (merged cond, body_start, body_end).
+    fn try_or_group_chain_312(
+        &self,
+        cond: &ExprRef,
+        target: usize,
+    ) -> Option<(ExprRef, usize, usize)> {
+        if !self.version.at_least(3, 12) {
+            return None;
+        }
+        let is_pjit = |o: Op| {
+            matches!(o, Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE)
+        };
+        let is_jb = |o: Op| {
+            matches!(
+                o,
+                Op::JUMP_BACKWARD | Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD_NO_INTERRUPT
+            )
+        };
+        let pad = |o: Op| matches!(o, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::TO_BOOL);
+        let ci = *self.idx_of.get(&self.cur_offset)?;
+        let ti = *self.idx_of.get(&target)?;
+        if ti <= ci + 1 {
+            return None;
+        }
+        let mut g2: Vec<ExprRef> = Vec::new();
+        let mut skip: Option<usize> = None;
+        let mut region_start = ci + 1;
+        let mut k = ci + 1;
+        while k < ti {
+            let ins = self.instrs[k];
+            if pad(ins.op) || (is_pure_value_op(ins.op) && ins.target.is_none()) {
+                k += 1;
+                continue;
+            }
+            if is_pjit(ins.op) {
+                let t = ins.target?;
+                let operand = self.sim_value_region(region_start, k)?;
+                if t == target {
+                    // last link passes into the body; its trampoline must
+                    // be immediately after (padding tolerated)
+                    let mut m = k + 1;
+                    while m < self.instrs.len() && pad(self.instrs[m].op) {
+                        m += 1;
+                    }
+                    let jb = self.instrs.get(m)?;
+                    if !(jb.is_backward && is_jb(jb.op)) {
+                        return None;
+                    }
+                    let s = jb.target?;
+                    match skip {
+                        None => skip = Some(s),
+                        Some(x) if x == s => {}
+                        _ => return None,
+                    }
+                    g2.push(operand);
+                    break;
+                }
+                if t <= ins.offset || t >= target {
+                    return None;
+                }
+                // intermediate link: PJIT to the next test, then the
+                // fail trampoline JUMP_BACKWARD to the shared skip
+                let mut m = k + 1;
+                while m < self.instrs.len() && pad(self.instrs[m].op) {
+                    m += 1;
+                }
+                let jb = self.instrs.get(m)?;
+                if !(jb.is_backward && is_jb(jb.op)) {
+                    return None;
+                }
+                let s = jb.target?;
+                match skip {
+                    None => skip = Some(s),
+                    Some(x) if x == s => {}
+                    _ => return None,
+                }
+                g2.push(operand);
+                region_start = m + 1;
+                k = m + 1;
+                continue;
+            }
+            return None;
+        }
+        let skip = skip?;
+        if g2.is_empty() {
+            return None;
+        }
+        let loop_top = self
+            .blocks
+            .iter()
+            .rev()
+            .find(|b| matches!(b.kind, BlockType::While | BlockType::For))
+            .map(|b| b.start);
+        let body_end = if skip > target {
+            skip
+        } else if Some(skip) == loop_top {
+            self.instrs[ti..]
+                .iter()
+                .find(|x| {
+                    x.is_backward
+                        && x.target == Some(skip)
+                        && matches!(
+                            x.op,
+                            Op::JUMP_ABSOLUTE
+                                | Op::JUMP_BACKWARD
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                        )
+                })
+                .map(|x| x.offset)?
+        } else {
+            return None;
+        };
+        if body_end <= target {
+            return None;
+        }
+        let a2: ExprRef = if g2.len() == 1 {
+            g2.pop().unwrap()
+        } else {
+            Rc::new(Expr::BoolOp {
+                op: BoolOpKind::And,
+                values: g2,
+            })
+        };
+        let mut or_vals = Vec::new();
+        flatten_boolop(cond.clone(), BoolOpKind::Or, &mut or_vals);
+        flatten_boolop(a2, BoolOpKind::Or, &mut or_vals);
+        Some((
+            Rc::new(Expr::BoolOp {
+                op: BoolOpKind::Or,
+                values: or_vals,
+            }),
+            target,
+            body_end,
+        ))
+    }
+
     /// 3.12+ `if A or B: body` or-join: both operand tests share polarity
     /// and jump to the BODY start; the false path is an unconditional
     /// backward jump (continue trampoline) immediately before the body
@@ -13564,6 +13708,26 @@ impl<'a> Ctx<'a> {
         if fused && loop_top != Some(skip) {
             return None;
         }
+        // 3.12+ idiom guard: genuine links are PJIFs to the shared skip.
+        // The 3.12+ compiler instead emits pass-forward PJIT links each
+        // followed by a JUMP_BACKWARD trampoline; when that idiom shows
+        // up here this is the `A or (B and C)` guard-chain shape that
+        // try_or_group_chain_312 handles -- do not fold it with the
+        // PJIF-era assumptions (t_orac 3.12: the fold ejected the body).
+        if self.version.at_least(3, 12) {
+            let mut k = bi;
+            while k < body_i {
+                let ins = self.instrs[k];
+                if matches!(
+                    ins.op,
+                    Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+                ) && ins.target.map_or(false, |t| t > ins.offset)
+                {
+                    return None;
+                }
+                k += 1;
+            }
+        }
         // extract the and-chain operands (each PJIF targets skip);
         // merge_forward_cond_chain / sim_value_region are read-only sims
         let ci = *self.idx_of.get(&self.cur_offset)?;
@@ -14183,9 +14347,11 @@ impl<'a> Ctx<'a> {
             }
             // DNF `if (A1 and A2) or (B1 and B2): body` -- recognize
             // BEFORE try_merge_or_cond, which misfolds this shape
-            if !jump_if_true {
-                if let Some((merged, body_start, body_end)) =
-                    self.try_or_group_chain(&cond, target)
+            if let Some((merged, body_start, body_end)) = if jump_if_true {
+                self.try_or_group_chain_312(&cond, target)
+            } else {
+                self.try_or_group_chain(&cond, target)
+            } {
                 {
                     let mut blk = Block::new(BlockType::If, body_start, body_end);
                     blk.cond = Some(merged);

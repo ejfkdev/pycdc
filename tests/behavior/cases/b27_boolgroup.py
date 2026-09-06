@@ -14,7 +14,8 @@ import sys
 #   循环内 `A or B: 末语句`（全版本）—— <3.8 融合 skip+continue；
 #     3.8-3.11 fused 合并；3.12+ or-join（双操作数同极性跳 body +
 #     假路径 continue 蹦床在 body 之前）
-#   循环内 `A or (B and C)`（3.5-3.11）—— fused try_or_and_chain
+#   循环内 `A or (B and C)`（3.5+）—— <3.12 fused try_or_and_chain；
+#     3.12+ guard-chain 惯用形（PJIT 前跳 + JUMP_BACKWARD 蹦床）
 #   DNF `(A1 and A2) or (B1 and B2)`（2.7+）—— try_or_group_chain
 #     （codecs StreamReader.read 形；or_cond 曾折成
 #      `not A1 or not A2: if B1 and B2:` 反转）
@@ -139,8 +140,7 @@ if VAL27_313:
 print(g_loop_or([0, 1, 2, 3], 0))
 print(g_loop_or([0, 1, 2, 3], 1))
 
-B35_311 = GE35 * LT312
-if B35_311:
+if GE35:
     print(g_loop_and_or([0, 1, 2, 3], None, 3))
     print(g_loop_and_or([0, 1, 2, 3], 0, 3))
 
