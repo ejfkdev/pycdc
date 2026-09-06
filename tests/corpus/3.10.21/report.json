@@ -209,7 +209,7 @@
    "module": "code",
    "ast_detail": "diff at token 252: orig  Continue()] | dec  Return()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 634,
+   "ndiff": 639,
    "ntotal": 669,
    "detail": "line 12: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 16: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },

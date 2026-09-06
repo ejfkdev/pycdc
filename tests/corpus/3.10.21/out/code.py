@@ -130,8 +130,15 @@ class InteractiveInterpreter:
 
         sys.last_type, sys.last_value, last_tb = ei = sys.exc_info()
         sys.last_traceback = last_tb
-        last_tb = ei = None
-        last_tb = ei = None
+        try:
+            lines = traceback.format_exception(ei[0], ei[1], last_tb.tb_next)
+            if sys.excepthook is sys.__excepthook__:
+                self.write(''.join(lines))
+            else:
+                sys.excepthook(ei[0], ei[1], last_tb)
+                return
+        finally:
+            last_tb = ei = None
 
     def write(self, data):
         sys.stderr.write(data)

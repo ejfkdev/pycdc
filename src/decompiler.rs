@@ -4596,6 +4596,13 @@ impl<'a> Ctx<'a> {
                 }
                 if let Some(l) = self.legacy_try.as_mut() {
                     if l.has_finally {
+                        // the inline finally body's trailing stores are
+                        // still pending at the END_FINALLY — flush them
+                        // INTO the finalbody (redirect is live while the
+                        // chain is up) before taking it, or the Try loses
+                        // its finally and renders as `unrecovered`
+                        // (codeop _maybe_compile `err1 = err2 = None`)
+                        self.flush_pending_stores();
                         let l = self.legacy_try.take().unwrap();
                         self.restore_legacy_nest();
                         self.push_legacy_try(l);
@@ -5274,11 +5281,39 @@ impl<'a> Ctx<'a> {
                     let mut inline_end = usize::MAX;
                     if self.version.at_least(3, 8) {
                         if let Some(&hi) = self.idx_of.get(&pos) {
-                            for ins in self.instrs[hi..].iter().take(64) {
+                            for k in hi..(hi + 64).min(self.instrs.len()) {
+                                let ins = &self.instrs[k];
                                 match ins.op {
-                                    Op::DUP_TOP
-                                    | Op::JUMP_IF_NOT_EXC_MATCH
+                                    Op::JUMP_IF_NOT_EXC_MATCH
                                     | Op::POP_EXCEPT => break,
+                                    // a DUP_TOP only ends the scan when it
+                                    // heads an except match (pattern loads
+                                    // then COMPARE_OP(exc)/JUMP_IF_NOT_EXC_
+                                    // MATCH follow); the chained-assign dup
+                                    // inside a finally copy (`err1 = err2 =
+                                    // None` = LOAD None; DUP_TOP; STORE;
+                                    // STORE; END_FINALLY, codeop
+                                    // _maybe_compile) must scan through to
+                                    // the END_FINALLY
+                                    Op::DUP_TOP => {
+                                        let match_head = self.instrs[k + 1..]
+                                            .iter()
+                                            .take(8)
+                                            .any(|x| {
+                                                x.op
+                                                    == Op::JUMP_IF_NOT_EXC_MATCH
+                                                    || (x.op == Op::COMPARE_OP
+                                                        && cmp_from_index(
+                                                            compare_op_index(
+                                                                x.arg as u32,
+                                                                self.version,
+                                                            ),
+                                                        ) == CmpOp::ExceptionMatch)
+                                            });
+                                        if match_head {
+                                            break;
+                                        }
+                                    }
                                     Op::COMPARE_OP
                                         if cmp_from_index(compare_op_index(
                                             ins.arg as u32,
@@ -5765,6 +5800,9 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::RETURN_CONST => {
+                // see RETURN_VALUE: drop the inline finally copy's
+                // statements; the return itself still renders
+                self.swallow_inline_finally_return();
                 let e = self.const_expr(arg as usize);
                 self.emit_return(Some(e));
                 !matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
@@ -7112,6 +7150,20 @@ impl<'a> Ctx<'a> {
 
             // ---------- returns / yields ----------
             Op::RETURN_VALUE => {
+                // 3.9/3.10 exits without CALL_FINALLY: the compiler
+                // duplicates the finally body inline right before each
+                // `return` inside the try. The copy ran as real statements
+                // in the open arm while the genuine finally also renders
+                // from the handler region — the output duplicates the
+                // cleanup (codeop 3.9 _maybe_compile). When the innermost
+                // block's statement tail mirrors the copy region at the
+                // open Try's handler exactly, drop the copy AND this
+                // return: rendering the bare `return` lets the compiler
+                // regenerate the copy, and the post-try tail flow supplies
+                // the function's own tail return.
+                // drop the inline finally copy's statements; the return
+                // itself still renders (its recompile regenerates the copy)
+                self.swallow_inline_finally_return();
                 // a deferred-fold handler (3.9 POP_EXCEPT-first) ends here:
                 // the return belongs to its body, so emit first, fold after
                 let defer_fold = self
@@ -17661,6 +17713,272 @@ impl<'a> Ctx<'a> {
             }
         }
         self.push_stmt(Stmt::Delete(vec![target]));
+    }
+
+    /// 3.9/3.10: exits without CALL_FINALLY duplicate the finally body
+    /// inline right before a `return` inside the try. The copy renders as
+    /// real statements in the exiting arm while the genuine finally also
+    /// renders from the handler region (codeop 3.9 _maybe_compile
+    /// duplicated `err1 = err2 = None`). When the innermost open block's
+    /// statement tail mirrors the finally-copy region (the open Try's
+    /// handler start to its END_FINALLY/RERAISE) exactly, drop the copy
+    /// statements and the triggering return: rendering the bare `return`
+    /// lets the compiler regenerate the copy on recompile, and the
+    /// post-try tail flow supplies the function's own tail return.
+    fn swallow_inline_finally_return(&mut self) -> bool {
+        if !self.version.at_least(3, 9)
+            || self.version.at_least(3, 11)
+            || self.legacy_handler.is_some()
+        {
+            return false;
+        }
+        let h = match self
+            .blocks
+            .iter()
+            .rev()
+            .find(|b| b.kind == BlockType::Try)
+            .map(|b| b.end)
+        {
+            Some(h) => h,
+            None => return false,
+        };
+        // the return must sit in the try flow, before the handler region
+        if self.cur_offset >= h {
+            return false;
+        }
+        let Some(&hi) = self.idx_of.get(&h) else {
+            return false;
+        };
+        // copy region extent: the handler's own copy ends at its
+        // END_FINALLY/RERAISE
+        let mut stop_i = None;
+        for k in hi..(hi + 60).min(self.instrs.len()) {
+            if matches!(self.instrs[k].op, Op::END_FINALLY | Op::RERAISE) {
+                stop_i = Some(k);
+                break;
+            }
+        }
+        let Some(stop_i) = stop_i else {
+            return false;
+        };
+        if stop_i <= hi || stop_i - hi > 32 {
+            return false;
+        }
+        // the copy's trailing stores may still sit in pending_stores (the
+        // return is their flush trigger) — land them in the arm first so
+        // the mirror sees the complete statement tail
+        if !self.pending_stores.is_empty() {
+            self.flushing = true;
+            self.flush_pending_stores();
+            self.flushing = false;
+        }
+        let consumed = self.mirror_finally_copy(hi, stop_i);
+        if consumed == 0 {
+            return false;
+        }
+        if let Some(top) = self.blocks.last_mut() {
+            let n = top.stmts.len();
+            top.stmts.truncate(n - consumed);
+        }
+        true
+    }
+
+    /// Backward-mirror the finally-copy instruction range [hi, stop_i)
+    /// against the innermost block's statement tail; returns the number
+    /// of trailing statements that exactly account for the whole range.
+    fn mirror_finally_copy(&self, hi: usize, stop_i: usize) -> usize {
+        let Some(top) = self.blocks.last() else {
+            return 0;
+        };
+        let mut ci = stop_i;
+        let mut si = top.stmts.len();
+        let mut consumed = 0usize;
+        while ci > hi && si > 0 {
+            let nc = match &top.stmts[si - 1] {
+                Stmt::Assign { targets, value } => {
+                    self.match_assign_backwards(ci, hi, targets, value)
+                }
+                Stmt::Expr(e) => self.match_call_backwards(ci, hi, e),
+                _ => None,
+            };
+            let Some(nc) = nc else {
+                break;
+            };
+            ci = nc;
+            si -= 1;
+            consumed += 1;
+        }
+        if ci == hi && consumed > 0 {
+            consumed
+        } else {
+            0
+        }
+    }
+
+    /// `a = b = None` (chained None stores) against a backward copy tail:
+    /// [LOAD_CONST None; DUP_TOP x (n-1); STORE x n]
+    fn match_assign_backwards(
+        &self,
+        ci: usize,
+        hi: usize,
+        targets: &[ExprRef],
+        value: &ExprRef,
+    ) -> Option<usize> {
+        let none_val = matches!(&**value, Expr::Const(o) if matches!(&**o, PyObject::None));
+        if !none_val || targets.is_empty() {
+            return None;
+        }
+        let mut stores = Vec::new();
+        let mut c = ci;
+        while c > hi
+            && matches!(
+                self.instrs[c - 1].op,
+                Op::STORE_FAST | Op::STORE_NAME | Op::STORE_DEREF
+            )
+        {
+            stores.push(c - 1);
+            c -= 1;
+        }
+        stores.reverse();
+        if stores.len() != targets.len() {
+            return None;
+        }
+        let names_ok = targets.iter().zip(stores.iter()).all(|(t, &ii)| {
+            matches!(&**t, Expr::Name(n)
+                if self.store_del_name(ii).as_deref() == Some(n.as_str()))
+        });
+        if !names_ok {
+            return None;
+        }
+        let mut c2 = c;
+        let mut dups = 0usize;
+        while c2 > hi && self.instrs[c2 - 1].op == Op::DUP_TOP {
+            dups += 1;
+            c2 -= 1;
+        }
+        if dups + 1 != targets.len() || c2 <= hi {
+            return None;
+        }
+        let load = &self.instrs[c2 - 1];
+        if load.op != Op::LOAD_CONST
+            || !matches!(
+                self.code.consts.get(load.arg as usize).map(|o| &**o),
+                Some(PyObject::None)
+            )
+        {
+            return None;
+        }
+        Some(c2 - 1)
+    }
+
+    /// `recv.meth()` / `recv.attr.meth()` cleanup call against a backward
+    /// copy tail: [LOAD recv; (LOAD_ATTR attr;)? LOAD_METHOD meth;
+    /// CALL n; POP_TOP?]
+    fn match_call_backwards(&self, ci: usize, hi: usize, e: &ExprRef) -> Option<usize> {
+        let Expr::Call { func, args, keywords, star_args, star_kwargs } = &**e else {
+            return None;
+        };
+        if !keywords.is_empty() || star_args.is_some() || star_kwargs.is_some() || args.len() > 1
+        {
+            return None;
+        }
+        let Expr::Attribute { value: recv, attr } = &**func else {
+            return None;
+        };
+        let mut c = ci;
+        if c > hi && self.instrs[c - 1].op == Op::POP_TOP {
+            c -= 1;
+        }
+        if c <= hi
+            || !matches!(
+                self.instrs[c - 1].op,
+                Op::CALL_METHOD | Op::CALL_FUNCTION | Op::CALL
+            )
+            || self.instrs[c - 1].arg as usize != args.len()
+        {
+            return None;
+        }
+        c -= 1;
+        // argument load (single-arg cleanup calls like print(x) are rare
+        // in finally copies; support zero args plus one plain load)
+        if args.len() == 1 {
+            // accept any single load instruction for the argument
+            if c <= hi
+                || !matches!(
+                    self.instrs[c - 1].op,
+                    Op::LOAD_FAST | Op::LOAD_NAME | Op::LOAD_DEREF | Op::LOAD_CONST
+                        | Op::LOAD_GLOBAL | Op::LOAD_ATTR
+                )
+            {
+                return None;
+            }
+            c -= 1;
+        }
+        // method name
+        if c <= hi
+            || !matches!(
+                self.instrs[c - 1].op,
+                Op::LOAD_METHOD | Op::LOAD_ATTR
+            )
+        {
+            return None;
+        }
+        let mi = c - 1;
+        let meth_name = if self.instrs[mi].op == Op::LOAD_ATTR {
+            // LOAD_ATTR here only appears pre-3.12 callable-attr form or
+            // the receiver attribute chain; compare raw name index
+            self.const_name(self.instrs[mi].arg as usize)
+        } else {
+            self.const_name(self.instrs[mi].arg as usize)
+        };
+        if meth_name != *attr {
+            return None;
+        }
+        c = mi;
+        // receiver
+        match &**recv {
+            Expr::Name(n) => {
+                if c <= hi {
+                    return None;
+                }
+                if self.load_name_at(c - 1).as_deref() != Some(n.as_str()) {
+                    return None;
+                }
+                Some(c - 1)
+            }
+            Expr::Attribute { value: rv, attr: ra } => {
+                let Expr::Name(rn) = &**rv else {
+                    return None;
+                };
+                if c <= hi + 1 || self.instrs[c - 1].op != Op::LOAD_ATTR {
+                    return None;
+                }
+                if self.const_name(self.instrs[c - 1].arg as usize) != *ra {
+                    return None;
+                }
+                if self.load_name_at(c - 2).as_deref() != Some(rn.as_str()) {
+                    return None;
+                }
+                Some(c - 2)
+            }
+            _ => None,
+        }
+    }
+
+    /// LOAD_FAST/NAME/DEREF name at instruction index
+    fn load_name_at(&self, idx: usize) -> Option<String> {
+        let ins = self.instrs.get(idx)?;
+        match ins.op {
+            Op::LOAD_FAST => Some(self.local_name(ins.arg as usize)),
+            Op::LOAD_NAME => Some(self.const_name(ins.arg as usize)),
+            Op::LOAD_DEREF => Some(
+                self.code
+                    .deref_name(ins.arg as usize)
+                    .unwrap_or("?")
+                    .to_string(),
+            ),
+            _ => None,
+        }
     }
 
     /// 3.11+ function-tail try/except[/else] whose implicit `return None`

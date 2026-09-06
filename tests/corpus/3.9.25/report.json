@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 10,
-  "SIG-DIFF": 21,
+  "PASS": 11,
+  "SIG-DIFF": 20,
   "INCOMPLETE": 8,
   "AST-PASS": 1
  },
@@ -215,10 +215,10 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 297: orig  Try(body=[Assign(targets=[Name(id='lines' | dec  Assign(targets=[Name(id='last_tb'",
+   "ast_detail": "diff at token 513: orig  While(test=Name(id='True' | dec  Try(body=[Assign(targets=[Name(id='line'",
    "verdict": "SIG-DIFF",
-   "ndiff": 678,
-   "ntotal": 707,
+   "ndiff": 714,
+   "ntotal": 749,
    "detail": "line 12: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 16: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
   {
@@ -231,11 +231,7 @@
   },
   {
    "module": "codeop",
-   "ast_detail": "diff at token 158: orig  Try(body=[If(test=Name(id='code' | dec  Assign(targets=[Name(id='err1'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 141,
-   "ntotal": 356,
-   "detail": "line 214: orig ('SETUP_FINALLY', 'to 356') | got ('LOAD_CONST', 'None')\nline 215: orig ('LOAD_FAST', 'code') | got ('DUP_TOP', '')\nline 216: orig ('EXTENDED_ARG', '') | got ('STORE_FAST', 'err1')"
+   "verdict": "PASS"
   },
   {
    "module": "colorsys",
