@@ -229,7 +229,7 @@
   },
   {
    "module": "codeop",
-   "ast_detail": "diff at token 99: orig  Assign(targets=[Name(id='err' | dec  Assign(targets=[Name(id='err1'",
+   "ast_detail": "diff at token 200: orig  Try(body=[If(test=Name(id='code' | dec  Assign(targets=[Name(id='err1'",
    "verdict": "SIG-DIFF",
    "ndiff": 133,
    "ntotal": 345,

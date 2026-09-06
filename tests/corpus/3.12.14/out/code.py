@@ -115,7 +115,7 @@ class InteractiveInterpreter:
                 value = SyntaxError(msg, (filename, lineno, offset, line))
                 self._showtraceback(typ, value, None)
             finally:
-                value = tb = (typ := None)
+                typ = value = tb = None
 
     def showtraceback(self):
         '''Display the exception that just occurred.
@@ -130,7 +130,7 @@ class InteractiveInterpreter:
             typ, value, tb = sys.exc_info()
             self._showtraceback(typ, value, tb.tb_next)
         finally:
-            value = tb = (typ := None)
+            typ = value = tb = None
 
     def _showtraceback(self, typ, value, tb):
         sys.last_type = typ

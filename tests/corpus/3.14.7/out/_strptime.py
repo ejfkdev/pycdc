@@ -433,7 +433,7 @@ format string.'''
         raise ValueError('unconverted data remains: %s' % data_string[found.end():])
     iso_year = year = None
     month = day = 1
-    second = fraction = (minute := (hour := 0))
+    hour = minute = second = fraction = 0
     tz = -1
     gmtoff = None
     gmtoff_fraction = 0

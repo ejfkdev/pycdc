@@ -15656,14 +15656,29 @@ impl<'a> Ctx<'a> {
         if !dup {
             return false;
         }
-        !matches!(
-            self.instrs.get(ci + 1).map(|x| x.op),
-            Some(Op::STORE_FAST)
-                | Some(Op::STORE_NAME)
-                | Some(Op::STORE_DEREF)
-                | Some(Op::STORE_GLOBAL)
-                | Some(Op::STORE_FAST_MAYBE_NULL)
-        )
+        let is_store = |o: Option<Op>| {
+            matches!(
+                o,
+                Some(Op::STORE_FAST)
+                    | Some(Op::STORE_NAME)
+                    | Some(Op::STORE_DEREF)
+                    | Some(Op::STORE_GLOBAL)
+                    | Some(Op::STORE_FAST_MAYBE_NULL)
+            )
+        };
+        if is_store(self.instrs.get(ci + 1).map(|x| x.op)) {
+            return false;
+        }
+        // chained assignment with 3+ targets (`a = b = c = v`) emits
+        // DUP; STORE a; DUP; STORE b; STORE c — the first store's next is
+        // another DUP, but this is a chain run, not a walrus
+        let next_dup = self.instrs.get(ci + 1).map(|x| {
+            x.op == Op::DUP_TOP || (x.op == Op::COPY && x.arg == 1)
+        }) == Some(true);
+        if next_dup && is_store(self.instrs.get(ci + 2).map(|x| x.op)) {
+            return false;
+        }
+        true
     }
 }
 
