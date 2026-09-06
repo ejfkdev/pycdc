@@ -183,8 +183,8 @@
    "module": "codecs",
    "ast_detail": "diff at token 1244: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1069,
-   "ntotal": 2154,
+   "ndiff": 1072,
+   "ntotal": 2153,
    "detail": "line 995: orig ('SETUP_LOOP', 'to 272') | got ('SETUP_LOOP', 'to 270')\nline 1043: orig ('JUMP_FORWARD', 'to 234') | got ('JUMP_FORWARD', 'to 232')\nline 1051: orig ('SETUP_FINALLY', 'to 222') | got ('SETUP_FINALLY', 'to 220')"
   },
   {

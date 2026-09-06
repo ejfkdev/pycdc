@@ -193,7 +193,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1251: orig  values=[BoolOp(op=And() | dec  values=[UnaryOp(op=Not()",
+   "ast_detail": "diff at token 1441: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 1962,
    "ntotal": 2328,

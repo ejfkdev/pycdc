@@ -163,8 +163,8 @@
    "module": "codecs",
    "ast_detail": "diff at token 1240: orig  body=[If(test=Compare(left=Name(id='chars' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1170,
-   "ntotal": 2187,
+   "ndiff": 1144,
+   "ntotal": 2184,
    "detail": "line 990: orig ('SETUP_LOOP', '#149') | got ('SETUP_LOOP', '#153')\nline 994: orig ('POP_JUMP_IF_FALSE', '#30') | got ('POP_JUMP_IF_FALSE', '#31')\nline 1001: orig ('POP_JUMP_IF_FALSE', '#44') | got ('POP_JUMP_IF_FALSE', '#31')"
   },
   {

@@ -12801,6 +12801,154 @@ impl<'a> Ctx<'a> {
     /// (`not A and not B`) and eject the body to run unconditionally
     /// (t_or38 g1 3.12-3.14). Returns (merged cond, body_end); the caller
     /// pops the absorbed first-operand block.
+    /// Statement-level DNF `if (A1 and A2 ...) or (B1 and B2 ...): body`
+    /// (codecs StreamReader.read, all versions with POP_JUMP opcodes):
+    ///   <A1>; PJIF T_B; <A2>; PJIT BODY; T_B: <B1>; PJIF SKIP; <B2>;
+    ///   PJIF SKIP; BODY: ...; SKIP:
+    /// Group 1's and-links false-exit to the SECOND OR-GROUP (T_B, the
+    /// first jump's target) and its last operand joins the body on TRUE
+    /// (PJIT); group 2's links false-exit to the shared SKIP and fall
+    /// through into the body. try_merge_or_cond misreads this shape (it
+    /// takes T_B as the body start, folds `not A1 or not A2` and nests
+    /// group 2 as the body -- inverting the semantics). All read-only
+    /// sims; returns (merged cond, body_start, body_end).
+    fn try_or_group_chain(
+        &self,
+        cond: &ExprRef,
+        target: usize,
+    ) -> Option<(ExprRef, usize, usize)> {
+        let is_pjif = |o: Op| {
+            matches!(o, Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE)
+        };
+        let is_pjit = |o: Op| {
+            matches!(o, Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE)
+        };
+        let pad = |o: Op| matches!(o, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::TO_BOOL);
+        let ci = *self.idx_of.get(&self.cur_offset)?;
+        let tbi = *self.idx_of.get(&target)?;
+        if tbi <= ci + 1 || target <= self.cur_next {
+            return None;
+        }
+        // group 1: and-links (PJIF -> target) then a final PJIT -> body
+        let mut g1: Vec<ExprRef> = vec![cond.clone()];
+        let mut region_start = ci + 1;
+        let mut k = ci + 1;
+        let mut body = None;
+        while k < tbi {
+            let ins = self.instrs[k];
+            if is_pjif(ins.op) {
+                if ins.target != Some(target) {
+                    return None;
+                }
+                g1.push(self.sim_value_region(region_start, k)?);
+                region_start = k + 1;
+            } else if is_pjit(ins.op) {
+                let b = ins.target?;
+                if b <= target {
+                    return None;
+                }
+                g1.push(self.sim_value_region(region_start, k)?);
+                body = Some(b);
+                break;
+            } else if !is_pure_value_op(ins.op) && !pad(ins.op) {
+                return None;
+            }
+            k += 1;
+        }
+        let body = body?;
+        if g1.len() < 2 {
+            return None; // single-operand first group: the simple `A or B`
+        }
+        // group 2 at [target, body): and-links PJIF -> shared SKIP, then
+        // fall-through (padding only) into the body
+        let mut g2: Vec<ExprRef> = Vec::new();
+        let mut skip = None;
+        let mut region_start = tbi;
+        let mut k = tbi;
+        let bodyi = *self.idx_of.get(&body)?;
+        while k < bodyi {
+            let ins = self.instrs[k];
+            if is_pjif(ins.op) {
+                let t = ins.target?;
+                match skip {
+                    None => skip = Some(t),
+                    Some(s) if s == t => {}
+                    _ => return None,
+                }
+                g2.push(self.sim_value_region(region_start, k)?);
+                region_start = k + 1;
+            } else if is_pjit(ins.op) || ins.is_backward {
+                return None;
+            } else if !is_pure_value_op(ins.op) && !pad(ins.op) {
+                return None;
+            }
+            k += 1;
+        }
+        let skip = skip?;
+        if g2.is_empty() {
+            return None;
+        }
+        // the tail of group 2 must fall through into the body (padding only)
+        if !self.instrs[region_start..bodyi]
+            .iter()
+            .all(|x| x.target.is_none() && pad(x.op))
+        {
+            return None;
+        }
+        // body end: clean (skip past the body) or fused (skip == loop top)
+        let loop_top = self
+            .blocks
+            .iter()
+            .rev()
+            .find(|b| matches!(b.kind, BlockType::While | BlockType::For))
+            .map(|b| b.start);
+        let body_end = if skip > body {
+            skip
+        } else if Some(skip) == loop_top {
+            self.instrs[bodyi..]
+                .iter()
+                .find(|x| {
+                    x.is_backward
+                        && x.target == Some(skip)
+                        && matches!(
+                            x.op,
+                            Op::JUMP_ABSOLUTE
+                                | Op::JUMP_BACKWARD
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                        )
+                })
+                .map(|x| x.offset)?
+        } else {
+            return None;
+        };
+        if body_end <= body {
+            return None;
+        }
+        let a1 = Rc::new(Expr::BoolOp {
+            op: BoolOpKind::And,
+            values: g1,
+        }) as ExprRef;
+        let a2: ExprRef = if g2.len() == 1 {
+            g2.pop().unwrap()
+        } else {
+            Rc::new(Expr::BoolOp {
+                op: BoolOpKind::And,
+                values: g2,
+            })
+        };
+        let mut or_vals = Vec::new();
+        flatten_boolop(a1, BoolOpKind::Or, &mut or_vals);
+        flatten_boolop(a2, BoolOpKind::Or, &mut or_vals);
+        Some((
+            Rc::new(Expr::BoolOp {
+                op: BoolOpKind::Or,
+                values: or_vals,
+            }),
+            body,
+            body_end,
+        ))
+    }
+
     fn try_or_join(
         &self,
         cond: &ExprRef,
@@ -14031,6 +14179,22 @@ impl<'a> Ctx<'a> {
                             return;
                         }
                     }
+                }
+            }
+            // DNF `if (A1 and A2) or (B1 and B2): body` -- recognize
+            // BEFORE try_merge_or_cond, which misfolds this shape
+            if !jump_if_true {
+                if let Some((merged, body_start, body_end)) =
+                    self.try_or_group_chain(&cond, target)
+                {
+                    let mut blk = Block::new(BlockType::If, body_start, body_end);
+                    blk.cond = Some(merged);
+                    blk.cond_set = true;
+                    blk.jump_if_true = false;
+                    blk.stack_depth = self.stack.len();
+                    self.blocks.push(blk);
+                    self.skip_until = Some(body_start);
+                    return;
                 }
             }
             // `if a or b:` (and mixed-polarity and-chains): this cond jump

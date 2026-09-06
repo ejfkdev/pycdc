@@ -183,7 +183,7 @@
    "module": "codecs",
    "ast_detail": "diff at token 156: orig  kw_defaults=[NameConstant(value=None)] | dec  kw_defaults=[None]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1787,
+   "ndiff": 1756,
    "ntotal": 2151,
    "detail": "line 351: orig ('LOAD_CONST', 'None') | got ('LOAD_CONST', \"'_is_text_encoding'\")\nline 353: orig ('LOAD_CONST', \"'_is_text_encoding'\") | got ('LOAD_CONST', '<code __new__>')\nline 354: orig ('LOAD_CONST', 'None') | got ('LOAD_CONST', \"'CodecInfo.__new__'\")"
   },

@@ -15,13 +15,16 @@ import sys
 #     3.8-3.11 fused 合并；3.12+ or-join（双操作数同极性跳 body +
 #     假路径 continue 蹦床在 body 之前）
 #   循环内 `A or (B and C)`（3.5-3.11）—— fused try_or_and_chain
+#   DNF `(A1 and A2) or (B1 and B2)`（2.7+）—— try_or_group_chain
+#     （codecs StreamReader.read 形；or_cond 曾折成
+#      `not A1 or not A2: if B1 and B2:` 反转）
 #   值位 `a and b or c`（仅 <3.14）—— try_and_or_value_chain
 #   链式比较 `a <= b < c`（全版本）—— SCC body_end 曾越过 skip 标签
 #     把下一条语句的 JF 当 body 末端，链被否决、body 甩出守卫
 #
 # 已知缺口（各自独立 bug，另行处理，勿在本用例覆盖）：
-#   * `(a and b) or (c and d)`（codecs StreamReader.read 形，全版本）：
-#     or_cond 把右侧两个 and 操作数误折成 `not a or not b: if c and d:`。
+#   * 2.6 DNF `(A1 and A2) or (B1 and B2)`（py2 值保留链）折成
+#     `if A1: if A2 or (B1 and B2):`。
 #   * 2.6 语句级 `(a and b) or c`（py2 JUMP_IF_* 值保留链）。
 #   * 2.6 `(a or b) and c` / `not a or b` 嵌套分组错（同族值保留链）。
 #   * 2.6 值位 `a and b or c` 分组错（同族）。
@@ -66,6 +69,13 @@ def g_not_or(a, b, c):
             return 'inner'
         return 'outer'
     return 'none'
+
+def g_dnf(data, suffix):
+    out = []
+    if (isinstance(data, str) and data.endswith(suffix)) or \
+       (isinstance(data, bytes) and data.endswith(suffix)):
+        out.append(1)
+    return out
 
 def g_loop_and_or(items, flag, lim):
     out = []
@@ -135,3 +145,6 @@ if B35_311:
     print(g_loop_and_or([0, 1, 2, 3], 0, 3))
 
 print(g_chain((3, 6), 5), g_chain((3, 16), 5), g_chain((2, 6), 50))
+
+if NOT26:
+    print(g_dnf('ar', 'r'), g_dnf('x', 'r'), g_dnf(b'rb', b'r'), g_dnf(b'q', b'r'))
