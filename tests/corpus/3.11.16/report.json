@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 9,
-  "SIG-DIFF": 30,
+  "PASS": 10,
+  "SIG-DIFF": 29,
   "AST-PASS": 1
  },
  "results": [
@@ -41,11 +41,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 569: orig  body=[If(test=Compare(left=Attribute(value=Name(id='self' | dec  body=[While(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 79,
-   "ntotal": 619,
-   "detail": "line 509: orig ('JUMP_FORWARD', 'to 360') | got ('JUMP_FORWARD', 'to 382')\nline 520: orig ('JUMP_FORWARD', 'to 360') | got ('JUMP_FORWARD', 'to 382')\nline 525: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 292') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 314')"
+   "verdict": "PASS"
   },
   {
    "module": "_markupbase",

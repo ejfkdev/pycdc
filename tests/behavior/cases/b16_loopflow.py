@@ -208,7 +208,7 @@ def comp_read(items, limit):
             out.append(('head', data))
         else:
             out.append(('empty',))
-            data = 0
+            break
         if data:
             out.append(('tail', data))
             if len(out) > 6:

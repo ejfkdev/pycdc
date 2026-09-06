@@ -61,6 +61,26 @@ class DecompressReader(io.RawIOBase):
         if not size or self._eof:
             return b''
         data = None
+        while True:
+            if self._decompressor.eof:
+                rawblock = self._decompressor.unused_data or self._fp.read(BUFFER_SIZE)
+                if not rawblock:
+                    break
+                self._decompressor = self._decomp_factory(**self._decomp_args)
+                continue
+            break
+            if data:
+                break
+            try:
+                data = self._decompressor.decompress(rawblock, size)
+            except self._trailing_error:
+                pass
+        if not data:
+            self._eof = True
+            self._size = self._pos
+            return b''
+        self._pos += len(data)
+        return data
 
     def _rewind(self):
         self._fp.seek(0)

@@ -41,18 +41,18 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 300: orig  value=Constant(value=None)) | dec  value=Constant(value=None))]",
+   "ast_detail": "diff at token 345: orig  Try(body=[Assign(targets=[Name(id='data' | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 219,
+   "ndiff": 188,
    "ntotal": 515,
-   "detail": "line 295: orig ('LOAD_FAST', 'self') | got ('LOAD_CONST', 'None')\nline 296: orig ('LOAD_ATTR', '_decompressor') | got ('RETURN_VALUE', '')\nline 297: orig ('LOAD_ATTR', 'eof') | got ('_rewind', 1)"
+   "detail": "line 322: orig ('SETUP_FINALLY', 'to 108') | got ('JUMP_ABSOLUTE', '')\nline 323: orig ('LOAD_FAST', 'self') | got ('JUMP_ABSOLUTE', '')\nline 324: orig ('LOAD_ATTR', '_decompressor') | got ('LOAD_FAST', 'data')"
   },
   {
    "module": "_markupbase",
    "ast_detail": "diff at token 479: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 955,
-   "ntotal": 1391,
+   "ndiff": 959,
+   "ntotal": 1397,
    "detail": "line 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 385: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')"
   },
   {
@@ -71,7 +71,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 156: orig  body=[Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  body=[Break()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 174,
+   "ndiff": 175,
    "ntotal": 372,
    "detail": "line 177: orig ('FOR_ITER', 'to 106') | got ('FOR_ITER', 'to 142')\nline 179: orig ('SETUP_FINALLY', 'to 86') | got ('POP_TOP', '')\nline 180: orig ('LOAD_GLOBAL', 'open') | got ('JUMP_ABSOLUTE', '')"
   },
@@ -159,7 +159,7 @@
    "module": "binhex",
    "ast_detail": "diff at token 1366: orig  While(test=Name(id='True' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 820,
+   "ndiff": 830,
    "ntotal": 2036,
    "detail": "line 1193: orig ('SETUP_FINALLY', 'to 118') | got ('LOAD_FAST', 'decdata')\nline 1194: orig ('LOAD_GLOBAL', '_ignore_deprecation_warning') | got ('POP_JUMP_IF_TRUE', '')\nline 1195: orig ('CALL_FUNCTION', '') | got ('LOAD_FAST', 'self')"
   },
@@ -223,8 +223,8 @@
    "module": "code",
    "ast_detail": "diff at token 89: orig  If(test=Compare(left=Name(id='code' | dec  Return(value=Constant(value=True))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 624,
-   "ntotal": 665,
+   "ndiff": 661,
+   "ntotal": 703,
    "detail": "line 12: orig ('LOAD_CONST', \"('CommandCompiler', 'compile_command')\") | got ('LOAD_CONST', \"('CommandCompiler',)\")\nline 16: orig ('IMPORT_FROM', 'compile_command') | got ('POP_TOP', '')\nline 17: orig ('STORE_NAME', 'compile_command') | got ('LOAD_CONST', '0')"
   },
   {

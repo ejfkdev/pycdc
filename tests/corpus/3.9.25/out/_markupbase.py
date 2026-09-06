@@ -259,16 +259,15 @@ class ParserBase:
                 return -1
             if c == '>':
                 return j + 1
-            if c not in '\'"':
-                break
-            m = _declstringlit_match(rawdata, j)
-            if not m:
-                return -1
-            j = m.end()
-        name, j = self._scan_name(j, declstartpos)
-        if j < 0:
-            pass
-        return j
+            if c in '\'"':
+                m = _declstringlit_match(rawdata, j)
+                if not m:
+                    return -1
+                j = m.end()
+                continue
+            name, j = self._scan_name(j, declstartpos)
+            if j < 0:
+                return j
 
     def _parse_doctype_entity(self, i, declstartpos):
         rawdata = self.rawdata
@@ -290,20 +289,18 @@ class ParserBase:
                 c = self.rawdata[j:j + 1]
                 if not c:
                     return -1
-                if c not in '\'"':
-                    break
-                m = _declstringlit_match(rawdata, j)
-                if m:
-                    j = m.end()
-                    break
-                return -1
-            else:
+                if c in '\'"':
+                    m = _declstringlit_match(rawdata, j)
+                    if m:
+                        j = m.end()
+                    else:
+                        return -1
+                        continue
                 if c == '>':
                     return j + 1
                 name, j = self._scan_name(j, declstartpos)
                 if j < 0:
-                    pass
-                return j
+                    return j
 
     def _scan_name(self, i, declstartpos):
         rawdata = self.rawdata

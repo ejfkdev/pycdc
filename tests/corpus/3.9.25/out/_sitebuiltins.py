@@ -60,14 +60,22 @@ class _Printer(object):
         self.__setup()
         prompt = 'Hit Return for more, or q (and Return) to quit: '
         lineno = 0
-        try:
-            for i in range(lineno, lineno + self.MAXLINES):
-                print(self.__lines[i])
-        except IndexError:
-            pass
-        else:
-            while True:
-                pass
+        while True:
+            break
+            while key is None:
+                if key not in ('', 'q'):
+                    try:
+                        for i in range(lineno, lineno + self.MAXLINES):
+                            print(self.__lines[i])
+                    except IndexError:
+                        pass
+                    else:
+                        lineno += self.MAXLINES
+                        key = None
+                        key = input(prompt)
+                        key = None
+            if key == 'q':
+                break
 
 
 class _Helper(object):

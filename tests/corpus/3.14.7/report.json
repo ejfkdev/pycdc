@@ -235,7 +235,7 @@
    "module": "codecs",
    "ast_detail": "diff at token 606: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='whence'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1078,
+   "ndiff": 1056,
    "ntotal": 2373,
    "detail": "line 1048: orig ('POP_JUMP_IF_FALSE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L9')\nline 1102: orig ('LOAD_FAST_LOAD_FAST', 'data, decodedbytes') | got ('LOAD_FAST_BORROW', 'data')\nline 1103: orig ('LOAD_CONST', 'None') | got ('LOAD_FAST_CHECK', 'decodedbytes')"
   },

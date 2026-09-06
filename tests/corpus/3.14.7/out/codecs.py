@@ -500,9 +500,9 @@ read() method.
                         if not keepends:
                             line = line.splitlines(keepends=False)[0]
                     return line
-            if readsize < 8000:
-                break
-        readsize *= 2
+            if not readsize < 8000:
+                continue
+            readsize *= 2
 
     def readlines(self, sizehint=None, keepends=True):
         """Read all lines available on the input stream
@@ -981,4 +981,3 @@ namereplace_errors = lookup_error('namereplace')
 _false = 0
 if _false:
     import encodings
-# WARNING: Decompyle incomplete

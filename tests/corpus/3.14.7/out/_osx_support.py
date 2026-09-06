@@ -270,14 +270,12 @@ barf if multiple '-isysroot' arguments are present.
         while True:
             indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
             if not indices:
-                pass
-            else:
-                index = indices[0]
-                if compiler_so[index] != '-isysroot':
-                    break
+                break
+            index = indices[0]
+            if compiler_so[index] == '-isysroot':
                 del compiler_so[index:index + 2]
                 continue
-        del compiler_so[index:index + 1]
+            del compiler_so[index:index + 1]
     sysroot = None
     argvar = cc_args
     indices = [i for i, x in enumerate(cc_args) if x.startswith('-isysroot')]

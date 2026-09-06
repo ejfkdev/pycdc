@@ -477,15 +477,15 @@ class StreamReader(Codec):
                         break
                     line = line.splitlines(keepends=False)[0]
                     break
-            line0withend = lines[0]
-            line0withoutend = lines[0].splitlines(keepends=False)[0]
-            if line0withend != line0withoutend:
-                self.charbuffer = self._empty_charbuffer.join(lines[1:]) + self.charbuffer
-                if keepends:
-                    line = line0withend
-                else:
-                    line = line0withoutend
-                break
+                line0withend = lines[0]
+                line0withoutend = lines[0].splitlines(keepends=False)[0]
+                if line0withend != line0withoutend:
+                    self.charbuffer = self._empty_charbuffer.join(lines[1:]) + self.charbuffer
+                    if keepends:
+                        line = line0withend
+                    else:
+                        line = line0withoutend
+                    break
             if not data or size is not None:
                 if not line:
                     break

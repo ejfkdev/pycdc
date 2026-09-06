@@ -669,9 +669,9 @@ class FieldStorage:
                 strippedline = line.rstrip()
                 if strippedline == next_boundary:
                     break
-            if strippedline == last_boundary:
-                self.done = 1
-                break
+                if strippedline == last_boundary:
+                    self.done = 1
+                    break
             odelim = delim
             if line.endswith(b'\r\n'):
                 delim = b'\r\n'
@@ -708,9 +708,9 @@ class FieldStorage:
                 strippedline = line.strip()
                 if strippedline == next_boundary:
                     break
-            if strippedline == last_boundary:
-                self.done = 1
-                break
+                if strippedline == last_boundary:
+                    self.done = 1
+                    break
             last_line_lfend = line.endswith(b'\n')
 
     def make_file(self):

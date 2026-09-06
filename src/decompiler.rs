@@ -7310,8 +7310,21 @@ impl<'a> Ctx<'a> {
                     // record the else end so the loop close can build it
                     self.register_break_over_else(target);
                     if self.find_loop_exit(target).is_some() {
+                        // degenerate `if c: break`: close ONLY the
+                        // just-opened break block; enclosing branches
+                        // continue past it (mirrors the JUMP_FORWARD arm)
+                        let degenerate = matches!(
+                            self.blocks.last().map(|b| (b.kind, b.end)),
+                            Some((BlockType::If, end)) if end == self.cur_next
+                        );
                         self.push_stmt(Stmt::Break);
-                        self.close_inner_blocks_to_loop();
+                        if degenerate {
+                            let pos =
+                                self.blocks.last().map(|b| b.start).unwrap_or(0);
+                            self.force_close_top(pos);
+                        } else {
+                            self.close_inner_blocks_to_loop();
+                        }
                         return true;
                     }
                 }
@@ -10748,17 +10761,36 @@ impl<'a> Ctx<'a> {
         }
         // body: no backward jumps other than the rotated back edge itself;
         // stop AT the back edge (the fall-through past it is the loop
-        // exit epilogue, which may legitimately hold a RETURN)
+        // exit epilogue, which may legitimately hold a RETURN).
+        // A genuine MULTI-jump condition re-evaluates every operand at
+        // the loop top, so the re-eval span holds at least one forward
+        // exit jump before the backward one. Zero forward jumps means a
+        // single-condition rotated while — and this cond jump is a GUARD
+        // statement preceding it (`if size<0: while read(): pass` must
+        // not merge into `while size<0 and read():`, which re-tests the
+        // guard every iteration and calls read() when it is false —
+        // 3.11 _compression.seek).
+        let mut fwd_jumps_in_body = 0;
         while k < ti {
             let Some(ins) = self.instrs.get(k) else {
                 return false;
             };
             if ins.is_backward {
-                return ins.target == Some(body_top)
+                return fwd_jumps_in_body >= 1
+                    && ins.target == Some(body_top)
                     && matches!(
                         ins.op,
                         Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_BACKWARD_IF_TRUE
                     );
+            }
+            if matches!(
+                ins.op,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+            ) {
+                fwd_jumps_in_body += 1;
             }
             k += 1;
         }
@@ -12500,16 +12532,80 @@ impl<'a> Ctx<'a> {
         // 3) BoolOp merge inside an open If whose end == target — only for
         // split conditions (`if a and b:` = two cond jumps over a pure
         // value region); a second independent if inside the body whose
-        // exit happens to coincide must stay nested
-        let split_cond = self.blocks.last().map_or(false, |top| {
-            matches!(top.kind, BlockType::If)
-                && top.end == target
-                && top.cond_set
-                && top.short_circuit.is_none()
-                && top.jump_if_true == jump_if_true
-                && top.stmts.is_empty()
-                && self.is_split_cond_region(top.start, self.cur_offset, target, jump_if_true)
-        });
+        // exit happens to coincide must stay nested.
+        // Rotated-while veto: when the value region between the two jumps
+        // is a loop's PREHEADER condition, the loop top follows this jump
+        // with a re-evaluated condition (pure-value span ending in a
+        // backward jump to the top). Merging would fold the guard into
+        // the loop condition (`if size<0: while read(): pass` →
+        // `while read() and size<0:` — 3.11 _compression.seek).
+        let ins_limit = self.cur_offset.saturating_sub(
+            self.blocks.last().map(|b| b.start).unwrap_or(self.cur_offset),
+        );
+        let rotated_while_follows = ins_limit > 0
+            && ins_limit <= 256
+            && self
+            .idx_of
+            .get(&self.cur_next)
+            .map_or(false, |&ki| {
+                let head = self.cur_next;
+                let mut k = ki;
+                let mut steps = 0;
+                // bound: the re-eval span mirrors the value region
+                // between the two cond jumps
+                let span_limit = ins_limit.saturating_mul(2) + 8;
+                while let Some(ins) = self.instrs.get(k) {
+                    // a BACKWARD COND JUMP to the loop top ends the
+                    // re-evaluation: this jump is a rotated while's first
+                    // cond test. A plain backward JUMP is a loop back edge
+                    // (any if inside a loop would false-positive).
+                    if ins.is_backward
+                        && matches!(
+                            ins.op,
+                            Op::POP_JUMP_BACKWARD_IF_TRUE
+                                | Op::POP_JUMP_BACKWARD_IF_FALSE
+                                | Op::JUMP_IF_FALSE
+                                | Op::JUMP_IF_TRUE
+                        )
+                    {
+                        return steps > 0
+                            && ins.target.map_or(false, |t| t >= head && t <= ins.offset);
+                    }
+                    if ins.is_backward || !is_pure_value_op(ins.op)
+                        && !matches!(
+                            ins.op,
+                            Op::NOP
+                                | Op::NOT_TAKEN
+                                | Op::CACHE
+                                | Op::TO_BOOL
+                                | Op::POP_JUMP_IF_FALSE
+                                | Op::POP_JUMP_IF_TRUE
+                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                                | Op::JUMP_IF_FALSE_OR_POP
+                                | Op::JUMP_IF_TRUE_OR_POP
+                        )
+                    {
+                        return false;
+                    }
+                    k += 1;
+                    steps += 1;
+                    if steps > span_limit {
+                        return false;
+                    }
+                }
+                false
+            });
+        let split_cond = !rotated_while_follows
+            && self.blocks.last().map_or(false, |top| {
+                matches!(top.kind, BlockType::If)
+                    && top.end == target
+                    && top.cond_set
+                    && top.short_circuit.is_none()
+                    && top.jump_if_true == jump_if_true
+                    && top.stmts.is_empty()
+                    && self.is_split_cond_region(top.start, self.cur_offset, target, jump_if_true)
+            });
         if split_cond {
             if let Some(top) = self.blocks.last_mut() {
                 let prev = top.cond.take().unwrap();
@@ -14452,13 +14548,13 @@ impl<'a> Ctx<'a> {
                 }
             }
         }
-        let mut found: Vec<(usize, usize)> = Vec::new();
+        let mut found: Vec<(usize, usize, usize)> = Vec::new();
         for (bi, bj) in self.instrs.iter().enumerate() {
             if !is_back_jump(bj) {
                 continue;
             }
             let Some(t) = bj.target else { continue };
-            if claimed.contains(&t) || found.iter().any(|(ft, _)| *ft == t) {
+            if claimed.contains(&t) {
                 continue;
             }
             // the region [t, bj) must be straight-line loop body: every
@@ -14575,11 +14671,33 @@ impl<'a> Ctx<'a> {
                 }
             });
             match uniform_exit {
-                Some(e) => found.push((t, e)),
-                None => found.push((t, bj.end())),
+                Some(e) => found.push((t, e, bi)),
+                None => found.push((t, bj.end(), bi)),
             }
         }
-        self.while_true_loops = found;
+        // multiple back edges to the SAME top (3.14 threads each break
+        // to a return, leaving several): an inner edge's span misreads
+        // the jump into a later then-arm as a break — per top, keep the
+        // OUTERMOST (last) edge that passed the body checks
+        let mut resolved: Vec<(usize, usize)> = Vec::new();
+        let mut best: Vec<(usize, usize, usize)> = Vec::new();
+        let mut order: Vec<usize> = Vec::new();
+        for (t, e, bi) in found {
+            if let Some(pos) = best.iter().position(|x| x.0 == t) {
+                if bi > best[pos].2 {
+                    best[pos] = (t, e, bi);
+                }
+            } else {
+                order.push(t);
+                best.push((t, e, bi));
+            }
+        }
+        for t in order {
+            if let Some(x) = best.iter().find(|x| x.0 == t) {
+                resolved.push((t, x.1));
+            }
+        }
+        self.while_true_loops = resolved;
     }
 
     fn handle_jump_backward(&mut self, target: usize) {

@@ -39,7 +39,7 @@
    "module": "_compression",
    "ast_detail": "diff at token 264: orig  ctx=Load()))])]) | dec  ctx=Load()))])",
    "verdict": "SIG-DIFF",
-   "ndiff": 300,
+   "ndiff": 291,
    "ntotal": 575,
    "detail": "line 228: orig ('SETUP_WITH', 'to 122') | got ('SETUP_WITH', 'to 104')\nline 257: orig ('JUMP_FORWARD', 'to 102') | got ('JUMP_FORWARD', 'to 82')\nline 266: orig ('POP_BLOCK', '') | got ('LOAD_GLOBAL', 'len')"
   },
@@ -131,7 +131,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 82: orig  body=[Return(value=Subscript(value=Name(id='errorcode' | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2110,
+   "ndiff": 2118,
    "ntotal": 2191,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },

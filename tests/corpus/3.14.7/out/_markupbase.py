@@ -251,15 +251,15 @@ by the SGML/HTML and XHTML parsers.'''
                 return -1
             if c == '>':
                 return j + 1
-            if c not in '\'"':
+            if c in '\'"':
+                m = _declstringlit_match(rawdata, j)
+                if not m:
+                    return -1
+                j = m.end()
+                continue
+            name, j = self._scan_name(j, declstartpos)
+            if j < 0:
                 break
-            m = _declstringlit_match(rawdata, j)
-            if not m:
-                return -1
-            j = m.end()
-        name, j = self._scan_name(j, declstartpos)
-        if not j < 0:
-            pass
         return j
 
     def _parse_doctype_entity(self, i, declstartpos):
@@ -284,11 +284,16 @@ by the SGML/HTML and XHTML parsers.'''
                     return -1
                 if c in '\'"':
                     m = _declstringlit_match(rawdata, j)
-                    if not m:
-                        break
-                    j = m.end()
-                    continue
-        return -1
+                    if m:
+                        j = m.end()
+                        continue
+                return -1
+                if c == '>':
+                    return j + 1
+                name, j = self._scan_name(j, declstartpos)
+                if j < 0:
+                    break
+        return j
 
     def _scan_name(self, i, declstartpos):
         rawdata = self.rawdata
