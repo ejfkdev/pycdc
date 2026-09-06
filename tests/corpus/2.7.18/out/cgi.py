@@ -609,11 +609,10 @@ class FieldStorage:
             self.read_lines_to_eof()
 
     def __write(self, line):
-        if self.__file is not None:
-            if self.__file.tell() + len(line) > 1000:
-                self.file = self.make_file('')
-                self.file.write(self.__file.getvalue())
-                self.__file = None
+        if self.__file is not None and self.__file.tell() + len(line) > 1000:
+            self.file = self.make_file('')
+            self.file.write(self.__file.getvalue())
+            self.__file = None
         self.file.write(line)
 
     def read_lines_to_eof(self):

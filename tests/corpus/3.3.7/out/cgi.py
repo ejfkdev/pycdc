@@ -674,12 +674,11 @@ class FieldStorage:
     def __write(self, line):
         '''line is always bytes, not string'''
 
-        if self.__file is not None:
-            if self.__file.tell() + len(line) > 1000:
-                self.file = self.make_file()
-                data = self.__file.getvalue()
-                self.file.write(data)
-                self.__file = None
+        if self.__file is not None and self.__file.tell() + len(line) > 1000:
+            self.file = self.make_file()
+            data = self.__file.getvalue()
+            self.file.write(data)
+            self.__file = None
         if self._binary_file:
             self.file.write(line)
         else:

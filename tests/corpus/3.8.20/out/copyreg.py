@@ -43,9 +43,8 @@ def _reduce_ex(self, proto):
     assert proto < 2
     cls = self.__class__
     for base in cls.__mro__:
-        if hasattr(base, '__flags__'):
-            if not base.__flags__ & _HEAPTYPE:
-                break
+        if hasattr(base, '__flags__') or base.__flags__ & _HEAPTYPE:
+            break
     else:
         base = object
     if base is object:

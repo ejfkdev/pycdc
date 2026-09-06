@@ -130,9 +130,8 @@ class Bdb:
             return self.trace_dispatch
         if not self.stop_here(frame) and not self.break_anywhere(frame):
             return
-        if self.stopframe:
-            if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
-                return self.trace_dispatch
+        if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
+            return self.trace_dispatch
         self.user_call(frame, arg)
         if self.quitting:
             raise BdbQuit
@@ -147,9 +146,8 @@ class Bdb:
         '''
 
         if self.stop_here(frame) or frame == self.returnframe:
-            if self.stopframe:
-                if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
-                    return self.trace_dispatch
+            if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
+                return self.trace_dispatch
             try:
                 self.frame_returning = frame
                 self.user_return(frame, arg)
@@ -175,11 +173,10 @@ class Bdb:
                 if self.quitting:
                     raise BdbQuit
             return self.trace_dispatch
-        if self.stopframe and frame is not self.stopframe:
-            if self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] in (StopIteration, GeneratorExit):
-                self.user_exception(frame, arg)
-                if self.quitting:
-                    raise BdbQuit
+        if self.stopframe and frame is not self.stopframe and self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] in (StopIteration, GeneratorExit):
+            self.user_exception(frame, arg)
+            if self.quitting:
+                raise BdbQuit
         return self.trace_dispatch
 
     def is_skipped_module(self, module_name):

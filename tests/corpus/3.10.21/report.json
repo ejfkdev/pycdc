@@ -189,9 +189,9 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 649: orig  While(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='end'",
+   "ast_detail": "diff at token 793: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2797,
+   "ndiff": 2816,
    "ntotal": 2915,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },

@@ -16016,6 +16016,23 @@ fn is_pure_value_op(op: Op) -> bool {
             | Op::IS_OP
             | Op::CONTAINS_OP
             | Op::BINARY_OP
+            // pre-3.11 per-operator binary opcodes (3.11 folded them
+            // into BINARY_OP, which is already pure — the legacy names
+            // must match so condition-region scans work on <=3.10)
+            | Op::BINARY_ADD
+            | Op::BINARY_SUBTRACT
+            | Op::BINARY_MULTIPLY
+            | Op::BINARY_TRUE_DIVIDE
+            | Op::BINARY_FLOOR_DIVIDE
+            | Op::BINARY_DIVIDE
+            | Op::BINARY_MODULO
+            | Op::BINARY_POWER
+            | Op::BINARY_LSHIFT
+            | Op::BINARY_RSHIFT
+            | Op::BINARY_AND
+            | Op::BINARY_OR
+            | Op::BINARY_XOR
+            | Op::BINARY_MATRIX_MULTIPLY
             | Op::BINARY_SUBSCR
             | Op::BINARY_SLICE
             | Op::BUILD_SLICE

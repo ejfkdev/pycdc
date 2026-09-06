@@ -269,11 +269,11 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 557: orig  body=[Continue()] | dec  body=[Pass()]",
+   "ast_detail": "diff at token 245: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
-   "ndiff": 253,
+   "ndiff": 255,
    "ntotal": 544,
-   "detail": "line 287: orig ('LOAD_CONST', 'None') | got ('__newobj__', 1)\nline 288: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'cls')\nline 289: orig ('__newobj__', 1) | got ('LOAD_ATTR', '__new__')"
+   "detail": "line 181: orig ('POP_JUMP_IF_FALSE', '') | got ('POP_JUMP_IF_TRUE', '')\nline 186: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 287: orig ('LOAD_CONST', 'None') | got ('__newobj__', 1)"
   },
   {
    "module": "crypt",

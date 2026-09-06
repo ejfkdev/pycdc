@@ -172,9 +172,8 @@ def _parseparam(s):
     while s[:1] == ';':
         s = s[1:]
         end = s.find(';')
-        if end > 0:
-            while (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
-                end = s.find(';', end + 1)
+        while end > 0 and (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
+            end = s.find(';', end + 1)
         if end < 0:
             end = len(s)
         f = s[:end]
@@ -619,12 +618,11 @@ class FieldStorage:
     def __write(self, line):
         '''line is always bytes, not string'''
 
-        if self.__file is not None:
-            if self.__file.tell() + len(line) > 1000:
-                self.file = self.make_file()
-                data = self.__file.getvalue()
-                self.file.write(data)
-                self.__file = None
+        if self.__file is not None and self.__file.tell() + len(line) > 1000:
+            self.file = self.make_file()
+            data = self.__file.getvalue()
+            self.file.write(data)
+            self.__file = None
         if self._binary_file:
             self.file.write(line)
             return

@@ -122,9 +122,8 @@ class StringIO:
             newpos = self.len
         else:
             newpos = i + 1
-        if length is not None and length >= 0:
-            if self.pos + length < newpos:
-                newpos = self.pos + length
+        if length is not None and length >= 0 and self.pos + length < newpos:
+            newpos = self.pos + length
         r = self.buf[self.pos:newpos]
         self.pos = newpos
         return r
