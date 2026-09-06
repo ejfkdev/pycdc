@@ -13114,6 +13114,162 @@ impl<'a> Ctx<'a> {
         Some((merged, m))
     }
 
+    /// Statement-level `A or (B and C ...)` if-condition (<=3.7). Compiles:
+    ///   <A>; PJIT body; <B>; PJIF skip; <C>; PJIF skip; ...; body; skip:
+    /// The first operand's PJIT jumps straight to the body; the remaining
+    /// operands form an and-chain whose false-jumps all land on `skip`. The
+    /// plain PJIT path opens `if not A:` and nests the and-chain, inverting
+    /// the or (`if not a: if b and c:` == `not a and b and c`, which skips
+    /// the body when A is true). Detect the shape, extract the and-chain via
+    /// merge_forward_cond_chain, and open the if at the body with the merged
+    /// `A or (and-chain)` condition. Returns body_start (the skip target).
+    fn try_or_and_chain(&mut self, cond: ExprRef, body_start: usize) -> Option<usize> {
+        if body_start <= self.cur_next {
+            return None;
+        }
+        let bi = *self.idx_of.get(&self.cur_next)?;
+        let body_i = *self.idx_of.get(&body_start)?;
+        if body_i <= bi {
+            return None;
+        }
+        // enclosing loop top: the and-chain's false jumps may fuse the
+        // body-skip and the loop continue into ONE backward jump to it
+        // (`if A or (B and C): <last stmt of loop>`, configparser 3.6
+        // _read comment scan). skip is then the loop top (< body_start).
+        let loop_top = self
+            .blocks
+            .iter()
+            .rev()
+            .find(|b| matches!(b.kind, BlockType::While | BlockType::For))
+            .map(|b| b.start);
+        // the gap [cur_next, body_start) must be a pure and-chain: at least
+        // one PJIF, every cond jump targeting the SAME `skip` label -- either
+        // a forward label past body_start (clean if-end) or the loop top
+        // (fused continue). A PJIT in the gap means a nested or - bail.
+        let mut skip = None;
+        let mut saw_pjif = false;
+        for k in bi..body_i {
+            let ins = self.instrs[k];
+            match ins.op {
+                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE => {
+                    let t = ins.target?;
+                    if t != body_start && t < body_start && loop_top != Some(t) {
+                        return None;
+                    }
+                    if t == body_start {
+                        return None;
+                    }
+                    match skip {
+                        None => {
+                            skip = Some(t);
+                            saw_pjif = true;
+                        }
+                        Some(s) if s == t => {}
+                        _ => return None,
+                    }
+                }
+                Op::POP_JUMP_IF_TRUE
+                | Op::POP_JUMP_FORWARD_IF_TRUE
+                | Op::POP_JUMP_BACKWARD_IF_TRUE
+                | Op::POP_JUMP_BACKWARD_IF_FALSE => return None,
+                _ => {}
+            }
+        }
+        if !saw_pjif {
+            return None;
+        }
+        let skip = skip?;
+        let fused = skip < body_start; // skip == loop_top
+        if fused && loop_top != Some(skip) {
+            return None;
+        }
+        // extract the and-chain operands (each PJIF targets skip);
+        // merge_forward_cond_chain / sim_value_region are read-only sims
+        let ci = *self.idx_of.get(&self.cur_offset)?;
+        let chain = self.merge_forward_cond_chain(ci, skip)?;
+        // require a GENUINE multi-operand and-chain (`B and C`). A single
+        // operand means plain `A or B`, which the or-merge later in
+        // handle_cond_jump already handles correctly -- and crucially its
+        // fused path decompiles the body as a region and SKIPS the loop back
+        // edge, whereas opening an If block here would let that back edge
+        // emit a spurious trailing `continue` (asyncore 2.7/3.3 poll).
+        let chain_is_and = matches!(
+            &*chain,
+            Expr::BoolOp { op: BoolOpKind::And, values } if values.len() >= 2
+        );
+        if !chain_is_and {
+            return None;
+        }
+        let mut or_vals = Vec::new();
+        flatten_boolop(cond, BoolOpKind::Or, &mut or_vals);
+        flatten_boolop(chain, BoolOpKind::Or, &mut or_vals);
+        let merged = Rc::new(Expr::BoolOp {
+            op: BoolOpKind::Or,
+            values: or_vals,
+        });
+        // body end: the skip label (clean) or the loop's back edge (fused)
+        let body_end = if fused {
+            self.idx_of
+                .get(&body_start)
+                .and_then(|&bk| {
+                    self.instrs[bk..]
+                        .iter()
+                        .find(|x| {
+                            x.is_backward
+                                && x.target == Some(skip)
+                                && matches!(
+                                    x.op,
+                                    Op::JUMP_ABSOLUTE
+                                        | Op::JUMP_BACKWARD
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                )
+                        })
+                        .map(|x| x.offset)
+                })
+                .unwrap_or(body_start)
+        } else {
+            skip
+        };
+        // the PJIT target must be the real BODY: in `A or (B and C)` the body
+        // region [body_start, body_end) holds no cond jump (only the body
+        // statements and, when fused, the loop back edge). A cond jump there
+        // means the PJIT target is an and-CONTINUATION rather than the body
+        // -- e.g. `(args or kw) and D` where PJIT(args) lands on D's eval and
+        // D's own PJIF->skip follows. Merging there double-counts D and
+        // scrambles the grouping (_threading_local 2.7-3.7 PASS regression).
+        if let (Some(&bsi), Some(&bei)) =
+            (self.idx_of.get(&body_start), self.idx_of.get(&body_end))
+        {
+            if bei > bsi
+                && self.instrs[bsi..bei].iter().any(|x| {
+                    matches!(
+                        x.op,
+                        Op::POP_JUMP_IF_FALSE
+                            | Op::POP_JUMP_IF_TRUE
+                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                            | Op::POP_JUMP_BACKWARD_IF_FALSE
+                            | Op::POP_JUMP_BACKWARD_IF_TRUE
+                            | Op::JUMP_IF_FALSE_OR_POP
+                            | Op::JUMP_IF_TRUE_OR_POP
+                            | Op::JUMP_IF_FALSE
+                            | Op::JUMP_IF_TRUE
+                    )
+                })
+            {
+                return None;
+            }
+        }
+        // open the if at the body; A's PJIT and the and-chain are skipped
+        let mut blk = Block::new(BlockType::If, body_start, body_end);
+        blk.cond = Some(merged);
+        blk.cond_set = true;
+        blk.jump_if_true = false;
+        blk.stack_depth = self.stack.len();
+        self.blocks.push(blk);
+        Some(body_start)
+    }
+
     fn handle_cond_jump(&mut self, cond: ExprRef, jump_if_true: bool, target: usize) {
         // tail-duplicated body copy: aim the jump at the original body
         let target = self.dup_copy_redirect.get(&target).copied().unwrap_or(target);
@@ -13156,6 +13312,16 @@ impl<'a> Ctx<'a> {
                 }
                 self.push(merged);
                 self.skip_until = Some(m);
+                return;
+            }
+        }
+        // statement-level `A or (B and C ...)`: the first operand's PJIT
+        // jumps straight to the body; the rest form an and-chain whose
+        // false-jumps share a `skip` label. Merge into one if-condition
+        // instead of `if not A: if B and C:` (configparser/asyncore/crypt).
+        if jump_if_true && !self.version.at_least(3, 8) {
+            if let Some(body_start) = self.try_or_and_chain(cond.clone(), target) {
+                self.skip_until = Some(body_start);
                 return;
             }
         }

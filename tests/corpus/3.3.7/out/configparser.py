@@ -882,10 +882,8 @@ class RawConfigParser(MutableMapping):
                     if index == -1:
                         continue
                     next_prefixes[prefix] = index
-                    if index != 0:
-                        if index > 0:
-                            if line[index - 1].isspace():
-                                comment_start = min(comment_start, index)
+                    if index == 0 or index > 0 and line[index - 1].isspace():
+                        comment_start = min(comment_start, index)
                     continue
                 inline_prefixes = next_prefixes
             for prefix in self._comment_prefixes:

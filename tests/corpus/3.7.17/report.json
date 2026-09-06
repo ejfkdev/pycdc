@@ -223,7 +223,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 3172: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(arg=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 1113,
+   "ndiff": 1111,
    "ntotal": 4369,
    "detail": "line 2479: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')\nline 2514: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')\nline 2530: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')"
   },

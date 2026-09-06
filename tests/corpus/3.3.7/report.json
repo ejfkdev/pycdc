@@ -83,7 +83,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 908: orig  orelse=[]) | dec  orelse=[While(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1603,
+   "ndiff": 1511,
    "ntotal": 2337,
    "detail": "line 118: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 124: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 132: orig ('LOAD_NAME', 'False') | got ('LOAD_CONST', 'False')"
   },
@@ -115,7 +115,7 @@
    "module": "bz2",
    "ast_detail": "diff at token 873: orig  Try(body=[Assign(targets=[Attribute(value=Name(id='self' | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 812,
+   "ndiff": 809,
    "ntotal": 1461,
    "detail": "line 582: orig ('SETUP_LOOP', '#96') | got ('SETUP_LOOP', '#90')\nline 590: orig ('POP_JUMP_IF_FALSE', '#95') | got ('POP_JUMP_IF_FALSE', '#89')\nline 624: orig ('POP_JUMP_IF_FALSE', '#84') | got ('POP_JUMP_IF_FALSE', '#56')"
   },
@@ -191,9 +191,9 @@
    "module": "configparser",
    "ast_detail": "diff at token 4476: orig  ctx=Del())]) | dec  ctx=Del())",
    "verdict": "SIG-DIFF",
-   "ndiff": 903,
-   "ntotal": 4132,
-   "detail": "line 3142: orig ('SETUP_LOOP', '#383') | got ('SETUP_LOOP', '#386')\nline 3149: orig ('FOR_ITER', '#382') | got ('FOR_ITER', '#385')\nline 3164: orig ('SETUP_LOOP', '#102') | got ('SETUP_LOOP', '#105')"
+   "ndiff": 907,
+   "ntotal": 4130,
+   "detail": "line 3142: orig ('SETUP_LOOP', '#383') | got ('SETUP_LOOP', '#384')\nline 3149: orig ('FOR_ITER', '#382') | got ('FOR_ITER', '#383')\nline 3164: orig ('SETUP_LOOP', '#102') | got ('SETUP_LOOP', '#103')"
   },
   {
    "module": "contextlib",
