@@ -2,9 +2,9 @@
  "version": "3.6.15",
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
-  "PASS": 17,
-  "SIG-DIFF": 19,
-  "AST-PASS": 4
+  "PASS": 20,
+  "SIG-DIFF": 18,
+  "AST-PASS": 2
  },
  "results": [
   {
@@ -77,7 +77,7 @@
   },
   {
    "module": "_weakrefset",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "abc",
@@ -93,11 +93,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 874: orig  Try(body=[Assign(targets=[Name(id='num_sent' | dec  If(test=Name(id='num_sent'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 164,
-   "ntotal": 813,
-   "detail": "line 564: orig ('SETUP_LOOP', 'to 278') | got ('SETUP_LOOP', 'to 280')\nline 647: orig ('SETUP_EXCEPT', 'to 184') | got ('LOAD_FAST', 'num_sent')\nline 648: orig ('LOAD_FAST', 'self') | got ('EXTENDED_ARG', '')"
+   "verdict": "PASS"
   },
   {
    "module": "asyncore",
@@ -177,7 +173,7 @@
   },
   {
    "module": "code",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "codecs",
@@ -199,8 +195,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 169: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
    "verdict": "SIG-DIFF",
-   "ndiff": 789,
-   "ntotal": 1032,
+   "ndiff": 821,
+   "ntotal": 1031,
    "detail": "line 135: orig ('SETUP_LOOP', 'to 284') | got ('SETUP_LOOP', 'to 282')\nline 138: orig ('FOR_ITER', 'to 282') | got ('FOR_ITER', 'to 280')\nline 201: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },
   {

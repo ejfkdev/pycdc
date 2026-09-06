@@ -2,9 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 18,
-  "SIG-DIFF": 20,
-  "AST-PASS": 2
+  "PASS": 21,
+  "SIG-DIFF": 19
  },
  "results": [
   {
@@ -81,7 +80,7 @@
   },
   {
    "module": "_weakrefset",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "abc",
@@ -105,11 +104,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 874: orig  Try(body=[Assign(targets=[Name(id='num_sent' | dec  If(test=Name(id='num_sent'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 163,
-   "ntotal": 814,
-   "detail": "line 565: orig ('SETUP_LOOP', 'to 280') | got ('SETUP_LOOP', 'to 282')\nline 649: orig ('SETUP_EXCEPT', 'to 186') | got ('LOAD_FAST', 'num_sent')\nline 650: orig ('LOAD_FAST', 'self') | got ('EXTENDED_ARG', '')"
+   "verdict": "PASS"
   },
   {
    "module": "asyncore",
@@ -189,7 +184,7 @@
   },
   {
    "module": "code",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "codecs",
@@ -211,8 +206,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 529: orig  keywords=[])) | dec  keywords=[]))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 686,
-   "ntotal": 1116,
+   "ndiff": 684,
+   "ntotal": 1114,
    "detail": "line 412: orig ('LOAD_GLOBAL', 'os') | got ('SETUP_EXCEPT', 'to 128')\nline 413: orig ('LOAD_ATTR', 'path') | got ('LOAD_GLOBAL', 'py_compile')\nline 414: orig ('LOAD_METHOD', 'isfile') | got ('LOAD_ATTR', 'compile')"
   },
   {

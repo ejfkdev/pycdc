@@ -168,40 +168,19 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     if limit_sl_dest is not None and os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
         return success
     opt_cfiles = {}
-    try:
-        for index, opt_level in enumerate(optimize):
-            cfile = opt_cfiles[opt_level]
-            ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
-            if index > 0 and hardlink_dupes:
-                previous_cfile = opt_cfiles[optimize[index - 1]]
-                if filecmp.cmp(cfile, previous_cfile, shallow=False):
-                    os.unlink(cfile)
-                    os.link(previous_cfile, cfile)
-    except py_compile.PyCompileError as err:
-        success = False
-        if quiet >= 2:
-            return success
-        if quiet:
-            print('*** Error compiling {!r}...'.format(fullname))
-        else:
-            print('*** ', end='')
-        encoding = sys.stdout.encoding or sys.getdefaultencoding()
-        msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
-        print(msg)
-        return success
-    except (SyntaxError, UnicodeError, OSError) as e:
-        success = False
-        if quiet >= 2:
-            return success
-        if quiet:
-            print('*** Error compiling {!r}...'.format(fullname))
-        else:
-            print('*** ', end='')
-        print(e.__class__.__name__ + ':', e)
-        return success
-    else:
-        if ok == 0:
-            success = False
+    if os.path.isfile(fullname):
+        for opt_level in optimize:
+            if legacy:
+                opt_cfiles[opt_level] = fullname + 'c'
+                continue
+            if opt_level >= 0:
+                opt = opt_level if opt_level >= 1 else ''
+                cfile = importlib.util.cache_from_source(fullname, optimization=opt)
+                opt_cfiles[opt_level] = cfile
+                continue
+            cfile = importlib.util.cache_from_source(fullname)
+            opt_cfiles[opt_level] = cfile
+        head, tail = name[:-3], name[-3:]
         if tail == '.py':
             if not force:
                 try:
@@ -218,20 +197,40 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     pass
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
-        if os.path.isfile(fullname):
-            for opt_level in optimize:
-                if legacy:
-                    opt_cfiles[opt_level] = fullname + 'c'
-                    continue
-                if opt_level >= 0:
-                    opt = opt_level if opt_level >= 1 else ''
-                    cfile = importlib.util.cache_from_source(fullname, optimization=opt)
-                    opt_cfiles[opt_level] = cfile
-                    continue
-                cfile = importlib.util.cache_from_source(fullname)
-                opt_cfiles[opt_level] = cfile
-            head, tail = name[:-3], name[-3:]
-        return success
+            try:
+                for index, opt_level in enumerate(optimize):
+                    cfile = opt_cfiles[opt_level]
+                    ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
+                    if index > 0 and hardlink_dupes:
+                        previous_cfile = opt_cfiles[optimize[index - 1]]
+                        if filecmp.cmp(cfile, previous_cfile, shallow=False):
+                            os.unlink(cfile)
+                            os.link(previous_cfile, cfile)
+            except py_compile.PyCompileError as err:
+                success = False
+                if quiet >= 2:
+                    return success
+                if quiet:
+                    print('*** Error compiling {!r}...'.format(fullname))
+                else:
+                    print('*** ', end='')
+                encoding = sys.stdout.encoding or sys.getdefaultencoding()
+                msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+                print(msg)
+                return success
+            except (SyntaxError, UnicodeError, OSError) as e:
+                success = False
+                if quiet >= 2:
+                    return success
+                if quiet:
+                    print('*** Error compiling {!r}...'.format(fullname))
+                else:
+                    print('*** ', end='')
+                print(e.__class__.__name__ + ':', e)
+                return success
+            if ok == 0:
+                success = False
+    return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     '''Byte-compile all module on sys.path.
@@ -297,9 +296,7 @@ def main():
     if args.ddir is not None:
         if args.stripdir is not None or args.prependdir is not None:
             parser.error('-d cannot be used in combination with -s or -p')
-    if args.invalidation_mode:
-        ivl_mode = args.invalidation_mode.replace('-', '_').upper()
-        invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
+    if args.flist:
         try:
             with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:
                 for line in f:
@@ -308,9 +305,9 @@ def main():
             if args.quiet < 2:
                 print('Error reading file list {}'.format(args.flist))
             return False
-        else:
-            if args.flist:
-                pass
+    if args.invalidation_mode:
+        ivl_mode = args.invalidation_mode.replace('-', '_').upper()
+        invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:
         invalidation_mode = None
     success = True

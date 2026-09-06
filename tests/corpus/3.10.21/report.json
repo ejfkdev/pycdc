@@ -27,7 +27,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 275: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2824,
+   "ndiff": 2819,
    "ntotal": 3676,
    "detail": "line 787: orig ('SETUP_FINALLY', 'to 22') | got ('LOAD_GLOBAL', 'RuntimeError')\nline 788: orig ('LOAD_FAST', 'self') | got ('LOAD_CONST', \"'coroutine ignored GeneratorExit'\")\nline 789: orig ('LOAD_METHOD', 'throw') | got ('CALL_FUNCTION', '')"
   },
@@ -109,8 +109,8 @@
   {
    "module": "ast",
    "verdict": "INCOMPLETE",
-   "ndiff": 7092,
-   "ntotal": 7978,
+   "ndiff": 6986,
+   "ntotal": 7988,
    "detail": "line 611: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 617: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 623: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')"
   },
   {
@@ -234,7 +234,7 @@
   {
    "module": "compileall",
    "verdict": "INCOMPLETE",
-   "ndiff": 1437,
+   "ndiff": 1420,
    "ntotal": 1512,
    "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },

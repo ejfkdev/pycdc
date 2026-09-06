@@ -681,18 +681,16 @@ class RawConfigParser(MutableMapping):
             if fallback is _UNSET:
                 raise
             return fallback
-        else:
-            option = self.optionxform(option)
+        option = self.optionxform(option)
         try:
             value = d[option]
         except KeyError:
             if fallback is _UNSET:
                 raise NoOptionError(option, section)
             return fallback
-        else:
-            if raw or value is None:
-                return value
-            return self._interpolation.before_get(self, section, option, value, d)
+        if raw or value is None:
+            return value
+        return self._interpolation.before_get(self, section, option, value, d)
 
     def _get(self, section, conv, option, **kwargs):
         return conv(self.get(section, option, **kwargs))

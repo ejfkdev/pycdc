@@ -65,44 +65,43 @@ class async_chat(asyncore.dispatcher):
         except socket.error, why:
             self.handle_error()
             return
-        else:
-            self.ac_in_buffer = self.ac_in_buffer + data
-            while self.ac_in_buffer:
-                lb = len(self.ac_in_buffer)
-                terminator = self.get_terminator()
-                if not terminator:
-                    self.collect_incoming_data(self.ac_in_buffer)
-                    self.ac_in_buffer = ''
-                    continue
-                if isinstance(terminator, int) or isinstance(terminator, long):
-                    n = terminator
-                    if lb < n:
-                        self.collect_incoming_data(self.ac_in_buffer)
-                        self.ac_in_buffer = ''
-                        self.terminator = self.terminator - lb
-                    else:
-                        self.collect_incoming_data(self.ac_in_buffer[:n])
-                        self.ac_in_buffer = self.ac_in_buffer[n:]
-                        self.terminator = 0
-                        self.found_terminator()
-                else:
-                    terminator_len = len(terminator)
-                    index = self.ac_in_buffer.find(terminator)
-                    if index != -1:
-                        if index > 0:
-                            self.collect_incoming_data(self.ac_in_buffer[:index])
-                        self.ac_in_buffer = self.ac_in_buffer[index + terminator_len:]
-                        self.found_terminator()
-                        continue
-                index = find_prefix_at_end(self.ac_in_buffer, terminator)
-                if index:
-                    if index != lb:
-                        self.collect_incoming_data(self.ac_in_buffer[:-index])
-                        self.ac_in_buffer = self.ac_in_buffer[-index:]
-                    break
-                    continue
+        self.ac_in_buffer = self.ac_in_buffer + data
+        while self.ac_in_buffer:
+            lb = len(self.ac_in_buffer)
+            terminator = self.get_terminator()
+            if not terminator:
                 self.collect_incoming_data(self.ac_in_buffer)
                 self.ac_in_buffer = ''
+                continue
+            if isinstance(terminator, int) or isinstance(terminator, long):
+                n = terminator
+                if lb < n:
+                    self.collect_incoming_data(self.ac_in_buffer)
+                    self.ac_in_buffer = ''
+                    self.terminator = self.terminator - lb
+                else:
+                    self.collect_incoming_data(self.ac_in_buffer[:n])
+                    self.ac_in_buffer = self.ac_in_buffer[n:]
+                    self.terminator = 0
+                    self.found_terminator()
+            else:
+                terminator_len = len(terminator)
+                index = self.ac_in_buffer.find(terminator)
+                if index != -1:
+                    if index > 0:
+                        self.collect_incoming_data(self.ac_in_buffer[:index])
+                    self.ac_in_buffer = self.ac_in_buffer[index + terminator_len:]
+                    self.found_terminator()
+                    continue
+            index = find_prefix_at_end(self.ac_in_buffer, terminator)
+            if index:
+                if index != lb:
+                    self.collect_incoming_data(self.ac_in_buffer[:-index])
+                    self.ac_in_buffer = self.ac_in_buffer[-index:]
+                break
+                continue
+            self.collect_incoming_data(self.ac_in_buffer)
+            self.ac_in_buffer = ''
 
     def handle_write(self):
         self.initiate_send()
@@ -157,14 +156,14 @@ class async_chat(asyncore.dispatcher):
                     continue
                 del self.producer_fifo[0]
                 continue
+            try:
+                num_sent = self.send(data)
+            except socket.error:
+                self.handle_error()
+                return
             if num_sent:
                 if num_sent < len(data) or obs < len(first):
                     self.producer_fifo[0] = first[num_sent:]
-                    try:
-                        num_sent = self.send(data)
-                    except socket.error:
-                        self.handle_error()
-                        return
                     continue
             del self.producer_fifo[0]
             return

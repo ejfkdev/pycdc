@@ -104,8 +104,7 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
                 next(self.gen)
             except StopIteration:
                 return False
-            else:
-                raise RuntimeError("generator didn't stop")
+            raise RuntimeError("generator didn't stop")
         else:
             if value is None:
                 value = type()

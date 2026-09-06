@@ -86,11 +86,10 @@ def _add_method(name, *args, rounds=None):
         if e.errno in {errno.EINVAL, errno.EPERM, errno.ENOSYS}:
             return False
         raise
-    else:
-        if result and len(result) == method.total_size:
-            methods.append(method)
-            return True
-        return False
+    if result and len(result) == method.total_size:
+        methods.append(method)
+        return True
+    return False
 
 _add_method('SHA512', '6', 16, 106)
 _add_method('SHA256', '5', 16, 63)

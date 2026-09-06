@@ -384,9 +384,8 @@ class Bdb:
             bp = self.get_bpbynumber(arg)
         except ValueError as err:
             return str(err)
-        else:
-            bp.deleteMe()
-            self._prune_breaks(bp.file, bp.line)
+        bp.deleteMe()
+        self._prune_breaks(bp.file, bp.line)
 
     def clear_all_file_breaks(self, filename):
         '''Delete all breakpoints in filename.

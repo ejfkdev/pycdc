@@ -219,9 +219,7 @@ def main():
         maxlevels = args.recursion
     else:
         maxlevels = args.maxlevels
-    if args.invalidation_mode:
-        ivl_mode = args.invalidation_mode.replace('-', '_').upper()
-        invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
+    if args.flist:
         try:
             with sys.stdin if args.flist == '-' else open(args.flist) as f:
                 for line in f:
@@ -230,9 +228,9 @@ def main():
             if args.quiet < 2:
                 print('Error reading file list {}'.format(args.flist))
             return False
-        else:
-            if args.flist:
-                pass
+    if args.invalidation_mode:
+        ivl_mode = args.invalidation_mode.replace('-', '_').upper()
+        invalidation_mode = py_compile.PycInvalidationMode[ivl_mode]
     else:
         invalidation_mode = None
     success = True
@@ -250,8 +248,7 @@ def main():
         if args.quiet < 2:
             print('\n[interrupted]')
         return False
-    else:
-        return True
+    return True
 
 if __name__ == '__main__':
     exit_status = int(not main())

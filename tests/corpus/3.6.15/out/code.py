@@ -62,11 +62,10 @@ class InteractiveInterpreter:
         except (OverflowError, SyntaxError, ValueError):
             self.showsyntaxerror(filename)
             return False
-        else:
-            if code is None:
-                return True
-            self.runcode(code)
-            return False
+        if code is None:
+            return True
+        self.runcode(code)
+        return False
 
     def runcode(self, code):
         '''Execute a code object.

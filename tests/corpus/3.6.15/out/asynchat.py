@@ -166,14 +166,14 @@ class async_chat(asyncore.dispatcher):
                 continue
             if isinstance(data, str) and self.use_encoding:
                 data = bytes(data, self.encoding)
+            try:
+                num_sent = self.send(data)
+            except OSError:
+                self.handle_error()
+                return
             if num_sent:
                 if num_sent < len(data) or obs < len(first):
                     self.producer_fifo[0] = first[num_sent:]
-                    try:
-                        num_sent = self.send(data)
-                    except OSError:
-                        self.handle_error()
-                        return
                 else:
                     del self.producer_fifo[0]
             return

@@ -67,8 +67,7 @@ class WeakSet:
             wr = ref(item)
         except TypeError:
             return False
-        else:
-            return wr in self.data
+        return wr in self.data
 
     def __reduce__(self):
         return self.__class__, (list(self),), getattr(self, '__dict__', None)

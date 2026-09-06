@@ -254,11 +254,11 @@ class BaseServer:
         no risk of blocking in get_request().
         '''
 
+        try:
+            request, client_address = self.get_request()
+        except socket.error:
+            return
         if self.verify_request(request, client_address):
-            try:
-                request, client_address = self.get_request()
-            except socket.error:
-                return
             try:
                 self.process_request(request, client_address)
             except:

@@ -211,36 +211,33 @@ def main():
         maxlevels = args.recursion
     else:
         maxlevels = args.maxlevels
-    try:
-        with sys.stdin if args.flist == '-' else open(args.flist) as f:
-            for line in f:
-                compile_dests.append(line.strip())
-    except OSError:
-        if args.quiet < 2:
-            print('Error reading file list {}'.format(args.flist))
-        return False
-    else:
-        if args.flist:
-            pass
-        if args.workers is not None:
-            args.workers = args.workers or None
-        success = True
+    if args.flist:
+        try:
+            with sys.stdin if args.flist == '-' else open(args.flist) as f:
+                for line in f:
+                    compile_dests.append(line.strip())
+        except OSError:
+            if args.quiet < 2:
+                print('Error reading file list {}'.format(args.flist))
+            return False
+    if args.workers is not None:
+        args.workers = args.workers or None
+    success = True
     try:
         if compile_dests:
             for dest in compile_dests:
                 if os.path.isfile(dest):
                     if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy):
                         success = False
-                        if not compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers):
-                            success = False
+                elif not compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers):
+                    success = False
             return success
         return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)
     except KeyboardInterrupt:
         if args.quiet < 2:
             print('\n[interrupted]')
         return False
-    else:
-        return True
+    return True
 
 if __name__ == '__main__':
     exit_status = int(not main())

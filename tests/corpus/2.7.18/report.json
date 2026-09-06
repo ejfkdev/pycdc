@@ -3,15 +3,15 @@
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
   "SIG-DIFF": 20,
-  "PASS": 9,
-  "AST-PASS": 11
+  "PASS": 10,
+  "AST-PASS": 10
  },
  "results": [
   {
    "module": "BaseHTTPServer",
    "ast_detail": "diff at token 191: orig  ctx=Store()) | dec  ctx=Store())]",
    "verdict": "SIG-DIFF",
-   "ndiff": 778,
+   "ndiff": 776,
    "ntotal": 1159,
    "detail": "line 378: orig ('DUP_TOP', '') | got ('LOAD_FAST', 'self')\nline 379: orig ('LOAD_FAST', 'self') | got ('STORE_ATTR', 'request_version')\nline 380: orig ('STORE_ATTR', 'request_version') | got ('LOAD_FAST', 'self')"
   },
@@ -23,8 +23,8 @@
    "module": "CGIHTTPServer",
    "ast_detail": "diff at token 776: orig  If(test=Compare(left=Call(func=Attribute(value=Subscript(value=Name(id='authorization' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 509,
-   "ntotal": 1247,
+   "ndiff": 507,
+   "ntotal": 1245,
    "detail": "line 48: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 524: orig ('SETUP_EXCEPT', '#323') | got ('LOAD_GLOBAL', 'len')\nline 525: orig ('LOAD_FAST', 'base64') | got ('LOAD_FAST', 'authorization')"
   },
   {
@@ -55,7 +55,7 @@
    "module": "HTMLParser",
    "ast_detail": "diff at token 752: orig  right=Num(n=1)))] | dec  right=Num(n=1)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1066,
+   "ndiff": 1065,
    "ntotal": 1607,
    "detail": "line 359: orig ('SETUP_LOOP', '#378') | got ('SETUP_LOOP', '#253')\nline 363: orig ('POP_JUMP_IF_FALSE', '#377') | got ('POP_JUMP_IF_FALSE', '#252')\nline 417: orig ('POP_JUMP_IF_FALSE', '#199') | got ('POP_JUMP_IF_FALSE', '#182')"
   },
@@ -101,7 +101,7 @@
   },
   {
    "module": "UserDict",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "UserList",
@@ -183,7 +183,7 @@
    "module": "asynchat",
    "ast_detail": "diff at token 842: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 53,
+   "ndiff": 54,
    "ntotal": 813,
    "detail": "line 555: orig ('JUMP_FORWARD', '#85') | got ('JUMP_FORWARD', '#84')\nline 559: orig ('POP_JUMP_IF_FALSE', '#84') | got ('POP_JUMP_IF_FALSE', '#83')\nline 575: orig ('JUMP_ABSOLUTE', '#1') | got ('JUMP_ABSOLUTE', '#84')"
   },

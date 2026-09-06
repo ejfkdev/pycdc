@@ -3,15 +3,15 @@
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "SIG-DIFF": 24,
-  "PASS": 7,
-  "AST-PASS": 9
+  "PASS": 8,
+  "AST-PASS": 8
  },
  "results": [
   {
    "module": "BaseHTTPServer",
    "ast_detail": "diff at token 191: orig  ctx=Store()) | dec  ctx=Store())]",
    "verdict": "SIG-DIFF",
-   "ndiff": 799,
+   "ndiff": 797,
    "ntotal": 1191,
    "detail": "line 387: orig ('DUP_TOP', '') | got ('LOAD_FAST', 'self')\nline 388: orig ('LOAD_FAST', 'self') | got ('STORE_ATTR', 'request_version')\nline 389: orig ('STORE_ATTR', 'request_version') | got ('LOAD_FAST', 'self')"
   },
@@ -23,8 +23,8 @@
    "module": "CGIHTTPServer",
    "ast_detail": "diff at token 796: orig  If(test=Compare(left=Call(func=Attribute(value=Subscript(value=Name(id='authorization' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 960,
-   "ntotal": 1253,
+   "ndiff": 958,
+   "ntotal": 1251,
    "detail": "line 41: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 243: orig ('SETUP_LOOP', '#67') | got ('SETUP_LOOP', '#68')\nline 247: orig ('JUMP_IF_FALSE', '#65') | got ('JUMP_IF_FALSE', '#66')"
   },
   {
@@ -75,8 +75,8 @@
    "module": "SimpleHTTPServer",
    "ast_detail": "diff at token 138: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 413,
-   "ntotal": 679,
+   "ndiff": 410,
+   "ntotal": 676,
    "detail": "line 210: orig ('JUMP_IF_FALSE', '#75') | got ('JUMP_IF_FALSE', '#42')\nline 217: orig ('JUMP_IF_TRUE', '#42') | got ('JUMP_IF_FALSE', '#42')\nline 240: orig ('SETUP_LOOP', '#76') | got ('SETUP_LOOP', '#75')"
   },
   {
@@ -85,9 +85,9 @@
   },
   {
    "module": "SocketServer",
-   "ast_detail": "diff at token 308: orig  body=[TryExcept(body=[Assign(targets=[Tuple(elts=[Name(id='request' | dec  body=[If(test=Call(func=Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 483: orig  values=[Str(s='Exception happened during processing of request from')] | dec  values=[Str(s='Exception happened during processing of request from')",
    "verdict": "SIG-DIFF",
-   "ndiff": 932,
+   "ndiff": 931,
    "ntotal": 1270,
    "detail": "line 288: orig ('SETUP_FINALLY', '#39') | got ('SETUP_FINALLY', '#40')\nline 289: orig ('SETUP_LOOP', '#37') | got ('SETUP_LOOP', '#38')\nline 292: orig ('JUMP_IF_TRUE', '#35') | got ('JUMP_IF_TRUE', '#36')"
   },
@@ -101,7 +101,7 @@
   },
   {
    "module": "UserDict",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "UserList",
@@ -175,7 +175,7 @@
    "module": "asynchat",
    "ast_detail": "diff at token 376: orig  kwargs=None)) | dec  kwargs=None))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 586,
+   "ndiff": 588,
    "ntotal": 854,
    "detail": "line 222: orig ('SETUP_LOOP', '#210') | got ('SETUP_LOOP', '#213')\nline 225: orig ('JUMP_IF_FALSE', '#208') | got ('JUMP_IF_FALSE', '#211')\nline 237: orig ('JUMP_IF_TRUE', '#59') | got ('JUMP_IF_TRUE', '#60')"
   },

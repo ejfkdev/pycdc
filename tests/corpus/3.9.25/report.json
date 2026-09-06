@@ -97,8 +97,8 @@
    "module": "_weakrefset",
    "ast_detail": "diff at token 238: orig  body=[Return()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 566,
-   "ntotal": 907,
+   "ndiff": 565,
+   "ntotal": 906,
    "detail": "line 323: orig ('JUMP_FORWARD', 'to 48') | got ('JUMP_FORWARD', 'to 46')\nline 331: orig ('LOAD_CONST', 'None') | got ('JUMP_ABSOLUTE', '')\nline 332: orig ('RETURN_VALUE', '') | got ('RERAISE', '')"
   },
   {
@@ -116,7 +116,7 @@
   {
    "module": "ast",
    "verdict": "INCOMPLETE",
-   "ndiff": 5316,
+   "ndiff": 5347,
    "ntotal": 7116,
    "detail": "line 1460: orig ('SETUP_FINALLY', 'to 64') | got ('LOAD_FAST', 'padded')\nline 1461: orig ('LOAD_FAST', 'node') | got ('POP_JUMP_IF_FALSE', '')\nline 1462: orig ('LOAD_ATTR', 'end_lineno') | got ('LOAD_GLOBAL', '_pad_whitespace')"
   },
@@ -217,9 +217,9 @@
    "module": "code",
    "ast_detail": "diff at token 513: orig  While(test=Name(id='True' | dec  Try(body=[Assign(targets=[Name(id='line'",
    "verdict": "SIG-DIFF",
-   "ndiff": 548,
-   "ntotal": 745,
-   "detail": "line 182: orig ('runcode', 2) | got ('LOAD_CONST', 'None')\nline 183: orig ('SETUP_FINALLY', 'to 18') | got ('RETURN_VALUE', '')\nline 184: orig ('LOAD_GLOBAL', 'exec') | got ('runcode', 2)"
+   "ndiff": 237,
+   "ntotal": 743,
+   "detail": "line 501: orig ('SETUP_FINALLY', 'to 228') | got ('SETUP_FINALLY', 'to 160')\nline 502: orig ('LOAD_FAST', 'more') | got ('LOAD_FAST', 'self')\nline 503: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_METHOD', 'raw_input')"
   },
   {
    "module": "codecs",
@@ -242,7 +242,7 @@
    "ast_detail": "diff at token 747: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  Try(body=[For(target=Tuple(elts=[Name(id='index'",
    "verdict": "SIG-DIFF",
    "ndiff": 902,
-   "ntotal": 1517,
+   "ntotal": 1515,
    "detail": "line 587: orig ('LOAD_GLOBAL', 'os') | got ('SETUP_FINALLY', 'to 522')\nline 588: orig ('LOAD_ATTR', 'path') | got ('LOAD_GLOBAL', 'enumerate')\nline 589: orig ('LOAD_METHOD', 'isfile') | got ('LOAD_FAST', 'optimize')"
   },
   {

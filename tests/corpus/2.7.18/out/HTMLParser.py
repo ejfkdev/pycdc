@@ -332,22 +332,22 @@ class HTMLParser(markupbase.ParserBase):
             return s
         def replaceEntities(s):
             s = s.groups()[0]
+            try:
+                if s[0] == '#':
+                    s = s[1:]
+                    if s[0] in ('x', 'X'):
+                        c = int(s[1:], 16)
+                    else:
+                        c = int(s)
+                    return unichr(c)
+            except ValueError:
+                return '&#' + s + ';'
             if HTMLParser.entitydefs is None:
                 import htmlentitydefs
                 entitydefs = {'apos': "'"}
                 for k, v in htmlentitydefs.name2codepoint.iteritems():
                     entitydefs[k] = unichr(v)
                 HTMLParser.entitydefs = entitydefs
-                try:
-                    if s[0] == '#':
-                        s = s[1:]
-                        if s[0] in ('x', 'X'):
-                            c = int(s[1:], 16)
-                        else:
-                            c = int(s)
-                        return unichr(c)
-                except ValueError:
-                    return '&#' + s + ';'
             try:
                 return self.entitydefs[s]
             except KeyError:

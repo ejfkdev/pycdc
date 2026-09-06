@@ -282,8 +282,7 @@ def executable(path):
         st = os.stat(path)
     except os.error:
         return False
-    else:
-        return st.st_mode & 73 != 0
+    return st.st_mode & 73 != 0
 
 def test(HandlerClass=CGIHTTPRequestHandler, ServerClass=BaseHTTPServer.HTTPServer):
     SimpleHTTPServer.test(HandlerClass, ServerClass)

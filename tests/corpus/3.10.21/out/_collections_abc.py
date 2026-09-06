@@ -814,8 +814,7 @@ class ItemsView(MappingView, Set):
             v = self._mapping[key]
         except KeyError:
             return False
-        else:
-            return v is value or v == value
+        return v is value or v == value
 
     def __iter__(self):
         for key in self._mapping:
@@ -870,9 +869,8 @@ class MutableMapping(Mapping):
             if default is self.__marker:
                 raise
             return default
-        else:
-            del self[key]
-            return value
+        del self[key]
+        return value
 
     def popitem(self):
         '''D.popitem() -> (k, v), remove and return some (key, value) pair
@@ -974,17 +972,17 @@ class Sequence(Reversible, Collection):
             stop += len(self)
         i = start
         if stop is None or i < stop:
+            try:
+                v = self[i]
+                if v is value or v == value:
+                    return i
+            except IndexError:
+                raise ValueError
+            i += 1
+            if stop is not None:
+                pass
             if not i < stop:
-                try:
-                    v = self[i]
-                    if v is value or v == value:
-                        return i
-                except IndexError:
-                    raise ValueError
-                else:
-                    i += 1
-                    if stop is not None:
-                        pass
+                pass
         raise ValueError
 
     def count(self, value):

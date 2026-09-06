@@ -157,8 +157,7 @@ class DictMixin:
             self[key]
         except KeyError:
             return False
-        else:
-            return True
+        return True
 
     def __contains__(self, key):
         return self.has_key(key)

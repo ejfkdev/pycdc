@@ -4681,6 +4681,7 @@ impl<'a> Ctx<'a> {
                         if let Some(l) = self.legacy_try.as_mut() {
                             l.chain_done = true;
                         }
+                        self.retract_escaping_else(pos);
                     } else {
                         let l = self.legacy_try.take().unwrap();
                         self.restore_legacy_nest();
@@ -4707,6 +4708,7 @@ impl<'a> Ctx<'a> {
                         }
                     }
                 }
+                self.retract_escaping_else(pos);
                 if end_at_chain {
                     let l = self.legacy_try.take().unwrap();
                     self.flush_pending_stores();
@@ -9911,6 +9913,152 @@ impl<'a> Ctx<'a> {
                 .map(|b| b.end.min(self.cur_offset.max(b.start)))
                 .unwrap_or(self.cur_offset);
             self.force_close_top(end);
+        }
+    }
+
+    /// When every collected handler's paths all end the scope
+    /// (return/raise/break/continue), the continuation at the body-jump
+    /// target is unreachable from the handler flow: `try + continuation`
+    /// and `try/else + continuation` are bytecode-identical, so retract
+    /// the presumed else region and render the continuation flat — the
+    /// source form (asynchat 2.7 handle_read, crypt's always-raising
+    /// import guard, compileall 3.6 flist guard whose If-merge coincides
+    /// with the continuation and would otherwise close empty INSIDE the
+    /// swallowed else region). Genuine `else:` sources with escaping
+    /// handlers render flat too — semantically identical.
+    fn retract_escaping_else(&mut self, pos: usize) {
+        // a chain nested inside a still-open handler body is folded by the
+        // outer chain's machinery (begin/finish_legacy_nest): retracting
+        // its presumed else fires the deferred flush mid-nest and tears
+        // the outer handler down (b05 t7/bare_raise lost the nested try).
+        // ≤3.7 nesting STASHES the outer chain into legacy_nest (the
+        // single legacy_handler slot parses the inner chain), so both
+        // slots must be quiescent
+        if self.legacy_handler.is_some() || !self.legacy_nest.is_empty() {
+            return;
+        }
+        let retract = self
+            .legacy_try
+            .as_ref()
+            .map_or(false, |l| {
+                l.chain_done
+                    && !l.has_finally
+                    && l.orelse.is_empty()
+                    && l.else_start.is_some()
+                    // no unparsed clause heads past this chain end
+                    && !l.pending_mismatch.iter().any(|&m| {
+                        m > pos
+                            && self
+                                .idx_of
+                                .get(&m)
+                                .and_then(|&mi| self.instrs.get(mi))
+                                .map_or(false, |x| x.op == Op::DUP_TOP)
+                    })
+                    && l.handlers
+                        .iter()
+                        .all(|h| {
+                            let t = h.body.last();
+                            // RETURN/RAISE handlers leave no usable
+                            // cleanup edge (py2/3.6+: none at all; 3.5:
+                            // dead overfly) — the Stmt-level check plus
+                            // the geometric discriminators below decide
+                            // those. BREAK/CONTINUE are excluded here
+                            // (see the match arm)
+                            // BREAK/CONTINUE handlers always carry a
+                            // compiler cleanup edge whose target is the
+                            // geometric discriminator (flat: lands on
+                            // the continuation == else_start, retracted
+                            // by the handler-exit-jump rule; else:
+                            // lands on the loop top / region end).
+                            // Never Stmt-retract those — _sitebuiltins
+                            // _Printer.__call__ 3.5-3.7 `except
+                            // IndexError: break` + JABS-to-loop-top was
+                            // PASS with the else form.
+                            matches!(
+                                t,
+                                Some(Stmt::Return(_)) | Some(Stmt::Raise { .. })
+                            )
+                        })
+                    // 3.3+ dead-code discriminator: a genuine `else:`
+                    // makes the compiler emit each handler's dead
+                    // normal-exit cleanup (POP_EXCEPT; JF) targeting the
+                    // POST-else merge, while a flat continuation gets
+                    // cleanup targeting the continuation itself (== the
+                    // body jump's target, retracted earlier) or none at
+                    // all. A cleanup jump that OVERFLIES the presumed
+                    // else region is therefore proof of a real else —
+                    // keep it (_collections_abc __contains__ 3.5-3.8,
+                    // code 3.3, _sitebuiltins 3.5-3.7 were PASS with
+                    // the else form). py2 emits no such cleanup.
+                    && !l.else_start.map_or(false, |es| {
+                        let hs = l.handler_start;
+                        self.instrs.iter().any(|x| {
+                            x.offset >= hs
+                                && x.offset < es
+                                && matches!(
+                                    x.op,
+                                    Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE | Op::JUMP
+                                )
+                                && x.target.map_or(false, |t| t > es)
+                        })
+                    })
+                    // dead function-tail epilogue discriminator: when
+                    // the presumed else region's flow all-returns, a
+                    // genuine `else:` leaves an UNREACHABLE `LOAD None;
+                    // RETURN` pair at the code tail (the else clause's
+                    // merge point, 3.5-3.10 _collections_abc
+                    // __contains__), while a flat all-returning
+                    // continuation ends the code object at its own
+                    // return — no dead pair. A LIVE epilogue
+                    // (jump-targeted or fall-through-reachable, e.g. a
+                    // loop-exit POP_BLOCK before it) is the flat
+                    // continuation case (asynchat handle_read) and
+                    // still retracts. py2 all-return flat forms end at
+                    // their own RETURN and never carry a dead pair.
+                    && !l.else_start.map_or(false, |_es| {
+                        let n = self.instrs.len();
+                        if n < 2 {
+                            return false;
+                        }
+                        let last = &self.instrs[n - 1];
+                        let prev = &self.instrs[n - 2];
+                        let none_const = matches!(prev.op, Op::LOAD_CONST)
+                            && self
+                                .code
+                                .consts
+                                .get(prev.arg as usize)
+                                .map_or(false, |o| matches!(&**o, PyObject::None));
+                        if !(none_const
+                            && matches!(
+                                last.op,
+                                Op::RETURN_VALUE | Op::RETURN_CONST
+                            ))
+                        {
+                            return false;
+                        }
+                        // nothing jumps to the epilogue, and the
+                        // instruction before it terminates (unreachable
+                        // fall-through) => dead pair
+                        !self.targets.contains(&prev.offset)
+                            && self.idx_of.get(&prev.offset).map_or(false, |&pi| {
+                                pi > 0
+                                    && matches!(
+                                        self.instrs[pi - 1].op,
+                                        Op::RETURN_VALUE
+                                            | Op::RETURN_CONST
+                                            | Op::RAISE_VARARGS
+                                            | Op::JUMP_FORWARD
+                                            | Op::JUMP_ABSOLUTE
+                                            | Op::JUMP
+                                            | Op::BREAK_LOOP
+                                    )
+                            })
+                    })
+            });
+        if retract {
+            if let Some(l) = self.legacy_try.as_mut() {
+                l.else_start = None;
+            }
         }
     }
 

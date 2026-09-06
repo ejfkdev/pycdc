@@ -293,8 +293,7 @@ class Cmd:
                     pass
                 self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
                 return
-            else:
-                func()
+            func()
         else:
             names = self.get_names()
             cmds_doc = []

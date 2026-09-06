@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 13,
-  "SIG-DIFF": 21,
+  "PASS": 14,
+  "SIG-DIFF": 20,
   "INCOMPLETE": 6
  },
  "results": [
@@ -87,11 +87,7 @@
   },
   {
    "module": "_weakrefset",
-   "ast_detail": "diff at token 559: orig  keywords=[]))] | dec  keywords=[]))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 493,
-   "ntotal": 877,
-   "detail": "line 382: orig ('__reduce__', 1) | got ('LOAD_CONST', 'None')\nline 383: orig ('LOAD_FAST', 'self') | got ('RETURN_VALUE', '')\nline 384: orig ('LOAD_ATTR', '__class__') | got ('__reduce__', 1)"
+   "verdict": "PASS"
   },
   {
    "module": "abc",
@@ -109,7 +105,7 @@
    "module": "ast",
    "ast_detail": "diff at token 572: orig  body=[Try(body=[Assign(targets=[Name(id='value' | dec  body=[If(test=Name(id='keywords'",
    "verdict": "SIG-DIFF",
-   "ndiff": 623,
+   "ndiff": 624,
    "ntotal": 1734,
    "detail": "line 561: orig ('SETUP_FINALLY', 'to 44') | got ('LOAD_FAST', 'keywords')\nline 562: orig ('LOAD_GLOBAL', 'getattr') | got ('POP_JUMP_IF_FALSE', '')\nline 563: orig ('LOAD_FAST', 'node') | got ('LOAD_FAST', 'args')"
   },
@@ -210,9 +206,9 @@
    "module": "code",
    "ast_detail": "diff at token 657: orig  While(test=Name(id='True' | dec  Try(body=[Assign(targets=[Name(id='line'",
    "verdict": "SIG-DIFF",
-   "ndiff": 581,
-   "ntotal": 782,
-   "detail": "line 185: orig ('runcode', 2) | got ('LOAD_CONST', 'None')\nline 186: orig ('SETUP_FINALLY', 'to 18') | got ('RETURN_VALUE', '')\nline 187: orig ('LOAD_GLOBAL', 'exec') | got ('runcode', 2)"
+   "ndiff": 270,
+   "ntotal": 780,
+   "detail": "line 504: orig ('SETUP_FINALLY', 'to 234') | got ('SETUP_FINALLY', 'to 164')\nline 505: orig ('LOAD_FAST', 'more') | got ('LOAD_FAST', 'self')\nline 506: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_METHOD', 'raw_input')"
   },
   {
    "module": "codecs",
@@ -234,8 +230,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 619: orig  type_comment=None) | dec  type_comment=None)]",
    "verdict": "SIG-DIFF",
-   "ndiff": 690,
-   "ntotal": 1099,
+   "ndiff": 686,
+   "ntotal": 1097,
    "detail": "line 399: orig ('LOAD_GLOBAL', 'os') | got ('SETUP_FINALLY', 'to 130')\nline 400: orig ('LOAD_ATTR', 'path') | got ('LOAD_GLOBAL', 'py_compile')\nline 401: orig ('LOAD_METHOD', 'isfile') | got ('LOAD_ATTR', 'compile')"
   },
   {
