@@ -19785,12 +19785,13 @@ fn tail_pair_load_offset(
     {
         return None;
     }
-    // 3.8+ sinks one `return None` copy per ending branch — adjacent
-    // copies at the code end forge the tail-pair signature for shapes
-    // that never had an implicit pair (if c: try/finally), and the
-    // rebuild then misfires badly (aifc 3.11 +653). The genuine
-    // shared-pair shape this reconstructs is the pre-3.8 compiler's.
-    if version.at_least(3, 8) {
+    // 3.10+ sinks `return None` copies per ending branch/try arm —
+    // adjacent copies at the code end forge the tail-pair signature for
+    // shapes that never had an implicit pair (if c: try/finally), and
+    // the rebuild then misfires badly (aifc 3.11 +653). 3.8/3.9 still
+    // emit the genuine shared pair (_dummy_thread acquire ends
+    // `RETURN False; LOAD None; RETURN`).
+    if version.at_least(3, 10) {
         return None;
     }
     let is_none_load = |i: usize| {

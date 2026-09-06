@@ -335,11 +335,13 @@ def open(filename, mode='rb', compresslevel=9, encoding=None, errors=None, newli
         raise ValueError("Argument 'errors' not supported in binary mode")
     if newline is not None:
         raise ValueError("Argument 'newline' not supported in binary mode")
-    bz_mode = mode.replace('t', '')
-    binary_file = BZ2File(filename, bz_mode, compresslevel=compresslevel)
-    if 't' in mode:
-        return io.TextIOWrapper(binary_file, encoding, errors, newline)
-    return binary_file
+    else:
+        bz_mode = mode.replace('t', '')
+        binary_file = BZ2File(filename, bz_mode, compresslevel=compresslevel)
+        if 't' in mode:
+            return io.TextIOWrapper(binary_file, encoding, errors, newline)
+        else:
+            return binary_file
 
 def compress(data, compresslevel=9):
     '''Compress a block of data.

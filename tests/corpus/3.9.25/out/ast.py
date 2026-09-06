@@ -716,7 +716,8 @@ class _Unparser(NodeVisitor):
     def delimit_if(self, start, end, condition):
         if condition:
             return self.delimit(start, end)
-        return nullcontext()
+        else:
+            return nullcontext()
 
     def require_parens(self, precedence, node):
         '''Shortcut to adding precedence related parens'''
@@ -738,10 +739,12 @@ class _Unparser(NodeVisitor):
 
         if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)) or len(node.body) < 1:
             return
-        node = node.body[0]
-        if not isinstance(node, Expr):
-            return
-        node = node.value
+        else:
+            node = node.body[0]
+            if not isinstance(node, Expr):
+                return
+            else:
+                node = node.value
         if isinstance(node, Constant) and isinstance(node.value, str):
             return node
 

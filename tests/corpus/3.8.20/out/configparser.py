@@ -479,7 +479,8 @@ class LegacyInterpolation(Interpolation):
         s = match.group(1)
         if s is None:
             return match.group()
-        return '%%(%s)s' % parser.optionxform(s)
+        else:
+            return '%%(%s)s' % parser.optionxform(s)
 
 
 class RawConfigParser(MutableMapping):
@@ -682,7 +683,8 @@ class RawConfigParser(MutableMapping):
             return fallback
         if raw or value is None:
             return value
-        return self._interpolation.before_get(self, section, option, value, d)
+        else:
+            return self._interpolation.before_get(self, section, option, value, d)
 
     def _get(self, section, conv, option, **kwargs):
         return conv(self.get(section, option, **kwargs))
@@ -758,10 +760,11 @@ class RawConfigParser(MutableMapping):
         if not section or section == self.default_section:
             option = self.optionxform(option)
             return option in self._defaults
-        if section not in self._sections:
+        elif section not in self._sections:
             return False
-        option = self.optionxform(option)
-        return option in self._sections[section] or option in self._defaults
+        else:
+            option = self.optionxform(option)
+            return option in self._sections[section] or option in self._defaults
 
     def set(self, section, option, value=None):
         '''Set an option.'''
@@ -1118,7 +1121,8 @@ class SectionProxy(MutableMapping):
     def _options(self):
         if self._name != self._parser.default_section:
             return self._parser.options(self._name)
-        return self._parser.defaults()
+        else:
+            return self._parser.defaults()
 
     @property
     def parser(self):

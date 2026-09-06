@@ -2,10 +2,10 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 9,
+  "PASS": 10,
   "SIG-DIFF": 22,
-  "AST-PASS": 2,
-  "INCOMPLETE": 7
+  "INCOMPLETE": 7,
+  "AST-PASS": 1
  },
  "results": [
   {
@@ -38,7 +38,7 @@
   },
   {
    "module": "_dummy_thread",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "_markupbase",
@@ -51,9 +51,9 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1227,
+   "ndiff": 1231,
    "ntotal": 1434,
-   "detail": "line 182: orig ('LOAD_CONST', 'None') | got ('_read_output', 2)\nline 183: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', '0')\nline 184: orig ('_read_output', 2) | got ('LOAD_CONST', 'None')"
+   "detail": "line 178: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 134')\nline 179: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')\nline 180: orig ('LOAD_FAST', 'executable') | got ('RETURN_VALUE', '')"
   },
   {
    "module": "_py_abc",
@@ -63,7 +63,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 216: orig  body=[Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  body=[Break()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 168,
+   "ndiff": 126,
    "ntotal": 362,
    "detail": "line 177: orig ('FOR_ITER', 'to 88') | got ('FOR_ITER', 'to 124')\nline 179: orig ('SETUP_FINALLY', 'to 66') | got ('POP_TOP', '')\nline 180: orig ('LOAD_GLOBAL', 'open') | got ('JUMP_ABSOLUTE', '')"
   },
@@ -71,8 +71,8 @@
    "module": "_strptime",
    "ast_detail": "diff at token 2179: orig  type_comment=None)] | dec  type_comment=None)",
    "verdict": "SIG-DIFF",
-   "ndiff": 2034,
-   "ntotal": 2137,
+   "ndiff": 2028,
+   "ntotal": 2139,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {
@@ -118,7 +118,7 @@
    "module": "asynchat",
    "ast_detail": "diff at token 300: orig  body=[Return(value=None)]) | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 534,
+   "ndiff": 533,
    "ntotal": 810,
    "detail": "line 227: orig ('JUMP_FORWARD', 'to 86') | got ('JUMP_FORWARD', 'to 84')\nline 236: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 84')\nline 237: orig ('RETURN_VALUE', '') | got ('DUP_TOP', '')"
   },
@@ -139,9 +139,9 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 1662: orig  type_comment=None) | dec  type_comment=None)]",
+   "ast_detail": "diff at token 945: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2241,
+   "ndiff": 2255,
    "ntotal": 2369,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -168,21 +168,21 @@
    "module": "cProfile",
    "ast_detail": "diff at token 610: orig  type_comment=None)] | dec  type_comment=None)",
    "verdict": "SIG-DIFF",
-   "ndiff": 255,
+   "ndiff": 263,
    "ntotal": 715,
    "detail": "line 445: orig ('SETUP_FINALLY', 'to 134') | got ('SETUP_FINALLY', 'to 124')\nline 446: orig ('LOAD_FAST', 'func') | got ('POP_BLOCK', '')\nline 447: orig ('LOAD_FAST', 'args') | got ('BEGIN_FINALLY', '')"
   },
   {
    "module": "calendar",
    "verdict": "INCOMPLETE",
-   "ndiff": 2587,
+   "ndiff": 2380,
    "ntotal": 3067,
-   "detail": "line 424: orig ('LOAD_CONST', 'None') | got ('<listcomp>', 1)\nline 425: orig ('RETURN_VALUE', '') | got ('BUILD_LIST', '')\nline 426: orig ('<listcomp>', 1) | got ('LOAD_FAST', '.0')"
+   "detail": "line 615: orig ('monthrange', 2) | got ('LOAD_CONST', 'None')\nline 616: orig ('LOAD_CONST', '1') | got ('RETURN_VALUE', '')\nline 617: orig ('LOAD_FAST', 'month') | got ('monthrange', 2)"
   },
   {
    "module": "cgi",
    "verdict": "INCOMPLETE",
-   "ndiff": 2766,
+   "ndiff": 2744,
    "ntotal": 2900,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
@@ -190,9 +190,9 @@
    "module": "cgitb",
    "ast_detail": "diff at token 181: orig  If(test=Compare(left=Call(func=Name(id='type' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1292,
+   "ndiff": 1202,
    "ntotal": 1431,
-   "detail": "line 111: orig ('LOAD_CONST', 'None') | got ('strong', 1)\nline 112: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'text')\nline 113: orig ('strong', 1) | got ('POP_JUMP_IF_FALSE', '')"
+   "detail": "line 184: orig ('LOAD_CONST', \"'builtin'\") | got ('LOAD_GLOBAL', 'hasattr')\nline 187: orig ('BINARY_SUBSCR', '') | got ('CALL_FUNCTION', '')\nline 188: orig ('BUILD_TUPLE', '') | got ('POP_JUMP_IF_FALSE', '')"
   },
   {
    "module": "chunk",
@@ -246,7 +246,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1614: orig  keywords=[])) | dec  keywords=[]))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2796,
+   "ndiff": 2820,
    "ntotal": 4350,
    "detail": "line 1088: orig ('JUMP_FORWARD', 'to 336') | got ('JUMP_ABSOLUTE', '')\nline 1414: orig ('JUMP_FORWARD', 'to 472') | got ('JUMP_ABSOLUTE', '')\nline 1472: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')"
   },
@@ -265,9 +265,9 @@
    "module": "copyreg",
    "ast_detail": "diff at token 245: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
-   "ndiff": 255,
+   "ndiff": 149,
    "ntotal": 544,
-   "detail": "line 181: orig ('POP_JUMP_IF_FALSE', '') | got ('POP_JUMP_IF_TRUE', '')\nline 186: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 287: orig ('LOAD_CONST', 'None') | got ('__newobj__', 1)"
+   "detail": "line 181: orig ('POP_JUMP_IF_FALSE', '') | got ('POP_JUMP_IF_TRUE', '')\nline 186: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 328: orig ('JUMP_FORWARD', 'to 188') | got ('JUMP_FORWARD', 'to 184')"
   },
   {
    "module": "crypt",
