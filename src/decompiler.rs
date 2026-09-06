@@ -7952,6 +7952,82 @@ impl<'a> Ctx<'a> {
                         }
                         return true;
                     }
+                    // unreachable back-edge padding: a jump right after a
+                    // RAISE/RETURN ending an arm, with no jump landing on
+                    // it, is a dead copy from an unoptimized compiler
+                    // (2.6/3.5/3.6). is_continue_jump below would render
+                    // it as a spurious `continue` inside the terminating
+                    // arm (chunk.skip 2.6). Placement AFTER the folded
+                    // machinery is deliberate: an arm-end jump to the
+                    // loop top that folds as a chain exit keeps the elif
+                    // chain intact (configparser 3.5 _read) — only the
+                    // non-folding remainder is dead padding.
+                    if !lands_on_back_edge && inst.is_backward {
+                        if let Some(&ci) = self.idx_of.get(&inst.offset) {
+                            if ci > 0 {
+                                let prev = &self.instrs[ci - 1];
+                                if matches!(
+                                    prev.op,
+                                    Op::RAISE_VARARGS
+                                        | Op::RETURN_VALUE
+                                        | Op::RETURN_CONST
+                                ) && !self.targets.contains(&inst.offset)
+                                {
+                                    // the dead edge may still be the loop's
+                                    // LAST physical back edge (configparser
+                                    // 3.6 _interpolate_some: raise, dead
+                                    // JABS, POP_BLOCK, function-tail
+                                    // return) — close the loop like the
+                                    // back-edge handler would. When a REAL
+                                    // back edge follows (dead jump
+                                    // mid-body), keep the loop open —
+                                    // closing early triggers the else
+                                    // probe and steals the rest of the
+                                    // body into a phantom for-else
+                                    // (SimpleXMLRPCServer 2.6)
+                                    let more_back_edges = self
+                                        .instrs
+                                        .iter()
+                                        .skip(ci + 1)
+                                        .any(|x| {
+                                            x.is_backward
+                                                && matches!(
+                                                    x.op,
+                                                    Op::JUMP_ABSOLUTE
+                                                        | Op::JUMP_BACKWARD
+                                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                        | Op::JUMP
+                                                )
+                                                && x.target == Some(target)
+                                        });
+                                    if !more_back_edges {
+                                        let n = self.blocks.len();
+                                        for i in (0..n).rev() {
+                                            if matches!(
+                                                self.blocks[i].kind,
+                                                BlockType::While | BlockType::For
+                                            ) && (self.blocks[i].start == target
+                                                || self.blocks[i].end == target)
+                                            {
+                                                while self.blocks.len() > i + 1 {
+                                                    let p = self
+                                                        .blocks
+                                                        .last()
+                                                        .map(|x| x.start)
+                                                        .unwrap_or(target);
+                                                    self.force_close_top(p);
+                                                }
+                                                self.force_close_top(target);
+                                                self.closed_loop_tops.push(target);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    return true;
+                                }
+                            }
+                        }
+                    }
                     if !lands_on_back_edge && self.is_continue_jump(target) {
                         // continue of an outer loop: emit first, then close
                         // the inner blocks it jumps out of

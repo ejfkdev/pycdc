@@ -148,43 +148,42 @@ class ParserBase:
                     j = self.parse_comment(j, report=0)
                     if j < 0:
                         return j
-                    continue
-            name, j = self._scan_name(j + 2, declstartpos)
-            if j == -1:
-                return -1
-            if name not in frozenset({'element', 'attlist', 'entity', 'notation'}):
-                self.updatepos(declstartpos, j + 2)
-                self.error('unknown declaration %r in internal subset' % name)
-            meth = getattr(self, '_parse_doctype_' + name)
-            j = meth(j, declstartpos)
-            if j < 0:
-                return j
-                continue
-            if c == '%':
-                if j + 1 == n:
+                name, j = self._scan_name(j + 2, declstartpos)
+                if j == -1:
                     return -1
-                s, j = self._scan_name(j + 1, declstartpos)
+                if name not in frozenset({'element', 'attlist', 'entity', 'notation'}):
+                    self.updatepos(declstartpos, j + 2)
+                    self.error('unknown declaration %r in internal subset' % name)
+                meth = getattr(self, '_parse_doctype_' + name)
+                j = meth(j, declstartpos)
                 if j < 0:
                     return j
-                if rawdata[j] == ';':
-                    j = j + 1
-            elif c == ']':
-                j = j + 1
-                while j < n and rawdata[j].isspace():
-                    j = j + 1
-                if j < n:
-                    if rawdata[j] == '>':
-                        return j
-                    self.updatepos(declstartpos, j)
-                    self.error('unexpected char after internal subset')
+                    if c == '%':
+                        if j + 1 == n:
+                            return -1
+                        s, j = self._scan_name(j + 1, declstartpos)
+                        if j < 0:
+                            return j
+                        if rawdata[j] == ';':
+                            j = j + 1
+                    elif c == ']':
+                        j = j + 1
+                        while j < n and rawdata[j].isspace():
+                            j = j + 1
+                        if j < n:
+                            if rawdata[j] == '>':
+                                return j
+                            self.updatepos(declstartpos, j)
+                            self.error('unexpected char after internal subset')
+                        else:
+                            return -1
+                    elif c.isspace():
+                        j = j + 1
+                    else:
+                        self.updatepos(declstartpos, j)
+                        self.error('unexpected char %r in internal subset' % c)
                 else:
                     return -1
-            elif c.isspace():
-                j = j + 1
-            else:
-                self.updatepos(declstartpos, j)
-                self.error('unexpected char %r in internal subset' % c)
-        return -1
 
     def _parse_doctype_element(self, i, declstartpos):
         name, j = self._scan_name(i, declstartpos)

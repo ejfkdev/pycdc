@@ -164,6 +164,5 @@ class Chunk:
             dummy = self.read(n)
             if not dummy:
                 raise EOFError
-                continue
 
 

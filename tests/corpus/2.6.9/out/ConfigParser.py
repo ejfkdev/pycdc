@@ -445,7 +445,6 @@ class RawConfigParser:
                     continue
             if cursect is None:
                 raise MissingSectionHeaderError(fpname, lineno, line)
-                continue
             mo = self.OPTCRE.match(line)
             if mo:
                 optname, vi, optval = mo.group('option', 'vi', 'value')

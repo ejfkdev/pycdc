@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "SIG-DIFF": 24,
-  "PASS": 4,
-  "AST-PASS": 12
+  "PASS": 5,
+  "AST-PASS": 11
  },
  "results": [
   {
@@ -31,7 +31,7 @@
    "module": "ConfigParser",
    "ast_detail": "diff at token 1802: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1063,
+   "ndiff": 935,
    "ntotal": 2156,
    "detail": "line 1019: orig ('LOAD_CONST', 'None') | got ('set', 4)\nline 1020: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'section')\nline 1021: orig ('set', 4) | got ('UNARY_NOT', '')"
   },
@@ -215,8 +215,8 @@
    "module": "binhex",
    "ast_detail": "diff at token 19: orig  Assign(targets=[List(elts=[Name(id='_DID_HEADER' | dec  Assign(targets=[Tuple(elts=[Name(id='_DID_HEADER'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1946,
-   "ntotal": 2057,
+   "ndiff": 1947,
+   "ntotal": 2056,
    "detail": "line 47: orig ('SETUP_EXCEPT', '#69') | got ('SETUP_EXCEPT', '#73')\nline 49: orig ('LOAD_CONST', \"('FSSpec', 'FInfo')\") | got ('LOAD_CONST', \"('FSSpec',)\")\nline 53: orig ('IMPORT_FROM', 'FInfo') | got ('POP_TOP', '')"
   },
   {
@@ -253,7 +253,7 @@
   },
   {
    "module": "chunk",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "cmd",

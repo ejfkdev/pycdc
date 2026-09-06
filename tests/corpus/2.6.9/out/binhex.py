@@ -274,7 +274,6 @@ class _Hqxdecoderengine:
             wtd = totalwtd - len(decdata)
             if not decdata and not self.eof:
                 raise Error, 'Premature EOF on binhex file'
-                continue
         return decdata
 
     def close(self):

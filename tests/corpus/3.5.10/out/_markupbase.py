@@ -148,27 +148,25 @@ class ParserBase:
                     j = self.parse_comment(j, report=0)
                     if j < 0:
                         return j
-                    continue
-            name, j = self._scan_name(j + 2, declstartpos)
-            if j == -1:
-                return -1
-            if name not in frozenset({'attlist', 'notation', 'element', 'entity'}):
-                self.updatepos(declstartpos, j + 2)
-                self.error('unknown declaration %r in internal subset' % name)
-            meth = getattr(self, '_parse_doctype_' + name)
-            j = meth(j, declstartpos)
-            if j < 0:
-                return j
-                continue
-            if c == '%':
-                if j + 1 == n:
+                name, j = self._scan_name(j + 2, declstartpos)
+                if j == -1:
                     return -1
-                s, j = self._scan_name(j + 1, declstartpos)
+                if name not in frozenset({'attlist', 'notation', 'element', 'entity'}):
+                    self.updatepos(declstartpos, j + 2)
+                    self.error('unknown declaration %r in internal subset' % name)
+                meth = getattr(self, '_parse_doctype_' + name)
+                j = meth(j, declstartpos)
                 if j < 0:
                     return j
-                if rawdata[j] == ';':
-                    j = j + 1
-                    continue
+                    if c == '%':
+                        if j + 1 == n:
+                            return -1
+                        s, j = self._scan_name(j + 1, declstartpos)
+                        if j < 0:
+                            return j
+                        if rawdata[j] == ';':
+                            j = j + 1
+                            continue
             if c == ']':
                 j = j + 1
                 while j < n and rawdata[j].isspace():
