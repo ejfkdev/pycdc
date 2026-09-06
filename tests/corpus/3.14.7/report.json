@@ -90,8 +90,8 @@
   {
    "module": "_py_warnings",
    "verdict": "INCOMPLETE",
-   "ndiff": 2640,
-   "ntotal": 3257,
+   "ndiff": 2637,
+   "ntotal": 3254,
    "detail": "line 553: orig ('JUMP_FORWARD', 'to L2') | got ('LOAD_FAST_BORROW', 'msg')\nline 554: orig ('LOAD_FAST_BORROW', 'msg') | got ('LOAD_ATTR', 'line')\nline 555: orig ('LOAD_ATTR', 'line') | got ('STORE_FAST', 'line')"
   },
   {

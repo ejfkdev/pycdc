@@ -12793,6 +12793,112 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    /// 3.12+ `if A or B: body` or-join: both operand tests share polarity
+    /// and jump to the BODY start; the false path is an unconditional
+    /// backward jump (continue trampoline) immediately before the body
+    /// (NOT_TAKEN-padded on 3.14), and the body ends at the loop's back
+    /// edge. The split_cond AND merge would DeMorgan-invert the pair
+    /// (`not A and not B`) and eject the body to run unconditionally
+    /// (t_or38 g1 3.12-3.14). Returns (merged cond, body_end); the caller
+    /// pops the absorbed first-operand block.
+    fn try_or_join(
+        &self,
+        cond: &ExprRef,
+        jump_if_true: bool,
+        target: usize,
+    ) -> Option<(ExprRef, usize)> {
+        // PJIT pairs only: a same-polarity PJIF pair with a continue
+        // trampoline before the target is the classic `if A and B: stmt;
+        // continue` -- indistinguishable locally from the or-join, and
+        // split_cond below already merges it correctly (b16_loopflow
+        // regressed 10/13 when the PJIF pair was admitted here).
+        if !jump_if_true {
+            return None;
+        }
+        let top = self.blocks.last()?;
+        if !(matches!(top.kind, BlockType::If)
+            && top.cond_set
+            && top.short_circuit.is_none()
+            && top.end == target
+            && target > self.cur_next
+            && top.jump_if_true == jump_if_true
+            && top.stmts.is_empty())
+        {
+            return None;
+        }
+        let prev = top.cond.clone()?;
+        let s0 = *self.idx_of.get(&top.start)?;
+        let e_cur = *self.idx_of.get(&self.cur_offset)?;
+        let e0 = *self.idx_of.get(&target)?;
+        if e0 < 2 || e_cur + 1 > e0 - 1 {
+            return None;
+        }
+        // only padding between this jump and the false-exit back jump
+        if !self.instrs[e_cur + 1..e0 - 1]
+            .iter()
+            .all(|x| matches!(x.op, Op::NOT_TAKEN | Op::NOP | Op::CACHE))
+        {
+            return None;
+        }
+        // the false exit: unconditional backward jump to the enclosing
+        // loop top right before the body
+        let fx = &self.instrs[e0 - 1];
+        if !(fx.is_backward
+            && matches!(
+                fx.op,
+                Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP_BACKWARD_NO_INTERRUPT
+            )
+            && fx.target.map_or(false, |t| {
+                self.blocks.iter().any(|b| {
+                    matches!(b.kind, BlockType::While | BlockType::For)
+                        && (b.start == t || b.cond_end == t)
+                })
+            }))
+        {
+            return None;
+        }
+        // pure value region between the two operand jumps
+        if !self.instrs[s0..e_cur].iter().all(|x| {
+            x.target.is_none()
+                && (is_pure_value_op(x.op)
+                    || matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::TO_BOOL))
+        }) {
+            return None;
+        }
+        // the body ends at the loop's back edge (first backward
+        // unconditional jump to a loop top at/after the body start)
+        let body_end = self.instrs[e0..]
+            .iter()
+            .find(|x| {
+                x.is_backward
+                    && matches!(
+                        x.op,
+                        Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    )
+                    && x.target.map_or(false, |t| {
+                        self.blocks.iter().any(|b| {
+                            matches!(b.kind, BlockType::While | BlockType::For)
+                                && (b.start == t || b.cond_end == t)
+                        })
+                    })
+            })
+            .map(|x| x.offset)?;
+        if body_end <= target {
+            return None;
+        }
+        // branch-TAKEN (PJIT) reaches the body: both operands contribute
+        // positively to the Or; prev was stored negated for the
+        // fall-through modeling, negate_cond restores it (involution)
+        let a = negate_cond(prev);
+        let mut values = Vec::new();
+        flatten_boolop(a, BoolOpKind::Or, &mut values);
+        flatten_boolop(cond.clone(), BoolOpKind::Or, &mut values);
+        Some((
+            Rc::new(Expr::BoolOp { op: BoolOpKind::Or, values }),
+            body_end,
+        ))
+    }
+
     fn try_guard_chain(&self, cond: &ExprRef, jump_if_true: bool, target: usize)
         -> Option<(ExprRef, usize, usize)>
     {
@@ -13733,6 +13839,25 @@ impl<'a> Ctx<'a> {
                 return;
             }
         }
+        // 3.12+ or-join takes precedence over the guard-chain machinery:
+        // `if A or B: body` would otherwise be split into inverted
+        // `if not A: if not B: continue` with the body ejected. Gated to
+        // 3.12+: pre-3.12 shapes (fused PJIF->loop-top) belong to the
+        // or-merge/try_or_and_chain machinery, and running this there
+        // scrambled csv _sniffer 3.5/3.6 (+350 sig lines).
+        if self.version.at_least(3, 12) {
+            if let Some((merged, body_end)) = self.try_or_join(&cond, jump_if_true, target) {
+            self.blocks.pop();
+            let mut blk = Block::new(BlockType::If, target, body_end);
+            blk.cond = Some(merged);
+            blk.cond_set = true;
+            blk.jump_if_true = false;
+            blk.stack_depth = self.stack.len();
+            self.blocks.push(blk);
+            self.skip_until = Some(target);
+            return;
+            }
+        }
         if self.version.at_least(3, 11) {
             if let Some((merged, body_start, body_end)) =
                 self.try_guard_chain(&cond, jump_if_true, target)
@@ -14153,6 +14278,7 @@ impl<'a> Ctx<'a> {
         // split conditions (`if a and b:` = two cond jumps over a pure
         // value region); a second independent if inside the body whose
         // exit happens to coincide must stay nested.
+        //
         // Rotated-while veto: when the value region between the two jumps
         // is a loop's PREHEADER condition, the loop top follows this jump
         // with a re-evaluated condition (pure-value span ending in a

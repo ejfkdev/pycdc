@@ -301,22 +301,19 @@ class Sniffer:
                             continue
                         if not v[1] / total >= consistency:
                             continue
-                        if delimiters is not None and k not in delimiters:
-                            pass
+                        if delimiters is None or k in delimiters:
+                            delims[k] = v
                     consistency -= 0.01
                     if len(delims) != 0:
                         break
                     if not consistency >= threshold:
                         break
-            else:
-                if len(delims) == 1:
-                    delim = list(delims.keys())[0]
-                    skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
-                    return delim, skipinitialspace
-                start = end
-                end += chunkLength
-                if not start < len(data):
-                    break
+            if len(delims) == 1:
+                delim = list(delims.keys())[0]
+                skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
+                return delim, skipinitialspace
+            start = end
+            end += chunkLength
         if not delims:
             return ('', 0)
         if len(delims) > 1:

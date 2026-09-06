@@ -11,7 +11,9 @@ import sys
 #                          （or_cond 曾误折成 `if not a or not b: if c:`）
 #   `while a or b:`     —— 3.5-3.7 多跳旋转条件曾退化成
 #                          `while True: if a or b:`（条件假时运行期死循环）
-#   循环内 `A or B: 末语句`（<3.12）—— 融合 skip+continue
+#   循环内 `A or B: 末语句`（全版本）—— <3.8 融合 skip+continue；
+#     3.8-3.11 fused 合并；3.12+ or-join（双操作数同极性跳 body +
+#     假路径 continue 蹦床在 body 之前）
 #   循环内 `A or (B and C)`（3.5-3.11）—— fused try_or_and_chain
 #   值位 `a and b or c`（仅 <3.14）—— try_and_or_value_chain
 #   链式比较 `a <= b < c`（全版本）—— SCC body_end 曾越过 skip 标签
@@ -124,9 +126,8 @@ if VAL27_313:
             for c in (0, 1):
                 print(g_val(a, b, c))
 
-if LT312:
-    print(g_loop_or([0, 1, 2, 3], 0))
-    print(g_loop_or([0, 1, 2, 3], 1))
+print(g_loop_or([0, 1, 2, 3], 0))
+print(g_loop_or([0, 1, 2, 3], 1))
 
 B35_311 = GE35 * LT312
 if B35_311:

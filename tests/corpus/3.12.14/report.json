@@ -107,7 +107,7 @@
   {
    "module": "aifc",
    "verdict": "INCOMPLETE",
-   "ndiff": 2666,
+   "ndiff": 2752,
    "ntotal": 3367,
    "detail": "line 519: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 520: orig ('COPY', '') | got ('POP_JUMP_IF_FALSE', 'to 148')\nline 521: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },
@@ -246,7 +246,7 @@
    "module": "csv",
    "ast_detail": "diff at token 1045: orig  body=[Continue()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1324,
+   "ndiff": 1365,
    "ntotal": 1657,
    "detail": "line 269: orig ('NOP', '') | got ('LOAD_CONST', \"(None, None, None, 'excel')\")\nline 270: orig ('NOP', '') | got ('LOAD_CONST', '<code __init__>')\nline 271: orig ('LOAD_CONST', \"(None, None, None, 'excel')\") | got ('MAKE_FUNCTION', 'defaults')"
   },

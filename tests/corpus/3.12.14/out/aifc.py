@@ -470,8 +470,8 @@ class Aifc_read:
                 id = _read_short(chunk)
                 pos = _read_long(chunk)
                 name = _read_string(chunk)
-                if not pos and not name:
-                    pass
+                if pos or name:
+                    self._markers.append((id, pos, name))
         except EOFError:
             w = f'Warning: MARK chunk contains only {len(self._markers)!s} marker{'' if len(self._markers) == 1 else 's'!s} instead of {nmarkers!s}'
             warnings.warn(w)

@@ -165,12 +165,10 @@ will be omitted from the output for better readability.
                         value = getattr(node, name)
                     except AttributeError:
                         pass
-                    if value is None:
-                        if getattr(cls, name, ...) is None:
-                            continue
-                    value, simple = _format(value, level)
-                    allsimple = allsimple and simple
-                    args.append(f'{name!s}={value!s}')
+                    if value is not None or getattr(cls, name, ...) is not None:
+                        value, simple = _format(value, level)
+                        allsimple = allsimple and simple
+                        args.append(f'{name!s}={value!s}')
             if allsimple and len(args) <= 3:
                 return f'{node.__class__.__name__!s}({', '.join(args)!s})', not args
             return f'{node.__class__.__name__!s}({prefix!s}{sep.join(args)!s})', False
