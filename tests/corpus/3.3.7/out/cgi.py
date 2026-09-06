@@ -618,9 +618,9 @@ class FieldStorage:
             part = klass(self.fp, headers, ib, environ, keep_blank_values, strict_parsing, self.limit - self.bytes_read, self.encoding, self.errors)
             self.bytes_read += part.bytes_read
             self.list.append(part)
-            if not part.done:
-                if self.bytes_read >= self.length > 0:
-                    break
+            if part.done or self.bytes_read >= self.length > 0:
+                break
+            break
             continue
             continue
         self.skip_lines()

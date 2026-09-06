@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
   "PASS": 10,
-  "AST-PASS": 7,
-  "SIG-DIFF": 23
+  "AST-PASS": 8,
+  "SIG-DIFF": 22
  },
  "results": [
   {
@@ -61,11 +61,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 2026: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2001,
-   "ntotal": 3002,
-   "detail": "line 869: orig ('SETUP_LOOP', '#139') | got ('SETUP_LOOP', '#140')\nline 950: orig ('LOAD_FAST', 'self') | got ('JUMP_ABSOLUTE', '#59')\nline 951: orig ('LOAD_ATTR', '_comm_chunk_read') | got ('LOAD_FAST', 'self')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "ast",
@@ -85,9 +81,9 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 488: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 908: orig  orelse=[]) | dec  orelse=[While(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1807,
+   "ndiff": 1603,
    "ntotal": 2337,
    "detail": "line 118: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 124: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 132: orig ('LOAD_NAME', 'False') | got ('LOAD_CONST', 'False')"
   },
@@ -119,7 +115,7 @@
    "module": "bz2",
    "ast_detail": "diff at token 873: orig  Try(body=[Assign(targets=[Attribute(value=Name(id='self' | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 814,
+   "ndiff": 812,
    "ntotal": 1461,
    "detail": "line 582: orig ('SETUP_LOOP', '#96') | got ('SETUP_LOOP', '#90')\nline 590: orig ('POP_JUMP_IF_FALSE', '#95') | got ('POP_JUMP_IF_FALSE', '#89')\nline 624: orig ('POP_JUMP_IF_FALSE', '#84') | got ('POP_JUMP_IF_FALSE', '#56')"
   },

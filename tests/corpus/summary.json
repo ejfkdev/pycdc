@@ -10,9 +10,9 @@
  "2.7.18": {
   "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
   "counts": {
-   "SIG-DIFF": 23,
+   "SIG-DIFF": 22,
    "PASS": 9,
-   "AST-PASS": 8
+   "AST-PASS": 9
   }
  },
  "3.10.21": {
@@ -60,8 +60,8 @@
   "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
   "counts": {
    "PASS": 10,
-   "AST-PASS": 7,
-   "SIG-DIFF": 23
+   "AST-PASS": 8,
+   "SIG-DIFF": 22
   }
  },
  "3.5.10": {

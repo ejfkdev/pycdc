@@ -2,9 +2,9 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "SIG-DIFF": 23,
+  "SIG-DIFF": 22,
   "PASS": 9,
-  "AST-PASS": 8
+  "AST-PASS": 9
  },
  "results": [
   {
@@ -169,10 +169,10 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 2111: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 2137: orig  body=[Print(dest=None | dec  body=[If(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2885,
-   "ntotal": 3263,
+   "ndiff": 2957,
+   "ntotal": 3261,
    "detail": "line 93: orig ('POP_JUMP_IF_FALSE', '#233') | got ('POP_JUMP_IF_FALSE', '#235')\nline 121: orig ('SETUP_FINALLY', '#227') | got ('SETUP_FINALLY', '#229')\nline 173: orig ('POP_JUMP_IF_FALSE', '#225') | got ('POP_JUMP_IF_FALSE', '#227')"
   },
   {
@@ -197,10 +197,10 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 452: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 904: orig  orelse=[]) | dec  orelse=[While(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1669,
-   "ntotal": 2184,
+   "ndiff": 1472,
+   "ntotal": 2187,
    "detail": "line 114: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 119: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 127: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')"
   },
   {
@@ -229,11 +229,7 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "diff at token 265: orig  values=[BoolOp(op=Or() | dec  values=[UnaryOp(op=Not()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1570,
-   "ntotal": 1883,
-   "detail": "line 262: orig ('SETUP_LOOP', '#41') | got ('SETUP_LOOP', '#43')\nline 265: orig ('FOR_ITER', '#37') | got ('FOR_ITER', '#39')\nline 270: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '#17')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "bisect",

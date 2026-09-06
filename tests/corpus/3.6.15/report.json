@@ -19,9 +19,9 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 246: orig  body=Yield(value=None)) | dec  body=Yield(value=NameConstant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 259,
+   "ndiff": 255,
    "ntotal": 3131,
-   "detail": "line 2411: orig ('COMPARE_OP', 'is') | got ('COMPARE_OP', 'is not')\nline 2412: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 2790: orig ('COMPARE_OP', 'is') | got ('COMPARE_OP', 'is not')"
+   "detail": "line 2857: orig ('SETUP_LOOP', 'to 152') | got ('SETUP_LOOP', 'to 88')\nline 2866: orig ('SETUP_EXCEPT', 'to 118') | got ('JUMP_ABSOLUTE', '')\nline 2867: orig ('LOAD_FAST', 'self') | got ('POP_BLOCK', '')"
   },
   {
    "module": "_compat_pickle",
@@ -101,9 +101,9 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 427: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 774: orig  orelse=[]) | dec  orelse=[While(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1464,
+   "ndiff": 1471,
    "ntotal": 2210,
    "detail": "line 703: orig ('SETUP_LOOP', 'to 102') | got ('SETUP_LOOP', 'to 100')\nline 713: orig ('JUMP_FORWARD', 'to 102') | got ('SETUP_LOOP', 'to 100')\nline 714: orig ('SETUP_LOOP', 'to 102') | got ('LOAD_FAST', 'map')"
   },
@@ -243,9 +243,9 @@
    "module": "csv",
    "ast_detail": "diff at token 1537: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
-   "ndiff": 75,
+   "ndiff": 73,
    "ntotal": 1617,
-   "detail": "line 1220: orig ('COMPARE_OP', 'is') | got ('COMPARE_OP', 'is not')\nline 1222: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1449: orig ('SETUP_LOOP', 'to 254') | got ('SETUP_LOOP', 'to 256')"
+   "detail": "line 1449: orig ('SETUP_LOOP', 'to 254') | got ('SETUP_LOOP', 'to 256')\nline 1452: orig ('FOR_ITER', 'to 252') | got ('FOR_ITER', 'to 254')\nline 1470: orig ('SETUP_LOOP', 'to 250') | got ('SETUP_LOOP', 'to 198')"
   }
  ]
 }

@@ -54,10 +54,8 @@ except ImportError:
         data = open(name).read(256)
         for c in data:
             if not c.isspace():
-                if not c < ' ':
-                    if ord(c) > 127:
-                        break
-            continue
+                if c < ' ' or ord(c) > 127:
+                    break
         else:
             finfo.Type = 'TEXT'
         fp.seek(0, 2)

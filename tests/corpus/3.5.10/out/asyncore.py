@@ -103,9 +103,8 @@ def poll(timeout=0.0, map=None):
                 r.append(fd)
             if is_w and not obj.accepting:
                 w.append(fd)
-            if not is_r:
-                if is_w:
-                    e.append(fd)
+            if is_r or is_w:
+                e.append(fd)
         if [] == r == w == e:
             time.sleep(timeout)
             return
@@ -258,9 +257,10 @@ class dispatcher:
         self.connected = False
         self.connecting = True
         err = self.socket.connect_ex(address)
-        if err in (EINPROGRESS, EALREADY, EWOULDBLOCK) or err == EINVAL:
-            self.addr = address
-            return
+        if err not in (EINPROGRESS, EALREADY, EWOULDBLOCK):
+            if err == EINVAL and os.name in ('nt', 'ce'):
+                self.addr = address
+                return
         if err in (0, EISCONN):
             self.addr = address
             self.handle_connect_event()

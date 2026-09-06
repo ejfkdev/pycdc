@@ -288,9 +288,8 @@ class Sniffer:
                     if v[0] > 0:
                         if v[1] > 0:
                             if v[1] / total >= consistency:
-                                if delimiters is not None:
-                                    if k in delimiters:
-                                        delims[k] = v
+                                if delimiters is None or k in delimiters:
+                                    delims[k] = v
                 consistency -= 0.01
             if len(delims) == 1:
                 delim = list(delims.keys())[0]

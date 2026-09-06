@@ -13203,8 +13203,56 @@ impl<'a> Ctx<'a> {
                 )
             });
             if let Some((true, true, Some(blk_cond), body_start, depth, true, true)) = top_info {
+                // The C-operand's false jump normally lands PAST the body
+                // (target > body_start). For `if B or C: <last stmt of a
+                // loop>` the compiler fuses the body-skip and the loop
+                // continue into ONE backward jump to the loop top, so the
+                // C target is the enclosing loop's top (< body_start). The
+                // body then runs [body_start, back_edge) with an implicit
+                // trailing continue (csv 3.5/3.6 _guess_delimiter, where
+                // missing this inverted the or into `if not B: if C:`).
+                let loop_top = self
+                    .blocks
+                    .iter()
+                    .rev()
+                    .find(|b| matches!(b.kind, BlockType::While | BlockType::For))
+                    .map(|b| b.start);
+                let fused_continue = loop_top == Some(target) && target < body_start;
+                // The merge treats the CURRENT cond jump as the LAST operand
+                // test before the body, skipping everything in
+                // (cur_offset, body_start). If another cond jump lives there
+                // it is an extra and-operand of a nested `A or (B and C)`
+                // that would be silently DROPPED (configparser 3.6
+                // `index==0 or (index>0 and line[index-1].isspace())` lost
+                // the isspace() test). Require that span to be cond-jump
+                // free; the back edge / body statements still decompile via
+                // the body region below.
+                let gap_has_cond_jump = self
+                    .idx_of
+                    .get(&self.cur_offset)
+                    .map_or(false, |&ci| {
+                        self.instrs[ci + 1..]
+                            .iter()
+                            .take_while(|x| x.offset < body_start)
+                            .any(|x| {
+                                matches!(
+                                    x.op,
+                                    Op::POP_JUMP_IF_FALSE
+                                        | Op::POP_JUMP_IF_TRUE
+                                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                                        | Op::POP_JUMP_BACKWARD_IF_FALSE
+                                        | Op::POP_JUMP_BACKWARD_IF_TRUE
+                                        | Op::JUMP_IF_FALSE_OR_POP
+                                        | Op::JUMP_IF_TRUE_OR_POP
+                                        | Op::JUMP_IF_FALSE
+                                        | Op::JUMP_IF_TRUE
+                                )
+                            })
+                    });
                 if !jump_if_true
-                    && target > body_start
+                    && (target > body_start || fused_continue)
+                    && !gap_has_cond_jump
                     && body_start > self.cur_offset
                     && self.stack.len() == depth
                 {
@@ -13226,15 +13274,17 @@ impl<'a> Ctx<'a> {
                     // enclosing block (the body-end hop over the else)
                     let mut orelse = Vec::new();
                     let mut else_stop = target;
-                    if let Some(top) = self.blocks.last_mut() {
-                        if let Some(ee) = top.else_end.take() {
-                            if ee > target {
-                                else_stop = ee;
+                    if !fused_continue {
+                        if let Some(top) = self.blocks.last_mut() {
+                            if let Some(ee) = top.else_end.take() {
+                                if ee > target {
+                                    else_stop = ee;
+                                }
                             }
                         }
-                    }
-                    if else_stop > target {
-                        orelse = self.decompile_region(target, else_stop);
+                        if else_stop > target {
+                            orelse = self.decompile_region(target, else_stop);
+                        }
                     }
                     // py2 or-continue: the "body" region is the loop's
                     // continue landing (POP_TOP cleanup; back edge to the
@@ -13242,7 +13292,7 @@ impl<'a> Ctx<'a> {
                     // walking it (the region walk has no loop context)
                     let body_stmts = {
                         let mut is_cont = false;
-                        if orelse.is_empty() {
+                        if orelse.is_empty() && !fused_continue {
                             if let (Some(&bi), Some(&ti2)) =
                                 (self.idx_of.get(&body_start), self.idx_of.get(&target))
                             {
@@ -13273,6 +13323,32 @@ impl<'a> Ctx<'a> {
                         }
                         if is_cont {
                             vec![Stmt::Continue]
+                        } else if fused_continue {
+                            // body runs to the loop's unconditional back edge;
+                            // the fused jump-to-top stands in for the body-end
+                            // skip. Do NOT emit an explicit continue: the body
+                            // is the loop's last statement, so it falls through
+                            // to the back edge naturally (an explicit continue
+                            // would recompile to CONTINUE_LOOP and shift the
+                            // sig off the original fused PJIF->loop_top).
+                            let back_edge = self
+                                .idx_of
+                                .get(&body_start)
+                                .and_then(|&bi| {
+                                    self.instrs[bi..].iter().find(|x| {
+                                        x.is_backward
+                                            && x.target == Some(target)
+                                            && matches!(
+                                                x.op,
+                                                Op::JUMP_ABSOLUTE
+                                                    | Op::JUMP_BACKWARD
+                                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                            )
+                                    })
+                                })
+                                .map(|x| x.offset)
+                                .unwrap_or(body_start);
+                            self.decompile_region(body_start, back_edge)
                         } else {
                             self.decompile_region(body_start, target)
                         }
@@ -13282,7 +13358,28 @@ impl<'a> Ctx<'a> {
                         body: body_stmts,
                         orelse,
                     });
-                    if self.skip_until.map_or(true, |s| s < else_stop) {
+                    if fused_continue {
+                        // skip the body (decompiled as a region) and its back
+                        // edge; resume at the loop's exhaustion exit
+                        if let Some(&bi) = self.idx_of.get(&body_start) {
+                            if let Some(exit) = self.instrs[bi..]
+                                .iter()
+                                .find(|x| {
+                                    matches!(x.op, Op::FOR_ITER | Op::POP_BLOCK)
+                                        && x.offset > body_start
+                                })
+                                .map(|x| {
+                                    if x.op == Op::FOR_ITER {
+                                        x.target.unwrap_or(x.end())
+                                    } else {
+                                        x.offset
+                                    }
+                                })
+                            {
+                                self.skip_until = Some(exit);
+                            }
+                        }
+                    } else if self.skip_until.map_or(true, |s| s < else_stop) {
                         self.skip_until = Some(else_stop);
                     }
                     return;

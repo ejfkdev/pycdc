@@ -466,10 +466,8 @@ class Aifc_read:
                 id = _read_short(chunk)
                 pos = _read_long(chunk)
                 name = _read_string(chunk)
-                if not pos:
-                    if name:
-                        self._markers.append((id, pos, name))
-                continue
+                if pos or name:
+                    self._markers.append((id, pos, name))
         except EOFError:
             if len(self._markers) == 1:
                 pass
