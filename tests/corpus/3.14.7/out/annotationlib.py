@@ -103,10 +103,9 @@ If the forward reference cannot be evaluated, raise an exception.
                 except ValueError:
                     try:
                         cell_value = cell.cell_contents
+                        return
                     except ValueError:
                         pass
-                    else:
-                        return
                 locals.setdefault(cell_name, cell_value)
         if self.__extra_names__:
             locals.update(self.__extra_names__)

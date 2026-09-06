@@ -450,4 +450,3 @@ additional chunks as necessary.
         return hasHeader > 0
 
 
-# WARNING: Decompyle incomplete

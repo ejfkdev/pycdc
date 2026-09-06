@@ -432,9 +432,6 @@ def encode(input, output):
                 s += ns
         line = binascii.b2a_base64(s)
         output.write(line)
-        if (s := input.read(MAXBINSIZE)):
-            continue
-        return
 
 def decode(input, output):
     '''Decode a file; input and output are binary files.'''
@@ -442,9 +439,6 @@ def decode(input, output):
     while (line := input.readline()):
         s = binascii.a2b_base64(line)
         output.write(s)
-        if (line := input.readline()):
-            continue
-        return
 
 def _input_type_check(s):
     try:

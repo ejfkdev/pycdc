@@ -145,6 +145,7 @@ class Cmd:
                 try:
                     import readline
                     readline.set_completer(self.old_completer)
+                    return
                 except ImportError:
                     return
 

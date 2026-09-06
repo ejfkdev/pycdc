@@ -210,6 +210,7 @@ class dispatcher:
             self.connected = True
             try:
                 self.addr = sock.getpeername()
+                return
             except OSError as err:
                 if err.errno in (ENOTCONN, EINVAL):
                     self.connected = False
@@ -217,7 +218,6 @@ class dispatcher:
                     self.del_channel(map)
                     raise
                 return
-            return
             err = None
             del err
         self.socket = None
@@ -347,6 +347,7 @@ class dispatcher:
         if self.socket is not None:
             try:
                 self.socket.close()
+                return
             except OSError as why:
                 if why.errno not in (ENOTCONN, EBADF):
                     raise

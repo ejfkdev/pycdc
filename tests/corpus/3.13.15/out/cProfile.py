@@ -96,7 +96,7 @@ is, in seconds).
             pass
         finally:
             self.disable()
-        return self
+        return func(*args, **kw)
 
     def __enter__(self):
         self.enable()

@@ -338,6 +338,10 @@ struct Ctx<'a> {
     with_regions: HashMap<usize, usize>,
     /// try context whose body block is currently open
     active_try: Option<TryCtx>,
+    /// body_end of the most recently emitted exception-table try — the
+    /// tail-return recovery in emit_return uses it to verify the stray
+    /// return starts exactly at the body end (narrowed protected range)
+    last_try_body_end: Option<usize>,
     /// try context awaiting else/finally emission
     pending_try_ctx: Option<TryCtx>,
     /// finally body of the enclosing try in a nested-chain wrap, consumed
@@ -640,6 +644,7 @@ pub fn decompile_in_scope(
         chain_heads,
         with_regions: with_regions.clone(),
         active_try: None,
+        last_try_body_end: None,
         pending_try_ctx: None,
         pending_nested_finally: None,
         nested_inner_handlers: Vec::new(),
@@ -1355,6 +1360,17 @@ impl<'a> Ctx<'a> {
                 });
             if !defer_close {
                 self.close_blocks_at(pos);
+                // the close may have run emit_try_tail and armed a skip
+                // covering THIS instruction (the try body's tail return
+                // at region_end, sunk-pair success copies, chain glue):
+                // honor it instead of executing the instruction into the
+                // enclosing branch as a stray statement
+                if let Some(skip) = self.skip_until {
+                    if pos < skip {
+                        pc += 1;
+                        continue;
+                    }
+                }
             }
 
             // comprehension loop-target stores consume no stack value —
@@ -2319,7 +2335,58 @@ impl<'a> Ctx<'a> {
                                     && x.offset < else_end
                             });
                             if !has_with {
-                                orelse = self.decompile_region(tc.body_end, else_end);
+                                // the recovered "else" holding ONLY a bare
+                                // `return None` is the try body's own tail
+                                // return: 3.12 excludes the non-raising
+                                // RETURN from the protected range, so it
+                                // lands in [body_end, merge) and mimics an
+                                // else (chunk.skip). Fold it back into the
+                                // body - it recompiles to the identical
+                                // narrowed range. A genuine `else: return`
+                                // with the same shape also recompiles
+                                // identically, so the fold is sig-safe.
+                                let bare_tail_return = {
+                                    let be = self.idx_of.get(&tc.body_end).copied();
+                                    let ee = self.idx_of.get(&else_end).copied();
+                                    match (be, ee) {
+                                        (Some(b), Some(e)) if e > b => {
+                                            let mut rets = 0;
+                                            let mut only = true;
+                                            for x in &self.instrs[b..e] {
+                                                match x.op {
+                                                    Op::NOP | Op::NOT_TAKEN
+                                                    | Op::CACHE => {}
+                                                    Op::RETURN_CONST => {
+                                                        rets += 1;
+                                                        if !matches!(
+                                                            self.code
+                                                                .consts
+                                                                .get(x.arg as usize)
+                                                                .map(|o| &**o),
+                                                            Some(PyObject::None)
+                                                        ) {
+                                                            only = false;
+                                                        }
+                                                    }
+                                                    Op::RETURN_VALUE => {
+                                                        rets += 1;
+                                                    }
+                                                    _ => {
+                                                        only = false;
+                                                    }
+                                                }
+                                            }
+                                            only && rets == 1
+                                        }
+                                        _ => false,
+                                    }
+                                };
+                                if bare_tail_return {
+                                    body.push(Stmt::Return(None));
+                                } else {
+                                    orelse =
+                                        self.decompile_region(tc.body_end, else_end);
+                                }
                                 if self.skip_until.map_or(true, |s| s < merge) {
                                     self.skip_until = Some(merge);
                                 }
@@ -5065,6 +5132,7 @@ impl<'a> Ctx<'a> {
                 // parsed out-of-line; else/finally emission happens when the
                 // protected region ends (or immediately without finally)
                 if let Some(tc) = self.active_try.take() {
+                    self.last_try_body_end = Some(tc.body_end);
                     self.pending_try_body.push(body.clone());
                     let cover = tc.region_end;
                     // the region may end exactly at the RETURN that closes
@@ -12970,7 +13038,12 @@ impl<'a> Ctx<'a> {
                 && top.jump_if_true == jump_if_true
                 // SETUP_LOOP-era exits land on the loop's POP_BLOCK, one
                 // instruction before the block end
-                && (top.end == target || self.is_pop_block_before(target, top.end))
+                && (top.end == target
+                    || self.is_pop_block_before(target, top.end)
+                    // 3.11+ rotated while whose post-loop flow is sunk
+                    // returns: the exit return lands right before the
+                    // function-tail return copy the block end points at
+                    || self.is_term_pad_before(target, top.end))
                 && ((top.cond_end != usize::MAX && top.cond_end < self.cur_offset)
                     // the SETUP_LOOP-era While (section 3b) never records
                     // cond_end; on 3.8+ the MAX sentinel means "opened by
@@ -14611,6 +14684,31 @@ impl<'a> Ctx<'a> {
             .map_or(false, |x| x.op == Op::POP_BLOCK && x.end() <= end)
     }
 
+    /// True when [off, end) holds only terminator/padding instructions
+    /// (RETURN/NOP/NOT_TAKEN/CACHE) with at least one return: `off` is a
+    /// loop exit whose block end overshot into sunk function-tail return
+    /// copies (3.11+ rotated while in tail flow, chunk.skip).
+    fn is_term_pad_before(&self, off: usize, end: usize) -> bool {
+        if off >= end {
+            return false;
+        }
+        let Some(&i) = self.idx_of.get(&off) else {
+            return false;
+        };
+        let mut saw_return = false;
+        for x in &self.instrs[i..] {
+            if x.offset >= end {
+                break;
+            }
+            match x.op {
+                Op::RETURN_VALUE | Op::RETURN_CONST => saw_return = true,
+                Op::NOP | Op::NOT_TAKEN | Op::CACHE => {}
+                _ => return false,
+            }
+        }
+        saw_return
+    }
+
     /// 3.8+ for-else: when the For closes at the FOR_ITER exhaustion exit,
     /// a following unconditional jump over untargeted code marks an else
     /// region [pos, jump_target). Plain loops have no such jump (the next
@@ -15564,6 +15662,23 @@ impl<'a> Ctx<'a> {
             .any(|t| self.effective_offset(*t) == self.effective_offset(target))
         {
             // dead back-edge padding after the loop already closed
+        } else if self.version.at_least(3, 11)
+            && self.exc_entries.iter().any(|e| {
+                // the jump sits INSIDE an out-of-line handler chain and
+                // exits to the main flow: a clause whose body is empty
+                // ends `POP_EXCEPT; JUMP_BACKWARD <merge>` (chunk.skip:
+                // `except OSError: pass` resumes at the while top). The
+                // clause region sub-walk runs it with the loop out of
+                // scope (or already closed by the flow's sunk return).
+                // Genuine handler `continue`s are rebuilt with the LIVE
+                // block stack before this fallback ever runs.
+                let ext = self.chain_extent(e.target);
+                e.target <= self.cur_offset
+                    && self.cur_offset < ext
+                    && (target < e.target || target >= ext)
+            })
+        {
+            // 3.11+ handler-exit resume jump — silently consumed
         } else {
             self.mark_unclean();
         }
@@ -17532,6 +17647,179 @@ impl<'a> Ctx<'a> {
         {
             return;
         }
+        // 3.11+ narrowed protected range: a try body's tail `return None`
+        // sits JUST PAST body_end (RETURN cannot raise, so the table
+        // excludes it) and gets walked into the enclosing branch as a
+        // stray. When this return is exactly that tail — it starts right
+        // at the emitted Try's body end and the handler chain follows it
+        // immediately — route it into the try body and skip over the
+        // chain (chunk.skip 3.11). A GAP between the body end and the
+        // return means the flow continued past the try (aifc __init__:
+        // then-arm terminating return after the try) — leave it to the
+        // branch-tail strip in postprocess.
+        if is_none_value
+            && self.version.at_least(3, 11)
+            && self.legacy_handler.is_none()
+            && self.pending_try_ctx.is_none()
+            // module level has its own synthetic-return handling below
+            // (break-in-loop / branch-tail marking) — never reroute a
+            // module-level return into a try body ('return' outside
+            // function)
+            && self.code.name != "<module>"
+        {
+            if let Some(top) = self.blocks.last() {
+                let is_branch =
+                    matches!(top.kind, BlockType::If | BlockType::Else);
+                let end_at = top.end;
+                if is_branch && self.cur_offset < end_at {
+                    if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
+                        // walk back over the value load(s) of this return
+                        let mut b = ci;
+                        while b > 0 {
+                            let p = &self.instrs[b - 1];
+                            if matches!(
+                                p.op,
+                                Op::LOAD_CONST | Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                            ) {
+                                b -= 1;
+                            } else {
+                                break;
+                            }
+                        }
+                        let back = self.instrs.get(b).map(|x| x.offset);
+                        // forward: this return, then the chain head, then
+                        // only chain material up to the branch end
+                        let mut chain_head = None;
+                        let mut k = ci + 1;
+                        while k < self.instrs.len() {
+                            let x = &self.instrs[k];
+                            if x.offset >= end_at {
+                                break;
+                            }
+                            match x.op {
+                                Op::RETURN_VALUE | Op::RETURN_CONST
+                                | Op::NOP | Op::NOT_TAKEN | Op::CACHE => {
+                                    k += 1;
+                                }
+                                Op::PUSH_EXC_INFO => {
+                                    chain_head = Some(x.offset);
+                                    break;
+                                }
+                                _ => {
+                                    k = usize::MAX;
+                                    break;
+                                }
+                            }
+                        }
+                        if let (Some(back), Some(h)) = (back, chain_head) {
+                            let targeted = self
+                                .instrs
+                                .iter()
+                                .skip(b + 1)
+                                .take_while(|x| x.offset < h)
+                                .any(|x| self.targets.contains(&x.offset));
+                            // the return's value loads must begin right
+                            // at the emitted try's body end (only padding
+                            // between): the narrowed-range tail shape.
+                            // aifc's then-arm return sits past the body's
+                            // final POP_TOP and must stay branch-level.
+                            let adjacent =
+                                self.last_try_body_end.map_or(false, |be| {
+                                    be <= back
+                                        && back - be <= 16
+                                        && !self.instrs.iter().any(|x| {
+                                            x.offset >= be
+                                                && x.offset < back
+                                                && !matches!(
+                                                    x.op,
+                                                    Op::NOP
+                                                        | Op::NOT_TAKEN
+                                                        | Op::CACHE
+                                                )
+                                        })
+                                });
+                            // a chain whose last clause is a bare `except:`
+                            // ending in RERAISE 0 always re-raises: the try
+                            // cannot fall through, so this return TERMINATES
+                            // the branch after the try (aifc __init__ shape,
+                            // which recompiles to the original only with the
+                            // return at branch level) — it is not the tail
+                            // copy of a fall-through try (chunk.skip)
+                            let ext = self.chain_extent(h);
+                            let chain_always_raises = self
+                                .instrs
+                                .iter()
+                                .rev()
+                                .find(|x| {
+                                    x.offset >= h && x.offset < ext
+                                        && !matches!(
+                                            x.op,
+                                            Op::NOP
+                                                | Op::NOT_TAKEN
+                                                | Op::CACHE
+                                                | Op::COPY
+                                                | Op::SWAP
+                                                | Op::POP_EXCEPT
+                                                | Op::RERAISE
+                                        )
+                                })
+                                .map_or(false, |x| {
+                                    x.op == Op::RAISE_VARARGS && x.arg == 0
+                                });
+                            if !targeted
+                                && adjacent
+                                && !chain_always_raises
+                                && h < end_at
+                            {
+                                let ext = self.chain_extent(h);
+                                let value = match &e {
+                                    Some(v) => match &**v {
+                                        Expr::Const(o)
+                                            if matches!(&**o, PyObject::None) =>
+                                        {
+                                            None
+                                        }
+                                        _ => Some(v.clone()),
+                                    },
+                                    None => None,
+                                };
+                                let stmt = Stmt::Return(value);
+                                // the Try block already emitted at the
+                                // body end (close_blocks_at ran before
+                                // this instruction): it is the container's
+                                // last statement — append into its body
+                                let pushed =
+                                    if let Some(top) = self.blocks.last_mut() {
+                                        if let Some(Stmt::Try {
+                                            body,
+                                            finalbody,
+                                            ..
+                                        }) = top.stmts.last_mut()
+                                        {
+                                            if finalbody.is_empty() {
+                                                body.push(stmt);
+                                                true
+                                            } else {
+                                                false
+                                            }
+                                        } else {
+                                            false
+                                        }
+                                    } else {
+                                        false
+                                    };
+                                if pushed {
+                                    if self.skip_until.map_or(true, |s| s < ext) {
+                                        self.skip_until = Some(ext);
+                                    }
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         // 3.11+: the exception-table region often ends exactly at the
         // RETURN that closes the try body (only the value computation is
         // protected). If the pending body is empty and the value was
@@ -17681,6 +17969,50 @@ impl<'a> Ctx<'a> {
                 }
             }
             return;
+        }
+        // a bare `return None` falling through at a loop's EXIT while the
+        // loop block is still open (3.11+ rotated while: the exit return
+        // lands before the block end, which spans to the function-tail
+        // return copy): it resumes the flow past the loop and is the
+        // implicit terminator — close the loop and drop it. Genuine body
+        // returns have real code between them and the block end, or are
+        // the whole remaining body (`while c: return` keeps its return).
+        if value.is_none() && self.legacy_handler.is_none() {
+            if let Some(top) = self.blocks.last() {
+                if matches!(top.kind, BlockType::While | BlockType::For)
+                    && top.start < self.cur_offset
+                    && self.cur_offset < top.end
+                {
+                    let end = top.end;
+                    let mut tail_returns = 0;
+                    let mut only_terms = true;
+                    if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
+                        for x in &self.instrs[ci + 1..] {
+                            // include the instruction AT the block end:
+                            // for the rotated-while exit the function-tail
+                            // return copy sits exactly there
+                            if x.offset > end {
+                                break;
+                            }
+                            match x.op {
+                                Op::RETURN_VALUE | Op::RETURN_CONST => {
+                                    tail_returns += 1;
+                                }
+                                Op::NOP | Op::NOT_TAKEN | Op::CACHE => {}
+                                _ => {
+                                    only_terms = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if only_terms && tail_returns >= 1 {
+                        let at = self.cur_offset;
+                        self.close_blocks_at(at);
+                        return;
+                    }
+                }
+            }
         }
         self.push_stmt(Stmt::Return(value));
     }

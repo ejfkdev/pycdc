@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 7,
-  "INCOMPLETE": 22,
-  "SIG-DIFF": 9,
+  "INCOMPLETE": 18,
+  "SIG-DIFF": 13,
   "AST-PASS": 2
  },
  "results": [
@@ -79,8 +79,8 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1568,
-   "ntotal": 1796,
+   "ndiff": 1533,
+   "ntotal": 1762,
    "detail": "line 176: orig ('NOP', '') | got ('LOAD_SMALL_INT', '')\nline 177: orig ('LOAD_SMALL_INT', '') | got ('LOAD_CONST', 'None')\nline 178: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'tempfile')"
   },
   {
@@ -106,7 +106,8 @@
   },
   {
    "module": "_sitebuiltins",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 22: orig  body=[Return(value=BinOp(left=Constant(value='Use %s() or %s to exit') | dec  body=[Return(value=JoinedStr(values=[Constant(value='Use ')",
+   "verdict": "SIG-DIFF",
    "ndiff": 215,
    "ntotal": 372,
    "detail": "line 152: orig ('STORE_FAST', 'dir') | got ('STORE_FAST_LOAD_FAST', 'dir, files')\nline 153: orig ('LOAD_FAST_BORROW', 'files') | got ('GET_ITER', '')\nline 154: orig ('GET_ITER', '') | got ('FOR_ITER', 'to L3')"
@@ -155,7 +156,8 @@
   },
   {
    "module": "ast",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 229: orig  body=[Return(value=UnaryOp(op=UAdd() | dec  body=[Return(value=Name(id='operand'",
+   "verdict": "SIG-DIFF",
    "ndiff": 2080,
    "ntotal": 2514,
    "detail": "line 413: orig ('CALL_INTRINSIC_1', 'INTRINSIC_UNARY_POSITIVE') | got ('RETURN_VALUE', '')\nline 414: orig ('RETURN_VALUE', '') | got ('LOAD_FAST_BORROW', 'operand')\nline 415: orig ('LOAD_FAST_BORROW', 'operand') | got ('UNARY_NEGATIVE', '')"
@@ -188,9 +190,10 @@
   },
   {
    "module": "cProfile",
-   "verdict": "INCOMPLETE",
-   "ndiff": 389,
-   "ntotal": 768,
+   "ast_detail": "diff at token 241: orig  body=[If(test=Attribute(value=Name(id='entry' | dec  body=[If(test=UnaryOp(op=Not()",
+   "verdict": "SIG-DIFF",
+   "ndiff": 439,
+   "ntotal": 773,
    "detail": "line 97: orig ('LOAD_FAST_BORROW', 'locals') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'locals, filename')\nline 98: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'filename, sort') | got ('LOAD_FAST_BORROW', 'sort')\nline 294: orig ('FOR_ITER', 'to L8') | got ('FOR_ITER', 'to L9')"
   },
   {
@@ -242,7 +245,8 @@
   },
   {
    "module": "configparser",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 94: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
+   "verdict": "SIG-DIFF",
    "ndiff": 4852,
    "ntotal": 5071,
    "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_SMALL_INT', '')"

@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 11,
-  "INCOMPLETE": 18,
+  "PASS": 12,
+  "INCOMPLETE": 17,
   "SIG-DIFF": 10,
   "AST-PASS": 1
  },
@@ -114,8 +114,8 @@
    "module": "asyncore",
    "ast_detail": "diff at token 259: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2248,
-   "ntotal": 2363,
+   "ndiff": 2246,
+   "ntotal": 2362,
    "detail": "line 29: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 33: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 34: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -147,8 +147,8 @@
   {
    "module": "cProfile",
    "verdict": "INCOMPLETE",
-   "ndiff": 294,
-   "ntotal": 742,
+   "ndiff": 304,
+   "ntotal": 744,
    "detail": "line 311: orig ('JUMP_BACKWARD', 'to 328') | got ('JUMP_FORWARD', 'to 420')\nline 432: orig ('PUSH_NULL', '') | got ('NOP', '')\nline 433: orig ('LOAD_FAST', 'func') | got ('LOAD_FAST', 'self')"
   },
   {
@@ -169,17 +169,13 @@
   {
    "module": "cgitb",
    "verdict": "INCOMPLETE",
-   "ndiff": 1211,
-   "ntotal": 1591,
-   "detail": "line 337: orig ('MAKE_CELL', 'file') | got ('MAKE_CELL', 'highlight')\nline 338: orig ('MAKE_CELL', 'highlight') | got ('RESUME', '')\nline 339: orig ('RESUME', '') | got ('LOAD_FAST', 'einfo')"
+   "ndiff": 738,
+   "ntotal": 1609,
+   "detail": "line 858: orig ('LOAD_GLOBAL', 'NULL + linecache') | got ('NOP', '')\nline 859: orig ('LOAD_ATTR', 'getline') | got ('NOP', '')\nline 860: orig ('LOAD_DEREF', 'file') | got ('LOAD_FAST', 'lnum')"
   },
   {
    "module": "chunk",
-   "ast_detail": "diff at token 535: orig  ctx=Load()))) | dec  ctx=Load())))]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 51,
-   "ntotal": 487,
-   "detail": "line 403: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 256') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 258')\nline 437: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 254')\nline 438: orig ('RETURN_VALUE', '') | got ('PUSH_EXC_INFO', '')"
+   "verdict": "PASS"
   },
   {
    "module": "cmd",
@@ -257,7 +253,8 @@
   },
   {
    "module": "csv",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 965: orig  body=[Continue()])] | dec  body=[Pass()])]",
+   "verdict": "SIG-DIFF",
    "ndiff": 1740,
    "ntotal": 1775,
    "detail": "line 9: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 13: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 14: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"

@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
   "PASS": 12,
-  "INCOMPLETE": 20,
-  "SIG-DIFF": 7,
+  "INCOMPLETE": 19,
+  "SIG-DIFF": 8,
   "AST-PASS": 1
  },
  "results": [
@@ -160,8 +160,8 @@
   {
    "module": "cProfile",
    "verdict": "INCOMPLETE",
-   "ndiff": 385,
-   "ntotal": 703,
+   "ndiff": 395,
+   "ntotal": 704,
    "detail": "line 90: orig ('LOAD_FAST', 'locals') | got ('LOAD_FAST_LOAD_FAST', 'locals, filename')\nline 91: orig ('LOAD_FAST_LOAD_FAST', 'filename, sort') | got ('LOAD_FAST', 'sort')\nline 268: orig ('FOR_ITER', 'to L8') | got ('FOR_ITER', 'to L9')"
   },
   {
@@ -214,8 +214,8 @@
   {
    "module": "configparser",
    "verdict": "INCOMPLETE",
-   "ndiff": 4201,
-   "ntotal": 4508,
+   "ndiff": 3634,
+   "ntotal": 4503,
    "detail": "line 5: orig ('LOAD_CONST', \"('Iterable', 'MutableMapping')\") | got ('LOAD_CONST', \"('Iterable',)\")\nline 9: orig ('IMPORT_FROM', 'MutableMapping') | got ('POP_TOP', '')\nline 10: orig ('STORE_NAME', 'MutableMapping') | got ('LOAD_CONST', '0')"
   },
   {
@@ -243,7 +243,8 @@
   },
   {
    "module": "csv",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 863: orig  body=[Continue()])]) | dec  body=[Pass()])])",
+   "verdict": "SIG-DIFF",
    "ndiff": 1658,
    "ntotal": 1697,
    "detail": "line 13: orig ('LOAD_CONST', \"('Error', 'writer', 'reader', 'register_dialect', 'unregister_dialect', 'get_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 17: orig ('IMPORT_FROM', 'writer') | got ('POP_TOP', '')\nline 18: orig ('STORE_NAME', 'writer') | got ('LOAD_CONST', '0')"

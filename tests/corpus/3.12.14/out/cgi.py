@@ -182,9 +182,6 @@ def _parseparam(s):
         f = s[:end]
         yield f.strip()
         s = s[end:]
-        if s[:1] == ';':
-            continue
-        return
 
 def parse_header(line):
     '''Parse a Content-type like header.
@@ -615,9 +612,6 @@ class FieldStorage:
                     return
                 self.file.write(data)
                 todo = todo - len(data)
-                if todo > 0:
-                    continue
-                return
 
     def read_lines(self):
         '''Internal: read lines until EOF or outerboundary.'''
@@ -872,4 +866,3 @@ def valid_boundary(s):
 
 if __name__ == '__main__':
     test()
-# WARNING: Decompyle incomplete

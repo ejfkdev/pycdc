@@ -97,7 +97,7 @@ is, in seconds).
             pass
         finally:
             self.disable()
-        return self
+        return func(*args, **kw)
 
     def __enter__(self):
         self.enable()
@@ -156,4 +156,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-# WARNING: Decompyle incomplete

@@ -106,4 +106,3 @@ except ImportError:
     pass
 bisect = bisect_right
 insort = insort_right
-# WARNING: Decompyle incomplete

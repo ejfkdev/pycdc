@@ -1268,4 +1268,3 @@ section proxies to find and use the implementation on the parser class.
         return len(self._data)
 
 
-# WARNING: Decompyle incomplete

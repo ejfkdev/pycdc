@@ -375,11 +375,6 @@ class BasicInterpolation(Interpolation):
                     accum.append(v)
             else:
                 raise InterpolationSyntaxError(option, section, f"'%' must be followed by '%' or '(', found: {rest!r}")
-            if rest:
-                pass
-            else:
-                return
-                return
 
 
 class ExtendedInterpolation(Interpolation):
@@ -441,11 +436,6 @@ class ExtendedInterpolation(Interpolation):
                     accum.append(v)
             else:
                 raise InterpolationSyntaxError(option, section, f"'$' must be followed by '$' or '{{', found: {rest!r}")
-            if rest:
-                pass
-            else:
-                return
-                return
 
 
 class LegacyInterpolation(Interpolation):

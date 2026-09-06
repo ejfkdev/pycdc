@@ -304,9 +304,6 @@ Must implement in derived classes or get NotImplementedError.
                 if frame is self.botframe:
                     return
                 frame = frame.f_back
-                if frame is not None:
-                    continue
-                return
 
     def _set_stopinfo(self, stopframe, returnframe, stoplineno=0, opcode=False, cmdframe=None, cmdlineno=None):
         """Set the attributes for stopping.

@@ -419,11 +419,6 @@ is considered a user error and raises `InterpolationSyntaxError`.'''
                     accum.append(v)
             else:
                 raise InterpolationSyntaxError(option, section, f"'%' must be followed by '%' or '(', found: {rest!r}")
-            if rest:
-                pass
-            else:
-                return
-                return
 
 
 class ExtendedInterpolation(Interpolation):
@@ -486,11 +481,6 @@ class ExtendedInterpolation(Interpolation):
             else:
                 accum.append(v)
             raise InterpolationSyntaxError(option, section, f"'$' must be followed by '$' or '{{', found: {rest!r}")
-            if rest:
-                pass
-            else:
-                return
-                return
 
 
 class _ReadState:

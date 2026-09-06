@@ -161,9 +161,9 @@ class Chunk:
                     n = n + 1
                 self.file.seek(n, 1)
                 self.size_read = self.size_read + n
+                return
             except OSError:
                 pass
-            return
         while self.size_read < self.chunksize:
             n = min(8192, self.chunksize - self.size_read)
             dummy = self.read(n)

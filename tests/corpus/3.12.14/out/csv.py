@@ -387,4 +387,3 @@ class Sniffer:
         return hasHeader > 0
 
 
-# WARNING: Decompyle incomplete
