@@ -73,10 +73,10 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1444: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
+   "ast_detail": "diff at token 1604: orig  value=Constant(value=2000))] | dec  value=Constant(value=2000))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2064,
-   "ntotal": 2153,
+   "ndiff": 2049,
+   "ntotal": 2154,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {

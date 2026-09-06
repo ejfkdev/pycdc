@@ -69,10 +69,10 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1834: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
+   "ast_detail": "diff at token 2179: orig  type_comment=None)] | dec  type_comment=None)",
    "verdict": "SIG-DIFF",
-   "ndiff": 2038,
-   "ntotal": 2136,
+   "ndiff": 2034,
+   "ntotal": 2137,
    "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
   },
   {

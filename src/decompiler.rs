@@ -353,6 +353,10 @@ struct Ctx<'a> {
     legacy_handler_name_store: bool,
     /// next STORE_*/DELETE_* is the implicit handler-name cleanup
     legacy_handler_cleanup: bool,
+    /// a swallowed implicit-cleanup STORE (`e = None`) expects the
+    /// matching `del e` right after - only THAT delete is cleanup; a
+    /// bare DELETE of the handler name is an explicit source `del`
+    swallowed_cleanup_del: Option<String>,
     /// inside the exception-bookkeeping prelude of a legacy handler
     in_handler_prelude: bool,
 
@@ -639,6 +643,7 @@ pub fn decompile_in_scope(
         legacy_handler_end: None,
         legacy_handler_name_store: false,
         legacy_handler_cleanup: false,
+        swallowed_cleanup_del: None,
         in_handler_prelude: false,
         pending_then: Vec::new(),
         pending_handlers: Vec::new(),
@@ -4019,32 +4024,68 @@ impl<'a> Ctx<'a> {
 
         // swallow the implicit `name = None; del name` handler cleanup
         if self.legacy_handler.is_some() {
-            let hname = self
-                .legacy_handler
-                .as_ref()
-                .and_then(|h| match &h.name {
-                    Some(e) => match &**e {
-                        Expr::Name(n) => Some(n.clone()),
-                        _ => None,
-                    },
-                    None => None,
-                });
+            // py3-only: the implicit `e = None; del e` handler cleanup.
+            // py2 has NO implicit cleanup - a DELETE matching the handler
+            // name there is an explicit source `del err` (_strptime) and
+            // must be emitted
+            let hname = if self.version.major >= 3 {
+                self.legacy_handler
+                    .as_ref()
+                    .and_then(|h| match &h.name {
+                        Some(e) => match &**e {
+                            Expr::Name(n) => Some(n.clone()),
+                            _ => None,
+                        },
+                        None => None,
+                    })
+            } else {
+                None
+            };
             if let Some(hname) = hname {
+                // arm ONLY on the implicit-cleanup STORE (`LOAD_CONST
+                // None; STORE name`) - a bare DELETE matching the name
+                // is an explicit source `del err` (py3 _strptime has
+                // one INSIDE the handler, before the implicit pair) and
+                // must be emitted
                 let nm = match inst.op {
-                    Op::STORE_NAME | Op::DELETE_NAME => {
-                        Some(self.const_name(inst.arg as usize))
-                    }
-                    Op::STORE_FAST | Op::DELETE_FAST => {
-                        Some(self.local_name(inst.arg as usize))
-                    }
-                    Op::STORE_DEREF | Op::DELETE_DEREF => self
+                    Op::STORE_NAME => Some(self.const_name(inst.arg as usize)),
+                    Op::STORE_FAST => Some(self.local_name(inst.arg as usize)),
+                    Op::STORE_DEREF => self
                         .code
                         .deref_name(inst.arg as usize)
                         .map(str::to_string),
                     _ => None,
                 };
                 if nm.as_deref() == Some(hname.as_str()) {
-                    self.legacy_handler_cleanup = true;
+                    let prev_none = self
+                        .idx_of
+                        .get(&inst.offset)
+                        .and_then(|&ii| {
+                            let mut p = ii;
+                            loop {
+                                if p == 0 {
+                                    return Some(false);
+                                }
+                                p -= 1;
+                                match self.instrs[p].op {
+                                    Op::NOP | Op::CACHE | Op::NOT_TAKEN => {}
+                                    Op::LOAD_CONST => {
+                                        return Some(matches!(
+                                            self.code
+                                                .consts
+                                                .get(self.instrs[p].arg as usize)
+                                                .map(|o| &**o),
+                                            Some(PyObject::None)
+                                        ));
+                                    }
+                                    _ => return Some(false),
+                                }
+                            }
+                        })
+                        .unwrap_or(false);
+                    if prev_none {
+                        self.legacy_handler_cleanup = true;
+                    }
                 }
             }
         }
@@ -16599,6 +16640,9 @@ impl<'a> Ctx<'a> {
     fn emit_store(&mut self, target: ExprRef, val: ExprRef) {
         if self.legacy_handler_cleanup {
             self.legacy_handler_cleanup = false;
+            if let Expr::Name(n) = &*target {
+                self.swallowed_cleanup_del = Some(n.clone());
+            }
             return;
         }
         // post-handler `as`-name cleanup: hold `name = None` until the
@@ -17011,6 +17055,13 @@ impl<'a> Ctx<'a> {
             self.legacy_handler_cleanup = false;
             return;
         }
+        if let Expr::Name(n) = &*target {
+            if self.swallowed_cleanup_del.as_deref() == Some(n.as_str()) {
+                self.swallowed_cleanup_del = None;
+                return;
+            }
+        }
+        self.swallowed_cleanup_del = None;
         if let Expr::Name(n) = &*target {
             if self.pending_as_cleanup.as_deref() == Some(n.as_str()) {
                 self.pending_as_cleanup = None;

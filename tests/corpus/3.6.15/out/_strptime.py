@@ -271,6 +271,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                 bad_directive = err.args[0]
                 if bad_directive == '\\':
                     bad_directive = '%'
+                del err
                 raise ValueError("'%s' is a bad directive in format '%s'" % (bad_directive, format)) from None
             except IndexError:
                 raise ValueError("stray %% in format '%s'" % format) from None
