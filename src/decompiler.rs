@@ -12692,6 +12692,19 @@ impl<'a> Ctx<'a> {
                 let mut body_end = None;
                 let mut k2 = bi;
                 while let Some(ins) = self.instrs.get(k2) {
+                    // a body that FALLS THROUGH to the chain's skip label
+                    // ends there: link targets at/after the body start
+                    // bound the span. Without this the scan runs past the
+                    // skip into the FOLLOWING statement and adopts its
+                    // first forward hop as the "else-skip" (t_chain 3.10:
+                    // body_end overshot 46 into the next if's JF at 64,
+                    // then the link-into-body veto rejected the whole
+                    // chain and both bodies were ejected from their
+                    // guards).
+                    if ins.offset > bs && link_targets.iter().any(|&t| t == ins.offset) {
+                        body_end = Some(ins.offset);
+                        break;
+                    }
                     if matches!(ins.op, Op::RETURN_VALUE | Op::RETURN_CONST | Op::RAISE_VARARGS) {
                         body_end = Some(ins.end());
                         break;

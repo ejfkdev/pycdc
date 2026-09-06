@@ -189,9 +189,9 @@
   {
    "module": "cgi",
    "verdict": "INCOMPLETE",
-   "ndiff": 2162,
+   "ndiff": 1457,
    "ntotal": 2887,
-   "detail": "line 578: orig ('FOR_ITER', 'to 176') | got ('FOR_ITER', 'to 172')\nline 621: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 622: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')"
+   "detail": "line 1223: orig ('DUP_TOP', '') | got ('LOAD_FAST', 'self')\nline 1224: orig ('LOAD_FAST', 'self') | got ('STORE_ATTR', 'list')\nline 1225: orig ('STORE_ATTR', 'list') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "cgitb",

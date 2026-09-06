@@ -198,11 +198,9 @@ def parse_header(line):
         name = p[:i].strip().lower()
         value = p[i + 1:].strip()
         if len(value) >= 2:
-            if value[0] == value[-1]:
-                if value[-1] == '"':
-                    pass
-            value = value[1:-1]
-            value = value.replace('\\\\', '\\').replace('\\"', '"')
+            if value[0] == value[-1] == '"':
+                value = value[1:-1]
+                value = value.replace('\\\\', '\\').replace('\\"', '"')
         pdict[name] = value
     return key, pdict
 

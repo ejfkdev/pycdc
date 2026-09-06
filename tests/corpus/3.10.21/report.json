@@ -178,11 +178,11 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 793: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Call(func=Name(id='len'",
+   "ast_detail": "diff at token 1499: orig  ctx=Store()) | dec  ctx=Store())]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2204,
+   "ndiff": 1017,
    "ntotal": 2915,
-   "detail": "line 618: orig ('FOR_ITER', 'to 176') | got ('FOR_ITER', 'to 174')\nline 628: orig ('POP_JUMP_IF_FALSE', 'to 174') | got ('POP_JUMP_IF_FALSE', 'to 172')\nline 654: orig ('POP_JUMP_IF_FALSE', 'to 166') | got ('POP_JUMP_IF_FALSE', 'to 164')"
+   "detail": "line 1254: orig ('DUP_TOP', '') | got ('LOAD_FAST', 'self')\nline 1255: orig ('LOAD_FAST', 'self') | got ('STORE_ATTR', 'list')\nline 1256: orig ('STORE_ATTR', 'list') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "cgitb",

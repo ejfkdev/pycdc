@@ -14,6 +14,8 @@ import sys
 #   循环内 `A or B: 末语句`（<3.12）—— 融合 skip+continue
 #   循环内 `A or (B and C)`（3.5-3.11）—— fused try_or_and_chain
 #   值位 `a and b or c`（仅 <3.14）—— try_and_or_value_chain
+#   链式比较 `a <= b < c`（全版本）—— SCC body_end 曾越过 skip 标签
+#     把下一条语句的 JF 当 body 末端，链被否决、body 甩出守卫
 #
 # 已知缺口（各自独立 bug，另行处理，勿在本用例覆盖）：
 #   * `(a and b) or (c and d)`（codecs StreamReader.read 形，全版本）：
@@ -27,8 +29,6 @@ import sys
 #     `if not A: if B: pass`（语义等价的 no-op，仅不保真）。
 #   * 3.14 值位 boolop 重新分组：`a and b or c` 折成 `a and (b or c)`；
 #     3.14 语句级 (a and b) or c 同样反转。
-#   * 3.10+ 链式比较 if（`(3,5) <= V[:2] < (3,14)`）的 body 被甩出守卫
-#     （条件折成 `if A: if B: pass` + body 无条件执行）。
 # 版本门控刻意用「先算 0/1 变量 + 单比较 if」的防呆形状——门控自身
 # 若用链式/and-or 比较会被上述缺口吃掉，导致各版本行数错位。
 
@@ -70,6 +70,14 @@ def g_loop_and_or(items, flag, lim):
     for x in items:
         if flag is None or (x > 0 and x < lim):
             out.append(x)
+    return out
+
+def g_chain(V, x):
+    out = []
+    if (3, 5) <= V[:2] < (3, 14):
+        out.append(1)
+    if 0 < x < 10:
+        out.append(2)
     return out
 
 def g_while_or(a, b):
@@ -124,3 +132,5 @@ B35_311 = GE35 * LT312
 if B35_311:
     print(g_loop_and_or([0, 1, 2, 3], None, 3))
     print(g_loop_and_or([0, 1, 2, 3], 0, 3))
+
+print(g_chain((3, 6), 5), g_chain((3, 16), 5), g_chain((2, 6), 50))
