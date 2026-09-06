@@ -266,3 +266,19 @@ def while_and_call(s):
 
 print(while_and(1, 2, []), while_and(2, 2, []))
 print(while_and_call('a;b'), while_and_call('x"x;x'))
+
+def for_and_not_break(items):
+    # `if A and not B: break`：混合极性链全部跳循环顶，不得并成
+    # `if A or B: break`（极性反转，copyreg._reduce_ex 教训）
+    out = []
+    for it in items:
+        out.append(it)
+        if it % 2 == 0 and not it < 0:
+            break
+    else:
+        out.append('else')
+    return out
+
+print(for_and_not_break([-3, 2, 4]))
+print(for_and_not_break([-3, -5]))
+print(for_and_not_break([3, 2]))

@@ -10919,6 +10919,24 @@ impl<'a> Ctx<'a> {
                         return Some((merged, body_off, body_end_off));
                     }
                     let (body_end, body_t) = body_jump?;
+                    // the historical Or/And merges assume a UNIFORM chain
+                    // whose polarity matches the first jump (Or = every
+                    // top-jump PJIT like the first; And = every PJIF).
+                    // top_jumps_true/false only fold the FOLLOWING links,
+                    // so a MIXED chain (PJIF first + PJIT link — `if A and
+                    // not B: break`, copyreg._reduce_ex) took the Or branch
+                    // and rendered `if A or B: break` — polarity-broken.
+                    // Mixed chains belong to the And-normalized guard
+                    // branch above (which requires a real body, so it
+                    // declined this bare jump body); decline here too and
+                    // let the generic per-jump If rendering nest the
+                    // conditions correctly.
+                    let first_jt = self.jump_if_true_at_ci(ci);
+                    let uniform = (top_jumps_true && first_jt)
+                        || (top_jumps_false && !first_jt);
+                    if !uniform {
+                        return None;
+                    }
                     let op = if top_jumps_true {
                         BoolOpKind::Or
                     } else {
