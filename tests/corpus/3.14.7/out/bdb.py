@@ -588,7 +588,7 @@ reached or when returning from current frame.'''
         if not self.breaks:
             self.stop_trace()
             frame = sys._getframe().f_back
-            while frame:
+            while frame and frame is not self.botframe:
                 del frame.f_trace
                 frame = frame.f_back
             for frame, (trace_lines, trace_opcodes) in self.frame_trace_lines_opcodes.items():

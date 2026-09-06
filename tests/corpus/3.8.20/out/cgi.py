@@ -170,7 +170,7 @@ def _parseparam(s):
     while s[:1] == ';':
         s = s[1:]
         end = s.find(';')
-        while end > 0:
+        while end > 0 and (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
             end = s.find(';', end + 1)
         if end < 0:
             end = len(s)
@@ -539,7 +539,7 @@ class FieldStorage:
         if not isinstance(first_line, bytes):
             raise ValueError('%s should return bytes, got %s' % (self.fp, type(first_line).__name__))
         self.bytes_read += len(first_line)
-        while first_line.strip() != b'--' + self.innerboundary:
+        while first_line.strip() != b'--' + self.innerboundary and first_line:
             first_line = self.fp.readline()
             self.bytes_read += len(first_line)
         max_num_fields = self.max_num_fields
@@ -590,7 +590,7 @@ class FieldStorage:
 
         self.file = self.make_file()
         todo = self.length
-        while todo >= 0:
+        while todo >= 0 and todo > 0:
             data = self.fp.read(min(todo, self.bufsize))
             if not isinstance(data, bytes):
                 raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))

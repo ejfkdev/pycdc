@@ -31,7 +31,7 @@
    "module": "_compression",
    "ast_detail": "diff at token 356: orig  type_comment=None)])] | dec  type_comment=None)]",
    "verdict": "SIG-DIFF",
-   "ndiff": 185,
+   "ndiff": 184,
    "ntotal": 490,
    "detail": "line 298: orig ('SETUP_FINALLY', 'to 104') | got ('JUMP_ABSOLUTE', '')\nline 299: orig ('LOAD_FAST', 'self') | got ('JUMP_ABSOLUTE', '')\nline 300: orig ('LOAD_ATTR', '_decompressor') | got ('LOAD_FAST', 'data')"
   },
@@ -43,8 +43,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 596: orig  comparators=[Set(elts=[Constant(value='attlist' | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 962,
-   "ntotal": 1399,
+   "ndiff": 958,
+   "ntotal": 1406,
    "detail": "line 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 472')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 472')\nline 385: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 472')"
   },
   {
@@ -119,7 +119,7 @@
    "module": "asynchat",
    "ast_detail": "diff at token 300: orig  body=[Return(value=None)]) | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 529,
+   "ndiff": 534,
    "ntotal": 810,
    "detail": "line 227: orig ('JUMP_FORWARD', 'to 86') | got ('JUMP_FORWARD', 'to 84')\nline 236: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 84')\nline 237: orig ('RETURN_VALUE', '') | got ('DUP_TOP', '')"
   },
@@ -141,9 +141,9 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 1485: orig  While(test=BoolOp(op=And() | dec  While(test=Name(id='frame'",
+   "ast_detail": "diff at token 1662: orig  type_comment=None) | dec  type_comment=None)]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2263,
+   "ndiff": 2241,
    "ntotal": 2369,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -185,9 +185,9 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 816: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='end'",
+   "ast_detail": "diff at token 997: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2778,
+   "ndiff": 2766,
    "ntotal": 2900,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
@@ -207,7 +207,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 241: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1067,
+   "ndiff": 1073,
    "ntotal": 1305,
    "detail": "line 219: orig ('SETUP_FINALLY', 'to 320') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 221: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -251,7 +251,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1614: orig  keywords=[])) | dec  keywords=[]))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2803,
+   "ndiff": 2805,
    "ntotal": 4350,
    "detail": "line 1088: orig ('JUMP_FORWARD', 'to 336') | got ('JUMP_ABSOLUTE', '')\nline 1414: orig ('JUMP_FORWARD', 'to 472') | got ('JUMP_ABSOLUTE', '')\nline 1472: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')"
   },

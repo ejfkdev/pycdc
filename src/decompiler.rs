@@ -12785,14 +12785,97 @@ impl<'a> Ctx<'a> {
         // 2) rotated while: duplicated cond jump to the same exit — ignore.
         // Only matches the loop cond's own polarity; an opposite-polarity
         // jump to the loop exit is an `if c: break`.
-        if let Some(top) = self.blocks.last() {
-            if matches!(top.kind, BlockType::While)
+        let dup_while = self.blocks.last().map_or(false, |top| {
+            matches!(top.kind, BlockType::While)
                 && top.cond_set
                 && top.jump_if_true == jump_if_true
-                && top.end == target
-                && top.cond_end != usize::MAX
-                && top.cond_end < self.cur_offset
+                // SETUP_LOOP-era exits land on the loop's POP_BLOCK, one
+                // instruction before the block end
+                && (top.end == target || self.is_pop_block_before(target, top.end))
+                && ((top.cond_end != usize::MAX && top.cond_end < self.cur_offset)
+                    // the SETUP_LOOP-era While (section 3b) never records
+                    // cond_end; on 3.8+ the MAX sentinel means "opened by
+                    // a non-cond mechanism" and must fall through instead
+                    || (top.cond_end == usize::MAX
+                        && !self.version.at_least(3, 8)))
+        });
+        if dup_while {
+            let (mirrored, and_chain) = {
+                let top = self.blocks.last().unwrap();
+                // a genuine duplicated cond RE-EVALUATES the identical
+                // operand run; a second AND operand shares the exit but
+                // its region differs (2.7 `while A and B:` - ignoring it
+                // lost the merge and left a spurious inner if)
+                let m = match (
+                    self.idx_of.get(&top.start),
+                    self.idx_of.get(&top.cond_end),
+                    self.idx_of.get(&self.cur_offset),
+                ) {
+                    (Some(&si), Some(&ci2), Some(&ui))
+                        if ci2 > si && ci2 + (ci2 - si) <= ui =>
+                    {
+                        let n = ci2 - si;
+                        self.instrs[ci2..ci2 + n]
+                            .iter()
+                            .zip(self.instrs[si..ci2].iter())
+                            .all(|(a, b)| a.op == b.op && a.arg == b.arg)
+                    }
+                    _ => false,
+                };
+                // AND-chain continuation of an initialized While cond
+                // (SETUP_LOOP era `while A and B:` - both links jump to
+                // the loop's exit): merge when the operand region between
+                // the two cond jumps is pure value
+                // the SETUP_LOOP-era path (section 3b) leaves cond_end
+                // at the MAX sentinel - fall back to the block start;
+                // the first link's own cond jump is tolerated by the
+                // same-chain rule inside the region scan
+                let from = if top.cond_end == usize::MAX {
+                    top.start
+                } else {
+                    top.cond_end
+                };
+                let a = !m
+                    && self.is_split_cond_region(
+                        from,
+                        self.cur_offset,
+                        target,
+                        jump_if_true,
+                    );
+                (m, a)
+            };
+            if mirrored {
+                return;
+            }
+            if !and_chain {
+                // not a pure-value And continuation (e.g. a walrus tail
+                // re-eval carrying its STORE): historical behavior —
+                // treat as the rotated duplicate and ignore
+                return;
+            }
             {
+                let new_cond_end = self
+                    .idx_of
+                    .get(&self.cur_offset)
+                    .and_then(|&ci| self.instrs.get(ci))
+                    .map(|x| x.end())
+                    .unwrap_or(self.cur_offset);
+                if let Some(top) = self.blocks.last_mut() {
+                    let prev = top.cond.take().unwrap();
+                    let c2 = if jump_if_true {
+                        negate_cond(cond)
+                    } else {
+                        cond
+                    };
+                    let mut values = Vec::new();
+                    flatten_boolop(prev, BoolOpKind::And, &mut values);
+                    flatten_boolop(c2, BoolOpKind::And, &mut values);
+                    top.cond = Some(Rc::new(Expr::BoolOp {
+                        op: BoolOpKind::And,
+                        values,
+                    }));
+                    top.cond_end = new_cond_end;
+                }
                 return;
             }
         }

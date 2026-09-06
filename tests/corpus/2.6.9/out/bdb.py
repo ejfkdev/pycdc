@@ -94,11 +94,9 @@ class Bdb:
                 return False
             return frame.f_lineno >= self.stoplineno
         while frame is not None:
-            if frame is not self.stopframe:
-                if frame is self.botframe:
-                    return True
-                frame = frame.f_back
-                continue
+            if frame is self.botframe:
+                return True
+            frame = frame.f_back
         return False
 
     def break_here(self, frame):

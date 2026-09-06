@@ -205,22 +205,19 @@ class BZ2File(io.BufferedIOBase):
         self._buffer = self._buffer[self._buffer_offset:]
         self._buffer_offset = 0
         blocks = []
-        while n > 0:
-            if self._fill_buffer():
-                if n < len(self._buffer):
-                    data = self._buffer[:n]
-                    self._buffer_offset = n
-                else:
-                    data = self._buffer
-                    self._buffer = b''
-                if return_data:
-                    blocks.append(data)
-                self._pos += len(data)
-                n -= len(data)
+        while n > 0 and self._fill_buffer():
+            if n < len(self._buffer):
+                data = self._buffer[:n]
+                self._buffer_offset = n
             else:
-                if return_data:
-                    return b''.join(blocks)
-                return
+                data = self._buffer
+                self._buffer = b''
+            if return_data:
+                blocks.append(data)
+            self._pos += len(data)
+            n -= len(data)
+        if return_data:
+            return b''.join(blocks)
 
     def peek(self, n=0):
         '''Return buffered data without advancing the file position.

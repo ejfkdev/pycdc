@@ -171,16 +171,15 @@ class ParserBase:
                     continue
             if c == ']':
                 j = j + 1
-                while j < n:
-                    if rawdata[j].isspace():
-                        j = j + 1
-                    elif j < n:
-                        if rawdata[j] == '>':
-                            return j
-                        self.updatepos(declstartpos, j)
-                        self.error('unexpected char after internal subset')
-                        continue
-                return -1
+                while j < n and rawdata[j].isspace():
+                    j = j + 1
+                if j < n:
+                    if rawdata[j] == '>':
+                        return j
+                    self.updatepos(declstartpos, j)
+                    self.error('unexpected char after internal subset')
+                else:
+                    return -1
             elif c.isspace():
                 j = j + 1
             else:

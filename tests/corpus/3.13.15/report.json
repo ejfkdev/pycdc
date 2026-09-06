@@ -183,8 +183,8 @@
    "module": "cmd",
    "ast_detail": "diff at token 131: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Try(body=[Try(body=[Import(names=[alias(name='readline')])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1301,
-   "ntotal": 1489,
+   "ndiff": 1314,
+   "ntotal": 1501,
    "detail": "line 163: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('EXTENDED_ARG', '')\nline 164: orig ('LOAD_FAST', 'self') | got ('POP_JUMP_IF_FALSE', 'to L12')\nline 165: orig ('LOAD_ATTR', 'completekey') | got ('LOAD_FAST', 'self')"
   },
   {

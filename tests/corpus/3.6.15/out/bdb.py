@@ -218,12 +218,9 @@ class Bdb:
         if not self.breaks:
             sys.settrace(None)
             frame = sys._getframe().f_back
-            while frame:
-                if frame is not self.botframe:
-                    del frame.f_trace
-                    frame = frame.f_back
-                else:
-                    return
+            while frame and frame is not self.botframe:
+                del frame.f_trace
+                frame = frame.f_back
 
     def set_quit(self):
         self.stopframe = self.botframe

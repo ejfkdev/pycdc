@@ -173,12 +173,9 @@ def loop(timeout=30.0, use_poll=False, map=None, count=None):
         while map:
             poll_fun(timeout, map)
         else:
-            while map:
-                if count > 0:
-                    poll_fun(timeout, map)
-                    count = count - 1
-                else:
-                    return
+            while map and count > 0:
+                poll_fun(timeout, map)
+                count = count - 1
 
 class dispatcher:
     debug = False

@@ -145,7 +145,7 @@ class Cmd:
             else:
                 return None, None, line
         i, n = 0, len(line)
-        while i < n:
+        while i < n and line[i] in self.identchars:
             i = i + 1
         cmd, arg = line[:i], line[i:].strip()
         return cmd, arg, line

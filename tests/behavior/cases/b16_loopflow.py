@@ -243,3 +243,26 @@ def or_continue_while(n):
 
 print(or_continue([1, -2, 3, 0, 5, 3], set([3, 5])))
 print(or_continue_while(12))
+
+# while with a two-operand And condition: both links exit to the loop
+# exit. 3.8+ folds via split_cond; SETUP_LOOP-era (2.7-3.7) needs the
+# While-cond And-merge arm (the second link is NOT a rotated-while
+# duplicate - its operand run differs). Mis-handling nests the second
+# operand as an inner if and can infinite-loop (bdb family).
+def while_and(frame, stopframe, out):
+    i = 0
+    while frame is not stopframe and frame is not None:
+        out.append(i)
+        i += 1
+        if i > 3:
+            frame = None
+    return out
+
+def while_and_call(s):
+    end = s.find(';')
+    while end > 0 and (s.count('"', 0, end) - s.count('x', 0, end)) % 2:
+        end = s.find(';', end + 1)
+    return end
+
+print(while_and(1, 2, []), while_and(2, 2, []))
+print(while_and_call('a;b'), while_and_call('x"x;x'))

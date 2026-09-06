@@ -297,36 +297,33 @@ class Sniffer:
             total = float(chunkLength * iteration)
             consistency = 1.0
             threshold = 0.9
-            while len(delims) == 0:
-                if consistency >= threshold:
-                    for k, v in modeList:
-                        if v[0] > 0:
-                            if v[1] > 0:
-                                if v[1] / total >= consistency:
-                                    if delimiters is not None:
-                                        if k in delimiters:
-                                            delims[k] = v
-                    consistency -= 0.01
-                else:
-                    if len(delims) == 1:
-                        delim = list(delims.keys())[0]
-                        skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
-                        return delim, skipinitialspace
-                    start = end
-                    end += chunkLength
-                    break
-                    if not delims:
-                        return ('', 0)
-                    if len(delims) > 1:
-                        for d in self.preferred:
-                            if d in delims.keys():
-                                skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
-                                return d, skipinitialspace
-                    items = [(v, k) for k, v in delims.items()]
-                    items.sort()
-                    delim = items[-1][1]
-                    skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
-                    return delim, skipinitialspace
+            while len(delims) == 0 and consistency >= threshold:
+                for k, v in modeList:
+                    if v[0] > 0:
+                        if v[1] > 0:
+                            if v[1] / total >= consistency:
+                                if delimiters is not None:
+                                    if k in delimiters:
+                                        delims[k] = v
+                consistency -= 0.01
+            if len(delims) == 1:
+                delim = list(delims.keys())[0]
+                skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
+                return delim, skipinitialspace
+            start = end
+            end += chunkLength
+        if not delims:
+            return ('', 0)
+        if len(delims) > 1:
+            for d in self.preferred:
+                if d in delims.keys():
+                    skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
+                    return d, skipinitialspace
+        items = [(v, k) for k, v in delims.items()]
+        items.sort()
+        delim = items[-1][1]
+        skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
+        return delim, skipinitialspace
 
     def has_header(self, sample):
         rdr = reader(StringIO(sample), self.sniff(sample))

@@ -147,7 +147,14 @@ class async_chat(asyncore.dispatcher):
         self.producer_fifo.append(None)
 
     def initiate_send(self):
-        while self.producer_fifo:
+        while self.producer_fifo and self.connected:
+            first = self.producer_fifo[0]
+            if not first:
+                del self.producer_fifo[0]
+                if first is None:
+                    self.handle_close()
+                    return
+            obs = self.ac_out_buffer_size
             try:
                 data = first[:obs]
             except TypeError:
@@ -157,14 +164,6 @@ class async_chat(asyncore.dispatcher):
                 else:
                     del self.producer_fifo[0]
                 continue
-                if self.connected:
-                    first = self.producer_fifo[0]
-                    if not first:
-                        del self.producer_fifo[0]
-                        if first is None:
-                            self.handle_close()
-                            return
-                    obs = self.ac_out_buffer_size
             if isinstance(data, str) and self.use_encoding:
                 data = bytes(data, self.encoding)
             try:
@@ -229,9 +228,7 @@ class fifo:
 
 def find_prefix_at_end(haystack, needle):
     l = len(needle) - 1
-    while l:
-        if not haystack.endswith(needle[:l]):
-            l -= 1
-        else:
-            return l
+    while l and not haystack.endswith(needle[:l]):
+        l -= 1
+    return l
 

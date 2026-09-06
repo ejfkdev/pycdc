@@ -493,7 +493,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
         self.traverse(node.test)
         with self.block():
             self.traverse(node.body)
-        while node.orelse:
+        while node.orelse and len(node.orelse) == 1 and isinstance(node.orelse[0], If):
             node = node.orelse[0]
             self.fill('elif ', allow_semicolon=False)
             self.traverse(node.test)

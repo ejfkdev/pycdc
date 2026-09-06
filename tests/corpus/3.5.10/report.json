@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
   "PASS": 12,
-  "SIG-DIFF": 22,
-  "AST-PASS": 6
+  "SIG-DIFF": 21,
+  "AST-PASS": 7
  },
  "results": [
   {
@@ -43,7 +43,7 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 484: orig  If(test=Compare(left=Name(id='c' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 964,
+   "ndiff": 966,
    "ntotal": 1397,
    "detail": "line 299: orig ('SETUP_LOOP', 'to 621') | got ('SETUP_LOOP', 'to 636')\nline 356: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 532')\nline 369: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 532')"
   },
@@ -101,18 +101,14 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 765: orig  body=[While(test=BoolOp(op=And() | dec  body=[While(test=Attribute(value=Name(id='self'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 189,
-   "ntotal": 916,
-   "detail": "line 573: orig ('LOAD_FAST', 'self') | got ('SETUP_EXCEPT', 'to 35')\nline 574: orig ('LOAD_ATTR', 'connected') | got ('LOAD_FAST', 'first')\nline 575: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_CONST', 'None')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "asyncore",
    "ast_detail": "diff at token 427: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2188,
-   "ntotal": 2253,
+   "ndiff": 2177,
+   "ntotal": 2250,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -125,9 +121,9 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 1270: orig  While(test=BoolOp(op=And() | dec  While(test=Name(id='frame'",
+   "ast_detail": "diff at token 1864: orig  Return(value=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1532,
+   "ndiff": 1506,
    "ntotal": 2332,
    "detail": "line 778: orig ('LOAD_CONST', 'None') | got ('do_clear', 2)\nline 779: orig ('RETURN_VALUE', '') | got ('LOAD_GLOBAL', 'NotImplementedError')\nline 780: orig ('do_clear', 2) | got ('LOAD_CONST', \"'subclass of bdb must implement do_clear()'\")"
   },
@@ -161,10 +157,10 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 972: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='end'",
+   "ast_detail": "diff at token 1839: orig  ctx=Store()) | dec  ctx=Store())]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2910,
-   "ntotal": 3049,
+   "ndiff": 2882,
+   "ntotal": 3042,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
   {
@@ -183,7 +179,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 248: orig  body=[Try(body=[Assign(targets=[Name(id='line' | dec  body=[Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1025,
+   "ndiff": 1026,
    "ntotal": 1310,
    "detail": "line 221: orig ('SETUP_FINALLY', 'to 430') | got ('SETUP_FINALLY', 'to 347')\nline 245: orig ('SETUP_LOOP', 'to 416') | got ('SETUP_LOOP', 'to 333')\nline 257: orig ('JUMP_FORWARD', 'to 364') | got ('JUMP_FORWARD', 'to 235')"
   },
@@ -219,7 +215,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 2172: orig  kw_defaults=[Tuple(elts=[Str(s='=') | dec  kw_defaults=[None",
    "verdict": "SIG-DIFF",
-   "ndiff": 4152,
+   "ndiff": 4149,
    "ntotal": 4295,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },
@@ -249,10 +245,10 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1509: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Call(func=Name(id='len'",
+   "ast_detail": "diff at token 1530: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1626,
-   "ntotal": 1660,
+   "ndiff": 1616,
+   "ntotal": 1656,
    "detail": "line 8: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 12: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 13: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   }
  ]

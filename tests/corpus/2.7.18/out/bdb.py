@@ -108,13 +108,11 @@ class Bdb:
             if self.stoplineno == -1:
                 return False
             return frame.f_lineno >= self.stoplineno
-        while frame is not None:
-            if frame is not self.stopframe:
-                if frame is self.botframe:
-                    return True
-                frame = frame.f_back
-            else:
-                return False
+        while frame is not None and frame is not self.stopframe:
+            if frame is self.botframe:
+                return True
+            frame = frame.f_back
+        return False
 
     def break_here(self, frame):
         filename = self.canonic(frame.f_code.co_filename)
@@ -197,14 +195,9 @@ class Bdb:
         if not self.breaks:
             sys.settrace(None)
             frame = sys._getframe().f_back
-            while frame:
-                if frame is not self.botframe:
-                    del frame.f_trace
-                    frame = frame.f_back
-                else:
-                    break
-        else:
-            return
+            while frame and frame is not self.botframe:
+                del frame.f_trace
+                frame = frame.f_back
 
     def set_quit(self):
         self.stopframe = self.botframe

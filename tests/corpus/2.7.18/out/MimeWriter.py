@@ -98,23 +98,18 @@ class MimeWriter:
         '''
 
         lines = value.split('\n')
-        while lines:
-            if not lines[-1]:
-                del lines[-1]
-            else:
-                while lines:
-                    if not lines[0]:
-                        del lines[0]
-                    else:
-                        for i in range(1, len(lines)):
-                            lines[i] = '    ' + lines[i].strip()
-                        value = '\n'.join(lines) + '\n'
-                        line = key + ': ' + value
-                        if prefix:
-                            self._headers.insert(0, line)
-                        else:
-                            self._headers.append(line)
-                        return
+        while lines and not lines[-1]:
+            del lines[-1]
+        while lines and not lines[0]:
+            del lines[0]
+        for i in range(1, len(lines)):
+            lines[i] = '    ' + lines[i].strip()
+        value = '\n'.join(lines) + '\n'
+        line = key + ': ' + value
+        if prefix:
+            self._headers.insert(0, line)
+        else:
+            self._headers.append(line)
 
     def flushheaders(self):
         self._fp.writelines(self._headers)

@@ -167,7 +167,7 @@ by the SGML/HTML and XHTML parsers.'''
             j = j + 1
         if c == ']':
             j = j + 1
-            while j < n:
+            while j < n and rawdata[j].isspace():
                 j = j + 1
             if j < n:
                 if rawdata[j] == '>':

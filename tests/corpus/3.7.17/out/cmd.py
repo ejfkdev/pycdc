@@ -178,12 +178,10 @@ class Cmd:
             else:
                 return None, None, line
         i, n = 0, len(line)
-        while i < n:
-            if line[i] in self.identchars:
-                i = i + 1
-            else:
-                cmd, arg = line[:i], line[i:].strip()
-                return cmd, arg, line
+        while i < n and line[i] in self.identchars:
+            i = i + 1
+        cmd, arg = line[:i], line[i:].strip()
+        return cmd, arg, line
 
     def onecmd(self, line):
         '''Interpret the argument as though it had been typed in response

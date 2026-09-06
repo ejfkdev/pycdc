@@ -141,37 +141,35 @@ class async_chat(asyncore.dispatcher):
         self.producer_fifo.append(None)
 
     def initiate_send(self):
-        while self.producer_fifo:
-            if self.connected:
-                first = self.producer_fifo[0]
-                if not first:
+        while self.producer_fifo and self.connected:
+            first = self.producer_fifo[0]
+            if not first:
+                del self.producer_fifo[0]
+                if first is None:
+                    self.handle_close()
+                    return
+            obs = self.ac_out_buffer_size
+            try:
+                with catch_warnings():
+                    if py3kwarning:
+                        filterwarnings('ignore', '.*buffer', DeprecationWarning)
+                    data = buffer(first, 0, obs)
+            except TypeError:
+                data = first.more()
+                if data:
+                    self.producer_fifo.appendleft(data)
+                else:
                     del self.producer_fifo[0]
-                    if first is None:
-                        self.handle_close()
+            if num_sent:
+                if num_sent < len(data) or obs < len(first):
+                    try:
+                        num_sent = self.send(data)
+                    except socket.error:
+                        self.handle_error()
                         return
-                obs = self.ac_out_buffer_size
-            else:
-                try:
-                    with catch_warnings():
-                        if py3kwarning:
-                            filterwarnings('ignore', '.*buffer', DeprecationWarning)
-                        data = buffer(first, 0, obs)
-                except TypeError:
-                    data = first.more()
-                    if data:
-                        self.producer_fifo.appendleft(data)
                     else:
-                        del self.producer_fifo[0]
-                if num_sent:
-                    if num_sent < len(data) or obs < len(first):
-                        try:
-                            num_sent = self.send(data)
-                        except socket.error:
-                            self.handle_error()
-                            return
-                        else:
-                            self.producer_fifo[0] = first[num_sent:]
-                        continue
+                        self.producer_fifo[0] = first[num_sent:]
+                    continue
             del self.producer_fifo[0]
             return
 
@@ -223,10 +221,8 @@ class fifo:
 
 def find_prefix_at_end(haystack, needle):
     l = len(needle) - 1
-    while l:
-        if not haystack.endswith(needle[:l]):
-            l -= 1
-        else:
-            return l
+    while l and not haystack.endswith(needle[:l]):
+        l -= 1
+    return l
 
 # WARNING: Decompyle incomplete

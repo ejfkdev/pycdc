@@ -149,7 +149,7 @@ class async_chat(asyncore.dispatcher):
         self.producer_fifo.append(None)
 
     def initiate_send(self):
-        while self.producer_fifo:
+        while self.producer_fifo and self.connected:
             first = self.producer_fifo[0]
             if not first:
                 del self.producer_fifo[0]

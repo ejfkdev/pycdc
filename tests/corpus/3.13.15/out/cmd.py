@@ -230,7 +230,7 @@ the arguments.  Returns a tuple containing (command, args, line).
         i, n = 0, len(line)
         if i < n and line[i] in self.identchars:
             i = i + 1
-            while i < n:
+            while i < n and line[i] in self.identchars:
                 pass
         cmd, arg = line[:i], line[i:].strip()
         return cmd, arg, line

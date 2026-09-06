@@ -43,8 +43,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 508: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 984,
-   "ntotal": 1436,
+   "ndiff": 977,
+   "ntotal": 1433,
    "detail": "line 300: orig ('SETUP_LOOP', 'to 480') | got ('SETUP_LOOP', 'to 492')\nline 362: orig ('JUMP_FORWARD', 'to 464') | got ('JUMP_FORWARD', 'to 476')\nline 376: orig ('JUMP_FORWARD', 'to 464') | got ('JUMP_FORWARD', 'to 476')"
   },
   {
@@ -109,18 +109,18 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 765: orig  body=[While(test=BoolOp(op=And() | dec  body=[While(test=Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 874: orig  Try(body=[Assign(targets=[Name(id='num_sent' | dec  If(test=Name(id='num_sent'",
    "verdict": "SIG-DIFF",
-   "ndiff": 238,
-   "ntotal": 813,
-   "detail": "line 565: orig ('SETUP_LOOP', 'to 280') | got ('SETUP_LOOP', 'to 278')\nline 570: orig ('LOAD_FAST', 'self') | got ('SETUP_EXCEPT', 'to 30')\nline 571: orig ('LOAD_ATTR', 'connected') | got ('LOAD_FAST', 'first')"
+   "ndiff": 68,
+   "ntotal": 814,
+   "detail": "line 649: orig ('SETUP_EXCEPT', 'to 186') | got ('LOAD_FAST', 'num_sent')\nline 650: orig ('LOAD_FAST', 'self') | got ('EXTENDED_ARG', '')\nline 651: orig ('LOAD_METHOD', 'send') | got ('POP_JUMP_IF_FALSE', '')"
   },
   {
    "module": "asyncore",
    "ast_detail": "diff at token 427: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2156,
-   "ntotal": 2236,
+   "ndiff": 2143,
+   "ntotal": 2233,
    "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
   },
   {
@@ -133,9 +133,9 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 1284: orig  While(test=BoolOp(op=And() | dec  While(test=Name(id='frame'",
+   "ast_detail": "diff at token 1435: orig  keywords=[])) | dec  keywords=[]))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2229,
+   "ndiff": 2217,
    "ntotal": 2350,
    "detail": "line 16: orig ('LOAD_CONST', \"('CO_GENERATOR', 'CO_COROUTINE', 'CO_ASYNC_GENERATOR')\") | got ('LOAD_CONST', \"('CO_GENERATOR',)\")\nline 20: orig ('IMPORT_FROM', 'CO_COROUTINE') | got ('POP_TOP', '')\nline 21: orig ('STORE_NAME', 'CO_COROUTINE') | got ('LOAD_CONST', '0')"
   },
@@ -169,10 +169,10 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 765: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='end'",
+   "ast_detail": "diff at token 920: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2894,
-   "ntotal": 3020,
+   "ndiff": 2458,
+   "ntotal": 3011,
    "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
   },
   {
@@ -189,11 +189,11 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 476: orig  ctx=Load()))) | dec  ctx=Load())))]",
+   "ast_detail": "diff at token 764: orig  Return(value=ListComp(elt=Subscript(value=Name(id='a' | dec  Return(value=ListComp(elt=Subscript(value=Num(n=3)",
    "verdict": "SIG-DIFF",
-   "ndiff": 768,
-   "ntotal": 1317,
-   "detail": "line 441: orig ('SETUP_LOOP', 'to 152') | got ('SETUP_LOOP', 'to 194')\nline 458: orig ('POP_BLOCK', '') | got ('LOAD_FAST', 'line')\nline 459: orig ('LOAD_FAST', 'line') | got ('LOAD_CONST', 'None')"
+   "ndiff": 700,
+   "ntotal": 1315,
+   "detail": "line 596: orig ('FOR_ITER', 'to 32') | got ('FOR_ITER', 'to 28')\nline 603: orig ('LOAD_FAST', 'a') | got ('LOAD_CONST', '3')\nline 604: orig ('LOAD_CONST', '3') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "code",
@@ -231,7 +231,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 3172: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(arg=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 3325,
+   "ndiff": 3957,
    "ntotal": 4369,
    "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
   },
