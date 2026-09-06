@@ -11,9 +11,9 @@
    "module": "BaseHTTPServer",
    "ast_detail": "diff at token 191: orig  ctx=Store()) | dec  ctx=Store())]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1142,
-   "ntotal": 1194,
-   "detail": "line 22: orig ('LOAD_CONST', \"('filterwarnings', 'catch_warnings')\") | got ('LOAD_CONST', \"('filterwarnings',)\")\nline 26: orig ('IMPORT_FROM', 'catch_warnings') | got ('POP_TOP', '')\nline 27: orig ('STORE_NAME', 'catch_warnings') | got ('LOAD_CONST', '-1')"
+   "ndiff": 799,
+   "ntotal": 1191,
+   "detail": "line 387: orig ('DUP_TOP', '') | got ('LOAD_FAST', 'self')\nline 388: orig ('LOAD_FAST', 'self') | got ('STORE_ATTR', 'request_version')\nline 389: orig ('STORE_ATTR', 'request_version') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "Bastion",
@@ -39,17 +39,17 @@
    "module": "Cookie",
    "ast_detail": "diff at token 890: orig  ctx=Store()) | dec  ctx=Store())]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1843,
-   "ntotal": 1904,
-   "detail": "line 7: orig ('SETUP_EXCEPT', '#17') | got ('SETUP_EXCEPT', '#21')\nline 9: orig ('LOAD_CONST', \"('dumps', 'loads')\") | got ('LOAD_CONST', \"('dumps',)\")\nline 13: orig ('IMPORT_FROM', 'loads') | got ('POP_TOP', '')"
+   "ndiff": 981,
+   "ntotal": 1892,
+   "detail": "line 609: orig ('LOAD_CONST', 'None') | got ('LOAD_NAME', 'None')\nline 790: orig ('SETUP_LOOP', '#176') | got ('SETUP_LOOP', '#177')\nline 803: orig ('JUMP_IF_FALSE', '#174') | got ('JUMP_IF_FALSE', '#175')"
   },
   {
    "module": "DocXMLRPCServer",
    "ast_detail": "diff at token 377: orig  body=[Assign(targets=[Name(id='anchor' | dec  body=[If(test=Name(id='cl'",
    "verdict": "SIG-DIFF",
-   "ndiff": 883,
-   "ntotal": 921,
-   "detail": "line 20: orig ('LOAD_CONST', \"('SimpleXMLRPCServer', 'SimpleXMLRPCRequestHandler', 'CGIXML\") | got ('LOAD_CONST', \"('SimpleXMLRPCServer',)\")\nline 24: orig ('IMPORT_FROM', 'SimpleXMLRPCRequestHandler') | got ('POP_TOP', '')\nline 25: orig ('STORE_NAME', 'SimpleXMLRPCRequestHandler') | got ('LOAD_CONST', '-1')"
+   "ndiff": 762,
+   "ntotal": 909,
+   "detail": "line 116: orig ('SETUP_LOOP', '#167') | got ('SETUP_LOOP', '#173')\nline 117: orig ('LOAD_FAST', 'pattern') | got ('LOAD_GLOBAL', 'True')\nline 118: orig ('LOAD_ATTR', 'search') | got ('JUMP_IF_FALSE', '#171')"
   },
   {
    "module": "HTMLParser",
@@ -127,9 +127,9 @@
    "module": "_abcoll",
    "ast_detail": "diff at token 667: orig  ifs=[Compare(left=Name(id='value' | dec  ifs=[])])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2050,
+   "ndiff": 1775,
    "ntotal": 2125,
-   "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '-1')"
+   "detail": "line 285: orig ('JUMP_IF_FALSE', '#56') | got ('JUMP_IF_FALSE', '#57')\nline 287: orig ('SETUP_EXCEPT', '#34') | got ('SETUP_EXCEPT', '#35')\nline 288: orig ('SETUP_LOOP', '#32') | got ('SETUP_LOOP', '#33')"
   },
   {
    "module": "_strptime",
@@ -175,17 +175,17 @@
    "module": "asynchat",
    "ast_detail": "diff at token 192: orig  body=[TryExcept(body=[Assign(targets=[Name(id='data' | dec  body=[While(test=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 789,
-   "ntotal": 858,
-   "detail": "line 24: orig ('LOAD_CONST', \"('filterwarnings', 'catch_warnings')\") | got ('LOAD_CONST', \"('filterwarnings',)\")\nline 28: orig ('IMPORT_FROM', 'catch_warnings') | got ('POP_TOP', '')\nline 29: orig ('STORE_NAME', 'catch_warnings') | got ('LOAD_CONST', '-1')"
+   "ndiff": 639,
+   "ntotal": 854,
+   "detail": "line 190: orig ('SETUP_EXCEPT', '#9') | got ('SETUP_LOOP', '#213')\nline 192: orig ('LOAD_ATTR', 'recv') | got ('LOAD_ATTR', 'ac_in_buffer')\nline 193: orig ('LOAD_FAST', 'self') | got ('JUMP_IF_FALSE', '#211')"
   },
   {
    "module": "asyncore",
    "ast_detail": "diff at token 873: orig  orelse=[]) | dec  orelse=[While(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2193,
-   "ntotal": 2299,
-   "detail": "line 24: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EN\") | got ('LOAD_CONST', \"('EALREADY',)\")\nline 28: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 29: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '-1')"
+   "ndiff": 1718,
+   "ntotal": 2267,
+   "detail": "line 96: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 101: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 109: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "atexit",
@@ -215,9 +215,9 @@
    "module": "binhex",
    "ast_detail": "diff at token 19: orig  Assign(targets=[List(elts=[Name(id='_DID_HEADER' | dec  Assign(targets=[Tuple(elts=[Name(id='_DID_HEADER'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1947,
-   "ntotal": 2056,
-   "detail": "line 47: orig ('SETUP_EXCEPT', '#69') | got ('SETUP_EXCEPT', '#73')\nline 49: orig ('LOAD_CONST', \"('FSSpec', 'FInfo')\") | got ('LOAD_CONST', \"('FSSpec',)\")\nline 53: orig ('IMPORT_FROM', 'FInfo') | got ('POP_TOP', '')"
+   "ndiff": 1736,
+   "ntotal": 2052,
+   "detail": "line 271: orig ('SETUP_LOOP', '#45') | got ('SETUP_LOOP', '#46')\nline 274: orig ('FOR_ITER', '#41') | got ('FOR_ITER', '#42')\nline 280: orig ('JUMP_IF_FALSE', '#39') | got ('JUMP_IF_FALSE', '#40')"
   },
   {
    "module": "bisect",
@@ -239,9 +239,9 @@
    "module": "cgi",
    "ast_detail": "diff at token 655: orig  body=[TryExcept(body=[Assign(targets=[Name(id='bytes' | dec  body=[Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 3111,
-   "ntotal": 3253,
-   "detail": "line 32: orig ('LOAD_CONST', \"('filterwarnings', 'catch_warnings', 'warn')\") | got ('LOAD_CONST', \"('filterwarnings',)\")\nline 36: orig ('IMPORT_FROM', 'catch_warnings') | got ('POP_TOP', '')\nline 37: orig ('STORE_NAME', 'catch_warnings') | got ('LOAD_CONST', '-1')"
+   "ndiff": 2564,
+   "ntotal": 3245,
+   "detail": "line 570: orig ('SETUP_LOOP', '#276') | got ('SETUP_LOOP', '#287')\nline 574: orig ('JUMP_IF_FALSE', '#274') | got ('JUMP_IF_FALSE', '#285')\nline 581: orig ('JUMP_IF_FALSE', '#114') | got ('JUMP_IF_FALSE', '#70')"
   },
   {
    "module": "cgitb",

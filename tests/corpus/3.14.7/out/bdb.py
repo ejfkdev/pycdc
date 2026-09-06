@@ -6,9 +6,7 @@ import threading
 import os
 import weakref
 from contextlib import contextmanager
-from inspect import CO_GENERATOR
-from inspect import CO_COROUTINE
-from inspect import CO_ASYNC_GENERATOR
+from inspect import (CO_GENERATOR, CO_COROUTINE, CO_ASYNC_GENERATOR)
 __all__ = ['BdbQuit', 'Bdb', 'Breakpoint']
 GENERATOR_AND_COROUTINE_FLAGS = CO_GENERATOR | CO_COROUTINE | CO_ASYNC_GENERATOR
 

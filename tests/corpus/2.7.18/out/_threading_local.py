@@ -211,5 +211,4 @@ class local(_localbase):
                     pass
 
 
-from threading import current_thread
-from threading import RLock
+from threading import current_thread, RLock

@@ -2,9 +2,9 @@
  "version": "3.5.10",
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
-  "PASS": 15,
+  "PASS": 16,
   "SIG-DIFF": 21,
-  "AST-PASS": 4
+  "AST-PASS": 3
  },
  "results": [
   {
@@ -19,9 +19,9 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 142: orig  args=[BinOp(left=Num(n=1) | dec  args=[Num(n=10715086071862673209484250490600018105614048117055336074437503883703510511249",
    "verdict": "SIG-DIFF",
-   "ndiff": 3006,
-   "ntotal": 3097,
-   "detail": "line 4: orig ('LOAD_CONST', \"('ABCMeta', 'abstractmethod')\") | got ('LOAD_CONST', \"('ABCMeta',)\")\nline 8: orig ('IMPORT_FROM', 'abstractmethod') | got ('POP_TOP', '')\nline 9: orig ('STORE_NAME', 'abstractmethod') | got ('LOAD_CONST', '0')"
+   "ndiff": 247,
+   "ntotal": 3095,
+   "detail": "line 2831: orig ('SETUP_LOOP', 'to 182') | got ('SETUP_LOOP', 'to 126')\nline 2840: orig ('SETUP_EXCEPT', 'to 149') | got ('JUMP_ABSOLUTE', '')\nline 2841: orig ('LOAD_FAST', 'self') | got ('POP_BLOCK', '')"
   },
   {
    "module": "_compat_pickle",
@@ -67,9 +67,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1621: orig  value=Num(n=2000))] | dec  value=Num(n=2000))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1755,
-   "ntotal": 1853,
-   "detail": "line 34: orig ('LOAD_CONST', \"('date', 'timedelta', 'timezone')\") | got ('LOAD_CONST', \"('date',)\")\nline 38: orig ('IMPORT_FROM', 'timedelta') | got ('POP_TOP', '')\nline 39: orig ('STORE_NAME', 'datetime_timedelta') | got ('LOAD_CONST', '0')"
+   "ndiff": 478,
+   "ntotal": 1848,
+   "detail": "line 99: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 1240: orig ('SETUP_LOOP', 'to 1607') | got ('SETUP_LOOP', 'to 1598')\nline 1245: orig ('FOR_ITER', 'to 1606') | got ('FOR_ITER', 'to 1597')"
   },
   {
    "module": "_sysconfigdata",
@@ -77,7 +77,7 @@
   },
   {
    "module": "_threading_local",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "_weakrefset",
@@ -107,9 +107,9 @@
    "module": "asyncore",
    "ast_detail": "diff at token 427: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2177,
-   "ntotal": 2250,
-   "detail": "line 28: orig ('LOAD_CONST', \"('EALREADY', 'EINPROGRESS', 'EWOULDBLOCK', 'ECONNRESET', 'EINVAL', 'ENOTCONN', 'ESHU | got ('LOAD_CONST', \"('EALREADY',)\")\nline 32: orig ('IMPORT_FROM', 'EINPROGRESS') | got ('POP_TOP', '')\nline 33: orig ('STORE_NAME', 'EINPROGRESS') | got ('LOAD_CONST', '0')"
+   "ndiff": 1458,
+   "ntotal": 2211,
+   "detail": "line 707: orig ('SETUP_LOOP', 'to 143') | got ('SETUP_LOOP', 'to 140')\nline 717: orig ('JUMP_FORWARD', 'to 143') | got ('SETUP_LOOP', 'to 140')\nline 718: orig ('SETUP_LOOP', 'to 143') | got ('LOAD_FAST', 'map')"
   },
   {
    "module": "base64",
@@ -139,9 +139,9 @@
    "module": "bz2",
    "ast_detail": "diff at token 1002: orig  body=[If(test=Compare(left=Str(s='t') | dec  body=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
-   "ndiff": 782,
+   "ndiff": 116,
    "ntotal": 899,
-   "detail": "line 57: orig ('LOAD_CONST', \"('BZ2Compressor', 'BZ2Decompressor')\") | got ('LOAD_CONST', \"('BZ2Compressor',)\")\nline 61: orig ('IMPORT_FROM', 'BZ2Decompressor') | got ('POP_TOP', '')\nline 62: orig ('STORE_NAME', 'BZ2Decompressor') | got ('LOAD_CONST', '0')"
+   "detail": "line 769: orig ('POP_JUMP_IF_FALSE', '') | got ('POP_JUMP_IF_TRUE', '')\nline 770: orig ('LOAD_GLOBAL', 'ValueError') | got ('LOAD_FAST', 'encoding')\nline 771: orig ('LOAD_CONST', \"'Invalid mode: %r'\") | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "cProfile",
@@ -159,9 +159,9 @@
    "module": "cgi",
    "ast_detail": "diff at token 1839: orig  ctx=Store()) | dec  ctx=Store())]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2920,
-   "ntotal": 3048,
-   "detail": "line 6: orig ('LOAD_CONST', \"('StringIO', 'BytesIO', 'TextIOWrapper')\") | got ('LOAD_CONST', \"('StringIO',)\")\nline 10: orig ('IMPORT_FROM', 'BytesIO') | got ('POP_TOP', '')\nline 11: orig ('STORE_NAME', 'BytesIO') | got ('LOAD_CONST', '0')"
+   "ndiff": 1432,
+   "ntotal": 3040,
+   "detail": "line 1422: orig ('DUP_TOP', '') | got ('LOAD_FAST', 'self')\nline 1423: orig ('LOAD_FAST', 'self') | got ('STORE_ATTR', 'list')\nline 1424: orig ('STORE_ATTR', 'list') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "cgitb",
@@ -215,9 +215,9 @@
    "module": "configparser",
    "ast_detail": "diff at token 2172: orig  kw_defaults=[Tuple(elts=[Str(s='=') | dec  kw_defaults=[None",
    "verdict": "SIG-DIFF",
-   "ndiff": 4148,
+   "ndiff": 2585,
    "ntotal": 4295,
-   "detail": "line 10: orig ('LOAD_CONST', \"('OrderedDict', 'ChainMap')\") | got ('LOAD_CONST', \"('OrderedDict',)\")\nline 14: orig ('IMPORT_FROM', 'ChainMap') | got ('POP_TOP', '')\nline 15: orig ('STORE_NAME', '_ChainMap') | got ('LOAD_CONST', '0')"
+   "detail": "line 1638: orig ('LOAD_CONST', 'None') | got ('LOAD_NAME', '_UNSET')\nline 1639: orig ('LOAD_NAME', '_default_dict') | got ('LOAD_CONST', \"'converters'\")\nline 1640: orig ('LOAD_CONST', 'False') | got ('LOAD_NAME', '_UNSET')"
   },
   {
    "module": "contextlib",
@@ -247,9 +247,9 @@
    "module": "csv",
    "ast_detail": "diff at token 1530: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1617,
-   "ntotal": 1655,
-   "detail": "line 8: orig ('LOAD_CONST', \"('Error', '__version__', 'writer', 'reader', 'register_dialect', 'unregister_dialect | got ('LOAD_CONST', \"('Error',)\")\nline 12: orig ('IMPORT_FROM', '__version__') | got ('POP_TOP', '')\nline 13: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
+   "ndiff": 112,
+   "ntotal": 1603,
+   "detail": "line 1216: orig ('COMPARE_OP', 'is') | got ('COMPARE_OP', 'is not')\nline 1217: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1436: orig ('SETUP_LOOP', 'to 329') | got ('SETUP_LOOP', 'to 338')"
   }
  ]
 }

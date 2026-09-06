@@ -1,11 +1,8 @@
 import sys
 from _ast import *
 from ast import NodeVisitor
-from contextlib import contextmanager
-from contextlib import nullcontext
-from enum import IntEnum
-from enum import auto
-from enum import _simple_enum
+from contextlib import contextmanager, nullcontext
+from enum import (IntEnum, auto, _simple_enum)
 _INFSTR = '1e' + repr(sys.float_info.max_10_exp + 1)
 
 @_simple_enum(IntEnum)

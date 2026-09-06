@@ -214,5 +214,4 @@ class local:
             return object.__delattr__(self, name)
 
 
-from threading import current_thread
-from threading import RLock
+from threading import current_thread, RLock

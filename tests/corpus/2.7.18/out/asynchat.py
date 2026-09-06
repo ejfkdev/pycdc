@@ -24,8 +24,7 @@ import errno
 import socket
 from collections import deque
 from sys import py3kwarning
-from warnings import filterwarnings
-from warnings import catch_warnings
+from warnings import filterwarnings, catch_warnings
 _BLOCKING_IO_ERRORS = errno.EAGAIN, errno.EALREADY, errno.EINPROGRESS, errno.EWOULDBLOCK
 
 class async_chat(asyncore.dispatcher):

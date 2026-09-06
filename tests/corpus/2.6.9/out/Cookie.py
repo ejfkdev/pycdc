@@ -166,11 +166,9 @@ Finis.
 
 import string
 try:
-    from cPickle import dumps
-    from cPickle import loads
+    from cPickle import dumps, loads
 except ImportError:
-    from pickle import dumps
-    from pickle import loads
+    from pickle import dumps, loads
 import re
 import warnings
 __all__ = ['CookieError', 'BaseCookie', 'SimpleCookie', 'SerialCookie', 'SmartCookie', 'Cookie']
@@ -228,8 +226,7 @@ _weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 _monthname = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 def _getdate(future=0, weekdayname=_weekdayname, monthname=_monthname):
-    from time import gmtime
-    from time import time
+    from time import gmtime, time
     now = time()
     year, month, day, hh, mm, ss, wd, y, z = gmtime(now + future)
     return '%s, %02d-%3s-%4d %02d:%02d:%02d GMT' % (weekdayname[wd], day, monthname[month], year, hh, mm, ss)

@@ -93,11 +93,6 @@ def bisect_left(a, x, lo=0, hi=None):
     return lo
 
 try:
-    from _bisect import bisect_right
-    from _bisect import bisect_left
-    from _bisect import insort_left
-    from _bisect import insort_right
-    from _bisect import insort
-    from _bisect import bisect
+    from _bisect import (bisect_right, bisect_left, insort_left, insort_right, insort, bisect)
 except ImportError:
     pass

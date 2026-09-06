@@ -5,9 +5,7 @@ written in Python.
 '''
 
 __version__ = '2.6'
-from io import StringIO
-from io import BytesIO
-from io import TextIOWrapper
+from io import (StringIO, BytesIO, TextIOWrapper)
 from collections import Mapping
 import sys
 import os

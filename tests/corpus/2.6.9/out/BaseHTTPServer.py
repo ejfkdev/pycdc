@@ -22,8 +22,7 @@ __all__ = ['HTTPServer', 'BaseHTTPRequestHandler']
 import sys
 import time
 import socket
-from warnings import filterwarnings
-from warnings import catch_warnings
+from warnings import filterwarnings, catch_warnings
 with catch_warnings():
     if sys.py3kwarning:
         filterwarnings('ignore', '.*mimetools has been removed', DeprecationWarning)

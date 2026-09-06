@@ -143,8 +143,7 @@ ConfigParser -- responsible for parsing a list of
         between keys and values are surrounded by spaces.
 '''
 
-from collections.abc import Iterable
-from collections.abc import MutableMapping
+from collections.abc import Iterable, MutableMapping
 from collections import ChainMap as _ChainMap
 import contextlib
 import functools

@@ -7,8 +7,7 @@ set the first day of the week (0=Monday, 6=Sunday).'''
 
 import sys
 import datetime
-from enum import IntEnum
-from enum import global_enum
+from enum import IntEnum, global_enum
 import locale as _locale
 from itertools import repeat
 import warnings

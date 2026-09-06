@@ -14,10 +14,7 @@ import pydoc
 import inspect
 import re
 import sys
-from SimpleXMLRPCServer import SimpleXMLRPCServer
-from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
-from SimpleXMLRPCServer import CGIXMLRPCRequestHandler
-from SimpleXMLRPCServer import resolve_dotted_attribute
+from SimpleXMLRPCServer import (SimpleXMLRPCServer, SimpleXMLRPCRequestHandler, CGIXMLRPCRequestHandler, resolve_dotted_attribute)
 
 def _html_escape_quote(s):
     s = s.replace('&', '&amp;')

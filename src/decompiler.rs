@@ -16974,6 +16974,17 @@ impl<'a> Ctx<'a> {
             self.pop();
             return;
         }
+        // closing POP_TOP of a multi-name from-import: the module marker
+        // sits under the accumulated pending names — emit the merged
+        // statement here (the interleaved IMPORT_FROM/STORE sequence
+        // deferred its flush to this point)
+        if !self.import_names.is_empty()
+            && matches!(self.stack.last(), Some(Sv::ImportModule { .. }))
+        {
+            self.pop();
+            self.flush_import();
+            return;
+        }
         // `return v` inside a loop: `SWAP 2; POP_TOP` (3.12+) or
         // `ROT_TWO; POP_TOP` (3.8-3.11) before the RETURN drops the loop
         // iterator, which the VM keeps below the value but our simulation
@@ -17206,7 +17217,20 @@ impl<'a> Ctx<'a> {
                     _ => self.import_module = Some((level, module)),
                 }
                 if !matches!(self.stack.last(), Some(Sv::ImportFrom { .. })) {
-                    self.flush_import();
+                    // interleaved modern layout (IMPORT_FROM; STORE) x N:
+                    // each store consumes its marker, so the stack check
+                    // alone flushes every name as its own statement —
+                    // keep accumulating while the sequence continues (the
+                    // next instruction is another IMPORT_FROM); the
+                    // sequence-closing POP_TOP emits the merged form
+                    let seq_continues = self
+                        .idx_of
+                        .get(&self.cur_offset)
+                        .and_then(|&ci| self.instrs.get(ci + 1))
+                        .map_or(false, |x| x.op == Op::IMPORT_FROM);
+                    if !seq_continues {
+                        self.flush_import();
+                    }
                 }
             }
             Sv::ImportModule { module, fromlist, .. } => {

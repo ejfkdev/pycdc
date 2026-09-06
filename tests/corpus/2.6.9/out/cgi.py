@@ -11,9 +11,7 @@ import os
 import urllib
 import UserDict
 import urlparse
-from warnings import filterwarnings
-from warnings import catch_warnings
-from warnings import warn
+from warnings import (filterwarnings, catch_warnings, warn)
 with catch_warnings():
     if sys.py3kwarning:
         filterwarnings('ignore', '.*mimetools has been removed', DeprecationWarning)

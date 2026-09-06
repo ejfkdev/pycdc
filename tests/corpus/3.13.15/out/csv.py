@@ -64,20 +64,7 @@ SETTINGS:
 
 import re
 import types
-from _csv import Error
-from _csv import writer
-from _csv import reader
-from _csv import register_dialect
-from _csv import unregister_dialect
-from _csv import get_dialect
-from _csv import list_dialects
-from _csv import field_size_limit
-from _csv import QUOTE_MINIMAL
-from _csv import QUOTE_ALL
-from _csv import QUOTE_NONNUMERIC
-from _csv import QUOTE_NONE
-from _csv import QUOTE_STRINGS
-from _csv import QUOTE_NOTNULL
+from _csv import (Error, writer, reader, register_dialect, unregister_dialect, get_dialect, list_dialects, field_size_limit, QUOTE_MINIMAL, QUOTE_ALL, QUOTE_NONNUMERIC, QUOTE_NONE, QUOTE_STRINGS, QUOTE_NOTNULL)
 from _csv import Dialect as _Dialect
 from io import StringIO
 __all__ = ['QUOTE_MINIMAL', 'QUOTE_ALL', 'QUOTE_NONNUMERIC', 'QUOTE_NONE', 'QUOTE_STRINGS', 'QUOTE_NOTNULL', 'Error', 'Dialect', 'excel', 'excel_tab', 'field_size_limit', 'reader', 'writer', 'register_dialect', 'get_dialect', 'list_dialects', 'Sniffer', 'unregister_dialect', 'DictReader', 'DictWriter', 'unix_dialect']

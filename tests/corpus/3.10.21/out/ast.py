@@ -27,10 +27,8 @@
 
 import sys
 from _ast import *
-from contextlib import contextmanager
-from contextlib import nullcontext
-from enum import IntEnum
-from enum import auto
+from contextlib import contextmanager, nullcontext
+from enum import IntEnum, auto
 
 def parse(source, filename='<unknown>', mode='exec', *, type_comments=False, feature_version=None):
     '''

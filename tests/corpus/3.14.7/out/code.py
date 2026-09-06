@@ -5,8 +5,7 @@
 import builtins
 import sys
 import traceback
-from codeop import CommandCompiler
-from codeop import compile_command
+from codeop import CommandCompiler, compile_command
 __all__ = ['InteractiveInterpreter', 'InteractiveConsole', 'interact', 'compile_command']
 
 class InteractiveInterpreter:

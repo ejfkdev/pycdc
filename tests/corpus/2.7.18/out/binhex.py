@@ -20,8 +20,7 @@ REASONABLY_LARGE = 32768
 LINELEN = 64
 RUNCHAR = chr(144)
 try:
-    from Carbon.File import FSSpec
-    from Carbon.File import FInfo
+    from Carbon.File import FSSpec, FInfo
     from MacOS import openrf
     def getfileinfo(name):
         finfo = FSSpec(name).FSpGetFInfo()

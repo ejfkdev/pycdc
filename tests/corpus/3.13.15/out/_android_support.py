@@ -1,8 +1,7 @@
 import io
 import sys
 from threading import RLock
-from time import sleep
-from time import time
+from time import sleep, time
 MAX_BYTES_PER_WRITE = 4000
 MAX_CHARS_PER_WRITE = MAX_BYTES_PER_WRITE // 4
 

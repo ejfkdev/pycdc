@@ -212,6 +212,5 @@ class local:
         None(None, None)
 
 
-from threading import current_thread
-from threading import RLock
+from threading import current_thread, RLock
 # WARNING: Decompyle incomplete

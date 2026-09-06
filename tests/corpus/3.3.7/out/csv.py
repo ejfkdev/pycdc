@@ -3,20 +3,7 @@ csv.py - read/write/investigate CSV files
 '''
 
 import re
-from _csv import Error
-from _csv import __version__
-from _csv import writer
-from _csv import reader
-from _csv import register_dialect
-from _csv import unregister_dialect
-from _csv import get_dialect
-from _csv import list_dialects
-from _csv import field_size_limit
-from _csv import QUOTE_MINIMAL
-from _csv import QUOTE_ALL
-from _csv import QUOTE_NONNUMERIC
-from _csv import QUOTE_NONE
-from _csv import __doc__
+from _csv import (Error, __version__, writer, reader, register_dialect, unregister_dialect, get_dialect, list_dialects, field_size_limit, QUOTE_MINIMAL, QUOTE_ALL, QUOTE_NONNUMERIC, QUOTE_NONE, __doc__)
 from _csv import Dialect as _Dialect
 from io import StringIO
 __all__ = ['QUOTE_MINIMAL', 'QUOTE_ALL', 'QUOTE_NONNUMERIC', 'QUOTE_NONE', 'Error', 'Dialect', '__doc__', 'excel', 'excel_tab', 'field_size_limit', 'reader', 'writer', 'register_dialect', 'get_dialect', 'list_dialects', 'Sniffer', 'unregister_dialect', '__version__', 'DictReader', 'DictWriter']

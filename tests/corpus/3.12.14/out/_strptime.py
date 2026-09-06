@@ -18,9 +18,7 @@ from re import compile as re_compile
 from re import sub as re_sub
 from re import IGNORECASE
 from re import escape as re_escape
-from datetime import date as datetime_date
-from datetime import timedelta as datetime_timedelta
-from datetime import timezone as datetime_timezone
+from datetime import (date as datetime_date, timedelta as datetime_timedelta, timezone as datetime_timezone)
 from _thread import allocate_lock as _thread_allocate_lock
 __all__ = []
 

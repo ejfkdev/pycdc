@@ -1,9 +1,6 @@
 import sys
 try:
-    from ctypes import cdll
-    from ctypes import c_void_p
-    from ctypes import c_char_p
-    from ctypes import util
+    from ctypes import (cdll, c_void_p, c_char_p, util)
 except ImportError:
     print("ctypes isn't available; iOS system calls will not be available", file=sys.stderr)
     objc = None

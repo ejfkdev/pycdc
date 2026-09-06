@@ -23,8 +23,7 @@ import socket
 import asyncore
 from collections import deque
 from sys import py3kwarning
-from warnings import filterwarnings
-from warnings import catch_warnings
+from warnings import filterwarnings, catch_warnings
 
 class async_chat(asyncore.dispatcher):
     '''This is an abstract class.  You must derive from this class, and add

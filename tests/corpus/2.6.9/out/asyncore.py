@@ -24,17 +24,7 @@ import socket
 import sys
 import time
 import os
-from errno import EALREADY
-from errno import EINPROGRESS
-from errno import EWOULDBLOCK
-from errno import ECONNRESET
-from errno import ENOTCONN
-from errno import ESHUTDOWN
-from errno import EINTR
-from errno import EISCONN
-from errno import EBADF
-from errno import ECONNABORTED
-from errno import errorcode
+from errno import (EALREADY, EINPROGRESS, EWOULDBLOCK, ECONNRESET, ENOTCONN, ESHUTDOWN, EINTR, EISCONN, EBADF, ECONNABORTED, errorcode)
 try:
     socket_map
 except NameError:

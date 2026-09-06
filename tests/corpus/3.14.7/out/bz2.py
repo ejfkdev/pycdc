@@ -10,8 +10,7 @@ from builtins import open as _builtin_open
 from compression._common import _streams
 import io
 import os
-from _bz2 import BZ2Compressor
-from _bz2 import BZ2Decompressor
+from _bz2 import BZ2Compressor, BZ2Decompressor
 _MODE_READ = 1
 _MODE_WRITE = 3
 

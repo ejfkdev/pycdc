@@ -25,20 +25,7 @@ import sys
 import time
 import warnings
 import os
-from errno import EALREADY
-from errno import EINPROGRESS
-from errno import EWOULDBLOCK
-from errno import ECONNRESET
-from errno import EINVAL
-from errno import ENOTCONN
-from errno import ESHUTDOWN
-from errno import EINTR
-from errno import EISCONN
-from errno import EBADF
-from errno import ECONNABORTED
-from errno import EPIPE
-from errno import EAGAIN
-from errno import errorcode
+from errno import (EALREADY, EINPROGRESS, EWOULDBLOCK, ECONNRESET, EINVAL, ENOTCONN, ESHUTDOWN, EINTR, EISCONN, EBADF, ECONNABORTED, EPIPE, EAGAIN, errorcode)
 _DISCONNECTED = frozenset((ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EPIPE, EBADF))
 try:
     socket_map

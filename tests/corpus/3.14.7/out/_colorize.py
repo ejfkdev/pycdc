@@ -8,12 +8,8 @@ def __annotate__(format, /):
 __conditional_annotations__ = {}
 import os
 import sys
-from collections.abc import Callable
-from collections.abc import Iterator
-from collections.abc import Mapping
-from dataclasses import dataclass
-from dataclasses import field
-from dataclasses import Field
+from collections.abc import (Callable, Iterator, Mapping)
+from dataclasses import (dataclass, field, Field)
 COLORIZE = True
 
 class ANSIColors:
