@@ -19,7 +19,8 @@ import sys
 #   DNF `(A1 and A2) or (B1 and B2)`（2.7+）—— try_or_group_chain
 #     （codecs StreamReader.read 形；or_cond 曾折成
 #      `not A1 or not A2: if B1 and B2:` 反转）
-#   值位 `a and b or c`（仅 <3.14）—— try_and_or_value_chain
+#   值位 `a and b or c`（2.7+）—— <3.14 try_and_or_value_chain；
+#     3.14 每操作数 COPY/TO_BOOL 链走 try_value_and_or_314
 #   链式比较 `a <= b < c`（全版本）—— SCC body_end 曾越过 skip 标签
 #     把下一条语句的 JF 当 body 末端，链被否决、body 甩出守卫
 #
@@ -33,8 +34,6 @@ import sys
 #     DeMorgan 反转成 `if not flag and not x>1:`；`A or (B and C)` 反转。
 #   * 3.8+ 退化形 `if A or B: continue`（循环末语句、无后继）仍折成
 #     `if not A: if B: pass`（语义等价的 no-op，仅不保真）。
-#   * 3.14 值位 boolop 重新分组：`a and b or c` 折成 `a and (b or c)`；
-#     3.14 语句级 (a and b) or c 同样反转。
 # 版本门控刻意用「先算 0/1 变量 + 单比较 if」的防呆形状——门控自身
 # 若用链式/and-or 比较会被上述缺口吃掉，导致各版本行数错位。
 
@@ -55,7 +54,7 @@ if V < (3, 12):
 LT314 = 0
 if V < (3, 14):
     LT314 = 1
-VAL27_313 = NOT26 * LT314
+VAL27 = NOT26
 B35_37 = GE35 * LT38
 B35_313 = GE35 * LT314
 
@@ -131,7 +130,7 @@ if B35_313:
 if B35_37:
     print(g_while_or(1, 0), g_while_or(0, 0))
 
-if VAL27_313:
+if VAL27:
     for a in (0, 1):
         for b in (0, 1):
             for c in (0, 1):

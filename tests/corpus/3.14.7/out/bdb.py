@@ -734,7 +734,7 @@ If no breakpoints are set, return an empty list.
 '''
 
         filename = self.canonic(filename)
-        return filename in self.breaks and lineno in self.breaks[filename] and (Breakpoint.bplist[filename, lineno] or [])
+        return filename in self.breaks and lineno in self.breaks[filename] and Breakpoint.bplist[filename, lineno] or []
 
     def get_file_breaks(self, filename):
         '''Return all lines with breakpoints for filename.

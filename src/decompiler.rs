@@ -12937,6 +12937,142 @@ impl<'a> Ctx<'a> {
         ))
     }
 
+    /// 3.14 value-position `A1 and ... An or C`: every operand carries its
+    /// own COPY/TO_BOOL value-preserving idiom; the and-links PJIF to the
+    /// or-continuation (this jump's target) and the LAST and-operand PJITs
+    /// to the merge M; [target, M) evaluates C (t_pb f1/g_val 3.14: the
+    /// per-jump value_merge blocks mis-nest the chain into
+    /// `a and (b or c)`). Read-only; returns (merged value, merge offset).
+    fn try_value_and_or_314(
+        &self,
+        cond: &ExprRef,
+        target: usize,
+    ) -> Option<(ExprRef, usize)> {
+        if !self.version.at_least(3, 14) {
+            return None;
+        }
+        let is_pjif = |o: Op| {
+            matches!(o, Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE)
+        };
+        let is_pjit = |o: Op| {
+            matches!(o, Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE)
+        };
+        let pad = |o: Op| matches!(o, Op::NOP | Op::NOT_TAKEN | Op::CACHE);
+        // this jump must carry the value idiom (COPY; TO_BOOL; PJIF)
+        let ci = *self.idx_of.get(&self.cur_offset)?;
+        if !(ci >= 2
+            && self.instrs[ci - 1].op == Op::TO_BOOL
+            && self.instrs[ci - 2].op == Op::COPY)
+        {
+            return None;
+        }
+        let ti = *self.idx_of.get(&target)?;
+        if ti <= ci + 1 {
+            return None;
+        }
+        // a value-idiom cond jump at index j: COPY; TO_BOOL; jump
+        let idiom_link = |j: usize| -> bool {
+            j >= 2 && self.instrs[j - 1].op == Op::TO_BOOL && self.instrs[j - 2].op == Op::COPY
+        };
+        let mut ands: Vec<ExprRef> = vec![cond.clone()];
+        let mut region_start = ci + 1;
+        let mut k = ci + 1;
+        let mut merge = None;
+        while k < ti {
+            let ins = self.instrs[k];
+            if pad(ins.op) {
+                k += 1;
+                continue;
+            }
+            if ins.op == Op::POP_TOP {
+                // the dropped previous-operand copy: the next operand
+                // region starts after it
+                if k >= region_start {
+                    region_start = k + 1;
+                }
+                k += 1;
+                continue;
+            }
+            if (is_pjif(ins.op) || is_pjit(ins.op)) && idiom_link(k) {
+                if k < region_start {
+                    return None;
+                }
+                let operand = self.sim_value_region(region_start, k - 2)?;
+                if is_pjif(ins.op) {
+                    if ins.target != Some(target) {
+                        return None;
+                    }
+                    ands.push(operand);
+                    region_start = k + 1;
+                    k += 1;
+                    continue;
+                }
+                let m = ins.target?;
+                if m <= target {
+                    return None;
+                }
+                ands.push(operand);
+                merge = Some(m);
+                break;
+            }
+            if matches!(ins.op, Op::COPY | Op::TO_BOOL) && ins.target.is_none() {
+                // the link idiom's own bookkeeping ops
+                k += 1;
+                continue;
+            }
+            if ins.target.is_some() || !is_pure_value_op(ins.op) {
+                return None;
+            }
+            k += 1;
+        }
+        let m = merge?;
+        if ands.len() < 2 {
+            return None;
+        }
+        // [target, m) is the or's second operand: a pure value region
+        // (its leading POP_TOP discards the arriving operand copy)
+        let mi = *self.idx_of.get(&m)?;
+        if mi <= ti {
+            return None;
+        }
+        let mut cstart = ti;
+        while matches!(
+            self.instrs.get(cstart).map(|x| x.op),
+            Some(Op::POP_TOP) | Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE)
+        ) {
+            cstart += 1;
+        }
+        if cstart >= mi {
+            return None;
+        }
+        if !self.instrs[cstart..mi].iter().all(|x| {
+            x.target.is_none()
+                && (is_pure_value_op(x.op)
+                    || matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::POP_TOP))
+        }) {
+            return None;
+        }
+        let c = self.sim_value_region(cstart, mi)?;
+        let mut and_flat = Vec::new();
+        for v in ands {
+            flatten_boolop(v, BoolOpKind::And, &mut and_flat);
+        }
+        let and = Rc::new(Expr::BoolOp {
+            op: BoolOpKind::And,
+            values: and_flat,
+        }) as ExprRef;
+        let mut or_flat = Vec::new();
+        flatten_boolop(and, BoolOpKind::Or, &mut or_flat);
+        flatten_boolop(c, BoolOpKind::Or, &mut or_flat);
+        Some((
+            Rc::new(Expr::BoolOp {
+                op: BoolOpKind::Or,
+                values: or_flat,
+            }),
+            m,
+        ))
+    }
+
     /// 3.12+ `if A or B: body` or-join: both operand tests share polarity
     /// and jump to the BODY start; the false path is an unconditional
     /// backward jump (continue trampoline) immediately before the body
@@ -15336,6 +15472,16 @@ impl<'a> Ctx<'a> {
                     && self.instrs[bi - 1].op == Op::TO_BOOL
                     && self.instrs[bi - 2].op == Op::COPY
             });
+        // 3.14 value-position `A and B or C`: the whole chain merges here
+        // (the per-jump value_merge blocks below would mis-nest it).
+        // !jump_if_true path only, where `c` is `cond` un-negated.
+        if !jump_if_true {
+            if let Some((merged, m)) = self.try_value_and_or_314(&c, target) {
+                self.push(merged);
+                self.skip_until = Some(m);
+                return;
+            }
+        }
         let value_merge = (matches!(self.prev_op_at_exec, Some(Op::COPY))
             || (matches!(self.prev_op_at_exec, Some(Op::TO_BOOL))
                 && (copy_to_bool_before
