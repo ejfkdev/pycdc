@@ -353,6 +353,10 @@ struct Ctx<'a> {
     /// UNWALKED between the machinery and the chain head — (start, end)
     /// of that tail; the main walk folds it into the Try body on arrival
     pending_try_tail: Option<(usize, usize)>,
+    /// 3.12+ shared fall-through terminator moved out of a folded Try's
+    /// body: pushed to the enclosing block once the chain skip is
+    /// consumed so it renders AFTER the Try
+    pending_post_chain_stmt: Option<Stmt>,
     /// offset of the implicit tail `LOAD None` when the instruction tail
     /// is `RETURN; LOAD None; RETURN` — proves the source's last
     /// statement was an if/else whose arms all return, so function-tail
@@ -667,6 +671,7 @@ pub fn decompile_in_scope(
         active_try: None,
         last_try_body_end: None,
         pending_try_tail: None,
+        pending_post_chain_stmt: None,
         tail_pair_at: None,
         pending_try_ctx: None,
         pending_nested_finally: None,
@@ -1137,6 +1142,7 @@ pub fn decompile_in_scope(
 impl<'a> Ctx<'a> {
     fn run(&mut self) {
         self.pending_try_tail = None;
+        self.pending_post_chain_stmt = None;
         self.prescan_while_true();
         self.prescan_dup_copies();
         let mut pc = 0usize;
@@ -1196,16 +1202,29 @@ impl<'a> Ctx<'a> {
                     // with-chain's exit stubs feed the enclosing
                     // finally's chain head through exactly this
                     // trampoline) — hop it.
-                    if ti > 0
-                        && self.instrs[ti - 1].op == Op::POP_TOP
-                        && !self.exc_entries.iter().any(|e| {
-                            e.start <= self.instrs[ti - 1].offset
-                                && self.instrs[ti - 1].offset < e.end
-                        })
-                    {
-                        break;
-                    }
-                    after = t;
+                // a forward jump PRECEDED BY an uncovered POP_TOP is
+                // a `break` (the POP_TOP drops the loop iterator): the
+                // tail of a protected body between the chain's machinery
+                // and the resume point — hopping it strands the POP_TOP
+                // inside the skip and the break is lost (_sitebuiltins
+                // 3.11 __setup: `try: with ...; break` rendered without
+                // the break). Require the POP_TOP to be the chain's LAST
+                // consumed instruction (the extent already swallowed it):
+                // an interior POP_TOP followed by live resume flow is
+                // with-machinery cleanup (_bootsubprocess 3.11
+                // check_output hops the inner chain's exit trampoline
+                // into the enclosing finally's flow).
+                if ti > 0
+                    && self.instrs[ti - 1].op == Op::POP_TOP
+                    && self.instrs[ti - 1].end() == after
+                    && !self.exc_entries.iter().any(|e| {
+                        e.start <= self.instrs[ti - 1].offset
+                            && self.instrs[ti - 1].offset < e.end
+                    })
+                {
+                    break;
+                }
+                after = t;
                 }
                 // a try whose tail was deferred (3.11 star: the else
                 // region extends past the chain head) folds at its
@@ -1272,12 +1291,15 @@ impl<'a> Ctx<'a> {
                     // `break` tail: the region sub-walk swaps the block
                     // stack and cannot see the loop — rebuild the Break
                     // while the live blocks are still on the stack
-                    let mut cut = te;
+                    let mut cut = if te == 0 { usize::MAX } else { te };
                     let mut is_break = false;
-                    if let (Some(&si), Some(&ei)) =
-                        (self.idx_of.get(&ts), self.idx_of.get(&te))
-                    {
-                        for j in si..ei {
+                    if let Some(&si) = self.idx_of.get(&ts) {
+                        let ei = if te == 0 {
+                            si + 1
+                        } else {
+                            self.idx_of.get(&te).copied().unwrap_or(si)
+                        };
+                        for j in si..ei.max(si) {
                             let x = self.instrs[j];
                             if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
                                 && !x.is_backward
@@ -1291,7 +1313,7 @@ impl<'a> Ctx<'a> {
                             }
                         }
                     }
-                    let mut tail = if cut > ts {
+                    let mut tail = if cut > ts && cut != usize::MAX {
                         self.decompile_region(ts, cut)
                     } else {
                         Vec::new()
@@ -1311,7 +1333,19 @@ impl<'a> Ctx<'a> {
                             }
                         }
                     }
-                    self.skip_until = Some(te);
+                    if te > 0 {
+                        self.skip_until = Some(te);
+                    } else if is_break {
+                        // consume the tail jump itself — executing it
+                        // would emit a SECOND Break at loop level and
+                        // tear the loop down
+                        if let Some(&si) = self.idx_of.get(&ts) {
+                            let je = self.instrs[si].end();
+                            if self.skip_until.map_or(true, |s| s < je) {
+                                self.skip_until = Some(je);
+                            }
+                        }
+                    }
                 } else if pos > ts {
                     // jumped over — the tail is unreachable in this flow
                     self.pending_try_tail = None;
@@ -1323,6 +1357,13 @@ impl<'a> Ctx<'a> {
                     continue;
                 }
                 self.skip_until = None;
+                // a shared fall-through terminator moved out of a folded
+                // Try body renders now — right after the chain skip
+                // landed, so it follows the Try statement
+                if let Some(stmt) = self.pending_post_chain_stmt.take() {
+                    self.cur_offset = pos;
+                    self.push_stmt(stmt);
+                }
             }
             self.cur_offset = pos;
             self.cur_next = inst.end();
@@ -1746,17 +1787,22 @@ impl<'a> Ctx<'a> {
     /// read's `else: return ...`).
     fn arm_try_body_tail(&mut self, tc: &TryCtx) {
         self.pending_try_tail = None;
+        let dbg = std::env::var("PYCDC_EG_DBG").is_ok();
+        if dbg { eprintln!("EG arm ENTER tc=({},{},{}) exc={:?}", tc.start, tc.body_end, tc.region_end, tc.except_handler); }
         if !self.version.at_least(3, 11) || tc.except_handler.is_none() {
+            if dbg { eprintln!("EG arm REJECT version/handler"); }
             return;
         }
         let Some(h) = tc.except_handler else { return };
         if h <= tc.body_end {
+            if dbg { eprintln!("EG arm REJECT h<=body_end"); }
             return;
         }
         // tail jump: last forward JUMP_FORWARD/JUMP below the chain head
         // not itself inside an exception-table entry (the with success
         // path's own exit jump IS covered — 142 lies in `120 to 142`)
         let (Some(&bi), Some(&hi)) = (self.idx_of.get(&tc.body_end), self.idx_of.get(&h)) else {
+            if dbg { eprintln!("EG arm REJECT idx"); }
             return;
         };
         let mut tj = None;
@@ -1773,8 +1819,12 @@ impl<'a> Ctx<'a> {
                 tj = Some(j);
             }
         }
-        let Some(j) = tj else { return };
+        let Some(j) = tj else {
+            if dbg { eprintln!("EG arm REJECT no tail jump in [{},{})", tc.body_end, h); }
+            return;
+        };
         let jt = self.instrs[j].target.unwrap();
+        if dbg { eprintln!("EG arm tailjump j={} off={} jt={}", j, self.instrs[j].offset, jt); }
         // every clause's re-join jump aiming at jt makes [jt, h) an else
         // region — the tail jump is the else body's exit, not a body tail
         let chain_end = self.chain_extent(h);
@@ -1807,21 +1857,68 @@ impl<'a> Ctx<'a> {
             })
             .unwrap_or((0, 0));
         if clause_joins > 0 && joins_at_jt >= clause_joins {
+            if dbg { eprintln!("EG arm REJECT else-region ({},{})", clause_joins, joins_at_jt); }
             return;
         }
-        // the span between the tail jump and the chain head must be pure
+        // the span between the tail jump and the chain head must be
         // handler-prelude padding (POP_TOPs of a bare except, NOPs) —
-        // anything else means the layout is not the with-split tail shape
+        // 3.11 lays the chain adjacent to the body. 3.12+ lays it AFTER
+        // the main flow: accept that layout only when the tail jump is a
+        // BREAK (targets the enclosing loop's exit) and the span between
+        // jump and head is exactly the loop's remaining linear flow (no
+        // backward edges — nothing can re-enter the skipped span)
+        let jump_is_loop_exit = self
+            .instrs
+            .get(j)
+            .and_then(|x| x.target)
+            .map_or(false, |t| self.find_loop_exit(t).is_some());
+        let mut span_ok = true;
         for x in &self.instrs[j + 1..hi] {
-            if !matches!(x.op, Op::POP_TOP | Op::NOP | Op::NOT_TAKEN | Op::CACHE) {
-                return;
+            if matches!(x.op, Op::POP_TOP | Op::NOP | Op::NOT_TAKEN | Op::CACHE) {
+                continue;
             }
+            if jump_is_loop_exit
+                && (!x.is_backward
+                    // backward jumps COVERED by an exception-table entry
+                    // are machinery resumes (the with success path's
+                    // re-entry into the exit protocol) — dead for the
+                    // linear walk; an UNCOVERED backward edge would mean
+                    // live flow re-enters the span
+                    || self
+                        .exc_entries
+                        .iter()
+                        .any(|e| e.start <= x.offset && x.offset < e.end))
+            {
+                continue;
+            }
+            span_ok = false;
+            break;
+        }
+        if !span_ok {
+            if dbg { eprintln!("EG arm REJECT span jump_is_loop_exit={}", jump_is_loop_exit); }
+            return;
         }
         let tail_start = self.instrs[j].offset;
+        if std::env::var("PYCDC_EG_DBG").is_ok() {
+            eprintln!("EG armtail tc=({},{}) h={} j={} tail_start={} cur_offset={} jump_is_loop_exit={} span_ok={}", tc.start, tc.body_end, h, self.instrs[j].offset, tail_start, self.cur_offset, jump_is_loop_exit, span_ok);
+        }
         if tail_start <= self.cur_offset {
+            if std::env::var("PYCDC_EG_DBG").is_ok() { eprintln!("EG armtail REJECT cur_offset"); }
             return;
         }
-        self.pending_try_tail = Some((tail_start, h));
+        // padding-adjacent (3.11): resume at the chain head. Break-over-
+        // flow (3.12+): resume at the jump's own target (the loop exit) —
+        // skipping to the head would drop the post-loop main flow, which
+        // the linear walk must still execute (te = 0 marks "no skip")
+        let tail_end = if jump_is_loop_exit && hi > j + 1 && !matches!(
+            self.instrs[j + 1].op,
+            Op::POP_TOP | Op::NOP | Op::NOT_TAKEN | Op::CACHE
+        ) {
+            0
+        } else {
+            h
+        };
+        self.pending_try_tail = Some((tail_start, tail_end));
     }
 
     fn emit_try_tail(&mut self, tc: TryCtx, pos: usize) {
@@ -2424,6 +2521,33 @@ impl<'a> Ctx<'a> {
             }
         }
         let mut body = self.pending_try_body.pop().unwrap_or_default();
+        // 3.12+ shared fall-through terminator: a post-try `raise X`
+        // (function's last statement) is compiled into BOTH exits — the
+        // body-side sunk copy at [body_end, handler_head) and the
+        // handler-side copy the bare clause falls through to after its
+        // POP_EXCEPT (no exit jump). The clause body parse swallows the
+        // handler-side copy (`except: raise X`) while the body-side copy
+        // walks as a post-Try statement — rendering the raise twice.
+        // When the two runs mirror, the clause is `pass`: drop its body;
+        // if the body-side copy was already collected into `body` (emit
+        // fired late), move it out so it lands AFTER the Try
+        // (_sitebuiltins 3.12 Quitter.__call__).
+        if let Some(h) = tc.except_handler {
+            if h > tc.body_end && self.mirrored_clause_terminator(tc.body_end, h) {
+                if let Some(lasth) = handlers.last_mut() {
+                    if lasth.type_.is_none()
+                        && lasth.name.is_none()
+                        && matches!(lasth.body.last(), Some(Stmt::Raise { .. }))
+                    {
+                        lasth.body.clear();
+                    }
+                }
+                if matches!(body.last(), Some(Stmt::Raise { exc: Some(_), .. })) {
+                    let stmt = body.pop().unwrap();
+                    self.pending_post_chain_stmt = Some(stmt);
+                }
+            }
+        }
         // nested-chain wrap: this region's body IS the inner try's body —
         // nest it, and adopt the enclosing finally parsed alongside
         if !self.nested_inner_handlers.is_empty() {
@@ -2717,6 +2841,7 @@ impl<'a> Ctx<'a> {
         let saved_stack = std::mem::take(&mut self.stack);
         let saved_skip = self.skip_until;
         let saved_try_tail = self.pending_try_tail.take();
+        let saved_post_chain = self.pending_post_chain_stmt.take();
         let saved_cur = (self.cur_offset, self.cur_next);
         // an outer walk's skip range must not swallow this region's
         // instructions — the span walk starts with clean skip state
@@ -2819,6 +2944,11 @@ impl<'a> Ctx<'a> {
         while let Some(tc) = self.pending_try_ctx.take() {
             self.emit_try_tail(tc, to);
         }
+        // a shared fall-through terminator moved out of a region-folded
+        // Try body belongs to the region's statement stream
+        if let Some(stmt) = self.pending_post_chain_stmt.take() {
+            self.push_stmt(stmt);
+        }
         let mut root = self.blocks.pop().unwrap();
         let stmts = std::mem::take(&mut root.stmts);
         self.region_result_expr = match self.stack.last() {
@@ -2830,6 +2960,7 @@ impl<'a> Ctx<'a> {
         self.stack = saved_stack;
         self.skip_until = saved_skip;
         self.pending_try_tail = saved_try_tail;
+        self.pending_post_chain_stmt = saved_post_chain;
         let (saved_cur_offset, saved_cur_next) = saved_cur;
         self.cur_offset = saved_cur_offset;
         self.cur_next = saved_cur_next;
@@ -3855,6 +3986,105 @@ impl<'a> Ctx<'a> {
             }
         }
         end
+    }
+
+    /// 3.12+ shared fall-through terminator: [a, h) ends in a
+    /// terminator run (expr-build ops ending at the chain head with
+    /// RAISE_VARARGS) and the bare handler at `h` (prelude
+    /// PUSH_EXC_INFO; POP_TOP*; POP_EXCEPT) falls through to an
+    /// IDENTICAL run followed only by chain scaffolding — the post-try
+    /// statement was duplicated into both exits with no merge jump.
+    fn mirrored_clause_terminator(&self, a: usize, h: usize) -> bool {
+        let (Some(&ai), Some(&hi)) = (self.idx_of.get(&a), self.idx_of.get(&h)) else {
+            return false;
+        };
+        if hi <= ai || hi >= self.instrs.len() {
+            return false;
+        }
+        let fam = |o: Op| {
+            matches!(
+                o,
+                Op::LOAD_GLOBAL
+                    | Op::LOAD_FAST
+                    | Op::LOAD_NAME
+                    | Op::LOAD_CONST
+                    | Op::LOAD_ATTR
+                    | Op::LOAD_METHOD
+                    | Op::LOAD_DEREF
+                    | Op::CALL_FUNCTION
+                    | Op::CALL_METHOD
+                    | Op::CALL_FUNCTION_KW
+                    | Op::PRECALL
+                    | Op::CALL
+                    | Op::KW_NAMES
+                    | Op::BINARY_OP
+                    | Op::BINARY_SUBSCR
+                    | Op::BUILD_TUPLE
+                    | Op::BUILD_LIST
+                    | Op::BUILD_MAP
+                    | Op::BUILD_SET
+                    | Op::BUILD_STRING
+                    | Op::FORMAT_VALUE
+                    | Op::RAISE_VARARGS
+            )
+        };
+        // body-side run: walk back from the chain head over expr ops
+        let mut s = hi;
+        while s > ai && fam(self.instrs[s - 1].op) {
+            s -= 1;
+        }
+        let n = hi - s;
+        if n == 0 || self.instrs[hi - 1].op != Op::RAISE_VARARGS {
+            return false;
+        }
+        // handler side: skip the bare-clause prelude
+        let mut k = hi;
+        let mut saw_pop_except = false;
+        while k < self.instrs.len() {
+            match self.instrs[k].op {
+                Op::PUSH_EXC_INFO
+                | Op::POP_TOP
+                | Op::NOP
+                | Op::NOT_TAKEN
+                | Op::CACHE => {
+                    k += 1;
+                }
+                Op::POP_EXCEPT => {
+                    saw_pop_except = true;
+                    k += 1;
+                    break;
+                }
+                _ => return false,
+            }
+        }
+        if !saw_pop_except || k + n > self.instrs.len() {
+            return false;
+        }
+        for t in 0..n {
+            let x = &self.instrs[s + t];
+            let y = &self.instrs[k + t];
+            if x.op != y.op || x.arg != y.arg {
+                return false;
+            }
+        }
+        // past the handler-side copy: only chain scaffolding or code end
+        let mut m = k + n;
+        while m < self.instrs.len() {
+            if !matches!(
+                self.instrs[m].op,
+                Op::COPY
+                    | Op::SWAP
+                    | Op::POP_EXCEPT
+                    | Op::RERAISE
+                    | Op::NOP
+                    | Op::NOT_TAKEN
+                    | Op::CACHE
+            ) {
+                return false;
+            }
+            m += 1;
+        }
+        true
     }
 
     /// Extent of the out-of-line handler chain starting at `from`: runs

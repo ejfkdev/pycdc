@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 14,
-  "SIG-DIFF": 18,
+  "PASS": 15,
+  "SIG-DIFF": 17,
   "INCOMPLETE": 7,
   "AST-PASS": 1
  },
@@ -65,11 +65,7 @@
   },
   {
    "module": "_sitebuiltins",
-   "ast_detail": "diff at token 33: orig  body=[Return(value=BinOp(left=Constant(value='Use %s() or %s to exit') | dec  body=[Return(value=JoinedStr(values=[Constant(value='Use ')",
-   "verdict": "SIG-DIFF",
-   "ndiff": 283,
-   "ntotal": 375,
-   "detail": "line 86: orig ('POP_EXCEPT', '') | got ('LOAD_GLOBAL', 'NULL + SystemExit')\nline 87: orig ('LOAD_GLOBAL', 'NULL + SystemExit') | got ('LOAD_FAST', 'code')\nline 88: orig ('LOAD_FAST', 'code') | got ('CALL', '')"
+   "verdict": "PASS"
   },
   {
    "module": "_strptime",

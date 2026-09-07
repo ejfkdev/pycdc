@@ -40,9 +40,9 @@ contributors and the copyright notice.'''
             try:
                 with open(filename, encoding='utf-8') as fp:
                     data = fp.read()
+                break
             except OSError:
                 pass
-            break
         if not data:
             data = self.__data
         self.__lines = data.split('\n')
