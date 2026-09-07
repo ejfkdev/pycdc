@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
   "PASS": 14,
-  "INCOMPLETE": 16,
-  "SIG-DIFF": 10
+  "SIG-DIFF": 22,
+  "INCOMPLETE": 4
  },
  "results": [
   {
@@ -21,7 +21,8 @@
   },
   {
    "module": "_bootsubprocess",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 358: orig  orelse=[]) | dec  orelse=[])]",
+   "verdict": "SIG-DIFF",
    "ndiff": 84,
    "ntotal": 396,
    "detail": "line 307: orig ('NOP', '') | got ('JUMP_FORWARD', 'to 392')\nline 308: orig ('LOAD_GLOBAL', 'NULL + open') | got ('PUSH_EXC_INFO', '')\nline 309: orig ('LOAD_FAST', 'tmp_filename') | got ('LOAD_GLOBAL', 'OSError')"
@@ -52,7 +53,8 @@
   },
   {
    "module": "_osx_support",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 167: orig  args=[BinOp(left=Constant(value='/tmp/_osx_support.%s') | dec  args=[JoinedStr(values=[Constant(value='/tmp/_osx_support.')",
+   "verdict": "SIG-DIFF",
    "ndiff": 1180,
    "ntotal": 1565,
    "detail": "line 294: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 400') | got ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 484')\nline 305: orig ('NOP', '') | got ('LOAD_GLOBAL', 'NULL + re')\nline 306: orig ('LOAD_GLOBAL', 'NULL + re') | got ('LOAD_ATTR', 'search')"
@@ -63,14 +65,16 @@
   },
   {
    "module": "_sitebuiltins",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 32: orig  body=[Return(value=BinOp(left=Constant(value='Use %s() or %s to exit') | dec  body=[Return(value=JoinedStr(values=[Constant(value='Use ')",
+   "verdict": "SIG-DIFF",
    "ndiff": 304,
    "ntotal": 401,
    "detail": "line 87: orig ('JUMP_FORWARD', 'to 80') | got ('JUMP_FORWARD', 'to 106')\nline 90: orig ('POP_EXCEPT', '') | got ('LOAD_GLOBAL', 'NULL + SystemExit')\nline 91: orig ('JUMP_FORWARD', 'to 80') | got ('LOAD_FAST', 'code')"
   },
   {
    "module": "_strptime",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 977: orig  value=BinOp(left=Constant(value='(?P<%s>%s') | dec  value=JoinedStr(values=[Constant(value='(?P<')",
+   "verdict": "SIG-DIFF",
    "ndiff": 982,
    "ntotal": 2248,
    "detail": "line 86: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 1236: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 884') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 882')\nline 1244: orig ('JUMP_FORWARD', 'to 864') | got ('JUMP_FORWARD', 'to 862')"
@@ -93,7 +97,8 @@
   },
   {
    "module": "aifc",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 250: orig  ops=[Eq() | dec  ops=[Eq()]",
+   "verdict": "SIG-DIFF",
    "ndiff": 583,
    "ntotal": 3700,
    "detail": "line 571: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 572: orig ('COPY', '') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 266')\nline 573: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
@@ -116,7 +121,8 @@
   },
   {
    "module": "base64",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
+   "verdict": "SIG-DIFF",
    "ndiff": 1835,
    "ntotal": 2117,
    "detail": "line 72: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 74: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 230: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 146') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 86')"
@@ -142,14 +148,16 @@
   },
   {
    "module": "cProfile",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 312: orig  body=[Continue()])] | dec  body=[Pass()])]",
+   "verdict": "SIG-DIFF",
    "ndiff": 304,
    "ntotal": 744,
    "detail": "line 311: orig ('JUMP_BACKWARD', 'to 328') | got ('JUMP_FORWARD', 'to 420')\nline 432: orig ('PUSH_NULL', '') | got ('NOP', '')\nline 433: orig ('LOAD_FAST', 'func') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "calendar",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 478: orig  right=Constant(value=400))))] | dec  right=Constant(value=400))))",
+   "verdict": "SIG-DIFF",
    "ndiff": 2802,
    "ntotal": 3519,
    "detail": "line 612: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 88') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 168')\nline 632: orig ('monthrange', 2) | got ('LOAD_CONST', 'None')\nline 633: orig ('RESUME', '') | got ('RETURN_VALUE', '')"
@@ -164,7 +172,8 @@
   },
   {
    "module": "cgitb",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 498: orig  value=BinOp(left=Constant(value='<a href=\"file://%s\">%s</a>') | dec  value=JoinedStr(values=[Constant(value='<a href=\"file://')",
+   "verdict": "SIG-DIFF",
    "ndiff": 717,
    "ntotal": 1607,
    "detail": "line 858: orig ('LOAD_GLOBAL', 'NULL + linecache') | got ('NOP', '')\nline 859: orig ('LOAD_ATTR', 'getline') | got ('NOP', '')\nline 860: orig ('LOAD_DEREF', 'file') | got ('LOAD_FAST', 'lnum')"
@@ -198,7 +207,8 @@
   },
   {
    "module": "codeop",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 91: orig  keywords=[])) | dec  keywords=[]))])",
+   "verdict": "SIG-DIFF",
    "ndiff": 278,
    "ntotal": 406,
    "detail": "line 121: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 122: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 123: orig ('LOAD_FAST', 'compiler') | got ('LOAD_CONST', 'None')"
@@ -209,14 +219,16 @@
   },
   {
    "module": "compileall",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 138: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
+   "verdict": "SIG-DIFF",
    "ndiff": 1491,
    "ntotal": 1572,
    "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "configparser",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 108: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
+   "verdict": "SIG-DIFF",
    "ndiff": 3014,
    "ntotal": 4746,
    "detail": "line 1597: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 270') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 268')\nline 1630: orig ('JUMP_FORWARD', 'to 266') | got ('JUMP_FORWARD', 'to 264')\nline 1656: orig ('JUMP_FORWARD', 'to 270') | got ('LOAD_FAST', 'depth')"

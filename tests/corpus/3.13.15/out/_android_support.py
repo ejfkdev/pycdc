@@ -120,4 +120,3 @@ class Logcat:
             self.android_log_write(prio, tag, message)
 
 
-# WARNING: Decompyle incomplete

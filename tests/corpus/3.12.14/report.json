@@ -3,8 +3,9 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 13,
-  "SIG-DIFF": 8,
-  "INCOMPLETE": 19
+  "SIG-DIFF": 19,
+  "INCOMPLETE": 7,
+  "AST-PASS": 1
  },
  "results": [
   {
@@ -33,7 +34,8 @@
   },
   {
    "module": "_compression",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 671: orig  body=[Break()] | dec  body=[Return(value=Attribute(value=Name(id='self'",
+   "verdict": "SIG-DIFF",
    "ndiff": 25,
    "ntotal": 571,
    "detail": "line 536: orig ('POP_JUMP_IF_FALSE', 'to 648') | got ('POP_JUMP_IF_FALSE', 'to 646')\nline 547: orig ('POP_JUMP_IF_TRUE', 'to 608') | got ('POP_JUMP_IF_TRUE', 'to 606')\nline 548: orig ('NOP', '') | got ('LOAD_FAST', 'self')"
@@ -63,21 +65,20 @@
   },
   {
    "module": "_pylong",
-   "verdict": "INCOMPLETE",
-   "ndiff": 145,
-   "ntotal": 997,
-   "detail": "line 852: orig ('LOAD_CONST', '0') | got ('RETURN_CONST', '0')\nline 853: orig ('RETURN_VALUE', '') | got ('inner', 2)\nline 854: orig ('inner', 2) | got ('COPY_FREE_VARS', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_sitebuiltins",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 33: orig  body=[Return(value=BinOp(left=Constant(value='Use %s() or %s to exit') | dec  body=[Return(value=JoinedStr(values=[Constant(value='Use ')",
+   "verdict": "SIG-DIFF",
    "ndiff": 283,
    "ntotal": 375,
    "detail": "line 86: orig ('POP_EXCEPT', '') | got ('LOAD_GLOBAL', 'NULL + SystemExit')\nline 87: orig ('LOAD_GLOBAL', 'NULL + SystemExit') | got ('LOAD_FAST', 'code')\nline 88: orig ('LOAD_FAST', 'code') | got ('CALL', '')"
   },
   {
    "module": "_strptime",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 77: orig  body=[Break()] | dec  body=[Return()]",
+   "verdict": "SIG-DIFF",
    "ndiff": 350,
    "ntotal": 2287,
    "detail": "line 91: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 1104: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 1105: orig ('POP_JUMP_IF_TRUE', 'to 60') | got ('POP_JUMP_IF_FALSE', 'to 60')"
@@ -88,7 +89,8 @@
   },
   {
    "module": "_threading_local",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 225: orig  Try(body=[Assign(targets=[Name(id='dct' | dec  Assign(targets=[Name(id='dct'",
+   "verdict": "SIG-DIFF",
    "ndiff": 250,
    "ntotal": 446,
    "detail": "line 192: orig ('NOP', '') | got ('LOAD_FAST', 'impl')\nline 193: orig ('LOAD_FAST', 'impl') | got ('LOAD_ATTR', 'NULL|self + get_dict')\nline 194: orig ('LOAD_ATTR', 'NULL|self + get_dict') | got ('CALL', '')"
@@ -103,14 +105,16 @@
   },
   {
    "module": "aifc",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 254: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
+   "verdict": "SIG-DIFF",
    "ndiff": 2752,
    "ntotal": 3367,
    "detail": "line 519: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 520: orig ('COPY', '') | got ('POP_JUMP_IF_FALSE', 'to 148')\nline 521: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },
   {
    "module": "base64",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
+   "verdict": "SIG-DIFF",
    "ndiff": 1689,
    "ntotal": 1936,
    "detail": "line 70: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 72: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 217: orig ('POP_JUMP_IF_FALSE', 'to 70') | got ('POP_JUMP_IF_FALSE', 'to 68')"
@@ -136,14 +140,16 @@
   },
   {
    "module": "cProfile",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 285: orig  body=[If(test=Attribute(value=Name(id='entry' | dec  body=[If(test=UnaryOp(op=Not()",
+   "verdict": "SIG-DIFF",
    "ndiff": 290,
    "ntotal": 700,
    "detail": "line 347: orig ('JUMP_BACKWARD', 'to 404') | got ('JUMP_BACKWARD', 'to 460')\nline 403: orig ('PUSH_NULL', '') | got ('NOP', '')\nline 404: orig ('LOAD_FAST', 'func') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "calendar",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 529: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "verdict": "SIG-DIFF",
    "ndiff": 2628,
    "ntotal": 3396,
    "detail": "line 648: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 704: orig ('POP_JUMP_IF_TRUE', 'to 100') | got ('POP_JUMP_IF_TRUE', 'to 192')\nline 724: orig ('_validate_month', 1) | got ('RETURN_CONST', 'None')"
@@ -158,7 +164,8 @@
   },
   {
    "module": "cgitb",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 164: orig  Continue()] | dec  Return(value=Tuple(elts=[Constant(value=None)",
+   "verdict": "SIG-DIFF",
    "ndiff": 1209,
    "ntotal": 1484,
    "detail": "line 231: orig ('FOR_ITER', 'to 444') | got ('FOR_ITER', 'to 446')\nline 242: orig ('POP_JUMP_IF_FALSE', 'to 140') | got ('POP_JUMP_IF_FALSE', 'to 142')\nline 243: orig ('POP_TOP', '') | got ('LOAD_FAST', 'vars')"
@@ -191,7 +198,8 @@
   },
   {
    "module": "codeop",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 56: orig  If(test=BoolOp(op=And() | dec  If(test=UnaryOp(op=Not()",
+   "verdict": "SIG-DIFF",
    "ndiff": 258,
    "ntotal": 382,
    "detail": "line 94: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 95: orig ('POP_JUMP_IF_TRUE', 'to 98') | got ('POP_JUMP_IF_FALSE', 'to 98')\nline 119: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
@@ -209,7 +217,8 @@
   },
   {
    "module": "configparser",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 110: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
+   "verdict": "SIG-DIFF",
    "ndiff": 1288,
    "ntotal": 4226,
    "detail": "line 2094: orig ('JUMP_BACKWARD', 'to 132') | got ('JUMP_BACKWARD', 'to 220')\nline 2265: orig ('POP_JUMP_IF_TRUE', 'to 94') | got ('POP_JUMP_IF_TRUE', 'to 98')\nline 2346: orig ('LOAD_FAST', 'raw') | got ('BUILD_MAP', '')"

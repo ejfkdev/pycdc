@@ -194,4 +194,3 @@ class WeakSet:
 
     __class_getitem__ = classmethod(GenericAlias)
 
-# WARNING: Decompyle incomplete

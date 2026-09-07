@@ -264,4 +264,3 @@ def int_divmod(a, b):
         return ~q, b + ~r
     return _divmod_pos(a, b)
 
-# WARNING: Decompyle incomplete

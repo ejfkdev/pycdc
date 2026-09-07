@@ -82,4 +82,3 @@ Return the platform_tag of the system Python was built on.
         raise ValueError(f'AIX_BUILDDATE is not defined or invalid: {build_date!r}')
     return _aix_tag(_aix_bgt(), build_date)
 
-# WARNING: Decompyle incomplete

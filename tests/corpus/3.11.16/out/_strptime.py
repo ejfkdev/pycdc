@@ -454,4 +454,3 @@ def _strptime_datetime(cls, data_string, format='%a %b %d %H:%M:%S %Y'):
         args += (tz,)
     return cls(*args)
 
-# WARNING: Decompyle incomplete

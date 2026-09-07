@@ -292,4 +292,3 @@ def enable(display=1, logdir=None, context=5, format='html'):
 
     sys.excepthook = Hook(display=display, logdir=logdir, context=context, format=format)
 
-# WARNING: Decompyle incomplete

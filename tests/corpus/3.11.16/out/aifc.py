@@ -856,4 +856,3 @@ if __name__ == '__main__':
                         break
                     g.writeframes(data)
             print('Done.')
-# WARNING: Decompyle incomplete

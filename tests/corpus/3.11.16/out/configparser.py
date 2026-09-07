@@ -1210,4 +1210,3 @@ class ConverterMapping(MutableMapping):
         return len(self._data)
 
 
-# WARNING: Decompyle incomplete

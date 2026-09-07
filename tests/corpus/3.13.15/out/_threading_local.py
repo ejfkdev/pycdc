@@ -88,4 +88,3 @@ class local:
 
 
 from threading import current_thread, RLock
-# WARNING: Decompyle incomplete

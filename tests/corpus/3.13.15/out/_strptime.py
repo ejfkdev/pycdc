@@ -643,4 +643,3 @@ format string.'''
         args += (tz,)
     return cls(*args)
 
-# WARNING: Decompyle incomplete

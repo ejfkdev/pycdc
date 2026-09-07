@@ -27,24 +27,26 @@
   "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
   "counts": {
    "PASS": 14,
-   "INCOMPLETE": 16,
-   "SIG-DIFF": 10
+   "SIG-DIFF": 22,
+   "INCOMPLETE": 4
   }
  },
  "3.12.14": {
   "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
   "counts": {
    "PASS": 13,
-   "SIG-DIFF": 8,
-   "INCOMPLETE": 19
+   "SIG-DIFF": 19,
+   "INCOMPLETE": 7,
+   "AST-PASS": 1
   }
  },
  "3.13.15": {
   "interp": "/opt/homebrew/bin/python3.13",
   "counts": {
    "PASS": 14,
-   "INCOMPLETE": 17,
-   "SIG-DIFF": 9
+   "SIG-DIFF": 18,
+   "INCOMPLETE": 7,
+   "AST-PASS": 1
   }
  },
  "3.14.7": {

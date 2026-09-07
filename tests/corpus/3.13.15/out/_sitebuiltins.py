@@ -80,4 +80,3 @@ Calling help(thing) prints help for the python object 'thing'.
         return pydoc.help(*args, **kwds)
 
 
-# WARNING: Decompyle incomplete

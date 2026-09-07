@@ -79,4 +79,3 @@ def check_output(cmd, **kwargs):
         pass
     return stdout
 
-# WARNING: Decompyle incomplete

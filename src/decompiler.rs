@@ -5919,14 +5919,14 @@ impl<'a> Ctx<'a> {
                     // rendered as None so the output stays compilable
                     if matches!(other, Sv::ImportModule { .. } | Sv::ImportFrom { .. }) {
                         self.stack.push(other);
-                        self.clean = false;
+                        self.mark_unclean();
                         return Rc::new(Expr::Const(Rc::new(PyObject::None)));
                     }
-                    self.clean = false;
+                    self.mark_unclean();
                     return Rc::new(Expr::Const(Rc::new(PyObject::None)));
                 }
                 None => {
-                    self.clean = false;
+                    self.mark_unclean();
                     if std::env::var("PYCDC_TRACE").is_ok() {
                         eprintln!("AW UNDERFLOW pop_expr at {} in {:?}", self.cur_offset, self.code.name);
                     }
@@ -5973,14 +5973,14 @@ impl<'a> Ctx<'a> {
                 Some(other) => {
                     if matches!(other, Sv::ImportModule { .. } | Sv::ImportFrom { .. }) {
                         self.stack.push(other);
-                        self.clean = false;
+                        self.mark_unclean();
                         return (Rc::new(Expr::Const(Rc::new(PyObject::None))), skipped);
                     }
-                    self.clean = false;
+                    self.mark_unclean();
                     return (Rc::new(Expr::Const(Rc::new(PyObject::None))), skipped);
                 }
                 None => {
-                    self.clean = false;
+                    self.mark_unclean();
                     return (Rc::new(Expr::Const(Rc::new(PyObject::None))), skipped);
                 }
             }
@@ -5991,7 +5991,7 @@ impl<'a> Ctx<'a> {
         match self.code.consts.get(idx) {
             Some(o) => Rc::new(Expr::Const(o.clone())),
             None => {
-                self.clean = false;
+                self.mark_unclean();
                 self.name_expr(format!("/*bad-const-{idx}*/"))
             }
         }
@@ -6140,7 +6140,7 @@ impl<'a> Ctx<'a> {
     }
 
     fn unimplemented(&mut self, inst: &Instruction, what: &str) {
-        self.clean = false;
+        self.mark_unclean();
         let text = format!(
             "/* {what}: {} {} @{} */",
             self.table.name(inst.opcode),
@@ -7455,7 +7455,7 @@ impl<'a> Ctx<'a> {
                             if let Some(o) = other {
                                 self.stack.push(o);
                             }
-                            self.clean = false;
+                            self.mark_unclean();
                             None
                         }
                     }
@@ -9362,9 +9362,17 @@ impl<'a> Ctx<'a> {
                 // 3.11+: pushes __exit__ then result; block boundary comes
                 // from the exception table entry that starts right after.
                 let ctx_e = self.pop_expr();
-                let result = self.pop_expr();
+                // the VM's BEFORE_WITH consumes ONLY the context manager;
+                // the bound __exit__ it pushes is never modeled here. The
+                // historical second pop_expr underflowed on every plain
+                // with (spurious "Decompyle incomplete" across ALL 3.11+
+                // with-modules: b08_with PASS-WARN, _compression
+                // readinto, t_singlewith). Consume leftover NULL markers
+                // (3.11+ LOAD_ATTR NULL|self) but no real second value.
+                while matches!(self.stack.last(), Some(Sv::Null)) {
+                    self.stack.pop();
+                }
                 self.with_exits += 1;
-                let _ = result;
                 let item = WithItem {
                     ctx: ctx_e,
                     target: None,
@@ -19861,7 +19869,7 @@ impl<'a> Ctx<'a> {
                     // phantom exception values we do not model; an empty
                     // simulation stack there is not an error
                     if self.legacy_handler.is_none() {
-                        self.clean = false;
+                        self.mark_unclean();
                     }
                     return Sv::E(Rc::new(Expr::Const(Rc::new(PyObject::None))));
                 }
@@ -19961,7 +19969,7 @@ impl<'a> Ctx<'a> {
                 }
             }
             Sv::Null => {
-                self.clean = false;
+                self.mark_unclean();
             }
         }
     }
