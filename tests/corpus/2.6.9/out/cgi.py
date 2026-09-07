@@ -188,7 +188,7 @@ def parse_multipart(fp, pdict):
                 continue
         data = ''
         lines = []
-        while True:
+        while 1:
             line = fp.readline()
             if not line:
                 terminator = lastpart
@@ -605,7 +605,7 @@ class FieldStorage:
     def read_lines_to_eof(self):
         '''Internal: read lines until EOF.'''
 
-        while True:
+        while 1:
             line = self.fp.readline(65536)
             if not line:
                 self.done = -1
@@ -620,7 +620,7 @@ class FieldStorage:
         last = next + '--'
         delim = ''
         last_line_lfend = True
-        while True:
+        while 1:
             line = self.fp.readline(65536)
             if not line:
                 self.done = -1
@@ -656,7 +656,7 @@ class FieldStorage:
         next = '--' + self.outerboundary
         last = next + '--'
         last_line_lfend = True
-        while True:
+        while 1:
             line = self.fp.readline(65536)
             if not line:
                 self.done = -1

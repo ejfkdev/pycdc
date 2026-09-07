@@ -27,7 +27,7 @@ class ServerHTMLDoc(pydoc.HTMLDoc):
         results = []
         here = 0
         pattern = re.compile('\\b((http|ftp)://\\S+[\\w/]|RFC[- ]?(\\d+)|PEP[- ]?(\\d+)|(self\\.)?((?:\\w|\\.)+))\\b')
-        while True:
+        while 1:
             match = pattern.search(text, here)
             if not match:
                 break

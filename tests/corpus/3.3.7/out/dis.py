@@ -169,25 +169,19 @@ def disassemble(co, lasti=-1):
             print(repr(oparg).rjust(5), end=' ')
             if op in hasconst:
                 print('(' + repr(co.co_consts[oparg]) + ')', end=' ')
-                continue
-            if op in hasname:
+            elif op in hasname:
                 print('(' + co.co_names[oparg] + ')', end=' ')
-                continue
-            if op in hasjrel:
+            elif op in hasjrel:
                 print('(to ' + repr(i + oparg) + ')', end=' ')
-                continue
-            if op in haslocal:
+            elif op in haslocal:
                 print('(' + co.co_varnames[oparg] + ')', end=' ')
-                continue
-            if op in hascompare:
+            elif op in hascompare:
                 print('(' + cmp_op[oparg] + ')', end=' ')
-                continue
-            if op in hasfree:
+            elif op in hasfree:
                 if free is None:
                     free = co.co_cellvars + co.co_freevars
                 print('(' + free[oparg] + ')', end=' ')
-                continue
-            if op in hasnargs:
+            elif op in hasnargs:
                 print('(%d positional, %d keyword pair)' % (code[i - 2], code[i - 1]), end=' ')
                 continue
         print()
@@ -216,28 +210,26 @@ def _disassemble_bytes(code, lasti=-1, varnames=None, names=None, constants=None
             if op in hasconst:
                 if constants:
                     print('(' + repr(constants[oparg]) + ')', end=' ')
+                else:
+                    print('(%d)' % oparg, end=' ')
                     continue
-                print('(%d)' % oparg, end=' ')
-                continue
-            if op in hasname:
+            elif op in hasname:
                 if names is not None:
                     print('(' + names[oparg] + ')', end=' ')
+                else:
+                    print('(%d)' % oparg, end=' ')
                     continue
-                print('(%d)' % oparg, end=' ')
-                continue
-            if op in hasjrel:
+            elif op in hasjrel:
                 print('(to ' + repr(i + oparg) + ')', end=' ')
-                continue
-            if op in haslocal:
+            elif op in haslocal:
                 if varnames:
                     print('(' + varnames[oparg] + ')', end=' ')
+                else:
+                    print('(%d)' % oparg, end=' ')
                     continue
-                print('(%d)' % oparg, end=' ')
-                continue
-            if op in hascompare:
+            elif op in hascompare:
                 print('(' + cmp_op[oparg] + ')', end=' ')
-                continue
-            if op in hasnargs:
+            elif op in hasnargs:
                 print('(%d positional, %d keyword pair)' % (code[i - 2], code[i - 1]), end=' ')
                 continue
         print()

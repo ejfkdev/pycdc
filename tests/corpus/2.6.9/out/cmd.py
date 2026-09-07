@@ -114,7 +114,7 @@ class Cmd:
             if self.intro:
                 self.stdout.write(str(self.intro) + '\n')
             stop = None
-            while True:
+            while 1:
                 if stop or self.cmdqueue:
                     line = self.cmdqueue.pop(0)
                 elif self.use_rawinput:

@@ -206,7 +206,7 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             pid = os.fork()
             if pid != 0:
                 pid, sts = os.waitpid(pid, 0)
-                while True:
+                while 1:
                     while select.select([self.rfile], [], [], 0)[0] and self.rfile.read(1):
                         break
                 if sts:
@@ -243,7 +243,7 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 data = self.rfile.read(nbytes)
             else:
                 data = None
-            while True:
+            while 1:
                 while select.select([self.rfile._sock], [], [], 0)[0] and self.rfile._sock.recv(1):
                     break
             stdout, stderr = p.communicate(data)

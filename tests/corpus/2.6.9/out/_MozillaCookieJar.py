@@ -45,7 +45,7 @@ class MozillaCookieJar(FileCookieJar):
             f.close()
             raise LoadError('%r does not look like a Netscape format cookies file' % filename)
         try:
-            while True:
+            while 1:
                 line = f.readline()
                 if line == '':
                     break

@@ -2,8 +2,8 @@
  "version": "3.3.7",
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
-  "PASS": 16,
-  "AST-PASS": 8,
+  "PASS": 17,
+  "AST-PASS": 7,
   "SIG-DIFF": 16
  },
  "results": [
@@ -23,9 +23,9 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 556: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 984,
-   "ntotal": 1409,
-   "detail": "line 303: orig ('SETUP_LOOP', '#230') | got ('SETUP_LOOP', '#238')\nline 307: orig ('POP_JUMP_IF_FALSE', '#229') | got ('POP_JUMP_IF_FALSE', '#237')\nline 360: orig ('JUMP_FORWARD', '#222') | got ('JUMP_FORWARD', '#230')"
+   "ndiff": 972,
+   "ntotal": 1407,
+   "detail": "line 303: orig ('SETUP_LOOP', '#230') | got ('SETUP_LOOP', '#236')\nline 307: orig ('POP_JUMP_IF_FALSE', '#229') | got ('POP_JUMP_IF_FALSE', '#235')\nline 360: orig ('JUMP_FORWARD', '#222') | got ('JUMP_FORWARD', '#228')"
   },
   {
    "module": "_osx_support",
@@ -69,7 +69,7 @@
   },
   {
    "module": "asynchat",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "asyncore",
@@ -119,9 +119,9 @@
    "module": "cgi",
    "ast_detail": "diff at token 958: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2391,
-   "ntotal": 3050,
-   "detail": "line 523: orig ('SETUP_LOOP', '#250') | got ('SETUP_LOOP', '#253')\nline 527: orig ('POP_JUMP_IF_FALSE', '#249') | got ('POP_JUMP_IF_FALSE', '#252')\nline 533: orig ('POP_JUMP_IF_FALSE', '#107') | got ('POP_JUMP_IF_FALSE', '#108')"
+   "ndiff": 2347,
+   "ntotal": 3049,
+   "detail": "line 523: orig ('SETUP_LOOP', '#250') | got ('SETUP_LOOP', '#252')\nline 527: orig ('POP_JUMP_IF_FALSE', '#249') | got ('POP_JUMP_IF_FALSE', '#251')\nline 591: orig ('SETUP_LOOP', '#144') | got ('SETUP_LOOP', '#146')"
   },
   {
    "module": "cgitb",
@@ -215,9 +215,9 @@
    "module": "dis",
    "ast_detail": "diff at token 1331: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 645,
-   "ntotal": 1502,
-   "detail": "line 678: orig ('SETUP_LOOP', '#314') | got ('SETUP_LOOP', '#321')\nline 682: orig ('POP_JUMP_IF_FALSE', '#313') | got ('POP_JUMP_IF_FALSE', '#320')\nline 779: orig ('POP_JUMP_IF_FALSE', '#309') | got ('POP_JUMP_IF_FALSE', '#316')"
+   "ndiff": 530,
+   "ntotal": 1491,
+   "detail": "line 678: orig ('SETUP_LOOP', '#314') | got ('SETUP_LOOP', '#315')\nline 682: orig ('POP_JUMP_IF_FALSE', '#313') | got ('POP_JUMP_IF_FALSE', '#314')\nline 779: orig ('POP_JUMP_IF_FALSE', '#309') | got ('POP_JUMP_IF_FALSE', '#310')"
   },
   {
    "module": "dummy_threading",

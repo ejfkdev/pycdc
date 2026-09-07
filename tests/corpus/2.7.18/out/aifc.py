@@ -272,7 +272,7 @@ class Aifc_read:
             raise Error, 'not an AIFF or AIFF-C file'
         self._comm_chunk_read = 0
         self._ssnd_chunk = None
-        while True:
+        while 1:
             self._ssnd_seek_needed = 1
             try:
                 chunk = Chunk(self._file)
@@ -862,7 +862,7 @@ if __name__ == '__main__':
             g = open(gn, 'w')
             try:
                 g.setparams(f.getparams())
-                while True:
+                while 1:
                     data = f.readframes(1024)
                     if not data:
                         break

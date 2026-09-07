@@ -167,8 +167,8 @@ class async_chat(asyncore.dispatcher):
             if num_sent:
                 if num_sent < len(data) or obs < len(first):
                     self.producer_fifo[0] = first[num_sent:]
-                    continue
-                del self.producer_fifo[0]
+                else:
+                    del self.producer_fifo[0]
             return
 
     def discard_buffers(self):

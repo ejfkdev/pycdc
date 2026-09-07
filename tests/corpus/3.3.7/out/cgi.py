@@ -195,8 +195,8 @@ def parse_multipart(fp, pdict):
                 if maxlen and bytes > maxlen:
                     raise ValueError('Maximum content length exceeded')
                 data = fp.read(bytes)
-                continue
-            data = b''
+            else:
+                data = b''
         lines = []
         while True:
             line = fp.readline()

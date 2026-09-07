@@ -1417,7 +1417,7 @@ impl<'a> Ctx<'a> {
                     self.flushing = false;
                 }
                 let mut blk = Block::new(BlockType::While, pos, end);
-                blk.cond = Some(self.name_expr("True"));
+                blk.cond = Some(self.true_cond_expr());
                 blk.cond_set = true;
                 self.blocks.push(blk);
             }
@@ -6044,7 +6044,7 @@ impl<'a> Ctx<'a> {
                 self.push_stmt(Stmt::If { cond, body, orelse });
             }
             BlockType::While => {
-                let cond = b.cond.take().unwrap_or_else(|| self.name_expr("True"));
+                let cond = b.cond.take().unwrap_or_else(|| self.true_cond_expr());
                 let body = std::mem::take(&mut b.stmts);
                 // 3.8+ rotated while-else: the exhaustion exit (b.end)
                 // closed the body; the else region runs to loop_else_end
@@ -6162,7 +6162,7 @@ impl<'a> Ctx<'a> {
                 let orelse = std::mem::take(&mut b.stmts);
                 let (cond, _, _, body, _) = self.pending_loop.pop().unwrap_or_default();
                 self.push_stmt(Stmt::While {
-                    cond: cond.unwrap_or_else(|| self.name_expr("True")),
+                    cond: cond.unwrap_or_else(|| self.true_cond_expr()),
                     body,
                     orelse,
                 });
@@ -6576,6 +6576,21 @@ impl<'a> Ctx<'a> {
 
     fn name_expr(&self, name: impl Into<String>) -> ExprRef {
         Rc::new(Expr::Name(name.into()))
+    }
+
+    /// Synthesized condition of a condition-less while loop. py2 does
+    /// NOT constant-fold `while True:` (it compiles to LOAD_NAME True +
+    /// a per-iteration PJF), while the source `while 1:` these loops
+    /// come from has no condition jump at all — render the synthesized
+    /// condition as `1` so the recompile keeps the cond-less shape
+    /// (cgi 2.7 parse_multipart's inner readline loop). py3 folds both
+    /// forms; keep the idiomatic `True` there.
+    fn true_cond_expr(&self) -> ExprRef {
+        if self.version.major < 3 {
+            Rc::new(Expr::Const(Rc::new(PyObject::Int(1))))
+        } else {
+            self.name_expr("True")
+        }
     }
 
     fn const_name(&self, idx: usize) -> String {
@@ -9908,10 +9923,127 @@ impl<'a> Ctx<'a> {
                                         && b.end > l.handler_start
                                 })
                         });
+                    // a FORWARD jump to a mainline merge point (not a
+                    // loop top/exit, not itself targeted by a jump from
+                    // before this instruction, and not inside a live
+                    // legacy chain's region) is an if/else arm end —
+                    // py2.7 compiles the arm-end skip as JUMP_ABSOLUTE
+                    // instead of JUMP_FORWARD (cgi 2.7 parse_multipart:
+                    // `JABS 275` after `data = fp.read(bytes)` rendered
+                    // a spurious `continue` and flattened the else arm).
+                    // Handle it as a forward jump so the else arm gets
+                    // marked. Targets of EARLIER jumps are body/arm
+                    // starts, not merges (a continue onto a loop
+                    // trampoline stays on the historic path — bdb 3.6's
+                    // merge trampoline is targeted by the arm-end hop);
+                    // the else arm's own end jump targets the merge
+                    // from AFTER this instruction and does not veto.
+                    let in_chain_region = self
+                        .legacy_try
+                        .as_ref()
+                        .map_or(false, |l| {
+                            target >= l.handler_start
+                                && target < l.else_stop.max(l.handler_start)
+                        });
+                    let arm_merge_ahead = target > self.cur_offset
+                        // py2.6's peek-jump (JUMP_IF_FALSE/TRUE +
+                        // POP_TOP) branch shapes fold through their own
+                        // value-merge machinery; the arm-end JABS there
+                        // feeds the folded-chain path and diverting it
+                        // hoists the loop body out of the loop (cgitb
+                        // 2.6 scanvars). 2.6 stays on the historic path
+                        // pending the py2.6 chain redesign.
+                        && !(self.version.major == 2 && self.version.minor == 6)
+                        && !in_chain_region
+                        // the merge is a mainline statement, not a
+                        // trampoline: a trampoline (the target itself
+                        // hops to a loop top) is the bdb 3.6 chain-merge
+                        // shape whose edge keeps the historic path
+                        && !self
+                            .idx_of
+                            .get(&target)
+                            .and_then(|&ti| self.instrs.get(ti))
+                            .map_or(false, |x| {
+                                x.is_backward
+                                    && x.target.map_or(false, |t| {
+                                        self.is_loop_top_target(t)
+                                    })
+                            })
+                        // veto: the top block's OWN cond jump targets
+                        // this merge — its else arm is entered by
+                        // fall-through only (no jump labels the else
+                        // start), the cgitb scanvars shape where the
+                        // historic continue + fold machinery renders
+                        // correctly. When the merge is targeted only by
+                        // OTHER structures (an enclosing guard's escape,
+                        // the else arm's own end jump — cgi 2.7
+                        // parse_multipart's 275), the gap after this
+                        // arm end IS a jump-labeled else arm and the
+                        // forward path must mark it.
+                        // the arm-merge reading is only valid when the
+                        // region right after this jump is the TOP
+                        // block's own jump-labeled else arm (its cond
+                        // jump targets cur_next) AND the jump lands
+                        // exactly on the block's end (the else arm
+                        // starts here and runs to the merge): then the
+                        // forward path marks the else and the close
+                        // rebuilds the if/else (cgi 2.7 parse_multipart:
+                        // PJF-215 labels 266, the arm-end JABS hops it
+                        // to the merge 275 == the block's end). Shapes
+                        // that must keep the historic path: a
+                        // fall-through else (the cond flies to the
+                        // merge itself — cgitb 3.5/3.3 scanvars), and a
+                        // guardless arm end flying to an ENCLOSING
+                        // merge while an outer guard's else arm starts
+                        // at cur_next (bz2 3.3 open: the else-arm
+                        // marking swallowed the guards into the inner
+                        // raise arm)
+                        && self
+                            .blocks
+                            .last()
+                            .map_or(false, |t| {
+                                matches!(
+                                    t.kind,
+                                    BlockType::If | BlockType::Else
+                                ) && self
+                                        .idx_of
+                                        .get(&t.start)
+                                        .and_then(|&si| {
+                                            (si > 0).then(|| &self.instrs[si - 1])
+                                        })
+                                        .map_or(false, |cj| {
+                                            matches!(
+                                                cj.op,
+                                                Op::POP_JUMP_IF_FALSE
+                                                    | Op::POP_JUMP_IF_TRUE
+                                                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                    | Op::POP_JUMP_BACKWARD_IF_FALSE
+                                                    | Op::POP_JUMP_BACKWARD_IF_TRUE
+                                                    | Op::JUMP_IF_FALSE_OR_POP
+                                                    | Op::JUMP_IF_TRUE_OR_POP
+                                                    | Op::JUMP_IF_FALSE
+                                                    | Op::JUMP_IF_TRUE
+                                                    | Op::POP_JUMP_IF_NONE
+                                                    | Op::POP_JUMP_IF_NOT_NONE
+                                                    | Op::POP_JUMP_FORWARD_IF_NONE
+                                                    | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                                            ) && cj.target == Some(self.cur_next)
+                                        })
+                            })
+                        && !self.blocks.iter().any(|b| {
+                            matches!(b.kind, BlockType::While | BlockType::For)
+                                && (b.start == target
+                                    || b.cond_end == target
+                                    || (b.cond_end != usize::MAX
+                                        && b.start < target
+                                        && target < b.cond_end))
+                        });
                     if !lands_on_back_edge
                         && !chain_body_hop
                         && !chain_collect_edge
                         && !dead_after_cont
+                        && !arm_merge_ahead
                         && self.is_continue_jump(target)
                     {
                         // continue of an outer loop: emit first, then close

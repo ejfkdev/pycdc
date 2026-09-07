@@ -2,9 +2,9 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "PASS": 17,
+  "PASS": 19,
   "SIG-DIFF": 17,
-  "AST-PASS": 6
+  "AST-PASS": 4
  },
  "results": [
   {
@@ -43,9 +43,9 @@
    "module": "DocXMLRPCServer",
    "ast_detail": "diff at token 1090: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
-   "ndiff": 730,
-   "ntotal": 887,
-   "detail": "line 151: orig ('SETUP_LOOP', '#155') | got ('SETUP_LOOP', '#157')\nline 152: orig ('LOAD_FAST', 'pattern') | got ('LOAD_GLOBAL', 'True')\nline 153: orig ('LOAD_ATTR', 'search') | got ('POP_JUMP_IF_FALSE', '#156')"
+   "ndiff": 9,
+   "ntotal": 883,
+   "detail": "line 629: orig ('POP_JUMP_IF_FALSE', '#100') | got ('POP_JUMP_IF_FALSE', '#106')\nline 701: orig ('JUMP_ABSOLUTE', '#106') | got ('JUMP_FORWARD', '#99')\nline 704: orig ('JUMP_FORWARD', '#106') | got ('LOAD_CONST', '0')"
   },
   {
    "module": "HTMLParser",
@@ -105,11 +105,11 @@
   },
   {
    "module": "_LWPCookieJar",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "_MozillaCookieJar",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "__future__",
@@ -155,9 +155,9 @@
    "module": "aifc",
    "ast_detail": "diff at token 2137: orig  body=[Print(dest=None | dec  body=[If(test=Compare(left=Call(func=Name(id='len'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2955,
-   "ntotal": 3260,
-   "detail": "line 93: orig ('POP_JUMP_IF_FALSE', '#233') | got ('POP_JUMP_IF_FALSE', '#235')\nline 121: orig ('SETUP_FINALLY', '#227') | got ('SETUP_FINALLY', '#229')\nline 173: orig ('POP_JUMP_IF_FALSE', '#225') | got ('POP_JUMP_IF_FALSE', '#227')"
+   "ndiff": 17,
+   "ntotal": 3256,
+   "detail": "line 1584: orig ('LOAD_CONST', \"'Warning: MARK chunk contains only'\") | got ('LOAD_GLOBAL', 'len')\nline 1585: orig ('PRINT_ITEM', '') | got ('LOAD_FAST', 'self')\nline 1586: orig ('LOAD_GLOBAL', 'len') | got ('LOAD_ATTR', '_markers')"
   },
   {
    "module": "anydbm",
@@ -175,9 +175,9 @@
    "module": "asynchat",
    "ast_detail": "diff at token 842: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 237,
-   "ntotal": 815,
-   "detail": "line 498: orig ('SETUP_LOOP', '#138') | got ('SETUP_LOOP', '#140')\nline 501: orig ('POP_JUMP_IF_FALSE', '#137') | got ('POP_JUMP_IF_FALSE', '#139')\nline 504: orig ('POP_JUMP_IF_FALSE', '#137') | got ('POP_JUMP_IF_FALSE', '#139')"
+   "ndiff": 242,
+   "ntotal": 814,
+   "detail": "line 498: orig ('SETUP_LOOP', '#138') | got ('SETUP_LOOP', '#139')\nline 501: orig ('POP_JUMP_IF_FALSE', '#137') | got ('POP_JUMP_IF_FALSE', '#138')\nline 504: orig ('POP_JUMP_IF_FALSE', '#137') | got ('POP_JUMP_IF_FALSE', '#138')"
   },
   {
    "module": "asyncore",
@@ -195,8 +195,8 @@
    "module": "audiodev",
    "ast_detail": "diff at token 221: orig  ctx=Load())) | dec  ctx=Load()))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 91,
-   "ntotal": 959,
+   "ndiff": 61,
+   "ntotal": 957,
    "detail": "line 795: orig ('SETUP_EXCEPT', '#7') | got ('LOAD_CONST', '-1')\nline 796: orig ('LOAD_CONST', '-1') | got ('LOAD_CONST', 'None')\nline 797: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'sys')"
   },
   {
@@ -231,9 +231,9 @@
    "module": "cgi",
    "ast_detail": "diff at token 839: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2382,
-   "ntotal": 3038,
-   "detail": "line 515: orig ('SETUP_LOOP', '#236') | got ('SETUP_LOOP', '#240')\nline 519: orig ('POP_JUMP_IF_FALSE', '#235') | got ('POP_JUMP_IF_FALSE', '#239')\nline 525: orig ('POP_JUMP_IF_FALSE', '#99') | got ('POP_JUMP_IF_FALSE', '#100')"
+   "ndiff": 2365,
+   "ntotal": 3035,
+   "detail": "line 515: orig ('SETUP_LOOP', '#236') | got ('SETUP_LOOP', '#237')\nline 519: orig ('POP_JUMP_IF_FALSE', '#235') | got ('POP_JUMP_IF_FALSE', '#236')\nline 580: orig ('SETUP_LOOP', '#138') | got ('SETUP_LOOP', '#139')"
   }
  ]
 }

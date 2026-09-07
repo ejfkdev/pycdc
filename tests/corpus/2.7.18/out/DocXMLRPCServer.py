@@ -35,7 +35,7 @@ class ServerHTMLDoc(pydoc.HTMLDoc):
         results = []
         here = 0
         pattern = re.compile('\\b((http|ftp)://\\S+[\\w/]|RFC[- ]?(\\d+)|PEP[- ]?(\\d+)|(self\\.)?((?:\\w|\\.)+))\\b')
-        while True:
+        while 1:
             match = pattern.search(text, here)
             if not match:
                 break
@@ -157,17 +157,15 @@ class XMLRPCDocGenerator:
                 method_info = tuple(method_info)
                 if method_info != (None, None):
                     method = method_info
-                    continue
-                if not hasattr(self.instance, '_dispatch'):
-                    try:
-                        method = resolve_dotted_attribute(self.instance, method_name)
-                    except AttributeError:
-                        method = method_info
-                    continue
                 else:
-                    method = method_info
-            else:
-                assert 0, 'Could not find method in self.functions and no instance installed'
+                    if not hasattr(self.instance, '_dispatch'):
+                        try:
+                            method = resolve_dotted_attribute(self.instance, method_name)
+                        except AttributeError:
+                            method = method_info
+                    else:
+                        method = method_info
+                    assert 0, 'Could not find method in self.functions and no instance installed'
             methods[method_name] = method
         documenter = ServerHTMLDoc()
         documentation = documenter.docserver(self.server_name, self.server_documentation, methods)

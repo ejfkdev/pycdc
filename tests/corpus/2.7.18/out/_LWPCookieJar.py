@@ -101,7 +101,7 @@ class LWPCookieJar(FileCookieJar):
         boolean_attrs = ('port_spec', 'path_spec', 'domain_dot', 'secure', 'discard')
         value_attrs = ('version', 'port', 'path', 'domain', 'expires', 'comment', 'commenturl')
         try:
-            while True:
+            while 1:
                 line = f.readline()
                 if line == '':
                     break

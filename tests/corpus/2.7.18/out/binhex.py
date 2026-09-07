@@ -226,7 +226,7 @@ def binhex(inp, out):
     finfo = getfileinfo(inp)
     ofp = BinHex(finfo, out)
     ifp = open(inp, 'rb')
-    while True:
+    while 1:
         d = ifp.read(128000)
         if not d:
             break
@@ -234,7 +234,7 @@ def binhex(inp, out):
     ofp.close_data()
     ifp.close()
     ifp = openrsrc(inp, 'rb')
-    while True:
+    while 1:
         d = ifp.read(128000)
         if not d:
             break
@@ -259,7 +259,7 @@ class _Hqxdecoderengine:
                 return decdata
             wtd = (wtd + 2) // 3 * 4
             data = self.ifp.read(wtd)
-            while True:
+            while 1:
                 try:
                     decdatacur, self.eof = binascii.a2b_hqx(data)
                     break
@@ -324,7 +324,7 @@ class HexBin:
     def __init__(self, ifp):
         if type(ifp) == type(''):
             ifp = open(ifp)
-        while True:
+        while 1:
             ch = ifp.read(1)
             if not ch:
                 raise Error, 'No binhex data found'
@@ -423,7 +423,7 @@ def hexbin(inp, out):
     if not out:
         out = ifp.FName
     ofp = open(out, 'wb')
-    while True:
+    while 1:
         d = ifp.read(128000)
         if not d:
             break
@@ -434,7 +434,7 @@ def hexbin(inp, out):
     if d:
         ofp = openrsrc(out, 'wb')
         ofp.write(d)
-        while True:
+        while 1:
             d = ifp.read_rsrc(128000)
             if not d:
                 break
