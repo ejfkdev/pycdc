@@ -234,9 +234,7 @@ def _getdate(future=0, weekdayname=_weekdayname, monthname=_monthname):
 class Morsel(dict):
     _reserved = {'expires': 'expires', 'path': 'Path', 'comment': 'Comment', 'domain': 'Domain', 'max-age': 'Max-Age', 'secure': 'secure', 'httponly': 'httponly', 'version': 'Version'}
     def __init__(self):
-        self.key = None
-        self.value = None
-        self.coded_value = None
+        self.key = self.value = self.coded_value = None
         for K in self._reserved:
             dict.__setitem__(self, K, '')
 

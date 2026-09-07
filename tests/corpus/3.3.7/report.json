@@ -119,8 +119,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 958: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2383,
-   "ntotal": 3049,
+   "ndiff": 2384,
+   "ntotal": 3047,
    "detail": "line 523: orig ('SETUP_LOOP', '#250') | got ('SETUP_LOOP', '#253')\nline 527: orig ('POP_JUMP_IF_FALSE', '#249') | got ('POP_JUMP_IF_FALSE', '#252')\nline 533: orig ('POP_JUMP_IF_FALSE', '#107') | got ('POP_JUMP_IF_FALSE', '#108')"
   },
   {
@@ -181,11 +181,11 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 118: orig  Assign(targets=[Tuple(elts=[Attribute(value=Name(id='self' | dec  Assign(targets=[Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 260: orig  Try(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self' | dec  If(test=Compare(left=Subscript(value=Call(func=Attribute(value=Name(id='sys'",
    "verdict": "SIG-DIFF",
-   "ndiff": 513,
-   "ntotal": 676,
-   "detail": "line 151: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')\nline 152: orig ('LOAD_FAST', 'kwds') | got ('STORE_ATTR', 'func')\nline 153: orig ('ROT_THREE', '') | got ('LOAD_FAST', 'args')"
+   "ndiff": 54,
+   "ntotal": 677,
+   "detail": "line 237: orig ('SETUP_EXCEPT', '#52') | got ('LOAD_GLOBAL', 'sys')\nline 238: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'exc_info')\nline 239: orig ('LOAD_ATTR', 'gen') | got ('CALL_FUNCTION', '0')"
   },
   {
    "module": "copy",

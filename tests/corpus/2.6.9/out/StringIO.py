@@ -171,8 +171,7 @@ class StringIO:
         slen = self.len
         if spos == slen:
             self.buflist.append(s)
-            self.len = spos + len(s)
-            self.pos = spos + len(s)
+            self.len = self.pos = spos + len(s)
             return
         if spos > slen:
             self.buflist.append('\x00' * (spos - slen))

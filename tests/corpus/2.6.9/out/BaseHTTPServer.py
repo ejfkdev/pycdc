@@ -162,8 +162,7 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
         '''
 
         self.command = None
-        self.request_version = self.default_request_version
-        version = self.default_request_version
+        self.request_version = version = self.default_request_version
         self.close_connection = 1
         requestline = self.raw_requestline
         if requestline[-2:] == '\r\n':
@@ -202,9 +201,7 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
                 return False
             self.send_error(400, 'Bad request syntax (%r)' % requestline)
             return False
-        self.command = command
-        self.path = path
-        self.request_version = version
+        self.command, self.path, self.request_version = command, path, version
         self.headers = self.MessageClass(self.rfile, 0)
         conntype = self.headers.get('Connection', '')
         if conntype.lower() == 'close':

@@ -236,8 +236,7 @@ class HTMLParser(markupbase.ParserBase):
         match = tagfind.match(rawdata, i + 1)
         assert match, 'unexpected call to parse_starttag()'
         k = match.end()
-        self.lasttag = match.group(1).lower()
-        tag = match.group(1).lower()
+        self.lasttag = tag = match.group(1).lower()
         while k < endpos:
             m = attrfind.match(rawdata, k)
             if not m:

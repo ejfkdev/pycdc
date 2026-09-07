@@ -547,8 +547,7 @@ should be used other than sys.modules['warnings'].
             self._module._filters_mutated_lock_held()
             if self._record:
                 if _use_context:
-                    context.log = []
-                    log = []
+                    context.log = log = []
                 else:
                     log = []
                     self._module._showwarnmsg_impl = log.append
@@ -660,8 +659,7 @@ See PEP 702 for details.
                     return super(arg, cls).__init_subclass__(*args, **kwargs)
 
             arg.__init_subclass__ = classmethod(__init_subclass__)
-            arg.__deprecated__ = msg
-            __new__.__deprecated__ = msg
+            arg.__deprecated__ = __new__.__deprecated__ = msg
             __init_subclass__.__deprecated__ = msg
             return arg
         if callable(arg):
@@ -674,8 +672,7 @@ See PEP 702 for details.
 
             if inspect.iscoroutinefunction(arg):
                 wrapper = inspect.markcoroutinefunction(wrapper)
-            arg.__deprecated__ = msg
-            wrapper.__deprecated__ = msg
+            arg.__deprecated__ = wrapper.__deprecated__ = msg
             return wrapper
         raise TypeError(f'@deprecated decorator with non-None category must be applied to a class or callable, not {arg!r}')
 

@@ -2,9 +2,9 @@
  "version": "3.5.10",
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
-  "PASS": 23,
-  "SIG-DIFF": 15,
-  "AST-PASS": 2
+  "PASS": 24,
+  "SIG-DIFF": 13,
+  "AST-PASS": 3
  },
  "results": [
   {
@@ -19,7 +19,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 142: orig  args=[BinOp(left=Num(n=1) | dec  args=[Num(n=10715086071862673209484250490600018105614048117055336074437503883703510511249",
    "verdict": "SIG-DIFF",
-   "ndiff": 67,
+   "ndiff": 8,
    "ntotal": 3095,
    "detail": "line 2850: orig ('JUMP_FORWARD', 'to 168') | got ('JUMP_ABSOLUTE', '')\nline 2859: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'i')\nline 2860: orig ('JUMP_FORWARD', 'to 168') | got ('LOAD_CONST', '1')"
   },
@@ -141,11 +141,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 1839: orig  ctx=Store()) | dec  ctx=Store())]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1432,
-   "ntotal": 3040,
-   "detail": "line 1422: orig ('DUP_TOP', '') | got ('LOAD_FAST', 'self')\nline 1423: orig ('LOAD_FAST', 'self') | got ('STORE_ATTR', 'list')\nline 1424: orig ('STORE_ATTR', 'list') | got ('LOAD_CONST', 'None')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "cgitb",
@@ -201,11 +197,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 111: orig  Assign(targets=[Tuple(elts=[Attribute(value=Name(id='self' | dec  Assign(targets=[Attribute(value=Name(id='self'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 683,
-   "ntotal": 881,
-   "detail": "line 181: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')\nline 182: orig ('LOAD_FAST', 'kwds') | got ('STORE_ATTR', 'func')\nline 183: orig ('ROT_THREE', '') | got ('LOAD_FAST', 'args')"
+   "verdict": "PASS"
   },
   {
    "module": "copy",

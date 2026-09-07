@@ -35,9 +35,7 @@ class _GeneratorContextManager(ContextDecorator):
 
     def __init__(self, func, *args, **kwds):
         self.gen = func(*args, **kwds)
-        self.func = func
-        self.args = args
-        self.kwds = kwds
+        self.func, self.args, self.kwds = func, args, kwds
 
     def _recreate_cm(self):
         return self.__class__(self.func, *self.args, **self.kwds)

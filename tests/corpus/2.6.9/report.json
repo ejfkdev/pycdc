@@ -2,18 +2,14 @@
  "version": "2.6.9",
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
-  "SIG-DIFF": 24,
-  "PASS": 8,
+  "PASS": 9,
+  "SIG-DIFF": 23,
   "AST-PASS": 8
  },
  "results": [
   {
    "module": "BaseHTTPServer",
-   "ast_detail": "diff at token 191: orig  ctx=Store()) | dec  ctx=Store())]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 797,
-   "ntotal": 1191,
-   "detail": "line 387: orig ('DUP_TOP', '') | got ('LOAD_FAST', 'self')\nline 388: orig ('LOAD_FAST', 'self') | got ('STORE_ATTR', 'request_version')\nline 389: orig ('STORE_ATTR', 'request_version') | got ('LOAD_FAST', 'self')"
+   "verdict": "PASS"
   },
   {
    "module": "Bastion",
@@ -37,9 +33,9 @@
   },
   {
    "module": "Cookie",
-   "ast_detail": "diff at token 890: orig  ctx=Store()) | dec  ctx=Store())]",
+   "ast_detail": "diff at token 1838: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 981,
+   "ndiff": 985,
    "ntotal": 1892,
    "detail": "line 609: orig ('LOAD_CONST', 'None') | got ('LOAD_NAME', 'None')\nline 790: orig ('SETUP_LOOP', '#176') | got ('SETUP_LOOP', '#177')\nline 803: orig ('JUMP_IF_FALSE', '#174') | got ('JUMP_IF_FALSE', '#175')"
   },
@@ -55,7 +51,7 @@
    "module": "HTMLParser",
    "ast_detail": "diff at token 774: orig  kwargs=None)) | dec  kwargs=None))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 890,
+   "ndiff": 895,
    "ntotal": 1416,
    "detail": "line 339: orig ('SETUP_LOOP', '#380') | got ('SETUP_LOOP', '#242')\nline 343: orig ('JUMP_IF_FALSE', '#378') | got ('JUMP_IF_FALSE', '#240')\nline 399: orig ('JUMP_IF_FALSE', '#181') | got ('JUMP_IF_FALSE', '#182')"
   },
@@ -96,7 +92,7 @@
    "ast_detail": "diff at token 477: orig  values=[Compare(left=BinOp(left=Attribute(value=Name(id='self' | dec  values=[Compare(left=Name(id='length'",
    "verdict": "SIG-DIFF",
    "ndiff": 563,
-   "ntotal": 980,
+   "ntotal": 976,
    "detail": "line 383: orig ('JUMP_IF_FALSE', '#73') | got ('JUMP_IF_FALSE', '#75')\nline 405: orig ('JUMP_FORWARD', '#74') | got ('JUMP_ABSOLUTE', '#76')\nline 407: orig ('LOAD_FAST', 'self') | got ('JUMP_FORWARD', '#76')"
   },
   {
@@ -239,8 +235,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 703: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2513,
-   "ntotal": 3244,
+   "ndiff": 2502,
+   "ntotal": 3236,
    "detail": "line 570: orig ('SETUP_LOOP', '#276') | got ('SETUP_LOOP', '#286')\nline 574: orig ('JUMP_IF_FALSE', '#274') | got ('JUMP_IF_FALSE', '#284')\nline 581: orig ('JUMP_IF_FALSE', '#114') | got ('JUMP_IF_FALSE', '#113')"
   },
   {

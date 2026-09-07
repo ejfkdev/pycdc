@@ -2,9 +2,9 @@
  "version": "3.6.15",
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
-  "PASS": 23,
-  "SIG-DIFF": 15,
-  "AST-PASS": 2
+  "PASS": 24,
+  "SIG-DIFF": 13,
+  "AST-PASS": 3
  },
  "results": [
   {
@@ -19,7 +19,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 246: orig  body=Yield(value=None)) | dec  body=Yield(value=NameConstant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 68,
+   "ndiff": 9,
    "ntotal": 3131,
    "detail": "line 2882: orig ('JUMP_FORWARD', 'to 140') | got ('JUMP_ABSOLUTE', '')\nline 2891: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'i')\nline 2892: orig ('JUMP_FORWARD', 'to 140') | got ('LOAD_CONST', '1')"
   },
@@ -137,11 +137,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 1882: orig  ctx=Store()) | dec  ctx=Store())]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1887,
-   "ntotal": 3160,
-   "detail": "line 378: orig ('JUMP_FORWARD', 'to 254') | got ('JUMP_FORWARD', 'to 252')\nline 385: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_IF_FALSE', '')\nline 386: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_FAST', 'qs')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "cgitb",
@@ -201,11 +197,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 57: orig  body=[Return(value=None)] | dec  body=[Pass()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 671,
-   "ntotal": 934,
-   "detail": "line 246: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')\nline 247: orig ('LOAD_FAST', 'kwds') | got ('STORE_ATTR', 'func')\nline 248: orig ('ROT_THREE', '') | got ('LOAD_FAST', 'args')"
+   "verdict": "PASS"
   },
   {
    "module": "copy",

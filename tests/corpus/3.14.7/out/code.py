@@ -133,8 +133,7 @@ The output is written by self.write(), below.
             if not value.text and value.lineno is not None:
                 if len(lines) >= value.lineno:
                     value.text = lines[value.lineno - 1]
-        sys.last_exc = value
-        sys.last_value = value
+        sys.last_exc = sys.last_value = value
         if sys.excepthook is sys.__excepthook__:
             self._excepthook(typ, value, tb)
             return

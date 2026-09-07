@@ -520,8 +520,7 @@ class MutableSequence(Sequence):
     def reverse(self):
         n = len(self)
         for i in range(n // 2):
-            self[i] = self[n - i - 1]
-            self[n - i - 1] = self[i]
+            self[i], self[n - i - 1] = self[n - i - 1], self[i]
 
     def extend(self, values):
         for v in values:

@@ -464,8 +464,7 @@ class FieldStorage:
         self.length = clen
         if self.limit is None and clen:
             self.limit = clen
-        self.list = None
-        self.file = None
+        self.list = self.file = None
         self.done = 0
         if ctype == 'application/x-www-form-urlencoded':
             self.read_urlencoded()
@@ -676,11 +675,9 @@ class FieldStorage:
         '''Internal: read lines until EOF or outerboundary.'''
 
         if self._binary_file:
-            self.file = BytesIO()
-            self.__file = BytesIO()
+            self.file = self.__file = BytesIO()
         else:
-            self.file = StringIO()
-            self.__file = StringIO()
+            self.file = self.__file = StringIO()
         if self.outerboundary:
             self.read_lines_to_outerboundary()
         else:

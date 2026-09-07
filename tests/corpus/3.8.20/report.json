@@ -19,7 +19,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 297: orig  body=Yield(value=None)) | dec  body=Yield(value=Constant(value=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 151,
+   "ndiff": 88,
    "ntotal": 3084,
    "detail": "line 2722: orig ('JUMP_FORWARD', 'to 56') | got ('JUMP_FORWARD', 'to 54')\nline 2731: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 54')\nline 2732: orig ('RETURN_VALUE', '') | got ('END_FINALLY', '')"
   },
@@ -172,9 +172,9 @@
   {
    "module": "cgi",
    "verdict": "INCOMPLETE",
-   "ndiff": 1456,
+   "ndiff": 1442,
    "ntotal": 2900,
-   "detail": "line 1236: orig ('DUP_TOP', '') | got ('LOAD_FAST', 'self')\nline 1237: orig ('LOAD_FAST', 'self') | got ('STORE_ATTR', 'list')\nline 1238: orig ('STORE_ATTR', 'list') | got ('LOAD_CONST', 'None')"
+   "detail": "line 1380: orig ('BUILD_LIST', '') | got ('JUMP_FORWARD', 'to 94')\nline 1381: orig ('STORE_FAST', 'found') | got ('BUILD_LIST', '')\nline 1382: orig ('LOAD_FAST', 'self') | got ('STORE_FAST', 'found')"
   },
   {
    "module": "cgitb",
@@ -240,9 +240,9 @@
    "module": "contextlib",
    "ast_detail": "diff at token 86: orig  body=[Return(value=None)] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1429,
+   "ndiff": 1274,
    "ntotal": 1827,
-   "detail": "line 351: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')\nline 352: orig ('LOAD_FAST', 'kwds') | got ('STORE_ATTR', 'func')\nline 353: orig ('ROT_THREE', '') | got ('LOAD_FAST', 'args')"
+   "detail": "line 472: orig ('JUMP_FORWARD', 'to 260') | got ('JUMP_FORWARD', 'to 258')\nline 480: orig ('SETUP_FINALLY', 'to 92') | got ('LOAD_GLOBAL', 'sys')\nline 481: orig ('LOAD_FAST', 'self') | got ('LOAD_METHOD', 'exc_info')"
   },
   {
    "module": "copy",

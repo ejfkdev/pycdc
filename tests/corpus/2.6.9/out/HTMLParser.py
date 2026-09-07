@@ -172,8 +172,7 @@ class HTMLParser(markupbase.ParserBase):
         if not match:
             raise AssertionError, 'unexpected call to parse_starttag()'
         k = match.end()
-        self.lasttag = rawdata[i + 1:k].lower()
-        tag = rawdata[i + 1:k].lower()
+        self.lasttag = tag = rawdata[i + 1:k].lower()
         while k < endpos:
             m = attrfind.match(rawdata, k)
             if not m:

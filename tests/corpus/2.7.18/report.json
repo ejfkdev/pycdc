@@ -2,18 +2,14 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "SIG-DIFF": 19,
-  "PASS": 15,
-  "AST-PASS": 6
+  "PASS": 16,
+  "SIG-DIFF": 17,
+  "AST-PASS": 7
  },
  "results": [
   {
    "module": "BaseHTTPServer",
-   "ast_detail": "diff at token 191: orig  ctx=Store()) | dec  ctx=Store())]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 776,
-   "ntotal": 1159,
-   "detail": "line 378: orig ('DUP_TOP', '') | got ('LOAD_FAST', 'self')\nline 379: orig ('LOAD_FAST', 'self') | got ('STORE_ATTR', 'request_version')\nline 380: orig ('STORE_ATTR', 'request_version') | got ('LOAD_FAST', 'self')"
+   "verdict": "PASS"
   },
   {
    "module": "Bastion",
@@ -39,7 +35,7 @@
    "module": "Cookie",
    "ast_detail": "diff at token 693: orig  right=Num(n=2))) | dec  right=Num(n=2)))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 982,
+   "ndiff": 986,
    "ntotal": 1877,
    "detail": "line 613: orig ('LOAD_CONST', 'None') | got ('LOAD_NAME', 'None')\nline 787: orig ('SETUP_LOOP', '#157') | got ('SETUP_LOOP', '#158')\nline 799: orig ('POP_JUMP_IF_FALSE', '#156') | got ('POP_JUMP_IF_FALSE', '#157')"
   },
@@ -55,8 +51,8 @@
    "module": "HTMLParser",
    "ast_detail": "diff at token 752: orig  right=Num(n=1)))] | dec  right=Num(n=1)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1064,
-   "ntotal": 1611,
+   "ndiff": 1025,
+   "ntotal": 1607,
    "detail": "line 359: orig ('SETUP_LOOP', '#378') | got ('SETUP_LOOP', '#380')\nline 363: orig ('POP_JUMP_IF_FALSE', '#377') | got ('POP_JUMP_IF_FALSE', '#379')\nline 417: orig ('POP_JUMP_IF_FALSE', '#199') | got ('POP_JUMP_IF_FALSE', '#200')"
   },
   {
@@ -93,11 +89,7 @@
   },
   {
    "module": "StringIO",
-   "ast_detail": "diff at token 756: orig  ctx=Store()) | dec  ctx=Store())]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 531,
-   "ntotal": 911,
-   "detail": "line 356: orig ('POP_JUMP_IF_FALSE', '#65') | got ('POP_JUMP_IF_FALSE', '#64')\nline 360: orig ('POP_JUMP_IF_FALSE', '#65') | got ('POP_JUMP_IF_FALSE', '#64')\nline 367: orig ('POP_JUMP_IF_FALSE', '#65') | got ('POP_JUMP_IF_FALSE', '#64')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "UserDict",
@@ -127,7 +119,7 @@
    "module": "_abcoll",
    "ast_detail": "diff at token 91: orig  body=[If(test=Compare(left=Name(id='cls' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1803,
+   "ndiff": 1801,
    "ntotal": 2188,
    "detail": "line 308: orig ('POP_JUMP_IF_FALSE', '#47') | got ('POP_JUMP_IF_FALSE', '#48')\nline 309: orig ('SETUP_EXCEPT', '#29') | got ('LOAD_GLOBAL', 'getattr')\nline 310: orig ('SETUP_LOOP', '#27') | got ('LOAD_FAST', 'C')"
   },
@@ -239,8 +231,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 839: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2375,
-   "ntotal": 3043,
+   "ndiff": 2028,
+   "ntotal": 3035,
    "detail": "line 515: orig ('SETUP_LOOP', '#236') | got ('SETUP_LOOP', '#240')\nline 519: orig ('POP_JUMP_IF_FALSE', '#235') | got ('POP_JUMP_IF_FALSE', '#239')\nline 525: orig ('POP_JUMP_IF_FALSE', '#99') | got ('POP_JUMP_IF_FALSE', '#100')"
   }
  ]

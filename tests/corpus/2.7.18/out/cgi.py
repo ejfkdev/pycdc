@@ -416,8 +416,7 @@ class FieldStorage:
             if maxlen and clen > maxlen:
                 raise ValueError, 'Maximum content length exceeded'
         self.length = clen
-        self.list = None
-        self.file = None
+        self.list = self.file = None
         self.done = 0
         if ctype == 'application/x-www-form-urlencoded':
             self.read_urlencoded()
@@ -593,8 +592,7 @@ class FieldStorage:
     def read_lines(self):
         '''Internal: read lines until EOF or outerboundary.'''
 
-        self.file = StringIO()
-        self.__file = StringIO()
+        self.file = self.__file = StringIO()
         if self.outerboundary:
             self.read_lines_to_outerboundary()
         else:
@@ -725,8 +723,7 @@ class FormContentDict(UserDict.UserDict):
     '''
 
     def __init__(self, environ=os.environ, keep_blank_values=0, strict_parsing=0):
-        self.dict = parse(environ=environ, keep_blank_values=keep_blank_values, strict_parsing=strict_parsing)
-        self.data = parse(environ=environ, keep_blank_values=keep_blank_values, strict_parsing=strict_parsing)
+        self.dict = self.data = parse(environ=environ, keep_blank_values=keep_blank_values, strict_parsing=strict_parsing)
         self.query_string = environ['QUERY_STRING']
 
 

@@ -973,8 +973,7 @@ class MutableSequence(Sequence):
 
         n = len(self)
         for i in range(n // 2):
-            self[i] = self[n - i - 1]
-            self[n - i - 1] = self[i]
+            self[i], self[n - i - 1] = self[n - i - 1], self[i]
 
     def extend(self, values):
         '''S.extend(iterable) -- extend sequence by appending elements from the iterable'''

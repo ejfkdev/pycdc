@@ -31,8 +31,8 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 275: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2877,
-   "ntotal": 3894,
+   "ndiff": 2878,
+   "ntotal": 3895,
    "detail": "line 959: orig ('LOAD_GLOBAL', 'NULL + RuntimeError') | got ('JUMP_FORWARD', 'to 106')\nline 960: orig ('LOAD_CONST', \"'coroutine ignored GeneratorExit'\") | got ('PUSH_EXC_INFO', '')\nline 961: orig ('PRECALL', '') | got ('LOAD_GLOBAL', 'GeneratorExit')"
   },
   {
@@ -166,8 +166,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 916: orig  body=[Return(value=BinOp(left=Constant(value='MiniFieldStorage(%r | dec  body=[Return(value=JoinedStr(values=[Constant(value='MiniFieldStorage(')",
    "verdict": "SIG-DIFF",
-   "ndiff": 3133,
-   "ntotal": 3163,
+   "ndiff": 3143,
+   "ntotal": 3160,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {
@@ -236,7 +236,7 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1819,
+   "ndiff": 1803,
    "ntotal": 2283,
    "detail": "line 434: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 435: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + wraps')\nline 436: orig ('LOAD_GLOBAL', 'NULL + wraps') | got ('LOAD_FAST', 'func')"
   },

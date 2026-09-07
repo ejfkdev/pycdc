@@ -24,8 +24,8 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 277: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2926,
-   "ntotal": 3708,
+   "ndiff": 2927,
+   "ntotal": 3709,
    "detail": "line 677: orig ('FOR_ITER', 'to 148') | got ('FOR_ITER', 'to 162')\nline 681: orig ('FOR_ITER', 'to 130') | got ('FOR_ITER', 'to 144')\nline 687: orig ('POP_JUMP_IF_TRUE', 'to 76') | got ('POP_JUMP_IF_FALSE', 'to 76')"
   },
   {
@@ -154,8 +154,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 665: orig  While(test=BoolOp(op=And() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2568,
-   "ntotal": 2887,
+   "ndiff": 2432,
+   "ntotal": 2886,
    "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
   },
   {
@@ -180,8 +180,8 @@
   {
    "module": "code",
    "verdict": "INCOMPLETE",
-   "ndiff": 572,
-   "ntotal": 802,
+   "ndiff": 573,
+   "ntotal": 796,
    "detail": "line 212: orig ('POP_JUMP_IF_FALSE', 'to 146') | got ('POP_JUMP_IF_FALSE', 'to 144')\nline 216: orig ('POP_JUMP_IF_FALSE', 'to 146') | got ('POP_JUMP_IF_FALSE', 'to 144')\nline 217: orig ('NOP', '') | got ('LOAD_FAST', 'value')"
   },
   {
@@ -222,8 +222,8 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1867,
-   "ntotal": 2307,
+   "ndiff": 1882,
+   "ntotal": 2308,
    "detail": "line 400: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 401: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + wraps')\nline 402: orig ('LOAD_GLOBAL', 'NULL + wraps') | got ('LOAD_FAST', 'func')"
   },
   {

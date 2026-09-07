@@ -133,9 +133,7 @@ class InteractiveInterpreter:
     def _showtraceback(self, typ, value, tb):
         sys.last_type = typ
         sys.last_traceback = tb
-        sys.last_exc = value.with_traceback(tb)
-        sys.last_value = value.with_traceback(tb)
-        value = value.with_traceback(tb)
+        sys.last_exc = sys.last_value = value = value.with_traceback(tb)
         if sys.excepthook is sys.__excepthook__:
             lines = traceback.format_exception(typ, value, tb)
             self.write(''.join(lines))

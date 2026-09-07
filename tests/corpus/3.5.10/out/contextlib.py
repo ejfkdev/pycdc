@@ -35,9 +35,7 @@ class _GeneratorContextManager(ContextDecorator):
 
     def __init__(self, func, args, kwds):
         self.gen = func(*args, **kwds)
-        self.func = func
-        self.args = args
-        self.kwds = kwds
+        self.func, self.args, self.kwds = func, args, kwds
         doc = getattr(func, '__doc__', None)
         if doc is None:
             doc = type(self).__doc__

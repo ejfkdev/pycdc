@@ -573,8 +573,7 @@ reached or when returning from current frame.'''
                 del frame.f_trace
                 frame = frame.f_back
             for frame, (trace_lines, trace_opcodes) in self.frame_trace_lines_opcodes.items():
-                frame.f_trace_lines = trace_lines
-                frame.f_trace_opcodes = trace_opcodes
+                frame.f_trace_lines, frame.f_trace_opcodes = trace_lines, trace_opcodes
             if self.backend == 'monitoring':
                 self.monitoring_tracer.update_local_events()
             self.frame_trace_lines_opcodes = {}

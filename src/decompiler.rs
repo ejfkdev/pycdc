@@ -11086,11 +11086,199 @@ impl<'a> Ctx<'a> {
             }
         };
         // statements flush any pending multi-store group; pure stack
-        // manipulation and further stores do not
-        if !is_stack_plumbing(inst.op) && !is_store_op(inst.op) {
+        // manipulation and further stores do not. Container stores
+        // (subscript/attr/slice) also join the group, and while one is
+        // pending the pure-value ops constructing the NEXT target do
+        // not flush either — but only when the scan ahead actually
+        // finds that next same-line container store through pure
+        // material (the compiler interleaves obj/index loads and
+        // subscript arithmetic between the stores of a swap:
+        // `self[i], self[n-i-1] = self[n-i-1], self[i]`; flushing
+        // there tore it into two sequential assignments, silently
+        // breaking the swap, _collections_abc reverse). The narrow
+        // lookahead matters: an unconditional deferral stalled
+        // single-store flushes past their expression-statement point
+        // (b21_strbytes rendered `b'Abc'(...)`, 12 matrix cases red).
+        let container_store = matches!(
+            inst.op,
+            Op::STORE_SUBSCR
+                | Op::STORE_ATTR
+                | Op::STORE_SLICE
+                | Op::STORE_SLICE_0
+                | Op::STORE_SLICE_1
+                | Op::STORE_SLICE_2
+                | Op::STORE_SLICE_3
+        );
+        let building_container_target = !self.pending_stores.is_empty()
+            && self.pending_stores.iter().any(|(t, _)| {
+                matches!(&**t, Expr::Subscript { .. } | Expr::Attribute { .. })
+            })
+            && is_pure_value_op(inst.op)
+            && self.same_line_container_store_ahead(inst.offset)
+            // separate same-line statements (`self.list = None;
+            // self.file = None`, and the 3.12+ coalesced line entries
+            // for consecutive attr stores) reload their values or
+            // recompute between the stores; a genuine parallel
+            // assignment keeps every rhs value live on the stack
+            // across the whole window (cgi 3.7 read_lines, Cookie 2.6
+            // Morsel.__init__, contextlib 3.12/3.13 __init__ merged
+            // into chained/tuple forms without this)
+            && self.values_still_live_ahead(inst.offset);
+        if !is_stack_plumbing(inst.op)
+            && !is_store_op(inst.op)
+            && !container_store
+            && !building_container_target
+        {
             self.flush_pending_stores();
         }
         cont
+    }
+
+    /// True while the simulated value stack still holds at least as
+    /// many live expressions as pending stores whose value has already
+    /// been consumed: a parallel assignment front-loads ALL rhs values
+    /// before the first store, so the leftover count never drops below
+    /// the number of stores still to come. Any op that consumes values
+    /// without storing (a call, an in-place update, a comparison)
+    /// breaks the parallel shape - the pending stores are separate
+    /// statements and must flush.
+    fn values_still_live_ahead(&self, off: usize) -> bool {
+        let Some(&ci) = self.idx_of.get(&off) else {
+            return false;
+        };
+        let pending = self.pending_stores.len() as i32;
+        let mut live = self
+            .stack
+            .iter()
+            .filter(|s| matches!(s, Sv::E(_)))
+            .count() as i32;
+        if live < pending {
+            return false;
+        }
+        // push/pop accounting over the window: the leftover rhs values
+        // must stay reachable (never popped away) until their store
+        // consumes them; anything with an unmodeled delta aborts
+        let delta = |x: &Instruction, ver312: bool| -> Option<i32> {
+            let d = match x.op {
+                Op::STORE_SUBSCR => -3,
+                Op::STORE_ATTR => {
+                    if ver312 {
+                        -1
+                    } else {
+                        -2
+                    }
+                }
+                Op::STORE_SLICE => -2,
+                Op::STORE_SLICE_0 => -1,
+                Op::STORE_SLICE_1 | Op::STORE_SLICE_2 => -2,
+                Op::STORE_SLICE_3 => -3,
+                Op::LOAD_FAST_LOAD_FAST
+                | Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW
+                | Op::DUP_TOP_TWO => 2,
+                Op::DUP_TOP => 1,
+                Op::ROT_TWO | Op::ROT_THREE | Op::ROT_FOUR | Op::SWAP | Op::COPY => 0,
+                Op::POP_TOP => -1,
+                Op::BINARY_SUBSCR => -1,
+                Op::BINARY_OP
+                | Op::BINARY_ADD
+                | Op::BINARY_SUBTRACT
+                | Op::BINARY_MULTIPLY
+                | Op::BINARY_TRUE_DIVIDE
+                | Op::BINARY_FLOOR_DIVIDE
+                | Op::BINARY_MODULO
+                | Op::BINARY_POWER
+                | Op::BINARY_LSHIFT
+                | Op::BINARY_RSHIFT
+                | Op::BINARY_AND
+                | Op::BINARY_OR
+                | Op::BINARY_XOR
+                | Op::BINARY_MATRIX_MULTIPLY => -1,
+                Op::BUILD_TUPLE | Op::BUILD_LIST | Op::BUILD_SET => 1 - x.arg as i32,
+                Op::UNPACK_SEQUENCE => x.arg as i32 - 1,
+                Op::LOAD_FAST
+                | Op::LOAD_FAST_CHECK
+                | Op::LOAD_FAST_BORROW
+                | Op::LOAD_NAME
+                | Op::LOAD_GLOBAL
+                | Op::LOAD_CONST
+                | Op::LOAD_DEREF
+                | Op::LOAD_CLOSURE
+                | Op::LOAD_CLASSDEREF
+                | Op::LOAD_SMALL_INT
+                | Op::LOAD_COMMON_CONSTANT
+                | Op::PUSH_NULL => 1,
+                // anything else (calls, comparisons, exotic loads):
+                // unmodeled delta - refuse the deferral and keep the
+                // historic per-statement flush
+                _ => return None,
+            };
+            Some(d)
+        };
+        let ver312 = self.version.at_least(3, 12);
+        let mut steps = 0usize;
+        for x in self.instrs.iter().skip(ci + 1) {
+            steps += 1;
+            if steps > 16 {
+                return false;
+            }
+            let Some(d) = delta(x, ver312) else {
+                return false;
+            };
+            live += d;
+            if live < 0 {
+                return false;
+            }
+            if matches!(
+                x.op,
+                Op::STORE_SUBSCR
+                    | Op::STORE_ATTR
+                    | Op::STORE_SLICE
+                    | Op::STORE_SLICE_0
+                    | Op::STORE_SLICE_1
+                    | Op::STORE_SLICE_2
+                    | Op::STORE_SLICE_3
+            ) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// True when the instructions after `off` are pure value/plumbing
+    /// material on the pending store group's line, ending at another
+    /// container store — the target-construction window between the
+    /// two stores of a simultaneous assignment.
+    fn same_line_container_store_ahead(&self, off: usize) -> bool {
+        let Some(&ci) = self.idx_of.get(&off) else {
+            return false;
+        };
+        let line = self.last_store_line;
+        let mut steps = 0usize;
+        for x in self.instrs.iter().skip(ci + 1) {
+            steps += 1;
+            if steps > 16 {
+                return false;
+            }
+            if matches!(
+                x.op,
+                Op::STORE_SUBSCR
+                    | Op::STORE_ATTR
+                    | Op::STORE_SLICE
+                    | Op::STORE_SLICE_0
+                    | Op::STORE_SLICE_1
+                    | Op::STORE_SLICE_2
+                    | Op::STORE_SLICE_3
+            ) {
+                return x.line.is_none() || line.is_none() || x.line == line;
+            }
+            if !is_pure_value_op(x.op) && !is_stack_plumbing(x.op) {
+                return false;
+            }
+            if x.line.is_some() && line.is_some() && x.line != line {
+                return false;
+            }
+        }
+        false
     }
 
     /// Flush a group of stores that share one source line as a simultaneous
