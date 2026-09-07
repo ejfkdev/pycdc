@@ -8177,6 +8177,135 @@ impl<'a> Ctx<'a> {
                         return true; // comprehension loop back edge
                     }
                 }
+                // a dead duplicate back edge right after a continue's own
+                // back jump (unoptimized 3.x compilers emit the pair;
+                // nothing targets the duplicate): the first edge already
+                // served the continue, and with no block open above the
+                // loop this one would be consumed as the loop's CLOSING
+                // back edge — tearing the loop down mid-body and orphaning
+                // the rest of the iteration (copyreg 3.8 _slotnames:
+                // `if name in (...): continue` + dead JABS, the elif chain
+                // fell out of the for). Must run before the
+                // lands/is-continue gate: both are false at the duplicate.
+                if inst.is_backward
+                    && matches!(
+                        inst.op,
+                        Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                            | Op::JUMP
+                    )
+                {
+                    if !self.targets.contains(&inst.offset) {
+                    if let Some(&ci) = self.idx_of.get(&inst.offset) {
+                        if ci > 0 {
+                            let prev = &self.instrs[ci - 1];
+                            if prev.is_backward
+                                && matches!(
+                                    prev.op,
+                                    Op::JUMP_ABSOLUTE
+                                        | Op::JUMP_BACKWARD
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                        | Op::JUMP
+                                )
+                                && prev.target == inst.target
+                            {
+                                // 3.8+ `if c1: continue elif c2: ...`:
+                                // no dead else-skip JUMP_FORWARD follows
+                                // the continue edge (3.6 emitted one),
+                                // so the elif chain starts right at the
+                                // next instruction. Mirror the
+                                // dead_after_continue re-open: pop the
+                                // just-closed continue-If back off and
+                                // run the chain as its Else region,
+                                // bounded by the enclosing loop's end
+                                // (every chain arm exits through a back
+                                // edge; there is no earlier merge).
+                                let reopen = self
+                                    .blocks
+                                    .last()
+                                    .map_or(false, |b| {
+                                        matches!(
+                                            b.stmts.last(),
+                                            Some(Stmt::If { orelse, body, .. })
+                                                if orelse.is_empty()
+                                                    && matches!(
+                                                        body.last(),
+                                                        Some(Stmt::Continue)
+                                                    )
+                                        )
+                                    })
+                                    && self.instrs[ci + 1..]
+                                        .iter()
+                                        .take(24)
+                                        .try_fold(false, |found, nx| {
+                                            if found {
+                                                return Some(true);
+                                            }
+                                            if matches!(
+                                                nx.op,
+                                                Op::POP_JUMP_IF_FALSE
+                                                    | Op::POP_JUMP_IF_TRUE
+                                                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                    | Op::JUMP_IF_FALSE_OR_POP
+                                                    | Op::JUMP_IF_TRUE_OR_POP
+                                            ) {
+                                                return Some(true);
+                                            }
+                                            // an elif chain starts with its
+                                            // condition's value loads; a
+                                            // backward jump / terminator
+                                            // first means no chain follows
+                                            if nx.target.is_some()
+                                                || matches!(
+                                                    nx.op,
+                                                    Op::RETURN_VALUE
+                                                        | Op::RETURN_CONST
+                                                        | Op::RAISE_VARARGS
+                                                        | Op::POP_BLOCK
+                                                )
+                                            {
+                                                return None;
+                                            }
+                                            Some(false)
+                                        })
+                                        .unwrap_or(false);
+                                if reopen {
+                                    let loop_end = self
+                                        .blocks
+                                        .iter()
+                                        .rev()
+                                        .find(|b| {
+                                            matches!(
+                                                b.kind,
+                                                BlockType::While | BlockType::For
+                                            )
+                                        })
+                                        .map(|b| b.end);
+                                    if let Some(top) = self.blocks.last_mut() {
+                                        if let Some(Stmt::If { cond, body, .. }) =
+                                            top.stmts.pop()
+                                        {
+                                            let else_start = self.cur_next;
+                                            self.pending_then.push(body);
+                                            let mut else_blk = Block::new(
+                                                BlockType::Else,
+                                                else_start,
+                                                loop_end.unwrap_or(usize::MAX),
+                                            );
+                                            else_blk.cond = Some(cond);
+                                            else_blk.is_elif = true;
+                                            self.blocks.push(else_blk);
+                                        }
+                                    }
+                                }
+                                return true;
+                            }
+                        }
+                    }
+                    }
+                }
                 // <=3.9: `break` is JUMP_ABSOLUTE to the loop exit — but a
                 // folded chain exit (jump inside an open If/Else region at
                 // its boundary) must go through the folded machinery first
@@ -15507,6 +15636,14 @@ impl<'a> Ctx<'a> {
                                 })
                         })
             });
+        // mixed-polarity links (PJIF(A) + PJIT(B), both targeting the
+        // same skip) are `if A and not B:` — the c2 normalization below
+        // already negates by THIS jump's polarity, so admitting the
+        // mixed shape needs no other change. Without it the chain
+        // renders nested, which only recompiles identically while no
+        // else arm follows; with one (copyreg 3.8 _slotnames
+        // `elif startswith and not endswith: ... else: append`) the
+        // else arm flattened out of the chain
         let split_cond = !rotated_while_follows
             && !rotated_back_edge_after
             && self.blocks.last().map_or(false, |top| {
@@ -15514,7 +15651,16 @@ impl<'a> Ctx<'a> {
                     && top.end == target
                     && top.cond_set
                     && top.short_circuit.is_none()
-                    && top.jump_if_true == jump_if_true
+                    // 3.10+ rotated-while cond re-evaluation arrives as
+                    // links whose merge is handled by the dup_while
+                    // machinery; admitting mixed polarity there folds
+                    // the re-eval into a nested guard and breaks the
+                    // loop (b16 while_and 3.11, cmd 3.10
+                    // `while texts and not texts[-1]`). <=3.9 needs the
+                    // mixed merge for `A and not B` chains with else
+                    // arms (copyreg _slotnames 3.8).
+                    && (!self.version.at_least(3, 10)
+                        || top.jump_if_true == jump_if_true)
                     && top.stmts.is_empty()
                     && self.is_split_cond_region(top.start, self.cur_offset, target, jump_if_true)
             });

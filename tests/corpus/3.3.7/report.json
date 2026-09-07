@@ -99,8 +99,8 @@
    "module": "binhex",
    "ast_detail": "diff at token 22: orig  Assign(targets=[List(elts=[Name(id='_DID_HEADER' | dec  Assign(targets=[Tuple(elts=[Name(id='_DID_HEADER'",
    "verdict": "SIG-DIFF",
-   "ndiff": 872,
-   "ntotal": 1846,
+   "ndiff": 866,
+   "ntotal": 1845,
    "detail": "line 939: orig ('SETUP_LOOP', '#31') | got ('SETUP_LOOP', '#32')\nline 955: orig ('LOAD_FAST', 'ofp') | got ('JUMP_ABSOLUTE', '#16')\nline 956: orig ('LOAD_ATTR', 'close_data') | got ('LOAD_FAST', 'ofp')"
   },
   {
@@ -119,16 +119,16 @@
    "module": "calendar",
    "ast_detail": "diff at token 1003: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2060,
+   "ndiff": 2046,
    "ntotal": 2901,
-   "detail": "line 761: orig ('SETUP_LOOP', '#67') | got ('SETUP_LOOP', '#70')\nline 794: orig ('POP_JUMP_IF_FALSE', '#31') | got ('POP_JUMP_IF_FALSE', '#67')\nline 796: orig ('JUMP_ABSOLUTE', '#31') | got ('JUMP_ABSOLUTE', '#67')"
+   "detail": "line 761: orig ('SETUP_LOOP', '#67') | got ('SETUP_LOOP', '#69')\nline 794: orig ('POP_JUMP_IF_FALSE', '#31') | got ('POP_JUMP_IF_FALSE', '#67')\nline 796: orig ('JUMP_ABSOLUTE', '#31') | got ('JUMP_ABSOLUTE', '#67')"
   },
   {
    "module": "cgi",
    "ast_detail": "diff at token 821: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2392,
-   "ntotal": 3053,
+   "ndiff": 2376,
+   "ntotal": 3051,
    "detail": "line 523: orig ('SETUP_LOOP', '#250') | got ('SETUP_LOOP', '#253')\nline 527: orig ('POP_JUMP_IF_FALSE', '#249') | got ('POP_JUMP_IF_FALSE', '#252')\nline 533: orig ('POP_JUMP_IF_FALSE', '#107') | got ('POP_JUMP_IF_FALSE', '#106')"
   },
   {
@@ -159,9 +159,9 @@
    "module": "codecs",
    "ast_detail": "diff at token 1240: orig  body=[If(test=Compare(left=Name(id='chars' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1144,
-   "ntotal": 2184,
-   "detail": "line 990: orig ('SETUP_LOOP', '#149') | got ('SETUP_LOOP', '#153')\nline 994: orig ('POP_JUMP_IF_FALSE', '#30') | got ('POP_JUMP_IF_FALSE', '#31')\nline 1001: orig ('POP_JUMP_IF_FALSE', '#44') | got ('POP_JUMP_IF_FALSE', '#31')"
+   "ndiff": 1125,
+   "ntotal": 2182,
+   "detail": "line 990: orig ('SETUP_LOOP', '#149') | got ('SETUP_LOOP', '#152')\nline 994: orig ('POP_JUMP_IF_FALSE', '#30') | got ('POP_JUMP_IF_FALSE', '#31')\nline 1001: orig ('POP_JUMP_IF_FALSE', '#44') | got ('POP_JUMP_IF_FALSE', '#31')"
   },
   {
    "module": "codeop",

@@ -488,14 +488,11 @@ format string.'''
                     pass
                 hour = 0
                 continue
-                continue
             if ampm == locale_time.am_pm[1]:
                 pass
             if hour != 12:
                 pass
             hour += 12
-            continue
-            continue
             continue
         if group_key == 'M':
             minute = parse_int(found_dict['M'])
@@ -561,7 +558,6 @@ format string.'''
                 pass
             gmtoff = -gmtoff
             gmtoff_fraction = -gmtoff_fraction
-            continue
             continue
         if group_key != 'Z':
             continue

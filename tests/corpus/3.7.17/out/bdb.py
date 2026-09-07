@@ -274,9 +274,8 @@ class Bdb:
 
         if self.frame_returning:
             caller_frame = self.frame_returning.f_back
-            if caller_frame:
-                if not caller_frame.f_trace:
-                    caller_frame.f_trace = self.trace_dispatch
+            if caller_frame and not caller_frame.f_trace:
+                caller_frame.f_trace = self.trace_dispatch
         self._set_stopinfo(None, None)
 
     def set_next(self, frame):

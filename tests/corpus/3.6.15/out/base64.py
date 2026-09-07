@@ -328,7 +328,6 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
                     continue
                 if x in ignorechars:
                     continue
-                    continue
                 raise ValueError('Non-Ascii85 digit found: %c' % x)
         continue
     result = b''.join(decoded)

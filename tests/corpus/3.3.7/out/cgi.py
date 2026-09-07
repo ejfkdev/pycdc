@@ -607,7 +607,6 @@ class FieldStorage:
                 if not data.strip():
                     break
                 continue
-                continue
             if not hdr_text:
                 break
             self.bytes_read += len(hdr_text)
@@ -618,7 +617,6 @@ class FieldStorage:
             self.list.append(part)
             if part.done or self.bytes_read >= self.length > 0:
                 break
-            continue
             continue
         self.skip_lines()
 

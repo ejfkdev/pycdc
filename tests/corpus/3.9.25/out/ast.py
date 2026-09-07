@@ -168,9 +168,8 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
 
     if not isinstance(node, AST):
         raise TypeError('expected AST, got %r' % node.__class__.__name__)
-    if indent is not None:
-        if not isinstance(indent, str):
-            indent = ' ' * indent
+    if indent is not None and not isinstance(indent, str):
+        indent = ' ' * indent
     return _format(node)[0]
 
 def copy_location(new_node, old_node):
@@ -1033,9 +1032,8 @@ class _Unparser(NodeVisitor):
         '''
 
         def escape_char(c):
-            if not escape_special_whitespace:
-                if c in '\n\t':
-                    return c
+            if not escape_special_whitespace and c in '\n\t':
+                return c
             if c == '\\' or not c.isprintable():
                 return c.encode('unicode_escape').decode('ascii')
             return c

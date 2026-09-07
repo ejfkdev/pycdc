@@ -249,9 +249,8 @@ def compiler_fixup(compiler_so, cc_args):
         stripSysroot = any((arg for arg in cc_args if arg.startswith('-isysroot')))
     if stripArch or 'ARCHFLAGS' in os.environ:
         while True:
-            if 'ARCHFLAGS' in os.environ:
-                if not stripArch:
-                    compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
+            if 'ARCHFLAGS' in os.environ and not stripArch:
+                compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
             while stripSysroot:
                 indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
                 if not indices:
@@ -277,11 +276,10 @@ def compiler_fixup(compiler_so, cc_args):
             break
         sysroot = argvar[idx][len('-isysroot'):]
         break
-    if sysroot:
-        if not os.path.isdir(sysroot):
-            from distutils import log
-            log.warn("Compiling with an SDK that doesn't seem to exist: %s", sysroot)
-            log.warn('Please check your Xcode installation')
+    if sysroot and not os.path.isdir(sysroot):
+        from distutils import log
+        log.warn("Compiling with an SDK that doesn't seem to exist: %s", sysroot)
+        log.warn('Please check your Xcode installation')
     return compiler_so
 
 def customize_config_vars(_config_vars):

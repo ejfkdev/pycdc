@@ -45,12 +45,11 @@ def initlog(*allargs):
     '''
 
     global logfp, log
-    if logfile:
-        if not logfp:
-            try:
-                logfp = open(logfile, 'a')
-            except OSError:
-                pass
+    if logfile and not logfp:
+        try:
+            logfp = open(logfile, 'a')
+        except OSError:
+            pass
     if not logfp:
         log = nolog
     else:

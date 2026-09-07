@@ -230,9 +230,9 @@
    "module": "copyreg",
    "ast_detail": "diff at token 418: orig  body=[Pass() | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 219,
+   "ndiff": 218,
    "ntotal": 540,
-   "detail": "line 320: orig ('JUMP_FORWARD', 'to 196') | got ('LOAD_CONST', 'None')\nline 321: orig ('SETUP_LOOP', 'to 196') | got ('RETURN_VALUE', '')\nline 322: orig ('LOAD_FAST', 'cls') | got ('add_extension', 3)"
+   "detail": "line 320: orig ('JUMP_FORWARD', 'to 196') | got ('SETUP_EXCEPT', 'to 50')\nline 321: orig ('SETUP_LOOP', 'to 196') | got ('LOAD_FAST', 'names')\nline 323: orig ('LOAD_ATTR', '__mro__') | got ('STORE_ATTR', '__slotnames__')"
   },
   {
    "module": "crypt",

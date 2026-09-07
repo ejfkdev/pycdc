@@ -487,9 +487,8 @@ class StreamReader(Codec):
                     break
             if data:
                 if size is not None:
-                    if line:
-                        if not keepends:
-                            line = line.splitlines(keepends=False)[0]
+                    if line and not keepends:
+                        line = line.splitlines(keepends=False)[0]
                     break
             if readsize < 8000:
                 readsize *= 2

@@ -101,9 +101,8 @@ def poll(timeout=0.0, map=None):
             is_w = obj.writable()
             if is_r:
                 r.append(fd)
-            if is_w:
-                if not obj.accepting:
-                    w.append(fd)
+            if is_w and not obj.accepting:
+                w.append(fd)
             if is_r or is_w:
                 e.append(fd)
         if [] == r:
@@ -138,9 +137,8 @@ def poll2(timeout=0.0, map=None):
             flags = 0
             if obj.readable():
                 flags |= select.POLLIN | select.POLLPRI
-            if obj.writable():
-                if not obj.accepting:
-                    flags |= select.POLLOUT
+            if obj.writable() and not obj.accepting:
+                flags |= select.POLLOUT
             if flags:
                 pollster.register(fd, flags)
         r = pollster.poll(timeout)
@@ -346,9 +344,8 @@ class dispatcher:
     def handle_write_event(self):
         if self.accepting:
             return
-        if not self.connected:
-            if self.connecting:
-                self.handle_connect_event()
+        if not self.connected and self.connecting:
+            self.handle_connect_event()
         self.handle_write()
 
     def handle_expt_event(self):

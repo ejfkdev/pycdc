@@ -44,15 +44,13 @@ def _reduce_ex(self, proto):
     assert proto < 2
     cls = self.__class__
     for base in cls.__mro__:
-        if hasattr(base, '__flags__'):
-            if not base.__flags__ & _HEAPTYPE:
-                pass
-            else:
-                new = base.__new__
-                if isinstance(new, _new_type) and new.__self__ is base:
-                    pass
+        if hasattr(base, '__flags__') and not base.__flags__ & _HEAPTYPE:
+            pass
         else:
-            base = object
+            new = base.__new__
+            if isinstance(new, _new_type) and new.__self__ is base:
+                pass
+    base = object
     if base is object:
         state = None
     else:
@@ -112,14 +110,14 @@ def _slotnames(cls):
                 for name in slots:
                     if name in ('__dict__', '__weakref__'):
                         continue
-                if name.startswith('__'):
-                    if not name.endswith('__'):
+                    elif name.startswith('__') and not name.endswith('__'):
                         stripped = c.__name__.lstrip('_')
                         if stripped:
                             names.append('_%s%s' % (stripped, name))
+                        else:
+                            names.append(name)
                             continue
-            names.append(name)
-            names.append(name)
+                    names.append(name)
     try:
         cls.__slotnames__ = names
     except:

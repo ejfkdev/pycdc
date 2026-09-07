@@ -107,14 +107,14 @@ def _slotnames(cls):
                 for name in slots:
                     if name in ('__dict__', '__weakref__'):
                         continue
-                if name.startswith('__'):
-                    if not name.endswith('__'):
+                    elif name.startswith('__') and not name.endswith('__'):
                         stripped = c.__name__.lstrip('_')
                         if stripped:
                             names.append('_%s%s' % (stripped, name))
+                        else:
+                            names.append(name)
                             continue
-            names.append(name)
-            names.append(name)
+                    names.append(name)
     try:
         cls.__slotnames__ = names
     except:

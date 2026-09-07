@@ -433,7 +433,6 @@ class StreamReader(Codec):
             if not newdata:
                 break
             continue
-            continue
         if chars < 0:
             result = self.charbuffer
             self.charbuffer = self._empty_charbuffer
@@ -499,7 +498,6 @@ class StreamReader(Codec):
                 break
             if readsize < 8000:
                 readsize *= 2
-            continue
             continue
         return line
 

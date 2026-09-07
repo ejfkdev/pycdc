@@ -834,9 +834,8 @@ class RawConfigParser(MutableMapping):
         return existed
 
     def __getitem__(self, key):
-        if key != self.default_section:
-            if not self.has_section(key):
-                raise KeyError(key)
+        if key != self.default_section and not self.has_section(key):
+            raise KeyError(key)
         return self._proxies[key]
 
     def __setitem__(self, key, value):
@@ -1036,9 +1035,8 @@ class RawConfigParser(MutableMapping):
             raise TypeError('section names must be strings')
         if not isinstance(option, str):
             raise TypeError('option keys must be strings')
-        if not self._allow_no_value or value:
-            if not isinstance(value, str):
-                raise TypeError('option values must be strings')
+        if (not self._allow_no_value or value) and not isinstance(value, str):
+            raise TypeError('option values must be strings')
 
     @property
     def converters(self):

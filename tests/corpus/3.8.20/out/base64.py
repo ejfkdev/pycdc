@@ -54,9 +54,8 @@ def b64decode(s, altchars=None, validate=False):
         altchars = _bytes_from_decode_data(altchars)
         assert len(altchars) == 2, repr(altchars)
         s = s.translate(bytes.maketrans(altchars, b'+/'))
-    if validate:
-        if not re.fullmatch(b'[A-Za-z0-9+/]*={0,2}', s):
-            raise binascii.Error('Non-base64 digit found')
+    if validate and not re.fullmatch(b'[A-Za-z0-9+/]*={0,2}', s):
+        raise binascii.Error('Non-base64 digit found')
     return binascii.a2b_base64(s)
 
 def standard_b64encode(s):
@@ -232,11 +231,10 @@ def _85encode(b, chars, chars2, pad=False, foldnuls=False, foldspaces=False):
         b = b + b'\x00' * padding
     words = struct.Struct('!%dI' % (len(b) // 4)).unpack(b)
     chunks = [chars2[word // 614125] + chars2[word // 85 % 7225] + chars[word % 85] for word in words if foldnuls if word if foldspaces if word == 538976288]
-    if padding:
-        if not pad:
-            if chunks[-1] == b'z':
-                chunks[-1] = chars[0] * 5
-            chunks[-1] = chunks[-1][:-padding]
+    if padding and not pad:
+        if chunks[-1] == b'z':
+            chunks[-1] = chars[0] * 5
+        chunks[-1] = chunks[-1][:-padding]
     return b''.join(chunks)
 
 def a85encode(b, *, foldspaces=False, wrapcol=0, pad=False, adobe=False):

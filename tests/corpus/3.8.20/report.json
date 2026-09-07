@@ -250,11 +250,11 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 557: orig  body=[Continue()] | dec  body=[Pass()]",
+   "ast_detail": "diff at token 601: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 147,
+   "ndiff": 2,
    "ntotal": 544,
-   "detail": "line 328: orig ('JUMP_FORWARD', 'to 188') | got ('JUMP_FORWARD', 'to 184')\nline 332: orig ('FOR_ITER', 'to 188') | got ('FOR_ITER', 'to 184')\nline 354: orig ('FOR_ITER', 'to 186') | got ('FOR_ITER', 'to 106')"
+   "detail": "line 361: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 174')\nline 389: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 174')"
   },
   {
    "module": "crypt",

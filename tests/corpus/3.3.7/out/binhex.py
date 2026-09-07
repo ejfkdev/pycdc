@@ -316,7 +316,6 @@ class HexBin:
             if ch == b':':
                 break
             continue
-            continue
         hqxifp = _Hqxdecoderengine(ifp)
         self.ifp = _Rledecoderengine(hqxifp)
         self.crc = 0

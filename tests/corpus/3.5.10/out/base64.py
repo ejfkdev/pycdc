@@ -330,9 +330,10 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
             if curr:
                 raise ValueError('y inside Ascii85 5-tuple')
             decoded_append(b'    ')
-        elif x in ignorechars:
-            continue
-        raise ValueError('Non-Ascii85 digit found: %c' % x)
+        else:
+            if x in ignorechars:
+                continue
+            raise ValueError('Non-Ascii85 digit found: %c' % x)
     result = b''.join(decoded)
     padding = 4 - len(curr)
     if padding:

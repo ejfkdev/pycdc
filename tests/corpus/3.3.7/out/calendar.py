@@ -145,7 +145,6 @@ class Calendar(object):
                 if date.weekday() == self.firstweekday:
                     break
             continue
-            continue
 
     def itermonthdays2(self, year, month):
         '''

@@ -659,9 +659,8 @@ class SafeConfigParser(ConfigParser):
     def set(self, section, option, value=None):
         '''Set an option.  Extend ConfigParser.set: check for string values.'''
 
-        if self._optcre is self.OPTCRE or value:
-            if not isinstance(value, basestring):
-                raise TypeError('option values must be strings')
+        if (self._optcre is self.OPTCRE or value) and not isinstance(value, basestring):
+            raise TypeError('option values must be strings')
         if value is not None:
             tmp_value = value.replace('%%', '')
             tmp_value = self._interpvar_re.sub('', tmp_value)

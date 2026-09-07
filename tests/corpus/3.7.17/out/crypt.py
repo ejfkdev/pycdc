@@ -24,9 +24,8 @@ def mksalt(method=None, *, rounds=None):
 
     if method is None:
         method = methods[0]
-    if rounds is not None:
-        if not isinstance(rounds, int):
-            raise TypeError(f'{rounds.__class__.__name__} object cannot be interpreted as an integer')
+    if rounds is not None and not isinstance(rounds, int):
+        raise TypeError(f'{rounds.__class__.__name__} object cannot be interpreted as an integer')
     if not method.ident:
         s = ''
     else:

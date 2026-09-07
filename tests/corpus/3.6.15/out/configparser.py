@@ -1024,9 +1024,8 @@ class RawConfigParser(MutableMapping):
             raise TypeError('section names must be strings')
         if not isinstance(option, str):
             raise TypeError('option keys must be strings')
-        if not self._allow_no_value or value:
-            if not isinstance(value, str):
-                raise TypeError('option values must be strings')
+        if (not self._allow_no_value or value) and not isinstance(value, str):
+            raise TypeError('option values must be strings')
 
     @property
     def converters(self):

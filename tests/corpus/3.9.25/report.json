@@ -260,11 +260,11 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 194: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
+   "ast_detail": "diff at token 209: orig  body=[Break()] | dec  body=[Pass()",
    "verdict": "SIG-DIFF",
-   "ndiff": 367,
+   "ndiff": 369,
    "ntotal": 563,
-   "detail": "line 188: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 189: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'base')\nline 190: orig ('LOAD_FAST', 'base') | got ('LOAD_ATTR', '__new__')"
+   "detail": "line 176: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 78')\nline 188: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 189: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'base')"
   }
  ]
 }
