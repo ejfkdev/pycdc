@@ -87,7 +87,8 @@ by the SGML/HTML and XHTML parsers.'''
                     if decltype in frozenset({'link', 'attlist', 'element', 'linktype'}):
                         raise AssertionError("unsupported '[' char in %s declaration" % decltype)
                     raise AssertionError("unexpected '[' char in declaration")
-                    raise AssertionError('unexpected %r char in declaration' % rawdata[j])
+            else:
+                raise AssertionError('unexpected %r char in declaration' % rawdata[j])
             if not j < 0:
                 continue
             return j

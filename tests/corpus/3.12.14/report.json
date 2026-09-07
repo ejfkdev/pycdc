@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 13,
-  "SIG-DIFF": 7,
-  "INCOMPLETE": 20
+  "SIG-DIFF": 8,
+  "INCOMPLETE": 19
  },
  "results": [
   {
@@ -34,17 +34,17 @@
   {
    "module": "_compression",
    "verdict": "INCOMPLETE",
-   "ndiff": 223,
+   "ndiff": 77,
    "ntotal": 571,
-   "detail": "line 307: orig ('POP_JUMP_IF_FALSE', 'to 366') | got ('POP_JUMP_IF_FALSE', 'to 558')\nline 322: orig ('JUMP_FORWARD', 'to 566') | got ('JUMP_FORWARD', 'to 560')\nline 342: orig ('JUMP_FORWARD', 'to 558') | got ('LOAD_FAST', 'self')"
+   "detail": "line 469: orig ('JUMP_FORWARD', 'to 392') | got ('JUMP_FORWARD', 'to 390')\nline 480: orig ('JUMP_FORWARD', 'to 392') | got ('JUMP_FORWARD', 'to 390')\nline 485: orig ('POP_JUMP_IF_FALSE', 'to 340') | got ('POP_JUMP_IF_FALSE', 'to 338')"
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 467: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 471: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
    "ndiff": 897,
    "ntotal": 1303,
-   "detail": "line 281: orig ('POP_JUMP_IF_FALSE', 'to 818') | got ('POP_JUMP_IF_FALSE', 'to 806')\nline 335: orig ('JUMP_FORWARD', 'to 792') | got ('JUMP_FORWARD', 'to 780')\nline 348: orig ('JUMP_FORWARD', 'to 792') | got ('JUMP_FORWARD', 'to 780')"
+   "detail": "line 281: orig ('POP_JUMP_IF_FALSE', 'to 818') | got ('POP_JUMP_IF_FALSE', 'to 840')\nline 335: orig ('JUMP_FORWARD', 'to 792') | got ('JUMP_FORWARD', 'to 814')\nline 348: orig ('JUMP_FORWARD', 'to 792') | got ('JUMP_FORWARD', 'to 814')"
   },
   {
    "module": "_osx_support",
@@ -78,7 +78,7 @@
   {
    "module": "_strptime",
    "verdict": "INCOMPLETE",
-   "ndiff": 355,
+   "ndiff": 350,
    "ntotal": 2287,
    "detail": "line 91: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 1104: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 1105: orig ('POP_JUMP_IF_TRUE', 'to 60') | got ('POP_JUMP_IF_FALSE', 'to 60')"
   },
@@ -128,8 +128,9 @@
   },
   {
    "module": "bz2",
-   "verdict": "INCOMPLETE",
-   "ndiff": 751,
+   "ast_detail": "diff at token 166: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
+   "verdict": "SIG-DIFF",
+   "ndiff": 750,
    "ntotal": 802,
    "detail": "line 51: orig ('NOP', '') | got ('LOAD_CONST', \"('rb', 9, None, None, None)\")\nline 52: orig ('NOP', '') | got ('LOAD_CONST', '<code open>')\nline 53: orig ('LOAD_CONST', \"('rb', 9, None, None, None)\") | got ('MAKE_FUNCTION', 'defaults')"
   },
@@ -182,9 +183,9 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1127: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 1149: orig  If(test=UnaryOp(op=Not() | dec  Break()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1826,
+   "ndiff": 1815,
    "ntotal": 2138,
    "detail": "line 273: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, None, None, None)')\nline 274: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 275: orig ('LOAD_CONST', '(None, None, None, None, None)') | got ('LOAD_CONST', \"('_is_text_encoding',)\")"
   },

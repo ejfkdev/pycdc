@@ -2342,7 +2342,22 @@ impl<'a> Ctx<'a> {
                                     | Op::JUMP_ABSOLUTE
                                     | Op::JUMP_BACKWARD_NO_INTERRUPT
                             ) && x.target.map_or(false, |t| {
-                                t > last_frag_end && t < handler
+                                t > last_frag_end
+                                    && t < handler
+                                    // a 3.12+ handler clause's `break`
+                                    // is POP_EXCEPT; JUMP_BACKWARD to
+                                    // the LOOP EXIT from inside the
+                                    // chain — its target satisfies the
+                                    // mainline bounds, and reading it
+                                    // as the else rejoin swallows the
+                                    // enclosing If's whole else arm
+                                    // into a phantom try-else
+                                    // (_compression 3.12 read). The
+                                    // genuine chain-end mainline rejoin
+                                    // (3.14 JBNI, _ios_support/abc
+                                    // import guards) targets plain
+                                    // mainline flow, never a loop exit.
+                                    && self.find_loop_exit(t).is_none()
                             })
                         })
                         .and_then(|x| x.target);
@@ -3301,10 +3316,14 @@ impl<'a> Ctx<'a> {
             }
             let body_from = self.instrs.get(m).map(|i| i.offset).unwrap_or(limit);
             *pc = m;
-            // `except E: break` — the body's forward jump targets an
-            // enclosing loop's exit; the region sub-walk swaps the block
-            // stack and cannot see the loop, so rebuild the Break here
-            // while the live blocks are still on the stack
+            // `except E: break` — the body's jump targets an enclosing
+            // loop's exit; the region sub-walk swaps the block stack and
+            // cannot see the loop, so rebuild the Break here while the
+            // live blocks are still on the stack. 3.11: JUMP_FORWARD to
+            // the exit; 3.12+: JUMP_BACKWARD to it (the out-of-line
+            // handler sits PAST the loop exit, so the break hops
+            // backward — _compression read's `except trailing_error:
+            // break` rendered `pass` and lost the loop semantics)
             if limit > body_from {
                 let mut bj = None;
                 if let (Some(&bi), Some(&li)) =
@@ -3312,8 +3331,18 @@ impl<'a> Ctx<'a> {
                 {
                     for j in bi..li {
                         let ins = self.instrs[j];
-                        if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP)
-                            && !ins.is_backward
+                        let is_exit_jump = if ins.is_backward {
+                            matches!(
+                                ins.op,
+                                Op::JUMP_BACKWARD
+                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    | Op::JUMP_ABSOLUTE
+                                    | Op::JUMP
+                            )
+                        } else {
+                            matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP)
+                        };
+                        if is_exit_jump
                             && ins.target.map_or(false, |t| {
                                 self.find_loop_exit(t).is_some()
                             })
@@ -9702,7 +9731,8 @@ impl<'a> Ctx<'a> {
                 self.handle_cond_jump(cond, true, target);
                 true
             }
-            Op::RAISE_VARARGS => match arg {
+            Op::RAISE_VARARGS => {
+                let r = match arg {
                 0 => {
                     self.push_stmt(Stmt::Raise {
                         exc: None,
@@ -9753,6 +9783,18 @@ impl<'a> Ctx<'a> {
                     });
                     true
                 }
+                };
+                // 3.12+ drops the dead JUMP_FORWARD that <=3.11 emitted
+                // after an arm-terminating raise: the next offset can be
+                // an else-arm label belonging to an ENCLOSING branch
+                // while the raise's own If spans past it — statements
+                // there would leak into the raise's then arm
+                // (_compression 3.12 read: `rawblock = b''` landed after
+                // the EOFError raise). Close the terminated arm(s) now.
+                if r {
+                    self.close_terminated_branch_arms();
+                }
+                r
             },
 
             // ---------- py2 print / exec ----------
@@ -18468,6 +18510,77 @@ impl<'a> Ctx<'a> {
         // result; model the result with a placeholder expression: the
         // following STORE_* turns into the `as` target, POP_TOP discards it.
         self.push(self.name_expr(WITH_RESULT_PLACEHOLDER));
+    }
+
+    /// 3.12+ removed the dead JUMP_FORWARD that <=3.11 emitted after an
+    /// arm-terminating raise. That jump was load-bearing for the walk:
+    /// it marked the enclosing branch's else region before the arm's
+    /// label offset was reached. Without it, statements at the labeled
+    /// offset (an enclosing else arm) leak into the terminated arm's
+    /// still-open If. When a raise terminates an arm and the next
+    /// offset is a jump label strictly inside that arm's block span,
+    /// close the terminated arm and mark the enclosing branch's else
+    /// merge so the standard else-transition opens the arm.
+    fn close_terminated_branch_arms(&mut self) {
+        // <=3.11 still emits the dead JUMP_FORWARD after the raise; its
+        // handle_jump_forward marking is the established path and this
+        // hook would double-close (configparser/base64 3.10 blowups)
+        if !self.version.at_least(3, 12) {
+            return;
+        }
+        let next = self.cur_next;
+        if !self.targets.contains(&next) {
+            return;
+        }
+        // close the innermost open If/Else whose region continues past
+        // the label — its arm just terminated at the raise
+        let mut marked = false;
+        while let Some(top) = self.blocks.last() {
+            if !matches!(top.kind, BlockType::If | BlockType::Else) {
+                break;
+            }
+            if top.end <= next {
+                break;
+            }
+            self.force_close_top(next);
+            marked = true;
+            break;
+        }
+        if !marked {
+            return;
+        }
+        // the label may be the ENCLOSING branch's else-arm start (its
+        // block ends exactly at the label): mark its else merge so the
+        // standard else-transition opens the arm instead of flattening
+        // it into the parent (the 3.11 dead JF supplied this target;
+        // 3.12 removed the jump). The merge is the first offset past
+        // the label that some earlier instruction targets.
+        // merge = smallest target past the label that some jump from
+        // BEFORE the label aims at (the then-arm side): inner labels of
+        // the else arm are targeted from inside the arm itself
+        let merge = self
+            .instrs
+            .iter()
+            .filter(|x| {
+                x.offset < next
+                    && x.target.map_or(false, |t| t > next)
+            })
+            .map(|x| x.target.unwrap())
+            .min();
+        let merge = match merge {
+            Some(m) => m,
+            None => return,
+        };
+        if let Some(top) = self.blocks.last_mut() {
+            if matches!(top.kind, BlockType::If)
+                && top.end == next
+                && top.else_end.is_none()
+                && top.short_circuit.is_none()
+                && merge > next
+            {
+                top.else_end = Some(merge);
+            }
+        }
     }
 
     fn handle_with_body_end(&mut self) {

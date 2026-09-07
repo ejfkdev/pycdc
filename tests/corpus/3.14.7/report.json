@@ -62,9 +62,9 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 352: orig  ctx=Load())))] | dec  ctx=Load())))",
    "verdict": "SIG-DIFF",
-   "ndiff": 946,
+   "ndiff": 942,
    "ntotal": 1352,
-   "detail": "line 293: orig ('POP_JUMP_IF_FALSE', 'to L19') | got ('POP_JUMP_IF_FALSE', 'to L18')\nline 351: orig ('JUMP_FORWARD', 'to L17') | got ('JUMP_FORWARD', 'to L16')\nline 363: orig ('JUMP_FORWARD', 'to L17') | got ('JUMP_FORWARD', 'to L16')"
+   "detail": "line 394: orig ('LOAD_CONST', \"frozenset({'linktype', 'element', 'attlist', 'link'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 395: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 396: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'element', 'link', 'linktype'})\")"
   },
   {
    "module": "_opcode_metadata",

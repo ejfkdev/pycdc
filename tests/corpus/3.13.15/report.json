@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
   "PASS": 14,
-  "INCOMPLETE": 18,
-  "SIG-DIFF": 8
+  "INCOMPLETE": 17,
+  "SIG-DIFF": 9
  },
  "results": [
   {
@@ -53,7 +53,7 @@
   {
    "module": "_compression",
    "verdict": "INCOMPLETE",
-   "ndiff": 199,
+   "ndiff": 307,
    "ntotal": 589,
    "detail": "line 232: orig ('STORE_FAST_LOAD_FAST', 'view, view') | got ('STORE_FAST', 'view')\nline 233: orig ('LOAD_ATTR', 'cast + NULL|self') | got ('LOAD_FAST', 'view')\nline 234: orig ('LOAD_CONST', \"'B'\") | got ('LOAD_ATTR', 'cast + NULL|self')"
   },
@@ -63,11 +63,11 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 404: orig  ctx=Load())]))] | dec  ctx=Load())]))",
+   "ast_detail": "diff at token 408: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 876,
-   "ntotal": 1254,
-   "detail": "line 272: orig ('POP_JUMP_IF_FALSE', 'to L20') | got ('POP_JUMP_IF_FALSE', 'to L19')\nline 324: orig ('JUMP_FORWARD', 'to L18') | got ('JUMP_FORWARD', 'to L17')\nline 335: orig ('JUMP_FORWARD', 'to L18') | got ('JUMP_FORWARD', 'to L17')"
+   "ndiff": 957,
+   "ntotal": 1263,
+   "detail": "line 272: orig ('POP_JUMP_IF_FALSE', 'to L20') | got ('EXTENDED_ARG', '')\nline 273: orig ('LOAD_FAST_LOAD_FAST', 'rawdata, j') | got ('POP_JUMP_IF_FALSE', 'to L20')\nline 274: orig ('BINARY_SUBSCR', '') | got ('LOAD_FAST_LOAD_FAST', 'rawdata, j')"
   },
   {
    "module": "_opcode_metadata",
@@ -103,7 +103,7 @@
    "verdict": "INCOMPLETE",
    "ndiff": 2214,
    "ntotal": 2941,
-   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u5341', '\u5eff', '\u4e00', '\u4e5d', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e00', '\u4e5d', '\u4e03', '\u5341'})\")"
+   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u4e00', '\u5eff', '\u4e5d', '\u5341'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u5341', '\u4e00', '\u4e5d', '\u4e03'})\")"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -148,8 +148,9 @@
   },
   {
    "module": "bz2",
-   "verdict": "INCOMPLETE",
-   "ndiff": 751,
+   "ast_detail": "diff at token 152: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
+   "verdict": "SIG-DIFF",
+   "ndiff": 771,
    "ntotal": 838,
    "detail": "line 49: orig ('NOP', '') | got ('LOAD_CONST', \"('rb', 9, None, None, None)\")\nline 50: orig ('NOP', '') | got ('LOAD_CONST', '<code open>')\nline 51: orig ('LOAD_CONST', \"('rb', 9, None, None, None)\") | got ('MAKE_FUNCTION', '')"
   },
