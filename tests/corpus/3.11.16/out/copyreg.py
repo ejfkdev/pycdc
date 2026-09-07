@@ -131,13 +131,10 @@ def _slotnames(cls):
                                 names.append(name)
                         else:
                             names.append(name)
-                    else:
-                        break
-                        try:
-                            cls.__slotnames__ = names
-                        except:
-                            return names
-                        break
+    try:
+        cls.__slotnames__ = names
+    except:
+        pass
     return names
 
 _extension_registry = {}

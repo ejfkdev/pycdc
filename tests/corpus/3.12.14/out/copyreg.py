@@ -128,8 +128,6 @@ def _slotnames(cls):
                             names.append(name)
                     else:
                         names.append(name)
-                else:
-                    continue
     try:
         cls.__slotnames__ = names
     except:

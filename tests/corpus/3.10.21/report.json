@@ -242,7 +242,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 2882: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(value=Dict(keys=[Constant(value='raw')",
+   "ast_detail": "diff at token 2463: orig  body=[Continue()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
    "ndiff": 995,
    "ntotal": 4291,

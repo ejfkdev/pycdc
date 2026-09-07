@@ -113,7 +113,6 @@ def dump(node, annotate_fields=True, include_attributes=False):
                         value = getattr(node, field)
                     except AttributeError:
                         keywords = True
-                        continue
                 else:
                     args.append(_format(value))
             if include_attributes and node._attributes:

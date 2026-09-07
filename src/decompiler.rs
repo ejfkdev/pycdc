@@ -8745,38 +8745,51 @@ impl<'a> Ctx<'a> {
                             (matches!(t.kind, BlockType::If) || matches!(t.kind, BlockType::Else))
                                 && t.end == end
                         });
-                        if top_matches {
-                            // folded chain blocks that were already open
-                            // before this jump also end here (the jump is
-                            // the chain end); blocks freshly opened by the
-                            // close below must stay (their region follows)
-                            // blocks already open before this jump end
-                            // here too; identify them by start offset so a
-                            // freshly opened Else (start == this position)
-                            // is not collapsed
-                            // only the CONTIGUOUS If/Else segment at the
-                            // top of the stack belongs to this chain's
-                            // spine — a loop block below separates the
-                            // enclosing branches, whose close belongs to
-                            // the loop's own exhaustion flow (copyreg 3.8
-                            // _slotnames: the enclosing mro For and the
-                            // guard If were folded early, dropping the
-                            // else branch and function tail into a dead
-                            // Else[MAX])
-                            let mut spine: Vec<usize> = Vec::new();
-                            for t in self.blocks.iter().rev() {
-                                if matches!(t.kind, BlockType::If | BlockType::Else)
-                                    && t.folded_exit
-                                    && t.end > self.cur_offset
-                                {
-                                    spine.push(t.start);
-                                } else if !matches!(
-                                    t.kind,
-                                    BlockType::If | BlockType::Else
-                                ) {
-                                    break;
-                                }
+                        // folded chain blocks that were already open
+                        // before this jump also end here (the jump is
+                        // the chain end); blocks freshly opened by the
+                        // close below must stay (their region follows)
+                        // only the CONTIGUOUS If/Else segment at the
+                        // top of the stack belongs to this chain's
+                        // spine — a loop block below separates the
+                        // enclosing branches, whose close belongs to
+                        // the loop's own exhaustion flow (copyreg 3.8
+                        // _slotnames: the enclosing mro For and the
+                        // guard If were folded early, dropping the
+                        // else branch and function tail into a dead
+                        // Else[MAX])
+                        let mut spine: Vec<usize> = Vec::new();
+                        for t in self.blocks.iter().rev() {
+                            if matches!(t.kind, BlockType::If | BlockType::Else)
+                                && t.folded_exit
+                                && t.end > self.cur_offset
+                            {
+                                spine.push(t.start);
+                            } else if !matches!(
+                                t.kind,
+                                BlockType::If | BlockType::Else
+                            ) {
+                                break;
                             }
+                        }
+                        // the marking must also run when the folded top
+                        // does NOT end at the fold point: a spine If one
+                        // level down can still have its else arm starting
+                        // right after it (csv 3.5 has_header: the inner
+                        // else's fused end edge folded with the chain If
+                        // ending at the following SETUP_EXCEPT — without
+                        // the mark its folded-exit reopen produced an
+                        // Else[MAX] that the try body's forward jump
+                        // sealed early, flattening the try)
+                        let mark_needed = top_matches
+                            || self.blocks.iter().any(|b| {
+                                matches!(b.kind, BlockType::If)
+                                    && b.folded_exit
+                                    && spine.contains(&b.start)
+                                    && b.else_end.is_none()
+                                    && b.end == self.cur_next
+                            });
+                        if mark_needed {
                             // a spine If whose end is exactly the fold
                             // point may have an UNMARKED else arm lying
                             // right after it: the arm-end forward jump
@@ -8830,82 +8843,157 @@ impl<'a> Ctx<'a> {
                                         // to such an edge (a merge
                                         // trampoline), or a jump to the
                                         // loop exit (an arm-ending
-                                        // break). Anything else: no
-                                        // discoverable arm — no mark.
-                                        self.instrs
-                                            .iter()
-                                            .skip_while(|x| {
-                                                x.offset < self.cur_next
-                                            })
-                                            .take_while(|x| {
-                                                x.offset < self.cur_offset + 2
-                                                    || x.offset
-                                                        < b.end.max(
-                                                            self.cur_next,
-                                                        )
-                                                    || true
-                                            })
-                                            .find(|x| {
-                                                if x.offset <= self.cur_next {
-                                                    return false;
+                                        // break). A pre-3.11 try chain
+                                        // laid out inside the arm owns
+                                        // collecting back edges of its
+                                        // own (the except arm's normal
+                                        // exit): the arm's real boundary
+                                        // is the chain-END back edge
+                                        // after the chain's else/merge
+                                        // region — statically skip edges
+                                        // below the chain merge (csv 3.5
+                                        // has_header: the `else:
+                                        // try/except/else` arm cut at
+                                        // the except arm's edge was
+                                        // sealed by the try body's own
+                                        // forward jump before the Try
+                                        // emitted, flattening it).
+                                        // Anything else: no discoverable
+                                        // arm — no mark.
+                                        let mut mark: Option<usize> = None;
+                                        let mut chain_merge: Option<usize> =
+                                            None;
+                                        let mut steps = 0usize;
+                                        for x in self.instrs.iter().skip_while(
+                                            |x| x.offset < self.cur_next,
+                                        ) {
+                                            steps += 1;
+                                            if steps > 400 {
+                                                break;
+                                            }
+                                            if matches!(
+                                                x.op,
+                                                Op::SETUP_EXCEPT
+                                                    | Op::SETUP_FINALLY
+                                                    | Op::SETUP_CLEANUP
+                                            ) {
+                                                // the chain head may sit
+                                                // exactly AT the arm
+                                                // start (the else arm
+                                                // begins with the try) —
+                                                // test it before the
+                                                // start-instruction skip
+                                                // below
+                                                // chain head: the body-end
+                                                // unconditional forward
+                                                // jump flies over the
+                                                // handler region — its
+                                                // target is the chain's
+                                                // else/merge start
+                                                if let Some(h) = x.target {
+                                                    chain_merge = self
+                                                        .instrs
+                                                        .iter()
+                                                        .skip_while(|y| {
+                                                            y.offset
+                                                                <= x.offset
+                                                        })
+                                                        .take(300)
+                                                        .find(|y| {
+                                                            !y.is_backward
+                                                                && matches!(
+                                                                    y.op,
+                                                                    Op::JUMP_ABSOLUTE
+                                                                        | Op::JUMP_FORWARD
+                                                                        | Op::JUMP
+                                                                )
+                                                                && y.target
+                                                                    .map_or(
+                                                                        false,
+                                                                        |t| {
+                                                                            t > h
+                                                                        },
+                                                                    )
+                                                        })
+                                                        .and_then(|y| y.target)
+                                                        .or(chain_merge);
                                                 }
-                                                let back_to_top = x
-                                                    .is_backward
-                                                    && x.target.map_or(
-                                                        false,
-                                                        |t| self.is_loop_top_target(t),
-                                                    );
-                                                let fwd_to_tramp = !x.is_backward
-                                                    && matches!(
-                                                        x.op,
-                                                        Op::JUMP_ABSOLUTE
-                                                            | Op::JUMP_FORWARD
-                                                            | Op::JUMP
-                                                    )
-                                                    && x.target.map_or(
-                                                        false,
-                                                        |t| {
-                                                            self.idx_of.get(&t)
-                                                                .and_then(|&ti| {
-                                                                    self.instrs.get(ti)
-                                                                })
-                                                                .map_or(false, |y| {
-                                                                    y.is_backward
-                                                                        && y.target.map_or(
-                                                                            false,
-                                                                            |lt| self
-                                                                                .is_loop_top_target(
-                                                                                    lt,
-                                                                                ),
-                                                                        )
-                                                                })
-                                                        },
-                                                    );
-                                                let to_loop_exit = x
-                                                    .target
-                                                    .map_or(false, |t| {
-                                                        t > x.offset
-                                                            && self
-                                                                .find_loop_exit(t)
-                                                                .is_some()
-                                                    });
-                                                back_to_top
-                                                    || fwd_to_tramp
-                                                    || to_loop_exit
-                                            })
-                                            .map(|x| {
-                                                if x.is_backward {
-                                                    x.offset
-                                                } else {
-                                                    x.target.unwrap()
+                                                continue;
+                                            }
+                                            if x.offset <= self.cur_next {
+                                                continue;
+                                            }
+                                            let back_to_top = x.is_backward
+                                                && x.target.map_or(
+                                                    false,
+                                                    |t| self.is_loop_top_target(t),
+                                                );
+                                            let fwd_to_tramp = !x.is_backward
+                                                && matches!(
+                                                    x.op,
+                                                    Op::JUMP_ABSOLUTE
+                                                        | Op::JUMP_FORWARD
+                                                        | Op::JUMP
+                                                )
+                                                && x.target.map_or(
+                                                    false,
+                                                    |t| {
+                                                        self.idx_of.get(&t)
+                                                            .and_then(|&ti| {
+                                                                self.instrs.get(ti)
+                                                            })
+                                                            .map_or(false, |y| {
+                                                                y.is_backward
+                                                                    && y.target.map_or(
+                                                                        false,
+                                                                        |lt| self
+                                                                            .is_loop_top_target(
+                                                                                lt,
+                                                                            ),
+                                                                    )
+                                                            })
+                                                    },
+                                                );
+                                            let to_loop_exit = x
+                                                .target
+                                                .map_or(false, |t| {
+                                                    t > x.offset
+                                                        && self
+                                                            .find_loop_exit(t)
+                                                            .is_some()
+                                                });
+                                            if back_to_top
+                                                || fwd_to_tramp
+                                                || to_loop_exit
+                                            {
+                                                if chain_merge
+                                                    .map_or(false, |m| {
+                                                        x.offset < m
+                                                    })
+                                                {
+                                                    // chain-internal
+                                                    // collecting edge
+                                                    continue;
                                                 }
-                                            })
+                                                mark = Some(
+                                                    if x.is_backward {
+                                                        x.offset
+                                                    } else {
+                                                        x.target.unwrap()
+                                                    },
+                                                );
+                                                break;
+                                            }
+                                        }
+                                        mark
                                     }
                                 };
                                 if let Some(t) = else_mark {
                                     self.blocks[si].else_end = Some(t);
                                 }
                             }
+                        }
+                        if top_matches {
                             self.force_close_top(end);
                             let mut guard = 0;
                             while self.blocks.last().map_or(false, |t| {
@@ -18034,7 +18122,23 @@ impl<'a> Ctx<'a> {
     /// original bytecode does not have (code.py 3.5 interact).
     fn handler_exit_jabs_is_continue(&self, jabs_idx: usize) -> bool {
         let mut saw_real = false;
+        // the chain's own else region is chain STRUCTURE, not skipped
+        // loop-body material: the handler-exit edge hops over it, but
+        // its statements execute on the try-success path — counting
+        // them as skipped body turns the collecting edge into an
+        // explicit continue inside the except arm (csv 3.5 has_header:
+        // `except (ValueError, TypeError): hasHeader += 1; continue`)
+        let (chain_es, chain_ee) = self
+            .legacy_try
+            .as_ref()
+            .map(|l| (l.else_start, l.else_stop))
+            .unwrap_or((None, usize::MAX));
         for x in self.instrs[jabs_idx + 1..].iter() {
+            if let Some(es) = chain_es {
+                if x.offset >= es && x.offset < chain_ee {
+                    continue;
+                }
+            }
             match x.op {
                 Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP | Op::JUMP_BACKWARD_NO_INTERRUPT
                     if x.is_backward =>
@@ -18060,6 +18164,27 @@ impl<'a> Ctx<'a> {
     }
 
     fn is_continue_jump(&self, target: usize) -> bool {
+        // in the ELSE-AFTER-CHAIN layout (3.5/3.6: the try's else region
+        // lies past the handler chain and is only reachable via the body-
+        // end forward jump), a backward edge from inside the handler span
+        // BEFORE the else region was walked is the except arm's collecting
+        // edge, not a source-level `continue` — letting the continue
+        // machinery take it closes the enclosing else arm and strands the
+        // not-yet-emitted Try at loop level (csv 3.5 has_header:
+        // `else: continue` + flattened try/except/else). Chains without
+        // a discovered else region (py2 asyncore close_all, ast 3.8
+        // shapes where the edge precedes else_start discovery) keep the
+        // historic classification.
+        if let Some(l) = &self.legacy_try {
+            if !l.handlers.is_empty() {
+                if let Some(es) = l.else_start {
+                    if self.cur_offset >= l.handler_start && self.cur_offset < es
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
         let mut depth = 0usize;
         // a still-live region block above the loop (an open folded-chain
         // Else[MAX], an unclosed If) means the loop is not done: the jump

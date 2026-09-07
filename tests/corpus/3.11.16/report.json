@@ -251,8 +251,8 @@
   {
    "module": "copyreg",
    "verdict": "INCOMPLETE",
-   "ndiff": 426,
-   "ntotal": 668,
+   "ndiff": 435,
+   "ntotal": 671,
    "detail": "line 219: orig ('FOR_ITER', 'to 196') | got ('FOR_ITER', 'to 206')\nline 226: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 116') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 204')\nline 231: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 116') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 114')"
   },
   {

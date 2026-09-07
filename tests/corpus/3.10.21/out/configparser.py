@@ -594,7 +594,7 @@ class RawConfigParser(MutableMapping):
                 with open(filename, encoding=encoding) as fp:
                     self._read(fp, filename)
             except OSError:
-                continue
+                pass
             else:
                 if isinstance(filename, os.PathLike):
                     filename = os.fspath(filename)

@@ -41,7 +41,6 @@ class _Printer(object):
             with open(filename, encoding='utf-8') as fp:
                 data = fp.read()
         except OSError:
-            # WARNING: continue outside loop (unrecovered structure)
             pass
         else:
             for filename in self.__filenames:

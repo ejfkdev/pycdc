@@ -237,7 +237,7 @@
   {
    "module": "copyreg",
    "verdict": "INCOMPLETE",
-   "ndiff": 394,
+   "ndiff": 393,
    "ntotal": 616,
    "detail": "line 189: orig ('FOR_ITER', 'to 228') | got ('FOR_ITER', 'to 238')\nline 195: orig ('POP_JUMP_IF_FALSE', 'to 136') | got ('POP_JUMP_IF_TRUE', 'to 96')\nline 196: orig ('LOAD_FAST', 'base') | got ('JUMP_BACKWARD', 'to 64')"
   },
