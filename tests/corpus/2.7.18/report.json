@@ -2,8 +2,8 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "PASS": 20,
-  "SIG-DIFF": 16,
+  "PASS": 21,
+  "SIG-DIFF": 15,
   "AST-PASS": 4
  },
  "results": [
@@ -149,11 +149,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 2137: orig  body=[Print(dest=None | dec  body=[If(test=Compare(left=Call(func=Name(id='len'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 17,
-   "ntotal": 3256,
-   "detail": "line 1584: orig ('LOAD_CONST', \"'Warning: MARK chunk contains only'\") | got ('LOAD_GLOBAL', 'len')\nline 1585: orig ('PRINT_ITEM', '') | got ('LOAD_FAST', 'self')\nline 1586: orig ('LOAD_GLOBAL', 'len') | got ('LOAD_ATTR', '_markers')"
+   "verdict": "PASS"
   },
   {
    "module": "anydbm",

@@ -410,7 +410,7 @@ struct Ctx<'a> {
     pending_with: Vec<Vec<WithItem>>,
     pending_try_orelse: Vec<Vec<Stmt>>,
     with_exits: usize,
-    pending_print: Vec<ExprRef>,
+    pending_print: Vec<(usize, ExprRef)>,
     pending_print_dest: Option<ExprRef>,
     unpack_targets: FrameTargets,
     /// per-frame store line numbers mirroring unpack_targets (the
@@ -6011,6 +6011,59 @@ impl<'a> Ctx<'a> {
     }
 
     /// Close the topmost block, converting it to statement(s).
+    /// py2: PRINT_ITEMs executed inside a closing branch arm's span
+    /// belong to that arm's body — a running `print a,` chain crossing
+    /// an if/else would otherwise flatten into ONE print after the
+    /// block, losing the conditional items and rendering empty arms
+    /// (2.7 aifc initfp EOFError handler: `if len(...)==1: print
+    /// 'marker', else: print 'markers',` rendered both strings
+    /// unconditionally with a `pass` guard hoisted above the prints)
+    fn split_arm_prints(&mut self, b: &mut Block) {
+        if self.version.major != 2 || self.pending_print.is_empty() {
+            return;
+        }
+        let (Some(&si), Some(&ei)) = (self.idx_of.get(&b.start), self.idx_of.get(&b.end)) else {
+            return;
+        };
+        if ei <= si {
+            return;
+        };
+        let first = self.instrs[si].offset;
+        let last = self.instrs[ei - 1].offset;
+        let mut pre = Vec::new();
+        let mut inside = Vec::new();
+        let mut outside = Vec::new();
+        for it in std::mem::take(&mut self.pending_print) {
+            if it.0 < first {
+                pre.push(it);
+            } else if it.0 <= last {
+                inside.push(it);
+            } else {
+                outside.push(it);
+            }
+        }
+        self.pending_print = outside;
+        // items printed BEFORE the arm opened are parent-scope
+        // statements that must render ahead of the arm's If/else — flush
+        // them while the parent is the top block (the caller pushes the
+        // branch statement right after this close)
+        if !pre.is_empty() {
+            let stmt = Stmt::Print {
+                dest: None,
+                values: pre.into_iter().map(|(_, v)| v).collect(),
+                newline: false,
+            };
+            self.push_stmt(stmt);
+        }
+        if !inside.is_empty() {
+            b.stmts.push(Stmt::Print {
+                dest: None,
+                values: inside.into_iter().map(|(_, v)| v).collect(),
+                newline: false,
+            });
+        }
+    }
+
     fn force_close_top(&mut self, pos: usize) {
 
         // stores that happened inside this block must land in it, not in
@@ -6051,6 +6104,7 @@ impl<'a> Ctx<'a> {
                         }
                     }
                 }
+                self.split_arm_prints(&mut b);
                 let body = std::mem::take(&mut b.stmts);
                 // 3.14 `if c: break` shape: PJIT over a break block with a
                 // continue on the fall-through — normalize back
@@ -6443,6 +6497,7 @@ impl<'a> Ctx<'a> {
                 }
             }
             BlockType::Else => {
+                self.split_arm_prints(&mut b);
                 let cond = b.cond.take().unwrap_or_else(|| self.name_expr("???"));
                 let mut orelse = std::mem::take(&mut b.stmts);
                 let body = self.pending_then.pop().unwrap_or_default();
@@ -11892,7 +11947,8 @@ impl<'a> Ctx<'a> {
             // ---------- py2 print / exec ----------
             Op::PRINT_ITEM => {
                 let v = self.pop_expr();
-                self.pending_print.push(v);
+                let at = self.cur_offset;
+                self.pending_print.push((at, v));
                 true
             }
             Op::PRINT_ITEM_TO => {
@@ -11904,11 +11960,15 @@ impl<'a> Ctx<'a> {
                 // reverse order rendered the file expr as the printed value.
                 self.pop(); // the DUPed stream copy (top)
                 let v = self.pop_expr(); // the item
-                self.pending_print.push(v);
+                let at = self.cur_offset;
+                self.pending_print.push((at, v));
                 true
             }
             Op::PRINT_NEWLINE => {
-                let values = std::mem::take(&mut self.pending_print);
+                let values = std::mem::take(&mut self.pending_print)
+                    .into_iter()
+                    .map(|(_, v)| v)
+                    .collect();
                 let dest = self.pending_print_dest.take();
                 self.push_stmt(Stmt::Print {
                     dest,
@@ -11918,7 +11978,10 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::PRINT_NEWLINE_TO => {
-                let values = std::mem::take(&mut self.pending_print);
+                let values = std::mem::take(&mut self.pending_print)
+                    .into_iter()
+                    .map(|(_, v)| v)
+                    .collect();
                 let dest = self.pop_expr();
                 self.push_stmt(Stmt::Print {
                     dest: Some(dest),

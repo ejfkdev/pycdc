@@ -149,7 +149,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 2030: orig  body=[Print(dest=None | dec  body=[If(test=Compare(left=Call(func=Name(id='len'",
+   "ast_detail": "diff at token 2031: orig  values=[Str(s='Warning: MARK chunk contains only')] | dec  values=[Str(s='Warning: MARK chunk contains only')",
    "verdict": "SIG-DIFF",
    "ndiff": 2956,
    "ntotal": 3376,
