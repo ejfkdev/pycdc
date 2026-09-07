@@ -247,7 +247,11 @@ class Hook:
             self.file.write(reset())
         formatter = self.format == 'html' and html or text
         plain = False
-        doc = formatter(info, self.context)
+        try:
+            doc = formatter(info, self.context)
+        except:
+            doc = ''.join(traceback.format_exception(*info))
+            plain = True
         if self.display:
             if plain:
                 doc = pydoc.html.escape(doc)

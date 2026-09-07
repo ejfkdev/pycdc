@@ -250,7 +250,10 @@ def _add_filter(*item, append):
     with _wm._lock:
         filters = _wm._get_filters()
         if not append:
-            filters.remove(item)
+            try:
+                filters.remove(item)
+            except ValueError:
+                pass
             filters.insert(0, item)
         elif item not in filters:
             filters.append(item)

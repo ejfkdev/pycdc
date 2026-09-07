@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
   "PASS": 15,
-  "SIG-DIFF": 21,
-  "INCOMPLETE": 4
+  "SIG-DIFF": 22,
+  "INCOMPLETE": 3
  },
  "results": [
   {
@@ -21,11 +21,11 @@
   },
   {
    "module": "_bootsubprocess",
-   "ast_detail": "diff at token 358: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 359: orig  Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  With(items=[withitem(context_expr=Call(func=Name(id='open'",
    "verdict": "SIG-DIFF",
-   "ndiff": 84,
+   "ndiff": 83,
    "ntotal": 396,
-   "detail": "line 307: orig ('NOP', '') | got ('JUMP_FORWARD', 'to 392')\nline 308: orig ('LOAD_GLOBAL', 'NULL + open') | got ('PUSH_EXC_INFO', '')\nline 309: orig ('LOAD_FAST', 'tmp_filename') | got ('LOAD_GLOBAL', 'OSError')"
+   "detail": "line 307: orig ('NOP', '') | got ('LOAD_GLOBAL', 'NULL + open')\nline 308: orig ('LOAD_GLOBAL', 'NULL + open') | got ('LOAD_FAST', 'tmp_filename')\nline 309: orig ('LOAD_FAST', 'tmp_filename') | got ('LOAD_CONST', \"'rb'\")"
   },
   {
    "module": "_collections_abc",
@@ -55,9 +55,9 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 167: orig  args=[BinOp(left=Constant(value='/tmp/_osx_support.%s') | dec  args=[JoinedStr(values=[Constant(value='/tmp/_osx_support.')",
    "verdict": "SIG-DIFF",
-   "ndiff": 1180,
-   "ntotal": 1565,
-   "detail": "line 294: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 400') | got ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 484')\nline 305: orig ('NOP', '') | got ('LOAD_GLOBAL', 'NULL + re')\nline 306: orig ('LOAD_GLOBAL', 'NULL + re') | got ('LOAD_ATTR', 'search')"
+   "ndiff": 1263,
+   "ntotal": 1583,
+   "detail": "line 294: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 400') | got ('EXTENDED_ARG', '')\nline 295: orig ('LOAD_CONST', \"''\") | got ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 580')\nline 296: orig ('STORE_GLOBAL', '_SYSTEM_VERSION') | got ('LOAD_CONST', \"''\")"
   },
   {
    "module": "_py_abc",
@@ -180,10 +180,11 @@
   },
   {
    "module": "cmd",
-   "verdict": "INCOMPLETE",
-   "ndiff": 1200,
+   "ast_detail": "diff at token 235: orig  body=[Try(body=[Assign(targets=[Name(id='line' | dec  body=[Assign(targets=[Name(id='line'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1180,
    "ntotal": 1453,
-   "detail": "line 207: orig ('LOAD_FAST', 'intro') | got ('NOP', '')\nline 208: orig ('POP_JUMP_FORWARD_IF_NONE', 'to 294') | got ('LOAD_FAST', 'intro')\nline 209: orig ('LOAD_FAST', 'intro') | got ('POP_JUMP_FORWARD_IF_NONE', 'to 296')"
+   "detail": "line 231: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 906')\nline 232: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 948') | got ('LOAD_FAST', 'self')\nline 233: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'cmdqueue')"
   },
   {
    "module": "code",
@@ -232,8 +233,8 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1803,
-   "ntotal": 2283,
+   "ndiff": 1779,
+   "ntotal": 2289,
    "detail": "line 434: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 435: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + wraps')\nline 436: orig ('LOAD_GLOBAL', 'NULL + wraps') | got ('LOAD_FAST', 'func')"
   },
   {

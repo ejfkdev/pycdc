@@ -469,7 +469,13 @@ def main():
     import sys
     import getopt
     usage = f'usage: {sys.argv[0]} [-h|-d|-e|-u] [file|-]\n        -h: print this help message and exit\n        -d, -u: decode\n        -e: encode (default)'
-    opts, args = getopt.getopt(sys.argv[1:], 'hdeu')
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'hdeu')
+    except getopt.error as msg:
+        sys.stdout = sys.stderr
+        print(msg)
+        print(usage)
+        sys.exit(2)
     func = encode
     for o, a in opts:
         if o == '-e':

@@ -174,7 +174,12 @@ class _localimpl:
 @contextmanager
 def _patch(self):
     impl = object.__getattribute__(self, '_local__impl')
-    dct = impl.get_dict()
+    try:
+        dct = impl.get_dict()
+    except KeyError:
+        dct = impl.create_dict()
+        args, kw = impl.localargs
+        self.__init__(*args, **kw)
     with impl.locallock:
         object.__setattr__(self, '__dict__', dct)
         yield None

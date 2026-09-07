@@ -126,8 +126,10 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
                 next(self.gen)
             except StopIteration:
                 return False
-            # WARNING: unrecovered try/except structure
-            raise RuntimeError("generator didn't stop")
+            try:
+                raise RuntimeError("generator didn't stop")
+            finally:
+                self.gen.close()
         if value is None:
             value = typ()
         try:
@@ -155,8 +157,6 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             raise RuntimeError("generator didn't stop after throw()")
         finally:
             self.gen.close()
-            if StopIteration:
-                None
 
 
 class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncContextManager, AsyncContextDecorator):
@@ -183,8 +183,10 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 await anext(self.gen)
             except StopAsyncIteration:
                 return False
-            # WARNING: unrecovered try/except structure
-            raise RuntimeError("generator didn't stop")
+            try:
+                raise RuntimeError("generator didn't stop")
+            finally:
+                await self.gen.aclose()
         if value is None:
             value = typ()
         try:
@@ -235,8 +237,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             return False
         finally:
             await self.gen.aclose()
-            if StopAsyncIteration:
-                None
         try:
             pass
         except StopAsyncIteration as exc:

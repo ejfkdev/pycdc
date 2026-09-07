@@ -92,7 +92,10 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
         raise ValueError('workers must be greater or equal to 0')
     if workers != 1:
         from concurrent.futures.process import _check_system_limits
-        _check_system_limits()
+        try:
+            _check_system_limits()
+        except NotImplementedError:
+            workers = 1
         from concurrent.futures import ProcessPoolExecutor
     if maxlevels is None:
         maxlevels = sys.getrecursionlimit()

@@ -258,15 +258,24 @@ a default message is printed.
                             e = None
                             del e
                         finally:
-                            raise e
-                            e = None
-                            del e
                             if _exit is not None:
                                 builtins.exit = _exit
                             if _quit is not None:
                                 builtins.quit = _quit
                             if exitmsg is None:
                                 self.write('now exiting %s...\n' % self.__class__.__name__)
+                            if exitmsg != '':
+                                self.write('%s\n' % exitmsg)
+                    else:
+                        raise e
+                        e = None
+                        del e
+                if _exit is not None:
+                    builtins.exit = _exit
+                if _quit is not None:
+                    builtins.quit = _quit
+                if exitmsg is None:
+                    self.write('now exiting %s...\n' % self.__class__.__name__)
 
     def push(self, line, filename=None, _symbol='single'):
         self.buffer.append(line)

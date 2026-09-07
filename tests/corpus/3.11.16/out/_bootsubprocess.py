@@ -61,21 +61,17 @@ def check_output(cmd, **kwargs):
         cmd = ' '.join(cmd)
     cmd = f'{cmd} >{tmp_filename}'
     try:
-        # WARNING: unrecovered try/except structure
         status = os.system(cmd)
         exitcode = os.waitstatus_to_exitcode(status)
         if exitcode:
             raise ValueError(f'Command {cmd!r} returned non-zero exit status {exitcode!r}')
-    except OSError:
-        pass
-    try:
         with open(tmp_filename, 'rb') as fp:
             stdout = fp.read()
-    except FileNotFoundError:
-        stdout = b''
-    try:
-        os.unlink(tmp_filename)
-    except OSError:
-        pass
+    finally:
+        try:
+            os.unlink(tmp_filename)
+        except OSError:
+            pass
+    os.unlink(tmp_filename)
     return stdout
 

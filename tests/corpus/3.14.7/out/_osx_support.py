@@ -34,8 +34,11 @@ def _read_output(commandstring, capture_stderr=False):
     '''Output from successful command execution or None'''
 
     import contextlib
-    import tempfile
-    fp = tempfile.NamedTemporaryFile()
+    try:
+        import tempfile
+        fp = tempfile.NamedTemporaryFile()
+    except ImportError:
+        fp = open(f'/tmp/_osx_support.{os.getpid()!s}', 'w+b')
     with contextlib.closing(fp) as fp:
         if capture_stderr:
             cmd = f"{commandstring!s} >'{fp.name!s}' 2>&1"
@@ -60,9 +63,10 @@ def _get_system_version():
             f = open('/System/Library/CoreServices/SystemVersion.plist', encoding='utf-8')
         except OSError:
             return _SYSTEM_VERSION
-        # WARNING: unrecovered try/except structure
-        m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
-        f.close()
+        try:
+            m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
+        finally:
+            f.close()
         if m is not None:
             _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
         return _SYSTEM_VERSION

@@ -600,7 +600,13 @@ pub fn decompile_in_scope(
             // finally copy of `try: os.unlink except OSError: pass`
             // carried the nested chain's CHECK_EXC_MATCH into the
             // window - the Try rendered without its finalbody)
-            let window: Vec<_> = instrs.iter().skip(hi).take(40).collect();
+            let mut window: Vec<_> = Vec::new();
+            for x in instrs.iter().skip(hi).take(40) {
+                window.push(x);
+                if x.op == Op::RERAISE {
+                    break;
+                }
+            }
             if window.iter().any(|x| x.op == Op::WITH_EXCEPT_START) {
                 with_regions.insert(e.start, e.end);
                 all_handler_targets.push(e.target);
@@ -2478,6 +2484,14 @@ impl<'a> Ctx<'a> {
         // handler chain — statements AFTER the copy (post-try code inside
         // a loop iteration) belong to the main walk, not the finally
         let mut fin_span_stop = stop;
+        // the inline-copy mirror verdict: false means the span at `pos`
+        // does NOT opcode-mirror the finally chain's copy — there is no
+        // inline copy here (an always-raising try body has no normal
+        // exit; contextlib 3.12 __exit__'s `try: raise RuntimeError
+        // finally: gen.close()`), and the flow at `pos` is the NEXT
+        // source statement, which the decompose below would swallow as
+        // the finally body
+        let mut mirror_ok = true;
         if early_fin.is_none() && tc.finally_handler.is_some() && stop > pos {
             // NOTE: JUMP_BACKWARD_NO_INTERRUPT is the await-resume
             // protocol / finally-flow jump — not a loop back edge
@@ -2500,7 +2514,32 @@ impl<'a> Ctx<'a> {
                         .instrs
                         .iter()
                         .position(|x| x.offset >= pos);
-                    if let Some(si0) = span_i {
+                    // hop the chain scaffolding between the fold pos and
+                    // the inline copy's start: 3.11 folds land on the
+                    // clause RERAISE with the mismatch stubs (COPY;
+                    // POP_EXCEPT; RERAISE) between it and the copy (b22
+                    // loop_try_mix) — comparing from the stubs misreads
+                    // an existing copy as absent
+                    let si0 = span_i.map(|mut s0| {
+                        while s0 < self.instrs.len()
+                            && self.instrs[s0].offset < stop
+                            && matches!(
+                                self.instrs[s0].op,
+                                Op::RERAISE
+                                    | Op::COPY
+                                    | Op::POP_EXCEPT
+                                    | Op::SWAP
+                                    | Op::NOP
+                                    | Op::NOT_TAKEN
+                                    | Op::CACHE
+                                    | Op::END_FINALLY
+                            )
+                        {
+                            s0 += 1;
+                        }
+                        s0
+                    });
+                    if let Some(si0) = si0 {
                         // separate cursors: the chain has a PUSH_EXC_INFO
                         // head the inline copy lacks
                         let mut cn = 0usize;
@@ -2535,6 +2574,16 @@ impl<'a> Ctx<'a> {
                             cn += 1;
                             sn += 1;
                         }
+                        // gate scope: only an IMMEDIATE head divergence
+                        // (or a degenerate empty copy) proves there is no
+                        // inline copy at `pos` — a late divergence is the
+                        // loop-back-edge trim cutting the span short
+                        // (b22 3.11 loop_try_mix decomposes correctly
+                        // despite it)
+                        if std::env::var("PYCDC_EG_DBG").is_ok() {
+                            eprintln!("EG mirror [{}] pos={} fh={} ok={} sn={} si0off={} fin_span_stop={}", self.code.name, pos, tc.finally_handler.unwrap_or(0), ok, sn, self.instrs.get(si0).map(|x| x.offset).unwrap_or(0), fin_span_stop);
+                        }
+                        mirror_ok = ok || sn > 1;
                         if ok {
                             if let Some(t) = trim {
                                 fin_span_stop = t;
@@ -2569,7 +2618,7 @@ impl<'a> Ctx<'a> {
                 }
                 ef
             }
-        } else if tc.finally_handler.is_some() && stop > pos {
+        } else if tc.finally_handler.is_some() && stop > pos && mirror_ok {
             // the span may hold a NESTED try whose own finally chain was
             // laid out inside it (nested try/finally around a yield in
             // 3.11+): decompose recursively instead of letting the region
@@ -2615,8 +2664,11 @@ impl<'a> Ctx<'a> {
         } else {
             Vec::new()
         };
-        if tc.finally_handler.is_some() && fin_span_stop > pos {
-            // main pass must not re-execute the inline finally body
+        if tc.finally_handler.is_some() && fin_span_stop > pos && mirror_ok {
+            // main pass must not re-execute the inline finally body —
+            // only when the mirror confirmed a copy exists at `pos`;
+            // with no inline copy the flow there is the next source
+            // statement (the enclosing else arm) and skipping strands it
             if self.skip_until.map_or(true, |s| s < fin_span_stop) {
                                 self.skip_until = Some(fin_span_stop);
             }

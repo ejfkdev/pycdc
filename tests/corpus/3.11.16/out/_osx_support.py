@@ -63,8 +63,10 @@ def _get_system_version():
         except OSError:
             pass
         else:
-            # WARNING: unrecovered try/except structure
-            m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
+            try:
+                m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
+            finally:
+                f.close()
             f.close()
             if m is not None:
                 _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])

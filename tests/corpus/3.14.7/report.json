@@ -2,9 +2,9 @@
  "version": "3.14.7",
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
-  "PASS": 12,
+  "PASS": 13,
   "INCOMPLETE": 13,
-  "SIG-DIFF": 14,
+  "SIG-DIFF": 13,
   "AST-PASS": 1
  },
  "results": [
@@ -64,7 +64,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 942,
    "ntotal": 1352,
-   "detail": "line 394: orig ('LOAD_CONST', \"frozenset({'attlist', 'linktype', 'link', 'element'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 395: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 396: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'element', 'link', 'linktype'})\")"
+   "detail": "line 394: orig ('LOAD_CONST', \"frozenset({'linktype', 'attlist', 'link', 'element'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 395: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 396: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'linktype', 'link', 'element'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -73,9 +73,9 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1550,
-   "ntotal": 1761,
-   "detail": "line 176: orig ('NOP', '') | got ('LOAD_SMALL_INT', '')\nline 177: orig ('LOAD_SMALL_INT', '') | got ('LOAD_CONST', 'None')\nline 178: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'tempfile')"
+   "ndiff": 1401,
+   "ntotal": 1796,
+   "detail": "line 362: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 363: orig ('LOAD_ATTR', 'close + NULL|self') | got ('CHECK_EXC_MATCH', '')\nline 364: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to L3')"
   },
   {
    "module": "_py_abc",
@@ -87,8 +87,8 @@
   {
    "module": "_py_warnings",
    "verdict": "INCOMPLETE",
-   "ndiff": 2637,
-   "ntotal": 3254,
+   "ndiff": 2645,
+   "ntotal": 3267,
    "detail": "line 553: orig ('JUMP_FORWARD', 'to L2') | got ('LOAD_FAST', 'msg')\nline 554: orig ('LOAD_FAST', 'msg') | got ('LOAD_ATTR', 'line')\nline 555: orig ('LOAD_ATTR', 'line') | got ('STORE_FAST', 'line')"
   },
   {
@@ -120,11 +120,7 @@
   },
   {
    "module": "_threading_local",
-   "ast_detail": "diff at token 169: orig  Try(body=[Assign(targets=[Name(id='dct' | dec  Assign(targets=[Name(id='dct'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 296,
-   "ntotal": 511,
-   "detail": "line 208: orig ('NOP', '') | got ('LOAD_FAST', 'impl')\nline 209: orig ('LOAD_FAST', 'impl') | got ('LOAD_ATTR', 'get_dict + NULL|self')\nline 210: orig ('LOAD_ATTR', 'get_dict + NULL|self') | got ('CALL', '')"
+   "verdict": "PASS"
   },
   {
    "module": "_weakrefset",
@@ -157,7 +153,7 @@
    "module": "base64",
    "ast_detail": "diff at token 42: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1845,
+   "ndiff": 1843,
    "ntotal": 2149,
    "detail": "line 265: orig ('NOP', '') | got ('LOAD_FAST', 's')\nline 266: orig ('LOAD_FAST', 's') | got ('LOAD_ATTR', 'encode + NULL|self')\nline 267: orig ('LOAD_ATTR', 'encode + NULL|self') | got ('LOAD_CONST', \"'ascii'\")"
   },
@@ -195,9 +191,9 @@
   {
    "module": "cmd",
    "verdict": "INCOMPLETE",
-   "ndiff": 1215,
-   "ntotal": 1460,
-   "detail": "line 217: orig ('LOAD_FAST', 'intro') | got ('NOP', '')\nline 218: orig ('POP_JUMP_IF_NONE', 'to L5') | got ('LOAD_FAST', 'intro')\nline 219: orig ('NOT_TAKEN', '') | got ('POP_JUMP_IF_NONE', 'to L5')"
+   "ndiff": 1332,
+   "ntotal": 1603,
+   "detail": "line 238: orig ('LOAD_CONST', 'None') | got ('NOP', '')\nline 239: orig ('STORE_FAST', 'stop') | got ('LOAD_FAST', 'self')\nline 240: orig ('LOAD_FAST', 'stop') | got ('LOAD_ATTR', 'stdout')"
   },
   {
    "module": "code",
@@ -228,7 +224,7 @@
   {
    "module": "compileall",
    "verdict": "INCOMPLETE",
-   "ndiff": 1378,
+   "ndiff": 1309,
    "ntotal": 1666,
    "detail": "line 158: orig ('FOR_ITER', 'to L14') | got ('FOR_ITER', 'to L13')\nline 163: orig ('POP_JUMP_IF_FALSE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 165: orig ('JUMP_BACKWARD', 'to L4') | got ('JUMP_BACKWARD', 'to L3')"
   },
@@ -243,8 +239,8 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1939,
-   "ntotal": 2590,
+   "ndiff": 1879,
+   "ntotal": 2604,
    "detail": "line 483: orig ('LOAD_DEREF', 'func') | got ('NOP', '')\nline 484: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 485: orig ('LOAD_FAST', 'args') | got ('LOAD_CONST', 'None')"
   },
   {
