@@ -347,6 +347,12 @@ struct Ctx<'a> {
     /// tail-return recovery in emit_return uses it to verify the stray
     /// return starts exactly at the body end (narrowed protected range)
     last_try_body_end: Option<usize>,
+    /// 3.11+ with-in-try: the protected body splits around the with
+    /// machinery and the Try folds at an early fragment boundary while
+    /// the body's real tail (post-with `break` / pass-through jump) lies
+    /// UNWALKED between the machinery and the chain head — (start, end)
+    /// of that tail; the main walk folds it into the Try body on arrival
+    pending_try_tail: Option<(usize, usize)>,
     /// offset of the implicit tail `LOAD None` when the instruction tail
     /// is `RETURN; LOAD None; RETURN` — proves the source's last
     /// statement was an if/else whose arms all return, so function-tail
@@ -660,6 +666,7 @@ pub fn decompile_in_scope(
         with_regions: with_regions.clone(),
         active_try: None,
         last_try_body_end: None,
+        pending_try_tail: None,
         tail_pair_at: None,
         pending_try_ctx: None,
         pending_nested_finally: None,
@@ -1129,6 +1136,7 @@ pub fn decompile_in_scope(
 
 impl<'a> Ctx<'a> {
     fn run(&mut self) {
+        self.pending_try_tail = None;
         self.prescan_while_true();
         self.prescan_dup_copies();
         let mut pc = 0usize;
@@ -1173,6 +1181,28 @@ impl<'a> Ctx<'a> {
                     let ti = self.idx_of[&after];
                     let t = self.instrs[ti].target.unwrap();
                     if t <= after {
+                        break;
+                    }
+                    // a forward jump PRECEDED BY an uncovered POP_TOP is
+                    // a `break` (the POP_TOP drops the loop iterator):
+                    // the tail of a protected body lying between the
+                    // chain's dead stubs and the next chain head —
+                    // hopping it strands the POP_TOP inside the skip and
+                    // the break is lost (_sitebuiltins 3.11 __setup:
+                    // `try: with ...; break` rendered without the break,
+                    // the handler's loop back edge flipping FOR_ITER's
+                    // exit). A COVERED POP_TOP is with-machinery cleanup
+                    // (_bootsubprocess 3.11 check_output: the inner
+                    // with-chain's exit stubs feed the enclosing
+                    // finally's chain head through exactly this
+                    // trampoline) — hop it.
+                    if ti > 0
+                        && self.instrs[ti - 1].op == Op::POP_TOP
+                        && !self.exc_entries.iter().any(|e| {
+                            e.start <= self.instrs[ti - 1].offset
+                                && self.instrs[ti - 1].offset < e.end
+                        })
+                    {
                         break;
                     }
                     after = t;
@@ -1222,7 +1252,7 @@ impl<'a> Ctx<'a> {
                 } else {
                     self.close_blocks_at(pos);
                 }
-                self.skip_until = Some(after);
+                                self.skip_until = Some(after);
                 past_chains = true;
             } else if let Some(zone) = self.handler_zone {
                 // a protected body may legitimately START inside the zone
@@ -1230,6 +1260,61 @@ impl<'a> Ctx<'a> {
                 // walk must open the try there instead of breaking
                 if pos >= zone && !past_chains && !self.try_ctxs.contains_key(&pos) {
                     break;
+                }
+            }
+            // a folded 3.11+ try's un-walked body tail (with-split
+            // protected region): walk it now and attach it to the Try's
+            // body — statements pushed after the fold would land in the
+            // enclosing block, rendering the tail outside the try
+            if let Some((ts, te)) = self.pending_try_tail {
+                if pos == ts {
+                    self.pending_try_tail = None;
+                    // `break` tail: the region sub-walk swaps the block
+                    // stack and cannot see the loop — rebuild the Break
+                    // while the live blocks are still on the stack
+                    let mut cut = te;
+                    let mut is_break = false;
+                    if let (Some(&si), Some(&ei)) =
+                        (self.idx_of.get(&ts), self.idx_of.get(&te))
+                    {
+                        for j in si..ei {
+                            let x = self.instrs[j];
+                            if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                                && !x.is_backward
+                                && x.target.map_or(false, |t| {
+                                    t > x.offset && self.find_loop_exit(t).is_some()
+                                })
+                            {
+                                cut = x.offset;
+                                is_break = true;
+                                break;
+                            }
+                        }
+                    }
+                    let mut tail = if cut > ts {
+                        self.decompile_region(ts, cut)
+                    } else {
+                        Vec::new()
+                    };
+                    if is_break {
+                        tail.push(Stmt::Break);
+                    }
+                    if !tail.is_empty() {
+                        if let Some(top) = self.blocks.last_mut() {
+                            if let Some(Stmt::Try {
+                                body, finalbody, ..
+                            }) = top.stmts.last_mut()
+                            {
+                                if finalbody.is_empty() {
+                                    body.extend(tail);
+                                }
+                            }
+                        }
+                    }
+                    self.skip_until = Some(te);
+                } else if pos > ts {
+                    // jumped over — the tail is unreachable in this flow
+                    self.pending_try_tail = None;
                 }
             }
             if let Some(skip) = self.skip_until {
@@ -1299,7 +1384,7 @@ impl<'a> Ctx<'a> {
                 if let Some(&hi) = self.idx_of.get(&pos) {
                     for ins in self.instrs[hi..].iter().take(10) {
                         if ins.op == Op::END_FINALLY {
-                            self.skip_until = Some(ins.end());
+                                                        self.skip_until = Some(ins.end());
                             break;
                         }
                     }
@@ -1649,6 +1734,96 @@ impl<'a> Ctx<'a> {
 
     /// Emit the else/finally structure of a completed try region and
     /// decompile the out-of-line handlers.
+    /// 3.11+ `with` inside `try`: the exception table splits the
+    /// protected body around the with machinery, so the Try folds at an
+    /// early fragment boundary while the body's real tail (a `break` /
+    /// pass-through jump laid out between the machinery and the chain
+    /// head) is still UNWALKED. Detect that tail and record it; the main
+    /// walk folds it into the Try's body on arrival. Detection must
+    /// reject an else region: when every handler clause re-joins the
+    /// mainline at the tail jump's target, the span [jump_target,
+    /// chain_head) is the else body, not a body tail (_compression 3.12
+    /// read's `else: return ...`).
+    fn arm_try_body_tail(&mut self, tc: &TryCtx) {
+        self.pending_try_tail = None;
+        if !self.version.at_least(3, 11) || tc.except_handler.is_none() {
+            return;
+        }
+        let Some(h) = tc.except_handler else { return };
+        if h <= tc.body_end {
+            return;
+        }
+        // tail jump: last forward JUMP_FORWARD/JUMP below the chain head
+        // not itself inside an exception-table entry (the with success
+        // path's own exit jump IS covered — 142 lies in `120 to 142`)
+        let (Some(&bi), Some(&hi)) = (self.idx_of.get(&tc.body_end), self.idx_of.get(&h)) else {
+            return;
+        };
+        let mut tj = None;
+        for j in bi..hi {
+            let x = self.instrs[j];
+            if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                && !x.is_backward
+                && x.target.map_or(false, |t| t > x.offset)
+                && !self
+                    .exc_entries
+                    .iter()
+                    .any(|e| e.start <= x.offset && x.offset < e.end)
+            {
+                tj = Some(j);
+            }
+        }
+        let Some(j) = tj else { return };
+        let jt = self.instrs[j].target.unwrap();
+        // every clause's re-join jump aiming at jt makes [jt, h) an else
+        // region — the tail jump is the else body's exit, not a body tail
+        let chain_end = self.chain_extent(h);
+        let (clause_joins, joins_at_jt) = self
+            .idx_of
+            .get(&h)
+            .map(|&csi| {
+                let cei = self
+                    .idx_of
+                    .get(&chain_end)
+                    .copied()
+                    .unwrap_or(self.instrs.len());
+                let jumps: Vec<_> = self.instrs[csi..cei.min(self.instrs.len())]
+                    .iter()
+                    .filter(|x| {
+                        matches!(
+                            x.op,
+                            Op::JUMP_FORWARD
+                                | Op::JUMP
+                                | Op::JUMP_BACKWARD
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                | Op::JUMP_ABSOLUTE
+                        )
+                    })
+                    .collect();
+                (
+                    jumps.len(),
+                    jumps.iter().filter(|x| x.target == Some(jt)).count(),
+                )
+            })
+            .unwrap_or((0, 0));
+        if clause_joins > 0 && joins_at_jt >= clause_joins {
+            return;
+        }
+        // the span between the tail jump and the chain head must be pure
+        // handler-prelude padding (POP_TOPs of a bare except, NOPs) —
+        // anything else means the layout is not the with-split tail shape
+        for x in &self.instrs[j + 1..hi] {
+            if !matches!(x.op, Op::POP_TOP | Op::NOP | Op::NOT_TAKEN | Op::CACHE) {
+                return;
+            }
+        }
+        let tail_start = self.instrs[j].offset;
+        if tail_start <= self.cur_offset {
+            return;
+        }
+        self.pending_try_tail = Some((tail_start, h));
+    }
+
     fn emit_try_tail(&mut self, tc: TryCtx, pos: usize) {
         // 3.11 except* + else + finally: the chain is laid out INLINE
         // between the body's terminal JUMP_FORWARD and the else region,
@@ -1738,7 +1913,7 @@ impl<'a> Ctx<'a> {
                 Vec::new()
             };
             if self.skip_until.map_or(true, |s| s < stop) {
-                self.skip_until = Some(stop);
+                                self.skip_until = Some(stop);
             }
             self.pending_nested_finally = None;
             self.push_stmt(Stmt::Try {
@@ -1752,7 +1927,7 @@ impl<'a> Ctx<'a> {
                 self.push_stmt_all(star_tail);
                 if let Some(se) = self.star_tail_end.take() {
                     if self.skip_until.map_or(true, |s| s < se) {
-                        self.skip_until = Some(se);
+                                                self.skip_until = Some(se);
                     }
                 }
             } else {
@@ -1989,7 +2164,7 @@ impl<'a> Ctx<'a> {
                     // the walk resumes at the exit landing (loop end /
                     // post-loop flow); the handler chain folds at its head
                     if self.skip_until.map_or(true, |s| s < exit_at) {
-                        self.skip_until = Some(exit_at);
+                                                self.skip_until = Some(exit_at);
                     }
                     return;
                 }
@@ -2166,20 +2341,20 @@ impl<'a> Ctx<'a> {
             if stop > pos {
                 let walked = self.decompose_finally_span(pos, stop, None);
                 if self.skip_until.map_or(true, |s| s < stop) {
-                    self.skip_until = Some(stop);
+                                        self.skip_until = Some(stop);
                 }
                 if !walked.is_empty() {
                     nested_inner_fin = Some(ef);
                     walked
                 } else {
                     if self.skip_until.map_or(true, |s| s < stop) {
-                        self.skip_until = Some(stop);
+                                                self.skip_until = Some(stop);
                     }
                     ef
                 }
             } else {
                 if self.skip_until.map_or(true, |s| s < stop) {
-                    self.skip_until = Some(stop);
+                                        self.skip_until = Some(stop);
                 }
                 ef
             }
@@ -2221,7 +2396,7 @@ impl<'a> Ctx<'a> {
                 if head == Some(nh) {
                     let skip_past = self.chain_extent(nh);
                     if self.skip_until.map_or(true, |s| s < skip_past) {
-                        self.skip_until = Some(skip_past);
+                                                self.skip_until = Some(skip_past);
                     }
                 }
             }
@@ -2232,7 +2407,7 @@ impl<'a> Ctx<'a> {
         if tc.finally_handler.is_some() && fin_span_stop > pos {
             // main pass must not re-execute the inline finally body
             if self.skip_until.map_or(true, |s| s < fin_span_stop) {
-                self.skip_until = Some(fin_span_stop);
+                                self.skip_until = Some(fin_span_stop);
             }
         }
         // except handlers (out-of-line)
@@ -2479,7 +2654,7 @@ impl<'a> Ctx<'a> {
                                         self.decompile_region(tc.body_end, else_end);
                                 }
                                 if self.skip_until.map_or(true, |s| s < merge) {
-                                    self.skip_until = Some(merge);
+                                                                        self.skip_until = Some(merge);
                                 }
                             }
                         }
@@ -2521,7 +2696,7 @@ impl<'a> Ctx<'a> {
             // would re-execute it — skip past the span we just folded
             if let Some(se) = self.star_tail_end.take() {
                 if self.skip_until.map_or(true, |s| s < se) {
-                    self.skip_until = Some(se);
+                                        self.skip_until = Some(se);
                 }
             }
         } else {
@@ -2541,6 +2716,7 @@ impl<'a> Ctx<'a> {
         );
         let saved_stack = std::mem::take(&mut self.stack);
         let saved_skip = self.skip_until;
+        let saved_try_tail = self.pending_try_tail.take();
         let saved_cur = (self.cur_offset, self.cur_next);
         // an outer walk's skip range must not swallow this region's
         // instructions — the span walk starts with clean skip state
@@ -2653,6 +2829,7 @@ impl<'a> Ctx<'a> {
         self.blocks = saved_blocks;
         self.stack = saved_stack;
         self.skip_until = saved_skip;
+        self.pending_try_tail = saved_try_tail;
         let (saved_cur_offset, saved_cur_next) = saved_cur;
         self.cur_offset = saved_cur_offset;
         self.cur_next = saved_cur_next;
@@ -3410,6 +3587,23 @@ impl<'a> Ctx<'a> {
                     };
                     body.push(Stmt::Break);
                     return body;
+                }
+            }
+            // an unconditional FORWARD jump at the body head (past the
+            // break rebuild above) is the handler's EXIT jump, not a body
+            // statement: the clause is empty (`except: pass`). Walking it
+            // swallows the post-chain continuation into the handler
+            // (_sitebuiltins 3.11 Quitter.__call__: the bare handler's exit
+            // JF targets the sunk `raise SystemExit(code)`, which rendered
+            // both inside the handler and after the try)
+            if let Some(&bi) = self.idx_of.get(&body_from) {
+                let hj = self.instrs[bi];
+                if matches!(hj.op, Op::JUMP_FORWARD | Op::JUMP)
+                    && !hj.is_backward
+                    && hj.target.map_or(false, |t| t > body_from)
+                {
+                    *pc = bi + 1;
+                    return Vec::new();
                 }
             }
             return if limit > body_from {
@@ -4676,7 +4870,7 @@ impl<'a> Ctx<'a> {
                         }
                         if let Some(&pi) = self.idx_of.get(&pos) {
                             if let Some(nx) = self.instrs.get(pi + 1) {
-                                self.skip_until = Some(nx.end());
+                                                                self.skip_until = Some(nx.end());
                             }
                         }
                     }
@@ -4817,7 +5011,7 @@ impl<'a> Ctx<'a> {
                                         }
                                     }
                                     self.legacy_handler_end = None;
-                                    self.skip_until = Some(jbe);
+                                                                        self.skip_until = Some(jbe);
                                     return;
                                 }
                             }
@@ -5093,7 +5287,7 @@ impl<'a> Ctx<'a> {
                             let l = self.legacy_try.take().unwrap();
                             self.restore_legacy_nest();
                             self.push_legacy_try(l);
-                            self.skip_until = Some(target);
+                                                        self.skip_until = Some(target);
                             return;
                         }
                     }
@@ -5610,7 +5804,7 @@ impl<'a> Ctx<'a> {
                             if let Some(merged) = merge_chain_compare(&cond, &right) {
                                 self.push(merged);
                                 if let Some(skip) = b.else_end {
-                                    self.skip_until = Some(skip);
+                                                                        self.skip_until = Some(skip);
                                 }
                                 return;
                             }
@@ -5660,7 +5854,7 @@ impl<'a> Ctx<'a> {
                                             body: vec![Stmt::Break],
                                             orelse: Vec::new(),
                                         });
-                                        self.skip_until = Some(ins.end());
+                                                                                self.skip_until = Some(ins.end());
                                         return;
                                     }
                                 }
@@ -6241,6 +6435,7 @@ impl<'a> Ctx<'a> {
                         self.pending_orelse_mark =
                             self.blocks.last().map(|b| b.stmts.len());
                     } else {
+                        self.arm_try_body_tail(&tc);
                         self.emit_try_tail(tc, pos);
                     }
                     return;
@@ -7155,7 +7350,7 @@ impl<'a> Ctx<'a> {
                         // drop the COPY 1 duplicate; the slow path expects
                         // just the callable
                         self.pop();
-                        self.skip_until = Some(slow);
+                                                self.skip_until = Some(slow);
                         return true;
                     }
                 }
@@ -7380,7 +7575,7 @@ impl<'a> Ctx<'a> {
                             }
                         }
                         if let Some(st) = skip_to {
-                            self.skip_until = Some(st);
+                                                        self.skip_until = Some(st);
                         }
                     }
                     return true;
@@ -8483,24 +8678,24 @@ impl<'a> Ctx<'a> {
                         let end_send_end = self.instrs[ei].end();
                         if let Some(pop_end) = after_pop {
                             self.push_stmt(Stmt::Expr(expr));
-                            self.skip_until = Some(pop_end);
+                                                        self.skip_until = Some(pop_end);
                         } else {
                             self.push(expr);
-                            self.skip_until = Some(end_send_end);
+                                                        self.skip_until = Some(end_send_end);
                         }
                         return true;
                     }
                     if let Some(pi) = tail_pop {
                         let pop_end = self.instrs[pi].end();
                         self.push_stmt(Stmt::Expr(expr));
-                        self.skip_until = Some(pop_end);
+                                                self.skip_until = Some(pop_end);
                         return true;
                     }
                     // value form without END_SEND (3.11): the SEND's jump
                     // target is where the delegated value lands
                     if let Some(st) = send_target {
                         self.push(expr);
-                        self.skip_until = Some(st);
+                                                self.skip_until = Some(st);
                         return true;
                     }
                 }
@@ -8577,7 +8772,7 @@ impl<'a> Ctx<'a> {
                 self.awaiting_for_target = true;
                 self.push(iter);
                 if let Some(st) = skip_to {
-                    self.skip_until = Some(st);
+                                        self.skip_until = Some(st);
                 }
                 true
             }
@@ -8631,7 +8826,7 @@ impl<'a> Ctx<'a> {
                 self.blocks.push(fb);
                 self.awaiting_for_target = true;
                 if let Some(pe) = proto_end {
-                    self.skip_until = Some(pe);
+                                        self.skip_until = Some(pe);
                 }
                 true
             }
@@ -8774,7 +8969,7 @@ impl<'a> Ctx<'a> {
                 if target > self.cur_next
                     && self.with_handler_starts.contains(&self.cur_next)
                 {
-                    self.skip_until = Some(target);
+                                        self.skip_until = Some(target);
                     return r;
                 }
                 // With no branch block open and the jumped-over region a
@@ -8790,7 +8985,7 @@ impl<'a> Ctx<'a> {
                     && matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
                     && self.is_pure_value_region(self.cur_next, target)
                 {
-                    self.skip_until = Some(target);
+                                        self.skip_until = Some(target);
                 }
                 // 3.5-3.7 async-for: the per-iteration JUMP_FORWARD flies
                 // over the StopAsyncIteration guard handler into the loop
@@ -8800,7 +8995,7 @@ impl<'a> Ctx<'a> {
                         h == self.cur_next && target > h
                     })
                 {
-                    self.skip_until = Some(target);
+                                        self.skip_until = Some(target);
                 }
                 r
             }
@@ -10186,7 +10381,7 @@ impl<'a> Ctx<'a> {
                         return self.handle_jump_forward(target);
                     }
                     self.close_blocks_at(self.cur_offset);
-                    self.skip_until = Some(target);
+                                        self.skip_until = Some(target);
                     return true;
                 }
                 self.handle_jump_backward(target);
@@ -10277,7 +10472,7 @@ impl<'a> Ctx<'a> {
                     if let Some(msg) = self.is_assert_fallthrough(target) {
                         let cond = self.pop_expr();
                         self.push_stmt(Stmt::Assert { test: cond, msg });
-                        self.skip_until = Some(target);
+                                                self.skip_until = Some(target);
                         return true;
                     }
                 }
@@ -10300,7 +10495,7 @@ impl<'a> Ctx<'a> {
                         {
                             self.pop(); // operand 0 (consumed by the fold)
                             self.py2_else_pop_at = Some(else_pop);
-                            self.skip_until = Some(then_start);
+                                                        self.skip_until = Some(then_start);
                             self.handle_cond_jump(cond, false, else_body);
                             return true;
                         }
@@ -10329,7 +10524,7 @@ impl<'a> Ctx<'a> {
                             then_expr: then_val,
                             else_expr: else_val,
                         }));
-                        self.skip_until = Some(merge);
+                                                self.skip_until = Some(merge);
                         return true;
                     }
                     // if-statement shape: both paths discard the value
@@ -10343,7 +10538,7 @@ impl<'a> Ctx<'a> {
                     // skip the then-branch POP_TOP (cond already popped)
                     if let Some(i) = ci {
                         if let Some(pop) = self.instrs.get(i + 1) {
-                            self.skip_until = Some(pop.end());
+                                                        self.skip_until = Some(pop.end());
                         }
                     }
                     self.handle_cond_jump(cond, jump_if_true, else_body);
@@ -11173,7 +11368,7 @@ impl<'a> Ctx<'a> {
                                     orelse: Vec::new(),
                                     finalbody: fin,
                                 });
-                                self.skip_until = Some(exit_at);
+                                                                self.skip_until = Some(exit_at);
                                 return true;
                             }
                         }
@@ -16254,7 +16449,7 @@ impl<'a> Ctx<'a> {
                     eprintln!("AOR: off={} target={} merge={} -> {:?}", self.cur_offset, target, m, merged);
                 }
                 self.push(merged);
-                self.skip_until = Some(m);
+                                self.skip_until = Some(m);
                 return;
             }
         }
@@ -16269,7 +16464,7 @@ impl<'a> Ctx<'a> {
         // are version-independent and bail to the paths below otherwise.
         if jump_if_true {
             if let Some(body_start) = self.try_or_and_chain(cond.clone(), target) {
-                self.skip_until = Some(body_start);
+                                self.skip_until = Some(body_start);
                 return;
             }
         }
@@ -16289,7 +16484,7 @@ impl<'a> Ctx<'a> {
                     orelse: Vec::new(),
                 });
                 if self.skip_until.map_or(true, |s| s < body_end) {
-                    self.skip_until = Some(body_end);
+                                        self.skip_until = Some(body_end);
                 }
                 return;
             }
@@ -16519,10 +16714,10 @@ impl<'a> Ctx<'a> {
                             None
                         };
                         if let Some(e2) = exit.or(fused_back_edge) {
-                            self.skip_until = Some(e2);
+                                                        self.skip_until = Some(e2);
                         }
                     } else if self.skip_until.map_or(true, |s| s < else_stop) {
-                        self.skip_until = Some(else_stop);
+                                                self.skip_until = Some(else_stop);
                     }
                     return;
                 }
@@ -16551,7 +16746,7 @@ impl<'a> Ctx<'a> {
                 blk.jump_if_true = false;
                 blk.stack_depth = self.stack.len();
                 self.blocks.push(blk);
-                self.skip_until = Some(body_start);
+                                self.skip_until = Some(body_start);
                 return;
             }
         }
@@ -16574,7 +16769,7 @@ impl<'a> Ctx<'a> {
             self.blocks.push(blk);
             // skip the absorbed operand spans AND the false-exit
             // trampoline; resume at the body
-            self.skip_until = Some(tramp_end.max(target));
+                        self.skip_until = Some(tramp_end.max(target));
             return;
             }
         }
@@ -16623,7 +16818,7 @@ impl<'a> Ctx<'a> {
                             .and_then(|&ti| self.instrs.get(ti))
                             .and_then(|ins| ins.target)
                             .unwrap_or(body_start);
-                        self.skip_until = Some(after);
+                                                self.skip_until = Some(after);
                         return;
                     }
                     // emit `if <merged>: continue` and resume at the
@@ -16633,7 +16828,7 @@ impl<'a> Ctx<'a> {
                         body: vec![Stmt::Continue],
                         orelse: Vec::new(),
                     });
-                    self.skip_until = Some(body_start);
+                                        self.skip_until = Some(body_start);
                     return;
                 }
                 let mut blk = Block::new(BlockType::If, body_start, body_end);
@@ -16642,7 +16837,7 @@ impl<'a> Ctx<'a> {
                 blk.jump_if_true = false;
                 blk.stack_depth = self.stack.len();
                 self.blocks.push(blk);
-                self.skip_until = Some(body_start);
+                                self.skip_until = Some(body_start);
                 return;
             }
         }
@@ -16663,7 +16858,7 @@ impl<'a> Ctx<'a> {
                 blk.jump_if_true = false;
                 blk.stack_depth = self.stack.len();
                 self.blocks.push(blk);
-                self.skip_until = Some(body_start);
+                                self.skip_until = Some(body_start);
                 return;
             }
         }
@@ -16737,7 +16932,7 @@ impl<'a> Ctx<'a> {
                             blk.stack_depth = self.stack.len();
                             self.blocks.push(blk);
                             // the operand regions were consumed by the scratch sim
-                            self.skip_until = Some(then_start);
+                                                        self.skip_until = Some(then_start);
                             return;
                         }
                     }
@@ -16757,7 +16952,7 @@ impl<'a> Ctx<'a> {
                     blk.jump_if_true = false;
                     blk.stack_depth = self.stack.len();
                     self.blocks.push(blk);
-                    self.skip_until = Some(body_start);
+                                        self.skip_until = Some(body_start);
                     return;
                 }
             }
@@ -16783,7 +16978,7 @@ impl<'a> Ctx<'a> {
                 blk.jump_if_true = false;
                 blk.stack_depth = self.stack.len();
                 self.blocks.push(blk);
-                self.skip_until = Some(body_start);
+                                self.skip_until = Some(body_start);
                 return;
             }
             // historical-order retry of the strict recognizer (the Not-free
@@ -16798,7 +16993,7 @@ impl<'a> Ctx<'a> {
                 blk.stack_depth = self.stack.len();
                 self.blocks.push(blk);
                 // the operand regions were consumed by the scratch sim
-                self.skip_until = Some(then_start);
+                                self.skip_until = Some(then_start);
                 return;
             }
         }
@@ -16857,7 +17052,7 @@ impl<'a> Ctx<'a> {
                     // the trampoline is this loop's exhaustion exit: any
                     // jump onto it from inside the body is a `break`
                     self.threaded_break_at.insert(xj.offset);
-                    self.skip_until = Some(target);
+                                        self.skip_until = Some(target);
                     return;
                 }
             }
@@ -17456,7 +17651,7 @@ impl<'a> Ctx<'a> {
                         blk.stmts = body;
                         self.blocks.push(blk);
                         self.close_blocks_at(target);
-                        self.skip_until = Some(back_edge);
+                                                self.skip_until = Some(back_edge);
                         return;
                     }
                 }
@@ -17479,7 +17674,7 @@ impl<'a> Ctx<'a> {
         if jump_if_true {
             if let Some(msg) = self.is_assert_fallthrough(target) {
                 self.push_stmt(Stmt::Assert { test: cond, msg });
-                self.skip_until = Some(target);
+                                self.skip_until = Some(target);
                 return;
             }
         }
@@ -17492,7 +17687,7 @@ impl<'a> Ctx<'a> {
                     test: negate_cond(cond),
                     msg,
                 });
-                self.skip_until = Some(target);
+                                self.skip_until = Some(target);
                 return;
             }
         }
@@ -17504,7 +17699,7 @@ impl<'a> Ctx<'a> {
                 test: cond,
                 msg,
             });
-            self.skip_until = Some(target);
+                        self.skip_until = Some(target);
             return;
         }
 
@@ -17593,7 +17788,7 @@ impl<'a> Ctx<'a> {
                         blk.cond_set = true;
                         blk.stack_depth = self.stack.len();
                         self.blocks.push(blk);
-                        self.skip_until = Some(body_start);
+                                                self.skip_until = Some(body_start);
                         return;
                     }
                     if jump_if_true && self.blocks[i].cond_set {
@@ -17756,7 +17951,7 @@ impl<'a> Ctx<'a> {
                             self.blocks.push(blk);
                             // skip the remaining initial-condition tests;
                             // resume at the body top
-                            self.skip_until = Some(t);
+                                                        self.skip_until = Some(t);
                             return;
                         }
                     }
@@ -17855,7 +18050,7 @@ impl<'a> Ctx<'a> {
         if !jump_if_true {
             if let Some((merged, m)) = self.try_value_and_or_314(&c, target) {
                 self.push(merged);
-                self.skip_until = Some(m);
+                                self.skip_until = Some(m);
                 return;
             }
         }
@@ -18101,7 +18296,7 @@ impl<'a> Ctx<'a> {
                 }
             }
         }
-        self.skip_until = Some(skip);
+                self.skip_until = Some(skip);
     }
 
     /// Merge offset of a chained-comparison then arm: scan pure value ops
@@ -18469,7 +18664,7 @@ impl<'a> Ctx<'a> {
                                     orelse: Vec::new(),
                                     finalbody: fin,
                                 });
-                                self.skip_until = Some(target);
+                                                                self.skip_until = Some(target);
                                 return true;
                             }
                         }
@@ -18624,7 +18819,7 @@ impl<'a> Ctx<'a> {
                             .map_or(false, |b| b.value_merge.is_some());
                         self.force_close_top(self.cur_next);
                         if is_chain_merge {
-                            self.skip_until = Some(target);
+                                                        self.skip_until = Some(target);
                             return true;
                         }
                         // an elif arm's nested if may share the chain
@@ -18669,7 +18864,7 @@ impl<'a> Ctx<'a> {
                         // the links) and skip the dead cleanup
                         let end = top.end;
                         self.force_close_top(end);
-                        self.skip_until = Some(target);
+                                                self.skip_until = Some(target);
                         return true;
                     }
                     // value-merge region: remember where the false path ends
@@ -19828,7 +20023,7 @@ impl<'a> Ctx<'a> {
                 self.push_legacy_try(l);
                 if let Some(s) = skip_to {
                     if self.skip_until.map_or(true, |cur| cur < s) {
-                        self.skip_until = Some(s);
+                                                self.skip_until = Some(s);
                     }
                 }
             }
@@ -20135,7 +20330,7 @@ impl<'a> Ctx<'a> {
                         if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
                             for ins in self.instrs.iter().skip(ci + 1) {
                                 if ins.op == Op::END_ASYNC_FOR {
-                                    self.skip_until = Some(ins.end());
+                                                                        self.skip_until = Some(ins.end());
                                     break;
                                 }
                                 if !matches!(
@@ -20734,7 +20929,7 @@ impl<'a> Ctx<'a> {
         self.with_exits = self.with_exits.saturating_sub(1);
         let skip_end = self.with_handler_skip_end(after);
         if self.skip_until.map_or(true, |s| s < skip_end) {
-            self.skip_until = Some(skip_end);
+                        self.skip_until = Some(skip_end);
         }
         true
     }
@@ -20755,7 +20950,7 @@ impl<'a> Ctx<'a> {
         self.with_exits = self.with_exits.saturating_sub(1);
         let skip_end = self.with_handler_skip_end(tail_after);
         if self.skip_until.map_or(true, |s| s < skip_end) {
-            self.skip_until = Some(skip_end);
+                        self.skip_until = Some(skip_end);
         }
     }
 
@@ -23191,7 +23386,7 @@ impl<'a> Ctx<'a> {
                                     };
                                 if pushed {
                                     if self.skip_until.map_or(true, |s| s < ext) {
-                                        self.skip_until = Some(ext);
+                                                                                self.skip_until = Some(ext);
                                     }
                                     return;
                                 }
@@ -23264,7 +23459,7 @@ impl<'a> Ctx<'a> {
             self.flush_pending_stores();
             self.restore_legacy_nest();
             self.push_legacy_try(l);
-            self.skip_until = Some(usize::MAX);
+                        self.skip_until = Some(usize::MAX);
             return;
         }
         // 3.8-3.10 function-tail try/finally whose inline finally body
@@ -23306,7 +23501,7 @@ impl<'a> Ctx<'a> {
             self.flush_pending_stores();
             self.restore_legacy_nest();
             self.push_legacy_try(l);
-            self.skip_until = Some(usize::MAX);
+                        self.skip_until = Some(usize::MAX);
             let value = match e {
                 Some(v) => match &*v {
                     Expr::Const(o) if matches!(&**o, PyObject::None) => None,
@@ -25347,7 +25542,7 @@ impl<'a> Ctx<'a> {
         self.pop();
         self.flush_pending_stores();
         self.push_stmt(stmt);
-        self.skip_until = Some(end_off);
+                self.skip_until = Some(end_off);
         true
     }
 
@@ -28038,7 +28233,7 @@ impl<'a> Ctx<'a> {
                                 self.instrs.get(ci + 1).map(|x| x.op),
                                 Some(Op::POP_TOP) | Some(Op::POP_ITER)
                             ) {
-                                self.skip_until = Some(self.instrs[ci + 1].end());
+                                                                self.skip_until = Some(self.instrs[ci + 1].end());
                             }
                         }
                     }

@@ -16,7 +16,7 @@ class Quitter(object):
         try:
             sys.stdin.close()
         except:
-            raise SystemExit(code)
+            pass
         raise SystemExit(code)
 
 
@@ -40,6 +40,7 @@ class _Printer(object):
             try:
                 with open(filename, encoding='utf-8') as fp:
                     data = fp.read()
+                break
             except OSError:
                 pass
         if not data:

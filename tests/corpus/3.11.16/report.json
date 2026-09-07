@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 14,
-  "SIG-DIFF": 22,
+  "PASS": 15,
+  "SIG-DIFF": 21,
   "INCOMPLETE": 4
  },
  "results": [
@@ -65,11 +65,7 @@
   },
   {
    "module": "_sitebuiltins",
-   "ast_detail": "diff at token 32: orig  body=[Return(value=BinOp(left=Constant(value='Use %s() or %s to exit') | dec  body=[Return(value=JoinedStr(values=[Constant(value='Use ')",
-   "verdict": "SIG-DIFF",
-   "ndiff": 304,
-   "ntotal": 401,
-   "detail": "line 87: orig ('JUMP_FORWARD', 'to 80') | got ('JUMP_FORWARD', 'to 106')\nline 90: orig ('POP_EXCEPT', '') | got ('LOAD_GLOBAL', 'NULL + SystemExit')\nline 91: orig ('JUMP_FORWARD', 'to 80') | got ('LOAD_FAST', 'code')"
+   "verdict": "PASS"
   },
   {
    "module": "_strptime",
@@ -221,8 +217,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 138: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1491,
-   "ntotal": 1572,
+   "ndiff": 1482,
+   "ntotal": 1597,
    "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
   {
