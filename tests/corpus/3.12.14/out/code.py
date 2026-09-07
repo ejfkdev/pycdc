@@ -104,16 +104,11 @@ class InteractiveInterpreter:
             if filename and typ is SyntaxError:
                 msg, (dummy_filename, lineno, offset, line) = value.args
                 value = SyntaxError(msg, (filename, lineno, offset, line))
+            self._showtraceback(typ, value, None)
+        except ValueError:
+            pass
         finally:
-            try:
-                msg, (dummy_filename, lineno, offset, line) = value.args
-            except ValueError:
-                pass
-            else:
-                value = SyntaxError(msg, (filename, lineno, offset, line))
-                self._showtraceback(typ, value, None)
-            finally:
-                typ = value = tb = None
+            typ = value = tb = None
 
     def showtraceback(self):
         '''Display the exception that just occurred.

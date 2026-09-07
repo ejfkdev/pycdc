@@ -176,8 +176,8 @@
   {
    "module": "code",
    "verdict": "INCOMPLETE",
-   "ndiff": 573,
-   "ntotal": 796,
+   "ndiff": 489,
+   "ntotal": 721,
    "detail": "line 212: orig ('POP_JUMP_IF_FALSE', 'to 146') | got ('POP_JUMP_IF_FALSE', 'to 144')\nline 216: orig ('POP_JUMP_IF_FALSE', 'to 146') | got ('POP_JUMP_IF_FALSE', 'to 144')\nline 217: orig ('NOP', '') | got ('LOAD_FAST', 'value')"
   },
   {
@@ -211,8 +211,8 @@
    "module": "configparser",
    "ast_detail": "diff at token 110: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 1288,
-   "ntotal": 4226,
+   "ndiff": 1848,
+   "ntotal": 4237,
    "detail": "line 2094: orig ('JUMP_BACKWARD', 'to 132') | got ('JUMP_BACKWARD', 'to 220')\nline 2265: orig ('POP_JUMP_IF_TRUE', 'to 94') | got ('POP_JUMP_IF_TRUE', 'to 98')\nline 2346: orig ('LOAD_FAST', 'raw') | got ('BUILD_MAP', '')"
   },
   {

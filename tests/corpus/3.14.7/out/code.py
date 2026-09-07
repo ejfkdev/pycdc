@@ -261,54 +261,26 @@ a default message is printed.
                 # WARNING: unrecovered try/except structure
                 continue
             finally:
-                try:
-                    pass
-                finally:
-                    if SystemExit:
-                        e = None
-                        if self.local_exit:
-                            self.write('\n')
-                            try:
-                                e = None
-                                del e
-                            finally:
-                                raise e
-                                e = None
-                                del e
-                                if _exit is not None:
-                                    builtins.exit = _exit
-                                if _quit is not None:
-                                    builtins.quit = _quit
-                                if delete_ps1_after:
-                                    del sys.ps1
-                                if delete_ps2_after:
-                                    del sys.ps2
-                                if exitmsg is None:
-                                    self.write('now exiting %s...\n' % self.__class__.__name__)
-            try:
-                pass
-            finally:
                 if SystemExit:
                     e = None
                     if self.local_exit:
                         self.write('\n')
-                        try:
-                            e = None
-                            del e
-                        finally:
-                            raise e
-                            e = None
-                            del e
-                            if _exit is not None:
-                                builtins.exit = _exit
-                            if _quit is not None:
-                                builtins.quit = _quit
-                            if delete_ps1_after:
-                                del sys.ps1
-                            if delete_ps2_after:
-                                del sys.ps2
-                            if exitmsg is None:
-                                self.write('now exiting %s...\n' % self.__class__.__name__)
+                        e = None
+                        del e
+                    else:
+                        raise e
+                        e = None
+                        del e
+                if _exit is not None:
+                    builtins.exit = _exit
+                if _quit is not None:
+                    builtins.quit = _quit
+                if delete_ps1_after:
+                    del sys.ps1
+                if delete_ps2_after:
+                    del sys.ps2
+                if exitmsg is None:
+                    self.write('now exiting %s...\n' % self.__class__.__name__)
 
     def push(self, line, filename=None, _symbol='single'):
         self.buffer.append(line)

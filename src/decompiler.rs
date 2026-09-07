@@ -591,6 +591,15 @@ pub fn decompile_in_scope(
             if instrs.get(hi).map(|x| x.op) != Some(Op::PUSH_EXC_INFO) {
                 continue;
             }
+            // bound the classification window at the chain's own
+            // terminating RERAISE: a FINALLY handler's inline body copy
+            // can be followed by a NESTED except dispatch whose
+            // CHECK_EXC_MATCH sits inside a flat 40-insn window and
+            // misclassifies the finally as an except chain
+            // (_bootsubprocess 3.11 check_output: the outer try's
+            // finally copy of `try: os.unlink except OSError: pass`
+            // carried the nested chain's CHECK_EXC_MATCH into the
+            // window - the Try rendered without its finalbody)
             let window: Vec<_> = instrs.iter().skip(hi).take(40).collect();
             if window.iter().any(|x| x.op == Op::WITH_EXCEPT_START) {
                 with_regions.insert(e.start, e.end);
@@ -825,6 +834,16 @@ pub fn decompile_in_scope(
                 _ => false,
             }
         };
+        // compiler padding between protected fragments (the 3.11 NOP
+        // line markers between statements) does not break a tiled span
+        let is_pad_gap = |from: usize, to: usize| -> bool {
+            match (ctx.idx_of.get(&from), ctx.idx_of.get(&to)) {
+                (Some(&fi), Some(&ti)) => ctx.instrs[fi..ti]
+                    .iter()
+                    .all(|x| matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)),
+                _ => false,
+            }
+        };
         // region extension must never swallow a LATER entry's protected
         // range (overlapping region nesting breaks the tail order)
         let mut all_starts: Vec<usize> = main_entries.iter().map(|e2| e2.start).collect();
@@ -834,7 +853,13 @@ pub fn decompile_in_scope(
         };
         for e in &main_entries {
             let is_exc = handler_kind[&e.target];
+            let same_fin = |r: &TryCtx| r.finally_handler == Some(e.target);
+            let same_exc = |r: &TryCtx| r.except_handler == Some(e.target);
             let mut bridged = false;
+            let mut bridged2 = false;
+            // 1) contiguous / protocol-bridged extension of the LAST
+            //    region (historical semantics, capped so a later entry's
+            //    protected range is never swallowed)
             let extends = regions
                 .last()
                 .map(|r| {
@@ -845,11 +870,7 @@ pub fn decompile_in_scope(
                     if r.cover_end() == e.start {
                         return true;
                     }
-                    let same_handler = if is_exc {
-                        r.except_handler == Some(e.target)
-                    } else {
-                        r.finally_handler == Some(e.target)
-                    };
+                    let same_handler = if is_exc { same_exc(r) } else { same_fin(r) };
                     let b = same_handler
                         && e.start > r.cover_end()
                         && protocol_only(r.cover_end(), e.start);
@@ -859,6 +880,65 @@ pub fn decompile_in_scope(
                     b
                 })
                 .unwrap_or(false);
+            // 2) deep search for the FINALLY family: the same-handler
+            //    region may sit BELOW nested except-chain regions (a
+            //    nested try/except inside a try/finally body —
+            //    _bootsubprocess 3.11 check_output: the outer finally's
+            //    fragments [232,356)/[480,480)/[506,516) sandwich the
+            //    inner with-try's regions). Never cross another finally
+            //    region (nested finally fragments must stay separate —
+            //    b15/b18/b22/exceptstar/asyncgen duplicate finally
+            //    bodies when merged).
+            let mut deep_idx: Option<usize> = None;
+            if !extends && !is_exc {
+                let mut cand: Option<usize> = None;
+                for (ri, r) in regions.iter().enumerate().rev() {
+                    if same_fin(r) {
+                        cand = Some(ri);
+                        break;
+                    }
+                    if r.finally_handler.is_some() {
+                        break;
+                    }
+                    if r.start < e.start && r.region_end <= e.start {
+                        continue;
+                    }
+                    break;
+                }
+                if let Some(ri) = cand {
+                    // the span [regions[ri].end, e.start) must tile with
+                    // entries of OTHER handlers (nested chains that are
+                    // part of this body); compiler padding gaps are fine
+                    let mut cur = regions[ri].region_end;
+                    let mut any = false;
+                    let mut ok = cur < e.start;
+                    while ok && cur < e.start {
+                        let nxt = ctx.exc_entries.iter().find(|x| {
+                            x.start >= cur && x.end <= e.start
+                        });
+                        match nxt {
+                            Some(e2) => {
+                                if e2.target == e.target {
+                                    ok = false;
+                                } else if e2.start != cur && !is_pad_gap(cur, e2.start) {
+                                    ok = false;
+                                } else {
+                                    cur = e2.end;
+                                    any = true;
+                                }
+                            }
+                            None => ok = false,
+                        }
+                    }
+                    if ok && any && cur < e.start && is_pad_gap(cur, e.start) {
+                        cur = e.start;
+                    }
+                    if ok && any && cur == e.start {
+                        deep_idx = Some(ri);
+                        bridged2 = true;
+                    }
+                }
+            }
             if extends {
                 let r = regions.last_mut().unwrap();
                 if is_exc {
@@ -874,6 +954,11 @@ pub fn decompile_in_scope(
                     r.finally_handler.get_or_insert(e.target);
                     r.region_end = e.end;
                 }
+            } else if let Some(ri) = deep_idx {
+                let r = &mut regions[ri];
+                r.finally_handler.get_or_insert(e.target);
+                r.body_end = e.end;
+                r.region_end = e.end;
             } else {
                 let mut r = TryCtx {
                     start: e.start,
@@ -889,6 +974,35 @@ pub fn decompile_in_scope(
                     r.finally_handler = Some(e.target);
                 }
                 regions.push(r);
+            }
+        }
+        // nested try/except inside a try/finally body: a middle fragment
+        // of the finally region carries its OWN except handler and forms
+        // a separate region — merge it back so the finally region's body
+        // spans the nested try (its statements fold into the body and the
+        // inline finally decomposes at the true body end, not at the
+        // first fragment's edge: _bootsubprocess 3.11 check_output)
+        {
+            let mut i = 0;
+            while i + 1 < regions.len() {
+                let merge = {
+                    let (r1, r2) = (&regions[i], &regions[i + 1]);
+                    r1.finally_handler.is_some()
+                        && r1.except_handler.is_none()
+                        && r2.finally_handler == r1.finally_handler
+                        && r2.except_handler.is_some()
+                        && r2.start >= r1.region_end
+                };
+                if merge {
+                    let e2 = regions[i + 1].body_end.max(regions[i + 1].region_end);
+                    let eh = regions[i + 1].except_handler;
+                    regions[i].except_handler = eh;
+                    regions[i].body_end = regions[i].body_end.max(e2);
+                    regions[i].region_end = regions[i].region_end.max(e2);
+                    regions.remove(i + 1);
+                } else {
+                    i += 1;
+                }
             }
         }
         // 3.12+ split finally (break-in-try): two finally-only fragments
