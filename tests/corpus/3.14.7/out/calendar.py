@@ -392,8 +392,8 @@ Returns a year's calendar as a multi-line string.
                 for cal in row:
                     if j >= len(cal):
                         weeks.append('')
-                        continue
-                    weeks.append(self.formatweek(cal[j], w))
+                    else:
+                        weeks.append(self.formatweek(cal[j], w))
                 a(formatstring(weeks, colwidth, c).rstrip())
                 a('\n' * l)
             continue
@@ -658,9 +658,9 @@ Returns a year's calendar as a multi-line string.
                 for k, cal in enumerate(row):
                     if j >= len(cal):
                         weeks.append('')
-                        continue
-                    day = self.highlight_day.day if k == month_pos else None
-                    weeks.append(self.formatweek(cal[j], w, highlight_day=day))
+                    else:
+                        day = self.highlight_day.day if k == month_pos else None
+                        weeks.append(self.formatweek(cal[j], w, highlight_day=day))
                 a(formatstring(weeks, colwidth, c).rstrip())
                 a('\n' * l)
             continue

@@ -8296,6 +8296,19 @@ impl<'a> Ctx<'a> {
                                             );
                                             else_blk.cond = Some(cond);
                                             else_blk.is_elif = true;
+                                            // pre-mark the chain spine so
+                                            // arm-end back edges inside
+                                            // the region take the jfold
+                                            // folded path (line_ok) and
+                                            // rebuild the chain's else
+                                            // arms instead of the
+                                            // is_continue dispatch, which
+                                            // pushes a spurious Continue
+                                            // and tears the whole spine
+                                            // down via
+                                            // close_inner_blocks_to_loop
+                                            // (copyreg 3.8 _slotnames)
+                                            else_blk.folded_exit = true;
                                             self.blocks.push(else_blk);
                                         }
                                     }
@@ -8463,7 +8476,12 @@ impl<'a> Ctx<'a> {
                             // or the jump hops over trailing else-code that
                             // no other instruction references (the folded
                             // chain exit jumps straight to the loop top)
+                            // bounded scan: an open-ended Else[MAX] has no
+                            // physical tail to hop over, and ranging to
+                            // usize::MAX spins forever (_markupbase 3.8
+                            // _parse_doctype_notation hang)
                             let hops_tail = t.end > self.cur_next
+                                && t.end != usize::MAX
                                 && (self.cur_offset..t.end).any(|o| self.targets.contains(&o))
                                 && (self.cur_next..t.end)
                                     .all(|o| !self.targets.contains(&o));
@@ -8483,7 +8501,28 @@ impl<'a> Ctx<'a> {
                             // - py2/<=3.7: a fused exit shares the line of
                             //   the last statement in the branch; a real
                             //   continue starts a fresh line
+                            // a fused chain exit inherits the line of the
+                            // arm's LAST statement: the instruction right
+                            // before this jump shares its line. A real
+                            // trailing `continue` is a statement of its
+                            // own and starts a fresh line (3.8+; the
+                            // cond-jump comparison alone is unsound for
+                            // multi-statement arms — copyreg 3.8
+                            // _slotnames: the inner else arm's fused end
+                            // edge failed the cond-line check, was taken
+                            // as an explicit continue, and the chain's
+                            // final else arm flattened into the loop).
+                            let prev_same_line = self
+                                .idx_of
+                                .get(&self.cur_offset)
+                                .and_then(|&ci| (ci > 0).then(|| &self.instrs[ci - 1]))
+                                .map_or(false, |prev| {
+                                    prev.line.is_some()
+                                        && inst.line.is_some()
+                                        && prev.line == inst.line
+                                });
                             let line_ok = t.folded_exit
+                                || prev_same_line
                                 || if self.version.at_least(3, 8) {
                                     self.instrs
                                         .iter()
@@ -8545,10 +8584,35 @@ impl<'a> Ctx<'a> {
                         let end = self.blocks.last().map(|t| t.end).unwrap_or(target);
                         // mark every enclosing open If/Else whose region
                         // contains this jump: the fused exit serves as the
-                        // then-exit for the whole chain spine
+                        // then-exit for the whole chain spine. Only the
+                        // CONTIGUOUS branch-block segment at the top of
+                        // the stack belongs to this chain: marking across
+                        // an intervening loop leaks folded_exit to the
+                        // loop's enclosing guard, whose own arm-end
+                        // iteration edge then folds open a dead Else[MAX]
+                        // that swallows the function tail (copyreg 3.8
+                        // _slotnames: If[60,186) marked from the inner
+                        // chain's fold at 160 reopened a phantom
+                        // Else[186,MAX] at the mro loop's back edge,
+                        // whose re-arm popped the wrong pending_then and
+                        // dropped the whole loop)
+                        let mut mark_spine: Vec<usize> = Vec::new();
+                        for t in self.blocks.iter().rev() {
+                            if matches!(t.kind, BlockType::If | BlockType::Else)
+                                && t.end > self.cur_offset
+                            {
+                                mark_spine.push(t.start);
+                            } else if !matches!(
+                                t.kind,
+                                BlockType::If | BlockType::Else
+                            ) {
+                                break;
+                            }
+                        }
                         for t in self.blocks.iter_mut() {
                             if matches!(t.kind, BlockType::If | BlockType::Else)
                                 && t.end > self.cur_offset
+                                && mark_spine.contains(&t.start)
                             {
                                 t.folded_exit = true;
                             }
@@ -8569,16 +8633,158 @@ impl<'a> Ctx<'a> {
                             // here too; identify them by start offset so a
                             // freshly opened Else (start == this position)
                             // is not collapsed
-                            let spine: Vec<usize> = self
-                                .blocks
-                                .iter()
-                                .filter(|t| {
-                                    matches!(t.kind, BlockType::If | BlockType::Else)
-                                        && t.folded_exit
-                                        && t.end > self.cur_offset
-                                })
-                                .map(|t| t.start)
-                                .collect();
+                            // only the CONTIGUOUS If/Else segment at the
+                            // top of the stack belongs to this chain's
+                            // spine — a loop block below separates the
+                            // enclosing branches, whose close belongs to
+                            // the loop's own exhaustion flow (copyreg 3.8
+                            // _slotnames: the enclosing mro For and the
+                            // guard If were folded early, dropping the
+                            // else branch and function tail into a dead
+                            // Else[MAX])
+                            let mut spine: Vec<usize> = Vec::new();
+                            for t in self.blocks.iter().rev() {
+                                if matches!(t.kind, BlockType::If | BlockType::Else)
+                                    && t.folded_exit
+                                    && t.end > self.cur_offset
+                                {
+                                    spine.push(t.start);
+                                } else if !matches!(
+                                    t.kind,
+                                    BlockType::If | BlockType::Else
+                                ) {
+                                    break;
+                                }
+                            }
+                            // a spine If whose end is exactly the fold
+                            // point may have an UNMARKED else arm lying
+                            // right after it: the arm-end forward jump
+                            // flew to a merge trampoline (a back edge to
+                            // the loop top) instead of marking else_end.
+                            // Mark it here so the close transitions into
+                            // the Else region and the walk rebuilds the
+                            // chain's final else arm (copyreg 3.8
+                            // _slotnames: `elif ...: ... else:
+                            // names.append(name)` flattened to loop
+                            // level, the inner else grew a spurious
+                            // continue from the trampoline back edge).
+                            // The trampoline probe keeps genuine
+                            // no-else guards intact (their arm-end jump
+                            // targets the loop top directly, not a
+                            // back-edge instruction).
+                            for si in (0..self.blocks.len()).rev() {
+                                let else_mark = {
+                                    let b = &self.blocks[si];
+                                    if !(matches!(b.kind, BlockType::If)
+                                        && b.folded_exit
+                                        && spine.contains(&b.start)
+                                        && b.else_end.is_none()
+                                        && b.end == self.cur_next)
+                                    {
+                                        None
+                                    } else if self.starts_with_cond_jump(
+                                        self.cur_next,
+                                        usize::MAX,
+                                    ) {
+                                        // the region right after the fold
+                                        // opens with a conditional jump:
+                                        // it is the NEXT elif link of the
+                                        // chain (handled by the folded
+                                        // re-arm machinery), not this
+                                        // block's else arm — marking
+                                        // else_end here swallows the link
+                                        // into a nested else (filecmp 3.3
+                                        // phase2: the S_ISREG link nested
+                                        // under S_ISDIR with a spurious
+                                        // continue and the final else
+                                        // flattened to loop level)
+                                        None
+                                    } else {
+                                        // the else arm (if any) starts at
+                                        // the fold point; its extent ends
+                                        // at the FIRST structural
+                                        // boundary: a backward edge to
+                                        // the loop top (the arm's fused
+                                        // iteration end), a forward jump
+                                        // to such an edge (a merge
+                                        // trampoline), or a jump to the
+                                        // loop exit (an arm-ending
+                                        // break). Anything else: no
+                                        // discoverable arm — no mark.
+                                        self.instrs
+                                            .iter()
+                                            .skip_while(|x| {
+                                                x.offset < self.cur_next
+                                            })
+                                            .take_while(|x| {
+                                                x.offset < self.cur_offset + 2
+                                                    || x.offset
+                                                        < b.end.max(
+                                                            self.cur_next,
+                                                        )
+                                                    || true
+                                            })
+                                            .find(|x| {
+                                                if x.offset <= self.cur_next {
+                                                    return false;
+                                                }
+                                                let back_to_top = x
+                                                    .is_backward
+                                                    && x.target.map_or(
+                                                        false,
+                                                        |t| self.is_loop_top_target(t),
+                                                    );
+                                                let fwd_to_tramp = !x.is_backward
+                                                    && matches!(
+                                                        x.op,
+                                                        Op::JUMP_ABSOLUTE
+                                                            | Op::JUMP_FORWARD
+                                                            | Op::JUMP
+                                                    )
+                                                    && x.target.map_or(
+                                                        false,
+                                                        |t| {
+                                                            self.idx_of.get(&t)
+                                                                .and_then(|&ti| {
+                                                                    self.instrs.get(ti)
+                                                                })
+                                                                .map_or(false, |y| {
+                                                                    y.is_backward
+                                                                        && y.target.map_or(
+                                                                            false,
+                                                                            |lt| self
+                                                                                .is_loop_top_target(
+                                                                                    lt,
+                                                                                ),
+                                                                        )
+                                                                })
+                                                        },
+                                                    );
+                                                let to_loop_exit = x
+                                                    .target
+                                                    .map_or(false, |t| {
+                                                        t > x.offset
+                                                            && self
+                                                                .find_loop_exit(t)
+                                                                .is_some()
+                                                    });
+                                                back_to_top
+                                                    || fwd_to_tramp
+                                                    || to_loop_exit
+                                            })
+                                            .map(|x| {
+                                                if x.is_backward {
+                                                    x.offset
+                                                } else {
+                                                    x.target.unwrap()
+                                                }
+                                            })
+                                    }
+                                };
+                                if let Some(t) = else_mark {
+                                    self.blocks[si].else_end = Some(t);
+                                }
+                            }
                             self.force_close_top(end);
                             let mut guard = 0;
                             while self.blocks.last().map_or(false, |t| {
@@ -8590,6 +8796,100 @@ impl<'a> Ctx<'a> {
                                 let e = self.blocks.last().map(|t| t.end).unwrap_or(end);
                                 self.force_close_top(e);
                                 guard += 1;
+                            }
+                            // spine members separated from the fold point
+                            // by an intervening loop block must NOT be
+                            // closed here: the loop's own close at its
+                            // exhaustion exit emits into them first
+                            // (copyreg 3.8 _slotnames: folding the inner
+                            // chain's edge closed the enclosing mro For
+                            // and the guard If early, dropping the whole
+                            // else branch and the function tail into a
+                            // dead Else[MAX])
+                        }
+                        // the fold consumed the loop body's LAST back
+                        // edge (the next instruction is the exhaustion
+                        // exit of the loop right below the still-open
+                        // chain blocks): open-ended folded chain If/Else
+                        // (end == MAX) sitting directly above that loop
+                        // must close HERE — the exhaustion close cannot
+                        // reach them (close_blocks_at unwinds only from
+                        // the top), and leaving them open swallows the
+                        // loop and the whole function tail into a dead
+                        // Else[MAX] (_strptime 3.14 __calc_date_time:
+                        // the prev_same_line fold at the chain's final
+                        // fused arm end trapped the tail). The close is
+                        // chain-safe: a folded Else whose pending body
+                        // and single nested If form the next link
+                        // re-arms instead of sealing, so only a
+                        // genuinely finished chain collapses here.
+                        loop {
+                            // contiguous open If/Else chain segment at the
+                            // top and the first non-branch block below it
+                            // NOTE: the segment includes branch blocks
+                            // whose end already passed — a stranded chain
+                            // head sits below the open Else[MAX] long
+                            // after its own end offset (close_blocks_at
+                            // unwinds from the top only), and it must
+                            // close together with the chain (cmd 3.14
+                            // do_help: If[328,430) under Else[434,MAX])
+                            let (seg, below_exit) = {
+                                let mut seg = 0;
+                                let mut below = None;
+                                for t in self.blocks.iter().rev() {
+                                    if matches!(
+                                        t.kind,
+                                        BlockType::If | BlockType::Else
+                                    ) {
+                                        seg += 1;
+                                    } else {
+                                        below = matches!(
+                                            t.kind,
+                                            BlockType::While | BlockType::For
+                                        )
+                                        .then(|| {
+                                            self.loop_exit_offset(t)
+                                        })
+                                        .flatten();
+                                        break;
+                                    }
+                                }
+                                (seg, below)
+                            };
+                            let collapse = seg > 0
+                                && matches!(
+                                    self.blocks.last(),
+                                    Some(t) if matches!(
+                                        t.kind,
+                                        BlockType::If | BlockType::Else
+                                    ) && t.folded_exit
+                                        && t.end == usize::MAX
+                                )
+                                && below_exit == Some(self.cur_next);
+                            if !collapse {
+                                break;
+                            }
+                            let before = self.blocks.len();
+                            // close the whole segment: the chain head's
+                            // region also ends at this fused back edge
+                            // (its else arm was the one just folded)
+                            for _ in 0..seg {
+                                let e = self
+                                    .blocks
+                                    .last()
+                                    .map(|t| {
+                                        t.end.min(self.cur_next)
+                                    })
+                                    .unwrap();
+                                self.force_close_top(e);
+                            }
+                            // a folded Else re-arm replaces the closed
+                            // block instead of shrinking the stack: the
+                            // chain is not finished here — stop and let
+                            // the walk continue (guards against a re-arm
+                            // ping-pong spin)
+                            if self.blocks.len() >= before {
+                                break;
                             }
                         }
                         return true;

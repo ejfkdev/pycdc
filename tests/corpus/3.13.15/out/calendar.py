@@ -392,8 +392,8 @@ Returns a year's calendar as a multi-line string.
                 for cal in row:
                     if j >= len(cal):
                         weeks.append('')
-                        continue
-                    weeks.append(self.formatweek(cal[j], w))
+                    else:
+                        weeks.append(self.formatweek(cal[j], w))
                 a(formatstring(weeks, colwidth, c).rstrip())
                 a('\n' * l)
             continue

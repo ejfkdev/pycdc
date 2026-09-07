@@ -39,8 +39,7 @@ def _walk_dir(dir, maxlevels, quiet=0):
         fullname = os.path.join(dir, name)
         if not os.path.isdir(fullname):
             yield fullname
-            continue
-        if maxlevels > 0:
+        elif maxlevels > 0:
             if name != os.curdir:
                 if name != os.pardir:
                     if os.path.isdir(fullname):
@@ -172,14 +171,13 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         for opt_level in optimize:
             if legacy:
                 opt_cfiles[opt_level] = fullname + 'c'
-                continue
-            if opt_level >= 0:
+            elif opt_level >= 0:
                 opt = opt_level if opt_level >= 1 else ''
                 cfile = importlib.util.cache_from_source(fullname, optimization=opt)
                 opt_cfiles[opt_level] = cfile
-                continue
-            cfile = importlib.util.cache_from_source(fullname)
-            opt_cfiles[opt_level] = cfile
+            else:
+                cfile = importlib.util.cache_from_source(fullname)
+                opt_cfiles[opt_level] = cfile
         head, tail = name[:-3], name[-3:]
         if tail == '.py':
             if not force:

@@ -380,11 +380,8 @@ class Cmd:
             while texts:
                 if not texts[-1]:
                     del texts[-1]
-                else:
-                    for col in range(len(texts)):
-                        texts[col] = texts[col].ljust(colwidths[col])
-                    self.stdout.write('%s\n' % str('  '.join(texts)))
-                    break
-                    return
+            for col in range(len(texts)):
+                texts[col] = texts[col].ljust(colwidths[col])
+            self.stdout.write('%s\n' % str('  '.join(texts)))
 
 

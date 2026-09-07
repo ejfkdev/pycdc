@@ -39,15 +39,15 @@ A custom key function can be supplied to customize the sort order.
             mid = (lo + hi) // 2
             if x < a[mid]:
                 hi = mid
-                continue
-            lo = mid + 1
+            else:
+                lo = mid + 1
         return lo
     while lo < hi:
         mid = (lo + hi) // 2
         if x < key(a[mid]):
             hi = mid
-            continue
-        lo = mid + 1
+        else:
+            lo = mid + 1
     return lo
 
 def insort_left(a, x, lo=0, hi=None, *, key=None):
@@ -89,15 +89,15 @@ A custom key function can be supplied to customize the sort order.
             mid = (lo + hi) // 2
             if a[mid] < x:
                 lo = mid + 1
-                continue
-            hi = mid
+            else:
+                hi = mid
         return lo
     while lo < hi:
         mid = (lo + hi) // 2
         if key(a[mid]) < x:
             lo = mid + 1
-            continue
-        hi = mid
+        else:
+            hi = mid
     return lo
 
 try:

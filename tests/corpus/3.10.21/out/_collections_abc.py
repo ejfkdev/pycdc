@@ -390,8 +390,7 @@ class _CallableGenericAlias(GenericAlias):
                     continue
             if hasattr(arg, '__parameters__') and isinstance(arg.__parameters__, tuple):
                 params.extend(arg.__parameters__)
-                continue
-            if _is_typevarlike(arg):
+            elif _is_typevarlike(arg):
                 params.append(arg)
         return tuple(dict.fromkeys(params))
 
@@ -439,8 +438,8 @@ class _CallableGenericAlias(GenericAlias):
                     arg = arg[subargs]
             if isinstance(arg, tuple):
                 new_args.extend(arg)
-                continue
-            new_args.append(arg)
+            else:
+                new_args.append(arg)
         if not isinstance(new_args[0], list):
             t_result = new_args[-1]
             t_args = new_args[:-1]
@@ -706,8 +705,8 @@ class MutableSet(Set):
         for value in it:
             if value in self:
                 self.discard(value)
-                continue
-            self.add(value)
+            else:
+                self.add(value)
         return self
 
     def __isub__(self, it):

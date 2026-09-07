@@ -39,8 +39,7 @@ def _walk_dir(dir, maxlevels, quiet=0):
         fullname = os.path.join(dir, name)
         if not os.path.isdir(fullname):
             yield fullname
-            continue
-        if maxlevels > 0 and name != os.curdir and name != os.pardir and os.path.isdir(fullname) and not os.path.islink(fullname):
+        elif maxlevels > 0 and name != os.curdir and name != os.pardir and os.path.isdir(fullname) and not os.path.islink(fullname):
             yield from _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
@@ -241,8 +240,8 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
             if dir == os.curdir and skip_curdir:
                 if quiet < 2:
                     print('Skipping current directory')
-                continue
-        success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
+            else:
+                success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
     return success
 
 def main():

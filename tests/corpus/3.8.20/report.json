@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 16,
-  "SIG-DIFF": 21,
+  "PASS": 17,
+  "SIG-DIFF": 20,
   "INCOMPLETE": 3
  },
  "results": [
@@ -39,8 +39,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 596: orig  comparators=[Set(elts=[Constant(value='attlist' | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 969,
-   "ntotal": 1410,
+   "ndiff": 968,
+   "ntotal": 1412,
    "detail": "line 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 472')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 472')\nline 385: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 472')"
   },
   {
@@ -98,9 +98,9 @@
    "module": "ast",
    "ast_detail": "diff at token 572: orig  body=[Try(body=[Assign(targets=[Name(id='value' | dec  body=[If(test=Name(id='keywords'",
    "verdict": "SIG-DIFF",
-   "ndiff": 624,
+   "ndiff": 1164,
    "ntotal": 1734,
-   "detail": "line 561: orig ('SETUP_FINALLY', 'to 44') | got ('LOAD_FAST', 'keywords')\nline 562: orig ('LOAD_GLOBAL', 'getattr') | got ('POP_JUMP_IF_FALSE', '')\nline 563: orig ('LOAD_FAST', 'node') | got ('LOAD_FAST', 'args')"
+   "detail": "line 559: orig ('FOR_ITER', 'to 112') | got ('FOR_ITER', 'to 116')\nline 561: orig ('SETUP_FINALLY', 'to 44') | got ('LOAD_FAST', 'keywords')\nline 562: orig ('LOAD_GLOBAL', 'getattr') | got ('POP_JUMP_IF_FALSE', '')"
   },
   {
    "module": "asynchat",
@@ -230,11 +230,11 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 1614: orig  keywords=[])) | dec  keywords=[]))]",
+   "ast_detail": "diff at token 2265: orig  If(test=BoolOp(op=And() | dec  Assign(targets=[Name(id='replace'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2817,
+   "ndiff": 2815,
    "ntotal": 4350,
-   "detail": "line 1088: orig ('JUMP_FORWARD', 'to 336') | got ('JUMP_ABSOLUTE', '')\nline 1414: orig ('JUMP_FORWARD', 'to 472') | got ('JUMP_ABSOLUTE', '')\nline 1472: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')"
+   "detail": "line 1472: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')\nline 1473: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_ATTR', 'partial')\nline 1474: orig ('LOAD_CONST', \"'%('\") | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "contextlib",
@@ -250,11 +250,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 601: orig  keywords=[]))] | dec  keywords=[]))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2,
-   "ntotal": 544,
-   "detail": "line 361: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 174')\nline 389: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 174')"
+   "verdict": "PASS"
   },
   {
    "module": "crypt",

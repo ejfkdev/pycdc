@@ -279,8 +279,8 @@ class Sniffer:
                     modes[char] = max(items, key=(lambda x: x[1]))
                     items.remove(modes[char])
                     modes[char] = modes[char][0], modes[char][1] - sum((item[1] for item in items))
-                    continue
-                modes[char] = items[0]
+                else:
+                    modes[char] = items[0]
             modeList = modes.items()
             total = float(min(chunkLength * iteration, len(data)))
             consistency = 1.0
@@ -309,11 +309,10 @@ class Sniffer:
                 if d in delims.keys():
                     skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
                     return d, skipinitialspace
-        else:
-            items = [(v, k) for k, v in delims.items()]
-            items.sort()
-            delim = items[-1][1]
-            skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
+        items = [(v, k) for k, v in delims.items()]
+        items.sort()
+        delim = items[-1][1]
+        skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
         return delim, skipinitialspace
 
     def has_header(self, sample):
@@ -339,20 +338,22 @@ class Sniffer:
                 if thisType != columnTypes[col]:
                     if columnTypes[col] is None:
                         columnTypes[col] = thisType
-                        continue
-                del columnTypes[col]
+                    else:
+                        del columnTypes[col]
         hasHeader = 0
         for col, colType in columnTypes.items():
             if type(colType) == type(0):
                 if len(header[col]) != colType:
                     hasHeader += 1
+                else:
+                    hasHeader -= 1
+            else:
+                try:
+                    colType(header[col])
+                except (ValueError, TypeError):
+                    hasHeader += 1
                     continue
-            hasHeader -= 1
-        try:
-            colType(header[col])
-        except (ValueError, TypeError):
-            hasHeader += 1
-        hasHeader -= 1
+                hasHeader -= 1
         return hasHeader > 0
 
 

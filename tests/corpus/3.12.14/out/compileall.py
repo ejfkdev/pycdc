@@ -40,18 +40,18 @@ def _walk_dir(dir, maxlevels, quiet=0):
             fullname = os.path.join(dir, name)
             if not os.path.isdir(fullname):
                 yield fullname
-                continue
-            if not maxlevels > 0:
-                continue
-            if name == os.curdir:
-                continue
-            if name == os.pardir:
-                continue
-            if not os.path.isdir(fullname):
-                continue
-            if os.path.islink(fullname):
-                continue
-            yield from _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
+            else:
+                if not maxlevels > 0:
+                    continue
+                if name == os.curdir:
+                    continue
+                if name == os.pardir:
+                    continue
+                if not os.path.isdir(fullname):
+                    continue
+                if os.path.islink(fullname):
+                    continue
+                yield from _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     '''Byte-compile all modules in the given directory tree.
@@ -182,14 +182,13 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         for opt_level in optimize:
             if legacy:
                 opt_cfiles[opt_level] = fullname + 'c'
-                continue
-            if opt_level >= 0:
+            elif opt_level >= 0:
                 opt = opt_level if opt_level >= 1 else ''
                 cfile = importlib.util.cache_from_source(fullname, optimization=opt)
                 opt_cfiles[opt_level] = cfile
-                continue
-            cfile = importlib.util.cache_from_source(fullname)
-            opt_cfiles[opt_level] = cfile
+            else:
+                cfile = importlib.util.cache_from_source(fullname)
+                opt_cfiles[opt_level] = cfile
         head, tail = name[:-3], name[-3:]
         if tail == '.py':
             if not force:
@@ -275,8 +274,8 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
                 if not quiet < 2:
                     continue
                 print('Skipping current directory')
-                continue
-        success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
+            else:
+                success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
     return success
 
 def main():

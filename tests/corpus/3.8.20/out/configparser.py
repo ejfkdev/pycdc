@@ -374,8 +374,7 @@ class BasicInterpolation(Interpolation):
             if c == '%':
                 accum.append('%')
                 rest = rest[2:]
-                continue
-            if c == '(':
+            elif c == '(':
                 m = self._KEYCRE.match(rest)
                 if m is None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
@@ -389,8 +388,8 @@ class BasicInterpolation(Interpolation):
                     self._interpolate_some(parser, option, accum, v, section, map, depth + 1)
                 else:
                     accum.append(v)
-                continue
-            raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
+            else:
+                raise InterpolationSyntaxError(option, section, "'%%' must be followed by '%%' or '(', found: %r" % (rest,))
 
 
 class ExtendedInterpolation(Interpolation):
@@ -426,8 +425,7 @@ class ExtendedInterpolation(Interpolation):
             if c == '$':
                 accum.append('$')
                 rest = rest[2:]
-                continue
-            if c == '{':
+            elif c == '{':
                 m = self._KEYCRE.match(rest)
                 if m is None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
@@ -451,8 +449,8 @@ class ExtendedInterpolation(Interpolation):
                     self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
                 else:
                     accum.append(v)
-                continue
-            raise InterpolationSyntaxError(option, section, "'$' must be followed by '$' or '{', found: %r" % (rest,))
+            else:
+                raise InterpolationSyntaxError(option, section, "'$' must be followed by '$' or '{', found: %r" % (rest,))
 
 
 class LegacyInterpolation(Interpolation):

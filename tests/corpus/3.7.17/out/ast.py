@@ -123,7 +123,7 @@ def dump(node, annotate_fields=True, include_attributes=False):
                     except AttributeError:
                         pass
             return '%s(%s)' % (node.__class__.__name__, ', '.join(args))
-        elif isinstance(node, list):
+        if isinstance(node, list):
             return '[%s]' % ', '.join((_format(x) for x in node))
         return repr(node)
 

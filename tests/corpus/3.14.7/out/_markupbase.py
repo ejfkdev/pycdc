@@ -179,9 +179,9 @@ by the SGML/HTML and XHTML parsers.'''
                     return -1
                 if c.isspace():
                     j = j + 1
-                    continue
-            self.updatepos(declstartpos, j)
-            raise AssertionError('unexpected char %r in internal subset' % c)
+                else:
+                    self.updatepos(declstartpos, j)
+                    raise AssertionError('unexpected char %r in internal subset' % c)
         return -1
 
     def _parse_doctype_element(self, i, declstartpos):
@@ -260,10 +260,10 @@ by the SGML/HTML and XHTML parsers.'''
                 if not m:
                     return -1
                 j = m.end()
-                continue
-            name, j = self._scan_name(j, declstartpos)
-            if j < 0:
-                break
+            else:
+                name, j = self._scan_name(j, declstartpos)
+                if j < 0:
+                    break
         return j
 
     def _parse_doctype_entity(self, i, declstartpos):
@@ -290,13 +290,14 @@ by the SGML/HTML and XHTML parsers.'''
                     m = _declstringlit_match(rawdata, j)
                     if m:
                         j = m.end()
-                        continue
-                return -1
-                if c == '>':
-                    return j + 1
-                name, j = self._scan_name(j, declstartpos)
-                if j < 0:
-                    break
+                    else:
+                        return -1
+                else:
+                    if c == '>':
+                        return j + 1
+                    name, j = self._scan_name(j, declstartpos)
+                    if j < 0:
+                        break
         return j
 
     def _scan_name(self, i, declstartpos):

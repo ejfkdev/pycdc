@@ -59,9 +59,7 @@ def _reduce_ex(self, proto):
                 if isinstance(new, _new_type):
                     if new.__self__ is base:
                         pass
-                    else:
-                        continue
-    base = object
+                base = object
     if base is object:
         state = None
     else:
@@ -129,14 +127,17 @@ def _slotnames(cls):
                             stripped = c.__name__.lstrip('_')
                             if stripped:
                                 names.append(f'_{stripped!s}{name!s}')
-                                continue
-                    names.append(name)
-                names.append(name)
-                continue
-    try:
-        cls.__slotnames__ = names
-    except:
-        pass
+                            else:
+                                names.append(name)
+                        else:
+                            names.append(name)
+                    else:
+                        break
+                        try:
+                            cls.__slotnames__ = names
+                        except:
+                            return names
+                        break
     return names
 
 _extension_registry = {}

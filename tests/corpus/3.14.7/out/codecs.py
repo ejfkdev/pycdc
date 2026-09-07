@@ -961,8 +961,8 @@ multiple character to \\u001a.
     for k, v in decoding_map.items():
         if v not in m:
             m[v] = k
-            continue
-        m[v] = None
+        else:
+            m[v] = None
     return m
 
 strict_errors = lookup_error('strict')

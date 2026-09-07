@@ -157,8 +157,8 @@ will be omitted from the output for better readability.
                 allsimple = allsimple and simple
                 if keywords:
                     args.append(f'{name!s}={value!s}')
-                    continue
-                args.append(value)
+                else:
+                    args.append(value)
             if include_attributes and node._attributes:
                 for name in node._attributes:
                     try:
@@ -274,13 +274,13 @@ and all items of fields that are lists of nodes.
     for name, field in iter_fields(node):
         if isinstance(field, AST):
             yield field
-            continue
-        if not isinstance(field, list):
-            continue
-        for item in field:
-            if not isinstance(item, AST):
+        else:
+            if not isinstance(field, list):
                 continue
-            yield item
+            for item in field:
+                if not isinstance(item, AST):
+                    continue
+                yield item
 
 def get_docstring(node, clean=True):
     '''
@@ -333,8 +333,8 @@ def _pad_whitespace(source):
     for c in source:
         if c in '\x0c\t':
             result += c
-            continue
-        result += ' '
+        else:
+            result += ' '
     return result
 
 def get_source_segment(source, node, *, padded=False):
@@ -482,10 +482,10 @@ allows modifications.
                     if not isinstance(item, AST):
                         continue
                     self.visit(item)
-                continue
-            if not isinstance(value, AST):
-                continue
-            self.visit(value)
+            else:
+                if not isinstance(value, AST):
+                    continue
+                self.visit(value)
 
 
 class NodeTransformer(NodeVisitor):
@@ -538,14 +538,14 @@ Usually you use the transformer like this::
                         continue
                     new_values.append(value)
                 old_value[slice(None, None, None)] = new_values
-                continue
-            if not isinstance(old_value, AST):
-                continue
-            new_node = self.visit(old_value)
-            if new_node is None:
-                delattr(node, field)
-                continue
-            setattr(node, field, new_node)
+            else:
+                if not isinstance(old_value, AST):
+                    continue
+                new_node = self.visit(old_value)
+                if new_node is None:
+                    delattr(node, field)
+                else:
+                    setattr(node, field, new_node)
         return node
 
 

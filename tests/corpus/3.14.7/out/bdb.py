@@ -1046,16 +1046,11 @@ If no such entry exists, then (None, None) is returned.
             if val:
                 if b.ignore > 0:
                     b.ignore -= 1
-                    continue
+                else:
+                    return b, True
         except:
             b, False
             return
-            try:
-                pass
-            except:
-                b, False
-                return
-        return b, True
     return (None, None)
 
 class Tdb(Bdb):

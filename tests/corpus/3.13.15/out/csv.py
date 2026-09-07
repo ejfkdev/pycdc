@@ -351,8 +351,8 @@ additional chunks as necessary.
                     modes[char] = max(items, key=(lambda x: x[1]))
                     items.remove(modes[char])
                     modes[char] = modes[char][0], modes[char][1] - sum((item[1] for item in items))
-                    continue
-                modes[char] = items[0]
+                else:
+                    modes[char] = items[0]
             modeList = modes.items()
             total = float(min(chunkLength * iteration, len(data)))
             consistency = 1.0
@@ -417,20 +417,22 @@ additional chunks as necessary.
                     continue
                 if columnTypes[col] is None:
                     columnTypes[col] = thisType
-                    continue
-                del columnTypes[col]
+                else:
+                    del columnTypes[col]
         hasHeader = 0
         for col, colType in columnTypes.items():
             if isinstance(colType, int):
                 if len(header[col]) != colType:
                     hasHeader += 1
+                else:
+                    hasHeader -= 1
+            else:
+                try:
+                    colType(header[col])
+                except (ValueError, TypeError):
+                    hasHeader += 1
                     continue
-            hasHeader -= 1
-        try:
-            colType(header[col])
-        except (ValueError, TypeError):
-            hasHeader += 1
-        hasHeader -= 1
+                hasHeader -= 1
         return hasHeader > 0
 
 

@@ -128,9 +128,12 @@ defined.)
                         stripped = c.__name__.lstrip('_')
                         if stripped:
                             names.append(f'_{stripped!s}{name!s}')
-                            continue
-                names.append(name)
-            names.append(name)
+                        else:
+                            names.append(name)
+                    else:
+                        names.append(name)
+                else:
+                    continue
     try:
         cls.__slotnames__ = names
     except:

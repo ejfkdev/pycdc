@@ -116,8 +116,8 @@ def _slotnames(cls):
                             names.append('_%s%s' % (stripped, name))
                         else:
                             names.append(name)
-                            continue
-                    names.append(name)
+                    else:
+                        names.append(name)
     try:
         cls.__slotnames__ = names
     except:

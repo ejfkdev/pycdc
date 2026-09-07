@@ -46,19 +46,19 @@ def compute_powers(w, base, more_than, show=False):
             if show:
                 print('* base at', this)
             d[this] = d[this - 1] * base
-            continue
-        lo = this >> 1
-        hi = this - lo
-        assert lo in d
-        if show:
-            print('square at', this)
-        sq = d[lo] * d[lo]
-        if hi != lo:
-            assert hi == lo + 1
+        else:
+            lo = this >> 1
+            hi = this - lo
+            assert lo in d
             if show:
-                print('    and * base')
-            sq *= base
-        d[this] = sq
+                print('square at', this)
+            sq = d[lo] * d[lo]
+            if hi != lo:
+                assert hi == lo + 1
+                if show:
+                    print('    and * base')
+                sq *= base
+            d[this] = sq
     return d
 
 _unbounded_dec_context = decimal.getcontext().copy()

@@ -155,8 +155,8 @@ def html(einfo, context=5):
                     else:
                         name = where + strong(name.split('.')[-1])
                     dump.append('%s&nbsp;= %s' % (name, pydoc.html.repr(value)))
-                    continue
-            dump.append(name + ' <em>undefined</em>')
+                else:
+                    dump.append(name + ' <em>undefined</em>')
         rows.append('<tr><td>%s</td></tr>' % small(grey(', '.join(dump))))
         frames.append('\n<table width="100%%" cellspacing=0 cellpadding=0 border=0>\n%s</table>' % '\n'.join(rows))
         continue
@@ -216,8 +216,8 @@ def text(einfo, context=5):
                 elif where != 'local':
                     name = where + name.split('.')[-1]
                 dump.append('%s = %s' % (name, pydoc.text.repr(value)))
-                continue
-            dump.append(name + ' undefined')
+            else:
+                dump.append(name + ' undefined')
         rows.append('\n'.join(dump))
         frames.append('\n%s\n' % '\n'.join(rows))
     exception = ['%s: %s' % (str(etype), str(evalue))]

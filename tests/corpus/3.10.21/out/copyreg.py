@@ -125,10 +125,10 @@ def _slotnames(cls):
                             stripped = c.__name__.lstrip('_')
                             if stripped:
                                 names.append('_%s%s' % (stripped, name))
-                                continue
-                    names.append(name)
-                names.append(name)
-                continue
+                            else:
+                                names.append(name)
+                        else:
+                            names.append(name)
     try:
         cls.__slotnames__ = names
         return names

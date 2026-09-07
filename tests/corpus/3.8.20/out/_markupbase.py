@@ -158,7 +158,7 @@ class ParserBase:
                 j = meth(j, declstartpos)
                 if j < 0:
                     return j
-            if c == '%':
+            elif c == '%':
                 if j + 1 == n:
                     return -1
                 s, j = self._scan_name(j + 1, declstartpos)
@@ -166,8 +166,7 @@ class ParserBase:
                     return j
                 if rawdata[j] == ';':
                     j = j + 1
-                continue
-            if c == ']':
+            elif c == ']':
                 j = j + 1
                 while j < n and rawdata[j].isspace():
                     j = j + 1
@@ -178,12 +177,11 @@ class ParserBase:
                     self.error('unexpected char after internal subset')
                 else:
                     return -1
-                continue
-            if c.isspace():
+            elif c.isspace():
                 j = j + 1
-                continue
-            self.updatepos(declstartpos, j)
-            self.error('unexpected char %r in internal subset' % c)
+            else:
+                self.updatepos(declstartpos, j)
+                self.error('unexpected char %r in internal subset' % c)
         return -1
 
     def _parse_doctype_element(self, i, declstartpos):
@@ -261,10 +259,10 @@ class ParserBase:
                 if not m:
                     return -1
                 j = m.end()
-                continue
-            name, j = self._scan_name(j, declstartpos)
-            if j < 0:
-                return j
+            else:
+                name, j = self._scan_name(j, declstartpos)
+                if j < 0:
+                    return j
 
     def _parse_doctype_entity(self, i, declstartpos):
         rawdata = self.rawdata

@@ -151,10 +151,10 @@ since changing the timezone is worthless without that call.
                         replacement_pairs.append((s, d))
                         if n < 10:
                             replacement_pairs.append((s[1], d))
-                        continue
-                if len(self.LC_alt_digits) > n:
-                    replacement_pairs.append((self.LC_alt_digits[n], d))
-                replacement_pairs.append((time.strftime(d, time_tuple), d))
+                    elif len(self.LC_alt_digits) > n:
+                        replacement_pairs.append((self.LC_alt_digits[n], d))
+                    else:
+                        replacement_pairs.append((time.strftime(d, time_tuple), d))
         replacement_pairs += [('1999', '%Y'), ('99', '%y'), ('22', '%H'), ('44', '%M'), ('55', '%S'), ('76', '%j'), ('17', '%d'), ('03', '%m'), ('3', '%m'), ('2', '%w'), ('10', '%I')]
         date_time = []
         for directive in ('%c', '%x', '%X', '%r'):

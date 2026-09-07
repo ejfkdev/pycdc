@@ -122,19 +122,18 @@ def _default_sysroot(cc):
     for line in contents.splitlines():
         if line.startswith('#include <...>'):
             in_incdirs = True
-            continue
-        if line.startswith('End of search list'):
+        elif line.startswith('End of search list'):
             in_incdirs = False
-            continue
-        if not in_incdirs:
-            continue
-        line = line.strip()
-        if line == '/usr/include':
-            _cache_default_sysroot = '/'
-            continue
-        if not line.endswith('.sdk/usr/include'):
-            continue
-        _cache_default_sysroot = line[:-12]
+        else:
+            if not in_incdirs:
+                continue
+            line = line.strip()
+            if line == '/usr/include':
+                _cache_default_sysroot = '/'
+            else:
+                if not line.endswith('.sdk/usr/include'):
+                    continue
+                _cache_default_sysroot = line[:-12]
     if _cache_default_sysroot is None:
         _cache_default_sysroot = '/'
     return _cache_default_sysroot
@@ -272,8 +271,8 @@ barf if multiple '-isysroot' arguments are present.
             index = indices[0]
             if compiler_so[index] == '-isysroot':
                 del compiler_so[index:index + 2]
-                continue
-            del compiler_so[index:index + 1]
+            else:
+                del compiler_so[index:index + 1]
     sysroot = None
     argvar = cc_args
     indices = [i for i, x in enumerate(cc_args) if x.startswith('-isysroot')]

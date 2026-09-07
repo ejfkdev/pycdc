@@ -99,9 +99,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 65: orig  body=[Break()]) | dec  body=[Return()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2214,
+   "ndiff": 1372,
    "ntotal": 2941,
-   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u5eff', '\u5341', '\u4e03', '\u4e5d', '\u4e00'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u5341', '\u4e00', '\u4e5d', '\u4e03'})\")"
+   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u5eff', '\u5341', '\u4e5d', '\u4e00', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e03', '\u4e00', '\u4e5d', '\u5341'})\")"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -127,7 +127,7 @@
    "module": "base64",
    "ast_detail": "diff at token 43: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1807,
+   "ndiff": 1805,
    "ntotal": 2100,
    "detail": "line 260: orig ('NOP', '') | got ('LOAD_FAST', 's')\nline 261: orig ('LOAD_FAST', 's') | got ('LOAD_ATTR', 'encode + NULL|self')\nline 262: orig ('LOAD_ATTR', 'encode + NULL|self') | got ('LOAD_CONST', \"'ascii'\")"
   },
@@ -203,7 +203,7 @@
   {
    "module": "compileall",
    "verdict": "INCOMPLETE",
-   "ndiff": 1452,
+   "ndiff": 1472,
    "ntotal": 1551,
    "detail": "line 49: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 51: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
@@ -233,7 +233,7 @@
    "module": "copyreg",
    "ast_detail": "diff at token 178: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 413,
+   "ndiff": 407,
    "ntotal": 627,
    "detail": "line 190: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L7')\nline 197: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L3')\nline 198: orig ('LOAD_FAST', 'base') | got ('JUMP_BACKWARD', 'to L2')"
   },

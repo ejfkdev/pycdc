@@ -183,6 +183,20 @@ def main():
             print('Error reading file list {}'.format(args.flist))
             return False
     success = True
+    try:
+        if compile_dests:
+            for dest in compile_dests:
+                if os.path.isfile(dest):
+                    if not compile_file(dest, args.ddir, args.force, args.rx, args.quiet, args.legacy):
+                        success = False
+                elif not compile_dir(dest, args.maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy):
+                    success = False
+            return success
+        return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)
+    except KeyboardInterrupt:
+        print('\n[interrupted]')
+        return False
+    return True
 
 if __name__ == '__main__':
     exit_status = int(not main())

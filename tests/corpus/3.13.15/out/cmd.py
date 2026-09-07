@@ -332,11 +332,10 @@ Otherwise try to call complete_<command> to get list of completions.
             if cmd in topics:
                 cmds_doc.append(cmd)
                 topics.remove(cmd)
-                continue
-            if getattr(self, name).__doc__:
+            elif getattr(self, name).__doc__:
                 cmds_doc.append(cmd)
-                continue
-            cmds_undoc.append(cmd)
+            else:
+                cmds_undoc.append(cmd)
         self.stdout.write('%s\n' % str(self.doc_leader))
         self.print_topics(self.doc_header, cmds_doc, 15, 80)
         self.print_topics(self.misc_header, sorted(topics), 15, 80)

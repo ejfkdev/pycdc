@@ -123,7 +123,7 @@
    "module": "base64",
    "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1835,
+   "ndiff": 1836,
    "ntotal": 2117,
    "detail": "line 72: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 74: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 230: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 146') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 86')"
   },
@@ -251,9 +251,9 @@
   {
    "module": "copyreg",
    "verdict": "INCOMPLETE",
-   "ndiff": 433,
-   "ntotal": 672,
-   "detail": "line 219: orig ('FOR_ITER', 'to 196') | got ('FOR_ITER', 'to 194')\nline 226: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 116') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 192')\nline 231: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 116') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 114')"
+   "ndiff": 426,
+   "ntotal": 668,
+   "detail": "line 219: orig ('FOR_ITER', 'to 196') | got ('FOR_ITER', 'to 206')\nline 226: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 116') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 204')\nline 231: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 116') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 114')"
   },
   {
    "module": "crypt",
@@ -263,7 +263,7 @@
    "module": "csv",
    "ast_detail": "diff at token 965: orig  body=[Continue()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1400,
+   "ndiff": 1402,
    "ntotal": 1724,
    "detail": "line 299: orig ('NOP', '') | got ('LOAD_CONST', \"(None, None, None, 'excel')\")\nline 300: orig ('NOP', '') | got ('LOAD_CONST', '<code __init__>')\nline 301: orig ('LOAD_CONST', \"(None, None, None, 'excel')\") | got ('MAKE_FUNCTION', 'defaults')"
   }

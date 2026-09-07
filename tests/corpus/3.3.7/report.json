@@ -23,8 +23,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 534: orig  If(test=Compare(left=Name(id='c' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 978,
-   "ntotal": 1408,
+   "ndiff": 981,
+   "ntotal": 1409,
    "detail": "line 303: orig ('SETUP_LOOP', '#230') | got ('SETUP_LOOP', '#238')\nline 307: orig ('POP_JUMP_IF_FALSE', '#229') | got ('POP_JUMP_IF_FALSE', '#237')\nline 360: orig ('JUMP_FORWARD', '#222') | got ('JUMP_FORWARD', '#197')"
   },
   {
@@ -175,8 +175,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 204: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
    "verdict": "SIG-DIFF",
-   "ndiff": 648,
-   "ntotal": 860,
+   "ndiff": 643,
+   "ntotal": 864,
    "detail": "line 130: orig ('SETUP_LOOP', '#142') | got ('SETUP_LOOP', '#145')\nline 133: orig ('FOR_ITER', '#141') | got ('FOR_ITER', '#144')\nline 177: orig ('POP_JUMP_IF_TRUE', '#140') | got ('POP_JUMP_IF_TRUE', '#143')"
   },
   {
@@ -205,10 +205,10 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 445: orig  body=[Pass() | dec  body=[Pass()]",
+   "ast_detail": "diff at token 771: orig  ctx=Del())]) | dec  ctx=Del())",
    "verdict": "SIG-DIFF",
-   "ndiff": 336,
-   "ntotal": 527,
+   "ndiff": 333,
+   "ntotal": 529,
    "detail": "line 169: orig ('SETUP_LOOP', '#30') | got ('SETUP_LOOP', '#31')\nline 174: orig ('FOR_ITER', '#27') | got ('FOR_ITER', '#28')\nline 185: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '#26')"
   },
   {

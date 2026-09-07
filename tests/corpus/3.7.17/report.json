@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 22,
-  "SIG-DIFF": 18
+  "PASS": 23,
+  "SIG-DIFF": 17
  },
  "results": [
   {
@@ -38,16 +38,16 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 508: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 964,
-   "ntotal": 1417,
+   "ndiff": 963,
+   "ntotal": 1416,
    "detail": "line 300: orig ('SETUP_LOOP', 'to 480') | got ('SETUP_LOOP', 'to 492')\nline 362: orig ('JUMP_FORWARD', 'to 464') | got ('JUMP_FORWARD', 'to 476')\nline 376: orig ('JUMP_FORWARD', 'to 464') | got ('JUMP_FORWARD', 'to 476')"
   },
   {
    "module": "_osx_support",
    "ast_detail": "diff at token 145: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1097,
-   "ntotal": 1274,
+   "ndiff": 1095,
+   "ntotal": 1273,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 128') | got ('SETUP_LOOP', 'to 134')\nline 161: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 134')\nline 162: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')"
   },
   {
@@ -174,7 +174,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 764: orig  Return(value=ListComp(elt=Subscript(value=Name(id='a' | dec  Return(value=ListComp(elt=Subscript(value=Num(n=3)",
    "verdict": "SIG-DIFF",
-   "ndiff": 700,
+   "ndiff": 698,
    "ntotal": 1315,
    "detail": "line 596: orig ('FOR_ITER', 'to 32') | got ('FOR_ITER', 'to 28')\nline 603: orig ('LOAD_FAST', 'a') | got ('LOAD_CONST', '3')\nline 604: orig ('LOAD_CONST', '3') | got ('LOAD_CONST', 'None')"
   },
@@ -228,11 +228,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 418: orig  body=[Pass() | dec  body=[Pass()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 218,
-   "ntotal": 540,
-   "detail": "line 320: orig ('JUMP_FORWARD', 'to 196') | got ('SETUP_EXCEPT', 'to 50')\nline 321: orig ('SETUP_LOOP', 'to 196') | got ('LOAD_FAST', 'names')\nline 323: orig ('LOAD_ATTR', '__mro__') | got ('STORE_ATTR', '__slotnames__')"
+   "verdict": "PASS"
   },
   {
    "module": "crypt",

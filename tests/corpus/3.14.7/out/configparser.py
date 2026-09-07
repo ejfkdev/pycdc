@@ -418,22 +418,24 @@ is considered a user error and raises `InterpolationSyntaxError`.'''
             if c == '%':
                 accum.append('%')
                 rest = rest[2:]
-                continue
-            if c == '(':
-                m = self._KEYCRE.match(rest)
-                if m is None:
-                    raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
-                var = parser.optionxform(m.group(1))
-                rest = rest[m.end():]
-                try:
-                    v = map[var]
-                except KeyError:
-                    raise InterpolationMissingOptionError(option, section, rawval, var) from None
-                if '%' in v:
-                    self._interpolate_some(parser, option, accum, v, section, map, depth + 1)
-                    continue
-            accum.append(v)
-        raise InterpolationSyntaxError(option, section, f"'%' must be followed by '%' or '(', found: {rest!r}")
+            else:
+                if c == '(':
+                    m = self._KEYCRE.match(rest)
+                    if m is None:
+                        raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
+                    var = parser.optionxform(m.group(1))
+                    rest = rest[m.end():]
+                    try:
+                        v = map[var]
+                    except KeyError:
+                        raise InterpolationMissingOptionError(option, section, rawval, var) from None
+                    if '%' in v:
+                        self._interpolate_some(parser, option, accum, v, section, map, depth + 1)
+                    else:
+                        accum.append(v)
+                else:
+                    raise InterpolationSyntaxError(option, section, f"'%' must be followed by '%' or '(', found: {rest!r}")
+                return
 
 
 class ExtendedInterpolation(Interpolation):
@@ -469,8 +471,7 @@ class ExtendedInterpolation(Interpolation):
             if c == '$':
                 accum.append('$')
                 rest = rest[2:]
-                continue
-            if c == '{':
+            elif c == '{':
                 m = self._KEYCRE.match(rest)
                 if m is None:
                     raise InterpolationSyntaxError(option, section, 'bad interpolation variable reference %r' % rest)
@@ -494,9 +495,9 @@ class ExtendedInterpolation(Interpolation):
                     continue
             if '$' in v:
                 self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
-                continue
-            accum.append(v)
-        raise InterpolationSyntaxError(option, section, f"'$' must be followed by '$' or '{{', found: {rest!r}")
+            else:
+                accum.append(v)
+            raise InterpolationSyntaxError(option, section, f"'$' must be followed by '$' or '{{', found: {rest!r}")
 
 
 class _ReadState:

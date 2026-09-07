@@ -144,8 +144,8 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
                 allsimple = allsimple and simple
                 if keywords:
                     args.append('%s=%s' % (name, value))
-                    continue
-                args.append(value)
+                else:
+                    args.append(value)
             if include_attributes and node._attributes:
                 for name in node._attributes:
                     try:
@@ -258,8 +258,7 @@ def iter_child_nodes(node):
     for name, field in iter_fields(node):
         if isinstance(field, AST):
             yield field
-            continue
-        if isinstance(field, list):
+        elif isinstance(field, list):
             for item in field:
                 if isinstance(item, AST):
                     yield item
@@ -320,8 +319,8 @@ def _pad_whitespace(source):
     for c in source:
         if c in '\x0c\t':
             result += c
-            continue
-        result += ' '
+        else:
+            result += ' '
     return result
 
 def get_source_segment(source, node, *, padded=False):
@@ -407,8 +406,7 @@ class NodeVisitor(object):
                 for item in value:
                     if isinstance(item, AST):
                         self.visit(item)
-                continue
-            if isinstance(value, AST):
+            elif isinstance(value, AST):
                 self.visit(value)
 
     def visit_Constant(self, node):
@@ -481,13 +479,12 @@ class NodeTransformer(NodeVisitor):
                             continue
                     new_values.append(value)
                 old_value[:] = new_values
-                continue
-            if isinstance(old_value, AST):
+            elif isinstance(old_value, AST):
                 new_node = self.visit(old_value)
                 if new_node is None:
                     delattr(node, field)
-                    continue
-            setattr(node, field, new_node)
+                else:
+                    setattr(node, field, new_node)
         return node
 
 

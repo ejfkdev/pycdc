@@ -47,8 +47,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 479: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 963,
-   "ntotal": 1404,
+   "ndiff": 979,
+   "ntotal": 1406,
    "detail": "line 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 385: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')"
   },
   {
@@ -117,7 +117,7 @@
    "module": "asynchat",
    "ast_detail": "diff at token 213: orig  body=[Return()]) | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 100,
+   "ndiff": 99,
    "ntotal": 798,
    "detail": "line 235: orig ('LOAD_CONST', 'None') | got ('EXTENDED_ARG', '')\nline 236: orig ('RETURN_VALUE', '') | got ('JUMP_FORWARD', 'to 446')\nline 248: orig ('LOAD_CONST', 'None') | got ('EXTENDED_ARG', '')"
   },
@@ -241,11 +241,11 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 1199: orig  keywords=[])) | dec  keywords=[]))]",
+   "ast_detail": "diff at token 1707: orig  If(test=BoolOp(op=And() | dec  Assign(targets=[Name(id='replace'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2817,
+   "ndiff": 2815,
    "ntotal": 4333,
-   "detail": "line 1068: orig ('JUMP_FORWARD', 'to 334') | got ('JUMP_ABSOLUTE', '')\nline 1393: orig ('JUMP_FORWARD', 'to 470') | got ('JUMP_ABSOLUTE', '')\nline 1451: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')"
+   "detail": "line 1451: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')\nline 1452: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_ATTR', 'partial')\nline 1453: orig ('LOAD_CONST', \"'%('\") | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "contextlib",
