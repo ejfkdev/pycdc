@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 13,
-  "INCOMPLETE": 17,
+  "PASS": 14,
+  "INCOMPLETE": 16,
   "SIG-DIFF": 10
  },
  "results": [
@@ -53,9 +53,9 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1295,
-   "ntotal": 1552,
-   "detail": "line 234: orig ('LOAD_GLOBAL', 'NULL + os') | got ('LOAD_CONST', 'None')\nline 235: orig ('LOAD_ATTR', 'system') | got ('LOAD_CONST', 'None')\nline 236: orig ('LOAD_FAST', 'cmd') | got ('LOAD_CONST', 'None')"
+   "ndiff": 1180,
+   "ntotal": 1565,
+   "detail": "line 294: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 400') | got ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 484')\nline 305: orig ('NOP', '') | got ('LOAD_GLOBAL', 'NULL + re')\nline 306: orig ('LOAD_GLOBAL', 'NULL + re') | got ('LOAD_ATTR', 'search')"
   },
   {
    "module": "_py_abc",
@@ -81,10 +81,7 @@
   },
   {
    "module": "_threading_local",
-   "verdict": "INCOMPLETE",
-   "ndiff": 122,
-   "ntotal": 496,
-   "detail": "line 370: orig ('LOAD_GLOBAL', 'object') | got ('NOP', '')\nline 371: orig ('LOAD_METHOD', '__getattribute__') | got ('LOAD_CONST', 'None')\nline 372: orig ('LOAD_FAST', 'self') | got ('LOAD_CONST', 'None')"
+   "verdict": "PASS"
   },
   {
    "module": "_weakrefset",
@@ -153,7 +150,7 @@
   {
    "module": "calendar",
    "verdict": "INCOMPLETE",
-   "ndiff": 2795,
+   "ndiff": 2802,
    "ntotal": 3519,
    "detail": "line 612: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 88') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 168')\nline 632: orig ('monthrange', 2) | got ('LOAD_CONST', 'None')\nline 633: orig ('RESUME', '') | got ('RETURN_VALUE', '')"
   },
@@ -227,9 +224,9 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1890,
+   "ndiff": 1819,
    "ntotal": 2283,
-   "detail": "line 359: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 360: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + wraps')\nline 361: orig ('LOAD_GLOBAL', 'NULL + wraps') | got ('LOAD_FAST', 'func')"
+   "detail": "line 434: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 435: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + wraps')\nline 436: orig ('LOAD_GLOBAL', 'NULL + wraps') | got ('LOAD_FAST', 'func')"
   },
   {
    "module": "copy",

@@ -146,6 +146,7 @@ class BZ2File(_compression.BaseStream):
 
         with self._lock:
             self._check_can_read()
+            return self._buffer.peek(n)
 
     def read(self, size=-1):
         """Read up to size uncompressed bytes from the file.
@@ -156,6 +157,7 @@ class BZ2File(_compression.BaseStream):
 
         with self._lock:
             self._check_can_read()
+            return self._buffer.read(size)
 
     def read1(self, size=-1):
         """Read up to size uncompressed bytes, while trying to avoid
@@ -169,6 +171,7 @@ class BZ2File(_compression.BaseStream):
             self._check_can_read()
             if size < 0:
                 size = io.DEFAULT_BUFFER_SIZE
+            return self._buffer.read1(size)
 
     def readinto(self, b):
         '''Read bytes into b.
@@ -178,6 +181,7 @@ class BZ2File(_compression.BaseStream):
 
         with self._lock:
             self._check_can_read()
+            return self._buffer.readinto(b)
 
     def readline(self, size=-1):
         """Read a line of uncompressed bytes from the file.
@@ -193,6 +197,7 @@ class BZ2File(_compression.BaseStream):
             size = size.__index__()
         with self._lock:
             self._check_can_read()
+            return self._buffer.readline(size)
 
     def readlines(self, size=-1):
         '''Read a list of lines of uncompressed bytes from the file.
@@ -208,6 +213,7 @@ class BZ2File(_compression.BaseStream):
             size = size.__index__()
         with self._lock:
             self._check_can_read()
+            return self._buffer.readlines(size)
 
     def write(self, data):
         '''Write a byte string to the file.
@@ -222,6 +228,7 @@ class BZ2File(_compression.BaseStream):
             compressed = self._compressor.compress(data)
             self._fp.write(compressed)
             self._pos += len(data)
+            return len(data)
 
     def writelines(self, seq):
         '''Write a sequence of byte strings to the file.
@@ -233,7 +240,7 @@ class BZ2File(_compression.BaseStream):
         '''
 
         with self._lock:
-            pass
+            return _compression.BaseStream.writelines(self, seq)
 
     def seek(self, offset, whence=io.SEEK_SET):
         '''Change the file position.
@@ -253,6 +260,7 @@ class BZ2File(_compression.BaseStream):
 
         with self._lock:
             self._check_can_seek()
+            return self._buffer.seek(offset, whence)
 
     def tell(self):
         '''Return the current file position.'''
@@ -261,6 +269,7 @@ class BZ2File(_compression.BaseStream):
             self._check_not_closed()
             if self._mode == _MODE_READ:
                 return
+            return self._pos
 
 
 def open(filename, mode='rb', compresslevel=9, encoding=None, errors=None, newline=None):

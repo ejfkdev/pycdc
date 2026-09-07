@@ -559,13 +559,11 @@ class LocaleTextCalendar(TextCalendar):
 
     def formatweekday(self, day, width):
         with different_locale(self.locale):
-            pass
-        None(None, None)
+            return super().formatweekday(day, width)
 
     def formatmonthname(self, theyear, themonth, width, withyear=True):
         with different_locale(self.locale):
-            pass
-        None(None, None)
+            return super().formatmonthname(theyear, themonth, width, withyear)
 
 
 class LocaleHTMLCalendar(HTMLCalendar):
@@ -582,13 +580,11 @@ class LocaleHTMLCalendar(HTMLCalendar):
 
     def formatweekday(self, day):
         with different_locale(self.locale):
-            pass
-        None(None, None)
+            return super().formatweekday(day)
 
     def formatmonthname(self, theyear, themonth, withyear=True):
         with different_locale(self.locale):
-            pass
-        None(None, None)
+            return super().formatmonthname(theyear, themonth, withyear)
 
 
 c = TextCalendar()

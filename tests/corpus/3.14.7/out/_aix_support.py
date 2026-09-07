@@ -14,7 +14,7 @@ def _read_cmd_output(commandstring, capture_stderr=False):
             cmd = f"{commandstring!s} >'{fp.name!s}' 2>&1"
         else:
             cmd = f"{commandstring!s} 2>/dev/null >'{fp.name!s}'"
-    fp.read() if not os.system(cmd) else None
+        return fp.read() if not os.system(cmd) else None
 
 def _aix_tag(vrtl, bd):
     _sz = 32 if sys.maxsize == 2147483647 else 64
@@ -82,4 +82,3 @@ Return the platform_tag of the system Python was built on.
         raise ValueError(f'AIX_BUILDDATE is not defined or invalid: {build_date!r}')
     return _aix_tag(_aix_bgt(), build_date)
 
-# WARNING: Decompyle incomplete

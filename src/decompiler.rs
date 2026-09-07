@@ -7146,6 +7146,13 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::ROT_TWO => {
+                // 3.11+ `with ...: return expr` whose With block already
+                // closed at its region end: the tail lifts the value over
+                // the unmodeled exit callable and returns it — fold into
+                // the just-emitted With statement (see SWAP arm)
+                if self.try_fold_late_with_return(&inst) {
+                    return true;
+                }
                 let n = self.stack.len();
                 if n >= 2 {
                     self.stack.swap(n - 1, n - 2);
@@ -7178,6 +7185,19 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::SWAP => {
+                // 3.11+ `with ...: return expr`: SWAP 2 lifts the return
+                // value over the unmodeled __exit__ callable, then
+                // LOAD None x3; CALL; POP_TOP; RETURN_VALUE follow. The
+                // With block already closed at its exception-table region
+                // end, so fold the return into the just-emitted With
+                // statement and skip the protocol + handler (without
+                // this, the CALL renders `None(None, None)` garbage and
+                // the handler glue an `if not None: pass`).
+                if (arg == 2 || arg == 3)
+                    && self.try_fold_late_with_return(&inst)
+                {
+                    return true;
+                }
                 let i = arg as usize;
                 let len = self.stack.len();
                 if len >= i && i > 0 {
@@ -18292,6 +18312,25 @@ impl<'a> Ctx<'a> {
                     self.force_close_top(end);
                 }
                 BlockType::With => {
+                    // `with ...: return expr` (3.8-3.10): the value is on
+                    // the stack and the tail after this POP_BLOCK is the
+                    // inline exit protocol ending in RETURN_VALUE. Fold
+                    // the return into the with body before the generic
+                    // own-POP_BLOCK scan (which either fails on the bare
+                    // RETURN — 3.9/3.10 rendered the protocol as
+                    // `expr(None, None, None); return` inside the body —
+                    // or passes and lets WITH_CLEANUP_START eat the value
+                    // — 3.8 rendered `pass` + a lost return).
+                    if let Some(&ni) = self.idx_of.get(&self.cur_next) {
+                        if self.with_return_tail_end(ni).is_some()
+                            && matches!(self.stack.last(), Some(Sv::E(_)))
+                        {
+                            let after = self.with_return_tail_end(ni).unwrap();
+                            let end = top.end;
+                            self.fold_with_return(end, after);
+                            return;
+                        }
+                    }
                     // an inner loop/try may have closed via its back
                     // edge/handler, orphaning ITS POP_BLOCK — only the
                     // with's OWN POP_BLOCK closes it: the whole span from
@@ -18438,6 +18477,218 @@ impl<'a> Ctx<'a> {
                 let pos = top.start.max(1);
                 self.force_close_top(pos);
             }
+        }
+    }
+
+    /// `with ...: return expr` tail matcher: starting at the ROT_TWO /
+    /// SWAP 2 that lifts the return value over the unmodeled __exit__
+    /// slot, match the inline exit protocol up to its RETURN_VALUE and
+    /// return the offset just past it. Shapes:
+    /// - 3.8: ROT_TWO; BEGIN_FINALLY; WITH_CLEANUP_START;
+    ///   WITH_CLEANUP_FINISH; POP_FINALLY; RETURN_VALUE
+    /// - 3.9/3.10: ROT_TWO; LOAD None; DUP_TOP; DUP_TOP; CALL_FUNCTION 3;
+    ///   POP_TOP; RETURN_VALUE
+    /// - 3.11+: SWAP 2; LOAD None x3; [PRECALL]; CALL; POP_TOP;
+    ///   RETURN_VALUE
+    fn with_return_tail_end(&self, k0: usize) -> Option<usize> {
+        let first = self.instrs.get(k0)?;
+        if !(first.op == Op::ROT_TWO
+            || (first.op == Op::SWAP && (first.arg == 2 || first.arg == 3)))
+        {
+            return None;
+        }
+        let mut k = k0 + 1;
+        // 3.13/3.14 open the tail with SWAP 3; SWAP 2 (the value rides
+        // over two unmodeled exit-protocol slots); fold at the FIRST swap
+        // so the popped value is the body's return expression
+        if first.op == Op::SWAP
+            && first.arg == 3
+            && !matches!(
+                self.instrs.get(k).map(|x| (x.op, x.arg)),
+                Some((Op::SWAP, 2))
+            )
+        {
+            return None;
+        }
+        if matches!(self.instrs.get(k).map(|x| (x.op, x.arg)), Some((Op::SWAP, 2))) {
+            k += 1;
+        }
+        let mut nones = 0;
+        let mut call = false;
+        let mut pop_after_call = false;
+        let mut cleanup = false;
+        while k < self.instrs.len() {
+            let x = &self.instrs[k];
+            match x.op {
+                Op::BEGIN_FINALLY | Op::WITH_CLEANUP_FINISH => k += 1,
+                Op::WITH_CLEANUP_START | Op::WITH_CLEANUP => {
+                    cleanup = true;
+                    k += 1;
+                }
+                Op::POP_FINALLY => k += 1,
+                Op::LOAD_CONST
+                    if matches!(
+                        self.code.consts.get(x.arg as usize).map(|o| &**o),
+                        Some(PyObject::None)
+                    ) =>
+                {
+                    nones += 1;
+                    k += 1;
+                }
+                Op::DUP_TOP => {
+                    nones += 1;
+                    k += 1;
+                }
+                Op::PRECALL | Op::NOP | Op::CACHE | Op::NOT_TAKEN | Op::PUSH_NULL => {
+                    k += 1;
+                }
+                Op::CALL_FUNCTION | Op::CALL => {
+                    if nones < 3 {
+                        return None;
+                    }
+                    call = true;
+                    k += 1;
+                }
+                Op::POP_TOP if call => {
+                    pop_after_call = true;
+                    k += 1;
+                }
+                Op::RETURN_VALUE | Op::RETURN_CONST => {
+                    if cleanup || (call && pop_after_call) {
+                        return Some(x.end());
+                    }
+                    return None;
+                }
+                _ => return None,
+            }
+        }
+        None
+    }
+
+    /// Extend a with-return skip over the exception-time handler that
+    /// follows the folded tail: its WITH_EXCEPT_START/PUSH_EXC_INFO glue
+    /// would otherwise render as `if not None: pass` garbage (3.9/3.10
+    /// repro) or a stray `None(None, None)` call (3.11+). Bounded by the
+    /// 3.11+ exception-table target span; pre-3.11 stops at the first
+    /// non-handler material.
+    fn with_handler_skip_end(&self, from: usize) -> usize {
+        let Some(&k0) = self.idx_of.get(&from) else {
+            return from;
+        };
+        if !matches!(
+            self.instrs[k0].op,
+            Op::WITH_EXCEPT_START | Op::PUSH_EXC_INFO
+        ) && !self.with_handler_starts.contains(&from)
+        {
+            return from;
+        }
+        let table_bound = self
+            .exc_entries
+            .iter()
+            .find(|e| e.target == from)
+            .map(|e| e.end)
+            .unwrap_or(usize::MAX);
+        let mut k = k0;
+        while k < self.instrs.len() {
+            let x = &self.instrs[k];
+            if x.offset >= table_bound {
+                break;
+            }
+            match x.op {
+                Op::WITH_EXCEPT_START
+                | Op::PUSH_EXC_INFO
+                | Op::POP_TOP
+                | Op::POP_EXCEPT
+                | Op::RERAISE
+                | Op::END_FINALLY
+                | Op::COPY
+                | Op::SWAP
+                | Op::NOP
+                | Op::CACHE
+                | Op::NOT_TAKEN
+                | Op::RESUME
+                | Op::RESUME_CHECK
+                | Op::POP_JUMP_IF_TRUE
+                | Op::POP_JUMP_IF_FALSE
+                | Op::POP_JUMP_FORWARD_IF_TRUE
+                | Op::POP_JUMP_BACKWARD_IF_TRUE
+                | Op::JUMP_IF_TRUE_OR_POP
+                | Op::EXTENDED_ARG => k += 1,
+                Op::LOAD_CONST
+                    if matches!(
+                        self.code.consts.get(x.arg as usize).map(|o| &**o),
+                        Some(PyObject::None)
+                    ) =>
+                {
+                    k += 1;
+                }
+                Op::RETURN_VALUE | Op::RETURN_CONST => return x.end(),
+                _ => break,
+            }
+        }
+        self.instrs
+            .get(k)
+            .map(|x| x.offset)
+            .unwrap_or(from)
+    }
+
+    /// 3.11+ late with-return fold: the With block closed at its region
+    /// end and its Stmt::With is the parent's last statement. Match the
+    /// exit-protocol tail at `inst` (ROT_TWO / SWAP 2), pop the value
+    /// into the with body's `return`, and skip protocol + handler.
+    fn try_fold_late_with_return(&mut self, inst: &Instruction) -> bool {
+        if self.with_exits == 0 || !matches!(self.stack.last(), Some(Sv::E(_))) {
+            return false;
+        }
+        let Some(&ki) = self.idx_of.get(&inst.offset) else {
+            return false;
+        };
+        let Some(after) = self.with_return_tail_end(ki) else {
+            return false;
+        };
+        // probe the target shape BEFORE popping so a failed fold leaves
+        // the stack untouched
+        if !matches!(
+            self.blocks.last().and_then(|b| b.stmts.last()),
+            Some(Stmt::With { .. })
+        ) {
+            return false;
+        }
+        let value = self.pop_expr();
+        let ret = match &*value {
+            Expr::Const(o) if matches!(&**o, PyObject::None) => Stmt::Return(None),
+            _ => Stmt::Return(Some(value)),
+        };
+        if let Some(top) = self.blocks.last_mut() {
+            if let Some(Stmt::With { body, .. }) = top.stmts.last_mut() {
+                body.push(ret);
+            }
+        }
+        self.with_exits = self.with_exits.saturating_sub(1);
+        let skip_end = self.with_handler_skip_end(after);
+        if self.skip_until.map_or(true, |s| s < skip_end) {
+            self.skip_until = Some(skip_end);
+        }
+        true
+    }
+
+    /// Fold a with-return tail: the value on the stack becomes the with
+    /// body's `return`, the With block closes, and the exit protocol plus
+    /// exception-time handler are skipped.
+    fn fold_with_return(&mut self, with_end: usize, tail_after: usize) {
+        let value = self.pop_expr();
+        let ret = match &*value {
+            Expr::Const(o) if matches!(&**o, PyObject::None) => Stmt::Return(None),
+            _ => Stmt::Return(Some(value)),
+        };
+        if let Some(top) = self.blocks.last_mut() {
+            top.stmts.push(ret);
+        }
+        self.force_close_top(with_end);
+        self.with_exits = self.with_exits.saturating_sub(1);
+        let skip_end = self.with_handler_skip_end(tail_after);
+        if self.skip_until.map_or(true, |s| s < skip_end) {
+            self.skip_until = Some(skip_end);
         }
     }
 

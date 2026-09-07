@@ -71,8 +71,7 @@ See issue #11647 for details.
         @wraps(func)
         def inner(*args, **kwds):
             with self._recreate_cm():
-                pass
-            None(None, None)
+                return func(*args, **kwds)
 
         return inner
 

@@ -534,20 +534,14 @@ class LocaleTextCalendar(TextCalendar):
             else:
                 names = day_abbr
             name = names[day]
-            name[:width].center(width)(None, None, None)
-            return
-        if not None:
-            pass
+            return name[:width].center(width)
 
     def formatmonthname(self, theyear, themonth, width, withyear=True):
         with different_locale(self.locale):
             s = month_name[themonth]
             if withyear:
                 s = '%s %r' % (s, theyear)
-            s.center(width)(None, None, None)
-            return
-        if not None:
-            pass
+            return s.center(width)
 
 
 class LocaleHTMLCalendar(HTMLCalendar):
@@ -567,20 +561,14 @@ class LocaleHTMLCalendar(HTMLCalendar):
     def formatweekday(self, day):
         with different_locale(self.locale):
             s = day_abbr[day]
-            ('<th class="%s">%s</th>' % (self.cssclasses[day], s))(None, None, None)
-            return
-        if not None:
-            pass
+            return '<th class="%s">%s</th>' % (self.cssclasses[day], s)
 
     def formatmonthname(self, theyear, themonth, withyear=True):
         with different_locale(self.locale):
             s = month_name[themonth]
             if withyear:
                 s = '%s %s' % (s, theyear)
-            ('<tr><th colspan="7" class="month">%s</th></tr>' % s)(None, None, None)
-            return
-        if not None:
-            pass
+            return '<tr><th colspan="7" class="month">%s</th></tr>' % s
 
 
 c = TextCalendar()
@@ -685,4 +673,3 @@ def main(args):
 
 if __name__ == '__main__':
     main(sys.argv)
-# WARNING: Decompyle incomplete

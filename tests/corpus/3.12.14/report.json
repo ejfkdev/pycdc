@@ -2,9 +2,9 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 12,
-  "INCOMPLETE": 21,
-  "SIG-DIFF": 7
+  "PASS": 13,
+  "SIG-DIFF": 7,
+  "INCOMPLETE": 20
  },
  "results": [
   {
@@ -17,10 +17,7 @@
   },
   {
    "module": "_aix_support",
-   "verdict": "INCOMPLETE",
-   "ndiff": 211,
-   "ntotal": 302,
-   "detail": "line 82: orig ('LOAD_FAST', 'os') | got ('LOAD_CONST', 'None')\nline 83: orig ('LOAD_ATTR', 'NULL|self + system') | got ('LOAD_CONST', 'None')\nline 84: orig ('LOAD_FAST', 'cmd') | got ('LOAD_CONST', 'None')"
+   "verdict": "PASS"
   },
   {
    "module": "_collections_abc",
@@ -52,7 +49,7 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1300,
+   "ndiff": 1304,
    "ntotal": 1489,
    "detail": "line 166: orig ('NOP', '') | got ('LOAD_CONST', '0')\nline 167: orig ('LOAD_CONST', '0') | got ('LOAD_CONST', 'None')\nline 168: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'tempfile')"
   },
@@ -92,7 +89,7 @@
   {
    "module": "_threading_local",
    "verdict": "INCOMPLETE",
-   "ndiff": 249,
+   "ndiff": 250,
    "ntotal": 446,
    "detail": "line 192: orig ('NOP', '') | got ('LOAD_FAST', 'impl')\nline 193: orig ('LOAD_FAST', 'impl') | got ('LOAD_ATTR', 'NULL|self + get_dict')\nline 194: orig ('LOAD_ATTR', 'NULL|self + get_dict') | got ('CALL', '')"
   },
@@ -146,8 +143,8 @@
   {
    "module": "calendar",
    "verdict": "INCOMPLETE",
-   "ndiff": 2622,
-   "ntotal": 3395,
+   "ndiff": 2628,
+   "ntotal": 3396,
    "detail": "line 648: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 704: orig ('POP_JUMP_IF_TRUE', 'to 100') | got ('POP_JUMP_IF_TRUE', 'to 192')\nline 724: orig ('_validate_month', 1) | got ('RETURN_CONST', 'None')"
   },
   {
@@ -219,9 +216,9 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1934,
-   "ntotal": 2304,
-   "detail": "line 331: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 332: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + wraps')\nline 333: orig ('LOAD_GLOBAL', 'NULL + wraps') | got ('LOAD_FAST', 'func')"
+   "ndiff": 1867,
+   "ntotal": 2307,
+   "detail": "line 400: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 401: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + wraps')\nline 402: orig ('LOAD_GLOBAL', 'NULL + wraps') | got ('LOAD_FAST', 'func')"
   },
   {
    "module": "copy",

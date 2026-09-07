@@ -2,8 +2,8 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 13,
-  "INCOMPLETE": 19,
+  "PASS": 14,
+  "INCOMPLETE": 18,
   "SIG-DIFF": 8
  },
  "results": [
@@ -17,10 +17,7 @@
   },
   {
    "module": "_aix_support",
-   "verdict": "INCOMPLETE",
-   "ndiff": 216,
-   "ntotal": 312,
-   "detail": "line 89: orig ('LOAD_FAST', 'os') | got ('LOAD_CONST', 'None')\nline 90: orig ('LOAD_ATTR', 'system + NULL|self') | got ('LOAD_CONST', 'None')\nline 91: orig ('LOAD_FAST', 'cmd') | got ('LOAD_CONST', 'None')"
+   "verdict": "PASS"
   },
   {
    "module": "_android_support",
@@ -79,7 +76,7 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1325,
+   "ndiff": 1336,
    "ntotal": 1534,
    "detail": "line 169: orig ('NOP', '') | got ('LOAD_CONST', '0')\nline 170: orig ('LOAD_CONST', '0') | got ('LOAD_CONST', 'None')\nline 171: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'tempfile')"
   },
@@ -106,7 +103,7 @@
    "verdict": "INCOMPLETE",
    "ndiff": 2214,
    "ntotal": 2941,
-   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u4e5d', '\u4e00', '\u5eff', '\u5341', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u5341', '\u4e03', '\u5eff', '\u4e00', '\u4e5d'})\")"
+   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u5341', '\u5eff', '\u4e00', '\u4e5d', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e00', '\u4e5d', '\u4e03', '\u5341'})\")"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -166,8 +163,8 @@
   {
    "module": "calendar",
    "verdict": "INCOMPLETE",
-   "ndiff": 2650,
-   "ntotal": 3430,
+   "ndiff": 2660,
+   "ntotal": 3431,
    "detail": "line 657: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 734: orig ('_validate_month', 1) | got ('RETURN_CONST', 'None')\nline 735: orig ('RESUME', '') | got ('_validate_month', 1)"
   },
   {
@@ -220,9 +217,9 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1931,
-   "ntotal": 2323,
-   "detail": "line 337: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 338: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'wraps + NULL')\nline 339: orig ('LOAD_GLOBAL', 'wraps + NULL') | got ('LOAD_FAST', 'func')"
+   "ndiff": 1837,
+   "ntotal": 2326,
+   "detail": "line 408: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 409: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'wraps + NULL')\nline 410: orig ('LOAD_GLOBAL', 'wraps + NULL') | got ('LOAD_FAST', 'func')"
   },
   {
    "module": "copy",

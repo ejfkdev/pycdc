@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
   "PASS": 10,
-  "SIG-DIFF": 16,
-  "INCOMPLETE": 14
+  "SIG-DIFF": 18,
+  "INCOMPLETE": 12
  },
  "results": [
   {
@@ -52,10 +52,11 @@
   },
   {
    "module": "_osx_support",
-   "verdict": "INCOMPLETE",
-   "ndiff": 1149,
-   "ntotal": 1430,
-   "detail": "line 219: orig ('SETUP_WITH', 'to 160') | got ('SETUP_WITH', 'to 172')\nline 253: orig ('POP_BLOCK', '') | got ('LOAD_CONST', 'None')\nline 254: orig ('ROT_TWO', '') | got ('LOAD_CONST', 'None')"
+   "ast_detail": "diff at token 311: orig  body=[Pass()])] | dec  body=[Return(value=Name(id='_SYSTEM_VERSION'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1097,
+   "ntotal": 1422,
+   "detail": "line 289: orig ('POP_JUMP_IF_FALSE', 'to 128') | got ('POP_JUMP_IF_FALSE', 'to 130')\nline 300: orig ('JUMP_FORWARD', 'to 50') | got ('JUMP_FORWARD', 'to 52')\nline 303: orig ('JUMP_IF_NOT_EXC_MATCH', 'to 48') | got ('JUMP_IF_NOT_EXC_MATCH', 'to 50')"
   },
   {
    "module": "_py_abc",
@@ -84,8 +85,8 @@
   {
    "module": "_threading_local",
    "verdict": "INCOMPLETE",
-   "ndiff": 222,
-   "ntotal": 468,
+   "ndiff": 197,
+   "ntotal": 444,
    "detail": "line 229: orig ('SETUP_WITH', 'to 124') | got ('SETUP_WITH', 'to 126')\nline 241: orig ('POP_BLOCK', '') | got ('NOP', '')\nline 242: orig ('LOAD_CONST', 'None') | got ('POP_BLOCK', '')"
   },
   {
@@ -171,9 +172,10 @@
   },
   {
    "module": "calendar",
-   "verdict": "INCOMPLETE",
-   "ndiff": 2400,
-   "ntotal": 3052,
+   "ast_detail": "diff at token 478: orig  right=Constant(value=400))))] | dec  right=Constant(value=400))))",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2371,
+   "ntotal": 3039,
    "detail": "line 561: orig ('POP_JUMP_IF_TRUE', 'to 38') | got ('POP_JUMP_IF_TRUE', 'to 56')\nline 579: orig ('monthrange', 2) | got ('LOAD_CONST', 'None')\nline 580: orig ('LOAD_CONST', '1') | got ('RETURN_VALUE', '')"
   },
   {
@@ -249,9 +251,9 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1512,
+   "ndiff": 1456,
    "ntotal": 1876,
-   "detail": "line 332: orig ('SETUP_WITH', 'to 38') | got ('SETUP_WITH', 'to 50')\nline 340: orig ('POP_BLOCK', '') | got ('LOAD_CONST', 'None')\nline 341: orig ('ROT_TWO', '') | got ('LOAD_CONST', 'None')"
+   "detail": "line 401: orig ('SETUP_ASYNC_WITH', 'to 60') | got ('SETUP_ASYNC_WITH', 'to 40')\nline 403: orig ('LOAD_DEREF', 'func') | got ('POP_BLOCK', '')\nline 404: orig ('LOAD_FAST', 'args') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "copy",

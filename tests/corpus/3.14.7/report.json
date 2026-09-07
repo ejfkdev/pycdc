@@ -2,9 +2,9 @@
  "version": "3.14.7",
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
-  "PASS": 10,
-  "INCOMPLETE": 16,
-  "SIG-DIFF": 13,
+  "PASS": 11,
+  "INCOMPLETE": 13,
+  "SIG-DIFF": 15,
   "AST-PASS": 1
  },
  "results": [
@@ -18,10 +18,7 @@
   },
   {
    "module": "_aix_support",
-   "verdict": "INCOMPLETE",
-   "ndiff": 230,
-   "ntotal": 330,
-   "detail": "line 96: orig ('LOAD_FAST', 'os') | got ('LOAD_CONST', 'None')\nline 97: orig ('LOAD_ATTR', 'system + NULL|self') | got ('LOAD_CONST', 'None')\nline 98: orig ('LOAD_FAST', 'cmd') | got ('LOAD_CONST', 'None')"
+   "verdict": "PASS"
   },
   {
    "module": "_android_support",
@@ -76,8 +73,8 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1533,
-   "ntotal": 1762,
+   "ndiff": 1550,
+   "ntotal": 1761,
    "detail": "line 176: orig ('NOP', '') | got ('LOAD_SMALL_INT', '')\nline 177: orig ('LOAD_SMALL_INT', '') | got ('LOAD_CONST', 'None')\nline 178: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'tempfile')"
   },
   {
@@ -123,7 +120,8 @@
   },
   {
    "module": "_threading_local",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 169: orig  Try(body=[Assign(targets=[Name(id='dct' | dec  Assign(targets=[Name(id='dct'",
+   "verdict": "SIG-DIFF",
    "ndiff": 296,
    "ntotal": 511,
    "detail": "line 208: orig ('NOP', '') | got ('LOAD_FAST', 'impl')\nline 209: orig ('LOAD_FAST', 'impl') | got ('LOAD_ATTR', 'get_dict + NULL|self')\nline 210: orig ('LOAD_ATTR', 'get_dict + NULL|self') | got ('CALL', '')"
@@ -192,8 +190,9 @@
   },
   {
    "module": "calendar",
-   "verdict": "INCOMPLETE",
-   "ndiff": 3335,
+   "ast_detail": "diff at token 411: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "verdict": "SIG-DIFF",
+   "ndiff": 3329,
    "ntotal": 4326,
    "detail": "line 789: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 869: orig ('_validate_month', 1) | got ('LOAD_CONST', 'None')\nline 870: orig ('RESUME', '') | got ('RETURN_VALUE', '')"
   },
@@ -248,9 +247,9 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 2064,
+   "ndiff": 2039,
    "ntotal": 2587,
-   "detail": "line 388: orig ('LOAD_DEREF', 'func') | got ('NOP', '')\nline 389: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 390: orig ('LOAD_FAST', 'args') | got ('LOAD_CONST', 'None')"
+   "detail": "line 483: orig ('LOAD_DEREF', 'func') | got ('NOP', '')\nline 484: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 485: orig ('LOAD_FAST', 'args') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "copy",

@@ -66,7 +66,7 @@ class ContextDecorator(object):
         @wraps(func)
         def inner(*args, **kwds):
             with self._recreate_cm():
-                pass
+                return func(*args, **kwds)
 
         return inner
 
@@ -614,4 +614,3 @@ class nullcontext(AbstractContextManager):
         pass
 
 
-# WARNING: Decompyle incomplete

@@ -2,9 +2,9 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 13,
-  "SIG-DIFF": 20,
-  "INCOMPLETE": 7
+  "PASS": 14,
+  "SIG-DIFF": 21,
+  "INCOMPLETE": 5
  },
  "results": [
   {
@@ -54,7 +54,7 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1231,
+   "ndiff": 1238,
    "ntotal": 1437,
    "detail": "line 176: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 134')\nline 177: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')\nline 178: orig ('LOAD_FAST', 'executable') | got ('RETURN_VALUE', '')"
   },
@@ -84,10 +84,7 @@
   },
   {
    "module": "_threading_local",
-   "verdict": "INCOMPLETE",
-   "ndiff": 112,
-   "ntotal": 450,
-   "detail": "line 327: orig ('SETUP_WITH', 'to 36') | got ('SETUP_WITH', 'to 46')\nline 334: orig ('POP_BLOCK', '') | got ('LOAD_CONST', 'None')\nline 335: orig ('ROT_TWO', '') | got ('LOAD_CONST', 'None')"
+   "verdict": "PASS"
   },
   {
    "module": "_weakrefset",
@@ -163,8 +160,8 @@
   {
    "module": "bz2",
    "verdict": "INCOMPLETE",
-   "ndiff": 680,
-   "ntotal": 1070,
+   "ndiff": 691,
+   "ntotal": 1051,
    "detail": "line 323: orig ('SETUP_WITH', 'to 256') | got ('SETUP_WITH', 'to 188')\nline 338: orig ('SETUP_FINALLY', 'to 168') | got ('LOAD_FAST', 'self')\nline 339: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', '_mode')"
   },
   {
@@ -177,9 +174,10 @@
   },
   {
    "module": "calendar",
-   "verdict": "INCOMPLETE",
-   "ndiff": 2407,
-   "ntotal": 3065,
+   "ast_detail": "diff at token 471: orig  right=Constant(value=400))))] | dec  right=Constant(value=400))))",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2393,
+   "ntotal": 3063,
    "detail": "line 582: orig ('monthrange', 2) | got ('LOAD_CONST', 'None')\nline 583: orig ('LOAD_CONST', '1') | got ('RETURN_VALUE', '')\nline 584: orig ('LOAD_FAST', 'month') | got ('monthrange', 2)"
   },
   {
@@ -252,9 +250,9 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1401,
+   "ndiff": 1364,
    "ntotal": 1750,
-   "detail": "line 312: orig ('SETUP_WITH', 'to 38') | got ('SETUP_WITH', 'to 48')\nline 320: orig ('POP_BLOCK', '') | got ('LOAD_CONST', 'None')\nline 321: orig ('ROT_TWO', '') | got ('LOAD_CONST', 'None')"
+   "detail": "line 365: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')\nline 366: orig ('LOAD_FAST', 'kwds') | got ('STORE_ATTR', 'func')\nline 367: orig ('ROT_THREE', '') | got ('LOAD_FAST', 'args')"
   },
   {
    "module": "copy",

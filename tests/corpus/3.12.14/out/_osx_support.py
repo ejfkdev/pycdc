@@ -41,7 +41,7 @@ def _read_output(commandstring, capture_stderr=False):
             cmd = f"{commandstring!s} >'{fp.name!s}' 2>&1"
         else:
             cmd = f"{commandstring!s} 2>/dev/null >'{fp.name!s}'"
-    None(None, None)
+        return fp.read().decode('utf-8').strip() if not os.system(cmd) else None
 
 def _find_build_tool(toolname):
     '''Find a build tool on current path or using xcrun'''

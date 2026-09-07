@@ -199,20 +199,19 @@ class local:
 
     def __getattribute__(self, name):
         with _patch(self):
-            pass
+            return object.__getattribute__(self, name)
 
     def __setattr__(self, name, value):
         if name == '__dict__':
             raise AttributeError("%r object attribute '__dict__' is read-only" % self.__class__.__name__)
         with _patch(self):
-            pass
+            return object.__setattr__(self, name, value)
 
     def __delattr__(self, name):
         if name == '__dict__':
             raise AttributeError("%r object attribute '__dict__' is read-only" % self.__class__.__name__)
         with _patch(self):
-            pass
+            return object.__delattr__(self, name)
 
 
 from threading import current_thread, RLock
-# WARNING: Decompyle incomplete
