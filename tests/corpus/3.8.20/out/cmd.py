@@ -350,9 +350,7 @@ class Cmd:
                 else:
                     x = list[i]
                 texts.append(x)
-            while texts:
-                if texts[-1]:
-                    break
+            while texts and not texts[-1]:
                 del texts[-1]
             for col in range(len(texts)):
                 texts[col] = texts[col].ljust(colwidths[col])

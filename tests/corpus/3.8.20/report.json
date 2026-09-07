@@ -98,8 +98,8 @@
    "module": "asynchat",
    "ast_detail": "diff at token 570: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 48,
-   "ntotal": 811,
+   "ndiff": 39,
+   "ntotal": 810,
    "detail": "line 413: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_IF_FALSE', '')\nline 414: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_FAST', 'index')\nline 415: orig ('LOAD_FAST', 'index') | got ('LOAD_FAST', 'lb')"
   },
   {
@@ -180,7 +180,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 241: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1074,
+   "ndiff": 1073,
    "ntotal": 1305,
    "detail": "line 219: orig ('SETUP_FINALLY', 'to 320') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 221: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', '')"
   },

@@ -105,8 +105,8 @@
    "module": "asynchat",
    "ast_detail": "diff at token 455: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 48,
-   "ntotal": 798,
+   "ndiff": 39,
+   "ntotal": 797,
    "detail": "line 402: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_IF_FALSE', '')\nline 403: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_FAST', 'index')\nline 404: orig ('LOAD_FAST', 'index') | got ('LOAD_FAST', 'lb')"
   },
   {
@@ -187,7 +187,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 178: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1096,
+   "ndiff": 1092,
    "ntotal": 1329,
    "detail": "line 218: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', 'None')\nline 219: orig ('SETUP_FINALLY', 'to 380') | got ('RETURN_VALUE', '')\nline 220: orig ('LOAD_FAST', 'intro') | got ('precmd', 2)"
   },

@@ -17540,12 +17540,27 @@ impl<'a> Ctx<'a> {
         }
 
         // 2) rotated while: duplicated cond jump to the same exit — ignore.
-        // Only matches the loop cond's own polarity; an opposite-polarity
-        // jump to the loop exit is an `if c: break`.
+        // Same polarity matches the loop cond's own re-eval copy; an
+        // OPPOSITE-polarity jump landing exactly on the loop exit is an
+        // and-chain's negated operand (`while A and not B:` = PJF(A)exit;
+        // <B>; PJIT(B)exit) — a source `if c: break` never compiles to a
+        // lone opposite-polarity jump at the exit (it needs PJF-to-merge
+        // + JABS-to-exit), and an in-body guard's merge lands on the back
+        // edge, not past it (asynchat 3.8 find_prefix_at_end rendered
+        // guard-break `if endswith: break`, sig-off by the extra JABS)
         let dup_while = self.blocks.last().map_or(false, |top| {
             matches!(top.kind, BlockType::While)
                 && top.cond_set
-                && top.jump_if_true == jump_if_true
+                && (top.jump_if_true == jump_if_true
+                    // 3.12+ rotates the whole multi-operand cond into a
+                    // post-body re-eval copy claimed by the while-True
+                    // prescan (cmd 3.12 columnize) — the opposite-polarity
+                    // merge there folds the re-eval into a phantom loop;
+                    // pre-3.12 lays the header at the loop top where the
+                    // merge is the source shape
+                    || (self.version.major == 3
+                        && !self.version.at_least(3, 12)
+                        && top.end == target))
                 // SETUP_LOOP-era exits land on the loop's POP_BLOCK, one
                 // instruction before the block end
                 && (top.end == target
@@ -17597,6 +17612,86 @@ impl<'a> Ctx<'a> {
                 } else {
                     top.cond_end
                 };
+                // 3.12+ rotated while re-eval copy: a plain back edge
+                // follows this jump and the operand span re-evaluates the
+                // While's recorded cond (single operand: _compression
+                // 3.12/3.13 seek `while read():`; negated tail: cmd 3.12
+                // columnize `while texts and not texts[-1]:`) — the span
+                // is the loop's own cond copy, not a second and-operand.
+                // A genuine and-chain contributes a DIFFERENT operand
+                // (cmd 3.13 parseline, 3.9 `if A: while B:` merge shape).
+                let back_edge_follows = self
+                    .idx_of
+                    .get(&self.cur_next)
+                    .and_then(|&ni| self.instrs.get(ni))
+                    .map_or(false, |nx| {
+                        nx.is_backward
+                            && matches!(
+                                nx.op,
+                                Op::JUMP_BACKWARD
+                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    | Op::JUMP_ABSOLUTE
+                                    | Op::JUMP
+                            )
+                    });
+                let sim_eq = match (
+                    self.idx_of
+                        .get(&from)
+                        .copied()
+                        .zip(self.idx_of.get(&self.cur_offset).copied())
+                        .and_then(|(fi, ci)| {
+                            self.sim_value_region(fi, ci)
+                        }),
+                    top.cond.clone(),
+                ) {
+                    (Some(v), Some(c)) => {
+                        format!("{:?}", simplify_not(v))
+                            == format!("{:?}", simplify_not(c))
+                    }
+                    _ => false,
+                };
+                // multi-operand rotated re-eval whose LAST operand is the
+                // negated tail (`while A and not B:` re-eval copy: PJF(A),
+                // <B>, PJIT(B), JB top): the span before the tail's jump
+                // re-evaluates the recorded cond (cmd 3.12 columnize's
+                // `while texts and not texts[-1]:` re-eval merged into a
+                // phantom duplicate while)
+                let neg_tail_eq = {
+                    (self
+                        .idx_of
+                        .get(&from)
+                        .copied()
+                        .zip(self.idx_of.get(&self.cur_offset).copied()))
+                        .and_then(|(fi, ci)| {
+                            let mut tj = None;
+                            for k in fi..ci {
+                                if matches!(
+                                    self.instrs[k].op,
+                                    Op::POP_JUMP_IF_FALSE
+                                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                                        | Op::POP_JUMP_IF_TRUE
+                                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                                ) {
+                                    tj = Some(k);
+                                }
+                            }
+                            let tj = tj?;
+                            let tail_pol = matches!(
+                                self.instrs[tj].op,
+                                Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+                            );
+                            if tail_pol == top.jump_if_true {
+                                return None;
+                            }
+                            let v = self.sim_value_region(fi, tj)?;
+                            let c = top.cond.clone()?;
+                            Some(
+                                format!("{:?}", simplify_not(v))
+                                    == format!("{:?}", simplify_not(c)),
+                            )
+                        })
+                        .unwrap_or(false)
+                };
                 let a = !m
                     && self.is_split_cond_region(
                         from,
@@ -17604,60 +17699,27 @@ impl<'a> Ctx<'a> {
                         target,
                         jump_if_true,
                     )
-                    // 3.12+ rotated while whose first cond copy sits
-                    // BEFORE the block start (inside the guard If's
-                    // region): when a plain back edge follows this jump
-                    // and the operand span [from, cur) EVALUATES to the
-                    // While's already-recorded cond, the span is the
-                    // loop's re-evaluated cond copy, not a second
-                    // and-operand (_compression 3.12/3.13 seek folded
-                    // `while read():` into `while read() and read():`).
-                    // A genuine and-chain contributes a DIFFERENT
-                    // operand (`while A and B:` — B != A; cmd 3.13
-                    // parseline, 3.9 no-SETUP_LOOP `if A: while B:`
-                    // merge shape) and stays merged.
-                    && !(self
-                        .idx_of
-                        .get(&self.cur_next)
-                        .and_then(|&ni| self.instrs.get(ni))
-                        .map_or(false, |nx| {
-                            nx.is_backward
-                                && matches!(
-                                    nx.op,
-                                    Op::JUMP_BACKWARD
-                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
-                                        | Op::JUMP_ABSOLUTE
-                                        | Op::JUMP
-                                )
-                        })
-                        && match (
-                            self.idx_of
-                                .get(&from)
-                                .copied()
-                                .zip(self.idx_of.get(&self.cur_offset).copied())
-                                .and_then(|(fi, ci)| {
-                                    self.sim_value_region(fi, ci)
-                                }),
-                            top.cond.clone(),
-                        ) {
-                            (Some(v), Some(c)) => {
-                                format!("{:?}", simplify_not(v))
-                                    == format!("{:?}", simplify_not(c))
-                            }
-                            _ => false,
-                        });
+                    && !(back_edge_follows && (sim_eq || neg_tail_eq));
                 (m, a)
             };
             if mirrored {
                 return;
             }
+            let same_pol = self
+                .blocks
+                .last()
+                .map_or(false, |t| t.jump_if_true == jump_if_true);
             if !and_chain {
-                // not a pure-value And continuation (e.g. a walrus tail
-                // re-eval carrying its STORE): historical behavior —
-                // treat as the rotated duplicate and ignore
-                return;
-            }
-            {
+                if same_pol {
+                    // not a pure-value And continuation (e.g. a walrus tail
+                    // re-eval carrying its STORE): historical behavior —
+                    // treat as the rotated duplicate and ignore
+                    return;
+                }
+                // opposite polarity without a pure-value operand region:
+                // a genuine in-body branch toward the loop exit — fall
+                // through to the guard/break handling below
+            } else {
                 let new_cond_end = self
                     .idx_of
                     .get(&self.cur_offset)
