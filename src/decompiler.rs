@@ -15281,7 +15281,49 @@ impl<'a> Ctx<'a> {
                         self.cur_offset,
                         target,
                         jump_if_true,
-                    );
+                    )
+                    // 3.12+ rotated while whose first cond copy sits
+                    // BEFORE the block start (inside the guard If's
+                    // region): when a plain back edge follows this jump
+                    // and the operand span [from, cur) EVALUATES to the
+                    // While's already-recorded cond, the span is the
+                    // loop's re-evaluated cond copy, not a second
+                    // and-operand (_compression 3.12/3.13 seek folded
+                    // `while read():` into `while read() and read():`).
+                    // A genuine and-chain contributes a DIFFERENT
+                    // operand (`while A and B:` — B != A; cmd 3.13
+                    // parseline, 3.9 no-SETUP_LOOP `if A: while B:`
+                    // merge shape) and stays merged.
+                    && !(self
+                        .idx_of
+                        .get(&self.cur_next)
+                        .and_then(|&ni| self.instrs.get(ni))
+                        .map_or(false, |nx| {
+                            nx.is_backward
+                                && matches!(
+                                    nx.op,
+                                    Op::JUMP_BACKWARD
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                        | Op::JUMP_ABSOLUTE
+                                        | Op::JUMP
+                                )
+                        })
+                        && match (
+                            self.idx_of
+                                .get(&from)
+                                .copied()
+                                .zip(self.idx_of.get(&self.cur_offset).copied())
+                                .and_then(|(fi, ci)| {
+                                    self.sim_value_region(fi, ci)
+                                }),
+                            top.cond.clone(),
+                        ) {
+                            (Some(v), Some(c)) => {
+                                format!("{:?}", simplify_not(v))
+                                    == format!("{:?}", simplify_not(c))
+                            }
+                            _ => false,
+                        });
                 (m, a)
             };
             if mirrored {
@@ -15349,8 +15391,7 @@ impl<'a> Ctx<'a> {
                 while let Some(ins) = self.instrs.get(k) {
                     // a BACKWARD COND JUMP to the loop top ends the
                     // re-evaluation: this jump is a rotated while's first
-                    // cond test. A plain backward JUMP is a loop back edge
-                    // (any if inside a loop would false-positive).
+                    // cond test (3.11 shape).
                     if ins.is_backward
                         && matches!(
                             ins.op,
@@ -15362,6 +15403,30 @@ impl<'a> Ctx<'a> {
                     {
                         return steps > 0
                             && ins.target.map_or(false, |t| t >= head && t <= ins.offset);
+                    }
+                    // 3.12+ rotated while: the re-evaluated cond exits
+                    // through a FORWARD PJIF and the back edge is a
+                    // PLAIN JUMP_BACKWARD to the body top — a back edge
+                    // re-running the scanned span is the same rotated
+                    // while (_compression 3.12/3.13 seek: `if size<0:
+                    // while read(): pass` folded into a 3-operand
+                    // and-chain with a duplicated read call). Only a
+                    // back edge whose target lies INSIDE the scanned
+                    // span counts; an earlier loop's back edge (target
+                    // before head) still fails the scan below.
+                    if ins.is_backward
+                        && matches!(
+                            ins.op,
+                            Op::JUMP_BACKWARD
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                | Op::JUMP_ABSOLUTE
+                                | Op::JUMP
+                        )
+                    {
+                        return steps > 0
+                            && ins.target.map_or(false, |t| {
+                                t >= head && t < ins.offset
+                            });
                     }
                     if ins.is_backward || !is_pure_value_op(ins.op)
                         && !matches!(
@@ -15388,7 +15453,37 @@ impl<'a> Ctx<'a> {
                 }
                 false
             });
+        // 3.12+ rotated while, second veto: this cond jump is the loop's
+        // re-evaluated cond exit when a PLAIN backward jump follows it
+        // immediately and lands inside [block.start, cur) — the back edge
+        // to the body top. A genuine and-chain body never starts with a
+        // backward jump into its own cond region (`if A and B: continue`
+        // hops to the loop top BELOW the block start).
+        let rotated_back_edge_after = self
+            .blocks
+            .last()
+            .map_or(false, |top| {
+                matches!(top.kind, BlockType::If)
+                    && self
+                        .idx_of
+                        .get(&self.cur_next)
+                        .and_then(|&ki| self.instrs.get(ki))
+                        .map_or(false, |nx| {
+                            nx.is_backward
+                                && matches!(
+                                    nx.op,
+                                    Op::JUMP_BACKWARD
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                        | Op::JUMP_ABSOLUTE
+                                        | Op::JUMP
+                                )
+                                && nx.target.map_or(false, |t| {
+                                    t >= top.start && t < self.cur_offset
+                                })
+                        })
+            });
         let split_cond = !rotated_while_follows
+            && !rotated_back_edge_after
             && self.blocks.last().map_or(false, |top| {
                 matches!(top.kind, BlockType::If)
                     && top.end == target

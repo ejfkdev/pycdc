@@ -34,9 +34,9 @@
   {
    "module": "_compression",
    "verdict": "INCOMPLETE",
-   "ndiff": 77,
+   "ndiff": 25,
    "ntotal": 571,
-   "detail": "line 469: orig ('JUMP_FORWARD', 'to 392') | got ('JUMP_FORWARD', 'to 390')\nline 480: orig ('JUMP_FORWARD', 'to 392') | got ('JUMP_FORWARD', 'to 390')\nline 485: orig ('POP_JUMP_IF_FALSE', 'to 340') | got ('POP_JUMP_IF_FALSE', 'to 338')"
+   "detail": "line 536: orig ('POP_JUMP_IF_FALSE', 'to 648') | got ('POP_JUMP_IF_FALSE', 'to 646')\nline 547: orig ('POP_JUMP_IF_TRUE', 'to 608') | got ('POP_JUMP_IF_TRUE', 'to 606')\nline 548: orig ('NOP', '') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "_markupbase",

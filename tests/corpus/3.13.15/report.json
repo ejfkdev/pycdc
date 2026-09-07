@@ -53,7 +53,7 @@
   {
    "module": "_compression",
    "verdict": "INCOMPLETE",
-   "ndiff": 307,
+   "ndiff": 326,
    "ntotal": 589,
    "detail": "line 232: orig ('STORE_FAST_LOAD_FAST', 'view, view') | got ('STORE_FAST', 'view')\nline 233: orig ('LOAD_ATTR', 'cast + NULL|self') | got ('LOAD_FAST', 'view')\nline 234: orig ('LOAD_CONST', \"'B'\") | got ('LOAD_ATTR', 'cast + NULL|self')"
   },
@@ -103,7 +103,7 @@
    "verdict": "INCOMPLETE",
    "ndiff": 2214,
    "ntotal": 2941,
-   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u4e00', '\u5eff', '\u4e5d', '\u5341'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u5341', '\u4e00', '\u4e5d', '\u4e03'})\")"
+   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u4e5d', '\u5341', '\u5eff', '\u4e00', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e03', '\u5341', '\u4e5d', '\u4e00'})\")"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
