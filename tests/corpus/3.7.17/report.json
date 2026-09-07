@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 23,
-  "SIG-DIFF": 17
+  "PASS": 24,
+  "SIG-DIFF": 16
  },
  "results": [
   {
@@ -92,11 +92,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 485: orig  body=[Try(body=[Assign(targets=[Name(id='value' | dec  body=[If(test=Name(id='keywords'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 32,
-   "ntotal": 1014,
-   "detail": "line 385: orig ('SETUP_EXCEPT', 'to 46') | got ('LOAD_FAST', 'keywords')\nline 386: orig ('LOAD_GLOBAL', 'getattr') | got ('POP_JUMP_IF_FALSE', '')\nline 387: orig ('LOAD_FAST', 'node') | got ('LOAD_FAST', 'args')"
+   "verdict": "PASS"
   },
   {
    "module": "asynchat",

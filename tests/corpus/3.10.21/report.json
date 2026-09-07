@@ -38,7 +38,7 @@
   {
    "module": "_compression",
    "verdict": "INCOMPLETE",
-   "ndiff": 291,
+   "ndiff": 290,
    "ntotal": 575,
    "detail": "line 228: orig ('SETUP_WITH', 'to 122') | got ('SETUP_WITH', 'to 104')\nline 257: orig ('JUMP_FORWARD', 'to 102') | got ('JUMP_FORWARD', 'to 82')\nline 266: orig ('POP_BLOCK', '') | got ('LOAD_GLOBAL', 'len')"
   },
@@ -103,15 +103,15 @@
   {
    "module": "aifc",
    "verdict": "INCOMPLETE",
-   "ndiff": 2599,
+   "ndiff": 2597,
    "ntotal": 3116,
    "detail": "line 170: orig ('SETUP_WITH', 'to 602') | got ('SETUP_WITH', 'to 598')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to 586') | got ('POP_JUMP_IF_FALSE', 'to 572')\nline 286: orig ('POP_BLOCK', '') | got ('JUMP_FORWARD', 'to 584')"
   },
   {
    "module": "ast",
    "verdict": "INCOMPLETE",
-   "ndiff": 6986,
-   "ntotal": 7988,
+   "ndiff": 7029,
+   "ntotal": 7989,
    "detail": "line 611: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 617: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 623: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')"
   },
   {

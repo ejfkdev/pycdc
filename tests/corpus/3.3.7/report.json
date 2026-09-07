@@ -241,11 +241,11 @@
   },
   {
    "module": "fileinput",
-   "ast_detail": "diff at token 1108: orig  Try(body=[Assign(targets=[Name(id='perm' | dec  If(test=Call(func=Name(id='hasattr'",
+   "ast_detail": "diff at token 1208: orig  kwargs=None)) | dec  kwargs=None))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 124,
+   "ndiff": 81,
    "ntotal": 1131,
-   "detail": "line 753: orig ('SETUP_EXCEPT', '#152') | got ('LOAD_GLOBAL', 'hasattr')\nline 755: orig ('LOAD_ATTR', 'fstat') | got ('LOAD_CONST', \"'O_BINARY'\")\nline 756: orig ('LOAD_FAST', 'self') | got ('CALL_FUNCTION', '2')"
+   "detail": "line 780: orig ('JUMP_FORWARD', '#230') | got ('JUMP_FORWARD', '#204')\nline 1031: orig ('SETUP_LOOP', '#44') | got ('SETUP_LOOP', '#45')\nline 1034: orig ('FOR_ITER', '#43') | got ('FOR_ITER', '#44')"
   }
  ]
 }

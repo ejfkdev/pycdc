@@ -326,16 +326,16 @@ class FileInput:
                     pass
                 os.rename(self._filename, self._backupfilename)
                 self._file = open(self._backupfilename, self._mode)
-                if hasattr(os, 'O_BINARY'):
-                    mode |= os.O_BINARY
-                    try:
-                        perm = os.fstat(self._file.fileno()).st_mode
-                    except OSError:
-                        self._output = open(self._filename, 'w')
-                    else:
-                        mode = os.O_CREAT | os.O_WRONLY | os.O_TRUNC
-                fd = os.open(self._filename, mode, perm)
-                self._output = os.fdopen(fd, 'w')
+                try:
+                    perm = os.fstat(self._file.fileno()).st_mode
+                except OSError:
+                    self._output = open(self._filename, 'w')
+                else:
+                    mode = os.O_CREAT | os.O_WRONLY | os.O_TRUNC
+                    if hasattr(os, 'O_BINARY'):
+                        mode |= os.O_BINARY
+                    fd = os.open(self._filename, mode, perm)
+                    self._output = os.fdopen(fd, 'w')
                 try:
                     if hasattr(os, 'chmod'):
                         os.chmod(self._filename, perm)

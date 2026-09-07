@@ -5108,6 +5108,73 @@ impl<'a> Ctx<'a> {
                                     }
                                 })
                         {
+                            // a fused arm-end edge INSIDE the live else
+                            // region whose branch structure is still
+                            // MID-PARSE (the innermost block is an If/Else
+                            // whose region extends past this edge — the
+                            // region's own if/else has an arm ending here
+                            // and more region follows) must not emit: the
+                            // Try would land in the region's inner If and
+                            // be hoisted into its arm (ast 3.7 _format:
+                            // the else region's then-arm end edge emitted
+                            // early and the whole try nested under
+                            // `if keywords:`). Defer to the region's own
+                            // end edge. Edges under a LOOP top or a guard
+                            // ending exactly here are genuine region ends
+                            // (_sitebuiltins _Printer.__call__: the
+                            // enclosing while-True back edge at 136, and
+                            // the trailing `if key=='q': break` guard).
+                            //
+                            // narrowed: only the region's OWN branch
+                            // structure counts — a block opened at or
+                            // after the else start whose arm ends exactly
+                            // at this edge (the walk continues into its
+                            // else arm next). Branches straddling the
+                            // region start (enclosing guards) and edges
+                            // under loop tops keep the historic emit
+                            // (code 3.3 interact, _osx_support 2.7/3.3,
+                            // asynchat 3.9 regressed under the wide form)
+                            let region_mid_parse = lt.else_start.map_or(
+                                false,
+                                |es| {
+                                    self.blocks.last().map_or(false, |t| {
+                                        matches!(
+                                            t.kind,
+                                            BlockType::If | BlockType::Else
+                                        ) && t.start >= es
+                                            && t.end > pos
+                                            && t.end == self.cur_next
+                                    })
+                                },
+                            );
+                            // ...and the Try must actually LAND in the
+                            // mid-parse branch: when an intermediate
+                            // region block still separates the jump from
+                            // that branch, the emission's container scan
+                            // routes the Try correctly on its own —
+                            // deferring would strand the chain with no
+                            // later emit edge (asynchat 3.9
+                            // initiate_send: the tail Try hoisted above
+                            // the while loop and swallowed it into the
+                            // orelse)
+                            if in_else
+                                && region_mid_parse
+                                && self
+                                    .blocks
+                                    .last()
+                                    .map_or(false, |t| {
+                                        matches!(
+                                            t.kind,
+                                            BlockType::If | BlockType::Else
+                                        ) && lt
+                                            .else_start
+                                            .map_or(false, |es| {
+                                                t.start >= es
+                                            })
+                                    })
+                            {
+                                return;
+                            }
                             // end of the else region (back edge or jump out):
                             // emit the complete try statement; flush first so
                             // else-region stores land in orelse, not after it

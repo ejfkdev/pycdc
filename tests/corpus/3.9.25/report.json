@@ -66,7 +66,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 156: orig  body=[Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  body=[Break()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 188,
+   "ndiff": 185,
    "ntotal": 372,
    "detail": "line 177: orig ('FOR_ITER', 'to 106') | got ('FOR_ITER', 'to 138')\nline 179: orig ('SETUP_FINALLY', 'to 86') | got ('POP_TOP', '')\nline 180: orig ('LOAD_GLOBAL', 'open') | got ('JUMP_ABSOLUTE', '')"
   },
@@ -109,16 +109,16 @@
   {
    "module": "ast",
    "verdict": "INCOMPLETE",
-   "ndiff": 5347,
+   "ndiff": 5393,
    "ntotal": 7116,
-   "detail": "line 1460: orig ('SETUP_FINALLY', 'to 64') | got ('LOAD_FAST', 'padded')\nline 1461: orig ('LOAD_FAST', 'node') | got ('POP_JUMP_IF_FALSE', '')\nline 1462: orig ('LOAD_ATTR', 'end_lineno') | got ('LOAD_GLOBAL', '_pad_whitespace')"
+   "detail": "line 1491: orig ('JUMP_FORWARD', 'to 84') | got ('JUMP_FORWARD', 'to 82')\nline 1499: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 260')\nline 1500: orig ('RETURN_VALUE', '') | got ('RERAISE', '')"
   },
   {
    "module": "asynchat",
    "ast_detail": "diff at token 213: orig  body=[Return()]) | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 99,
-   "ntotal": 798,
+   "ndiff": 277,
+   "ntotal": 797,
    "detail": "line 235: orig ('LOAD_CONST', 'None') | got ('EXTENDED_ARG', '')\nline 236: orig ('RETURN_VALUE', '') | got ('JUMP_FORWARD', 'to 446')\nline 248: orig ('LOAD_CONST', 'None') | got ('EXTENDED_ARG', '')"
   },
   {

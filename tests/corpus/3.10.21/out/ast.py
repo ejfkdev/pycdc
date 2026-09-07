@@ -136,30 +136,33 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
             allsimple = True
             keywords = annotate_fields
             for name in node._fields:
-                if value is None and getattr(cls, name, ...) is None:
+                try:
+                    value = getattr(node, name)
+                except AttributeError:
                     keywords = True
+                else:
+                    if value is None and getattr(cls, name, ...) is None:
+                        keywords = True
+                    else:
+                        value, simple = _format(value, level)
+                        allsimple = allsimple and simple
+                        if keywords:
+                            args.append('%s=%s' % (name, value))
+                        else:
+                            args.append(value)
+            if include_attributes and node._attributes:
+                for name in node._attributes:
                     try:
                         value = getattr(node, name)
                     except AttributeError:
-                        keywords = True
-                    continue
-                value, simple = _format(value, level)
-                allsimple = allsimple and simple
-                if keywords:
-                    args.append('%s=%s' % (name, value))
-                else:
-                    args.append(value)
-            if include_attributes and node._attributes:
-                for name in node._attributes:
-                    if value is None and getattr(cls, name, ...) is None:
-                        try:
-                            value = getattr(node, name)
-                        except AttributeError:
+                        pass
+                    else:
+                        if value is None and getattr(cls, name, ...) is None:
                             pass
-                        continue
-                    value, simple = _format(value, level)
-                    allsimple = allsimple and simple
-                    args.append('%s=%s' % (name, value))
+                        else:
+                            value, simple = _format(value, level)
+                            allsimple = allsimple and simple
+                            args.append('%s=%s' % (name, value))
             if allsimple and len(args) <= 3:
                 return '%s(%s)' % (node.__class__.__name__, ', '.join(args)), not args
             return '%s(%s%s)' % (node.__class__.__name__, prefix, sep.join(args)), False
@@ -340,29 +343,29 @@ def get_source_segment(source, node, *, padded=False):
     be padded with spaces to match its original position.
     '''
 
-    if padded:
-        padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
-        try:
-            if node.end_lineno is None or node.end_col_offset is None:
-                return
-            lineno = node.lineno - 1
-            end_lineno = node.end_lineno - 1
-            col_offset = node.col_offset
-            end_col_offset = node.end_col_offset
-        except AttributeError:
-            pass
-        else:
-            lines = _splitlines_no_ff(source)
-            if end_lineno == lineno:
-                return lines[lineno].encode()[col_offset:end_col_offset].decode()
+    try:
+        if node.end_lineno is None or node.end_col_offset is None:
+            return
+        lineno = node.lineno - 1
+        end_lineno = node.end_lineno - 1
+        col_offset = node.col_offset
+        end_col_offset = node.end_col_offset
+    except AttributeError:
+        pass
     else:
-        padding = ''
-    first = padding + lines[lineno].encode()[col_offset:].decode()
-    last = lines[end_lineno].encode()[:end_col_offset].decode()
-    lines = lines[lineno + 1:end_lineno]
-    lines.insert(0, first)
-    lines.append(last)
-    return ''.join(lines)
+        lines = _splitlines_no_ff(source)
+        if end_lineno == lineno:
+            return lines[lineno].encode()[col_offset:end_col_offset].decode()
+        if padded:
+            padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
+        else:
+            padding = ''
+        first = padding + lines[lineno].encode()[col_offset:].decode()
+        last = lines[end_lineno].encode()[:end_col_offset].decode()
+        lines = lines[lineno + 1:end_lineno]
+        lines.insert(0, first)
+        lines.append(last)
+        return ''.join(lines)
 
 def walk(node):
     """

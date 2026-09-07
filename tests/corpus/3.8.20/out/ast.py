@@ -113,14 +113,15 @@ def dump(node, annotate_fields=True, include_attributes=False):
             args = []
             keywords = annotate_fields
             for field in node._fields:
-                if keywords:
-                    args.append('%s=%s' % (field, _format(value)))
-                    try:
-                        value = getattr(node, field)
-                    except AttributeError:
-                        keywords = True
+                try:
+                    value = getattr(node, field)
+                except AttributeError:
+                    keywords = True
                 else:
-                    args.append(_format(value))
+                    if keywords:
+                        args.append('%s=%s' % (field, _format(value)))
+                    else:
+                        args.append(_format(value))
             if include_attributes and node._attributes:
                 for a in node._attributes:
                     try:
@@ -297,27 +298,27 @@ def get_source_segment(source, node, *, padded=False):
     be padded with spaces to match its original position.
     '''
 
-    if padded:
-        padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
-        try:
-            lineno = node.lineno - 1
-            end_lineno = node.end_lineno - 1
-            col_offset = node.col_offset
-            end_col_offset = node.end_col_offset
-        except AttributeError:
-            pass
-        else:
-            lines = _splitlines_no_ff(source)
-            if end_lineno == lineno:
-                return lines[lineno].encode()[col_offset:end_col_offset].decode()
+    try:
+        lineno = node.lineno - 1
+        end_lineno = node.end_lineno - 1
+        col_offset = node.col_offset
+        end_col_offset = node.end_col_offset
+    except AttributeError:
+        pass
     else:
-        padding = ''
-    first = padding + lines[lineno].encode()[col_offset:].decode()
-    last = lines[end_lineno].encode()[:end_col_offset].decode()
-    lines = lines[lineno + 1:end_lineno]
-    lines.insert(0, first)
-    lines.append(last)
-    return ''.join(lines)
+        lines = _splitlines_no_ff(source)
+        if end_lineno == lineno:
+            return lines[lineno].encode()[col_offset:end_col_offset].decode()
+        if padded:
+            padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
+        else:
+            padding = ''
+        first = padding + lines[lineno].encode()[col_offset:].decode()
+        last = lines[end_lineno].encode()[:end_col_offset].decode()
+        lines = lines[lineno + 1:end_lineno]
+        lines.insert(0, first)
+        lines.append(last)
+        return ''.join(lines)
 
 def walk(node):
     """
