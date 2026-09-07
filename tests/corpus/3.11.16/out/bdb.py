@@ -126,7 +126,7 @@ class Bdb:
         if self.botframe is None:
             self.botframe = frame.f_back
             return self.trace_dispatch
-        if not self.stop_here(frame) and not self.break_anywhere(frame):
+        if not (self.stop_here(frame) or self.break_anywhere(frame)):
             return
         if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
             return self.trace_dispatch

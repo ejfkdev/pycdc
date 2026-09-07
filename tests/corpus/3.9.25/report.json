@@ -31,9 +31,9 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 275: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 152,
+   "ndiff": 151,
    "ntotal": 3420,
-   "detail": "line 1580: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 3061: orig ('JUMP_FORWARD', 'to 54') | got ('JUMP_FORWARD', 'to 52')\nline 3069: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 52')"
+   "detail": "line 3061: orig ('JUMP_FORWARD', 'to 54') | got ('JUMP_FORWARD', 'to 52')\nline 3069: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 52')\nline 3070: orig ('RETURN_VALUE', '') | got ('RERAISE', '')"
   },
   {
    "module": "_compat_pickle",
@@ -141,9 +141,9 @@
    "module": "bdb",
    "ast_detail": "diff at token 778: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 651,
+   "ndiff": 649,
    "ntotal": 2340,
-   "detail": "line 602: orig ('POP_JUMP_IF_FALSE', '') | got ('POP_JUMP_IF_TRUE', '')\nline 608: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1663: orig ('SETUP_FINALLY', 'to 128') | got ('SETUP_FINALLY', 'to 76')"
+   "detail": "line 1663: orig ('SETUP_FINALLY', 'to 128') | got ('SETUP_FINALLY', 'to 76')\nline 1664: orig ('SETUP_FINALLY', 'to 90') | got ('POP_BLOCK', '')\nline 1665: orig ('LOAD_GLOBAL', 'eval') | got ('LOAD_CONST', 'True')"
   },
   {
    "module": "binhex",

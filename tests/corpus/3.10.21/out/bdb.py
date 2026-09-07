@@ -126,7 +126,7 @@ class Bdb:
         if self.botframe is None:
             self.botframe = frame.f_back
             return self.trace_dispatch
-        if not self.stop_here(frame) and not self.break_anywhere(frame):
+        if not (self.stop_here(frame) or self.break_anywhere(frame)):
             return
         if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:
             return self.trace_dispatch
@@ -166,7 +166,7 @@ class Bdb:
         '''
 
         if self.stop_here(frame):
-            if not frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS or not arg[0] is StopIteration or not arg[2] is None:
+            if not (frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] is StopIteration and arg[2] is None):
                 self.user_exception(frame, arg)
                 if self.quitting:
                     raise BdbQuit

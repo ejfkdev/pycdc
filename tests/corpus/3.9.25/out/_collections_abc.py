@@ -400,7 +400,7 @@ class _CallableGenericAlias(GenericAlias):
 
     def __reduce__(self):
         args = self.__args__
-        if not len(args) == 2 or not args[0] is Ellipsis:
+        if not (len(args) == 2 and args[0] is Ellipsis):
             args = list(args[:-1]), args[-1]
         return _CallableGenericAlias, (Callable, args)
 

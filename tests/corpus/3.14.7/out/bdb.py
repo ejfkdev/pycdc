@@ -306,7 +306,7 @@ Return self.trace_dispatch to continue tracing in this scope.
 '''
 
         if self.stop_here(frame) or self.break_here(frame):
-            if not self.cmdframe == frame or not self.cmdlineno == frame.f_lineno:
+            if not (self.cmdframe == frame and self.cmdlineno == frame.f_lineno):
                 self.user_line(frame)
                 self.restart_events()
                 if self.quitting:
@@ -327,7 +327,7 @@ Return self.trace_dispatch to continue tracing in this scope.
         if self.botframe is None:
             self.botframe = frame.f_back
             return self.trace_dispatch
-        if not self.stop_here(frame) and not self.break_anywhere(frame):
+        if not (self.stop_here(frame) or self.break_anywhere(frame)):
             self.disable_current_event()
             return
         if self.stopframe and frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS:

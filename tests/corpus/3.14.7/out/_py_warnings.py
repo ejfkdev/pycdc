@@ -203,7 +203,7 @@ def filterwarnings(action, message='', category=Warning, module='', lineno=0, ap
         raise ValueError(f'invalid action: {action!r}')
     if not isinstance(message, str):
         raise TypeError('message must be a string')
-    if not isinstance(category, type) or not issubclass(category, Warning):
+    if not (isinstance(category, type) and issubclass(category, Warning)):
         raise TypeError('category must be a Warning subclass')
     if not isinstance(module, str):
         raise TypeError('module must be a string')
@@ -364,7 +364,7 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
         category = message.__class__
     if category is None:
         category = UserWarning
-    if not isinstance(category, type) or not issubclass(category, Warning):
+    if not (isinstance(category, type) and issubclass(category, Warning)):
         raise TypeError("category must be a Warning subclass, not '{:s}'".format(type(category).__name__))
     if not isinstance(skip_file_prefixes, tuple):
         raise TypeError('skip_file_prefixes must be a tuple of strs.')

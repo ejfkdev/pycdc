@@ -1117,7 +1117,7 @@ class SectionProxy(MutableMapping):
         return self._parser.set(self._name, key, value)
 
     def __delitem__(self, key):
-        if not self._parser.has_option(self._name, key) or not self._parser.remove_option(self._name, key):
+        if not (self._parser.has_option(self._name, key) and self._parser.remove_option(self._name, key)):
             raise KeyError(key)
 
     def __contains__(self, key):

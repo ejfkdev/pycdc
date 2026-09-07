@@ -6393,6 +6393,25 @@ impl<'a> Ctx<'a> {
     }
 
     fn push_stmt(&mut self, stmt: Stmt) {
+        // statement-level conditions render from the source-shaped AST:
+        // re-fold De Morgan expansions (see refold_demorgan)
+        let stmt = match stmt {
+            Stmt::If { cond, body, orelse } => Stmt::If {
+                cond: refold_demorgan(cond),
+                body,
+                orelse,
+            },
+            Stmt::While { cond, body, orelse } => Stmt::While {
+                cond: refold_demorgan(cond),
+                body,
+                orelse,
+            },
+            Stmt::Assert { test, msg } => Stmt::Assert {
+                test: refold_demorgan(test),
+                msg,
+            },
+            other => other,
+        };
         // any other statement flushes a pending same-line store group first
         // to preserve source order
         if !self.flushing && !self.pending_stores.is_empty() {
@@ -20768,6 +20787,63 @@ fn simplify_not_or_wrap(e: ExprRef) -> ExprRef {
     Rc::new(Expr::Unary {
         op: UnaryOp::Not,
         operand: e,
+    })
+}
+
+/// Re-fold a De Morgan-expanded boolean chain back to the source
+/// shape: `not A or not B [or ...]` -> `not (A and B)` (and the dual).
+/// CPython compiles `if not (A and B):` operand-per-operand with jumps
+/// to the BODY, and the walker rebuilds that as an Or of negations —
+/// rendering the expansion verbatim recompiles to flipped-polarity
+/// instructions (bdb 3.7 dispatch_exception: `is`+PJIF rendered as
+/// `is not`+PJIT, the last 4 sig lines before PASS).
+fn refold_demorgan(cond: ExprRef) -> ExprRef {
+    let (kind, dual) = match &*cond {
+        Expr::BoolOp { op: BoolOpKind::Or, values } if values.len() >= 2 => {
+            (values, BoolOpKind::And)
+        }
+        Expr::BoolOp { op: BoolOpKind::And, values } if values.len() >= 2 => {
+            (values, BoolOpKind::Or)
+        }
+        _ => return cond,
+    };
+    // ONLY when every operand is a NOT of a pure-value expression: then
+    // the walker could not have come from a JUMP_IF_*_OR_POP value chain
+    // (those require at least one non-negated value operand) and the
+    // chain was assembled from per-operand body/skip jumps of a folded
+    // `not (A and B)` source. Mixed chains (`self.stopframe and frame
+    // is not ...`, bdb 3.7 stop_here) DO come from value chains, where
+    // CPython compiles the expanded and the folded form differently
+    // (JIFOP value flow vs per-operand jumps) — refolding swaps the
+    // recompiled shape (configparser 3.3/3.5/3.6 +2500 sig lines).
+    // Truthy-name operands (`not self._comm_chunk_read or ...`, aifc
+    // 3.5/3.6) likewise keep their expanded source shape.
+    let all_pure_not = kind.iter().all(|v| {
+        if let Expr::Unary { op: UnaryOp::Not, operand } = &**v {
+            matches!(
+                operand.as_ref(),
+                Expr::Compare { .. } | Expr::Binary { .. } | Expr::Call { .. }
+            )
+        } else {
+            false
+        }
+    });
+    if !all_pure_not {
+        return cond;
+    }
+    let inner: Vec<ExprRef> = kind
+        .iter()
+        .map(|v| match &**v {
+            Expr::Unary { operand, .. } => operand.clone(),
+            _ => v.clone(),
+        })
+        .collect();
+    Rc::new(Expr::Unary {
+        op: UnaryOp::Not,
+        operand: Rc::new(Expr::BoolOp {
+            op: dual,
+            values: inner,
+        }),
     })
 }
 

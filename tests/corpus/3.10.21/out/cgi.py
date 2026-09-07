@@ -348,7 +348,7 @@ class FieldStorage:
         elif isinstance(fp, TextIOWrapper):
             self.fp = fp.buffer
         else:
-            if not hasattr(fp, 'read') or not hasattr(fp, 'readline'):
+            if not (hasattr(fp, 'read') and hasattr(fp, 'readline')):
                 raise TypeError('fp must be file pointer')
             self.fp = fp
         self.encoding = encoding

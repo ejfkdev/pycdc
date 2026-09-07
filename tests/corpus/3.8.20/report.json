@@ -130,9 +130,9 @@
    "module": "bdb",
    "ast_detail": "diff at token 945: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 696,
+   "ndiff": 692,
    "ntotal": 2369,
-   "detail": "line 602: orig ('COMPARE_OP', 'is') | got ('COMPARE_OP', 'is not')\nline 603: orig ('POP_JUMP_IF_FALSE', '') | got ('POP_JUMP_IF_TRUE', '')\nline 608: orig ('COMPARE_OP', 'is') | got ('COMPARE_OP', 'is not')"
+   "detail": "line 1660: orig ('SETUP_FINALLY', 'to 100') | got ('SETUP_FINALLY', 'to 60')\nline 1661: orig ('SETUP_FINALLY', 'to 76') | got ('POP_BLOCK', '')\nline 1662: orig ('LOAD_GLOBAL', 'eval') | got ('BEGIN_FINALLY', '')"
   },
   {
    "module": "binhex",

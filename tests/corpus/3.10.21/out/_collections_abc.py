@@ -372,7 +372,7 @@ class _CallableGenericAlias(GenericAlias):
 
     __slots__ = ()
     def __new__(cls, origin, args):
-        if not isinstance(args, tuple) or not len(args) == 2:
+        if not (isinstance(args, tuple) and len(args) == 2):
             raise TypeError('Callable must be used as Callable[[arg, ...], result].')
         t_args, t_result = args
         if isinstance(t_args, list):
@@ -401,7 +401,7 @@ class _CallableGenericAlias(GenericAlias):
 
     def __reduce__(self):
         args = self.__args__
-        if not len(args) == 2 or not _is_param_expr(args[0]):
+        if not (len(args) == 2 and _is_param_expr(args[0])):
             args = list(args[:-1]), args[-1]
         return _CallableGenericAlias, (Callable, args)
 
