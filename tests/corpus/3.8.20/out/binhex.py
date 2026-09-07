@@ -244,22 +244,21 @@ class _Hqxdecoderengine:
                 return decdata
             wtd = (wtd + 2) // 3 * 4
             data = self.ifp.read(wtd)
-            try:
-                decdatacur, self.eof = binascii.a2b_hqx(data)
-            except binascii.Incomplete:
-                pass
-            else:
-                while True:
+            while True:
+                try:
+                    decdatacur, self.eof = binascii.a2b_hqx(data)
                     break
-                    newdata = self.ifp.read(1)
-                    if not newdata:
-                        raise Error('Premature EOF on binhex file')
-                    data = data + newdata
-                decdata = decdata + decdatacur
-                wtd = totalwtd - len(decdata)
-                if not decdata:
-                    if not self.eof:
-                        raise Error('Premature EOF on binhex file')
+                except binascii.Incomplete:
+                    pass
+                newdata = self.ifp.read(1)
+                if not newdata:
+                    raise Error('Premature EOF on binhex file')
+                data = data + newdata
+            decdata = decdata + decdatacur
+            wtd = totalwtd - len(decdata)
+            if not decdata:
+                if not self.eof:
+                    raise Error('Premature EOF on binhex file')
         return decdata
 
     def close(self):

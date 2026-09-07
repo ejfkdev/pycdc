@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 17,
-  "SIG-DIFF": 20,
+  "PASS": 19,
+  "SIG-DIFF": 18,
   "INCOMPLETE": 3
  },
  "results": [
@@ -56,11 +56,7 @@
   },
   {
    "module": "_sitebuiltins",
-   "ast_detail": "diff at token 216: orig  body=[Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  body=[Break()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 178,
-   "ntotal": 362,
-   "detail": "line 177: orig ('FOR_ITER', 'to 88') | got ('FOR_ITER', 'to 120')\nline 179: orig ('SETUP_FINALLY', 'to 66') | got ('POP_TOP', '')\nline 180: orig ('LOAD_GLOBAL', 'open') | got ('JUMP_ABSOLUTE', '')"
+   "verdict": "PASS"
   },
   {
    "module": "_strptime",
@@ -136,11 +132,7 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "diff at token 1658: orig  While(test=Name(id='True' | dec  Try(body=[Assign(targets=[Tuple(elts=[Name(id='decdatacur'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 755,
-   "ntotal": 1798,
-   "detail": "line 1030: orig ('SETUP_FINALLY', 'to 80') | got ('SETUP_FINALLY', 'to 76')\nline 1041: orig ('POP_BLOCK', '') | got ('DUP_TOP', '')\nline 1042: orig ('JUMP_FORWARD', 'to 102') | got ('LOAD_GLOBAL', 'binascii')"
+   "verdict": "PASS"
   },
   {
    "module": "bisect",

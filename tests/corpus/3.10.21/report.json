@@ -66,7 +66,7 @@
    "module": "_sitebuiltins",
    "ast_detail": "diff at token 51: orig  body=[Try(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='sys' | dec  body=[Raise(exc=Call(func=Name(id='SystemExit'",
    "verdict": "SIG-DIFF",
-   "ndiff": 292,
+   "ndiff": 291,
    "ntotal": 369,
    "detail": "line 72: orig ('SETUP_FINALLY', 'to 22') | got ('LOAD_GLOBAL', 'SystemExit')\nline 73: orig ('LOAD_GLOBAL', 'sys') | got ('LOAD_FAST', 'code')\nline 74: orig ('LOAD_ATTR', 'stdin') | got ('CALL_FUNCTION', '')"
   },
@@ -148,7 +148,7 @@
   {
    "module": "binhex",
    "verdict": "INCOMPLETE",
-   "ndiff": 1725,
+   "ndiff": 1718,
    "ntotal": 2054,
    "detail": "line 273: orig ('SETUP_WITH', 'to 48') | got ('SETUP_WITH', 'to 50')\nline 285: orig ('POP_BLOCK', '') | got ('NOP', '')\nline 286: orig ('LOAD_CONST', 'None') | got ('POP_BLOCK', '')"
   },

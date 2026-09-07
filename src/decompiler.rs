@@ -5234,9 +5234,22 @@ impl<'a> Ctx<'a> {
                             .get(&lt.handler_start)
                             .and_then(|&hi2| self.instrs.get(hi2))
                             .map_or(false, |hx| hx.op == Op::POP_TOP);
+                        // a forward jump landing exactly on an ENCLOSING
+                        // loop's exit is the try-body tail's `break` edge,
+                        // not an else-region head: presuming else swallows
+                        // every post-loop statement into orelse
+                        // (_sitebuiltins 3.8+ __setup: `try: with ...;
+                        // break` — the break's JABS targets the FOR_ITER
+                        // exit and the post-loop `if not data: ... linecnt`
+                        // rendered as a try-else inside a never-closed For)
+                        let onto_loop_exit = self.blocks.iter().any(|b| {
+                            matches!(b.kind, BlockType::While | BlockType::For)
+                                && b.end == target
+                        });
                         if lt.handlers.is_empty() && lt.else_start.is_none()
                             && target > pos && target > lt.handler_start
                             && !onto_loop_back_edge && !bare_chain
+                            && !onto_loop_exit
                         {
                             // end of the try body: forward jump over the
                             // handler chain into the else region. Handlers
@@ -6694,6 +6707,22 @@ impl<'a> Ctx<'a> {
             if let Some(h) = self.legacy_nest[0].outer_handler.as_mut() {
                 if self.blocks.len() <= h.block_depth {
                     h.body.push(stmt);
+                    return;
+                }
+            }
+        }
+        // a `break` emitted while the chain is still collecting (after the
+        // body's POP_BLOCK closed the Try block, before the handler head)
+        // belongs INSIDE lt.body — the edge is lexically within the
+        // protected region (_sitebuiltins 3.8+ __setup: `try: with ...;
+        // break` rendered the break ahead of the Try at loop level)
+        if matches!(stmt, Stmt::Break)
+            && self.legacy_handler.is_none()
+            && self.legacy_nest.is_empty()
+        {
+            if let Some(lt) = self.legacy_try.as_mut() {
+                if lt.else_start.is_none() && self.cur_offset < lt.handler_start {
+                    lt.body.push(stmt);
                     return;
                 }
             }

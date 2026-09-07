@@ -37,18 +37,16 @@ class _Printer(object):
         if self.__lines:
             return
         data = None
-        try:
-            with open(filename, encoding='utf-8') as fp:
-                data = fp.read()
-        except OSError:
-            pass
-        else:
-            for filename in self.__filenames:
-                pass
-            if not data:
-                data = self.__data
-            self.__lines = data.split('\n')
-            self.__linecnt = len(self.__lines)
+        for filename in self.__filenames:
+            try:
+                with open(filename, encoding='utf-8') as fp:
+                    data = fp.read()
+            except OSError:
+                continue
+        if not data:
+            data = self.__data
+        self.__lines = data.split('\n')
+        self.__linecnt = len(self.__lines)
 
     def __repr__(self):
         self.__setup()

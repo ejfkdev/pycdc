@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 14,
-  "SIG-DIFF": 21,
+  "PASS": 16,
+  "SIG-DIFF": 19,
   "INCOMPLETE": 5
  },
  "results": [
@@ -64,11 +64,7 @@
   },
   {
    "module": "_sitebuiltins",
-   "ast_detail": "diff at token 156: orig  body=[Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  body=[Break()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 185,
-   "ntotal": 372,
-   "detail": "line 177: orig ('FOR_ITER', 'to 106') | got ('FOR_ITER', 'to 138')\nline 179: orig ('SETUP_FINALLY', 'to 86') | got ('POP_TOP', '')\nline 180: orig ('LOAD_GLOBAL', 'open') | got ('JUMP_ABSOLUTE', '')"
+   "verdict": "PASS"
   },
   {
    "module": "_strptime",
@@ -147,11 +143,7 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "diff at token 1366: orig  While(test=Name(id='True' | dec  Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='_ignore_deprecation_warnin",
-   "verdict": "SIG-DIFF",
-   "ndiff": 802,
-   "ntotal": 2036,
-   "detail": "line 1193: orig ('SETUP_FINALLY', 'to 118') | got ('SETUP_FINALLY', 'to 114')\nline 1223: orig ('POP_BLOCK', '') | got ('DUP_TOP', '')\nline 1224: orig ('JUMP_FORWARD', 'to 138') | got ('LOAD_GLOBAL', 'binascii')"
+   "verdict": "PASS"
   },
   {
    "module": "bisect",
