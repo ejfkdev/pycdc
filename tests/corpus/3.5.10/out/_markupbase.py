@@ -87,11 +87,12 @@ class ParserBase:
                 if decltype == 'doctype':
                     j = self._parse_doctype_subset(j + 1, i)
                     continue
-            if decltype in frozenset({'attlist', 'linktype', 'element', 'link'}):
-                self.error("unsupported '[' char in %s declaration" % decltype)
-                continue
-            self.error("unexpected '[' char in declaration")
-            self.error('unexpected %r char in declaration' % rawdata[j])
+                if decltype in frozenset({'attlist', 'linktype', 'element', 'link'}):
+                    self.error("unsupported '[' char in %s declaration" % decltype)
+                    continue
+                self.error("unexpected '[' char in declaration")
+            else:
+                self.error('unexpected %r char in declaration' % rawdata[j])
             if j < 0:
                 return j
         return -1
@@ -167,22 +168,22 @@ class ParserBase:
                         if rawdata[j] == ';':
                             j = j + 1
                             continue
-            if c == ']':
-                j = j + 1
-                while j < n and rawdata[j].isspace():
-                    j = j + 1
-                if j < n:
-                    if rawdata[j] == '>':
-                        return j
-                    self.updatepos(declstartpos, j)
-                    self.error('unexpected char after internal subset')
-                else:
-                    return -1
-            elif c.isspace():
-                j = j + 1
-            else:
-                self.updatepos(declstartpos, j)
-                self.error('unexpected char %r in internal subset' % c)
+                            if c == ']':
+                                j = j + 1
+                                while j < n and rawdata[j].isspace():
+                                    j = j + 1
+                                if j < n:
+                                    if rawdata[j] == '>':
+                                        return j
+                                    self.updatepos(declstartpos, j)
+                                    self.error('unexpected char after internal subset')
+                                else:
+                                    return -1
+                            elif c.isspace():
+                                j = j + 1
+                            else:
+                                self.updatepos(declstartpos, j)
+                                self.error('unexpected char %r in internal subset' % c)
         return -1
 
     def _parse_doctype_element(self, i, declstartpos):

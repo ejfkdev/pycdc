@@ -158,14 +158,16 @@ class XMLRPCDocGenerator:
                 if method_info != (None, None):
                     method = method_info
                     continue
-            if not hasattr(self.instance, '_dispatch'):
-                try:
-                    method = resolve_dotted_attribute(self.instance, method_name)
-                except AttributeError:
+                if not hasattr(self.instance, '_dispatch'):
+                    try:
+                        method = resolve_dotted_attribute(self.instance, method_name)
+                    except AttributeError:
+                        method = method_info
+                    continue
+                else:
                     method = method_info
-                continue
-            method = method_info
-            assert 0, 'Could not find method in self.functions and no instance installed'
+            else:
+                assert 0, 'Could not find method in self.functions and no instance installed'
             methods[method_name] = method
         documenter = ServerHTMLDoc()
         documentation = documenter.docserver(self.server_name, self.server_documentation, methods)

@@ -475,10 +475,16 @@ class RawConfigParser:
                                 if pos != -1 and optval[pos - 1].isspace():
                                     optval = optval[:pos]
                                     continue
-            optval = optval.strip()
-            if optval == '""':
-                optval = ''
-            cursect[optname] = [optval]
+                            optval = optval.strip()
+                            if optval == '""':
+                                optval = ''
+                            cursect[optname] = [optval]
+                        else:
+                            cursect[optname] = optval
+                    else:
+                        if not e:
+                            e = ParsingError(fpname)
+                        e.append(lineno, repr(line))
         if e:
             raise e
         all_sections = [self._defaults]

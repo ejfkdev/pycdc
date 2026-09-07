@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
   "PASS": 10,
-  "SIG-DIFF": 18,
-  "INCOMPLETE": 12
+  "SIG-DIFF": 19,
+  "INCOMPLETE": 11
  },
  "results": [
   {
@@ -46,8 +46,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 463: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 948,
-   "ntotal": 1362,
+   "ndiff": 935,
+   "ntotal": 1363,
    "detail": "line 292: orig ('POP_JUMP_IF_FALSE', 'to 456') | got ('POP_JUMP_IF_FALSE', 'to 448')\nline 348: orig ('JUMP_FORWARD', 'to 436') | got ('JUMP_FORWARD', 'to 428')\nline 361: orig ('JUMP_FORWARD', 'to 436') | got ('JUMP_FORWARD', 'to 428')"
   },
   {
@@ -139,8 +139,9 @@
   },
   {
    "module": "bdb",
-   "verdict": "INCOMPLETE",
-   "ndiff": 2192,
+   "ast_detail": "diff at token 1060: orig  Continue()] | dec  Return()]",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2184,
    "ntotal": 2441,
    "detail": "line 215: orig ('NOP', '') | got ('LOAD_CONST', '(False, None, None)')\nline 216: orig ('NOP', '') | got ('LOAD_CONST', '<code set_break>')\nline 217: orig ('LOAD_CONST', '(False, None, None)') | got ('LOAD_CONST', \"'Bdb.set_break'\")"
   },

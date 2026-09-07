@@ -4233,8 +4233,57 @@ impl<'a> Ctx<'a> {
                     continue;
                 }
                 if matches!(ins.op, Op::POP_EXCEPT | Op::END_FINALLY | Op::RERAISE) {
+                    // a terminating handler runs POP_EXCEPT BEFORE its
+                    // return/raise completes (3.8/3.9 `except: return
+                    // (b, False)`: BUILD_TUPLE; ROT_FOUR; POP_EXCEPT;
+                    // ROT_TWO; POP_TOP; RETURN) — this POP_EXCEPT is
+                    // mid-body, not the clause end; keep scanning to the
+                    // RERAISE/END_FINALLY past the terminator (bdb
+                    // 3.8/3.9 effective: collecting at the POP_EXCEPT
+                    // rendered `except: pass` and leaked the return into
+                    // the enclosing else arm)
+                    if ins.op == Op::POP_EXCEPT {
+                        let mut k = self
+                            .idx_of
+                            .get(&ins.offset)
+                            .map(|&i| i + 1)
+                            .unwrap_or(self.instrs.len());
+                        let mut terminator_return = false;
+                        while k < self.instrs.len() {
+                            match self.instrs[k].op {
+                                Op::ROT_TWO
+                                | Op::ROT_THREE
+                                | Op::ROT_FOUR
+                                | Op::POP_TOP
+                                | Op::SWAP
+                                | Op::COPY
+                                | Op::NOP
+                                | Op::NOT_TAKEN
+                                | Op::CACHE => k += 1,
+                                Op::RETURN_VALUE | Op::RETURN_CONST => {
+                                    terminator_return = true;
+                                    break;
+                                }
+                                _ => break,
+                            }
+                        }
+                        if terminator_return {
+                            continue;
+                        }
+                    }
                     hend = ins.offset;
                     break;
+                }
+            }
+            if hend == usize::MAX {
+                // a handler whose body TERMINATES (return/raise) has no
+                // cleanup instruction: the clause runs to the chain's
+                // merge point, where the collecting edge folds it
+                // (bdb 3.6 effective: bare `except: return (b, False)`
+                // with no POP_EXCEPT/END_FINALLY left the clause open
+                // and swallowed the function tail)
+                if let Some(m) = self.chain_merge_past(pos) {
+                    hend = m;
                 }
             }
             self.legacy_handler = Some(LegacyHandler {
@@ -4296,6 +4345,17 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 self.legacy_handler_end = None;
+                // refresh the local snapshot: when THIS instruction is
+                // also the chain's merge edge (a bare-except clause
+                // ending in a terminator collects exactly at the
+                // trampoline), the JABS arm below must see the fresh
+                // handler count — the stale clone skipped the emit
+                // decision and the chain fell to the end-of-walk flush,
+                // landing the Try at loop level instead of inside the
+                // enclosing else arm (bdb 3.6 effective)
+                if let Some(fresh) = self.legacy_try.clone() {
+                    lt = fresh;
+                }
             }
         }
 
@@ -9092,6 +9152,35 @@ impl<'a> Ctx<'a> {
                                                         })
                                                         .and_then(|y| y.target)
                                                         .or(chain_merge);
+                                                    // a chain whose body
+                                                    // and handlers all
+                                                    // exit through
+                                                    // BACKWARD edges has
+                                                    // no forward merge
+                                                    // jump: the region's
+                                                    // boundary is the
+                                                    // chain's merge
+                                                    // point — the
+                                                    // body-end and
+                                                    // handler-exit
+                                                    // collecting edges
+                                                    // below it are
+                                                    // chain-internal
+                                                    // (bdb 3.5/3.6
+                                                    // effective: the
+                                                    // else arm holding
+                                                    // the try cut at the
+                                                    // body-end edge,
+                                                    // closed empty
+                                                    // before the chain
+                                                    // emitted, and the
+                                                    // Try hoisted to
+                                                    // loop level)
+                                                    if chain_merge.is_none() {
+                                                        chain_merge = self
+                                                            .chain_merge_past(h)
+                                                            .or(chain_merge);
+                                                    }
                                                 }
                                                 continue;
                                             }
@@ -9516,14 +9605,149 @@ impl<'a> Ctx<'a> {
                                             && b.end > l.handler_start
                                     }))
                         });
+                    // a FORWARD jump into the loop middle right after a
+                    // continue's own back edge is the branch arm's dead
+                    // end-of-arm trampoline (py2.6 emits it as a forward
+                    // JUMP_ABSOLUTE): the continue was already emitted —
+                    // a second one duplicates the statement and blocks
+                    // the elif chain below from folding (ast 2.6
+                    // generic_visit: doubled continues, flattened elif)
+                    let dead_after_cont = target > self.cur_offset
+                        && self
+                            .idx_of
+                            .get(&self.cur_offset)
+                            .and_then(|&ci| {
+                                (ci > 0).then(|| &self.instrs[ci - 1])
+                            })
+                            .map_or(false, |prev| {
+                                prev.is_backward
+                                    && matches!(
+                                        prev.op,
+                                        Op::JUMP_ABSOLUTE
+                                            | Op::JUMP_BACKWARD
+                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                            | Op::JUMP
+                                    )
+                                    && prev.target
+                                        .map_or(false, |t| {
+                                            self.is_loop_top_target(t)
+                                        })
+                            })
+                        && !self.targets.contains(&self.cur_offset);
+                    // a chain-collecting back edge INSIDE the live
+                    // region of a legacy try (the body-end edge before
+                    // the handler, or the handler-exit edge after the
+                    // clauses) is structural glue, not a source-level
+                    // continue: emitting one here lands it in the
+                    // enclosing else arm beside the deferred Try
+                    // (bdb 3.5/3.6 effective: `else: continue; try:`
+                    // and a trailing `continue` after the except arm)
+                    let chain_collect_edge = self
+                        .legacy_try
+                        .as_ref()
+                        .map_or(false, |l| {
+                            target < l.handler_start
+                                && (self.cur_offset < l.handler_start
+                                    || self.cur_offset
+                                        > l.else_stop.max(l.handler_start))
+                                && self.blocks.iter().any(|b| {
+                                    matches!(
+                                        b.kind,
+                                        BlockType::If | BlockType::Else
+                                    ) && b.start < l.handler_start
+                                        && b.end > l.handler_start
+                                })
+                        });
                     if !lands_on_back_edge
                         && !chain_body_hop
+                        && !chain_collect_edge
+                        && !dead_after_cont
                         && self.is_continue_jump(target)
                     {
                         // continue of an outer loop: emit first, then close
                         // the inner blocks it jumps out of
                         self.push_stmt(Stmt::Continue);
-                        self.close_inner_blocks_to_loop();
+                        // A branch block whose region still lies ahead
+                        // (end > cur_next) has an unparsed else arm — the
+                        // then arm's terminating jump comes right after
+                        // this continue and will mark/close the block
+                        // through handle_jump_forward. Closing here
+                        // instead strands the else region out of the
+                        // branch and the follow-up trampoline skips it
+                        // (bdb 3.5 effective(): `if b.ignore > 0: ...
+                        // continue` lost `else: return (b, True)` and the
+                        // whole conditional-breakpoint try arm).
+                        // only with the legacy try machinery fully
+                        // quiescent: chain-collecting and dead back
+                        // edges inside a parsed chain must keep the
+                        // historic close (asyncore 2.7 close_all: the
+                        // handler-region edges left the clause blocks
+                        // open and the Try sank under the scrambled
+                        // handler bodies)
+                        let legacy_active = self.legacy_try.is_some()
+                            || self.legacy_handler.is_some()
+                            || !self.legacy_nest.is_empty();
+                        let mut region_ahead = false;
+                        if !legacy_active {
+                            for b in self.blocks.iter().rev() {
+                                if matches!(
+                                    b.kind,
+                                    BlockType::While | BlockType::For
+                                ) {
+                                    break;
+                                }
+                                // an open-ended folded-chain block
+                                // (Else[MAX]) has no bounded else arm
+                                // awaiting the walk — py2's dead
+                                // duplicate back edge after a continue
+                                // would emit a SECOND Continue with the
+                                // chain left open (ast 2.6
+                                // generic_visit)
+                                if matches!(b.kind, BlockType::If | BlockType::Else)
+                                    && b.end > self.cur_next
+                                    && b.end != usize::MAX
+                                {
+                                    // ...unless sibling mainline code
+                                    // sits between the continue and the
+                                    // block end: a jump target inside
+                                    // [cur_next, end) reached from
+                                    // OUTSIDE the block is the next arm
+                                    // of an enclosing chain (an elif
+                                    // test) — keeping the block open
+                                    // would swallow it and trap the
+                                    // post-loop tail in a dead else
+                                    // (base64 3.5 a85decode). The
+                                    // block's own else target IS its
+                                    // end, excluded by the range; an
+                                    // else arm starting right at
+                                    // cur_next is the bdb shape and
+                                    // keeps the block open.
+                                    let sibling_inside = self
+                                        .targets
+                                        .iter()
+                                        .any(|&t| {
+                                            t >= self.cur_next
+                                                && t < b.end
+                                                && self
+                                                    .instrs
+                                                    .iter()
+                                                    .any(|x| {
+                                                        x.target == Some(t)
+                                                            && (x.offset
+                                                                < b.start
+                                                                || x.offset
+                                                                    >= b.end)
+                                                    })
+                                        });
+                                    if !sibling_inside {
+                                        region_ahead = true;
+                                    }
+                                }
+                            }
+                        }
+                        if !region_ahead {
+                            self.close_inner_blocks_to_loop();
+                        }
                         return true;
                     }
                 }
@@ -18038,6 +18262,36 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    /// The merge point of a pre-3.11 handler chain starting at `h`:
+    /// the first jump target past `h` that no jump from inside the
+    /// handler span reaches (the flow re-enters the mainline there).
+    /// Chains whose handler terminates in a RETURN/RAISE have no
+    /// POP_EXCEPT/END_FINALLY and no forward merge jump — the
+    /// trampoline the arm-end jumps thread to is this target (bdb
+    /// 3.5/3.6 effective: the bare-except handler ends in a return and
+    /// the merge is the loop trampoline after the chain).
+    fn chain_merge_past(&self, h: usize) -> Option<usize> {
+        let mut cands: Vec<usize> = self
+            .targets
+            .iter()
+            .copied()
+            .filter(|&t| t > h)
+            .collect();
+        cands.sort_unstable();
+        for t in cands {
+            let targeted_from_inside = self
+                .instrs
+                .iter()
+                .skip_while(|x| x.offset < h)
+                .take_while(|x| x.offset < t)
+                .any(|x| x.target == Some(t));
+            if !targeted_from_inside {
+                return Some(t);
+            }
+        }
+        None
+    }
+
     fn loop_exit_offset(&self, b: &Block) -> Option<usize> {
         match b.kind {
             BlockType::For => Some(b.end),
@@ -19288,6 +19542,46 @@ impl<'a> Ctx<'a> {
                 }
                 if b.start < target && target < b.end {
                     // back edge into the middle of this loop
+                    //
+                    // a forward hop onto a dead duplicate back edge
+                    // (nothing jumps to the hop itself; the landing edge
+                    // is backward to this loop's top) is a chain-collect
+                    // trampoline: the compiler routes an if/else arm end
+                    // through it and open branch blocks still have their
+                    // else regions AHEAD in the walk — force-closing them
+                    // here orphans those regions and the walk follows the
+                    // hop out of the loop, dropping the rest of the body
+                    // (bdb 3.5/3.6 effective: the inner `else: return
+                    // (b, True)` and the whole conditional-breakpoint
+                    // else branch vanished). Let the trampoline's own
+                    // back edge close the loop naturally; keep the
+                    // branch blocks open and emit no continue (the edge
+                    // is structural, not a source-level statement).
+                    let collect_tramp = !self.targets.contains(&self.cur_offset)
+                        && self
+                            .idx_of
+                            .get(&target)
+                            .and_then(|&ti| self.instrs.get(ti))
+                            .map_or(false, |x| {
+                                x.is_backward
+                                    && x.target == Some(b.start)
+                                    && matches!(
+                                        x.op,
+                                        Op::JUMP_ABSOLUTE
+                                            | Op::JUMP
+                                            | Op::JUMP_BACKWARD
+                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    )
+                            })
+                        && self.blocks.iter().rev().skip(i + 1).any(|x| {
+                            matches!(
+                                x.kind,
+                                BlockType::If | BlockType::Else
+                            ) && x.end > self.cur_next
+                        });
+                    if collect_tramp {
+                        return;
+                    }
                     while self.blocks.len() > i + 1 {
                         self.force_close_top(target);
                     }
@@ -20603,9 +20897,20 @@ impl<'a> Ctx<'a> {
         // iterator, which the VM keeps below the value but our simulation
         // does not — swallow the pop. Legacy handler preludes reuse the
         // same ops for exception bookkeeping: never no-op inside them.
+        // a terminating handler's post-POP_EXCEPT cleanup (3.8-3.10
+        // `except: return X`: BUILD value; ROT_FOUR; POP_EXCEPT; ROT_TWO;
+        // POP_TOP; RETURN) drops the unmodeled exception slots with the
+        // same shuffle — pop_seen separates it from the prelude's
+        // triple-POP_TOPs, which must keep popping (bdb 3.8/3.9
+        // effective: the cleanup POP_TOP ate the return tuple and the
+        // clause rendered `except: b, False`)
+        let terminating_handler_cleanup = self
+            .legacy_handler
+            .as_ref()
+            .map_or(false, |h| h.pop_seen);
         if matches!(self.prev_op_at_exec, Some(Op::SWAP) | Some(Op::ROT_TWO))
-            && self.legacy_handler.is_none()
-            && self.legacy_try.is_none()
+            && (terminating_handler_cleanup
+                || (self.legacy_handler.is_none() && self.legacy_try.is_none()))
         {
             // 3.11 returns out of nested loops drop ONE iterator per
             // enclosing loop: a run of SWAP/POP pairs precedes the RETURN

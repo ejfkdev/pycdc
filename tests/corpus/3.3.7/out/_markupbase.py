@@ -87,11 +87,12 @@ class ParserBase:
                 if decltype == 'doctype':
                     j = self._parse_doctype_subset(j + 1, i)
                     continue
-            if decltype in frozenset({'element', 'attlist', 'link', 'linktype'}):
-                self.error("unsupported '[' char in %s declaration" % decltype)
-                continue
-            self.error("unexpected '[' char in declaration")
-            self.error('unexpected %r char in declaration' % rawdata[j])
+                if decltype in frozenset({'element', 'attlist', 'link', 'linktype'}):
+                    self.error("unsupported '[' char in %s declaration" % decltype)
+                    continue
+                self.error("unexpected '[' char in declaration")
+            else:
+                self.error('unexpected %r char in declaration' % rawdata[j])
             if j < 0:
                 return j
         return -1

@@ -150,9 +150,9 @@ will be omitted from the output for better readability.
                             if not keywords:
                                 args_buffer.append(repr(value))
                             continue
-                if not keywords:
-                    args.extend(args_buffer)
-                    args_buffer = []
+                    if not keywords:
+                        args.extend(args_buffer)
+                        args_buffer = []
                 value, simple = _format(value, level)
                 allsimple = allsimple and simple
                 if keywords:
@@ -533,9 +533,9 @@ Usually you use the transformer like this::
                         value = self.visit(value)
                         if value is None:
                             continue
-                    if not isinstance(value, AST):
-                        new_values.extend(value)
-                        continue
+                        if not isinstance(value, AST):
+                            new_values.extend(value)
+                            continue
                     new_values.append(value)
                 old_value[slice(None, None, None)] = new_values
             else:

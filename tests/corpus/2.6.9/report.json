@@ -29,7 +29,7 @@
   },
   {
    "module": "ConfigParser",
-   "ast_detail": "diff at token 1802: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 1988: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
    "ndiff": 985,
    "ntotal": 2162,
@@ -47,7 +47,7 @@
    "module": "DocXMLRPCServer",
    "ast_detail": "diff at token 377: orig  body=[Assign(targets=[Name(id='anchor' | dec  body=[If(test=Name(id='cl'",
    "verdict": "SIG-DIFF",
-   "ndiff": 767,
+   "ndiff": 768,
    "ntotal": 911,
    "detail": "line 116: orig ('SETUP_LOOP', '#167') | got ('SETUP_LOOP', '#173')\nline 117: orig ('LOAD_FAST', 'pattern') | got ('LOAD_GLOBAL', 'True')\nline 118: orig ('LOAD_ATTR', 'search') | got ('JUMP_IF_FALSE', '#171')"
   },
@@ -133,9 +133,9 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1658: orig  value=Num(n=2000))] | dec  value=Num(n=2000))",
+   "ast_detail": "diff at token 1858: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1200,
+   "ndiff": 1199,
    "ntotal": 1709,
    "detail": "line 89: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 448: orig ('SETUP_LOOP', '#172') | got ('SETUP_LOOP', '#173')\nline 454: orig ('FOR_ITER', '#171') | got ('FOR_ITER', '#172')"
   },
@@ -173,7 +173,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 376: orig  kwargs=None)) | dec  kwargs=None))]",
+   "ast_detail": "diff at token 332: orig  ctx=Load()))) | dec  ctx=Load())))]",
    "verdict": "SIG-DIFF",
    "ndiff": 588,
    "ntotal": 854,
@@ -207,7 +207,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 534: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='frame'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1631,
+   "ndiff": 1633,
    "ntotal": 2242,
    "detail": "line 537: orig ('SETUP_LOOP', '#49') | got ('SETUP_LOOP', '#43')\nline 541: orig ('JUMP_IF_FALSE', '#47') | got ('JUMP_IF_FALSE', '#41')\nline 545: orig ('LOAD_ATTR', 'stopframe') | got ('LOAD_ATTR', 'botframe')"
   },

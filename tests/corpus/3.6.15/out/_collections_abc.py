@@ -829,15 +829,14 @@ class Sequence(Reversible, Collection):
             stop += len(self)
         i = start
         while stop is None or i < stop:
-            pass
+            try:
+                v = self[i]
+                if v is value or v == value:
+                    return i
+            except IndexError:
+                break
+                i += 1
         raise ValueError
-        try:
-            v = self[i]
-            if v is value or v == value:
-                return i
-        except IndexError:
-            # WARNING: break outside loop (unrecovered structure)
-            i += 1
 
     def count(self, value):
         '''S.count(value) -> integer -- return number of occurrences of value'''

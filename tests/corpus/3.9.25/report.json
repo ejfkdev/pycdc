@@ -141,7 +141,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 778: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 655,
+   "ndiff": 651,
    "ntotal": 2340,
    "detail": "line 602: orig ('POP_JUMP_IF_FALSE', '') | got ('POP_JUMP_IF_TRUE', '')\nline 608: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1663: orig ('SETUP_FINALLY', 'to 128') | got ('SETUP_FINALLY', 'to 76')"
   },
@@ -189,11 +189,11 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 229: orig  values=[Compare(left=Name(id='token' | dec  values=[Compare(left=Name(id='lasttoken'",
+   "ast_detail": "diff at token 243: orig  body=[If(test=Compare(left=Name(id='lasttoken' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1148,
+   "ndiff": 809,
    "ntotal": 1456,
-   "detail": "line 225: orig ('FOR_ITER', 'to 206') | got ('FOR_ITER', 'to 204')\nline 290: orig ('JUMP_FORWARD', 'to 200') | got ('LOAD_FAST', 'token')\nline 291: orig ('LOAD_FAST', 'token') | got ('LOAD_CONST', \"'.'\")"
+   "detail": "line 582: orig ('FOR_ITER', 'to 694') | got ('FOR_ITER', 'to 692')\nline 592: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 688')\nline 593: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_CONST', '1')"
   },
   {
    "module": "chunk",

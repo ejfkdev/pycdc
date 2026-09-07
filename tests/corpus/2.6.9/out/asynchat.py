@@ -93,15 +93,15 @@ class async_chat(asyncore.dispatcher):
                     self.ac_in_buffer = self.ac_in_buffer[index + terminator_len:]
                     self.found_terminator()
                     continue
-            index = find_prefix_at_end(self.ac_in_buffer, terminator)
-            if index:
-                if index != lb:
-                    self.collect_incoming_data(self.ac_in_buffer[:-index])
-                    self.ac_in_buffer = self.ac_in_buffer[-index:]
-                break
-                continue
-            self.collect_incoming_data(self.ac_in_buffer)
-            self.ac_in_buffer = ''
+                index = find_prefix_at_end(self.ac_in_buffer, terminator)
+                if index:
+                    if index != lb:
+                        self.collect_incoming_data(self.ac_in_buffer[:-index])
+                        self.ac_in_buffer = self.ac_in_buffer[-index:]
+                    break
+                    continue
+                self.collect_incoming_data(self.ac_in_buffer)
+                self.ac_in_buffer = ''
 
     def handle_write(self):
         self.initiate_send()
@@ -165,7 +165,7 @@ class async_chat(asyncore.dispatcher):
                 if num_sent < len(data) or obs < len(first):
                     self.producer_fifo[0] = first[num_sent:]
                     continue
-            del self.producer_fifo[0]
+                del self.producer_fifo[0]
             return
 
     def discard_buffers(self):

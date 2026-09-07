@@ -118,7 +118,7 @@
   {
    "module": "bdb",
    "verdict": "INCOMPLETE",
-   "ndiff": 2259,
+   "ndiff": 2260,
    "ntotal": 2530,
    "detail": "line 198: orig ('NOP', '') | got ('LOAD_CONST', '(False, None, None)')\nline 199: orig ('NOP', '') | got ('LOAD_CONST', '<code set_break>')\nline 200: orig ('LOAD_CONST', '(False, None, None)') | got ('MAKE_FUNCTION', 'defaults')"
   },

@@ -735,6 +735,18 @@ def effective(file, line, frame):
             if b.ignore > 0:
                 b.ignore -= 1
                 continue
+            else:
+                return b, True
+        else:
+            try:
+                val = eval(b.cond, frame.f_globals, frame.f_locals)
+                if val:
+                    if b.ignore > 0:
+                        b.ignore -= 1
+                    else:
+                        return b, True
+            except:
+                return b, False
     return (None, None)
 
 class Tdb(Bdb):

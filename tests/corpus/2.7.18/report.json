@@ -29,18 +29,18 @@
   },
   {
    "module": "ConfigParser",
-   "ast_detail": "diff at token 1947: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 2155: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
-   "ndiff": 776,
-   "ntotal": 2273,
-   "detail": "line 1305: orig ('SETUP_LOOP', '#242') | got ('SETUP_LOOP', '#224')\nline 1307: orig ('POP_JUMP_IF_FALSE', '#241') | got ('POP_JUMP_IF_FALSE', '#223')\nline 1371: orig ('POP_JUMP_IF_FALSE', '#240') | got ('POP_JUMP_IF_FALSE', '#206')"
+   "ndiff": 774,
+   "ntotal": 2274,
+   "detail": "line 1305: orig ('SETUP_LOOP', '#242') | got ('SETUP_LOOP', '#243')\nline 1307: orig ('POP_JUMP_IF_FALSE', '#241') | got ('POP_JUMP_IF_FALSE', '#242')\nline 1371: orig ('POP_JUMP_IF_FALSE', '#240') | got ('POP_JUMP_IF_FALSE', '#241')"
   },
   {
    "module": "Cookie",
    "ast_detail": "diff at token 693: orig  right=Num(n=2))) | dec  right=Num(n=2)))]",
    "verdict": "SIG-DIFF",
    "ndiff": 982,
-   "ntotal": 1872,
+   "ntotal": 1877,
    "detail": "line 613: orig ('LOAD_CONST', 'None') | got ('LOAD_NAME', 'None')\nline 787: orig ('SETUP_LOOP', '#157') | got ('SETUP_LOOP', '#158')\nline 799: orig ('POP_JUMP_IF_FALSE', '#156') | got ('POP_JUMP_IF_FALSE', '#157')"
   },
   {
@@ -55,9 +55,9 @@
    "module": "HTMLParser",
    "ast_detail": "diff at token 752: orig  right=Num(n=1)))] | dec  right=Num(n=1)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1065,
-   "ntotal": 1607,
-   "detail": "line 359: orig ('SETUP_LOOP', '#378') | got ('SETUP_LOOP', '#253')\nline 363: orig ('POP_JUMP_IF_FALSE', '#377') | got ('POP_JUMP_IF_FALSE', '#252')\nline 417: orig ('POP_JUMP_IF_FALSE', '#199') | got ('POP_JUMP_IF_FALSE', '#182')"
+   "ndiff": 1064,
+   "ntotal": 1611,
+   "detail": "line 359: orig ('SETUP_LOOP', '#378') | got ('SETUP_LOOP', '#380')\nline 363: orig ('POP_JUMP_IF_FALSE', '#377') | got ('POP_JUMP_IF_FALSE', '#379')\nline 417: orig ('POP_JUMP_IF_FALSE', '#199') | got ('POP_JUMP_IF_FALSE', '#200')"
   },
   {
    "module": "MimeWriter",
@@ -175,8 +175,8 @@
    "module": "ast",
    "ast_detail": "diff at token 624: orig  values=[Call(func=Name(id='hasattr' | dec  values=[Compare(left=Name(id='attr'",
    "verdict": "SIG-DIFF",
-   "ndiff": 698,
-   "ntotal": 962,
+   "ndiff": 697,
+   "ntotal": 961,
    "detail": "line 190: orig ('POP_JUMP_IF_FALSE', '#143') | got ('POP_JUMP_IF_FALSE', '#142')\nline 196: orig ('JUMP_FORWARD', '#143') | got ('JUMP_FORWARD', '#142')\nline 201: orig ('POP_JUMP_IF_FALSE', '#143') | got ('POP_JUMP_IF_FALSE', '#142')"
   },
   {
@@ -215,9 +215,9 @@
    "module": "bdb",
    "ast_detail": "diff at token 885: orig  ctx=Load())) | dec  ctx=Load()))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 196,
+   "ndiff": 7,
    "ntotal": 2155,
-   "detail": "line 1909: orig ('SETUP_LOOP', '#103') | got ('SETUP_LOOP', '#60')\nline 1917: orig ('FOR_ITER', '#102') | got ('FOR_ITER', '#59')\nline 1945: orig ('POP_JUMP_IF_TRUE', '#62') | got ('POP_JUMP_IF_TRUE', '#15')"
+   "detail": "line 1980: orig ('POP_JUMP_IF_FALSE', '#86') | got ('POP_JUMP_IF_FALSE', '#87')\nline 1987: orig ('JUMP_ABSOLUTE', '#91') | got ('CONTINUE_LOOP', '#15')\nline 1988: orig ('LOAD_FAST', 'b') | got ('JUMP_FORWARD', '#87')"
   },
   {
    "module": "binhex",
@@ -241,11 +241,11 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 702: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 839: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
    "ndiff": 2375,
    "ntotal": 3043,
-   "detail": "line 515: orig ('SETUP_LOOP', '#236') | got ('SETUP_LOOP', '#240')\nline 519: orig ('POP_JUMP_IF_FALSE', '#235') | got ('POP_JUMP_IF_FALSE', '#239')\nline 525: orig ('POP_JUMP_IF_FALSE', '#99') | got ('POP_JUMP_IF_FALSE', '#98')"
+   "detail": "line 515: orig ('SETUP_LOOP', '#236') | got ('SETUP_LOOP', '#240')\nline 519: orig ('POP_JUMP_IF_FALSE', '#235') | got ('POP_JUMP_IF_FALSE', '#239')\nline 525: orig ('POP_JUMP_IF_FALSE', '#99') | got ('POP_JUMP_IF_FALSE', '#100')"
   }
  ]
 }

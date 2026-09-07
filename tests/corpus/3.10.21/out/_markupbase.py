@@ -145,17 +145,17 @@ class ParserBase:
                     if j < 0:
                         return j
                     continue
-            name, j = self._scan_name(j + 2, declstartpos)
-            if j == -1:
-                return -1
-            if name not in frozenset({'attlist', 'element', 'entity', 'notation'}):
-                self.updatepos(declstartpos, j + 2)
-                raise AssertionError('unknown declaration %r in internal subset' % name)
-            meth = getattr(self, '_parse_doctype_' + name)
-            j = meth(j, declstartpos)
-            if j < 0:
-                return j
-            if c == '%':
+                name, j = self._scan_name(j + 2, declstartpos)
+                if j == -1:
+                    return -1
+                if name not in frozenset({'attlist', 'element', 'entity', 'notation'}):
+                    self.updatepos(declstartpos, j + 2)
+                    raise AssertionError('unknown declaration %r in internal subset' % name)
+                meth = getattr(self, '_parse_doctype_' + name)
+                j = meth(j, declstartpos)
+                if j < 0:
+                    return j
+            elif c == '%':
                 if j + 1 == n:
                     return -1
                 s, j = self._scan_name(j + 1, declstartpos)

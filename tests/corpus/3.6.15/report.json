@@ -2,8 +2,8 @@
  "version": "3.6.15",
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
-  "PASS": 22,
-  "SIG-DIFF": 16,
+  "PASS": 23,
+  "SIG-DIFF": 15,
   "AST-PASS": 2
  },
  "results": [
@@ -19,9 +19,9 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 246: orig  body=Yield(value=None)) | dec  body=Yield(value=NameConstant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 255,
+   "ndiff": 68,
    "ntotal": 3131,
-   "detail": "line 2857: orig ('SETUP_LOOP', 'to 152') | got ('SETUP_LOOP', 'to 88')\nline 2866: orig ('SETUP_EXCEPT', 'to 118') | got ('JUMP_ABSOLUTE', '')\nline 2867: orig ('LOAD_FAST', 'self') | got ('POP_BLOCK', '')"
+   "detail": "line 2882: orig ('JUMP_FORWARD', 'to 140') | got ('JUMP_ABSOLUTE', '')\nline 2891: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'i')\nline 2892: orig ('JUMP_FORWARD', 'to 140') | got ('LOAD_CONST', '1')"
   },
   {
    "module": "_compat_pickle",
@@ -39,8 +39,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 508: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 962,
-   "ntotal": 1416,
+   "ndiff": 974,
+   "ntotal": 1413,
    "detail": "line 300: orig ('SETUP_LOOP', 'to 480') | got ('SETUP_LOOP', 'to 492')\nline 362: orig ('JUMP_FORWARD', 'to 464') | got ('JUMP_FORWARD', 'to 476')\nline 376: orig ('JUMP_FORWARD', 'to 464') | got ('JUMP_FORWARD', 'to 476')"
   },
   {
@@ -109,11 +109,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 832: orig  orelse=[])] | dec  orelse=[])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 192,
-   "ntotal": 2328,
-   "detail": "line 2097: orig ('SETUP_LOOP', 'to 182') | got ('SETUP_LOOP', 'to 94')\nline 2100: orig ('FOR_ITER', 'to 180') | got ('FOR_ITER', 'to 92')\nline 2136: orig ('LOAD_FAST', 'b') | got ('POP_BLOCK', '')"
+   "verdict": "PASS"
   },
   {
    "module": "binhex",
@@ -149,11 +145,11 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 259: orig  values=[Compare(left=Name(id='token' | dec  values=[Compare(left=Name(id='lasttoken'",
+   "ast_detail": "diff at token 273: orig  body=[If(test=Compare(left=Name(id='lasttoken' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1126,
+   "ndiff": 791,
    "ntotal": 1435,
-   "detail": "line 220: orig ('SETUP_LOOP', 'to 208') | got ('SETUP_LOOP', 'to 206')\nline 226: orig ('FOR_ITER', 'to 206') | got ('FOR_ITER', 'to 204')\nline 290: orig ('JUMP_FORWARD', 'to 200') | got ('LOAD_FAST', 'token')"
+   "detail": "line 580: orig ('SETUP_LOOP', 'to 696') | got ('SETUP_LOOP', 'to 694')\nline 583: orig ('FOR_ITER', 'to 694') | got ('FOR_ITER', 'to 692')\nline 593: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 688')"
   },
   {
    "module": "chunk",

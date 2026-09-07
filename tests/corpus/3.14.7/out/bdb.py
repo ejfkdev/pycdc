@@ -1040,7 +1040,7 @@ If no such entry exists, then (None, None) is returned.
                 if b.ignore > 0:
                     b.ignore -= 1
                     continue
-        return b, True
+                return b, True
         try:
             val = eval(b.cond, frame.f_globals, frame.f_locals)
             if val:

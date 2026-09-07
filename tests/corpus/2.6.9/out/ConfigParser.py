@@ -444,25 +444,25 @@ class RawConfigParser:
                         self._sections[sectname] = cursect
                     optname = None
                     continue
-            if cursect is None:
-                raise MissingSectionHeaderError(fpname, lineno, line)
-            mo = self.OPTCRE.match(line)
-            if mo:
-                optname, vi, optval = mo.group('option', 'vi', 'value')
-                if vi in ('=', ':') and ';' in optval:
-                    pos = optval.find(';')
-                    if pos != -1 and optval[pos - 1].isspace():
-                        optval = optval[:pos]
-                        continue
-            optval = optval.strip()
-            if optval == '""':
-                optval = ''
-            optname = self.optionxform(optname.rstrip())
-            cursect[optname] = optval
-            continue
-            if not e:
-                e = ParsingError(fpname)
-            e.append(lineno, repr(line))
+                if cursect is None:
+                    raise MissingSectionHeaderError(fpname, lineno, line)
+                mo = self.OPTCRE.match(line)
+                if mo:
+                    optname, vi, optval = mo.group('option', 'vi', 'value')
+                    if vi in ('=', ':') and ';' in optval:
+                        pos = optval.find(';')
+                        if pos != -1 and optval[pos - 1].isspace():
+                            optval = optval[:pos]
+                            continue
+                    optval = optval.strip()
+                    if optval == '""':
+                        optval = ''
+                    optname = self.optionxform(optname.rstrip())
+                    cursect[optname] = optval
+                    continue
+                if not e:
+                    e = ParsingError(fpname)
+                e.append(lineno, repr(line))
         if e:
             raise e
 

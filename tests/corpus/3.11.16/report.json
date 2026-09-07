@@ -47,8 +47,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 463: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1018,
-   "ntotal": 1455,
+   "ndiff": 1022,
+   "ntotal": 1458,
    "detail": "line 304: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1000') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 972')\nline 361: orig ('JUMP_FORWARD', 'to 970') | got ('JUMP_FORWARD', 'to 942')\nline 375: orig ('JUMP_FORWARD', 'to 970') | got ('JUMP_FORWARD', 'to 942')"
   },
   {
@@ -130,7 +130,7 @@
   {
    "module": "bdb",
    "verdict": "INCOMPLETE",
-   "ndiff": 2310,
+   "ndiff": 2289,
    "ntotal": 2548,
    "detail": "line 190: orig ('NOP', '') | got ('LOAD_CONST', '(False, None, None)')\nline 191: orig ('NOP', '') | got ('LOAD_CONST', '<code set_break>')\nline 192: orig ('LOAD_CONST', '(False, None, None)') | got ('MAKE_FUNCTION', 'defaults')"
   },

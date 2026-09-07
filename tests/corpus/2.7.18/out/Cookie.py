@@ -401,12 +401,14 @@ class BaseCookie(dict):
                         if K.lower() in Morsel._flags:
                             M[K] = True
                             continue
-            continue
-            if V is not None:
-                rval, cval = self.value_decode(V)
-                self.__set(K, rval, cval)
-                M = self[K]
-            continue
+                            M[K] = _unquote(V)
+                    continue
+                    if V is not None:
+                        rval, cval = self.value_decode(V)
+                        self.__set(K, rval, cval)
+                        M = self[K]
+            else:
+                return
 
 
 class SimpleCookie(BaseCookie):

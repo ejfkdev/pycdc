@@ -408,7 +408,7 @@ class StreamReader(Codec):
                 if len(self.charbuffer) >= chars:
                     break
                     continue
-            if size >= 0 and len(self.charbuffer) >= size:
+            elif size >= 0 and len(self.charbuffer) >= size:
                 break
                 continue
             if size < 0:

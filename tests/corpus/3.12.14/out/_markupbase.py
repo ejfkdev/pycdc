@@ -146,45 +146,45 @@ class ParserBase:
                     if j < 0:
                         return j
                     continue
-            name, j = self._scan_name(j + 2, declstartpos)
-            if j == -1:
-                return -1
-            if name not in frozenset({'entity', 'attlist', 'element', 'notation'}):
-                self.updatepos(declstartpos, j + 2)
-                raise AssertionError('unknown declaration %r in internal subset' % name)
-            meth = getattr(self, '_parse_doctype_' + name)
-            j = meth(j, declstartpos)
-            if j < 0:
-                return j
-                if c == '%':
-                    if j + 1 == n:
-                        return -1
-                    s, j = self._scan_name(j + 1, declstartpos)
-                    if j < 0:
-                        return j
-                    if rawdata[j] == ';':
-                        j = j + 1
-                else:
-                    if c == ']':
-                        j = j + 1
-                        if j < n and rawdata[j].isspace():
-                            while True:
-                                j = j + 1
-                                if not j < n:
-                                    break
-                                if not rawdata[j].isspace():
-                                    break
-                        if j < n:
-                            if rawdata[j] == '>':
-                                return j
-                            self.updatepos(declstartpos, j)
-                            raise AssertionError('unexpected char after internal subset')
-                        return -1
-                    if c.isspace():
-                        j = j + 1
+                name, j = self._scan_name(j + 2, declstartpos)
+                if j == -1:
+                    return -1
+                if name not in frozenset({'entity', 'attlist', 'element', 'notation'}):
+                    self.updatepos(declstartpos, j + 2)
+                    raise AssertionError('unknown declaration %r in internal subset' % name)
+                meth = getattr(self, '_parse_doctype_' + name)
+                j = meth(j, declstartpos)
+                if j < 0:
+                    return j
+                    if c == '%':
+                        if j + 1 == n:
+                            return -1
+                        s, j = self._scan_name(j + 1, declstartpos)
+                        if j < 0:
+                            return j
+                        if rawdata[j] == ';':
+                            j = j + 1
                     else:
-                        self.updatepos(declstartpos, j)
-                        raise AssertionError('unexpected char %r in internal subset' % c)
+                        if c == ']':
+                            j = j + 1
+                            if j < n and rawdata[j].isspace():
+                                while True:
+                                    j = j + 1
+                                    if not j < n:
+                                        break
+                                    if not rawdata[j].isspace():
+                                        break
+                            if j < n:
+                                if rawdata[j] == '>':
+                                    return j
+                                self.updatepos(declstartpos, j)
+                                raise AssertionError('unexpected char after internal subset')
+                            return -1
+                        if c.isspace():
+                            j = j + 1
+                        else:
+                            self.updatepos(declstartpos, j)
+                            raise AssertionError('unexpected char %r in internal subset' % c)
         return -1
 
     def _parse_doctype_element(self, i, declstartpos):

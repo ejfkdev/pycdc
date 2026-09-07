@@ -475,11 +475,12 @@ class ExtendedInterpolation(Interpolation):
                     raise InterpolationMissingOptionError(option, section, rawval, ':'.join(path)) from None
                 if v is None:
                     continue
-            if '$' in v:
-                self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
+                if '$' in v:
+                    self._interpolate_some(parser, opt, accum, v, sect, dict(parser.items(sect, raw=True)), depth + 1)
+                else:
+                    accum.append(v)
             else:
-                accum.append(v)
-            raise InterpolationSyntaxError(option, section, f"'$' must be followed by '$' or '{{', found: {rest!r}")
+                raise InterpolationSyntaxError(option, section, f"'$' must be followed by '$' or '{{', found: {rest!r}")
 
 
 class _ReadState:

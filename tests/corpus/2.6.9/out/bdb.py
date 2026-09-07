@@ -467,6 +467,10 @@ def effective(file, line, frame):
         if b.cond or b.ignore > 0:
             b.ignore = b.ignore - 1
             continue
+        else:
+            return b, 1
+        return b, 1
+        return b, 0
     return (None, None)
 
 class Tdb(Bdb):

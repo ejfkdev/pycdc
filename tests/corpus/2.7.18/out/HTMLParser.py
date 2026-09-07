@@ -140,11 +140,11 @@ class HTMLParser(markupbase.ParserBase):
                         if k < 0:
                             k = i + 1
                             continue
-            k += 1
-            self.handle_data(rawdata[i:k])
-            i = self.updatepos(i, k)
-            continue
-            if startswith('&#', i):
+                    else:
+                        k += 1
+                    self.handle_data(rawdata[i:k])
+                i = self.updatepos(i, k)
+            elif startswith('&#', i):
                 match = charref.match(rawdata, i)
                 if match:
                     name = match.group()[2:-1]
@@ -154,6 +154,33 @@ class HTMLParser(markupbase.ParserBase):
                         k = k - 1
                     i = self.updatepos(i, k)
                     continue
+                else:
+                    if ';' in rawdata[i:]:
+                        self.handle_data(rawdata[i:i + 2])
+                        i = self.updatepos(i, i + 2)
+                    break
+            elif startswith('&', i):
+                match = entityref.match(rawdata, i)
+                if match:
+                    name = match.group(1)
+                    self.handle_entityref(name)
+                    k = match.end()
+                    if not startswith(';', k - 1):
+                        k = k - 1
+                    i = self.updatepos(i, k)
+                    continue
+                match = incomplete.match(rawdata, i)
+                if match:
+                    if end and match.group() == rawdata[i:]:
+                        self.error('EOF in middle of entity or char ref')
+                    break
+                elif i + 1 < n:
+                    self.handle_data('&')
+                    i = self.updatepos(i, i + 1)
+                else:
+                    break
+            elif not 0:
+                raise AssertionError('interesting.search() lied')
         if end and i < n and not self.cdata_elem:
             self.handle_data(rawdata[i:n])
             i = self.updatepos(i, n)

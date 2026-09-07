@@ -87,6 +87,14 @@ def scanvars(reader, frame, locals):
                     value = getattr(parent, token, __UNDEF__)
                     vars.append((prefix + token, prefix, value))
                     continue
+                    continue
+                    where, value = lookup(token, frame, locals)
+                    vars.append((token, where, value))
+        elif token == '.':
+            prefix += lasttoken + '.'
+            parent = value
+        else:
+            parent, prefix = None, ''
         lasttoken = token
     return vars
 

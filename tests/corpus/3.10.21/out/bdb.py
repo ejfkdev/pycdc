@@ -768,8 +768,7 @@ def effective(file, line, frame):
             if b.ignore > 0:
                 b.ignore -= 1
                 continue
-        return b, True
-        b, False
+            return b, True
         try:
             val = eval(b.cond, frame.f_globals, frame.f_locals)
             if val:
@@ -778,8 +777,7 @@ def effective(file, line, frame):
                 else:
                     return b, True
         except:
-            pass
-        return
+            return b, False
     return (None, None)
 
 class Tdb(Bdb):
@@ -819,4 +817,3 @@ def test():
     t = Tdb()
     t.run('import bdb; bdb.foo(10)')
 
-# WARNING: Decompyle incomplete
