@@ -2,9 +2,9 @@
  "version": "3.5.10",
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
-  "PASS": 25,
-  "SIG-DIFF": 13,
-  "AST-PASS": 2
+  "PASS": 26,
+  "AST-PASS": 2,
+  "SIG-DIFF": 12
  },
  "results": [
   {
@@ -17,11 +17,7 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "diff at token 142: orig  args=[BinOp(left=Num(n=1) | dec  args=[Num(n=10715086071862673209484250490600018105614048117055336074437503883703510511249",
-   "verdict": "SIG-DIFF",
-   "ndiff": 8,
-   "ntotal": 3095,
-   "detail": "line 2850: orig ('JUMP_FORWARD', 'to 168') | got ('JUMP_ABSOLUTE', '')\nline 2859: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'i')\nline 2860: orig ('JUMP_FORWARD', 'to 168') | got ('LOAD_CONST', '1')"
+   "verdict": "PASS"
   },
   {
    "module": "_compat_pickle",

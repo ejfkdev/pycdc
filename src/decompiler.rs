@@ -2547,6 +2547,10 @@ impl<'a> Ctx<'a> {
         self.skip_until = None;
         let saved_line = self.cur_line;
         let saved_stores = std::mem::take(&mut self.pending_stores);
+        // whether a legacy chain was already live on entry: only a
+        // chain CREATED inside this sub-walk runs the state machine
+        // during the walk and folds its open clause at the end
+        let chain_on_entry = self.legacy_try.is_some() || self.legacy_handler.is_some();
 
         let mut pc = fi;
         while pc < self.instrs.len() {
@@ -2572,7 +2576,9 @@ impl<'a> Ctx<'a> {
             // pre-3.11: a skipped NESTED handler chain parses with the same
             // state machine as the main walk (finally-body and 3.11+ handler
             // regions must NOT drive it — the outer chain state is live)
-            if self.legacy_nest_depth > 0 {
+            if self.legacy_nest_depth > 0
+                || (!chain_on_entry && self.legacy_try.is_some())
+            {
                 self.legacy_chain_step(&inst);
             }
             // nested tail emission may have moved cur_offset — restore
@@ -2591,6 +2597,42 @@ impl<'a> Ctx<'a> {
             pc += 1;
         }
         self.flush_pending_stores();
+        // a clause opened inside this sub-walk must collect before the
+        // region returns: the walk can skip the END_FINALLY / mismatch
+        // point where the main walk would fold it (the handler-exit
+        // jump arms skip_until past it, and without this the region's
+        // tail statements redirect into the still-open handler body —
+        // _collections_abc 3.5-3.7 index: the loop-tail `i += 1`
+        // landed inside `except IndexError: break`). A chain that
+        // predates the region belongs to the caller's own fold path.
+        // legacy_nest_depth > 0: a nested-chain region is managed by
+        // parse_skipped_nested_chain's own post-region collection (its
+        // begin_legacy_nest stashes the outer chain, so chain_on_entry
+        // reads false here) — flushing early reorders the clause fold
+        // and breaks the nested else/finally rebuild (b05_exceptions)
+        if !chain_on_entry
+            && self.legacy_nest_depth == 0
+            && self.legacy_handler.is_some()
+        {
+            self.close_handler_blocks();
+            self.flush_pending_stores();
+            if let Some(h) = self.legacy_handler.take() {
+                if let Some(he) = &h.name {
+                    if let Expr::Name(n) = &**he {
+                        self.pending_as_cleanup = Some(n.clone());
+                    }
+                }
+                if let Some(lt) = self.legacy_try.as_mut() {
+                    lt.handlers.push(ExceptHandler {
+                        type_: h.type_,
+                        name: h.name,
+                        body: h.body,
+                        is_star: false,
+                    });
+                }
+            }
+            self.legacy_handler_end = None;
+        }
         while self.blocks.len() > 1 {
             let p = self.blocks.last().map(|b| b.start).unwrap_or(to);
             self.force_close_top(p);
@@ -5430,12 +5472,58 @@ impl<'a> Ctx<'a> {
                 let l = self.legacy_try.take().unwrap();
                 self.flush_pending_stores();
                 self.restore_legacy_nest();
-                self.push_stmt(Stmt::Try {
+                // route past blocks whose region already ended: a
+                // rotated-while's condition If stays open across the
+                // iteration (its back edge folds it into the loop
+                // condition) — pushing through it sinks the Try into
+                // the cond block, which the back edge then flushes
+                // into the last handler body (_collections_abc 3.5-3.7
+                // index: the loop-tail `i += 1` landed inside
+                // `except IndexError: break`)
+                let try_stmt = Stmt::Try {
                     body: l.body,
                     handlers: l.handlers,
                     orelse: l.orelse,
                     finalbody: l.finalbody,
-                });
+                };
+                // push_stmt's handler redirects (an open handler, or
+                // the STASHED outer handler of a nested-chain region)
+                // own the routing whenever they are live — the nested
+                // try belongs in the outer except body, not in the
+                // region root (b05_exceptions t7/bare_raise: direct
+                // block routing hoisted the inner try out of the
+                // handler and left `pass` behind)
+                let mut host = None;
+                if self.legacy_handler.is_none()
+                    && self.legacy_nest.is_empty()
+                    && self.legacy_try.is_none()
+                {
+                    for bi in (0..self.blocks.len()).rev() {
+                        if self.blocks[bi].end > self.cur_offset {
+                            host = Some(bi);
+                            break;
+                        }
+                    }
+                }
+                match host {
+                    Some(bi) if bi + 1 < self.blocks.len() => {
+                        // the stale blocks above the host must go now:
+                        // left open they capture the post-chain
+                        // statements and flush them into the handler
+                        // body at the iteration back edge
+                        while self.blocks.len() > bi + 1 {
+                            let e = self
+                                .blocks
+                                .last()
+                                .map(|b| b.end.min(self.cur_offset))
+                                .unwrap_or(self.cur_offset);
+                            self.force_close_top(e);
+                        }
+                        self.blocks[bi].stmts.push(try_stmt);
+                    }
+                    Some(bi) => self.blocks[bi].stmts.push(try_stmt),
+                    None => self.push_stmt(try_stmt),
+                }
             }
         }
         let _ = &lt;
@@ -26620,6 +26708,9 @@ impl<'a> Ctx<'a> {
         };
 
         let mut prev_inst: Option<(Op, u32)> = None;
+        // first operand of a filter or-chain awaiting its partner (see
+        // the cond-jump arm)
+        let mut pending_or_filter: Option<ExprRef> = None;
         for (ii, inst) in instrs.iter().enumerate() {
             let prev = prev_inst.replace((inst.op, inst.arg));
             // walrus inside a comprehension: DUP_TOP (<=3.10) / COPY 1
@@ -26894,12 +26985,58 @@ impl<'a> Ctx<'a> {
                 | Op::JUMP_IF_FALSE_OR_POP
                 | Op::JUMP_IF_TRUE_OR_POP => {
                     if let Some(c) = stack.pop() {
+                        // `if A or B` filter: A's PJIT hops to the body
+                        // merge (a forward label inside the gen, past
+                        // the following operand); when the partner
+                        // operand's own jump arrives, fold the two into
+                        // one Or filter. Rendering them as two `if`
+                        // clauses ANDs them - a semantic flip
+                        // (_collections_abc 3.6/3.7 Sequence.count
+                        // `v is value or v == value`). A pending first
+                        // operand whose partner never arrives (a
+                        // PJIT-to-end `if not A` shape or scan end)
+                        // flushes as its own clause, keeping the
+                        // historic rendering for those.
+                        let jump_true = matches!(
+                            inst.op,
+                            Op::POP_JUMP_IF_TRUE
+                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                                | Op::POP_JUMP_BACKWARD_IF_TRUE
+                        );
+                        let target = inst.target.unwrap_or(usize::MAX);
+                        let gen_end = instrs.last().map(|x| x.end()).unwrap_or(0);
+                        let mut f = c.clone();
+                        if jump_true && target < gen_end {
+                            if let Some(p) = pending_or_filter.take() {
+                                f = Rc::new(Expr::BoolOp {
+                                    op: BoolOpKind::Or,
+                                    values: vec![p, c.clone()],
+                                });
+                            } else {
+                                pending_or_filter = Some(c);
+                                continue;
+                            }
+                        } else if let Some(p) = pending_or_filter.take() {
+                            f = Rc::new(Expr::BoolOp {
+                                op: BoolOpKind::Or,
+                                values: vec![p, c],
+                            });
+                        }
                         if let Some(last) = partials.last_mut() {
-                            last.ifs.push(c);
+                            last.ifs.push(f);
                         }
                     }
                 }
                 Op::LIST_APPEND | Op::SET_ADD => {
+                    // the element is being produced: any filter operand
+                    // still awaiting an or-partner is a lone filter -
+                    // commit it (dropping it lost `_weakrefset` 3.12/3.13
+                    // genexpr filters entirely)
+                    if let Some(p) = pending_or_filter.take() {
+                        if let Some(last) = partials.last_mut() {
+                            last.ifs.push(p);
+                        }
+                    }
                     let item = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
                     elt.get_or_insert(item);
                 }
@@ -26918,6 +27055,11 @@ impl<'a> Ctx<'a> {
                     elt.get_or_insert(v);
                 }
                 Op::YIELD_VALUE => {
+                    if let Some(p) = pending_or_filter.take() {
+                        if let Some(last) = partials.last_mut() {
+                            last.ifs.push(p);
+                        }
+                    }
                     let item = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
                     elt.get_or_insert(item);
                 }

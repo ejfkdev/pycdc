@@ -235,7 +235,7 @@ def _85encode(b, chars, chars2, pad=False, foldnuls=False, foldspaces=False):
     if padding:
         b = b + b'\x00' * padding
     words = struct.Struct('!%dI' % (len(b) // 4)).unpack(b)
-    chunks = [chars2[word // 614125] + chars2[word // 85 % 7225] + chars[word % 85] for word in words if foldnuls if word if foldspaces if word == 538976288]
+    chunks = [chars2[word // 614125] + chars2[word // 85 % 7225] + chars[word % 85] for word in words if foldnuls if word or foldspaces if word == 538976288]
     if padding:
         if not pad:
             if chunks[-1] == b'z':

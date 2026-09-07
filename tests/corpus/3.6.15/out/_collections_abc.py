@@ -835,13 +835,13 @@ class Sequence(Reversible, Collection):
                     return i
             except IndexError:
                 break
-                i += 1
+            i += 1
         raise ValueError
 
     def count(self, value):
         '''S.count(value) -> integer -- return number of occurrences of value'''
 
-        return sum((1 for v in self if v is value if v == value))
+        return sum((1 for v in self if v is value or v == value))
 
 
 Sequence.register(tuple)

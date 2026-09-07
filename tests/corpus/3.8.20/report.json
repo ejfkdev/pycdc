@@ -19,7 +19,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 297: orig  body=Yield(value=None)) | dec  body=Yield(value=Constant(value=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 88,
+   "ndiff": 87,
    "ntotal": 3084,
    "detail": "line 2722: orig ('JUMP_FORWARD', 'to 56') | got ('JUMP_FORWARD', 'to 54')\nline 2731: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 54')\nline 2732: orig ('RETURN_VALUE', '') | got ('END_FINALLY', '')"
   },

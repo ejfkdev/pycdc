@@ -968,7 +968,7 @@ class Sequence(Reversible, Collection):
     def count(self, value):
         '''S.count(value) -> integer -- return number of occurrences of value'''
 
-        return sum((1 for v in self if v is value if v == value))
+        return sum((1 for v in self if v is value or v == value))
 
 
 Sequence.register(tuple)

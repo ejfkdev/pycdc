@@ -767,7 +767,7 @@ class Sequence(Sized, Iterable, Container):
                     return i
             except IndexError:
                 break
-                i += 1
+            i += 1
         raise ValueError
 
     def count(self, value):

@@ -2,9 +2,9 @@
  "version": "3.6.15",
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
-  "PASS": 24,
-  "SIG-DIFF": 13,
-  "AST-PASS": 3
+  "PASS": 25,
+  "AST-PASS": 3,
+  "SIG-DIFF": 12
  },
  "results": [
   {
@@ -17,11 +17,7 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "diff at token 246: orig  body=Yield(value=None)) | dec  body=Yield(value=NameConstant(value=None)))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 9,
-   "ntotal": 3131,
-   "detail": "line 2882: orig ('JUMP_FORWARD', 'to 140') | got ('JUMP_ABSOLUTE', '')\nline 2891: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'i')\nline 2892: orig ('JUMP_FORWARD', 'to 140') | got ('LOAD_CONST', '1')"
+   "verdict": "PASS"
   },
   {
    "module": "_compat_pickle",
