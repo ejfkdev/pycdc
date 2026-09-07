@@ -335,14 +335,13 @@ class Sniffer:
                         break
                     except (ValueError, OverflowError):
                         pass
-            thisType = len(row[col])
-            if thisType != columnTypes[col]:
-                if columnTypes[col] is None:
-                    columnTypes[col] = thisType
-                    continue
-            del columnTypes[col]
-            continue
-            continue
+                else:
+                    thisType = len(row[col])
+                if thisType != columnTypes[col]:
+                    if columnTypes[col] is None:
+                        columnTypes[col] = thisType
+                    else:
+                        del columnTypes[col]
         hasHeader = 0
         for col, colType in columnTypes.items():
             if type(colType) == type(0):

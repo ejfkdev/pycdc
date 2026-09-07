@@ -2,8 +2,8 @@
  "version": "3.6.15",
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
-  "PASS": 21,
-  "SIG-DIFF": 17,
+  "PASS": 22,
+  "SIG-DIFF": 16,
   "AST-PASS": 2
  },
  "results": [
@@ -229,11 +229,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1537: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Subscript(value=Name(id='v'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 73,
-   "ntotal": 1617,
-   "detail": "line 1449: orig ('SETUP_LOOP', 'to 254') | got ('SETUP_LOOP', 'to 256')\nline 1452: orig ('FOR_ITER', 'to 252') | got ('FOR_ITER', 'to 254')\nline 1470: orig ('SETUP_LOOP', 'to 250') | got ('SETUP_LOOP', 'to 198')"
+   "verdict": "PASS"
   }
  ]
 }

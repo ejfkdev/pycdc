@@ -219,8 +219,8 @@
    "module": "csv",
    "ast_detail": "diff at token 1740: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
-   "ndiff": 809,
-   "ntotal": 1660,
+   "ndiff": 801,
+   "ntotal": 1657,
    "detail": "line 811: orig ('SETUP_LOOP', '#28') | got ('SETUP_LOOP', '#29')\nline 814: orig ('FOR_ITER', '#27') | got ('FOR_ITER', '#28')\nline 836: orig ('POP_BLOCK', '') | got ('JUMP_ABSOLUTE', '#5')"
   },
   {

@@ -235,9 +235,9 @@
    "module": "csv",
    "ast_detail": "diff at token 1530: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
-   "ndiff": 86,
-   "ntotal": 1601,
-   "detail": "line 1436: orig ('SETUP_LOOP', 'to 329') | got ('SETUP_LOOP', 'to 332')\nline 1439: orig ('FOR_ITER', 'to 328') | got ('FOR_ITER', 'to 331')\nline 1457: orig ('SETUP_LOOP', 'to 325') | got ('SETUP_LOOP', 'to 257')"
+   "ndiff": 22,
+   "ntotal": 1600,
+   "detail": "line 1559: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 429')\nline 1564: orig ('JUMP_ABSOLUTE', '') | got ('SETUP_EXCEPT', 'to 450')\nline 1565: orig ('SETUP_EXCEPT', 'to 453') | got ('LOAD_FAST', 'colType')"
   }
  ]
 }

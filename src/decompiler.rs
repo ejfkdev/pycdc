@@ -5120,11 +5120,81 @@ impl<'a> Ctx<'a> {
                             // runs before the main loop's close_blocks_at, so
                             // without this the Try is pushed into the still-open
                             // trailing If (_sitebuiltins _Printer.__call__).
-                            self.close_blocks_at(pos);
-                            self.flush_pending_stores();
-                            let l = self.legacy_try.take().unwrap();
-                            self.restore_legacy_nest();
-                            self.push_legacy_try(l);
+                            //
+                            // ...but an open If/Else ARM that ENCLOSES the
+                            // whole chain (opened before the handler, its
+                            // region covering the else start, ending at or
+                            // before this boundary jump — the fused
+                            // loop-tail shape) is the try's real parent:
+                            // close_blocks_at would seal the arm BEFORE the
+                            // Try exists and drop it beside the arm instead
+                            // of into its orelse (csv 3.5/3.6 has_header:
+                            // `else: try/except/else` flattened to loop
+                            // level). Close only the blocks nested above
+                            // the container and route the Try into its
+                            // stmts; the container itself closes later
+                            // with the Try inside.
+                            // the container must be reachable from the
+                            // stack top WITHOUT crossing a loop: a try
+                            // inside a loop body belongs to the loop,
+                            // not to some enclosing branch whose region
+                            // happens to span the emit point
+                            // (_osx_support 3.9 _get_arch_flags: the
+                            // `while True: try/except-break` chain's
+                            // emit routed the Try into the enclosing
+                            // guard If, lifting it out of the loop)
+                            let container_idx = {
+                                let mut found = None;
+                                for (bi, b) in self.blocks.iter().enumerate().rev() {
+                                    if matches!(
+                                        b.kind,
+                                        BlockType::While | BlockType::For
+                                    ) {
+                                        found = None;
+                                        break;
+                                    }
+                                    if matches!(
+                                        b.kind,
+                                        BlockType::If | BlockType::Else
+                                    ) && b.start < lt.handler_start
+                                        && b.end <= pos
+                                        && lt.else_start.map_or(true, |es| {
+                                            b.end >= es
+                                        })
+                                    {
+                                        found = Some(bi);
+                                        break;
+                                    }
+                                }
+                                found
+                            };
+                            if let Some(ci) = container_idx {
+                                while self.blocks.len() - 1 > ci {
+                                    let e = self
+                                        .blocks
+                                        .last()
+                                        .map(|b| b.end.min(pos))
+                                        .unwrap_or(pos);
+                                    self.force_close_top(e);
+                                }
+                                self.flush_pending_stores();
+                                let l = self.legacy_try.take().unwrap();
+                                self.restore_legacy_nest();
+                                if let Some(lb) = self.blocks.get_mut(ci) {
+                                    lb.stmts.push(Stmt::Try {
+                                        body: l.body,
+                                        handlers: l.handlers,
+                                        orelse: l.orelse,
+                                        finalbody: l.finalbody,
+                                    });
+                                }
+                            } else {
+                                self.close_blocks_at(pos);
+                                self.flush_pending_stores();
+                                let l = self.legacy_try.take().unwrap();
+                                self.restore_legacy_nest();
+                                self.push_legacy_try(l);
+                            }
                         }
                     }
                 }
@@ -5564,6 +5634,38 @@ impl<'a> Ctx<'a> {
                 let iter = b.iter.take().unwrap_or_else(|| self.name_expr("???"));
                 let body = std::mem::take(&mut b.stmts);
                 let is_async = b.is_async;
+                // a loop kept open for a legacy chain had its end
+                // stretched to usize::MAX (pending_loop_close_at_chain):
+                // recover the physical exhaustion exit from the FOR_ITER
+                // so the SETUP_LOOP-era for-else check still sees the
+                // real layout (csv 3.5/3.6 has_header: `for thisType in
+                // [int, float, complex]: try/except else: thisType =
+                // len(row[col])` — for_setup_end compared against the
+                // stretched end found no else region and the arm
+                // flattened to the enclosing loop level)
+                let raw_eff = if b.end == usize::MAX {
+                    self.idx_of
+                        .get(&b.start)
+                        .and_then(|&i| self.instrs.get(i))
+                        .filter(|x| matches!(x.op, Op::FOR_ITER))
+                        .and_then(|x| x.target)
+                        .unwrap_or(b.end)
+                } else {
+                    b.end
+                };
+                // the exhaustion exit is the loop's POP_BLOCK: the else
+                // body starts AFTER it — a region including the
+                // POP_BLOCK is sealed by the POP_BLOCK handler before
+                // any else statement is walked (csv 3.6 has_header:
+                // `else: continue` from the dead handler-hop, else body
+                // stranded at the enclosing loop level)
+                let eff_end = self
+                    .idx_of
+                    .get(&raw_eff)
+                    .and_then(|&pi| self.instrs.get(pi))
+                    .filter(|x| matches!(x.op, Op::POP_BLOCK))
+                    .map(|x| x.end())
+                    .unwrap_or(raw_eff);
                 let probe_at = if pos == b.end {
                     Some(pos)
                 } else if self.cur_next <= b.end && b.end - self.cur_next <= 4 {
@@ -5587,13 +5689,15 @@ impl<'a> Ctx<'a> {
                     self.blocks.push(else_blk);
                 } else if let Some(se) = b
                     .for_setup_end
-                    .filter(|se| *se > b.end && self.setup_for_else_region(b.end, *se))
+                    .filter(|se| {
+                        *se > eff_end && self.setup_for_else_region(eff_end, *se)
+                    })
                 {
                     // SETUP_LOOP-era for-else: the exhaustion exit (b.end)
                     // closed the body; the else region runs to the loop pop
                     self.pending_loop
                         .push((None, Some(target), Some(iter), body, is_async));
-                    let else_blk = Block::new(BlockType::ForElse, b.end, se);
+                    let else_blk = Block::new(BlockType::ForElse, eff_end, se);
                     self.blocks.push(else_blk);
                 } else {
                     self.push_stmt(Stmt::For {
@@ -8361,6 +8465,23 @@ impl<'a> Ctx<'a> {
                     self.close_inner_blocks_to_loop();
                     return true;
                 }
+                // a backward edge to a loop top the chain machinery has
+                // ALREADY closed (registered in closed_loop_tops when it
+                // emitted the Try and collapsed the loop) is post-emit
+                // padding: continuing a closed loop has no target, and
+                // letting the jump reach the continue machinery drops a
+                // spurious Continue into whatever region block is open
+                // (csv 3.6 has_header: the inner try chain's collecting
+                // end edge became `else: continue` inside the just-opened
+                // for-else region, stranding the else body at the
+                // enclosing loop level)
+                if target < self.cur_offset
+                    && self.closed_loop_tops.iter().any(|t| {
+                        self.effective_offset(*t) == self.effective_offset(target)
+                    })
+                {
+                    return true;
+                }
                 // jump-threaded folded exit: a FORWARD jump landing on the
                 // loop's own back-edge instruction (the compiler threads
                 // branch exits that flow into the iteration end)
@@ -10916,6 +11037,28 @@ impl<'a> Ctx<'a> {
                     let close_at = self.cur_offset;
                     while self.blocks.len() > li {
                         self.force_close_top(close_at);
+                        // the loop's own close may have opened its
+                        // for-else region (SETUP_LOOP-era for/else):
+                        // that region is walked by the linear flow
+                        // ahead — closing it here (empty) drops the
+                        // else arm and the trailing unconditional
+                        // close then eats the ENCLOSING loop (csv
+                        // 3.5/3.6 has_header: for-col died at the
+                        // inner chain's emit, stranding the else
+                        // body and the if/else tail at row level)
+                        if self
+                            .blocks
+                            .last()
+                            .map_or(false, |t| {
+                                matches!(
+                                    t.kind,
+                                    BlockType::ForElse | BlockType::WhileElse
+                                )
+                            })
+                        {
+                            self.closed_loop_tops.push(loop_top);
+                            return;
+                        }
                     }
                     self.force_close_top(close_at);
                     // the loop closed HERE, not through the back-edge
