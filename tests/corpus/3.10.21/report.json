@@ -126,7 +126,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 253: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1785,
+   "ndiff": 1787,
    "ntotal": 2191,
    "detail": "line 309: orig ('SETUP_FINALLY', 'to 98') | got ('SETUP_FINALLY', 'to 96')\nline 356: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 176')\nline 357: orig ('RETURN_VALUE', '') | got ('DUP_TOP', '')"
   },

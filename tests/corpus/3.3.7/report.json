@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
   "PASS": 17,
-  "AST-PASS": 7,
-  "SIG-DIFF": 16
+  "AST-PASS": 8,
+  "SIG-DIFF": 15
  },
  "results": [
   {
@@ -181,11 +181,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 260: orig  Try(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self' | dec  If(test=Compare(left=Subscript(value=Call(func=Attribute(value=Name(id='sys'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 54,
-   "ntotal": 677,
-   "detail": "line 237: orig ('SETUP_EXCEPT', '#52') | got ('LOAD_GLOBAL', 'sys')\nline 238: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'exc_info')\nline 239: orig ('LOAD_ATTR', 'gen') | got ('CALL_FUNCTION', '0')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "copy",

@@ -4368,6 +4368,18 @@ impl<'a> Ctx<'a> {
                             .map_or(false, |t| t > pos && self.find_loop_exit(t).is_some())
                     });
             if pos >= end && !at_inner_break {
+                // inner blocks (a guard If of the handler body) whose end
+                // coincides with the handler end must fold into the handler
+                // body FIRST: closing them after the take() leaks their
+                // statement to the enclosing block — contextlib 3.3 __exit__
+                // bare except `if sys.exc_info()[1] is not value: raise`
+                // hoisted ahead of the try (If[205,211] was still open when
+                // the clause collected at the POP_EXCEPT 211)
+                if let Some(d) = self.legacy_handler.as_ref().map(|h| h.block_depth) {
+                    if self.blocks.len() > d && self.blocks.iter().skip(d).all(|b| b.end <= pos) {
+                        self.close_handler_blocks();
+                    }
+                }
                 if self.legacy_handler.is_some() {
                     self.flush_pending_stores();
                 }

@@ -437,8 +437,6 @@ def close_all(map=None, ignore_all=False):
     if map is None:
         map = socket_map
     for x in list(map.values()):
-        if not ignore_all:
-            raise
         try:
             x.close()
         except OSError as x:
@@ -450,7 +448,8 @@ def close_all(map=None, ignore_all=False):
         except _reraised_exceptions:
             raise
         except:
-            pass
+            if not ignore_all:
+                raise
     map.clear()
 
 if os.name == 'posix':
