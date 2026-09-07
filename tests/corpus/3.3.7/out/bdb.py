@@ -522,8 +522,8 @@ def effective(file, line, frame):
                 if val:
                     if b.ignore > 0:
                         b.ignore -= 1
-                        continue
-                    return b, True
+                    else:
+                        return b, True
             except:
                 return b, False
     return (None, None)

@@ -18674,7 +18674,19 @@ impl<'a> Ctx<'a> {
                     return depth > 0;
                 }
                 if b.start < target && target < b.end {
-                    return depth > 0;
+                    // a jump landing INSIDE an open try block's body is
+                    // an arm merge to the try's body end (its POP_BLOCK),
+                    // not a continue: the try's own body-end edge
+                    // provides the iteration continuation. Emitting a
+                    // Continue here recompiled to CONTINUE_LOOP + an
+                    // extra arm-end jump instead of the single merge
+                    // JABS (bdb 3.3/2.7 effective's inner try arm)
+                    let into_open_try = self.blocks.iter().any(|t| {
+                        matches!(t.kind, BlockType::Try)
+                            && t.start <= target
+                            && target < t.end
+                    });
+                    return depth > 0 && !into_open_try;
                 }
                 depth += 1;
             }

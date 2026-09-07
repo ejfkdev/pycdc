@@ -2,8 +2,8 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "SIG-DIFF": 20,
-  "PASS": 14,
+  "SIG-DIFF": 19,
+  "PASS": 15,
   "AST-PASS": 6
  },
  "results": [
@@ -213,11 +213,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 885: orig  ctx=Load())) | dec  ctx=Load()))]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 7,
-   "ntotal": 2155,
-   "detail": "line 1980: orig ('POP_JUMP_IF_FALSE', '#86') | got ('POP_JUMP_IF_FALSE', '#87')\nline 1987: orig ('JUMP_ABSOLUTE', '#91') | got ('CONTINUE_LOOP', '#15')\nline 1988: orig ('LOAD_FAST', 'b') | got ('JUMP_FORWARD', '#87')"
+   "verdict": "PASS"
   },
   {
    "module": "binhex",

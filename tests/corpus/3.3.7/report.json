@@ -2,9 +2,9 @@
  "version": "3.3.7",
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
-  "PASS": 15,
+  "PASS": 16,
   "AST-PASS": 8,
-  "SIG-DIFF": 17
+  "SIG-DIFF": 16
  },
  "results": [
   {
@@ -85,11 +85,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 2470: orig  Try(body=[Expr(value=Call(func=Name(id='exec' | dec  Try(body=[Try(body=[Expr(value=Call(func=Name(id='exec'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 7,
-   "ntotal": 2286,
-   "detail": "line 2107: orig ('POP_JUMP_IF_FALSE', '#78') | got ('POP_JUMP_IF_FALSE', '#79')\nline 2115: orig ('JUMP_ABSOLUTE', '#83') | got ('CONTINUE_LOOP', '#10')\nline 2116: orig ('LOAD_FAST', 'b') | got ('JUMP_FORWARD', '#79')"
+   "verdict": "PASS"
   },
   {
    "module": "binhex",
