@@ -84,11 +84,11 @@
   },
   {
    "module": "_weakrefset",
-   "ast_detail": "diff at token 238: orig  body=[Return()])] | dec  body=[Pass()])]",
+   "ast_detail": "diff at token 238: orig  body=[Return()])] | dec  body=[Break()])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 565,
-   "ntotal": 906,
-   "detail": "line 323: orig ('JUMP_FORWARD', 'to 48') | got ('JUMP_FORWARD', 'to 46')\nline 331: orig ('LOAD_CONST', 'None') | got ('JUMP_ABSOLUTE', '')\nline 332: orig ('RETURN_VALUE', '') | got ('RERAISE', '')"
+   "ndiff": 566,
+   "ntotal": 907,
+   "detail": "line 323: orig ('JUMP_FORWARD', 'to 48') | got ('JUMP_FORWARD', 'to 50')\nline 331: orig ('LOAD_CONST', 'None') | got ('JUMP_ABSOLUTE', '')\nline 332: orig ('RETURN_VALUE', '') | got ('POP_EXCEPT', '')"
   },
   {
    "module": "abc",

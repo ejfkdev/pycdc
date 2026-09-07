@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 10,
-  "SIG-DIFF": 19,
+  "PASS": 11,
+  "SIG-DIFF": 18,
   "INCOMPLETE": 11
  },
  "results": [
@@ -64,11 +64,7 @@
   },
   {
    "module": "_sitebuiltins",
-   "ast_detail": "diff at token 51: orig  body=[Try(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='sys' | dec  body=[Raise(exc=Call(func=Name(id='SystemExit'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 291,
-   "ntotal": 369,
-   "detail": "line 72: orig ('SETUP_FINALLY', 'to 22') | got ('LOAD_GLOBAL', 'SystemExit')\nline 73: orig ('LOAD_GLOBAL', 'sys') | got ('LOAD_FAST', 'code')\nline 74: orig ('LOAD_ATTR', 'stdin') | got ('CALL_FUNCTION', '')"
+   "verdict": "PASS"
   },
   {
    "module": "_strptime",
@@ -92,9 +88,9 @@
   {
    "module": "_weakrefset",
    "verdict": "INCOMPLETE",
-   "ndiff": 565,
-   "ntotal": 924,
-   "detail": "line 333: orig ('JUMP_FORWARD', 'to 50') | got ('JUMP_FORWARD', 'to 48')\nline 336: orig ('JUMP_IF_NOT_EXC_MATCH', 'to 48') | got ('JUMP_IF_NOT_EXC_MATCH', 'to 46')\nline 341: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 56')"
+   "ndiff": 540,
+   "ntotal": 925,
+   "detail": "line 354: orig ('SETUP_WITH', 'to 60') | got ('SETUP_WITH', 'to 62')\nline 372: orig ('POP_BLOCK', '') | got ('NOP', '')\nline 373: orig ('LOAD_CONST', 'None') | got ('POP_BLOCK', '')"
   },
   {
    "module": "abc",
@@ -148,7 +144,7 @@
   {
    "module": "binhex",
    "verdict": "INCOMPLETE",
-   "ndiff": 1718,
+   "ndiff": 1722,
    "ntotal": 2054,
    "detail": "line 273: orig ('SETUP_WITH', 'to 48') | got ('SETUP_WITH', 'to 50')\nline 285: orig ('POP_BLOCK', '') | got ('NOP', '')\nline 286: orig ('LOAD_CONST', 'None') | got ('POP_BLOCK', '')"
   },

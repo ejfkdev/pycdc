@@ -13,12 +13,11 @@ class Quitter(object):
         return 'Use %s() or %s to exit' % (self.name, self.eof)
 
     def __call__(self, code=None):
-        raise SystemExit(code)
-        raise SystemExit(code)
         try:
             sys.stdin.close()
         except:
             pass
+        raise SystemExit(code)
 
 
 class _Printer(object):
@@ -41,8 +40,9 @@ class _Printer(object):
             try:
                 with open(filename, encoding='utf-8') as fp:
                     data = fp.read()
+                break
             except OSError:
-                continue
+                pass
         if not data:
             data = self.__data
         self.__lines = data.split('\n')
@@ -63,7 +63,7 @@ class _Printer(object):
                 for i in range(lineno, lineno + self.MAXLINES):
                     print(self.__lines[i])
             except IndexError:
-                pass
+                break
             else:
                 lineno += self.MAXLINES
                 key = None

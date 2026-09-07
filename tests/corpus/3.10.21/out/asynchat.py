@@ -153,6 +153,7 @@ class async_chat(asyncore.dispatcher):
             num_sent = self.send(data)
         except OSError:
             self.handle_error()
+            # WARNING: break outside loop (unrecovered structure)
         else:
             if num_sent:
                 if num_sent < len(data) or obs < len(first):

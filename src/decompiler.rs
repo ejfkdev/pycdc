@@ -8489,6 +8489,70 @@ impl<'a> Ctx<'a> {
                     };
                 if !handler_sunk {
                     self.emit_return(Some(e));
+                } else {
+                    // a return-none sunk into a handler whose enclosing
+                    // loop exits at the function tail is a sunk BREAK
+                    // landing, not the tail terminator's handler copy:
+                    // `while 1: try: ... except E: break` compiles the
+                    // break to LOAD None; RETURN_VALUE inside the clause
+                    // (3.10 _sitebuiltins _Printer.__call__ rendered
+                    // `pass`, losing the loop exit). Convert only when
+                    // the loop-exit-to-code-end region holds nothing but
+                    // the implicit tail return.
+                    if let Some(li) = self
+                        .blocks
+                        .iter()
+                        .rposition(|b| matches!(b.kind, BlockType::While | BlockType::For))
+                    {
+                        let exit_opt = self
+                            .loop_exit_offset(&self.blocks[li])
+                            .or_else(|| {
+                                (self.blocks[li].end != usize::MAX)
+                                    .then(|| self.blocks[li].end)
+                            });
+                        let tail_only = exit_opt.map_or(false, |ex| {
+                            let mut saw_return = false;
+                            let mut saw_any = false;
+                            let mut only = true;
+                            for x in self.instrs.iter() {
+                                if x.offset < ex {
+                                    continue;
+                                }
+                                saw_any = true;
+                                match x.op {
+                                    Op::NOP
+                                    | Op::NOT_TAKEN
+                                    | Op::CACHE
+                                    | Op::EXTENDED_ARG => {}
+                                    Op::LOAD_CONST => {
+                                        if !matches!(
+                                            self.code.consts.get(x.arg as usize).map(|o| &**o),
+                                            Some(PyObject::None)
+                                        ) {
+                                            only = false;
+                                            break;
+                                        }
+                                    }
+                                    Op::RETURN_VALUE | Op::RETURN_CONST => {
+                                        saw_return = true;
+                                    }
+                                    _ => {
+                                        only = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            // an empty region means the loop exits at the
+                            // code end (an infinite `while 1:`) — the sunk
+                            // handler return IS the tail landing
+                            only && (saw_return || !saw_any)
+                        });
+                        if tail_only {
+                            if let Some(h) = self.legacy_handler.as_mut() {
+                                h.body.push(Stmt::Break);
+                            }
+                        }
+                    }
                 }
                 if defer_fold {
                     self.flush_pending_stores();
@@ -8910,6 +8974,28 @@ impl<'a> Ctx<'a> {
                 // (mirrors the JUMP_ABSOLUTE registration)
                 if !over_handlers && target > self.cur_offset {
                     self.register_break_over_else(target);
+                }
+                // 3.9/3.10 `try: with ...; break except E: pass`: the
+                // body-tail break is a JUMP_FORWARD to the loop exit that
+                // flies over the (still unparsed) handler chain — the
+                // over_handlers guard below would drop it and the chain
+                // machinery would misread the flow. Emitting Break here
+                // routes it into lt.body (push_stmt's chain-collection
+                // redirect); the walk then continues linearly into the
+                // chain head (_sitebuiltins 3.10 __setup lost the break
+                // and grew a phantom handler `continue`).
+                let body_tail_break = over_handlers
+                    && self.legacy_handler.is_none()
+                    && self.legacy_nest.is_empty()
+                    && self.legacy_try.as_ref().map_or(false, |l| {
+                        l.handlers.is_empty()
+                            && l.else_start.is_none()
+                            && self.cur_offset < l.handler_start
+                    })
+                    && self.find_loop_exit(target).is_some();
+                if body_tail_break {
+                    self.push_stmt(Stmt::Break);
+                    return true;
                 }
                 if !over_handlers && self.find_loop_exit(target).is_some() {
                     // degenerate `if c: break`: this jump IS the whole
@@ -11404,6 +11490,25 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::RAISE_VARARGS => {
+                // 3.8-3.10 sunk tail-raise pair (see sunk_raise_pair_side):
+                // drop the success-side copy; at the handler-side copy
+                // flush the chain first so the raise renders AFTER the Try
+                if arg >= 1 && self.version.major == 3 {
+                    match self.sunk_raise_pair_side(inst.offset, arg) {
+                        Some(true) => {
+                            for _ in 0..arg {
+                                self.pop();
+                            }
+                            return true;
+                        }
+                        Some(false) => {
+                            if let Some(l) = self.legacy_try.take() {
+                                self.push_legacy_try(l);
+                            }
+                        }
+                        None => {}
+                    }
+                }
                 let r = match arg {
                 0 => {
                     self.push_stmt(Stmt::Raise {
@@ -19368,7 +19473,37 @@ impl<'a> Ctx<'a> {
             .as_ref()
             .map(|l| (l.else_start, l.else_stop))
             .unwrap_or((None, usize::MAX));
+        // statements AT OR PAST the enclosing loop's exit are POST-loop
+        // code, not body material the edge skips: a genuine `continue`
+        // only bypasses statements between the handler and the loop's
+        // natural back edge, all of which lie below the exit
+        // (_sitebuiltins 3.10 __setup: the handler-exit JABS is the
+        // chain's collecting edge — the try is the whole loop body —
+        // but the post-loop `data.split` LOAD_METHOD read as skipped
+        // body and rendered `except OSError: continue`)
+        let jump_target = self
+            .instrs
+            .get(jabs_idx)
+            .and_then(|x| x.target)
+            .map(|t| self.effective_offset(t));
+        let loop_end = jump_target.and_then(|te| {
+            self.blocks
+                .iter()
+                .find(|b| {
+                    matches!(b.kind, BlockType::While | BlockType::For)
+                        && (self.effective_offset(b.start) == te
+                            || (b.cond_end != usize::MAX
+                                && self.effective_offset(b.cond_end) == te))
+                })
+                .map(|b| b.end)
+                .filter(|e| *e != usize::MAX)
+        });
         for x in self.instrs[jabs_idx + 1..].iter() {
+            if let Some(le) = loop_end {
+                if x.offset >= le {
+                    return saw_real;
+                }
+            }
             if let Some(es) = chain_es {
                 if x.offset >= es && x.offset < chain_ee {
                     continue;
@@ -23007,6 +23142,227 @@ impl<'a> Ctx<'a> {
     /// module level would even be a `return` outside function. Detect
     /// the pair: a None return here plus a None return after
     /// POP_EXCEPT in the handler chain.
+    /// 3.8-3.10 sunk tail-RAISE pair: when a function's post-try
+    /// continuation is a terminating `raise X`, the compiler can
+    /// duplicate it into BOTH exits — the success path (immediately
+    /// before the handler head) and the handler path (immediately after
+    /// the last POP_EXCEPT) — with no merge jump at all
+    /// (_sitebuiltins 3.10 Quitter.__call__: `try: sys.stdin.close()
+    /// except: pass` + `raise SystemExit(code)`). Both copies walked as
+    /// statements land in the enclosing block BEFORE the chain flushes,
+    /// rendering `raise; raise; try: ...`. Detect the pair:
+    /// Some(true) = this raise is the success-side copy (drop it),
+    /// Some(false) = the handler-side copy (flush the chain first so
+    /// the single rendered raise follows the Try).
+    fn sunk_raise_pair_side(&self, raise_off: usize, arg: u32) -> Option<bool> {
+        if !self.version.at_least(3, 8) || self.version.at_least(3, 11) {
+            return None;
+        }
+        if self.legacy_handler.is_some() || !self.legacy_nest.is_empty() {
+            return None;
+        }
+        let lt = self.legacy_try.as_ref()?;
+        if lt.has_finally || lt.else_start.is_some() || arg == 0 {
+            return None;
+        }
+        let hs = lt.handler_start;
+        // the mirrored copy's value run: straight-line expression ops
+        // from `start` ending in RAISE_VARARGS with the same arg
+        let mirrored_run = |start: usize| -> bool {
+            let Some(&si) = self.idx_of.get(&start) else {
+                return false;
+            };
+            let mut j = si;
+            let mut steps = 0;
+            while steps < 24 {
+                steps += 1;
+                let Some(x) = self.instrs.get(j) else {
+                    return false;
+                };
+                match x.op {
+                    Op::NOP | Op::CACHE | Op::NOT_TAKEN => {
+                        j += 1;
+                        continue;
+                    }
+                    Op::RAISE_VARARGS => return x.arg == arg,
+                    Op::LOAD_GLOBAL
+                    | Op::LOAD_FAST
+                    | Op::LOAD_NAME
+                    | Op::LOAD_CONST
+                    | Op::LOAD_ATTR
+                    | Op::LOAD_METHOD
+                    | Op::LOAD_DEREF
+                    | Op::LOAD_CLOSURE
+                    | Op::LOAD_BUILD_CLASS
+                    | Op::CALL_FUNCTION
+                    | Op::CALL_METHOD
+                    | Op::CALL_FUNCTION_KW
+                    | Op::CALL_FUNCTION_EX
+                    | Op::PRECALL
+                    | Op::CALL
+                    | Op::KW_NAMES
+                    | Op::BINARY_OP
+                    | Op::BINARY_SUBSCR
+                    | Op::BUILD_TUPLE
+                    | Op::BUILD_LIST
+                    | Op::BUILD_MAP
+                    | Op::BUILD_SET
+                    | Op::BUILD_STRING
+                    | Op::FORMAT_VALUE
+                    | Op::COMPARE_OP
+                    | Op::CONTAINS_OP
+                    | Op::IS_OP
+                    | Op::LIST_EXTEND
+                    | Op::DICT_MERGE => {
+                        j += 1;
+                    }
+                    _ => return false,
+                }
+            }
+            false
+        };
+        if raise_off < hs {
+            // success-side copy: the raise must be the LAST thing before
+            // the handler head, the chain not yet parsed, and a mirrored
+            // raise must sit after a POP_EXCEPT inside the chain
+            if !lt.handlers.is_empty() {
+                return None;
+            }
+            let mut k = match self.idx_of.get(&raise_off) {
+                Some(&i) => i + 1,
+                None => return None,
+            };
+            while matches!(
+                self.instrs.get(k).map(|x| x.op),
+                Some(Op::NOP) | Some(Op::CACHE) | Some(Op::EXTENDED_ARG)
+            ) {
+                k += 1;
+            }
+            if self.instrs.get(k).map(|x| x.offset) != Some(hs) {
+                return None;
+            }
+            let mut m = k;
+            let mut steps = 0;
+            while m < self.instrs.len() && steps < 120 {
+                steps += 1;
+                match self.instrs[m].op {
+                    Op::POP_EXCEPT => {
+                        // optional `as` cleanup between POP_EXCEPT and
+                        // the sunk copy
+                        let mut j = m + 1;
+                        while matches!(
+                            self.instrs.get(j).map(|x| x.op),
+                            Some(Op::NOP) | Some(Op::CACHE) | Some(Op::NOT_TAKEN)
+                        ) {
+                            j += 1;
+                        }
+                        let as_cleanup = matches!(
+                            self.instrs.get(j).map(|x| x.op),
+                            Some(Op::LOAD_CONST)
+                        ) && matches!(
+                            self.instrs.get(j + 1).map(|x| x.op),
+                            Some(Op::STORE_FAST)
+                                | Some(Op::STORE_NAME)
+                                | Some(Op::STORE_DEREF)
+                        ) && matches!(
+                            self.instrs.get(j + 2).map(|x| x.op),
+                            Some(Op::DELETE_FAST)
+                                | Some(Op::DELETE_NAME)
+                                | Some(Op::DELETE_DEREF)
+                        );
+                        let from = if as_cleanup { j + 3 } else { j };
+                        let start = self.instrs.get(from).map(|x| x.offset);
+                        if let Some(s) = start {
+                            if mirrored_run(s) {
+                                return Some(true);
+                            }
+                        }
+                        // clause exit jump / next clause material: keep
+                        // scanning for a later POP_EXCEPT
+                    }
+                    Op::RERAISE | Op::END_FINALLY => break,
+                    _ => {}
+                }
+                m += 1;
+            }
+            return None;
+        }
+        // handler-side copy: the chain's clauses are collected, this
+        // raise follows the handler region's last POP_EXCEPT through a
+        // straight-line value run, and the success-side mirror sits
+        // immediately before the handler head
+        if lt.handlers.is_empty() {
+            return None;
+        }
+        let Some(&hi) = self.idx_of.get(&hs) else {
+            return None;
+        };
+        let mut j = hi;
+        while j > 0
+            && matches!(
+                self.instrs[j - 1].op,
+                Op::NOP | Op::CACHE | Op::NOT_TAKEN
+            )
+        {
+            j -= 1;
+        }
+        if j == 0
+            || self.instrs[j - 1].op != Op::RAISE_VARARGS
+            || self.instrs[j - 1].arg != arg
+        {
+            return None;
+        }
+        // backward value-run check: only expression ops between the
+        // raise and the handler region's POP_EXCEPT
+        let Some(&ri) = self.idx_of.get(&raise_off) else {
+            return None;
+        };
+        let mut b = ri;
+        let mut saw_pop_except = false;
+        while b > hi {
+            let p = self.instrs[b - 1];
+            if p.op == Op::POP_EXCEPT {
+                saw_pop_except = true;
+                break;
+            }
+            if !matches!(
+                p.op,
+                Op::NOP
+                    | Op::CACHE
+                    | Op::NOT_TAKEN
+                    | Op::LOAD_GLOBAL
+                    | Op::LOAD_FAST
+                    | Op::LOAD_NAME
+                    | Op::LOAD_CONST
+                    | Op::LOAD_ATTR
+                    | Op::LOAD_METHOD
+                    | Op::LOAD_DEREF
+                    | Op::CALL_FUNCTION
+                    | Op::CALL_METHOD
+                    | Op::CALL_FUNCTION_KW
+                    | Op::PRECALL
+                    | Op::CALL
+                    | Op::KW_NAMES
+                    | Op::BINARY_OP
+                    | Op::BINARY_SUBSCR
+                    | Op::BUILD_TUPLE
+                    | Op::BUILD_LIST
+                    | Op::BUILD_MAP
+                    | Op::BUILD_SET
+                    | Op::BUILD_STRING
+                    | Op::FORMAT_VALUE
+            ) {
+                return None;
+            }
+            b -= 1;
+        }
+        if saw_pop_except {
+            Some(false)
+        } else {
+            None
+        }
+    }
+
     fn sunk_tail_terminator(&self, ret_offset: usize, is_none_value: bool) -> bool {
         if !is_none_value
             || !self.version.at_least(3, 10)

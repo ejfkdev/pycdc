@@ -249,6 +249,7 @@ class _Hqxdecoderengine:
                 try:
                     with _ignore_deprecation_warning():
                         decdatacur, self.eof = binascii.a2b_hqx(data)
+                    break
                 except binascii.Incomplete:
                     pass
                 newdata = self.ifp.read(1)
