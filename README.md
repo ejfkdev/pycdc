@@ -88,7 +88,7 @@ cargo build                                                 # 重新嵌入
 | AST-PASS（语义等价） | 32 |
 | **语义等价合计** | **216（41.5%）** |
 | INCOMPLETE（可编译、含占位/警告） | 85 |
-| SIG-DIFF（可编译、结构有差） | 217 |
+| SIG-DIFF（可编译、结构有差） | 219 |
 | SYNTAX-ERR | **0（所有 520 个输出都能在对应版本编译）** |
 
 > 注 1：`INCOMPLETE` 此前长期显示为 0 是 verify_corpus 的检测 bug——warned
