@@ -43,8 +43,8 @@
  "3.13.15": {
   "interp": "/opt/homebrew/bin/python3.13",
   "counts": {
-   "PASS": 14,
-   "SIG-DIFF": 17,
+   "PASS": 15,
+   "SIG-DIFF": 16,
    "AST-PASS": 2,
    "INCOMPLETE": 7
   }
@@ -52,9 +52,9 @@
  "3.14.7": {
   "interp": "/opt/homebrew/bin/python3.14",
   "counts": {
-   "PASS": 11,
+   "PASS": 12,
    "INCOMPLETE": 13,
-   "SIG-DIFF": 15,
+   "SIG-DIFF": 14,
    "AST-PASS": 1
   }
  },

@@ -286,6 +286,13 @@ pub enum Stmt {
     Assign {
         targets: Vec<ExprRef>,
         value: ExprRef,
+        /// source line-wrap positions inside a tuple-unpack target:
+        /// break the rendered line BEFORE these element indices so the
+        /// recompile reproduces the original per-line STORE fusion
+        /// (3.13+ STORE_FAST_STORE_FAST only fuses same-line stores;
+        /// abc _dump_registry's 4-target unpack wrapped across two
+        /// lines in the source)
+        wrap_before: Vec<u16>,
     },
     AugAssign {
         target: ExprRef,

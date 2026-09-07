@@ -629,7 +629,8 @@ format string.'''
 
 def _strptime_datetime_date(cls, data_string, format='%a %b %d %Y'):
     _strptime(data_string, format)
-    tt, _, args = _strptime(data_string, format)
+    (tt, _,
+    args) = _strptime(data_string, format)
     return cls(*args)
 
 def _parse_tz(tzname, gmtoff, gmtoff_fraction):

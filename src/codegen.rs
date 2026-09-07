@@ -277,7 +277,37 @@ impl Printer {
                 self.expr(e, 0);
                 self.newline();
             }
-            Stmt::Assign { targets, value } => {
+            Stmt::Assign {
+                targets,
+                value,
+                wrap_before,
+            } => {
+                // a multi-line unpack target: reproduce the source's line
+                // breaks inside the parenthesized target list so the
+                // recompile assigns the same per-line stores (3.13+
+                // STORE_FAST_STORE_FAST fuses same-line stores only)
+                if !wrap_before.is_empty() {
+                    if let [t] = &targets[..] {
+                        if let Expr::Tuple(elems) = &**t {
+                            self.write("(");
+                            for (i, el) in elems.iter().enumerate() {
+                                if i > 0 {
+                                    self.write(",");
+                                }
+                                if wrap_before.contains(&(i as u16)) {
+                                    self.newline();
+                                } else if i > 0 {
+                                    self.write(" ");
+                                }
+                                self.expr(el, 0);
+                            }
+                            self.write(") = ");
+                            self.expr(value, 0);
+                            self.newline();
+                            return;
+                        }
+                    }
+                }
                 for t in targets {
                     self.expr(t, 0);
                     self.write(" = ");

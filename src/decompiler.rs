@@ -403,6 +403,11 @@ struct Ctx<'a> {
     pending_print: Vec<ExprRef>,
     pending_print_dest: Option<ExprRef>,
     unpack_targets: FrameTargets,
+    /// per-frame store line numbers mirroring unpack_targets (the
+    /// source's line-wrap positions inside a multi-line unpack target)
+    unpack_target_lines: Vec<Vec<Option<u32>>>,
+    /// wrap positions for the NEXT single-target Assign flush
+    pending_unpack_wrap: Vec<u16>,
     awaiting_for_target: bool,
     #[allow(dead_code)]
     pending_if_stmts: Vec<Vec<Stmt>>,
@@ -680,6 +685,8 @@ pub fn decompile_in_scope(
         pending_print: Vec::new(),
         pending_print_dest: None,
         unpack_targets: FrameTargets(Vec::new()),
+        unpack_target_lines: Vec::new(),
+        pending_unpack_wrap: Vec::new(),
         awaiting_for_target: false,
         pending_if_stmts: Vec::new(),
         cur_offset: 0,
@@ -7151,6 +7158,7 @@ impl<'a> Ctx<'a> {
                 let n = arg as usize;
                 self.unpack_frames.push((n, n, None, value.clone()));
                 self.unpack_targets.0.push(Vec::new());
+                self.unpack_target_lines.push(Vec::new());
                 for _ in 0..n {
                     self.stack.push(Sv::E(value.clone()));
                 }
@@ -7163,6 +7171,7 @@ impl<'a> Ctx<'a> {
                 let n = before + after + 1;
                 self.unpack_frames.push((n, n, Some(before), value.clone()));
                 self.unpack_targets.0.push(Vec::new());
+                self.unpack_target_lines.push(Vec::new());
                 for _ in 0..n {
                     self.stack.push(Sv::E(value.clone()));
                 }
@@ -10047,11 +10056,16 @@ impl<'a> Ctx<'a> {
         if self.pending_stores.len() >= 2 {
             let group = std::mem::take(&mut self.pending_stores);
             self.last_store_line = None;
+            self.pending_unpack_wrap.clear();
             let all_same = group.windows(2).all(|w| expr_eq(&w[0].1, &w[1].1));
             if all_same {
                 let value = group[0].1.clone();
                 let targets: Vec<ExprRef> = group.iter().map(|(t, _)| t.clone()).collect();
-                self.push_stmt(Stmt::Assign { targets, value });
+                self.push_stmt(Stmt::Assign {
+                    targets,
+                    value,
+                    wrap_before: Vec::new(),
+                });
             } else {
                 // simultaneous assignment from consecutive stores. Store
                 // order is reversed relative to source when the compiler
@@ -10073,14 +10087,17 @@ impl<'a> Ctx<'a> {
                 self.push_stmt(Stmt::Assign {
                     targets: vec![Rc::new(Expr::Tuple(targets))],
                     value: Rc::new(Expr::Tuple(values)),
+                    wrap_before: Vec::new(),
                 });
             }
         } else if self.pending_stores.len() == 1 {
             let (t, v) = self.pending_stores.pop().unwrap();
             self.last_store_line = None;
+            let wrap_before = std::mem::take(&mut self.pending_unpack_wrap);
             self.push_stmt(Stmt::Assign {
                 targets: vec![t],
                 value: v,
+                wrap_before,
             });
         } else {
             self.last_store_line = None;
@@ -20081,6 +20098,7 @@ impl<'a> Ctx<'a> {
         while matches!(self.unpack_frames.last(), Some((0, _, _, _))) {
             self.unpack_frames.pop();
             self.unpack_targets.0.pop();
+            self.unpack_target_lines.pop();
         }
         if let Some(frame) = self.unpack_frames.last_mut() {
             frame.0 -= 1;
@@ -20091,9 +20109,13 @@ impl<'a> Ctx<'a> {
             if let Some(targets) = self.unpack_targets.0.last_mut() {
                 targets.push((target, starred));
             }
+            if let Some(lines) = self.unpack_target_lines.last_mut() {
+                lines.push(self.cur_line);
+            }
             if done {
                 let (_, _, _, value) = self.unpack_frames.pop().unwrap();
                 let targets = self.unpack_targets.0.pop().unwrap();
+                let lines = self.unpack_target_lines.pop().unwrap_or_default();
                 let tuple: ExprRef = Rc::new(Expr::Tuple(
                     targets
                         .into_iter()
@@ -20107,6 +20129,20 @@ impl<'a> Ctx<'a> {
                         .collect(),
                 ));
                 if self.unpack_frames.is_empty() {
+                    // source line wraps inside the target list: record
+                    // the break positions so codegen reproduces them
+                    // (3.13+ fuses only same-line stores)
+                    let wraps: Vec<u16> = lines
+                        .windows(2)
+                        .enumerate()
+                        .filter(|(_, w)| {
+                            matches!((w[0], w[1]), (Some(a), Some(b)) if a != b)
+                        })
+                        .map(|(i, _)| (i + 1) as u16)
+                        .collect();
+                    if !wraps.is_empty() {
+                        self.pending_unpack_wrap = wraps;
+                    }
                     self.assign_or_for_target(tuple, value);
                 } else {
                     // nested: the completed tuple is the parent's next target
@@ -20119,9 +20155,27 @@ impl<'a> Ctx<'a> {
                     if let Some(targets) = self.unpack_targets.0.last_mut() {
                         targets.push((tuple, pstarred));
                     }
+                    if let Some(lines) = self.unpack_target_lines.last_mut() {
+                        lines.push(self.cur_line);
+                    }
                     if pdone {
                         let (_, _, _, pvalue) = self.unpack_frames.pop().unwrap();
                         let ptargets = self.unpack_targets.0.pop().unwrap();
+                        let plines =
+                            self.unpack_target_lines.pop().unwrap_or_default();
+                        if self.unpack_frames.is_empty() {
+                            let pwraps: Vec<u16> = plines
+                                .windows(2)
+                                .enumerate()
+                                .filter(|(_, w)| {
+                                    matches!((w[0], w[1]), (Some(a), Some(b)) if a != b)
+                                })
+                                .map(|(i, _)| (i + 1) as u16)
+                                .collect();
+                            if !pwraps.is_empty() {
+                                self.pending_unpack_wrap = pwraps;
+                            }
+                        }
                         let ptuple: ExprRef = Rc::new(Expr::Tuple(
                             ptargets
                                 .into_iter()
@@ -20412,6 +20466,7 @@ impl<'a> Ctx<'a> {
         while matches!(self.unpack_frames.last(), Some((0, _, _, _))) {
             self.unpack_frames.pop();
             self.unpack_targets.0.pop();
+            self.unpack_target_lines.pop();
         }
         if let Some(frame) = self.unpack_frames.last_mut() {
             frame.0 -= 1;
@@ -20516,7 +20571,7 @@ impl<'a> Ctx<'a> {
         let mut consumed = 0usize;
         while ci > hi && si > 0 {
             let nc = match &top.stmts[si - 1] {
-                Stmt::Assign { targets, value } => {
+                Stmt::Assign { targets, value, .. } => {
                     self.match_assign_backwards(ci, hi, targets, value)
                 }
                 Stmt::Expr(e) => self.match_call_backwards(ci, hi, e),
@@ -22849,7 +22904,7 @@ fn fold_py2_tuple_params(params: &mut Parameters, varnames: &[String], body: &mu
         let san = sanitize_varname(varnames.get(pi).map(|s| s.as_str()).unwrap_or(""));
         let mut found = None;
         for (bi, stmt) in body.iter().enumerate().take(8) {
-            if let Stmt::Assign { targets, value } = stmt {
+            if let Stmt::Assign { targets, value, .. } = stmt {
                 if targets.len() == 1 && matches!(&**value, Expr::Name(n) if *n == san) {
                     if let Some(text) = tuple_param_text(&targets[0]) {
                         found = Some((bi, text));
@@ -22879,10 +22934,12 @@ fn stmt_eq(a: &Stmt, b: &Stmt) -> bool {
             Stmt::Assign {
                 targets: t1,
                 value: v1,
+                ..
             },
             Stmt::Assign {
                 targets: t2,
                 value: v2,
+                ..
             },
         ) => {
             t1.len() == t2.len()
@@ -23096,7 +23153,7 @@ fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
     let mut idx = 0;
     while idx < body.len() {
         let mut remove = false;
-        if let Stmt::Assign { targets, value } = &body[idx] {
+        if let Stmt::Assign { targets, value, .. } = &body[idx] {
             if targets.len() == 1 {
                 if let Expr::Name(n) = &*targets[0] {
                     if n == "__module__" {
@@ -23266,7 +23323,7 @@ fn stmts_contain_yield(stmts: &[Stmt]) -> bool {
     }
     stmts.iter().any(|s| match s {
         Stmt::Expr(e) => expr_has_yield(e),
-        Stmt::Assign { targets, value } => {
+        Stmt::Assign { targets, value, .. } => {
             expr_has_yield(value) || targets.iter().any(expr_has_yield)
         }
         Stmt::AugAssign { value, .. } => expr_has_yield(value),
