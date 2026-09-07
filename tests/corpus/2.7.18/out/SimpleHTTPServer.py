@@ -79,7 +79,6 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 if os.path.exists(index):
                     path = index
                     break
-                continue
             else:
                 return self.list_directory(path)
         ctype = self.guess_type(path)

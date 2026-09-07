@@ -336,11 +336,11 @@ class FileInput:
                         mode |= os.O_BINARY
                     fd = os.open(self._filename, mode, perm)
                     self._output = os.fdopen(fd, 'w')
-                try:
-                    if hasattr(os, 'chmod'):
-                        os.chmod(self._filename, perm)
-                except OSError:
-                    pass
+                    try:
+                        if hasattr(os, 'chmod'):
+                            os.chmod(self._filename, perm)
+                    except OSError:
+                        pass
                 self._savestdout = sys.stdout
                 sys.stdout = self._output
             elif self._openhook:
@@ -405,7 +405,6 @@ def _test():
             inplace = True
         if o == '-b':
             backup = a
-        continue
     for line in input(args, inplace=inplace, backup=backup):
         if line[-1:] == '\n':
             line = line[:-1]

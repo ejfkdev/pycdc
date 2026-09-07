@@ -47,7 +47,7 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 144: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 939,
+   "ndiff": 979,
    "ntotal": 1157,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 182') | got ('SETUP_LOOP', 'to 189')\nline 161: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 189')\nline 162: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')"
   },
@@ -195,8 +195,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 157: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
    "verdict": "SIG-DIFF",
-   "ndiff": 794,
-   "ntotal": 1027,
+   "ndiff": 792,
+   "ntotal": 1026,
    "detail": "line 160: orig ('SETUP_LOOP', 'to 349') | got ('SETUP_LOOP', 'to 348')\nline 163: orig ('FOR_ITER', 'to 348') | got ('FOR_ITER', 'to 347')\nline 226: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
   },
   {

@@ -65,7 +65,6 @@ class Play_Audio_sgi:
                 self.params[1] = cooked
                 self.inited_outrate = 1
                 break
-            continue
         else:
             raise error, 'bad output rate'
 
@@ -75,7 +74,6 @@ class Play_Audio_sgi:
                 self.config.setwidth(cooked)
                 self.inited_width = 1
                 break
-            continue
         else:
             if width == 0:
                 import AL
@@ -91,7 +89,6 @@ class Play_Audio_sgi:
                 self.config.setchannels(cooked)
                 self.inited_nchannels = 1
                 break
-            continue
         else:
             raise error, 'bad # of channels'
 

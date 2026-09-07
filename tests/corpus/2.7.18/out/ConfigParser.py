@@ -487,7 +487,6 @@ class RawConfigParser:
             for name, val in options.items():
                 if isinstance(val, list):
                     options[name] = '\n'.join(val)
-                continue
 
 
 import UserDict as _UserDict
@@ -520,7 +519,6 @@ class _Chainmap(_UserDict.DictMixin):
                 if key not in seen:
                     result.append(key)
                     seen.add(key)
-                continue
         return result
 
 

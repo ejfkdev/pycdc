@@ -266,7 +266,6 @@ class Bdb:
         for bp in Breakpoint.bpbynumber:
             if bp:
                 bp.deleteMe()
-            continue
         self.breaks = {}
 
     def get_break(self, filename, lineno):

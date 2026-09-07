@@ -205,7 +205,6 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 while select.select([self.rfile], [], [], 0)[0]:
                     if not self.rfile.read(1):
                         break
-                    continue
                 if sts:
                     self.log_error('CGI script exit status %#x', sts)
                 return
@@ -243,7 +242,6 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             while select.select([self.rfile._sock], [], [], 0)[0]:
                 if not self.rfile._sock.recv(1):
                     break
-                continue
             stdout, stderr = p.communicate(data)
             self.wfile.write(stdout)
             if stderr:

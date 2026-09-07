@@ -46,8 +46,8 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 145: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1095,
-   "ntotal": 1273,
+   "ndiff": 1093,
+   "ntotal": 1272,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 128') | got ('SETUP_LOOP', 'to 134')\nline 161: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 134')\nline 162: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')"
   },
   {
@@ -196,11 +196,11 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 529: orig  keywords=[])) | dec  keywords=[]))]",
+   "ast_detail": "diff at token 720: orig  Try(body=[Assign(targets=[Name(id='ok' | dec  If(test=Compare(left=Name(id='ok'",
    "verdict": "SIG-DIFF",
-   "ndiff": 684,
-   "ntotal": 1114,
-   "detail": "line 412: orig ('LOAD_GLOBAL', 'os') | got ('SETUP_EXCEPT', 'to 128')\nline 413: orig ('LOAD_ATTR', 'path') | got ('LOAD_GLOBAL', 'py_compile')\nline 414: orig ('LOAD_METHOD', 'isfile') | got ('LOAD_ATTR', 'compile')"
+   "ndiff": 178,
+   "ntotal": 1112,
+   "detail": "line 545: orig ('SETUP_EXCEPT', 'to 394') | got ('LOAD_FAST', 'ok')\nline 546: orig ('LOAD_GLOBAL', 'py_compile') | got ('LOAD_CONST', '0')\nline 547: orig ('LOAD_ATTR', 'compile') | got ('COMPARE_OP', '==')"
   },
   {
    "module": "configparser",

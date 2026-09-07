@@ -101,7 +101,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1372,
    "ntotal": 2941,
-   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u4e00', '\u5eff', '\u5341', '\u4e5d', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u4e00', '\u4e5d', '\u4e03', '\u5341', '\u5eff'})\")"
+   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u4e00', '\u5eff', '\u5341', '\u4e5d'})\") | got ('LOAD_CONST', \"frozenset({'\u4e5d', '\u4e03', '\u4e00', '\u5eff', '\u5341'})\")"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

@@ -55,20 +55,19 @@ def _get_system_version():
     '''Return the OS X system version as a string'''
 
     global _SYSTEM_VERSION
-    try:
-        f = open('/System/Library/CoreServices/SystemVersion.plist')
-    except OSError:
-        pass
-    else:
+    if _SYSTEM_VERSION is None:
+        _SYSTEM_VERSION = ''
+        try:
+            m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
+        finally:
+            f.close()
         if m is not None:
             _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
-        if _SYSTEM_VERSION is None:
-            _SYSTEM_VERSION = ''
             try:
-                m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
-            finally:
-                f.close()
-        return _SYSTEM_VERSION
+                f = open('/System/Library/CoreServices/SystemVersion.plist')
+            except OSError:
+                pass
+    return _SYSTEM_VERSION
 
 def _remove_original_values(_config_vars):
     '''Remove original unmodified values for testing'''

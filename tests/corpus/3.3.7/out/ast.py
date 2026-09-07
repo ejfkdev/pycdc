@@ -116,7 +116,6 @@ def copy_location(new_node, old_node):
             if attr in new_node._attributes:
                 if hasattr(old_node, attr):
                     setattr(new_node, attr, getattr(old_node, attr))
-        continue
     return new_node
 
 def fix_missing_locations(node):
@@ -154,7 +153,6 @@ def increment_lineno(node, n=1):
     for child in walk(node):
         if 'lineno' in child._attributes:
             child.lineno = getattr(child, 'lineno', 0) + n
-        continue
     return node
 
 def iter_fields(node):
@@ -182,7 +180,6 @@ def iter_child_nodes(node):
             for item in field:
                 if isinstance(item, AST):
                     yield item
-                continue
 
 def get_docstring(node, clean=True):
     '''
@@ -249,7 +246,6 @@ class NodeVisitor(object):
                 for item in value:
                     if isinstance(item, AST):
                         self.visit(item)
-                    continue
             elif isinstance(value, AST):
                 self.visit(value)
 

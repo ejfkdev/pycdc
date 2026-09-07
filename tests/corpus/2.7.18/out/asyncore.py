@@ -147,7 +147,6 @@ def poll2(timeout=0.0, map=None):
             if flags:
                 flags |= select.POLLERR | select.POLLHUP | select.POLLNVAL
                 pollster.register(fd, flags)
-            continue
         try:
             r = pollster.poll(timeout)
         except select.error, err:

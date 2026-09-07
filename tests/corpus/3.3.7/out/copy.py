@@ -111,7 +111,6 @@ for name in ('complex', 'unicode'):
     t = getattr(builtins, name, None)
     if t is not None:
         d[t] = _copy_immutable
-    continue
 
 def _copy_with_constructor(x):
     return type(x)(x)
@@ -220,7 +219,6 @@ def _deepcopy_tuple(x, memo):
         if x[i] is not y[i]:
             y = tuple(y)
             break
-        continue
     else:
         y = x
     return y

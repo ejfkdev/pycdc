@@ -32,7 +32,6 @@ class Hashable:
                             if B.__dict__['__hash__']:
                                 return True
                             break
-                        continue
                 except AttributeError:
                     pass
         return NotImplemented

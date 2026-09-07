@@ -302,7 +302,6 @@ class Cmd:
             for name in names:
                 if name[:5] == 'help_':
                     help[name[5:]] = 1
-                continue
             names.sort()
             prevname = ''
             for name in names:
@@ -363,10 +362,8 @@ class Cmd:
                 totwidth += colwidth + 2
                 if totwidth > displaywidth:
                     break
-                continue
             if totwidth <= displaywidth:
                 break
-            continue
         else:
             nrows = len(list)
             ncols = 1

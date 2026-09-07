@@ -4031,6 +4031,31 @@ impl<'a> Ctx<'a> {
         self.legacy_handler = nest.outer_handler;
         self.legacy_handler_end = nest.outer_handler_end;
         self.in_handler_prelude = nest.outer_prelude;
+        // the restored outer chain's else region ends at the nested
+        // chain's merge: the inner chain's tail END_FINALLY is the last
+        // thing before the flow rejoins the outer else region's end —
+        // with an unbounded else_stop the outer redirect would swallow
+        // every statement past the inner chain into the else arm (3.3
+        // fileinput readline: the post-merge savestdout/sys.stdout tail
+        // landed inside `else:`)
+        if let Some(lt) = self.legacy_try.as_mut() {
+            if lt.else_start.is_some() && lt.else_stop == usize::MAX {
+                if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
+                    let stop = self.instrs[ci..]
+                        .iter()
+                        .take(600)
+                        .find(|x| x.op == Op::END_FINALLY)
+                        .and_then(|x| {
+                            self.idx_of.get(&x.offset).and_then(|&xi| {
+                                self.instrs.get(xi + 1).map(|y| y.offset)
+                            })
+                        });
+                    if let Some(sp) = stop {
+                        lt.else_stop = sp;
+                    }
+                }
+            }
+        }
         // the nested chain's handler-exit jump landing exactly on the
         // outer else_start means the outer handler flow continues into
         // that region: it is a trailing statement zone, not an else
@@ -4107,7 +4132,7 @@ impl<'a> Ctx<'a> {
                 self.legacy_nest.push(nest);
             }
         }
-        let Some(lt) = self.legacy_try.clone() else {
+        let Some(mut lt) = self.legacy_try.clone() else {
             return;
         };
 
@@ -4958,6 +4983,72 @@ impl<'a> Ctx<'a> {
                             return;
                         }
                     }
+                }
+                // a handler normal-exit FORWARD jump with a parsed chain
+                // and an unbounded else region lands on the chain merge
+                // = the else region's end: bound the region so the
+                // redirect stops there (3.3 fileinput readline: the
+                // outer else ran to MAX and swallowed the post-merge
+                // `savestdout` tail into the else arm)
+                if !lt.handlers.is_empty()
+                    && !lt.has_finally
+                    // 3.8+ chains keep the unbounded region: their
+                    // clause-exit forward jumps fly to sunk-return
+                    // copies PAST the presumed trailing-statement zone,
+                    // and bounding there strands the chain emit at the
+                    // function tail (asynchat 3.9/3.10 handle_read: the
+                    // recv try/except sank below the whole while loop).
+                    // The SETUP_LOOP-era layout this fix targets has no
+                    // sunk copies — the except-exit JF lands exactly on
+                    // the merge (3.3 fileinput readline).
+                    && !self.version.at_least(3, 8)
+                    && lt.else_start.is_some()
+                    && lt.else_stop == usize::MAX
+                    && inst.target.map_or(false, |t| {
+                        t > pos
+                            && lt.else_start.map_or(false, |es| {
+                                t > es
+                                    // the span between the presumed else
+                                    // start and this jump's target must
+                                    // hold real code: a genuine else arm
+                                    // does (fileinput 3.3 readline: the
+                                    // except-exit JF flies over the whole
+                                    // else arm to the merge); a presumed
+                                    // trailing-statement zone ends at the
+                                    // merge itself and the clause-exit JF
+                                    // flies further to a sunk-return copy
+                                    // — bounding there truncates the zone
+                                    // mid-flow (asynchat 3.9/3.10
+                                    // handle_read: the recv try sank to
+                                    // the function tail)
+                                    && self.instrs.iter().any(|x| {
+                                        x.offset >= es
+                                            && x.offset < t
+                                            && !matches!(
+                                                x.op,
+                                                Op::NOP
+                                                    | Op::NOT_TAKEN
+                                                    | Op::CACHE
+                                                    | Op::POP_TOP
+                                                    | Op::POP_EXCEPT
+                                                    | Op::POP_BLOCK
+                                                    | Op::END_FINALLY
+                                                    | Op::RERAISE
+                                                    | Op::JUMP_FORWARD
+                                                    | Op::JUMP_ABSOLUTE
+                                                    | Op::JUMP
+                                                    | Op::JUMP_BACKWARD
+                                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                            )
+                                    })
+                            })
+                    })
+                {
+                    let t = inst.target.unwrap();
+                    if let Some(l) = self.legacy_try.as_mut() {
+                        l.else_stop = t;
+                    }
+                    lt.else_stop = t;
                 }
                 if self.legacy_handler.is_none() && !lt.has_finally {
                     let in_else = lt
@@ -5962,6 +6053,23 @@ impl<'a> Ctx<'a> {
                         prev.else_start
                             .map_or(false, |es| es < self.cur_offset)
                             && (prev.has_finally || !prev.handlers.is_empty())
+                            // the else region must have ENDED, not merely
+                            // started: with an unbounded else_stop the
+                            // region runs until its own end edge, and a
+                            // nested try laid out INSIDE it belongs in
+                            // the outer orelse — folding the outer here
+                            // emits it before the inner chain parses and
+                            // drops the inner try out of the else (3.3
+                            // fileinput readline: the chmod try/except
+                            // landed after `else: fdopen` instead of
+                            // inside it, shortening the except arm's
+                            // merge jump). 3.8+ inline-finally layouts
+                            // rely on the early fold (folding on top of
+                            // the new chain puts the Try in its body):
+                            // stashing there scrambles the emission
+                            // order (_osx_support 3.9 _get_system_version)
+                            && (self.version.at_least(3, 8)
+                                || self.cur_offset >= prev.else_stop)
                     });
                     let mut prev_done = if prev_complete {
                         self.legacy_try.take()
@@ -19095,16 +19203,44 @@ impl<'a> Ctx<'a> {
                         // edge must not be mistaken for a `continue`.
                         let next_is_pop_block =
                             match self.idx_of.get(&self.cur_offset) {
-                                Some(&ci) => match self.instrs.get(ci + 1) {
-                                    Some(x) if x.op == Op::POP_BLOCK => true,
-                                    Some(x) if x.op == Op::POP_TOP => self
-                                        .instrs
-                                        .get(ci + 2)
-                                        .map_or(false, |y| {
-                                            y.op == Op::POP_BLOCK
-                                        }),
-                                    _ => false,
-                                },
+                                Some(&ci) => {
+                                    // hop over dead duplicate back edges:
+                                    // unoptimized compilers (3.3) emit
+                                    // the loop-body end JABS-to-top
+                                    // TWICE — the real final back edge
+                                    // then has the duplicate (not the
+                                    // POP_BLOCK) as its next instruction
+                                    // and was misread as a `continue`
+                                    // (fileinput 3.3 _test: extra
+                                    // continue in the opts loop)
+                                    let mut ni = ci + 1;
+                                    while let Some(x) = self.instrs.get(ni) {
+                                        if x.is_backward
+                                            && x.target == Some(target)
+                                            && matches!(
+                                                x.op,
+                                                Op::JUMP_ABSOLUTE
+                                                    | Op::JUMP
+                                                    | Op::JUMP_BACKWARD
+                                            )
+                                            && !self.targets.contains(&x.offset)
+                                        {
+                                            ni += 1;
+                                            continue;
+                                        }
+                                        break;
+                                    }
+                                    match self.instrs.get(ni) {
+                                        Some(x) if x.op == Op::POP_BLOCK => true,
+                                        Some(x) if x.op == Op::POP_TOP => self
+                                            .instrs
+                                            .get(ni + 1)
+                                            .map_or(false, |y| {
+                                                y.op == Op::POP_BLOCK
+                                            }),
+                                        _ => false,
+                                    }
+                                }
                                 None => false,
                             };
                         if !next_is_pop_block {

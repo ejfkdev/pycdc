@@ -143,7 +143,6 @@ def poll2(timeout=0.0, map=None):
                 flags |= select.POLLOUT
             if flags:
                 pollster.register(fd, flags)
-            continue
         try:
             r = pollster.poll(timeout)
         except InterruptedError:

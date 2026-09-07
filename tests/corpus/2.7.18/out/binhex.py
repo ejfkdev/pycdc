@@ -334,7 +334,6 @@ class HexBin:
                 break
             if ch != '\n':
                 dummy = ifp.readline()
-            continue
         hqxifp = _Hqxdecoderengine(ifp)
         self.ifp = _Rledecoderengine(hqxifp)
         self.crc = 0

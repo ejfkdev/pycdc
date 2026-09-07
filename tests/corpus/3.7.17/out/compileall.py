@@ -118,31 +118,17 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         mo = rx.search(fullname)
         if mo:
             return success
-    try:
-        ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize, invalidation_mode=invalidation_mode)
-    except py_compile.PyCompileError as err:
-        success = False
-        if quiet >= 2:
-            return success
-        if quiet:
-            print('*** Error compiling {!r}...'.format(fullname))
+    if os.path.isfile(fullname):
+        if legacy:
+            cfile = fullname + 'c'
         else:
-            print('*** ', end='')
-        msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
-        msg = msg.decode(sys.stdout.encoding)
-        print(msg)
-    except (SyntaxError, UnicodeError, OSError) as e:
-        success = False
-        if quiet >= 2:
-            return success
-        if quiet:
-            print('*** Error compiling {!r}...'.format(fullname))
-        else:
-            print('*** ', end='')
-        print(e.__class__.__name__ + ':', e)
-    else:
-        if ok == 0:
-            success = False
+            if optimize >= 0:
+                opt = optimize if optimize >= 1 else ''
+                cfile = importlib.util.cache_from_source(fullname, optimization=opt)
+            else:
+                cfile = importlib.util.cache_from_source(fullname)
+            cache_dir = os.path.dirname(cfile)
+        head, tail = name[:-3], name[-3:]
         if tail == '.py':
             if not force:
                 try:
@@ -156,18 +142,31 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     pass
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
-        if os.path.isfile(fullname):
-            if legacy:
-                cfile = fullname + 'c'
-            else:
-                if optimize >= 0:
-                    opt = optimize if optimize >= 1 else ''
-                    cfile = importlib.util.cache_from_source(fullname, optimization=opt)
-                else:
-                    cfile = importlib.util.cache_from_source(fullname)
-                cache_dir = os.path.dirname(cfile)
-            head, tail = name[:-3], name[-3:]
-        return success
+            if ok == 0:
+                success = False
+                try:
+                    ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize, invalidation_mode=invalidation_mode)
+                except py_compile.PyCompileError as err:
+                    success = False
+                    if quiet >= 2:
+                        return success
+                    if quiet:
+                        print('*** Error compiling {!r}...'.format(fullname))
+                    else:
+                        print('*** ', end='')
+                    msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
+                    msg = msg.decode(sys.stdout.encoding)
+                    print(msg)
+                except (SyntaxError, UnicodeError, OSError) as e:
+                    success = False
+                    if quiet >= 2:
+                        return success
+                    if quiet:
+                        print('*** Error compiling {!r}...'.format(fullname))
+                    else:
+                        print('*** ', end='')
+                    print(e.__class__.__name__ + ':', e)
+    return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     '''Byte-compile all module on sys.path.

@@ -196,7 +196,6 @@ class Sniffer:
             matches = regexp.findall(data)
             if matches:
                 break
-            continue
         if not matches:
             return ('', False, None, 0)
         quotes = {}
@@ -221,7 +220,6 @@ class Sniffer:
                 continue
             if m[n]:
                 spaces += 1
-            continue
         quotechar = max(quotes, key=quotes.get)
         if delims:
             delim = max(delims, key=delims.get)

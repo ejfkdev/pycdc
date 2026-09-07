@@ -46,7 +46,6 @@ def dis(x=None):
                 except TypeError as msg:
                     print('Sorry:', msg)
                 print()
-            continue
     elif hasattr(x, 'co_code'):
         disassemble(x)
     elif isinstance(x, (bytes, bytearray)):
