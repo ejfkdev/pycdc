@@ -294,85 +294,88 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             day = int(found_dict['d'])
         elif group_key == 'H':
             hour = int(found_dict['H'])
-        elif group_key == 'I':
-            hour = int(found_dict['I'])
-            ampm = found_dict.get('p', '').lower()
-            if ampm in ('', locale_time.am_pm[0]):
-                if hour == 12:
-                    hour = 0
-                    if ampm == locale_time.am_pm[1] and hour != 12:
-                        hour += 12
-                        continue
-        if group_key == 'M':
-            minute = int(found_dict['M'])
-        elif group_key == 'S':
-            second = int(found_dict['S'])
-        elif group_key == 'f':
-            s = found_dict['f']
-            s += '0' * (6 - len(s))
-            fraction = int(s)
-        elif group_key == 'A':
-            weekday = locale_time.f_weekday.index(found_dict['A'].lower())
-        elif group_key == 'a':
-            weekday = locale_time.a_weekday.index(found_dict['a'].lower())
-        elif group_key == 'w':
-            weekday = int(found_dict['w'])
-            if weekday == 0:
-                weekday = 6
-            else:
-                weekday -= 1
-        elif group_key == 'j':
-            julian = int(found_dict['j'])
-        elif group_key in ('U', 'W'):
-            week_of_year = int(found_dict[group_key])
-            if group_key == 'U':
-                week_of_year_start = 6
-            else:
-                week_of_year_start = 0
-        elif group_key == 'z':
-            z = found_dict['z']
-            tzoffset = int(z[1:3]) * 60 + int(z[3:5])
-            if z.startswith('-'):
-                tzoffset = -tzoffset
-                continue
-        if group_key == 'Z':
-            found_zone = found_dict['Z'].lower()
-            for value, tz_values in enumerate(locale_time.timezone):
-                if found_zone in tz_values:
-                    if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                        break
+        else:
+            if group_key == 'I':
+                hour = int(found_dict['I'])
+                ampm = found_dict.get('p', '').lower()
+                if ampm in ('', locale_time.am_pm[0]):
+                    if hour == 12:
+                        hour = 0
+                        if ampm == locale_time.am_pm[1] and hour != 12:
+                            hour += 12
+                            continue
+                elif group_key == 'M':
+                    minute = int(found_dict['M'])
+                elif group_key == 'S':
+                    second = int(found_dict['S'])
+                elif group_key == 'f':
+                    s = found_dict['f']
+                    s += '0' * (6 - len(s))
+                    fraction = int(s)
+                elif group_key == 'A':
+                    weekday = locale_time.f_weekday.index(found_dict['A'].lower())
+                elif group_key == 'a':
+                    weekday = locale_time.a_weekday.index(found_dict['a'].lower())
+                elif group_key == 'w':
+                    weekday = int(found_dict['w'])
+                    if weekday == 0:
+                        weekday = 6
                     else:
-                        tz = value
-                        break
-    leap_year_fix = False
-    if year is None and month == 2 and day == 29:
-        year = 1904
-        leap_year_fix = True
-    elif year is None:
-        year = 1900
-    if julian is None and week_of_year != -1 and weekday is not None:
-        week_starts_Mon = True if week_of_year_start == 0 else False
-        julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
-        if julian <= 0:
-            year -= 1
-            yday = 366 if calendar.isleap(year) else 365
-            julian += yday
-    if julian is None:
-        julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
-    else:
-        datetime_result = datetime_date.fromordinal(julian - 1 + datetime_date(year, 1, 1).toordinal())
-        year = datetime_result.year
-        month = datetime_result.month
-        day = datetime_result.day
-    if weekday is None:
-        weekday = datetime_date(year, month, day).weekday()
-    tzname = found_dict.get('Z')
-    if tzoffset is not None:
-        gmtoff = tzoffset * 60
-    else:
-        gmtoff = None
-    if leap_year_fix:
-        year = 1900
+                        weekday -= 1
+                elif group_key == 'j':
+                    julian = int(found_dict['j'])
+                elif group_key in ('U', 'W'):
+                    week_of_year = int(found_dict[group_key])
+                    if group_key == 'U':
+                        week_of_year_start = 6
+                    else:
+                        week_of_year_start = 0
+                elif group_key == 'z':
+                    z = found_dict['z']
+                    tzoffset = int(z[1:3]) * 60 + int(z[3:5])
+                    if z.startswith('-'):
+                        tzoffset = -tzoffset
+                        continue
+                        if group_key == 'Z':
+                            found_zone = found_dict['Z'].lower()
+                            for value, tz_values in enumerate(locale_time.timezone):
+                                if found_zone in tz_values:
+                                    if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
+                                        break
+                                    else:
+                                        tz = value
+                                        break
+            leap_year_fix = False
+            if year is None and month == 2 and day == 29:
+                year = 1904
+                leap_year_fix = True
+                break
+            if year is not None:
+                break
+            year = 1900
+            if julian is None and week_of_year != -1 and weekday is not None:
+                week_starts_Mon = True if week_of_year_start == 0 else False
+                julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
+                if julian <= 0:
+                    year -= 1
+                    yday = 366 if calendar.isleap(year) else 365
+                    julian += yday
+            if julian is None:
+                julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
+            else:
+                datetime_result = datetime_date.fromordinal(julian - 1 + datetime_date(year, 1, 1).toordinal())
+                year = datetime_result.year
+                month = datetime_result.month
+                day = datetime_result.day
+            if weekday is None:
+                weekday = datetime_date(year, month, day).weekday()
+            tzname = found_dict.get('Z')
+            if tzoffset is not None:
+                gmtoff = tzoffset * 60
+            else:
+                gmtoff = None
+            if leap_year_fix:
+                year = 1900
     return (year, month, day, hour, minute, second, weekday, julian, tz, tzname, gmtoff), fraction
 
 def _strptime_time(data_string, format='%a %b %d %H:%M:%S %Y'):

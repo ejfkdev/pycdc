@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 18,
-  "SIG-DIFF": 17,
+  "PASS": 19,
+  "SIG-DIFF": 16,
   "INCOMPLETE": 5
  },
  "results": [
@@ -50,7 +50,7 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1238,
+   "ndiff": 1237,
    "ntotal": 1437,
    "detail": "line 176: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 134')\nline 177: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')\nline 178: orig ('LOAD_FAST', 'executable') | got ('RETURN_VALUE', '')"
   },
@@ -103,11 +103,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 455: orig  ops=[NotEq()] | dec  ops=[Eq()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 39,
-   "ntotal": 797,
-   "detail": "line 402: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_IF_FALSE', '')\nline 403: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_FAST', 'index')\nline 404: orig ('LOAD_FAST', 'index') | got ('LOAD_FAST', 'lb')"
+   "verdict": "PASS"
   },
   {
    "module": "asyncore",
@@ -203,8 +199,8 @@
    "module": "codecs",
    "ast_detail": "diff at token 2: orig  Try(body=[ImportFrom(module='_codecs' | dec  Assign(targets=[Name(id='why'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2047,
-   "ntotal": 2153,
+   "ndiff": 2071,
+   "ntotal": 2149,
    "detail": "line 11: orig ('SETUP_FINALLY', 'to 34') | got ('LOAD_CONST', 'None')\nline 12: orig ('LOAD_CONST', '0') | got ('STORE_NAME', 'why')\nline 13: orig ('LOAD_CONST', \"('*',)\") | got ('DELETE_NAME', 'why')"
   },
   {

@@ -335,7 +335,8 @@ def decompress(data):
         except OSError:
             if results:
                 break
-            raise
+            else:
+                raise
         results.append(res)
         if not decomp.eof:
             raise ValueError('Compressed data ended before the end-of-stream marker was reached')

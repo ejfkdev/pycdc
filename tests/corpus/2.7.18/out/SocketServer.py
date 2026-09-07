@@ -140,9 +140,8 @@ def _eintr_retry(func, *args):
         try:
             return func(*args)
         except (OSError, select.error), e:
-            if e.args[0] == errno.EINTR:
-                break
-            raise
+            if e.args[0] != errno.EINTR:
+                raise
             break
 
 class BaseServer:
@@ -465,9 +464,8 @@ class ForkingMixIn:
                     break
                 self.active_children.clear()
                 break
-                if e.errno == errno.EINTR:
+                if e.errno != errno.EINTR:
                     break
-                break
                 break
         for pid in self.active_children.copy():
             try:

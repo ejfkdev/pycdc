@@ -266,7 +266,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 371,
    "ntotal": 597,
-   "detail": "line 210: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 82')\nline 216: orig ('POP_JUMP_IF_FALSE', 'to 52') | got ('POP_JUMP_IF_FALSE', 'to 80')\nline 221: orig ('POP_JUMP_IF_TRUE', 'to 52') | got ('POP_JUMP_IF_TRUE', 'to 50')"
+   "detail": "line 210: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 86')\nline 216: orig ('POP_JUMP_IF_FALSE', 'to 52') | got ('POP_JUMP_IF_FALSE', 'to 84')\nline 221: orig ('POP_JUMP_IF_TRUE', 'to 52') | got ('POP_JUMP_IF_TRUE', 'to 50')"
   },
   {
    "module": "crypt",

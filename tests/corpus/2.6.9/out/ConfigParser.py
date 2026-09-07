@@ -542,7 +542,8 @@ class ConfigParser(RawConfigParser):
                 except KeyError, e:
                     raise InterpolationMissingOptionError(option, section, rawval, e.args[0])
                 continue
-            break
+            else:
+                break
         if '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value

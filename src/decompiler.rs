@@ -9507,6 +9507,53 @@ impl<'a> Ctx<'a> {
                                 self.blocks.last().map(|b| b.start).unwrap_or(0);
                             self.force_close_top(pos);
                         } else {
+                            // a branch whose else region lies AHEAD (not
+                            // yet walked) must keep it: the break's
+                            // close-through would drop the If with an
+                            // empty orelse and strand the else body at
+                            // function level (3.8 asynchat handle_read:
+                            // `if index: ... break else: collect-all`
+                            // lost the else). Mark the over-jump so the
+                            // close arm opens the Else region.
+                            let loop_top = self
+                                .blocks
+                                .iter()
+                                .rev()
+                                .find(|b| {
+                                    matches!(b.kind, BlockType::While | BlockType::For)
+                                })
+                                .map(|b| b.start);
+                            for b in self.blocks.iter_mut() {
+                                if matches!(b.kind, BlockType::If)
+                                    && b.else_end.is_none()
+                                    && b.short_circuit.is_none()
+                                    && b.end != usize::MAX
+                                    && b.end > self.cur_offset
+                                    && target > b.end
+                                {
+                                    // a genuine else region re-joins the
+                                    // iteration flow: it holds a back edge
+                                    // to the loop top. A region that only
+                                    // terminates (raise/return) is the
+                                    // post-if continuation, not an else
+                                    // (bz2 3.8 decompress: `if results:
+                                    // break; raise` grew a phantom else)
+                                    let rejoins = loop_top.map_or(false, |lt| {
+                                        let (Some(&si), Some(&ei)) = (
+                                            self.idx_of.get(&b.end),
+                                            self.idx_of.get(&target),
+                                        ) else {
+                                            return false;
+                                        };
+                                        self.instrs[si..ei].iter().any(|x| {
+                                            x.is_backward && x.target == Some(lt)
+                                        })
+                                    });
+                                    if rejoins {
+                                        b.else_end = Some(target);
+                                    }
+                                }
+                            }
                             self.close_inner_blocks_to_loop();
                         }
                         return true;
@@ -9621,6 +9668,35 @@ impl<'a> Ctx<'a> {
                                         .map_or(false, |bt| self.find_loop_exit(bt).is_some())))
                     })
                     .unwrap_or(false);
+                // dead duplicate back edge right after a `break`'s exit
+                // jump (compiler fall-through glue, untargeted): not a
+                // continue and not a folded chain exit — ignoring it
+                // keeps the break-rescued else region ahead open for the
+                // walk (3.8/3.9 asynchat handle_read: the glue JABS at
+                // 446 between the break and the else arm became
+                // `else: continue` and stranded the else body)
+                let dead_break_glue = self
+                    .idx_of
+                    .get(&self.cur_offset)
+                    .and_then(|&ci| ci.checked_sub(1).map(|p| &self.instrs[p]))
+                    .map_or(false, |prev| {
+                        !prev.is_backward
+                            && matches!(
+                                prev.op,
+                                Op::JUMP_ABSOLUTE
+                                    | Op::JUMP_FORWARD
+                                    | Op::JUMP
+                                    | Op::JUMP_BACKWARD
+                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                            )
+                            && prev.target.map_or(false, |t| {
+                                t > prev.offset && self.find_loop_exit(t).is_some()
+                            })
+                    })
+                    && !self.targets.contains(&self.cur_offset);
+                if dead_break_glue {
+                    return true;
+                }
                 if std::env::var("PYCDC_EG_DBG").is_ok() {
                     eprintln!(
                         "EG jbarm [{}] pos={} target={} lands={} iscont={} degen={} fused?",
@@ -18456,6 +18532,62 @@ impl<'a> Ctx<'a> {
         // 3.14+: `if c: break` compiles to a conditional jump straight to
         // the loop exit with the back edge as fall-through
         if self.find_loop_exit(target).is_some() {
+            // jump-threaded `if c: <arm>; break`: the arm's terminal
+            // unconditional jump targets the SAME loop exit as this cond
+            // jump — the compiler threaded the if's merge through the
+            // break (3.8/3.9 asynchat handle_read: `if index != lb:
+            // collects; break`). The guard-break flip below would invert
+            // the condition and duplicate the break; open the If with its
+            // real merge at the terminal jump so the arm renders in the
+            // original polarity and the terminal jump renders the
+            // source-level break after the If.
+            if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
+                let mut merge_at = None;
+                let mut depth = 0usize;
+                for x in self.instrs[ci + 1..].iter() {
+                    if x.offset >= target {
+                        break;
+                    }
+                    match x.op {
+                        Op::JUMP_FORWARD
+                        | Op::JUMP
+                        | Op::JUMP_ABSOLUTE
+                        | Op::JUMP_BACKWARD
+                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                            if !x.is_backward && x.target == Some(target) =>
+                        {
+                            if depth == 0 {
+                                merge_at = Some(x.offset);
+                            }
+                            break;
+                        }
+                        Op::POP_JUMP_IF_FALSE
+                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                        | Op::POP_JUMP_IF_TRUE
+                        | Op::POP_JUMP_FORWARD_IF_TRUE => {
+                            depth += 1;
+                        }
+                        Op::RETURN_VALUE | Op::RETURN_CONST | Op::RERAISE => {
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                if let Some(m) = merge_at {
+                    let c = if jump_if_true {
+                        negate_cond(cond)
+                    } else {
+                        cond
+                    };
+                    let mut blk = Block::new(BlockType::If, self.cur_next, m);
+                    blk.cond = Some(c);
+                    blk.cond_set = true;
+                    blk.jump_if_true = false;
+                    blk.stack_depth = self.stack.len();
+                    self.blocks.push(blk);
+                    return;
+                }
+            }
             let c = if jump_if_true {
                 cond
             } else {
@@ -20011,8 +20143,39 @@ impl<'a> Ctx<'a> {
         for i in (0..n).rev() {
             if matches!(self.blocks[i].kind, BlockType::While | BlockType::For) {
                 while self.blocks.len() > i + 1 {
-                    let pos = self.blocks.last().map(|b| b.start).unwrap_or(0);
+                    let pos = self
+                        .blocks
+                        .last()
+                        .map(|b| {
+                            // an If force-closed by a break flying over its
+                            // not-yet-walked else region: the Else opens at
+                            // the block's END (its cond-jump target), not
+                            // at its start (3.8 asynchat handle_read)
+                            if matches!(b.kind, BlockType::If)
+                                && b.else_end.is_some()
+                                && b.end != usize::MAX
+                            {
+                                b.end
+                            } else {
+                                b.start
+                            }
+                        })
+                        .unwrap_or(0);
                     self.force_close_top(pos);
+                    // the close just opened an ahead-of-walk Else region
+                    // (the break's If had its else_end marked): STOP —
+                    // force-closing it here would pair it with an empty
+                    // orelse before the walk ever enters it; the region's
+                    // own back edge folds the chain instead
+                    if let Some(t) = self.blocks.last() {
+                        if matches!(t.kind, BlockType::Else)
+                            && t.end != usize::MAX
+                            && t.start >= self.cur_offset
+                            && t.end > self.cur_offset
+                        {
+                            return;
+                        }
+                    }
                 }
                 return;
             }
@@ -20482,6 +20645,39 @@ impl<'a> Ctx<'a> {
                     )
                 });
             if dominated_by_terminator && !self.targets.contains(&self.cur_offset) {
+                return;
+            }
+        }
+        // dead duplicate back edge after a `break`: the compiler lays a
+        // fall-through JABS-to-loop-top right after the break's exit jump
+        // when the break flew out of a branch arm (3.8 asynchat
+        // handle_read: `if index: ...; break else: collect-all` — the
+        // break at 444→exit is followed by dead glue 446→top). Taking it
+        // as a real back edge tears down the just-rescued open else
+        // region before the walk enters it.
+        {
+            let dominated_by_break = self
+                .idx_of
+                .get(&self.cur_offset)
+                .and_then(|&ci| ci.checked_sub(1).map(|p| &self.instrs[p]))
+                .map_or(false, |prev| {
+                    !prev.is_backward
+                        && matches!(
+                            prev.op,
+                            Op::JUMP_ABSOLUTE
+                                | Op::JUMP_FORWARD
+                                | Op::JUMP
+                                | Op::JUMP_BACKWARD
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                        )
+                        && prev
+                            .target
+                            .map_or(false, |t| t > prev.offset)
+                        && prev.target.map_or(false, |t| {
+                            self.find_loop_exit(t).is_some()
+                        })
+                });
+            if dominated_by_break && !self.targets.contains(&self.cur_offset) {
                 return;
             }
         }

@@ -81,11 +81,11 @@
   },
   {
    "module": "SocketServer",
-   "ast_detail": "diff at token 86: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 94: orig  orelse=[])])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1106,
-   "ntotal": 1391,
-   "detail": "line 215: orig ('SETUP_LOOP', '#34') | got ('SETUP_LOOP', '#36')\nline 217: orig ('POP_JUMP_IF_FALSE', '#33') | got ('POP_JUMP_IF_FALSE', '#35')\nline 231: orig ('POP_JUMP_IF_FALSE', '#31') | got ('POP_JUMP_IF_FALSE', '#33')"
+   "ndiff": 1111,
+   "ntotal": 1389,
+   "detail": "line 215: orig ('SETUP_LOOP', '#34') | got ('SETUP_LOOP', '#35')\nline 217: orig ('POP_JUMP_IF_FALSE', '#33') | got ('POP_JUMP_IF_FALSE', '#34')\nline 231: orig ('POP_JUMP_IF_FALSE', '#31') | got ('POP_JUMP_IF_FALSE', '#32')"
   },
   {
    "module": "StringIO",

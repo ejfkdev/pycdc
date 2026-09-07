@@ -272,8 +272,9 @@ def compiler_fixup(compiler_so, cc_args):
         if argvar[idx] == '-isysroot':
             sysroot = argvar[idx + 1]
             break
-        sysroot = argvar[idx][len('-isysroot'):]
-        break
+        else:
+            sysroot = argvar[idx][len('-isysroot'):]
+            break
     if sysroot and not os.path.isdir(sysroot):
         from distutils import log
         log.warn("Compiling with an SDK that doesn't seem to exist: %s", sysroot)

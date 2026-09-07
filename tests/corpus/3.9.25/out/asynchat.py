@@ -104,13 +104,13 @@ class async_chat(asyncore.dispatcher):
                 else:
                     index = find_prefix_at_end(self.ac_in_buffer, terminator)
                     if index:
-                        if index == lb:
-                            break
-                        self.collect_incoming_data(self.ac_in_buffer[:-index])
-                        self.ac_in_buffer = self.ac_in_buffer[-index:]
+                        if index != lb:
+                            self.collect_incoming_data(self.ac_in_buffer[:-index])
+                            self.ac_in_buffer = self.ac_in_buffer[-index:]
                         break
-        self.collect_incoming_data(self.ac_in_buffer)
-        self.ac_in_buffer = b''
+                    else:
+                        self.collect_incoming_data(self.ac_in_buffer)
+                        self.ac_in_buffer = b''
 
     def handle_write(self):
         self.initiate_send()
