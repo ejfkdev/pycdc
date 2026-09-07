@@ -8255,10 +8255,20 @@ impl<'a> Ctx<'a> {
                     // the compiler fused the chain exit with the loop end.
                     // Close the branch and let the chain machinery build
                     // the else/elif at the next instruction.
+                    // a backward jump to the loop top from inside an OPEN
+                    // legacy handler is the handler's continue path, not a
+                    // fused chain exit: the chain machinery below would
+                    // consume it as the chain's collecting back edge and
+                    // drop the Continue (asynchat 2.7 initiate_send
+                    // `except TypeError: ... continue` lost the continue
+                    // when the if/else arms each ended in JABS-to-top).
+                    // Let it fall through to the is_continue_jump path /
+                    // handle_jump_backward's explicit-vs-implicit scan.
                     let folded = match self.blocks.last() {
                         Some(t)
                             if matches!(t.kind, BlockType::If | BlockType::Else)
-                                && t.short_circuit.is_none() =>
+                                && t.short_circuit.is_none()
+                                && self.legacy_handler.is_none() =>
                         {
                             let at_end = t.end == self.cur_next
                                 || t.end == self.cur_offset

@@ -434,11 +434,14 @@ def close_all(map=None, ignore_all=False):
         try:
             x.close()
         except OSError, x:
-            pass
+            if x.args[0] == EBADF:
+                pass
+            elif not ignore_all:
+                raise
+            else:
+                continue
         except _reraised_exceptions:
             raise
-            if not ignore_all:
-                raise
         except:
             if not ignore_all:
                 raise

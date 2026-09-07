@@ -183,8 +183,8 @@
    "module": "asyncore",
    "ast_detail": "diff at token 873: orig  orelse=[]) | dec  orelse=[While(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1718,
-   "ntotal": 2267,
+   "ndiff": 1725,
+   "ntotal": 2270,
    "detail": "line 96: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 101: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 109: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')"
   },
   {

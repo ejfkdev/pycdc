@@ -156,8 +156,9 @@ class async_chat(asyncore.dispatcher):
                 data = first.more()
                 if data:
                     self.producer_fifo.appendleft(data)
-                else:
-                    del self.producer_fifo[0]
+                    continue
+                del self.producer_fifo[0]
+                continue
             try:
                 num_sent = self.send(data)
             except socket.error:
