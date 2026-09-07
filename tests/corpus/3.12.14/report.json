@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 13,
-  "SIG-DIFF": 19,
+  "PASS": 14,
+  "SIG-DIFF": 18,
   "INCOMPLETE": 7,
   "AST-PASS": 1
  },
@@ -34,11 +34,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 671: orig  body=[Break()] | dec  body=[Return(value=Attribute(value=Name(id='self'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 25,
-   "ntotal": 571,
-   "detail": "line 536: orig ('POP_JUMP_IF_FALSE', 'to 648') | got ('POP_JUMP_IF_FALSE', 'to 646')\nline 547: orig ('POP_JUMP_IF_TRUE', 'to 608') | got ('POP_JUMP_IF_TRUE', 'to 606')\nline 548: orig ('NOP', '') | got ('LOAD_FAST', 'self')"
+   "verdict": "PASS"
   },
   {
    "module": "_markupbase",

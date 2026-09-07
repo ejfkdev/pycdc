@@ -20958,6 +20958,107 @@ impl<'a> Ctx<'a> {
         false
     }
 
+    /// 3.12+ sunk break: `if c: break` where the loop exit is a single
+    /// return compiles WITHOUT a break jump — the arm falls through into
+    /// a sunk COPY of the exit return (NOP landing pad + mirrored value
+    /// loads + RETURN). Rendering the copy literally loses sig fidelity
+    /// (the source `break` regenerates pad+copy on recompile;
+    /// _compression 3.12 seek). When this return sits alone in an If arm
+    /// inside a loop and its instruction run mirrors the run at the
+    /// loop's exit, it is the sunk copy: emit Break instead.
+    fn is_sunk_break_copy(&self) -> bool {
+        if !self.version.at_least(3, 12) || self.legacy_handler.is_some() {
+            return false;
+        }
+        let Some(top) = self.blocks.last() else {
+            return false;
+        };
+        if !matches!(top.kind, BlockType::If) || !top.stmts.is_empty() {
+            return false;
+        }
+        let Some(li) = self
+            .blocks
+            .iter()
+            .rposition(|b| matches!(b.kind, BlockType::While | BlockType::For))
+        else {
+            return false;
+        };
+        if li + 1 != self.blocks.len() - 1 {
+            // the If must sit directly inside the loop
+            return false;
+        }
+        let exit = match self.loop_exit_offset(&self.blocks[li]) {
+            Some(e) => e,
+            None => return false,
+        };
+        // this return's run: walk back over value loads to the arm's
+        // first non-padding instruction
+        let Some(&ri) = self.idx_of.get(&self.cur_offset) else {
+            return false;
+        };
+        let arm_start = top.start;
+        let mut b = ri;
+        while b > 0 {
+            let p = &self.instrs[b - 1];
+            if p.offset < arm_start {
+                break;
+            }
+            if matches!(p.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                break;
+            }
+            b -= 1;
+        }
+        // the sunk copy sits on a NOP landing pad: the arm's leading
+        // instructions up to the value run must contain at least one
+        // pad. A genuine mid-loop `if c: return -1` starts its run at
+        // the arm's first instruction (_markupbase 3.13
+        // _parse_doctype_subset mirrored the function-tail `return -1`
+        // and lost a source-level return)
+        if !self.instrs[b..ri].iter().any(|x| {
+            matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+        }) && self.instrs.get(b).map_or(true, |x| x.offset == arm_start)
+        {
+            return false;
+        }
+        let norm = |x: &crate::bytecode::Instruction| (x.op as u8, x.arg);
+        let is_pad = |x: &crate::bytecode::Instruction| {
+            matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG)
+        };
+        let run_a: Vec<(u8, u32)> = self.instrs[b..=ri]
+            .iter()
+            .filter(|x| !is_pad(x))
+            .map(norm)
+            .collect();
+        if run_a.is_empty()
+            || !matches!(
+                run_a.last().map(|t| t.0),
+                Some(op) if op == Op::RETURN_VALUE as u8
+                    || op == Op::RETURN_CONST as u8
+            )
+        {
+            return false;
+        }
+        let Some(&ei) = self.idx_of.get(&exit) else {
+            return false;
+        };
+        let n = run_a.len();
+        let run_b: Vec<(u8, u32)> = self.instrs[ei..]
+            .iter()
+            .filter(|x| !is_pad(x))
+            .take(n)
+            .map(norm)
+            .collect();
+        if run_b.len() != n || run_a != run_b {
+            return false;
+        }
+        // the mirrored exit run must TERMINATE the code object: the sunk
+        // copy of a break replaces the whole post-loop tail. A mirror
+        // found mid-function is an accidental match on a repeated tiny
+        // return run (_markupbase 3.13 `if j == -1: return -1` inside a
+        // `while 1:` matched a later `return -1` and rendered break)
+        self.instrs[ei + n..].iter().all(is_pad)
+    }
+
     fn emit_return(&mut self, e: Option<ExprRef>) {
         // 3.10 sunk tail terminator: drop both implicit copies (this
         // arm) and let the chain fold at its RERAISE
@@ -21336,6 +21437,10 @@ impl<'a> Ctx<'a> {
                     }
                 }
             }
+        }
+        if self.is_sunk_break_copy() {
+            self.push_stmt(Stmt::Break);
+            return;
         }
         self.push_stmt(Stmt::Return(value));
     }

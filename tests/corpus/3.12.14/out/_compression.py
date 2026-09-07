@@ -120,7 +120,7 @@ class DecompressReader(io.RawIOBase):
         while offset > 0:
             data = self.read(min(io.DEFAULT_BUFFER_SIZE, offset))
             if not data:
-                return self._pos
+                break
             offset -= len(data)
         return self._pos
 

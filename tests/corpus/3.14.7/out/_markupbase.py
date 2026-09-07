@@ -149,7 +149,7 @@ by the SGML/HTML and XHTML parsers.'''
                     continue
             name, j = self._scan_name(j + 2, declstartpos)
             if j == -1:
-                return -1
+                break
             if name not in frozenset({'entity', 'attlist', 'element', 'notation'}):
                 self.updatepos(declstartpos, j + 2)
                 raise AssertionError('unknown declaration %r in internal subset' % name)
