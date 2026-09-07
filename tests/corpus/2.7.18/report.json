@@ -2,8 +2,8 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "PASS": 19,
-  "SIG-DIFF": 17,
+  "PASS": 20,
+  "SIG-DIFF": 16,
   "AST-PASS": 4
  },
  "results": [
@@ -35,17 +35,13 @@
    "module": "Cookie",
    "ast_detail": "diff at token 693: orig  right=Num(n=2))) | dec  right=Num(n=2)))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 986,
-   "ntotal": 1877,
+   "ndiff": 983,
+   "ntotal": 1876,
    "detail": "line 613: orig ('LOAD_CONST', 'None') | got ('LOAD_NAME', 'None')\nline 787: orig ('SETUP_LOOP', '#157') | got ('SETUP_LOOP', '#158')\nline 799: orig ('POP_JUMP_IF_FALSE', '#156') | got ('POP_JUMP_IF_FALSE', '#157')"
   },
   {
    "module": "DocXMLRPCServer",
-   "ast_detail": "diff at token 1090: orig  ctx=Load()))] | dec  ctx=Load()))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 9,
-   "ntotal": 883,
-   "detail": "line 629: orig ('POP_JUMP_IF_FALSE', '#100') | got ('POP_JUMP_IF_FALSE', '#106')\nline 701: orig ('JUMP_ABSOLUTE', '#106') | got ('JUMP_FORWARD', '#99')\nline 704: orig ('JUMP_FORWARD', '#106') | got ('LOAD_CONST', '0')"
+   "verdict": "PASS"
   },
   {
    "module": "HTMLParser",

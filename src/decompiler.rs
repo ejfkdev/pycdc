@@ -6416,7 +6416,7 @@ impl<'a> Ctx<'a> {
                     }
                     let is_elif = self.starts_with_cond_jump(pos, else_end);
                     let real_end = if is_elif {
-                        else_end
+                        self.clamp_elif_real_end(pos, else_end)
                     } else {
                         self.next_boundary(pos, else_end)
                     };
@@ -19587,6 +19587,64 @@ impl<'a> Ctx<'a> {
     /// compiler may leave the else body with a conditional jump instead of
     /// falling through). Targets of jumps internal to nested structures
     /// (with/try/loop cleanup) must not truncate the region.
+    /// py2.7 arm-end-jump boundary refinement for an elif else region:
+    /// the THEN arm's terminal JABS targets the OUTERMOST merge, so the
+    /// else_end derived from it can overshoot into the enclosing chain's
+    /// next else arm (DocXMLRPCServer 2.7 generate_html_documentation:
+    /// the inner chain's else swallowed the outer `else: assert`). When
+    /// an arm-end jump inside the region lands at an interior offset T
+    /// and [T, G) holds only terminal jumps and padding — G being the
+    /// next JUMP-TARGETED offset (the enclosing chain's next arm head) —
+    /// the region's statement flow truly ends at T: bound it there. The
+    /// region's own terminal jump then marks the enclosing branch's else
+    /// on close. A fall-through continuation inside the region is never
+    /// jump-targeted, so genuine trailing statements keep the old bound.
+    fn clamp_elif_real_end(&self, pos: usize, real_end: usize) -> usize {
+        let (Some(&si), Some(&ei)) = (self.idx_of.get(&pos), self.idx_of.get(&real_end)) else {
+            return real_end;
+        };
+        for k in si..ei {
+            let x = self.instrs[k];
+            let is_arm_end = !x.is_backward
+                && matches!(x.op, Op::JUMP_ABSOLUTE | Op::JUMP_FORWARD | Op::JUMP);
+            if !is_arm_end {
+                continue;
+            }
+            let Some(t) = x.target else { continue };
+            if t <= pos || t >= real_end {
+                continue;
+            }
+            // G: the next jump-targeted offset AFTER t (t itself is
+            // targeted by this very arm-end jump; the wanted G is the
+            // enclosing chain's next arm head)
+            let Some(g) = self
+                .targets
+                .iter()
+                .copied()
+                .filter(|&o| o > t && o <= real_end)
+                .min()
+            else {
+                continue;
+            };
+            let only_glue = self
+                .instrs
+                .iter()
+                .filter(|y| y.offset >= t && y.offset < g)
+                .all(|y| {
+                    matches!(y.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+                        || (!y.is_backward
+                            && matches!(
+                                y.op,
+                                Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE | Op::JUMP
+                            ))
+                });
+            if only_glue {
+                return t;
+            }
+        }
+        real_end
+    }
+
     fn next_boundary(&self, from: usize, limit: usize) -> usize {
         let mut best = limit;
         // a target t is INTERNAL when some jump inside [from, t) lands in
