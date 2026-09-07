@@ -2,9 +2,9 @@
  "version": "3.5.10",
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
-  "PASS": 24,
+  "PASS": 25,
   "SIG-DIFF": 13,
-  "AST-PASS": 3
+  "AST-PASS": 2
  },
  "results": [
   {
@@ -141,7 +141,7 @@
   },
   {
    "module": "cgi",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "cgitb",

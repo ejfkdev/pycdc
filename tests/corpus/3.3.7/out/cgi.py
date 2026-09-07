@@ -512,7 +512,8 @@ class FieldStorage:
             value = self[key]
             if isinstance(value, list):
                 return [x.value for x in value]
-            return value.value
+            else:
+                return value.value
         else:
             return default
 
@@ -523,7 +524,8 @@ class FieldStorage:
             value = self[key]
             if isinstance(value, list):
                 return value[0].value
-            return value.value
+            else:
+                return value.value
         else:
             return default
 
@@ -534,7 +536,8 @@ class FieldStorage:
             value = self[key]
             if isinstance(value, list):
                 return [x.value for x in value]
-            return [value.value]
+            else:
+                return [value.value]
         else:
             return []
 

@@ -511,17 +511,16 @@ class FieldStorage:
 
         if self.list is None:
             raise TypeError('not indexable')
+        found = []
+        for item in self.list:
+            if item.name == key:
+                found.append(item)
+        if not found:
+            raise KeyError(key)
+        if len(found) == 1:
+            return found[0]
         else:
-            found = []
-            for item in self.list:
-                if item.name == key:
-                    found.append(item)
-            if not found:
-                raise KeyError(key)
-            elif len(found) == 1:
-                return found[0]
-            else:
-                return found
+            return found
 
     def getvalue(self, key, default=None):
         """Dictionary style get() method, including 'value' lookup."""
@@ -530,7 +529,8 @@ class FieldStorage:
             value = self[key]
             if isinstance(value, list):
                 return [x.value for x in value]
-            return value.value
+            else:
+                return value.value
         else:
             return default
 
@@ -541,7 +541,8 @@ class FieldStorage:
             value = self[key]
             if isinstance(value, list):
                 return value[0].value
-            return value.value
+            else:
+                return value.value
         else:
             return default
 
@@ -552,7 +553,8 @@ class FieldStorage:
             value = self[key]
             if isinstance(value, list):
                 return [x.value for x in value]
-            return [value.value]
+            else:
+                return [value.value]
         else:
             return []
 

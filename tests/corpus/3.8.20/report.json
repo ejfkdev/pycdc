@@ -172,9 +172,9 @@
   {
    "module": "cgi",
    "verdict": "INCOMPLETE",
-   "ndiff": 1442,
+   "ndiff": 1012,
    "ntotal": 2900,
-   "detail": "line 1380: orig ('BUILD_LIST', '') | got ('JUMP_FORWARD', 'to 94')\nline 1381: orig ('STORE_FAST', 'found') | got ('BUILD_LIST', '')\nline 1382: orig ('LOAD_FAST', 'self') | got ('STORE_FAST', 'found')"
+   "detail": "line 1848: orig ('LOAD_FAST', 'data') | got ('EXTENDED_ARG', '')\nline 1849: orig ('LOAD_METHOD', 'strip') | got ('JUMP_ABSOLUTE', '')\nline 1850: orig ('CALL_METHOD', '') | got ('EXTENDED_ARG', '')"
   },
   {
    "module": "cgitb",

@@ -2,9 +2,9 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "PASS": 16,
+  "PASS": 17,
   "SIG-DIFF": 17,
-  "AST-PASS": 7
+  "AST-PASS": 6
  },
  "results": [
   {
@@ -101,7 +101,7 @@
   },
   {
    "module": "UserString",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "_LWPCookieJar",
@@ -231,8 +231,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 839: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2028,
-   "ntotal": 3035,
+   "ndiff": 2382,
+   "ntotal": 3038,
    "detail": "line 515: orig ('SETUP_LOOP', '#236') | got ('SETUP_LOOP', '#240')\nline 519: orig ('POP_JUMP_IF_FALSE', '#235') | got ('POP_JUMP_IF_FALSE', '#239')\nline 525: orig ('POP_JUMP_IF_FALSE', '#99') | got ('POP_JUMP_IF_FALSE', '#100')"
   }
  ]

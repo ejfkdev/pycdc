@@ -5601,6 +5601,26 @@ impl<'a> Ctx<'a> {
                     )
                 {
                     if let Some(pair_at) = self.tail_pair_at {
+                        // an unconditional forward jump inside the
+                        // span landing exactly on the tail pair is the
+                        // else arm's terminating glue: proof of the
+                        // nested if/else shape. With it, an outside
+                        // COND jump landing inside the span is just an
+                        // enclosing guard's escape into its own else
+                        // arm (cgi 3.5 getvalue: outer `if key in
+                        // self` PJIF flies over the inner else to
+                        // `return default`) — only unconditional hops
+                        // still veto (the bz2 merge-point shape).
+                        let terminator_to_pair = self.instrs.iter().any(|x| {
+                            x.offset >= pos
+                                && x.offset < pair_at
+                                && !x.is_backward
+                                && matches!(
+                                    x.op,
+                                    Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+                                )
+                                && x.target == Some(pair_at)
+                        });
                         if pos < pair_at
                             && !self.instrs.iter().any(|x| {
                                 // an OUTSIDE jump landing inside the span
@@ -5609,6 +5629,20 @@ impl<'a> Ctx<'a> {
                                 x.offset < pos
                                     && x.target
                                         .map_or(false, |t| t > pos && t < pair_at)
+                                    && !(terminator_to_pair
+                                        && matches!(
+                                            x.op,
+                                            Op::POP_JUMP_IF_FALSE
+                                                | Op::POP_JUMP_IF_TRUE
+                                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                | Op::POP_JUMP_BACKWARD_IF_FALSE
+                                                | Op::POP_JUMP_BACKWARD_IF_TRUE
+                                                | Op::JUMP_IF_FALSE_OR_POP
+                                                | Op::JUMP_IF_TRUE_OR_POP
+                                                | Op::JUMP_IF_FALSE
+                                                | Op::JUMP_IF_TRUE
+                                        ))
                             })
                             // an unconditional forward hop landing EXACTLY
                             // on pos makes pos a merge point of two arms
@@ -5650,9 +5684,118 @@ impl<'a> Ctx<'a> {
                                             | Op::SETUP_FINALLY
                                     )
                             })
+                            // the span must also be free of loops and
+                            // mid-flow raises: a guard whose then arm
+                            // terminates with a RAISE followed by the
+                            // function's whole mainline (loop + more
+                            // raises + returns) is the flat
+                            // `if c: raise X` + continuation shape —
+                            // rebuilding the else there renders a
+                            // spurious `else:` whose recompile adds an
+                            // else-skip JF (cgi 3.5 __getitem__: the
+                            // TypeError guard swallowed the item loop).
+                            // The genuine all-arms-return tail if/else
+                            // this rebuild serves is a small pair of
+                            // straight-line return arms (_dummy_thread
+                            // 3.3 acquire: if/sleep/return vs return).
+                            && !(matches!(body.last(), Some(Stmt::Raise { .. }))
+                                && self.instrs.iter().any(|x| {
+                                    x.offset >= pos
+                                        && x.offset < pair_at
+                                        && matches!(
+                                            x.op,
+                                            Op::SETUP_LOOP
+                                                | Op::FOR_ITER
+                                                | Op::GET_ITER
+                                                | Op::GET_AITER
+                                                | Op::GET_ANEXT
+                                                | Op::END_FOR
+                                                | Op::RAISE_VARARGS
+                                        )
+                                }))
+                            // a Raise-then arm whose guard is a mid-
+                            // function check (the span still contains a
+                            // conditional jump — more guard structure
+                            // follows) is the flat `if bad: raise` +
+                            // mainline shape; the rebuild only serves
+                            // function-tail guards whose span is the
+                            // final straight-line return arm
+                            // (_dummy_thread 3.3 acquire's PJIF-to-pair
+                            // tail has no cond jump left in the span;
+                            // cgi 3.5 __getitem__'s `if not found: raise
+                            // KeyError` span holds the len==1 check) —
+                            // UNLESS the arm's own terminating jump
+                            // lands exactly on the tail pair: the
+                            // compiler only emits that glue for a
+                            // nested if/ELSE whose arms both terminate
+                            // (the flat guard-raise shape has no jump
+                            // at all after the raise), so the else is
+                            // real and its flattened recompile drops
+                            // the arm-end JF (cgi 3.5 getvalue/
+                            // getfirst/getlist `else: return
+                            // value.value`)
+                            && !(matches!(body.last(), Some(Stmt::Raise { .. }))
+                                && self.instrs.iter().any(|x| {
+                                    x.offset >= pos
+                                        && x.offset < pair_at
+                                        && matches!(
+                                            x.op,
+                                            Op::POP_JUMP_IF_FALSE
+                                                | Op::POP_JUMP_IF_TRUE
+                                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                | Op::POP_JUMP_BACKWARD_IF_FALSE
+                                                | Op::POP_JUMP_BACKWARD_IF_TRUE
+                                                | Op::JUMP_IF_FALSE_OR_POP
+                                                | Op::JUMP_IF_TRUE_OR_POP
+                                                | Op::JUMP_IF_FALSE
+                                                | Op::JUMP_IF_TRUE
+                                        )
+                                })
+                                && !self.instrs.iter().any(|x| {
+                                    x.offset >= pos
+                                        && x.offset < pair_at
+                                        && !x.is_backward
+                                        && matches!(
+                                            x.op,
+                                            Op::JUMP_FORWARD
+                                                | Op::JUMP
+                                                | Op::JUMP_ABSOLUTE
+                                        )
+                                        && x.target == Some(pair_at)
+                                }))
                         {
+                            // the else arm's real extent: when an
+                            // unconditional forward jump inside the
+                            // span lands exactly on the tail pair, it
+                            // is the arm's terminating glue — the arm
+                            // ends there and the code between it and
+                            // the pair is an ENCLOSING branch's else
+                            // arm (cgi 3.5 getvalue: `else: return
+                            // value.value` + JF-to-pair, then the
+                            // outer guard's `return default`). Running
+                            // the Else to the pair would swallow it.
+                            let mut real_end = pair_at;
+                            for x in self.instrs.iter() {
+                                if x.offset < pos {
+                                    continue;
+                                }
+                                if x.offset >= pair_at {
+                                    break;
+                                }
+                                if !x.is_backward
+                                    && matches!(
+                                        x.op,
+                                        Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+                                    )
+                                    && x.target == Some(pair_at)
+                                {
+                                    real_end = x.end();
+                                    break;
+                                }
+                            }
                             let mut else_blk =
-                                Block::new(BlockType::Else, pos, pair_at);
+                                Block::new(BlockType::Else, pos, real_end);
                             else_blk.cond = Some(cond);
                             self.pending_then.push(body);
                             self.blocks.push(else_blk);

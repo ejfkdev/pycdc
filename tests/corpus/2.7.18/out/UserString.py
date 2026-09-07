@@ -92,7 +92,8 @@ class UserString(collections.Sequence):
         if encoding:
             if errors:
                 return self.__class__(self.data.decode(encoding, errors))
-            return self.__class__(self.data.decode(encoding))
+            else:
+                return self.__class__(self.data.decode(encoding))
         else:
             return self.__class__(self.data.decode())
 
@@ -100,7 +101,8 @@ class UserString(collections.Sequence):
         if encoding:
             if errors:
                 return self.__class__(self.data.encode(encoding, errors))
-            return self.__class__(self.data.encode(encoding))
+            else:
+                return self.__class__(self.data.encode(encoding))
         else:
             return self.__class__(self.data.encode())
 

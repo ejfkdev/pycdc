@@ -471,7 +471,8 @@ class FieldStorage:
             value = self[key]
             if type(value) is type([]):
                 return map(attrgetter('value'), value)
-            return value.value
+            else:
+                return value.value
         else:
             return default
 
@@ -482,7 +483,8 @@ class FieldStorage:
             value = self[key]
             if type(value) is type([]):
                 return value[0].value
-            return value.value
+            else:
+                return value.value
         else:
             return default
 
@@ -493,7 +495,8 @@ class FieldStorage:
             value = self[key]
             if type(value) is type([]):
                 return map(attrgetter('value'), value)
-            return [value.value]
+            else:
+                return [value.value]
         else:
             return []
 

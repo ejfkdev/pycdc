@@ -183,9 +183,9 @@
   {
    "module": "cgi",
    "verdict": "INCOMPLETE",
-   "ndiff": 1442,
+   "ndiff": 1013,
    "ntotal": 2887,
-   "detail": "line 1366: orig ('BUILD_LIST', '') | got ('JUMP_FORWARD', 'to 94')\nline 1367: orig ('STORE_FAST', 'found') | got ('BUILD_LIST', '')\nline 1368: orig ('LOAD_FAST', 'self') | got ('STORE_FAST', 'found')"
+   "detail": "line 1834: orig ('LOAD_FAST', 'data') | got ('EXTENDED_ARG', '')\nline 1835: orig ('LOAD_METHOD', 'strip') | got ('JUMP_ABSOLUTE', '')\nline 1836: orig ('CALL_METHOD', '') | got ('EXTENDED_ARG', '')"
   },
   {
    "module": "cgitb",
