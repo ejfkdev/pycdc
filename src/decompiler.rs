@@ -8694,9 +8694,18 @@ impl<'a> Ctx<'a> {
                 }
                 let e = self.pop_expr();
                 // handler-side copy of the sunk 3.10 tail terminator:
-                // drop the return, fold the handler without it
+                // drop the return, fold the handler without it. Pre-3.10
+                // (and any shape without the success-side copy) the drop
+                // requires the mirror: a `LOAD None; RETURN` pair
+                // immediately before the handler head — without it this
+                // RETURN is a genuine source-level `return` (3.8/3.9
+                // _collections_abc Sequence.__iter__ `except IndexError:
+                // return` rendered `pass`, compiling the clause to
+                // JF-to-tail instead of the in-handler RETURN)
                 let handler_sunk = defer_fold
                     && matches!(&*e, Expr::Const(o) if matches!(&**o, PyObject::None))
+                    && (self.version.at_least(3, 10)
+                        || self.has_pre_handler_return_mirror())
                     && {
                         let mut m = match self.idx_of.get(&self.cur_offset) {
                             Some(&i) => i + 1,
@@ -17273,6 +17282,94 @@ impl<'a> Ctx<'a> {
                     }
                 }
             }
+            // 3.8+ `while A or B:` header: the While block is already open
+            // at the loop top (back-edge prescan) with its cond unparsed;
+            // this PJIT(A) targets the body start and the gap to it is the
+            // second operand ending in PJF(B) to the loop exit. The
+            // generic or-probe bails on the body's back edge ("leave it
+            // to the while machinery") and the fall-through renders the
+            // header as rotated guards inside `while True:` — merge into
+            // the While cond instead (_collections_abc 3.8/3.9 index:
+            // `while stop is None or i < stop:` rendered `while True: if
+            // stop is not None: if not i < stop: break`, semantically
+            // right but sig-off: `is not`+PJF+JABS instead of `is`+PJIT)
+            if jump_if_true && self.legacy_handler.is_none() {
+                if std::env::var("PYCDC_ORC_DBG").is_ok() {
+                    eprintln!("WOR hdr-probe off={} target={} top={:?}", self.cur_offset, target, self.blocks.last().map(|t| (t.kind as u8, t.start, t.end, t.cond_set)));
+                }
+                // the prescan may have synthesized `while True:` for this
+                // loop (its or-header defeats is_cond_expr_top): a True
+                // cond is the replaceable placeholder
+                let while_hdr = self.blocks.last().map_or(false, |t| {
+                    matches!(t.kind, BlockType::While)
+                        && (!t.cond_set
+                            || matches!(
+                                t.cond.as_ref().map(|c| &**c),
+                                Some(Expr::Name(n)) if n == "True"
+                            )
+                            || matches!(
+                                t.cond.as_ref().map(|c| &**c),
+                                Some(Expr::Const(o))
+                                    if matches!(&**o, PyObject::Int(1))
+                            ))
+                        && t.end != usize::MAX
+                        && t.start <= self.cur_offset
+                        && target > self.cur_next
+                        && target < t.end
+                });
+                if while_hdr {
+                    let w_end = self.blocks.last().map(|t| t.end).unwrap_or(0);
+                    let merged_or = (|| {
+                        let gi = *self.idx_of.get(&self.cur_next)?;
+                        let ti2 = *self.idx_of.get(&target)?;
+                        let mut pjf = None;
+                        for k in gi..ti2 {
+                            let x = self.instrs[k];
+                            if matches!(
+                                x.op,
+                                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+                            ) {
+                                if pjf.is_some() {
+                                    return None;
+                                }
+                                // the second operand's false jump must be
+                                // the loop's exhaustion exit
+                                if x.target != Some(w_end) {
+                                    return None;
+                                }
+                                pjf = Some(k);
+                            } else if matches!(
+                                x.op,
+                                Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+                            ) || !is_pure_value_op(x.op)
+                            {
+                                return None;
+                            }
+                        }
+                        let sk = pjf?;
+                        let second = self.sim_value_region(gi, sk)?;
+                        let mut or_vals = Vec::new();
+                        flatten_boolop(cond.clone(), BoolOpKind::Or, &mut or_vals);
+                        flatten_boolop(second, BoolOpKind::Or, &mut or_vals);
+                        Some(Rc::new(Expr::BoolOp {
+                            op: BoolOpKind::Or,
+                            values: or_vals,
+                        }) as ExprRef)
+                    })();
+                    if std::env::var("PYCDC_ORC_DBG").is_ok() {
+                        eprintln!("WOR merged={}", merged_or.is_some());
+                    }
+                    if let Some(mc) = merged_or {
+                        let top = self.blocks.last_mut().unwrap();
+                        top.cond = Some(mc);
+                        top.cond_set = true;
+                        top.jump_if_true = false;
+                        top.cond_end = target;
+                        self.skip_until = Some(target);
+                        return;
+                    }
+                }
+            }
             // DNF `if (A1 and A2) or (B1 and B2): body` -- recognize
             // BEFORE try_merge_or_cond, which misfolds this shape
             if let Some((merged, body_start, body_end)) = if jump_if_true {
@@ -23591,6 +23688,45 @@ impl<'a> Ctx<'a> {
         } else {
             None
         }
+    }
+
+    /// The success-side copy of a sunk return pair: a `LOAD None; RETURN`
+    /// run immediately before the open chain's handler head (padding
+    /// skipped). Its presence proves the compiler duplicated the post-try
+    /// return into both exits; its absence means an in-handler RETURN is
+    /// the source's own `except E: return` (3.8/3.9 never sink).
+    fn has_pre_handler_return_mirror(&self) -> bool {
+        let Some(lt) = self.legacy_try.as_ref() else {
+            return false;
+        };
+        let Some(&hi) = self.idx_of.get(&lt.handler_start) else {
+            return false;
+        };
+        let is_none_load = |i: usize| {
+            self.instrs.get(i).map(|x| {
+                x.op == Op::LOAD_CONST
+                    && matches!(
+                        self.code.consts.get(x.arg as usize).map(|o| &**o),
+                        Some(PyObject::None)
+                    )
+            }) == Some(true)
+        };
+        let is_ret = |i: usize| {
+            matches!(
+                self.instrs.get(i).map(|x| x.op),
+                Some(Op::RETURN_VALUE) | Some(Op::RETURN_CONST)
+            )
+        };
+        let mut j = hi;
+        while j > 0
+            && matches!(
+                self.instrs[j - 1].op,
+                Op::NOP | Op::CACHE | Op::NOT_TAKEN | Op::EXTENDED_ARG
+            )
+        {
+            j -= 1;
+        }
+        j >= 2 && is_ret(j - 1) && is_none_load(j - 2)
     }
 
     fn sunk_tail_terminator(&self, ret_offset: usize, is_none_value: bool) -> bool {

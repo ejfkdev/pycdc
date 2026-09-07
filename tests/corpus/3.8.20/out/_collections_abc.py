@@ -796,7 +796,7 @@ class Sequence(Reversible, Collection):
                 yield v
                 i += 1
         except IndexError:
-            pass
+            return
 
     def __contains__(self, value):
         for v in self:
@@ -821,10 +821,7 @@ class Sequence(Reversible, Collection):
         if stop is not None and stop < 0:
             stop += len(self)
         i = start
-        while True:
-            if stop is not None:
-                if not i < stop:
-                    break
+        while stop is None or i < stop:
             try:
                 v = self[i]
                 if v is value or v == value:

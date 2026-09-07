@@ -304,21 +304,20 @@ def get_source_segment(source, node, *, padded=False):
         col_offset = node.col_offset
         end_col_offset = node.end_col_offset
     except AttributeError:
-        pass
+        return
+    lines = _splitlines_no_ff(source)
+    if end_lineno == lineno:
+        return lines[lineno].encode()[col_offset:end_col_offset].decode()
+    if padded:
+        padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
     else:
-        lines = _splitlines_no_ff(source)
-        if end_lineno == lineno:
-            return lines[lineno].encode()[col_offset:end_col_offset].decode()
-        if padded:
-            padding = _pad_whitespace(lines[lineno].encode()[:col_offset].decode())
-        else:
-            padding = ''
-        first = padding + lines[lineno].encode()[col_offset:].decode()
-        last = lines[end_lineno].encode()[:end_col_offset].decode()
-        lines = lines[lineno + 1:end_lineno]
-        lines.insert(0, first)
-        lines.append(last)
-        return ''.join(lines)
+        padding = ''
+    first = padding + lines[lineno].encode()[col_offset:].decode()
+    last = lines[end_lineno].encode()[:end_col_offset].decode()
+    lines = lines[lineno + 1:end_lineno]
+    lines.insert(0, first)
+    lines.append(last)
+    return ''.join(lines)
 
 def walk(node):
     """

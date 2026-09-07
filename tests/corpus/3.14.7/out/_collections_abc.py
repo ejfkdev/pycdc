@@ -952,16 +952,14 @@ recommended.
             if stop < 0:
                 stop += len(self)
         i = start
-        while True:
-            if stop is not None:
-                if not i < stop:
-                    break
+        while stop is None or i < stop:
             try:
                 v = self[i]
             except IndexError:
                 raise ValueError
-            if v is value or v == value:
-                return i
+            if v is not value:
+                if v == value:
+                    return i
             i += 1
         raise ValueError
 

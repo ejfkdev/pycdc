@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 19,
-  "SIG-DIFF": 18,
+  "PASS": 20,
+  "SIG-DIFF": 17,
   "INCOMPLETE": 3
  },
  "results": [
@@ -17,11 +17,7 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "diff at token 297: orig  body=Yield(value=None)) | dec  body=Yield(value=Constant(value=None",
-   "verdict": "SIG-DIFF",
-   "ndiff": 87,
-   "ntotal": 3084,
-   "detail": "line 2722: orig ('JUMP_FORWARD', 'to 56') | got ('JUMP_FORWARD', 'to 54')\nline 2731: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 54')\nline 2732: orig ('RETURN_VALUE', '') | got ('END_FINALLY', '')"
+   "verdict": "PASS"
   },
   {
    "module": "_compat_pickle",
@@ -92,25 +88,25 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 1583: orig  body=[Return(value=None)])] | dec  body=[Pass()])]",
+   "ast_detail": "diff at token 1966: orig  body=[If(test=Call(func=Name(id='isinstance' | dec  body=[Assign(targets=[Name(id='type_name'",
    "verdict": "SIG-DIFF",
-   "ndiff": 589,
+   "ndiff": 356,
    "ntotal": 1734,
-   "detail": "line 1135: orig ('JUMP_FORWARD', 'to 60') | got ('JUMP_FORWARD', 'to 58')\nline 1144: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 236')\nline 1145: orig ('RETURN_VALUE', '') | got ('END_FINALLY', '')"
+   "detail": "line 1368: orig ('FOR_ITER', 'to 64') | got ('FOR_ITER', 'to 54')\nline 1372: orig ('LOAD_GLOBAL', 'isinstance') | got ('LOAD_FAST', 'name')\nline 1373: orig ('LOAD_FAST', 'value') | got ('STORE_FAST', 'type_name')"
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 300: orig  body=[Return(value=None)]) | dec  body=[Pass()])",
+   "ast_detail": "diff at token 570: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 526,
-   "ntotal": 810,
-   "detail": "line 227: orig ('JUMP_FORWARD', 'to 86') | got ('JUMP_FORWARD', 'to 84')\nline 236: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 84')\nline 237: orig ('RETURN_VALUE', '') | got ('DUP_TOP', '')"
+   "ndiff": 48,
+   "ntotal": 811,
+   "detail": "line 413: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_IF_FALSE', '')\nline 414: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_FAST', 'index')\nline 415: orig ('LOAD_FAST', 'index') | got ('LOAD_FAST', 'lb')"
   },
   {
    "module": "asyncore",
    "ast_detail": "diff at token 475: orig  If(test=Compare(left=List(elts=[] | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1677,
+   "ndiff": 1660,
    "ntotal": 2206,
    "detail": "line 478: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 479: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 480: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'r')"
   },
@@ -184,7 +180,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 241: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1073,
+   "ndiff": 1074,
    "ntotal": 1305,
    "detail": "line 219: orig ('SETUP_FINALLY', 'to 320') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 221: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', '')"
   },
@@ -232,8 +228,8 @@
    "module": "contextlib",
    "ast_detail": "diff at token 86: orig  body=[Return(value=None)] | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1274,
-   "ntotal": 1827,
+   "ndiff": 938,
+   "ntotal": 1828,
    "detail": "line 472: orig ('JUMP_FORWARD', 'to 260') | got ('JUMP_FORWARD', 'to 258')\nline 480: orig ('SETUP_FINALLY', 'to 92') | got ('LOAD_GLOBAL', 'sys')\nline 481: orig ('LOAD_FAST', 'self') | got ('LOAD_METHOD', 'exc_info')"
   },
   {

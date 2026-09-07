@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 16,
-  "SIG-DIFF": 19,
+  "PASS": 18,
+  "SIG-DIFF": 17,
   "INCOMPLETE": 5
  },
  "results": [
@@ -29,11 +29,7 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "diff at token 275: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 87,
-   "ntotal": 3420,
-   "detail": "line 3061: orig ('JUMP_FORWARD', 'to 54') | got ('JUMP_FORWARD', 'to 52')\nline 3069: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 52')\nline 3070: orig ('RETURN_VALUE', '') | got ('RERAISE', '')"
+   "verdict": "PASS"
   },
   {
    "module": "_compat_pickle",
@@ -84,11 +80,7 @@
   },
   {
    "module": "_weakrefset",
-   "ast_detail": "diff at token 238: orig  body=[Return()])] | dec  body=[Break()])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 566,
-   "ntotal": 907,
-   "detail": "line 323: orig ('JUMP_FORWARD', 'to 48') | got ('JUMP_FORWARD', 'to 50')\nline 331: orig ('LOAD_CONST', 'None') | got ('JUMP_ABSOLUTE', '')\nline 332: orig ('RETURN_VALUE', '') | got ('POP_EXCEPT', '')"
+   "verdict": "PASS"
   },
   {
    "module": "abc",
@@ -105,23 +97,23 @@
   {
    "module": "ast",
    "verdict": "INCOMPLETE",
-   "ndiff": 5393,
+   "ndiff": 5184,
    "ntotal": 7116,
-   "detail": "line 1491: orig ('JUMP_FORWARD', 'to 84') | got ('JUMP_FORWARD', 'to 82')\nline 1499: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 260')\nline 1500: orig ('RETURN_VALUE', '') | got ('RERAISE', '')"
+   "detail": "line 1723: orig ('FOR_ITER', 'to 64') | got ('FOR_ITER', 'to 54')\nline 1727: orig ('LOAD_GLOBAL', 'isinstance') | got ('LOAD_FAST', 'name')\nline 1728: orig ('LOAD_FAST', 'value') | got ('STORE_FAST', 'type_name')"
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 213: orig  body=[Return()]) | dec  body=[Pass()])",
+   "ast_detail": "diff at token 455: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 277,
-   "ntotal": 797,
-   "detail": "line 235: orig ('LOAD_CONST', 'None') | got ('EXTENDED_ARG', '')\nline 236: orig ('RETURN_VALUE', '') | got ('JUMP_FORWARD', 'to 446')\nline 248: orig ('LOAD_CONST', 'None') | got ('EXTENDED_ARG', '')"
+   "ndiff": 48,
+   "ntotal": 798,
+   "detail": "line 402: orig ('EXTENDED_ARG', '') | got ('POP_JUMP_IF_FALSE', '')\nline 403: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_FAST', 'index')\nline 404: orig ('LOAD_FAST', 'index') | got ('LOAD_FAST', 'lb')"
   },
   {
    "module": "asyncore",
    "ast_detail": "diff at token 385: orig  If(test=Compare(left=List(elts=[] | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1682,
+   "ndiff": 1687,
    "ntotal": 2212,
    "detail": "line 473: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 474: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 475: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'r')"
   },
@@ -195,7 +187,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 178: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1093,
+   "ndiff": 1096,
    "ntotal": 1329,
    "detail": "line 218: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', 'None')\nline 219: orig ('SETUP_FINALLY', 'to 380') | got ('RETURN_VALUE', '')\nline 220: orig ('LOAD_FAST', 'intro') | got ('precmd', 2)"
   },

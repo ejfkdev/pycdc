@@ -69,7 +69,7 @@ class async_chat(asyncore.dispatcher):
         try:
             data = self.recv(self.ac_in_buffer_size)
         except BlockingIOError:
-            pass
+            return
         except OSError as why:
             self.handle_error()
             return
@@ -147,37 +147,36 @@ class async_chat(asyncore.dispatcher):
         self.producer_fifo.append(None)
 
     def initiate_send(self):
-        try:
-            num_sent = self.send(data)
-        except OSError:
-            self.handle_error()
-            # WARNING: break outside loop (unrecovered structure)
-        else:
+        while self.producer_fifo and self.connected:
+            first = self.producer_fifo[0]
+            if not first:
+                del self.producer_fifo[0]
+                if first is None:
+                    self.handle_close()
+                    return
+            obs = self.ac_out_buffer_size
+            try:
+                data = first[:obs]
+            except TypeError:
+                data = first.more()
+                if data:
+                    self.producer_fifo.appendleft(data)
+                else:
+                    del self.producer_fifo[0]
+                continue
+            if isinstance(data, str) and self.use_encoding:
+                data = bytes(data, self.encoding)
+            try:
+                num_sent = self.send(data)
+            except OSError:
+                self.handle_error()
+                return
             if num_sent:
                 if num_sent < len(data) or obs < len(first):
                     self.producer_fifo[0] = first[num_sent:]
                 else:
                     del self.producer_fifo[0]
             return
-            while self.producer_fifo and self.connected:
-                first = self.producer_fifo[0]
-                if not first:
-                    del self.producer_fifo[0]
-                    if first is None:
-                        self.handle_close()
-                        return
-                obs = self.ac_out_buffer_size
-                try:
-                    data = first[:obs]
-                except TypeError:
-                    data = first.more()
-                    if data:
-                        self.producer_fifo.appendleft(data)
-                    else:
-                        del self.producer_fifo[0]
-                    continue
-                if isinstance(data, str) and self.use_encoding:
-                    data = bytes(data, self.encoding)
 
     def discard_buffers(self):
         self.ac_in_buffer = b''

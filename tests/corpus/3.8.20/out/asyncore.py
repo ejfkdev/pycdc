@@ -270,7 +270,7 @@ class dispatcher:
         try:
             conn, addr = self.socket.accept()
         except TypeError:
-            pass
+            return
         except OSError as why:
             if why.args[0] in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
                 return
