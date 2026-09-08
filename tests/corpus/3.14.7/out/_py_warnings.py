@@ -252,7 +252,7 @@ def _add_filter(*item, append):
             filters.insert(0, item)
         elif item not in filters:
             filters.append(item)
-    _wm._filters_mutated_lock_held()
+        _wm._filters_mutated_lock_held()
 
 def resetwarnings():
     '''Clear the list of warning filters, so that no filters are active.'''

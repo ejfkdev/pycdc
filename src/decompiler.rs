@@ -3344,7 +3344,7 @@ impl<'a> Ctx<'a> {
         // (or drop it at a sub-walk bound). RETURN_CONST-only: the 3.11
         // LOAD None; RETURN_VALUE form is indistinguishable from a sunk
         // post-try continuation (c4f3cc0 lesson)
-        if self.version.at_least(3, 12)
+        if self.version.at_least(3, 11)
             && self.code.name != "<module>"
             && tc.finally_handler.is_none()
             && tc.region_end == tc.body_end
@@ -3357,6 +3357,7 @@ impl<'a> Ctx<'a> {
                 let mut k = bi;
                 let mut ret_at = None;
                 let mut ok = true;
+                let mut saw_exit = false;
                 while k < self.instrs.len() {
                     let x = &self.instrs[k];
                     if x.offset >= h {
@@ -3374,6 +3375,38 @@ impl<'a> Ctx<'a> {
                             k += 1;
                             break;
                         }
+                        // 3.11 sunk shape: LOAD None; RETURN_VALUE — only
+                        // unambiguous right after a consumed inline with
+                        // exit (the bare form is the c4f3cc0 sunk-
+                        // continuation lookalike)
+                        Op::RETURN_VALUE if saw_exit
+                            && k > 0
+                            && self.instrs[k - 1].op == Op::LOAD_CONST
+                            && matches!(
+                                self.code
+                                    .consts
+                                    .get(self.instrs[k - 1].arg as usize)
+                                    .map(|o| &**o),
+                                Some(PyObject::None)
+                            ) => {
+                            ret_at = Some(x.end());
+                            k += 1;
+                            break;
+                        }
+                        Op::LOAD_CONST if saw_exit
+                            && matches!(
+                                self.code.consts.get(x.arg as usize).map(|o| &**o),
+                                Some(PyObject::None)
+                            )
+                            && self.instrs.get(k + 1).map(|i2| i2.op)
+                                == Some(Op::RETURN_VALUE) =>
+                        {
+                            // 3.11 sunk `return None`: LOAD None; RETURN
+                            // right after the consumed exit
+                            ret_at = Some(self.instrs[k + 1].end());
+                            k += 2;
+                            break;
+                        }
                         Op::LOAD_CONST => {
                             // inline with-exit sequence only
                             match self.inline_with_exit_span(x.offset) {
@@ -3387,6 +3420,7 @@ impl<'a> Ctx<'a> {
                                         ok = false;
                                         break;
                                     }
+                                    saw_exit = true;
                                     k = ai;
                                 }
                                 None => {
@@ -7536,6 +7570,10 @@ impl<'a> Ctx<'a> {
         while matches!(self.instrs.get(k).map(|x| x.op), Some(op) if matches!(op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)) {
             k += 1;
         }
+        // 3.11 inserts PRECALL before the exit CALL
+        if self.instrs.get(k).map(|x| x.op) == Some(Op::PRECALL) {
+            k += 1;
+        }
         if self.instrs.get(k).map(|x| x.op) != Some(Op::CALL) {
             return None;
         }
@@ -7547,6 +7585,60 @@ impl<'a> Ctx<'a> {
             return None;
         }
         Some(self.instrs[k].end())
+    }
+
+    /// 3.12+ `with` whose body contains a try: the exception table
+    /// splits the with-protected range into same-handler fragments
+    /// around the out-of-line chain(s) (codeop _maybe_compile:
+    /// [180,248) + [346,348) + ... all -> the WITH_EXCEPT_START
+    /// handler). The first fragment's end truncates the With block and
+    /// ejects the try. When later same-handler fragments exist and the
+    /// gap between them is entirely nested-try material (every inner
+    /// entry targets the out-of-line handler zone [first chain head,
+    /// with handler]), extend the end to the last fragment's end — the
+    /// chain-head skipper handles the handler material inside.
+    fn extend_with_frag_end(&self, frag_start: usize, end: usize) -> usize {
+        let Some(handler) = self
+            .exc_entries
+            .iter()
+            .find(|e| e.start == frag_start && e.end == end)
+            .map(|e| e.target)
+        else {
+            return end;
+        };
+        let later_ends: Vec<usize> = self
+            .exc_entries
+            .iter()
+            .filter(|e| {
+                e.target == handler && e.start > end && e.end <= handler
+            })
+            .map(|e| e.end)
+            .collect();
+        let Some(span_end) = later_ends.into_iter().max() else {
+            return end;
+        };
+        // cleanup-stub targets (RERAISE/COPY cascades) are not chain
+        // heads: bound the zone by OFFSETS — [first PUSH_EXC_INFO past
+        // the fragment end, handler]
+        let zone_start = self.idx_of.get(&end).and_then(|&fi| {
+            self.instrs[fi..]
+                .iter()
+                .find(|x| x.offset < handler && x.op == Op::PUSH_EXC_INFO)
+                .map(|x| x.offset)
+        });
+        let chainy = zone_start.map_or(false, |zs| {
+            self.exc_entries
+                .iter()
+                .filter(|e| {
+                    e.start >= end && e.end <= span_end && e.target != handler
+                })
+                .all(|e| e.target >= zs && e.target <= handler)
+        });
+        if chainy && span_end > end {
+            span_end
+        } else {
+            end
+        }
     }
 
     /// Close the open With block(s) down through the innermost one —
@@ -9133,7 +9225,7 @@ impl<'a> Ctx<'a> {
                 // sequence and close the With here (codeop 3.13
                 // _maybe_compile: the leak rendered `None(None, None)`
                 // and trapped the post-with tail return inside the with)
-                if self.version.at_least(3, 12) && self.with_exits > 0 {
+                if self.version.at_least(3, 11) && self.with_exits > 0 {
                     if let Some(after) = self.inline_with_exit_span(self.cur_offset) {
                         // close the With ONLY when it is topmost: a sunk
                         // exit inside an open branch arm (`if quitting:
@@ -9639,18 +9731,19 @@ impl<'a> Ctx<'a> {
                                 .map(|x| x.offset)
                         })
                         .unwrap_or(start);
-                    let end = self
-                        .with_regions
-                        .get(&body_at)
-                        .copied()
-                        .or_else(|| {
-                            self.with_regions
+                    let (frag_key, end0) =
+                        match self.with_regions.get(&body_at) {
+                            Some(&v) => (body_at, v),
+                            None => self
+                                .with_regions
                                 .iter()
                                 .filter(|(k, _)| **k >= body_at)
                                 .min_by_key(|(k, _)| *k)
-                                .map(|(_, v)| *v)
-                        })
-                        .unwrap_or(usize::MAX);
+                                .map(|(k, v)| (*k, *v))
+                                .unwrap_or((body_at, usize::MAX)),
+                        };
+                    // nested-try fragment extension (codeop 3.14)
+                    let end = self.extend_with_frag_end(frag_key, end0);
                     let mut wb = Block::new(BlockType::With, start, end);
                     wb.is_async = is_async;
                     wb.with_item = Some(item);
@@ -13895,71 +13988,10 @@ impl<'a> Ctx<'a> {
                             .map(|e| e.end)
                     })
                     .unwrap_or(usize::MAX);
-                // a nested try chain SPLITS the with body into same-
-                // handler fragments around the out-of-line chain
-                // (codeop 3.13 _maybe_compile: [180,248) + [346,348)
-                // + [394,396) + [448,452) + [470,476) all -> the
-                // WITH_EXCEPT_START handler): when later fragments
-                // targeting the SAME handler exist, extend the block
-                // over the chain material up to the last fragment's
-                // end — the chain walk skips the handler material, so
-                // the block simply stays open until the with's own
-                // cleanup head
-                if let Some(&first_end) = self.with_regions.get(&start) {
-                    let handler = self
-                        .exc_entries
-                        .iter()
-                        .find(|e| e.start == start && e.end == first_end)
-                        .map(|e| e.target);
-                    if let Some(h) = handler {
-                        let later_ends: Vec<usize> = self
-                            .exc_entries
-                            .iter()
-                            .filter(|e| {
-                                e.target == h
-                                    && e.start > first_end
-                                    && e.end <= h
-                                    && e.end > first_end
-                            })
-                            .map(|e| e.end)
-                            .collect();
-                        if !later_ends.is_empty() {
-                            let span_end =
-                                later_ends.iter().copied().max().unwrap();
-                            // the gap must be nested-try material:
-                            // every inner entry targets the out-of-line
-                            // handler zone [first chain head, h] (the
-                            // cleanup-stub cascades target RERAISE/COPY
-                            // stubs, not PUSH_EXC_INFO heads — offset
-                            // bounds cover both)
-                            let zone_start = self
-                                .idx_of
-                                .get(&first_end)
-                                .and_then(|&fi2| {
-                                    self.instrs[fi2..]
-                                        .iter()
-                                        .find(|x| {
-                                            x.offset < h
-                                                && x.op == Op::PUSH_EXC_INFO
-                                        })
-                                        .map(|x| x.offset)
-                                });
-                            let chainy = zone_start.map_or(false, |zs| {
-                                self.exc_entries
-                                    .iter()
-                                    .filter(|e| {
-                                        e.start >= first_end
-                                            && e.end <= span_end
-                                            && e.target != h
-                                    })
-                                    .all(|e| e.target >= zs && e.target <= h)
-                            });
-                            if chainy && span_end > end {
-                                end = span_end;
-                            }
-                        }
-                    }
-                }
+                // a nested try chain SPLITS the with body into same-handler
+                // fragments (codeop _maybe_compile): extend the block end
+                // over the chain material when the shape vets out
+                let end = self.extend_with_frag_end(start, end);
                 let mut wb = Block::new(BlockType::With, start, end);
                 wb.is_async = false;
                 self.blocks.push(wb);

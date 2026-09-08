@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 25,
-  "SIG-DIFF": 13,
+  "PASS": 26,
+  "SIG-DIFF": 12,
   "INCOMPLETE": 2
  },
  "results": [
@@ -176,11 +176,7 @@
   },
   {
    "module": "codeop",
-   "ast_detail": "diff at token 113: orig  keywords=[])) | dec  keywords=[]))]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 259,
-   "ntotal": 404,
-   "detail": "line 129: orig ('JUMP_FORWARD', 'to 484') | got ('JUMP_FORWARD', 'to 458')\nline 133: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 476') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 450')\nline 145: orig ('POP_EXCEPT', '') | got ('JUMP_FORWARD', 'to 446')"
+   "verdict": "PASS"
   },
   {
    "module": "colorsys",
