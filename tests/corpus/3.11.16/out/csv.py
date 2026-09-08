@@ -348,7 +348,8 @@ class Sniffer:
                 except (ValueError, TypeError):
                     hasHeader += 1
                     continue
-                hasHeader -= 1
+                else:
+                    hasHeader -= 1
         return hasHeader > 0
 
 

@@ -3548,11 +3548,59 @@ impl<'a> Ctx<'a> {
                                 // the boundary and the skip target is the
                                 // chain end (the copy and the chain are
                                 // both machinery)
-                                let pair = self.try_tail_sunk_pair(
+                                let mut pair = self.try_tail_sunk_pair(
                                     last_frag_end.max(tc.body_end),
                                     handler,
                                     chain_end,
                                 );
+                                if pair.is_none()
+                                    && self.version.at_least(3, 11)
+                                    && !self.version.at_least(3, 12)
+                                {
+                                    // 3.11 ONLY — the try is the loop
+                                    // body's LAST statement: the inline
+                                    // else arm ends with the loop's
+                                    // fused back edge (backward jump
+                                    // onto the loop top) instead of a
+                                    // merge jump (csv 3.11 has_header:
+                                    // else arm `hasHeader -= 1;
+                                    // JB->for-top` flattened past the
+                                    // try and the except arm grew a
+                                    // `continue`). Require a NON-EMPTY
+                                    // span: a plain try/except at the
+                                    // loop tail has the back edge AT
+                                    // body_end and no else. 3.12+
+                                    // relocates chains and narrows
+                                    // protected ranges differently —
+                                    // the span test misfires there
+                                    // (_compression/_weakrefset/bz2
+                                    // 3.12 grew phantom elses).
+                                    let mut j2 = bi;
+                                    while j2 < self.instrs.len() {
+                                        let x = &self.instrs[j2];
+                                        if x.offset >= handler
+                                            || x.op == Op::PUSH_EXC_INFO
+                                        {
+                                            break;
+                                        }
+                                        if x.is_backward
+                                            && matches!(
+                                                x.op,
+                                                Op::JUMP_BACKWARD
+                                                    | Op::JUMP_ABSOLUTE
+                                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                            )
+                                            && x.target.map_or(false, |t| {
+                                                self.is_loop_top_target(t)
+                                            })
+                                            && x.offset > tc.body_end
+                                        {
+                                            pair = Some((x.offset, x.end()));
+                                            break;
+                                        }
+                                        j2 += 1;
+                                    }
+                                }
                                 if pair.is_some() {
                                     // the pair is confirmed: the handler-
                                     // side sunk copy (3.11 extends the

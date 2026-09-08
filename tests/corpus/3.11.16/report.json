@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 21,
-  "SIG-DIFF": 16,
+  "PASS": 22,
+  "SIG-DIFF": 15,
   "INCOMPLETE": 3
  },
  "results": [
@@ -118,7 +118,7 @@
   {
    "module": "bdb",
    "verdict": "INCOMPLETE",
-   "ndiff": 702,
+   "ndiff": 701,
    "ntotal": 2537,
    "detail": "line 596: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 130') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 202')\nline 602: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 130') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 202')\nline 1795: orig ('LOAD_GLOBAL', 'NULL + eval') | got ('JUMP_FORWARD', 'to 162')"
   },
@@ -234,11 +234,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1916: orig  value=Constant(value=1))])] | dec  value=Constant(value=1))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 27,
-   "ntotal": 1714,
-   "detail": "line 1646: orig ('FOR_ITER', 'to 854') | got ('FOR_ITER', 'to 856')\nline 1687: orig ('LOAD_FAST', 'hasHeader') | got ('JUMP_FORWARD', 'to 844')\nline 1688: orig ('LOAD_CONST', '1') | got ('PUSH_EXC_INFO', '')"
+   "verdict": "PASS"
   }
  ]
 }
