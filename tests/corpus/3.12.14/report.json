@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 25,
-  "SIG-DIFF": 10,
+  "PASS": 26,
+  "SIG-DIFF": 9,
   "INCOMPLETE": 4,
   "AST-PASS": 1
  },
@@ -206,11 +206,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 118: orig  keywords=[]))] | dec  keywords=[]))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1,
-   "ntotal": 1647,
-   "detail": "line 1352: orig ('POP_JUMP_IF_TRUE', 'to 1380') | got ('POP_JUMP_IF_FALSE', 'to 1380')"
+   "verdict": "PASS"
   },
   {
    "module": "datetime",

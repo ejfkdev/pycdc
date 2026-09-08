@@ -34,8 +34,8 @@
  "3.12.14": {
   "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
   "counts": {
-   "PASS": 25,
-   "SIG-DIFF": 10,
+   "PASS": 26,
+   "SIG-DIFF": 9,
    "INCOMPLETE": 4,
    "AST-PASS": 1
   }

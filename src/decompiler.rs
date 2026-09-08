@@ -19681,30 +19681,35 @@ return None;
                                 if !break_bears {
                                     ok = false;
                                 }
-                                // 3.13+ direct-form guard whose body is
-                                // the loop's tail: `if X: <body-to-loop-
-                                // end>` compiles to PJIT-over-trampoline
-                                // with the body running to the loop's own
-                                // back edge. Two body shapes: (A) plain
-                                // threaded (csv 3.13 has_header `if
-                                // thisType != columnTypes[col]:` — case
-                                // (c) misses it when the body leads with
-                                // a non-PJ* conditional jump like
+                                // 3.12/3.13 direct-form guard whose body
+                                // is the loop's tail: `if X: <body-to-
+                                // loop-end>` compiles to PJIT-over-
+                                // trampoline with the body running to
+                                // the loop's own back edge. Two body
+                                // shapes: (A) plain threaded (csv 3.13
+                                // has_header `if thisType !=
+                                // columnTypes[col]:` — case (c) misses
+                                // it when the body leads with a non-PJ*
+                                // conditional jump like
                                 // POP_JUMP_IF_NOT_NONE); (B) genuine
-                                // body-ending return preceded by for-loop
-                                // iterator cleanup SWAP 2; POP_TOP (csv
-                                // 3.13 _guess_delimiter `if d in
-                                // delims.keys(): ... return`) — a sunk
-                                // tail-return COPY lacks that cleanup and
-                                // lacks computed ops in its value run
-                                // 3.13 ONLY: 3.14 keeps the historical
-                                // inverted form — direct nesting there
-                                // swallowed sibling elif guards and the
-                                // post-loop tail (_osx_support 3.14
+                                // body-ending return preceded by for-
+                                // loop iterator cleanup SWAP 2; POP_TOP
+                                // (csv 3.12/3.13 _guess_delimiter `if d
+                                // in delims.keys(): ... return`) — a
+                                // sunk tail-return COPY lacks that
+                                // cleanup and lacks computed ops in its
+                                // value run. The stricter (A) scan here
+                                // runs before the lenient 3.12 plain-
+                                // thread branch below and falls through
+                                // to it on rejection
+                                // 3.14 keeps the historical inverted
+                                // form — direct nesting there swallowed
+                                // sibling elif guards and the post-loop
+                                // tail (_osx_support 3.14
                                 // _default_sysroot: the post-for `if
                                 // _cache_default_sysroot is None` landed
                                 // inside the elif's else)
-                                if self.version.at_least(3, 13)
+                                if self.version.at_least(3, 12)
                                     && !self.version.at_least(3, 14)
                                     && jump_if_true
                                 {
