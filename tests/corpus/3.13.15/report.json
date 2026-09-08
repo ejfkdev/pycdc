@@ -93,7 +93,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1234,
    "ntotal": 2986,
-   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e00', '\u5341', '\u4e03', '\u5eff', '\u4e5d'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e03', '\u4e5d', '\u5341', '\u4e00'})\")\nline 635: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')\nline 638: orig ('POP_JUMP_IF_NOT_NONE', 'to L7') | got ('POP_JUMP_IF_NOT_NONE', 'to L6')"
+   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e00', '\u5eff', '\u4e03', '\u4e5d', '\u5341'})\") | got ('LOAD_CONST', \"frozenset({'\u4e03', '\u5eff', '\u4e00', '\u5341', '\u4e5d'})\")\nline 635: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')\nline 638: orig ('POP_JUMP_IF_NOT_NONE', 'to L7') | got ('POP_JUMP_IF_NOT_NONE', 'to L6')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -169,9 +169,9 @@
    "module": "codecs",
    "ast_detail": "diff at token 863: orig  body=[Raise()]) | dec  body=[Raise()])])])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1175,
+   "ndiff": 1136,
    "ntotal": 2206,
-   "detail": "line 935: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 942: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 943: orig ('JUMP_FORWARD', 'to L10') | got ('JUMP_FORWARD', 'to L8')"
+   "detail": "line 1027: orig ('POP_JUMP_IF_FALSE', 'to L14') | got ('POP_JUMP_IF_FALSE', 'to L13')\nline 1031: orig ('POP_JUMP_IF_FALSE', 'to L13') | got ('POP_JUMP_IF_FALSE', 'to L12')\nline 1063: orig ('RAISE_VARARGS', '') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "codeop",
@@ -208,11 +208,11 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 687: orig  body=[Pass()])]) | dec  body=[Pass()])])])",
+   "ast_detail": "diff at token 701: orig  ops=[IsNot()] | dec  ops=[Is()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 341,
-   "ntotal": 940,
-   "detail": "line 584: orig ('JUMP_FORWARD', 'to L4') | got ('RETURN_CONST', 'None')\nline 589: orig ('LOAD_GLOBAL', 'zip + NULL') | got ('_deepcopy_dict', 3)\nline 590: orig ('LOAD_FAST', 'x') | got ('RESUME', '')"
+   "ndiff": 334,
+   "ntotal": 941,
+   "detail": "line 601: orig ('POP_JUMP_IF_TRUE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 607: orig ('POP_TOP', '') | got ('LOAD_FAST', 'y')\nline 608: orig ('LOAD_FAST', 'y') | got ('SWAP', '')"
   },
   {
    "module": "copyreg",

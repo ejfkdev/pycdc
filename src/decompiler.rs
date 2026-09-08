@@ -10538,10 +10538,15 @@ impl<'a> Ctx<'a> {
                 }
                 // at function top level a RETURN ends the meaningful stream;
                 // trailing bytes are exception-table cleanup paths — unless
-                // a pre-3.11 handler chain still needs to run, or an open
-                // 3.12 chained-comparison link still needs its else-arm fold
+                // a pre-3.11 handler chain still needs to run, an open
+                // 3.12 chained-comparison link still needs its else-arm
+                // fold, or a pending skip marks a real continuation past
+                // the chain (the try-body return flush hopped the chain
+                // to the post-try mainline: copy 3.12 _deepcopy_tuple's
+                // for loop lives past the handler chain)
                 !matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
                     || self.legacy_try.is_some()
+                    || self.skip_until.is_some()
                     || self.blocks.iter().any(|b| b.chain_link)
             }
             Op::YIELD_VALUE => {
@@ -18230,7 +18235,7 @@ impl<'a> Ctx<'a> {
         let pad_present = matches!(
             self.instrs.get(ci + 1).map(|x| x.op),
             Some(Op::NOT_TAKEN)
-        ) || self.version.at_least(3, 13);
+        ) || self.version.at_least(3, 12);
         let mut t = ci + 1;
         while matches!(self.instrs.get(t).map(|x| x.op), Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)) {
             t += 1;
@@ -18555,6 +18560,186 @@ return None;
                     // exits through the fall-through continue trampoline
                     // and the jump target is the LOOP-LEVEL body —
                     // `if <guards>: continue` with the body outside
+                    //
+                    // 3.12 direct-form exception (copy _deepcopy_tuple):
+                    // a single PJIT guard whose target body carries a
+                    // sunk copy of the function's tail return
+                    // (POP_TOP + value loads + RETURN = `break` with a
+                    // sunk value return) is the compiler's own layout
+                    // for `if cond: <body>; break` at the loop tail —
+                    // the inverted continue form recompiles to PJIF and
+                    // breaks sig-exactness. Render the direct If over
+                    // the body; try_fold_sunk_for_break supplies the
+                    // Break and the for-else registration on the walk.
+                    if values.len() == 1
+                        && jump_if_true
+                        && self.version.at_least(3, 12)
+                        && !self.version.at_least(3, 13)
+                        && target > tramp_off
+                    {
+                        if let Some(lb) = self.blocks.iter().rev().find(|b| {
+                            matches!(b.kind, BlockType::While | BlockType::For)
+                                && (b.start == loop_top
+                                    || (b.cond_end != usize::MAX
+                                        && b.cond_end == loop_top))
+                        }) {
+                            let lb_end = lb.end;
+                            if let (Some(&ti), Some(&bi)) =
+                                (self.idx_of.get(&target), self.idx_of.get(&lb_end))
+                            {
+                                let is_pad = |x: &crate::bytecode::Instruction| {
+                                    matches!(
+                                        x.op,
+                                        Op::NOP
+                                            | Op::NOT_TAKEN
+                                            | Op::CACHE
+                                            | Op::EXTENDED_ARG
+                                    )
+                                };
+                                let mut ok = true;
+                                let mut ret_idx = None;
+                                for ins in self.instrs[ti..bi].iter() {
+                                    if matches!(
+                                        ins.op,
+                                        Op::RETURN_VALUE | Op::RETURN_CONST
+                                    ) {
+                                        ret_idx = Some(ins);
+                                        continue;
+                                    }
+                                    if let Some(t) = ins.target {
+                                        if ins.is_backward {
+                                            if t == loop_top {
+                                                ok = false;
+                                                break;
+                                            }
+                                        } else if !(t > ins.offset
+                                            && self
+                                                .jump_is_loop_exit_or_merge(t))
+                                        {
+                                            ok = false;
+                                            break;
+                                        }
+                                    }
+                                }
+                                // break-bearing body only: either a
+                                // sunk copy of the tail return (3.10-
+                                // 3.12 layout) or a break chunk
+                                // ([POP_TOP/pads] + forward jump to a
+                                // loop exit/merge). A plain fall-
+                                // through body stays with the
+                                // historical inverted continue
+                                let break_bears = ret_idx.is_some()
+                                    || self
+                                        .idx_of
+                                        .get(&target)
+                                        .map_or(false, |&si| {
+                                            let mut k = si;
+                                            while matches!(
+                                                self.instrs.get(k).map(|x| x.op),
+                                                Some(Op::POP_TOP)
+                                                    | Some(Op::NOT_TAKEN)
+                                                    | Some(Op::NOP)
+                                                    | Some(Op::CACHE)
+                                            ) {
+                                                k += 1;
+                                            }
+                                            self.instrs.get(k).map_or(false, |x| {
+                                                !x.is_backward
+                                                    && matches!(
+                                                        x.op,
+                                                        Op::JUMP_FORWARD
+                                                            | Op::JUMP
+                                                            | Op::JUMP_ABSOLUTE
+                                                    )
+                                                    && x.target.map_or(false, |t| {
+                                                        self.jump_is_loop_exit_or_merge(t)
+                                                    })
+                                            })
+                                        });
+                                if !break_bears {
+                                    ok = false;
+                                }
+                                // the return's value run must mirror the
+                                // function's tail return run
+                                if let (true, Some(ri)) = (ok, ret_idx) {
+                                    let norm = |x: &crate::bytecode::Instruction| {
+                                        (x.op as u8, x.arg)
+                                    };
+                                    let is_load = |o: Op| {
+                                        matches!(
+                                            o,
+                                            Op::LOAD_FAST
+                                                | Op::LOAD_NAME
+                                                | Op::LOAD_GLOBAL
+                                                | Op::LOAD_DEREF
+                                                | Op::LOAD_CONST
+                                                | Op::LOAD_ATTR
+                                                | Op::LOAD_METHOD
+                                        )
+                                    };
+                                    let ri_i = self
+                                        .instrs
+                                        .iter()
+                                        .position(|x| std::ptr::eq(x, ri))
+                                        .unwrap_or(0);
+                                    let mut b2 = ri_i;
+                                    let mut h2 = 0;
+                                    while b2 > 0 && h2 < 8 {
+                                        let p = &self.instrs[b2 - 1];
+                                        if is_pad(p) || is_load(p.op) {
+                                            b2 -= 1;
+                                            h2 += 1;
+                                            continue;
+                                        }
+                                        break;
+                                    }
+                                    let run_a: Vec<(u8, u32)> =
+                                        self.instrs[b2..=ri_i]
+                                            .iter()
+                                            .filter(|x| !is_pad(x))
+                                            .map(norm)
+                                            .collect();
+                                    let n = self.instrs.len();
+                                    let mut run_f: Vec<(u8, u32)> =
+                                        Vec::new();
+                                    if n >= 2
+                                        && matches!(
+                                            self.instrs[n - 1].op,
+                                            Op::RETURN_VALUE | Op::RETURN_CONST
+                                        )
+                                    {
+                                        let mut fb = n - 1;
+                                        let mut fh = 0;
+                                        while fb > 0 && fh < 8 {
+                                            let p = &self.instrs[fb - 1];
+                                            if is_pad(p) || is_load(p.op) {
+                                                fb -= 1;
+                                                fh += 1;
+                                                continue;
+                                            }
+                                            break;
+                                        }
+                                        run_f = self.instrs[fb..]
+                                            .iter()
+                                            .filter(|x| !is_pad(x))
+                                            .map(norm)
+                                            .collect();
+                                    }
+                                    if !run_a.is_empty() && run_f == run_a {
+                                        let direct = negate_cond(
+                                            values[0].clone(),
+                                        );
+                                        return Some((
+                                            direct,
+                                            target,
+                                            lb_end,
+                                            loop_top,
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
                     let merged = self.merge_guard_values(std::mem::take(&mut values));
                     return Some((merged, next, tramp_off, loop_top));
                 }
@@ -19111,7 +19296,61 @@ return None;
                     // threaded to the loop top ejected the body and
                     // grew a phantom continue)
                     let cj_end = self.cur_next;
-                    let span_pure = ins.op != Op::JUMP_ABSOLUTE
+                    // the back edge is a dedicated continue landing (NOT
+                    // a fused arm end) when the instruction before it is
+                    // an unconditional forward hop or a return — the span
+                    // never falls through into the edge. Threading such a
+                    // guard to the loop top opens a degenerate If[end<
+                    // start] and silently drops the guard (copy 3.11
+                    // _deepcopy_tuple: PJFF->trampoline, body ends in a
+                    // break hop). Fused arm ends (elif spines, statement
+                    // fall-through) keep their threading.
+                    // scope: only when the span between this guard and
+                    // the edge holds real statements — pure operand runs
+                    // (or/and chains, elif spines) still thread (csv
+                    // 3.11 regressed when the veto applied to them)
+                    let span_stmts = self
+                        .idx_of
+                        .get(&cj_end)
+                        .copied()
+                        .map_or(false, |si| {
+                            self.instrs[si..ti].iter().any(|x| {
+                                !matches!(
+                                    x.op,
+                                    Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                                ) && !is_pure_value_op(x.op)
+                                    && !matches!(
+                                        x.op,
+                                        Op::POP_JUMP_IF_FALSE
+                                            | Op::POP_JUMP_IF_TRUE
+                                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                                            | Op::TO_BOOL
+                                    )
+                            })
+                        });
+                    // RETURN-before-edge is the standard 3.11+ in-loop
+                    // return cleanup (SWAP; POP_TOP; RETURN; back edge)
+                    // and must keep threading (csv 3.11 _guess_delimiter
+                    // regressed when vetoed); only an unconditional
+                    // FORWARD hop over the edge marks a dedicated
+                    // continue landing (copy 3.11 _deepcopy_tuple break)
+                    let dedicated_tramp = span_stmts
+                        && ti > 0
+                        && matches!(
+                            self.instrs[ti - 1].op,
+                            Op::JUMP_FORWARD | Op::JUMP
+                        )
+                        && !self.instrs[ti - 1].is_backward
+                        && self
+                            .instrs[ti - 1]
+                            .target
+                            .map_or(false, |t| {
+                                t > self.instrs[ti].offset
+                                    && self.jump_is_loop_exit_or_merge(t)
+                            });
+                    let span_pure = !dedicated_tramp
+                        && (ins.op != Op::JUMP_ABSOLUTE
                         || ins.target
                             .map_or(false, |bt| self.is_loop_top_target(bt))
                         || self
@@ -19132,7 +19371,7 @@ return None;
                                                 | Op::TO_BOOL
                                         )
                                 })
-                            });
+                            }));
                     if span_pure {
                         ins.target
                     } else {
@@ -27735,7 +27974,10 @@ impl<'a> Ctx<'a> {
     /// ForElse close to lift the else arm's trailing mirror Return to
     /// function level.
     fn try_fold_sunk_for_break(&mut self) -> bool {
-        if !self.version.at_least(3, 10) || self.version.at_least(3, 11) {
+        // 3.10-3.12: the break path carries POP_TOP(iterator) + a
+        // direct copy of the tail return (3.11/3.12 keep the shape —
+        // copy 3.12 _deepcopy_tuple); 3.13+ changed the sunk layout
+        if !self.version.at_least(3, 10) || self.version.at_least(3, 13) {
             return false;
         }
         if self.legacy_handler.is_some() || self.legacy_try.is_some() {
@@ -27794,7 +28036,14 @@ impl<'a> Ctx<'a> {
             .filter(|x| !is_pad(x))
             .map(norm)
             .collect();
-        if run_a.is_empty() {
+        // a bare RETURN (value already built under the iterator, e.g.
+        // 3.11 SWAP 2; POP_TOP; RETURN of an in-loop `return a, b`)
+        // trivially mirrors any tail return — require at least one
+        // value load so the mirror is meaningful (csv 3.11
+        // _guess_delimiter: the bare-RETURN fold turned the in-loop
+        // return into a break and sank the whole function tail into a
+        // phantom for-else)
+        if run_a.len() < 2 {
             return false;
         }
         // the function's final return run must mirror it
@@ -28639,7 +28888,53 @@ impl<'a> Ctx<'a> {
                     if let Some(body) = self.pending_try_body.last_mut() {
                         body.push(Stmt::Return(value));
                     }
+                    let exc_h = tc.except_handler;
                     self.emit_try_tail(tc, at);
+                    // the chain lies AHEAD with machinery in between
+                    // (copy 3.12 _deepcopy_tuple: the listcomp unwind
+                    // stub [76,86) separates the body return from the
+                    // except chain): the walk would enter the stub and
+                    // the handler-zone rule ends the function. Hop the
+                    // whole chain region to its mainline resume — what
+                    // the chain-head skipper would compute once the
+                    // walk reaches the head.
+                    if self.skip_until.is_none() {
+                        if let Some(h) = exc_h {
+                            if h > self.cur_offset {
+                                let ext = self.chain_extent(h);
+                                let mut resume = ext;
+                                let mut probe = ext;
+                                for _ in 0..4 {
+                                    let hop = self
+                                        .idx_of
+                                        .get(&probe)
+                                        .and_then(|&xi| self.instrs.get(xi))
+                                        .and_then(|x| {
+                                            if matches!(
+                                                x.op,
+                                                Op::JUMP_FORWARD | Op::JUMP
+                                            ) && !x.is_backward
+                                            {
+                                                x.target
+                                                    .filter(|t| *t > x.offset)
+                                            } else {
+                                                None
+                                            }
+                                        });
+                                    match hop {
+                                        Some(t) => {
+                                            resume = t;
+                                            probe = t;
+                                        }
+                                        None => break,
+                                    }
+                                }
+                                if resume > self.cur_offset {
+                                    self.skip_until = Some(resume);
+                                }
+                            }
+                        }
+                    }
                     return;
                 }
             }

@@ -186,6 +186,13 @@ def _deepcopy_tuple(x, memo, deepcopy=deepcopy):
         return memo[id(x)]
     except KeyError:
         pass
+    for k, j in zip(x, y):
+        if k is not j:
+            y = tuple(y)
+            break
+    else:
+        y = x
+    return y
 
 d[tuple] = _deepcopy_tuple
 

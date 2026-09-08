@@ -612,10 +612,9 @@ class Aifc_write:
         if not isinstance(name, bytes):
             raise Error('marker name must be bytes')
         for i in range(len(self._markers)):
-            if id != self._markers[i][0]:
-                continue
-            self._markers[i] = id, pos, name
-            return
+            if id == self._markers[i][0]:
+                self._markers[i] = id, pos, name
+                return
         self._markers.append((id, pos, name))
 
     def getmark(self, id):

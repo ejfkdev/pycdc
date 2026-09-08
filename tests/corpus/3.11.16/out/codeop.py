@@ -42,9 +42,8 @@ PyCF_ALLOW_INCOMPLETE_INPUT = 16384
 def _maybe_compile(compiler, source, filename, symbol):
     for line in source.split('\n'):
         line = line.strip()
-        if line:
-            if line[0] != '#':
-                break
+        if line and line[0] != '#':
+            break
     else:
         if symbol != 'eval':
             source = 'pass'

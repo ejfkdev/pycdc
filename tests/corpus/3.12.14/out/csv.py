@@ -199,8 +199,9 @@ class Sniffer:
         for restr in ('(?P<delim>[^\\w\\n"\\\'])(?P<space> ?)(?P<quote>["\\\'])%s(?P=quote)(?P=delim)', '(?:^|\\n)(?P<quote>["\\\'])%s(?P=quote)(?P<delim>[^\\w\\n"\\\'])(?P<space> ?)', '(?P<delim>[^\\w\\n"\\\'])(?P<space> ?)(?P<quote>["\\\'])%s(?P=quote)(?:$|\\n)', '(?:^|\\n)(?P<quote>["\\\'])%s(?P=quote)(?:$|\\n)'):
             regexp = re.compile(restr % body, re.DOTALL | re.MULTILINE)
             matches = regexp.findall(data)
-            if matches:
-                break
+            if not matches:
+                continue
+            break
         if not matches:
             return ('', False, None, 0)
         quotes = {}

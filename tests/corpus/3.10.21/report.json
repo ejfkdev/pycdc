@@ -94,7 +94,7 @@
   {
    "module": "ast",
    "verdict": "INCOMPLETE",
-   "ndiff": 6808,
+   "ndiff": 7049,
    "ntotal": 7851,
    "detail": "line 611: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 617: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 623: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')"
   },
@@ -161,9 +161,9 @@
    "module": "cgi",
    "ast_detail": "diff at token 1520: orig  Continue()] | dec  Return()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 871,
+   "ndiff": 751,
    "ntotal": 2910,
-   "detail": "line 1869: orig ('LOAD_FAST', 'data') | got ('LOAD_FAST', 'hdr_text')\nline 1870: orig ('LOAD_METHOD', 'strip') | got ('POP_JUMP_IF_TRUE', 'to 316')\nline 1871: orig ('CALL_METHOD', '') | got ('JUMP_FORWARD', 'to 564')"
+   "detail": "line 2063: orig ('POP_JUMP_IF_FALSE', 'to 154') | got ('POP_JUMP_IF_FALSE', 'to 162')\nline 2067: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 166')\nline 2125: orig ('COMPARE_OP', '>') | got ('COMPARE_OP', '>=')"
   },
   {
    "module": "cgitb",
@@ -191,11 +191,11 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1086: orig  If(test=UnaryOp(op=Not() | dec  Break()]",
+   "ast_detail": "diff at token 1334: orig  value=Constant(value=None))] | dec  value=Constant(value=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1027,
+   "ndiff": 9,
    "ntotal": 2120,
-   "detail": "line 949: orig ('JUMP_FORWARD', 'to 272') | got ('JUMP_FORWARD', 'to 266')\nline 973: orig ('JUMP_FORWARD', 'to 272') | got ('JUMP_FORWARD', 'to 266')\nline 1049: orig ('LOAD_FAST', 'newdata') | got ('LOAD_FAST', 'chars')"
+   "detail": "line 1180: orig ('POP_JUMP_IF_FALSE', 'to 396') | got ('POP_JUMP_IF_FALSE', 'to 390')\nline 1186: orig ('POP_JUMP_IF_FALSE', 'to 308') | got ('POP_JUMP_IF_FALSE', 'to 306')\nline 1253: orig ('POP_JUMP_IF_FALSE', 'to 396') | got ('POP_JUMP_IF_FALSE', 'to 390')"
   },
   {
    "module": "codeop",
@@ -216,8 +216,8 @@
    "module": "configparser",
    "ast_detail": "diff at token 2463: orig  body=[Continue()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1820,
-   "ntotal": 4290,
+   "ndiff": 1797,
+   "ntotal": 4299,
    "detail": "line 2419: orig ('SETUP_FINALLY', 'to 32') | got ('SETUP_FINALLY', 'to 36')\nline 2426: orig ('LOAD_FAST', 'raw') | got ('BUILD_MAP', '')\nline 2427: orig ('LOAD_FAST', 'vars') | got ('LOAD_FAST', 'raw')"
   },
   {
@@ -233,11 +233,11 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 253: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Attribute(value=Name(id='new'",
+   "ast_detail": "diff at token 569: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
-   "ndiff": 353,
+   "ndiff": 2,
    "ntotal": 597,
-   "detail": "line 210: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 74')\nline 223: orig ('JUMP_FORWARD', 'to 88') | got ('JUMP_FORWARD', 'to 78')\nline 227: orig ('LOAD_GLOBAL', 'isinstance') | got ('LOAD_FAST', 'new')"
+   "detail": "line 456: orig ('POP_BLOCK', '') | got ('LOAD_FAST', 'names')\nline 457: orig ('LOAD_FAST', 'names') | got ('POP_BLOCK', '')"
   },
   {
    "module": "crypt",

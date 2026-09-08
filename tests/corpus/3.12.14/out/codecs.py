@@ -431,7 +431,8 @@ class StreamReader(Codec):
                     raise
             self.bytebuffer = data[decodedbytes:]
             self.charbuffer += newchars
-            break
+            if not newdata:
+                break
         if chars < 0:
             result = self.charbuffer
             self.charbuffer = self._empty_charbuffer

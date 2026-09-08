@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 19,
-  "SIG-DIFF": 15,
+  "PASS": 20,
+  "SIG-DIFF": 14,
   "INCOMPLETE": 5,
   "AST-PASS": 1
  },
@@ -138,8 +138,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 665: orig  While(test=BoolOp(op=And() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2241,
-   "ntotal": 2873,
+   "ndiff": 2251,
+   "ntotal": 2876,
    "detail": "line 162: orig ('POP_JUMP_IF_FALSE', 'to 434') | got ('POP_JUMP_IF_FALSE', 'to 432')\nline 497: orig ('POP_JUMP_IF_FALSE', 'to 406') | got ('POP_JUMP_IF_FALSE', 'to 412')\nline 511: orig ('POP_JUMP_IF_FALSE', 'to 298') | got ('POP_JUMP_IF_FALSE', 'to 304')"
   },
   {
@@ -168,11 +168,11 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1149: orig  If(test=UnaryOp(op=Not() | dec  Break()]",
+   "ast_detail": "diff at token 1398: orig  value=Constant(value=None))] | dec  value=Constant(value=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1118,
+   "ndiff": 9,
    "ntotal": 2125,
-   "detail": "line 904: orig ('JUMP_FORWARD', 'to 488') | got ('JUMP_FORWARD', 'to 482')\nline 928: orig ('JUMP_FORWARD', 'to 488') | got ('JUMP_FORWARD', 'to 482')\nline 951: orig ('LOAD_FAST', 'newdata') | got ('LOAD_FAST', 'chars')"
+   "detail": "line 1130: orig ('POP_JUMP_IF_FALSE', 'to 974') | got ('POP_JUMP_IF_FALSE', 'to 968')\nline 1136: orig ('POP_JUMP_IF_FALSE', 'to 786') | got ('POP_JUMP_IF_FALSE', 'to 784')\nline 1205: orig ('POP_JUMP_IF_FALSE', 'to 974') | got ('POP_JUMP_IF_FALSE', 'to 968')"
   },
   {
    "module": "codeop",
@@ -210,11 +210,7 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 790: orig  finalbody=[]) | dec  finalbody=[])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 290,
-   "ntotal": 867,
-   "detail": "line 560: orig ('JUMP_FORWARD', 'to 116') | got ('RETURN_CONST', 'None')\nline 565: orig ('LOAD_GLOBAL', 'NULL + zip') | got ('_deepcopy_dict', 3)\nline 566: orig ('LOAD_FAST', 'x') | got ('RESUME', '')"
+   "verdict": "PASS"
   },
   {
    "module": "copyreg",
@@ -229,7 +225,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1090: orig  If(test=Subscript(value=Name(id='m' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 960: orig  If(test=Name(id='matches' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 379,
    "ntotal": 1649,

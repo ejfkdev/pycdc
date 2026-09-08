@@ -612,8 +612,9 @@ class Aifc_write:
         for i in range(len(self._markers)):
             if id == self._markers[i][0]:
                 self._markers[i] = id, pos, name
-                return
-        self._markers.append((id, pos, name))
+                break
+        else:
+            self._markers.append((id, pos, name))
 
     def getmark(self, id):
         for marker in self._markers:

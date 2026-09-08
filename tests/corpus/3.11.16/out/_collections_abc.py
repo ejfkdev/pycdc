@@ -874,6 +874,7 @@ class MutableMapping(Mapping):
             return self[key]
         except KeyError:
             self[key] = default
+        return default
 
 
 MutableMapping.register(dict)

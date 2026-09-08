@@ -65,7 +65,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 954,
    "ntotal": 1362,
-   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'linktype', 'link', 'attlist', 'element'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'linktype', 'link', 'element', 'attlist'})\")"
+   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'attlist', 'link', 'linktype', 'element'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'link', 'linktype', 'element'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -106,7 +106,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1363,
    "ntotal": 3207,
-   "detail": "line 622: orig ('LOAD_CONST', \"frozenset({'\u4e00', '\u5eff', '\u5341', '\u4e03', '\u4e5d'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e00', '\u5341', '\u4e5d', '\u4e03'})\")\nline 665: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')\nline 669: orig ('POP_JUMP_IF_NOT_NONE', 'to L7') | got ('POP_JUMP_IF_NOT_NONE', 'to L6')"
+   "detail": "line 622: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u4e5d', '\u4e00', '\u5eff', '\u5341'})\") | got ('LOAD_CONST', \"frozenset({'\u4e5d', '\u5eff', '\u5341', '\u4e00', '\u4e03'})\")\nline 665: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')\nline 669: orig ('POP_JUMP_IF_NOT_NONE', 'to L7') | got ('POP_JUMP_IF_NOT_NONE', 'to L6')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -127,7 +127,7 @@
   {
    "module": "annotationlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 4042,
+   "ndiff": 4040,
    "ntotal": 4144,
    "detail": "line 60: orig ('BUILD_TEMPLATE', '') | got ('CALL', '')\nline 61: orig ('CALL', '') | got ('STORE_NAME', '_Template')\nline 62: orig ('STORE_NAME', '_Template') | got ('LOAD_BUILD_CLASS', '')"
   },
@@ -232,11 +232,11 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 564: orig  body=[Pass()])]) | dec  body=[Pass()])])])",
+   "ast_detail": "diff at token 578: orig  ops=[IsNot()] | dec  ops=[Is()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 361,
-   "ntotal": 881,
-   "detail": "line 512: orig ('JUMP_FORWARD', 'to L4') | got ('LOAD_CONST', 'None')\nline 513: orig ('RERAISE', '') | got ('RETURN_VALUE', '')\nline 514: orig ('COPY', '') | got ('RERAISE', '')"
+   "ndiff": 347,
+   "ntotal": 882,
+   "detail": "line 528: orig ('IS_OP', 'is not') | got ('IS_OP', 'is')\nline 529: orig ('POP_JUMP_IF_TRUE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 536: orig ('POP_TOP', '') | got ('LOAD_FAST', 'y')"
   },
   {
    "module": "copyreg",
