@@ -169,9 +169,9 @@
    "module": "cgitb",
    "ast_detail": "diff at token 149: orig  Continue()] | dec  Return(value=Tuple(elts=[Constant(value=None)",
    "verdict": "SIG-DIFF",
-   "ndiff": 1179,
+   "ndiff": 640,
    "ntotal": 1430,
-   "detail": "line 222: orig ('FOR_ITER', 'to 208') | got ('FOR_ITER', 'to 210')\nline 233: orig ('POP_JUMP_IF_FALSE', 'to 64') | got ('POP_JUMP_IF_FALSE', 'to 66')\nline 234: orig ('POP_TOP', '') | got ('LOAD_FAST', 'vars')"
+   "detail": "line 784: orig ('SETUP_FINALLY', 'to 48') | got ('SETUP_FINALLY', 'to 34')\nline 785: orig ('LOAD_GLOBAL', 'linecache') | got ('POP_BLOCK', '')\nline 786: orig ('LOAD_METHOD', 'getline') | got ('LOAD_FAST', 'lnum')"
   },
   {
    "module": "chunk",

@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 24,
-  "SIG-DIFF": 11,
+  "PASS": 25,
+  "SIG-DIFF": 10,
   "INCOMPLETE": 4,
   "AST-PASS": 1
  },
@@ -140,11 +140,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 164: orig  Continue()] | dec  Return(value=Tuple(elts=[Constant(value=None)",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1211,
-   "ntotal": 1480,
-   "detail": "line 231: orig ('FOR_ITER', 'to 444') | got ('FOR_ITER', 'to 446')\nline 242: orig ('POP_JUMP_IF_FALSE', 'to 140') | got ('POP_JUMP_IF_FALSE', 'to 142')\nline 243: orig ('POP_TOP', '') | got ('LOAD_FAST', 'vars')"
+   "verdict": "PASS"
   },
   {
    "module": "chunk",

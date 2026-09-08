@@ -464,7 +464,7 @@ def main():
             func = decode
         if o == '-t':
             test()
-            return
+            break
         if o == '-h':
             print(usage)
             break

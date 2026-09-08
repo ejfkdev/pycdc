@@ -78,7 +78,7 @@ def scanvars(reader, frame, locals):
     vars, lasttoken, parent, prefix, value = [], None, None, '', __UNDEF__
     for ttype, token, start, end, line in tokenize.generate_tokens(reader):
         if ttype == tokenize.NEWLINE:
-            return vars
+            break
         if ttype == tokenize.NAME and token not in keyword.kwlist:
             if lasttoken == '.':
                 if parent is not __UNDEF__:

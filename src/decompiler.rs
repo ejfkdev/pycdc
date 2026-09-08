@@ -29234,6 +29234,7 @@ impl<'a> Ctx<'a> {
             return false;
         }
         // after the copy: only a dead back edge to the loop top
+        let mut early_guard = false;
         let mut m = ret_at + 1;
         while m < self.instrs.len() && is_pad(&self.instrs[m]) {
             m += 1;
@@ -29252,6 +29253,27 @@ impl<'a> Ctx<'a> {
                 true
             }
             Some(x) if x.offset >= lb_end => true,
+            // early-guard break (cgitb 3.12 scanvars `if ttype ==
+            // NEWLINE: break` as the loop's FIRST statement): the sunk
+            // copy is followed directly by the live loop body — no dead
+            // edge exists. Accept when the copy's RETURN is the mirror
+            // (checked above) and the loop body resumes right after;
+            // only the copy is skipped, the walk continues in the loop.
+            // No for-else registration in this variant: the exhaustion
+            // exit falls straight into the tail return run (an empty
+            // [lb_end, fb) span) — registering would grow a phantom
+            // else and move the tail return inside it.
+            Some(x2) if x2.offset < lb_end
+                && matches!(
+                    self.blocks.last().map(|b| (b.kind == BlockType::If, b.end)),
+                    Some((true, te)) if te == x2.offset
+                ) =>
+            {
+                // the copy is the WHOLE body of an `if guard:` ending
+                // exactly where the loop body resumes
+                early_guard = true;
+                true
+            }
             _ => false,
         };
         if !dead_edge_ok {
@@ -29262,7 +29284,30 @@ impl<'a> Ctx<'a> {
         // the tail copy): register the else end so the For close builds
         // the Else block and the tail return renders at function level
         let else_end_off = self.instrs[fb].offset;
-        if else_end_off > lb_end {
+        // the else arm exists iff REAL statements sit between the loop's
+        // exhaustion exit and the tail return run — the early-guard
+        // variant has no dead back edge to lean on, so decide by span
+        // content (cgitb scanvars: END_FOR only → no else; b16
+        // two_loops_same_fn: END_FOR; POP_TOP; appends → real else)
+        let has_else_span = else_end_off > lb_end
+            && self
+                .idx_of
+                .get(&lb_end)
+                .map_or(false, |&li| {
+                    self.instrs[li..fb].iter().any(|x| {
+                        !matches!(
+                            x.op,
+                            Op::END_FOR
+                                | Op::POP_ITER
+                                | Op::POP_TOP
+                                | Op::NOP
+                                | Op::NOT_TAKEN
+                                | Op::CACHE
+                                | Op::EXTENDED_ARG
+                        )
+                    })
+                });
+        if (!early_guard && else_end_off > lb_end) || (early_guard && has_else_span) {
             if let Some(b) = self.blocks.iter_mut().rev().find(|b| {
                 matches!(b.kind, BlockType::For) && b.start == lb_start
             }) {
@@ -29272,9 +29317,17 @@ impl<'a> Ctx<'a> {
             }
         }
         self.push_stmt(Stmt::Break);
-        self.sunk_loop_return_lift = true;
-        if self.skip_until.map_or(true, |sk| sk < lb_end) {
-            self.skip_until = Some(lb_end);
+        if !early_guard {
+            self.sunk_loop_return_lift = true;
+            if self.skip_until.map_or(true, |sk| sk < lb_end) {
+                self.skip_until = Some(lb_end);
+            }
+        } else {
+            // skip only the copy; the loop body resumes right after it
+            let after = self.instrs[m].offset;
+            if self.skip_until.map_or(true, |sk| sk < after) {
+                self.skip_until = Some(after);
+            }
         }
         true
     }
