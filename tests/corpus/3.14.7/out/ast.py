@@ -428,7 +428,7 @@ might differ in whitespace or similar details.
             b_attr = getattr(b, attr, sentinel)
             if a_attr is sentinel and b_attr is sentinel:
                 continue
-            if a_attr == b_attr:
+            if not a_attr != b_attr:
                 continue
             return False
         return True

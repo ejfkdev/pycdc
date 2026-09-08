@@ -369,7 +369,7 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
             frame = sys._getframe(1)
             for x in range(stacklevel - 1):
                 frame = _next_external_frame(frame, skip_file_prefixes)
-                if frame is not None:
+                if not frame is None:
                     continue
                 raise ValueError
     except ValueError:
@@ -424,7 +424,7 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
                 continue
         if mod is None or mod.match(module):
             if not ln == 0:
-                if lineno != ln:
+                if not lineno == ln:
                     continue
         break
     else:

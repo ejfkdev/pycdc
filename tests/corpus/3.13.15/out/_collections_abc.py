@@ -59,7 +59,7 @@ def _check_methods(C, *methods):
     mro = C.__mro__
     for method in methods:
         for B in mro:
-            if method not in B.__dict__:
+            if not method in B.__dict__:
                 continue
             if B.__dict__[method] is None:
                 return NotImplemented
@@ -489,7 +489,7 @@ then the other operations will automatically follow suit.
         if len(self) > len(other):
             return False
         for elem in self:
-            if elem in other:
+            if not elem not in other:
                 continue
             return False
         return True
@@ -510,7 +510,7 @@ then the other operations will automatically follow suit.
         if len(self) < len(other):
             return False
         for elem in other:
-            if elem in self:
+            if not elem not in self:
                 continue
             return False
         return True
@@ -540,7 +540,7 @@ does not accept an iterable for an input.
         '''Return True if two sets have a null intersection.'''
 
         for value in other:
-            if value not in self:
+            if not value in self:
                 continue
             return False
         return True
@@ -806,7 +806,7 @@ class ValuesView(MappingView, Collection):
         for key in self._mapping:
             v = self._mapping[key]
             if v is not value:
-                if v != value:
+                if not v == value:
                     continue
             return True
         return False
@@ -934,7 +934,7 @@ __getitem__, and __len__.
     def __contains__(self, value):
         for v in self:
             if v is not value:
-                if v != value:
+                if not v == value:
                     continue
             return True
         return False

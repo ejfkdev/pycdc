@@ -383,7 +383,7 @@ The result is returned as a bytes object.
                 acc = acc * 85 + _b85dec[c]
         except TypeError:
             for j, c in enumerate(chunk):
-                if _b85dec[c] is not None:
+                if not _b85dec[c] is None:
                     continue
                 raise ValueError('bad base85 character at position %d' % (i + j)) from None
             raise
@@ -484,7 +484,7 @@ def main():
             func = decode
         if o == '-u':
             func = decode
-        if o != '-h':
+        if not o == '-h':
             continue
         print(usage)
         return

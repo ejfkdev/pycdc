@@ -40,9 +40,9 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 220: orig  body=Yield()))])) | dec  body=Yield(value=Constant(value=None))))]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 3262,
+   "ndiff": 3261,
    "ntotal": 4046,
-   "detail": "line 706: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L5')\nline 710: orig ('FOR_ITER', 'to L5') | got ('FOR_ITER', 'to L4')\nline 714: orig ('CONTAINS_OP', 'in') | got ('CONTAINS_OP', 'not in')"
+   "detail": "line 706: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L5')\nline 710: orig ('FOR_ITER', 'to L5') | got ('FOR_ITER', 'to L4')\nline 715: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L2')"
   },
   {
    "module": "_colorize",
@@ -106,9 +106,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 65: orig  body=[Break()]) | dec  body=[Return()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1334,
+   "ndiff": 850,
    "ntotal": 3207,
-   "detail": "line 1696: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 1697: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')\nline 1831: orig ('COPY', '') | got ('LOAD_CONST', \"'Y'\")"
+   "detail": "line 2330: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'ampm')\nline 2331: orig ('JUMP_BACKWARD', 'to L13') | got ('LOAD_DEREF', 'locale_time')\nline 2332: orig ('LOAD_FAST', 'ampm') | got ('LOAD_ATTR', 'am_pm')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

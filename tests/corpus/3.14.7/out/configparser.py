@@ -1090,7 +1090,7 @@ delimiters or that begins with the section header pattern'''
         if re.match(self.SECTCRE, key):
             raise InvalidWriteError(f'Cannot write key {key}; begins with section pattern')
         for delim in self._delimiters:
-            if delim not in key:
+            if not delim in key:
                 continue
             raise InvalidWriteError(f'Cannot write key {key}; contains delimiter {delim}')
 

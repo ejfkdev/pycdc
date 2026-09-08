@@ -382,7 +382,7 @@ additional chunks as necessary.
             return ('', 0)
         if len(delims) > 1:
             for d in self.preferred:
-                if d not in delims.keys():
+                if not d in delims.keys():
                     continue
                 skipinitialspace = data[0].count(d) == data[0].count('%c ' % d)
                 return d, skipinitialspace

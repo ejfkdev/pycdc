@@ -315,7 +315,7 @@ matching when 'abcdef' should have been the match).
 
         to_convert = sorted(to_convert, key=len, reverse=True)
         for value in to_convert:
-            if value == '':
+            if not value != '':
                 continue
             break
         else:
@@ -342,18 +342,10 @@ regex syntax are escaped.
             nonlocal year_in_format, day_of_month_in_format
             format_char = m[1]
             match format_char:
-                case 'Y':
+                case 'Y' | 'y' | 'G':
                     year_in_format = True
-                    return self[format_char]
-                case 'y':
-                    year_in_format = True
-                    return self[format_char]
-                case 'G':
-                    year_in_format = True
-                    return self[format_char]
                 case 'd':
                     day_of_month_in_format = True
-                    return self[format_char]
             return self[format_char]
 
         format = re_sub('%[-_0^#]*[0-9]*([OE]?\\\\?.?)', repl, format)

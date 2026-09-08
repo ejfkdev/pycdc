@@ -19515,7 +19515,16 @@ return None;
                 negate_cond(cond.clone())
             }
         } else if jump_if_true {
-            negate_cond(cond.clone())
+            // 3.13+ keeps the operand's comparison op and flips the
+            // JUMP for a negated guard (`if not X == Y:` -> ==; PJIT) —
+            // rendering the folded compare flips the recompiled polarity
+            // (_strptime 3.13/3.14 loop guards); the explicit Not form
+            // recompiles back to op + inverted jump
+            if self.version.at_least(3, 13) {
+                simplify_not_or_wrap(cond.clone())
+            } else {
+                negate_cond(cond.clone())
+            }
         } else {
             cond.clone()
         };
@@ -32637,10 +32646,28 @@ impl<'a> Ctx<'a> {
             // An or-arm's fail target stays INSIDE this case's span
             // (before the next case head / cleanup boundary); a fail
             // target AT the boundary is the next case.
-            let within = match boundary {
-                Some(b) => self.instrs[fk].offset < b,
-                None => false,
+            // 3.11+ shared-success or-chain: every non-final arm's
+            // success JUMP_FORWARD hops to the shared body block, and
+            // its fail target IS the next or-arm — which the region's
+            // boundary scan flagged as the next case head, so it lands
+            // exactly AT the boundary. A single-pattern case has no
+            // success hop (fall-through into the body), so the hop is
+            // the or-chain discriminator (_strptime 3.13 repl
+            // `case 'Y' | 'y' | 'G':` split into three duplicated cases)
+            let arm_has_success_hop = body_start.is_some();
+            let within = if let Some(bs) = body_start {
+                // or-chain: every arm fails FORWARD to the next arm and
+                // all arms live before the shared success block — the
+                // boundary (first flagged case head) is arm 2 itself, so
+                // chain links are bounded by body_start instead
+                self.instrs[fk].offset < bs
+            } else {
+                match boundary {
+                    Some(b) => self.instrs[fk].offset < b,
+                    None => false,
+                }
             };
+            let _ = arm_has_success_hop;
             let continues = within
                 && self.instrs[fk].offset > self.instrs[jk].offset
                 && self.match_case_head_at(fk);
@@ -33611,6 +33638,7 @@ impl<'a> Ctx<'a> {
             };
             let mut nk = fi;
             let mut popped_cleanup = false;
+            let mut hopped_jump = false;
             loop {
                 self.match_skip_pad(&mut nk);
                 match self.instrs.get(nk).map(|x| x.op) {
@@ -33626,6 +33654,7 @@ impl<'a> Ctx<'a> {
                         let Some(&ti) = self.idx_of.get(&t) else {
                             break;
                         };
+                        hopped_jump = true;
                         nk = ti;
                     }
                     _ => break,
@@ -33682,6 +33711,13 @@ impl<'a> Ctx<'a> {
                 };
                 if (popped_cleanup || body_loop_back)
                     && !inverted_head
+                    // the advance hopped through an explicit forward
+                    // jump (the or-chain's no-match exit JF): what it
+                    // targets is deliberately skipped code — the
+                    // post-match flow, never a wildcard arm (repl 3.13:
+                    // POP_TOP; JF->tail would have grown `case _:
+                    // return self[format_char]`)
+                    && !hopped_jump
                     && !matches!(
                         self.instrs[nk].op,
                         Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
@@ -33712,6 +33748,58 @@ impl<'a> Ctx<'a> {
             None => None,
         }
         .or_else(|| self.instrs.last().map(|x| x.end()))?;
+        // a post-match IMMEDIATE `return v` gets tail-duplicated into
+        // the case bodies by the compiler (_strptime 3.13 repl: the
+        // shared or-success block AND the 'd' arm each carry a copy of
+        // `return self[format_char]`, the genuine tail follows the
+        // match). When the tail is literally the first statement after
+        // the region, strip the mirrored trailing case-body returns —
+        // the post-match walk renders it once. A case-internal-only
+        // return has no post-match twin and is untouched.
+        // idx_of also maps instruction END offsets — require the scan to
+        // start at a genuine instruction AT end_off, else the fallback
+        // end (last case's own RETURN end) resolves back to that very
+        // return and the strip eats the wildcard body (v310_match)
+        if let Some(ei) = self
+            .idx_of
+            .get(&end_off)
+            .copied()
+            .filter(|&ei2| self.instrs[ei2].offset == end_off)
+        {
+            let mut k = ei;
+            while matches!(
+                self.instrs.get(k).map(|x| x.op),
+                Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE)
+            ) {
+                k += 1;
+            }
+            let start = k;
+            let mut tail_e: Option<ExprRef> = None;
+            while k < self.instrs.len() {
+                let x = &self.instrs[k];
+                if x.op == Op::RETURN_VALUE {
+                    tail_e = self.sim_value_region(start, k);
+                    break;
+                }
+                if x.op == Op::RETURN_CONST {
+                    tail_e = Some(self.const_expr(x.arg as usize));
+                    break;
+                }
+                if !is_pure_value_op(x.op) {
+                    break;
+                }
+                k += 1;
+            }
+            if let Some(te) = tail_e {
+                for c in cases.iter_mut() {
+                    if let Some(Stmt::Return(Some(v))) = c.body.last() {
+                        if expr_eq(v, &te) {
+                            c.body.pop();
+                        }
+                    }
+                }
+            }
+        }
         Some((Stmt::Match { subject, cases }, end_off))
     }
 
