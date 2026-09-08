@@ -9885,6 +9885,132 @@ impl<'a> Ctx<'a> {
                     self.close_handler_blocks();
                 }
                 let e = self.pop_expr();
+                // 3.8-3.10 `break`-to-final-return sinking: when a
+                // loop's break flows straight into the function's
+                // terminating return, the compiler duplicates the
+                // return run into the break's landing pad (the cond
+                // jump skips the copy; the copy is [pads] value-loads
+                // RETURN, untargeted). Render Break instead of the
+                // Return — the mirror renders from the post-loop flow
+                // (_compression 3.10 seek: `if not data: break`
+                // rendered as a mid-loop `return self._pos`).
+                if self.legacy_handler.is_none() && self.legacy_try.is_none() {
+                    if let Some(&ri) = self.idx_of.get(&self.cur_offset) {
+                        let mut j = ri;
+                        while j > 0 {
+                            let p = &self.instrs[j - 1];
+                            if matches!(p.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+                                || is_pure_value_op(p.op)
+                            {
+                                j -= 1;
+                                continue;
+                            }
+                            break;
+                        }
+                        // the walk stops with instrs[j-1] as the first
+                        // non-pad/non-value instruction before RETURN
+                        if j == 0 {
+                            j = 1;
+                        }
+                        // a sunk break copy keeps the NOP line marker of
+                        // the elided break jump between the cond jump
+                        // and the value loads; a GENUINE mid-loop
+                        // `if c: return X` whose value happens to mirror
+                        // the tail return has NO NOP there (binhex 3.9
+                        // read: `if self.eof: return decdata` + the
+                        // function's own `return decdata` tail). Strict
+                        // NOP + pre-3.11: the sinking era is 3.8-3.10,
+                        // and 3.14 puts NOT_TAKEN after EVERY forward
+                        // cond jump, so pads there are not markers
+                        // (_markupbase 3.14 six genuine `return -1`s
+                        // folded to break)
+                        let pad_after_j = self.version.at_least(3, 8)
+                            && !self.version.at_least(3, 11)
+                            && matches!(
+                                self.instrs.get(j).map(|x| x.op),
+                                Some(Op::NOP)
+                            );
+                        let jins = &self.instrs[j - 1];
+                        let is_fwd_cj = matches!(
+                            jins.op,
+                            Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_IF_TRUE
+                        ) && !jins.is_backward;
+                        if let (true, Some(t)) = (is_fwd_cj, jins.target) {
+                            let lb = self.blocks.iter().rev().find(|b| {
+                                matches!(b.kind, BlockType::While | BlockType::For)
+                            });
+                            let if_top_ok = matches!(
+                                self.blocks.last().map(|b| (b.kind == BlockType::If, b.end)),
+                                Some((true, te)) if te == t
+                            );
+                            if if_top_ok
+                                && t > jins.offset
+                                && lb.map_or(false, |b| t < b.end && b.start < jins.offset)
+                            {
+                                // the copy region must be untargeted
+                                // (only the cond jump skips over it)
+                                let j_off = jins.offset;
+                                let cur_off = self.cur_offset;
+                                let untargeted = !self.instrs.iter().any(|x| {
+                                    x.target.map_or(false, |tt| {
+                                        tt > j_off && tt <= cur_off
+                                    })
+                                });
+                                // the loop exit must run straight into
+                                // a tail return whose value-op run
+                                // mirrors the copy's (same (op, arg)
+                                // sequence with pads stripped)
+                                let copy_run: Vec<(Op, Option<usize>)> = self.instrs[j..ri]
+                                    .iter()
+                                    .filter(|x| {
+                                        !matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+                                    })
+                                    .map(|x| (x.op, x.target))
+                                    .collect();
+                                let exit_off = lb.and_then(|b| self.loop_exit_offset(b));
+                                let mirrored = exit_off
+                                    .and_then(|ex| self.idx_of.get(&ex).copied())
+                                    .map_or(false, |ei| {
+                                        let mut tail_run: Vec<(Op, Option<usize>)> =
+                                            Vec::new();
+                                        let mut k = ei;
+                                        while k < self.instrs.len()
+                                            && tail_run.len() <= copy_run.len()
+                                        {
+                                            let x = &self.instrs[k];
+                                            if matches!(
+                                                x.op,
+                                                Op::RETURN_VALUE | Op::RETURN_CONST
+                                            ) {
+                                                return !tail_run.is_empty()
+                                                    && tail_run == copy_run;
+                                            }
+                                            if matches!(
+                                                x.op,
+                                                Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                                            ) {
+                                                k += 1;
+                                                continue;
+                                            }
+                                            if !is_pure_value_op(x.op) {
+                                                return false;
+                                            }
+                                            tail_run.push((x.op, x.target));
+                                            k += 1;
+                                        }
+                                        false
+                                    });
+                                if untargeted && mirrored && pad_after_j {
+                                    if let Some(top) = self.blocks.last_mut() {
+                                        top.stmts.push(Stmt::Break);
+                                    }
+                                    self.skip_until = Some(t);
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
                 // 3.9/3.10 computed `try: return expr finally:` — no
                 // CALL_FINALLY marker; the inline finally copy ran into
                 // the open Finally block and this RETURN lands on top of
@@ -19771,12 +19897,18 @@ return None;
                 while let Some(ins) = self.instrs.get(k) {
                     // a BACKWARD COND JUMP to the loop top ends the
                     // re-evaluation: this jump is a rotated while's first
-                    // cond test (3.11 shape).
+                    // cond test (3.11 shape). 3.8-3.10 keep the plain
+                    // POP_JUMP_IF_* names for backward jumps — the 3.10
+                    // `while read(): pass` re-eval is a backward PJIT
+                    // (_compression 3.10 seek: without it the pre-check
+                    // PJIF fused into the guard's and-chain)
                     if ins.is_backward
                         && matches!(
                             ins.op,
                             Op::POP_JUMP_BACKWARD_IF_TRUE
                                 | Op::POP_JUMP_BACKWARD_IF_FALSE
+                                | Op::POP_JUMP_IF_TRUE
+                                | Op::POP_JUMP_IF_FALSE
                                 | Op::JUMP_IF_FALSE
                                 | Op::JUMP_IF_TRUE
                         )

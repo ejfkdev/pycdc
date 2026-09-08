@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 17,
-  "SIG-DIFF": 19,
+  "PASS": 18,
+  "SIG-DIFF": 18,
   "INCOMPLETE": 4
  },
  "results": [
@@ -37,11 +37,7 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 569: orig  body=[If(test=Compare(left=Attribute(value=Name(id='self' | dec  body=[If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 30,
-   "ntotal": 575,
-   "detail": "line 504: orig ('NOP', '') | got ('LOAD_FAST', 'self')\nline 505: orig ('LOAD_FAST', 'self') | got ('LOAD_METHOD', 'read')\nline 506: orig ('LOAD_METHOD', 'read') | got ('LOAD_GLOBAL', 'io')"
+   "verdict": "PASS"
   },
   {
    "module": "_markupbase",

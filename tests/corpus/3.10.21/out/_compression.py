@@ -107,8 +107,8 @@ class DecompressReader(io.RawIOBase):
         elif whence == io.SEEK_CUR:
             offset = self._pos + offset
         elif whence == io.SEEK_END:
-            if self._size < 0 and self.read(io.DEFAULT_BUFFER_SIZE):
-                if not self.read(io.DEFAULT_BUFFER_SIZE):
+            if self._size < 0:
+                while self.read(io.DEFAULT_BUFFER_SIZE):
                     pass
             offset = self._size + offset
         else:
@@ -120,7 +120,7 @@ class DecompressReader(io.RawIOBase):
         while offset > 0:
             data = self.read(min(io.DEFAULT_BUFFER_SIZE, offset))
             if not data:
-                return self._pos
+                break
             offset -= len(data)
         return self._pos
 

@@ -65,7 +65,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 951,
    "ntotal": 1366,
-   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'link', 'attlist', 'element', 'linktype'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'linktype', 'element', 'link'})\")"
+   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'linktype', 'attlist', 'link', 'element'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'linktype', 'link', 'element', 'attlist'})\")"
   },
   {
    "module": "_opcode_metadata",
