@@ -171,8 +171,8 @@
    "module": "asynchat",
    "ast_detail": "diff at token 332: orig  ctx=Load()))) | dec  ctx=Load())))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 588,
-   "ntotal": 854,
+   "ndiff": 595,
+   "ntotal": 853,
    "detail": "line 222: orig ('SETUP_LOOP', '#210') | got ('SETUP_LOOP', '#213')\nline 225: orig ('JUMP_IF_FALSE', '#208') | got ('JUMP_IF_FALSE', '#211')\nline 237: orig ('JUMP_IF_TRUE', '#59') | got ('JUMP_IF_TRUE', '#60')"
   },
   {

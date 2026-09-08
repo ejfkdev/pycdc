@@ -2,8 +2,8 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "PASS": 24,
-  "SIG-DIFF": 12,
+  "PASS": 25,
+  "SIG-DIFF": 11,
   "AST-PASS": 4
  },
  "results": [
@@ -157,11 +157,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 842: orig  kwargs=None))] | dec  kwargs=None))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 242,
-   "ntotal": 814,
-   "detail": "line 498: orig ('SETUP_LOOP', '#138') | got ('SETUP_LOOP', '#139')\nline 501: orig ('POP_JUMP_IF_FALSE', '#137') | got ('POP_JUMP_IF_FALSE', '#138')\nline 504: orig ('POP_JUMP_IF_FALSE', '#137') | got ('POP_JUMP_IF_FALSE', '#138')"
+   "verdict": "PASS"
   },
   {
    "module": "asyncore",

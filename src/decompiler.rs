@@ -11123,6 +11123,106 @@ impl<'a> Ctx<'a> {
                 if !degenerate_break_fusion
                     && (lands_on_back_edge || self.is_continue_jump(target))
                 {
+                    // pre-3.11 handler `if c: A else: B` + shared
+                    // `continue`: the compiler threads the continue
+                    // into BOTH arms (then-arm JABS→loop-top; else-arm
+                    // JABS→loop-top; the handler-exit JF follows). The
+                    // flat rendering (`if c: A; continue` + `B;
+                    // continue`) recompiles with a dead else-skip JF
+                    // after the then arm's JABS — sig drift (asynchat
+                    // 2.7 initiate_send `except TypeError: if data:
+                    // appendleft else: del; continue`). Rebuild the
+                    // if/else with one shared continue.
+                    if self.legacy_handler.is_some() {
+                        let rebuild = match self.blocks.last() {
+                            Some(t)
+                                if t.kind == BlockType::If
+                                    && t.short_circuit.is_none()
+                                    && t.else_end.is_none()
+                                    && t.end >= self.cur_next
+                                    && !t.stmts.is_empty()
+                                    && t.cond_set =>
+                            {
+                                let else_start = t.end;
+                                // the else arm must terminate with a
+                                // back edge to the SAME loop top, with
+                                // no other backward edge inside, and be
+                                // followed by [pads] the handler-exit
+                                // forward jump
+                                let mut e2 = None;
+                                let mut ok = true;
+                                for x in self.instrs.iter() {
+                                    if x.offset < else_start {
+                                        continue;
+                                    }
+                                    if x.is_backward {
+                                        if x.target == Some(target)
+                                            && matches!(
+                                                x.op,
+                                                Op::JUMP_ABSOLUTE
+                                                    | Op::JUMP_BACKWARD
+                                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                            )
+                                        {
+                                            e2 = Some(x.offset);
+                                        } else {
+                                            ok = false;
+                                        }
+                                        break;
+                                    }
+                                }
+                                let after_ok = e2.map_or(false, |e2o| {
+                                    self.idx_of.get(&e2o).map_or(false, |&ei| {
+                                        let mut k = ei + 1;
+                                        while matches!(
+                                            self.instrs.get(k).map(|x| x.op),
+                                            Some(Op::NOP)
+                                                | Some(Op::NOT_TAKEN)
+                                                | Some(Op::CACHE)
+                                        ) {
+                                            k += 1;
+                                        }
+                                        matches!(
+                                            self.instrs.get(k).map(|x| (x.op, x.is_backward)),
+                                            Some((Op::JUMP_FORWARD, false))
+                                                | Some((Op::JUMP, false))
+                                        )
+                                    })
+                                });
+                                if ok && after_ok {
+                                    e2.map(|e2o| (else_start, e2o))
+                                } else {
+                                    None
+                                }
+                            }
+                            _ => None,
+                        };
+                        if let Some((else_start, e2)) = rebuild {
+                            let mut t = self.blocks.pop().unwrap();
+                            let then_stmts = std::mem::take(&mut t.stmts);
+                            let cond = t.cond.clone().unwrap();
+                            // the live legacy handler would swallow the
+                            // region's statements — collect them into
+                            // the orelse instead
+                            let saved_rc = self.region_collect_only;
+                            self.region_collect_only = true;
+                            let orelse = self.decompile_region(else_start, e2);
+                            self.region_collect_only = saved_rc;
+                            self.push_stmt(Stmt::If {
+                                cond,
+                                body: then_stmts,
+                                orelse,
+                            });
+                            self.push_stmt(Stmt::Continue);
+                            let resume = self
+                                .idx_of
+                                .get(&e2)
+                                .map(|&ei| self.instrs[ei].end())
+                                .unwrap_or(e2);
+                            self.skip_until = Some(resume);
+                            return true;
+                        }
+                    }
                     // folded elif/else boundary: this jump is the LAST
                     // instruction of an If/Else branch region and the target
                     // is (or threads to) the enclosing loop's back edge —
