@@ -161,8 +161,7 @@ class async_chat(asyncore.dispatcher):
                     return
                 del self.producer_fifo[0]
             return
-            return
-            if self.connected:
+            while self.producer_fifo and self.connected:
                 first = self.producer_fifo[0]
                 if not first:
                     del self.producer_fifo[0]
@@ -181,8 +180,7 @@ class async_chat(asyncore.dispatcher):
                 else:
                     if isinstance(data, str) and self.use_encoding:
                         data = bytes(data, self.encoding)
-            while self.producer_fifo:
-                pass
+            return
 
     def discard_buffers(self):
         self.ac_in_buffer = b''
@@ -207,10 +205,9 @@ class simple_producer:
 
 def find_prefix_at_end(haystack, needle):
     l = len(needle) - 1
-    if l:
-        while not haystack.endswith(needle[:l]):
-            l -= 1
-            if not l:
-                break
+    while l and not haystack.endswith(needle[:l]):
+        l -= 1
+        if not l:
+            break
     return l
 

@@ -114,7 +114,7 @@
    "module": "asynchat",
    "ast_detail": "diff at token 223: orig  body=[Return()]) | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 360,
+   "ndiff": 359,
    "ntotal": 808,
    "detail": "line 282: orig ('POP_JUMP_IF_FALSE', 'to 440') | got ('POP_JUMP_IF_FALSE', 'to 436')\nline 448: orig ('LOAD_CONST', 'None') | got ('handle_write', 1)\nline 449: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'self')"
   },
@@ -122,7 +122,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 253: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1787,
+   "ndiff": 1792,
    "ntotal": 2191,
    "detail": "line 309: orig ('SETUP_FINALLY', 'to 98') | got ('SETUP_FINALLY', 'to 96')\nline 356: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 176')\nline 357: orig ('RETURN_VALUE', '') | got ('DUP_TOP', '')"
   },
@@ -137,7 +137,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 1060: orig  Continue()] | dec  Return()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2184,
+   "ndiff": 2174,
    "ntotal": 2441,
    "detail": "line 215: orig ('NOP', '') | got ('LOAD_CONST', '(False, None, None)')\nline 216: orig ('NOP', '') | got ('LOAD_CONST', '<code set_break>')\nline 217: orig ('LOAD_CONST', '(False, None, None)') | got ('LOAD_CONST', \"'Bdb.set_break'\")"
   },
@@ -199,7 +199,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 179: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1073,
+   "ndiff": 1074,
    "ntotal": 1324,
    "detail": "line 218: orig ('SETUP_FINALLY', 'to 378') | got ('LOAD_FAST', 'self')\nline 219: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 220: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', 'to 366')"
   },

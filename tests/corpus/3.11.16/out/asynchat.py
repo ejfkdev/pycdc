@@ -149,38 +149,36 @@ class async_chat(asyncore.dispatcher):
         self.producer_fifo.append(None)
 
     def initiate_send(self):
-        while self.producer_fifo:
-            if self.connected:
-                first = self.producer_fifo[0]
-                if not first:
-                    del self.producer_fifo[0]
-                    if first is None:
-                        self.handle_close()
-                        return
-                obs = self.ac_out_buffer_size
-                try:
-                    data = first[:obs]
-                except TypeError:
-                    data = first.more()
-                    if data:
-                        self.producer_fifo.appendleft(data)
-                    else:
-                        del self.producer_fifo[0]
-                    continue
-                if isinstance(data, str) and self.use_encoding:
-                    data = bytes(data, self.encoding)
-                try:
-                    num_sent = self.send(data)
-                except OSError:
-                    self.handle_error()
+        while self.producer_fifo and self.connected:
+            first = self.producer_fifo[0]
+            if not first:
+                del self.producer_fifo[0]
+                if first is None:
+                    self.handle_close()
                     return
-                if num_sent:
-                    if num_sent < len(data) or obs < len(first):
-                        self.producer_fifo[0] = first[num_sent:]
-                    else:
-                        del self.producer_fifo[0]
+            obs = self.ac_out_buffer_size
+            try:
+                data = first[:obs]
+            except TypeError:
+                data = first.more()
+                if data:
+                    self.producer_fifo.appendleft(data)
+                else:
+                    del self.producer_fifo[0]
+                continue
+            if isinstance(data, str) and self.use_encoding:
+                data = bytes(data, self.encoding)
+            try:
+                num_sent = self.send(data)
+            except OSError:
+                self.handle_error()
                 return
-                return
+            if num_sent:
+                if num_sent < len(data) or obs < len(first):
+                    self.producer_fifo[0] = first[num_sent:]
+                else:
+                    del self.producer_fifo[0]
+            return
 
     def discard_buffers(self):
         self.ac_in_buffer = b''
@@ -205,10 +203,9 @@ class simple_producer:
 
 def find_prefix_at_end(haystack, needle):
     l = len(needle) - 1
-    if l:
-        while not haystack.endswith(needle[:l]):
-            l -= 1
-            if not l:
-                break
+    while l and not haystack.endswith(needle[:l]):
+        l -= 1
+        if not l:
+            break
     return l
 

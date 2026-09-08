@@ -18001,7 +18001,21 @@ impl<'a> Ctx<'a> {
                     // 3.11+ rotated while whose post-loop flow is sunk
                     // returns: the exit return lands right before the
                     // function-tail return copy the block end points at
-                    || self.is_term_pad_before(target, top.end))
+                    || self.is_term_pad_before(target, top.end, false)
+                    // 3.11 per-operand duplicated epilogues: `while A
+                    // and B:` gives each false exit its own `LOAD None;
+                    // RETURN` stub, so operand B's jump lands one stub
+                    // PAST the loop's recorded end (asynchat 3.11
+                    // initiate_send rendered `while A:` + guard `if B:`).
+                    // Bound to the cond region: a body jump must not
+                    // reach this clause (the `if num_sent:` guard one
+                    // instruction past the back edge was swallowed as a
+                    // "duplicated cond" — the whole loop body sits
+                    // between cond_end and any real operand-B jump)
+                    || (target > top.end
+                        && top.cond_end != usize::MAX
+                        && self.cur_offset < top.cond_end + 96
+                        && self.is_term_pad_before(top.end, target, true)))
                 && ((top.cond_end != usize::MAX && top.cond_end < self.cur_offset)
                     // the SETUP_LOOP-era While (section 3b) never records
                     // cond_end; on 3.8+ the MAX sentinel means "opened by
@@ -18832,11 +18846,97 @@ impl<'a> Ctx<'a> {
                         {
                             let cond_end = self.instrs[ci].end();
                             let mut blk = Block::new(BlockType::While, t, target);
-                            blk.cond = Some(if jump_if_true {
+                            let mut wcond = if jump_if_true {
                                 negate_cond(cond)
                             } else {
                                 cond
-                            });
+                            };
+                            // a rotated `while A and not B:` (3.11): the
+                            // first operand's PJF opened an If shell that
+                            // ends exactly at this jump's target and has
+                            // collected nothing — A belongs to the while
+                            // cond, not to a wrapper guard (asynchat 3.11
+                            // find_prefix_at_end rendered `if l: while not
+                            // endswith: ... if not l: break`)
+                            let splice = self.blocks.last().map_or(false, |tp| {
+                                matches!(tp.kind, BlockType::If)
+                                    && tp.cond.is_some()
+                                    && tp.end == target
+                                    && tp.else_end.is_none()
+                                    && tp.short_circuit.is_none()
+                                    && tp.stmts.is_empty()
+                                    && tp.start < cur
+                            }) && {
+                                // the loop region must RE-EVALUATE the
+                                // shell cond: a cond jump to the exit
+                                // inside (t, target) fed by a pure-value
+                                // run that sim-equals the shell cond.
+                                // A one-shot guard around a rotated while
+                                // (`if size<0: while read(): pass`,
+                                // _compression seek) has no such
+                                // re-evaluation and must stay a guard.
+                                self.blocks
+                                    .last()
+                                    .and_then(|tp| tp.cond.clone())
+                                    .map_or(false, |ac| {
+                                        let (Some(&bi), Some(&ei)) = (
+                                            self.idx_of.get(&t),
+                                            self.idx_of.get(&target),
+                                        ) else {
+                                            return false;
+                                        };
+                                        let mut cj = None;
+                                        for k in bi..ei {
+                                            let x = self.instrs[k];
+                                            if matches!(
+                                                x.op,
+                                                Op::POP_JUMP_IF_FALSE
+                                                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                    | Op::POP_JUMP_IF_TRUE
+                                                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                                            ) && x.target == Some(target)
+                                            {
+                                                cj = Some(k);
+                                                break;
+                                            }
+                                        }
+                                        let Some(ck) = cj else {
+                                            return false;
+                                        };
+                                        let mut s = ck;
+                                        while s > bi
+                                            && is_pure_value_op(self.instrs[s - 1].op)
+                                        {
+                                            s -= 1;
+                                        }
+                                        self.sim_value_region(s, ck).map_or(
+                                            false,
+                                            |v| {
+                                                format!("{:?}", simplify_not(v))
+                                                    == format!(
+                                                        "{:?}",
+                                                        simplify_not(ac)
+                                                    )
+                                            },
+                                        )
+                                    })
+                            };
+                            if splice {
+                                let a_cond = self
+                                    .blocks
+                                    .last()
+                                    .and_then(|tp| tp.cond.clone())
+                                    .unwrap();
+                                let mut flat = Vec::new();
+                                flatten_boolop(a_cond, BoolOpKind::And, &mut flat);
+                                flatten_boolop(wcond, BoolOpKind::And, &mut flat);
+                                wcond = Rc::new(Expr::BoolOp {
+                                    op: BoolOpKind::And,
+                                    values: flat,
+                                });
+                                self.blocks.pop();
+                            }
+                            blk.cond = Some(wcond);
                             blk.cond_set = true;
                             blk.cond_end = cond_end;
                             blk.jump_if_true = jump_if_true;
@@ -18850,13 +18950,29 @@ impl<'a> Ctx<'a> {
                         // the body top (t lies between this jump and the
                         // exit). Claim it: cond = the whole initial test
                         // chain, body = [t, target).
-                        if !jump_if_true
-                            && inst.is_backward
-                            && matches!(
-                                inst.op,
-                                Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_BACKWARD_IF_TRUE
-                            )
-                            && t > self.cur_next
+                        // the rotated back edge is a backward TRUE-jump
+                        // (`while (x := f()) and g:`) or, for a negated
+                        // tail operand, a backward FALSE-jump (`while l
+                        // and not endswith(...):` re-eval ends in
+                        // PJIB-to-body-top — asynchat 3.11
+                        // find_prefix_at_end rendered `if l: while not
+                        // ...: if not l: break`)
+                        let rotated_reentry = if jump_if_true {
+                            inst.is_backward
+                                && matches!(
+                                    inst.op,
+                                    Op::POP_JUMP_BACKWARD_IF_FALSE
+                                )
+                        } else {
+                            inst.is_backward
+                                && matches!(
+                                    inst.op,
+                                    Op::POP_JUMP_IF_TRUE
+                                        | Op::POP_JUMP_BACKWARD_IF_TRUE
+                                )
+                        };
+                        if rotated_reentry
+                            && t >= self.cur_next
                             && t < target
                             && self.is_rotated_multijump_while(ci, ti, t)
                         {
@@ -18871,6 +18987,40 @@ impl<'a> Ctx<'a> {
                                     op: BoolOpKind::And,
                                     values: flat,
                                 });
+                            }
+                            // an operand tested BEFORE this jump into an
+                            // enclosing If that ends exactly at this
+                            // jump's target is the rotated while's first
+                            // cond operand, not a wrapper guard: `while A
+                            // and not B:` = PJF(A) opens If[.,172), the
+                            // initial PJIT(B) lands here with the re-eval
+                            // PJIB below (asynchat 3.11
+                            // find_prefix_at_end rendered `if l: while
+                            // not endswith: ... if not l: break`). Splice
+                            // A in front, pop the shell If.
+                            let splice = self.blocks.last().map_or(false, |tp| {
+                                matches!(tp.kind, BlockType::If)
+                                    && tp.cond.is_some()
+                                    && tp.end == target
+                                    && tp.else_end.is_none()
+                                    && tp.short_circuit.is_none()
+                                    && tp.stmts.is_empty()
+                                    && tp.start < self.cur_offset
+                            });
+                            if splice {
+                                let a_cond = self
+                                    .blocks
+                                    .last()
+                                    .and_then(|tp| tp.cond.clone())
+                                    .unwrap();
+                                let mut flat = Vec::new();
+                                flatten_boolop(a_cond, BoolOpKind::And, &mut flat);
+                                flatten_boolop(merged, BoolOpKind::And, &mut flat);
+                                merged = Rc::new(Expr::BoolOp {
+                                    op: BoolOpKind::And,
+                                    values: flat,
+                                });
+                                self.blocks.pop();
                             }
                             blk.cond = Some(merged);
                             blk.cond_set = true;
@@ -20178,7 +20328,7 @@ impl<'a> Ctx<'a> {
     /// (RETURN/NOP/NOT_TAKEN/CACHE) with at least one return: `off` is a
     /// loop exit whose block end overshot into sunk function-tail return
     /// copies (3.11+ rotated while in tail flow, chunk.skip).
-    fn is_term_pad_before(&self, off: usize, end: usize) -> bool {
+    fn is_term_pad_before(&self, off: usize, end: usize, allow_load_none: bool) -> bool {
         if off >= end {
             return false;
         }
@@ -20193,6 +20343,18 @@ impl<'a> Ctx<'a> {
             match x.op {
                 Op::RETURN_VALUE | Op::RETURN_CONST => saw_return = true,
                 Op::NOP | Op::NOT_TAKEN | Op::CACHE => {}
+                // the sunk stub's value load (3.11 emits LOAD None;
+                // RETURN_VALUE, not RETURN_CONST) — only for the
+                // per-operand-epilogue clause (allow_load_none): the
+                // pre-end clause must keep rejecting value loads or an
+                // in-body guard one stub before the loop end reads as a
+                // duplicated rotated cond (asynchat 3.11 `if num_sent:`)
+                Op::LOAD_CONST
+                    if allow_load_none
+                        && matches!(
+                            self.code.consts.get(x.arg as usize).map(|o| &**o),
+                            Some(PyObject::None)
+                        ) => {}
                 _ => return false,
             }
         }

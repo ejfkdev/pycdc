@@ -101,7 +101,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1372,
    "ntotal": 2941,
-   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e03', '\u4e00', '\u5341', '\u4e5d'})\") | got ('LOAD_CONST', \"frozenset({'\u5341', '\u4e03', '\u4e5d', '\u5eff', '\u4e00'})\")"
+   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u4e5d', '\u5341', '\u5eff', '\u4e00'})\") | got ('LOAD_CONST', \"frozenset({'\u4e5d', '\u4e00', '\u5eff', '\u4e03', '\u5341'})\")"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -123,7 +123,7 @@
    "module": "base64",
    "ast_detail": "diff at token 43: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1806,
+   "ndiff": 1805,
    "ntotal": 2100,
    "detail": "line 260: orig ('NOP', '') | got ('LOAD_FAST', 's')\nline 261: orig ('LOAD_FAST', 's') | got ('LOAD_ATTR', 'encode + NULL|self')\nline 262: orig ('LOAD_ATTR', 'encode + NULL|self') | got ('LOAD_CONST', \"'ascii'\")"
   },
@@ -166,8 +166,8 @@
    "module": "cmd",
    "ast_detail": "diff at token 241: orig  body=[Try(body=[Assign(targets=[Name(id='line' | dec  body=[Assign(targets=[Name(id='line'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1136,
-   "ntotal": 1418,
+   "ndiff": 1139,
+   "ntotal": 1421,
    "detail": "line 257: orig ('NOP', '') | got ('LOAD_GLOBAL', 'input + NULL')\nline 258: orig ('LOAD_GLOBAL', 'input + NULL') | got ('LOAD_FAST', 'self')\nline 259: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'prompt')"
   },
   {

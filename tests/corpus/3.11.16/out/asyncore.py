@@ -175,8 +175,6 @@ def loop(timeout=30.0, use_poll=False, map=None, count=None):
     while map and count > 0:
         poll_fun(timeout, map)
         count = count - 1
-        if map:
-            pass
 
 class dispatcher:
     debug = False

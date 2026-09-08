@@ -315,8 +315,6 @@ class Bdb:
             while frame and frame is not self.botframe:
                 del frame.f_trace
                 frame = frame.f_back
-                if frame:
-                    pass
 
     def set_quit(self):
         '''Set quitting attribute to True.
