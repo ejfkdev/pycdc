@@ -73,7 +73,7 @@ Caution: A complex expression can overflow the C stack and cause a crash.
         if isinstance(node, UnaryOp) and isinstance(node.op, (UAdd, USub)):
             operand = _convert_num(node.operand)
             if isinstance(node.op, UAdd):
-                return operand
+                return +operand
             return -operand
         return _convert_num(node)
 

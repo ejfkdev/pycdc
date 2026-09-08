@@ -94,9 +94,9 @@
    "module": "_pylong",
    "ast_detail": "diff at token 161: orig  Assert(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 625,
+   "ndiff": 518,
    "ntotal": 1551,
-   "detail": "line 256: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')\nline 906: orig ('CALL_INTRINSIC_1', 'INTRINSIC_UNARY_POSITIVE') | got ('BUILD_TUPLE', '')\nline 907: orig ('BUILD_TUPLE', '') | got ('LOAD_DEREF', 'pow256')"
+   "detail": "line 256: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')\nline 1016: orig ('LOAD_FAST', 'n') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'n, hi')\nline 1017: orig ('LOAD_FAST', 'hi') | got ('LOAD_FAST', 'p256')"
   },
   {
    "module": "_sitebuiltins",
@@ -135,11 +135,11 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 229: orig  body=[Return(value=UnaryOp(op=UAdd() | dec  body=[Return(value=Name(id='operand'",
+   "ast_detail": "diff at token 326: orig  ops=[Eq() | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2076,
-   "ntotal": 2535,
-   "detail": "line 414: orig ('CALL_INTRINSIC_1', 'INTRINSIC_UNARY_POSITIVE') | got ('RETURN_VALUE', '')\nline 415: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'operand')\nline 416: orig ('LOAD_FAST', 'operand') | got ('UNARY_NEGATIVE', '')"
+   "ndiff": 1831,
+   "ntotal": 2536,
+   "detail": "line 487: orig ('POP_JUMP_IF_FALSE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L5')\nline 495: orig ('POP_JUMP_IF_FALSE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L5')\nline 502: orig ('POP_JUMP_IF_FALSE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L5')"
   },
   {
    "module": "base64",

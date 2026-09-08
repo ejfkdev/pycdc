@@ -170,7 +170,7 @@ def _dec_str_to_int_inner(s, *, GUARD=8):
         w2 = w - w1
         p256, recip = pow256[w2]
         ctx.prec = max(n.adjusted() - p256.adjusted(), 0) + GUARD
-        hi = n * recip
+        hi = +n * +recip
         ctx.prec = decimal.MAX_PREC
         hi = hi.to_integral_value()
         lo = n - hi * p256
@@ -203,7 +203,7 @@ def _dec_str_to_int_inner(s, *, GUARD=8):
         ctx.rounding = decimal.ROUND_DOWN
         for k, v in pow256.items():
             ctx.prec = v.adjusted() + GUARD + 1
-            pow256[k] = v, rpow256[k]
+            pow256[k] = v, +rpow256[k]
         del rpow256
         ctx.prec = decimal.MAX_PREC
         inner(D(s), w)

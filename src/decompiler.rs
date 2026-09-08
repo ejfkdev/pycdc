@@ -14940,6 +14940,21 @@ impl<'a> Ctx<'a> {
                     self.push(Rc::new(Expr::Const(Rc::new(PyObject::None))));
                     self.import_star_pop_pending = true;
                 }
+                // 3.12+: INTRINSIC_UNARY_POSITIVE (5) — the unary `+`
+                // (replaced the UNARY_POSITIVE opcode). NOT a
+                // pass-through: dropping it loses semantically
+                // meaningful rounding for Decimal (_pylong 3.14
+                // `hi = +n * +recip` rendered `n * recip`, which also
+                // let 3.14 fuse the loads into
+                // LOAD_FAST_BORROW_LOAD_FAST_BORROW)
+                if inst.op == Op::CALL_INTRINSIC_1 && arg == 5 {
+                    let e = self.pop_expr();
+                    self.push(Rc::new(Expr::Unary {
+                        op: UnaryOp::Pos,
+                        operand: e,
+                    }));
+                    return true;
+                }
                 // 3.12+: INTRINSIC_LIST_TO_TUPLE (6) converts the
                 // star-unpack build list into a tuple display
                 if inst.op == Op::CALL_INTRINSIC_1 && arg == 6 {
