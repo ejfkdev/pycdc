@@ -2,9 +2,9 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 13,
-  "SIG-DIFF": 18,
-  "INCOMPLETE": 9
+  "PASS": 15,
+  "SIG-DIFF": 21,
+  "INCOMPLETE": 4
  },
  "results": [
   {
@@ -37,10 +37,11 @@
   },
   {
    "module": "_compression",
-   "verdict": "INCOMPLETE",
-   "ndiff": 290,
+   "ast_detail": "diff at token 304: orig  body=[If(test=Attribute(value=Attribute(value=Name(id='self' | dec  body=[Try(body=[Assign(targets=[Name(id='data'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 233,
    "ntotal": 575,
-   "detail": "line 228: orig ('SETUP_WITH', 'to 122') | got ('SETUP_WITH', 'to 104')\nline 257: orig ('JUMP_FORWARD', 'to 102') | got ('JUMP_FORWARD', 'to 82')\nline 266: orig ('POP_BLOCK', '') | got ('LOAD_GLOBAL', 'len')"
+   "detail": "line 317: orig ('LOAD_FAST', 'self') | got ('SETUP_FINALLY', 'to 56')\nline 318: orig ('LOAD_ATTR', '_decompressor') | got ('LOAD_FAST', 'self')\nline 319: orig ('LOAD_ATTR', 'eof') | got ('LOAD_ATTR', '_decompressor')"
   },
   {
    "module": "_markupbase",
@@ -80,17 +81,11 @@
   },
   {
    "module": "_threading_local",
-   "verdict": "INCOMPLETE",
-   "ndiff": 197,
-   "ntotal": 444,
-   "detail": "line 229: orig ('SETUP_WITH', 'to 124') | got ('SETUP_WITH', 'to 126')\nline 241: orig ('POP_BLOCK', '') | got ('NOP', '')\nline 242: orig ('LOAD_CONST', 'None') | got ('POP_BLOCK', '')"
+   "verdict": "PASS"
   },
   {
    "module": "_weakrefset",
-   "verdict": "INCOMPLETE",
-   "ndiff": 540,
-   "ntotal": 925,
-   "detail": "line 354: orig ('SETUP_WITH', 'to 60') | got ('SETUP_WITH', 'to 62')\nline 372: orig ('POP_BLOCK', '') | got ('NOP', '')\nline 373: orig ('LOAD_CONST', 'None') | got ('POP_BLOCK', '')"
+   "verdict": "PASS"
   },
   {
    "module": "abc",
@@ -107,8 +102,8 @@
   {
    "module": "ast",
    "verdict": "INCOMPLETE",
-   "ndiff": 6998,
-   "ntotal": 7959,
+   "ndiff": 6761,
+   "ntotal": 7851,
    "detail": "line 611: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 617: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 623: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')"
   },
   {
@@ -130,7 +125,7 @@
   {
    "module": "base64",
    "verdict": "INCOMPLETE",
-   "ndiff": 1086,
+   "ndiff": 1084,
    "ntotal": 1933,
    "detail": "line 76: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 78: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 764: orig ('POP_JUMP_IF_TRUE', 'to 310') | got ('POP_JUMP_IF_TRUE', 'to 318')"
   },
@@ -144,10 +139,11 @@
   },
   {
    "module": "binhex",
-   "verdict": "INCOMPLETE",
-   "ndiff": 1724,
-   "ntotal": 2057,
-   "detail": "line 273: orig ('SETUP_WITH', 'to 48') | got ('SETUP_WITH', 'to 50')\nline 285: orig ('POP_BLOCK', '') | got ('NOP', '')\nline 286: orig ('LOAD_CONST', 'None') | got ('POP_BLOCK', '')"
+   "ast_detail": "diff at token 733: orig  ctx=Load()))] | dec  ctx=Load()))",
+   "verdict": "SIG-DIFF",
+   "ndiff": 9,
+   "ntotal": 2054,
+   "detail": "line 1582: orig ('POP_JUMP_IF_FALSE', 'to 22') | got ('POP_JUMP_IF_FALSE', 'to 58')\nline 1603: orig ('COMPARE_OP', '==') | got ('COMPARE_OP', '!=')\nline 1605: orig ('JUMP_ABSOLUTE', 'to 22') | got ('JUMP_FORWARD', 'to 58')"
   },
   {
    "module": "bisect",
@@ -163,10 +159,11 @@
   },
   {
    "module": "cProfile",
-   "verdict": "INCOMPLETE",
-   "ndiff": 487,
-   "ntotal": 683,
-   "detail": "line 165: orig ('SETUP_WITH', 'to 58') | got ('SETUP_WITH', 'to 60')\nline 178: orig ('POP_BLOCK', '') | got ('NOP', '')\nline 179: orig ('LOAD_CONST', 'None') | got ('POP_BLOCK', '')"
+   "ast_detail": "diff at token 312: orig  body=[Continue()])] | dec  body=[Pass()])]",
+   "verdict": "SIG-DIFF",
+   "ndiff": 275,
+   "ntotal": 680,
+   "detail": "line 398: orig ('SETUP_FINALLY', 'to 34') | got ('SETUP_FINALLY', 'to 22')\nline 399: orig ('LOAD_FAST', 'func') | got ('POP_BLOCK', '')\nline 400: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "calendar",
@@ -227,7 +224,7 @@
   {
    "module": "compileall",
    "verdict": "INCOMPLETE",
-   "ndiff": 1420,
+   "ndiff": 1434,
    "ntotal": 1512,
    "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },

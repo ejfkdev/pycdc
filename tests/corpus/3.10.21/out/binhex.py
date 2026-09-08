@@ -61,9 +61,6 @@ def _ignore_deprecation_warning():
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore', '', DeprecationWarning)
         yield None
-        return
-    if not None:
-        pass
 
 class _Hqxcoderengine:
     '''Write data to the coder in 3-byte chunks'''
@@ -443,4 +440,3 @@ def hexbin(inp, out):
         ofp.close()
     ifp.close()
 
-# WARNING: Decompyle incomplete

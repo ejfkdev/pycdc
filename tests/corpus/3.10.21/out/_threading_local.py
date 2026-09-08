@@ -183,9 +183,6 @@ def _patch(self):
     with impl.locallock:
         object.__setattr__(self, '__dict__', dct)
         yield None
-        return
-    if not None:
-        pass
 
 class local:
     __slots__ = ('_local__impl', '__dict__')
@@ -218,4 +215,3 @@ class local:
 
 
 from threading import current_thread, RLock
-# WARNING: Decompyle incomplete

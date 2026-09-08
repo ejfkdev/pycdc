@@ -22786,6 +22786,19 @@ impl<'a> Ctx<'a> {
                         (Some(&pi), Some(&ei)) if ei > pi + 1 => {
                             let mut all_clean = true;
                             let mut saw_exit = false;
+                            // 3.9/3.10 sync withs inline the exit call as
+                            // LOAD None; DUP_TOP; DUP_TOP; CALL_FUNCTION 3
+                            // (3.11+: LOAD None x3; PRECALL; CALL) with no
+                            // WITH_CLEANUP op — count the None operands so
+                            // the protocol call marks saw_exit, letting a
+                            // generator's sunk bare-return tail
+                            // (LOAD None; RETURN) pass the scan
+                            // (_threading_local 3.10 _patch: own=false left
+                            // the With open past its POP_BLOCK; the tail
+                            // return rendered inside the body and the
+                            // WITH_EXCEPT_START handler walked as
+                            // `if not None: pass`)
+                            let mut nones = 0usize;
                             for x in &self.instrs[pi + 1..ei] {
                                 match x.op {
                                     Op::WITH_CLEANUP_START
@@ -22797,11 +22810,26 @@ impl<'a> Ctx<'a> {
                                     | Op::END_ASYNC_FOR
                                     | Op::END_FINALLY
                                     | Op::END_SEND => saw_exit = true,
-                                    Op::LOAD_CONST
-                                    | Op::NOP
+                                    Op::LOAD_CONST => {
+                                        if matches!(
+                                            self.code
+                                                .consts
+                                                .get(x.arg as usize)
+                                                .map(|o| &**o),
+                                            Some(PyObject::None)
+                                        ) {
+                                            nones += 1;
+                                        }
+                                    }
+                                    Op::DUP_TOP => nones += 1,
+                                    Op::CALL_FUNCTION | Op::CALL
+                                        if nones >= 3 && x.arg <= 3 =>
+                                    {
+                                        saw_exit = true;
+                                    }
+                                    Op::NOP
                                     | Op::NOT_TAKEN
                                     | Op::CACHE
-                                    | Op::DUP_TOP
                                     | Op::DUP_TOP_TWO
                                     | Op::ROT_TWO
                                     | Op::ROT_THREE

@@ -472,7 +472,7 @@ def main():
     if args and args[0] != '-':
         with open(args[0], 'rb') as f:
             func(f, sys.stdout.buffer)
-            return
+        return
         if not None:
             pass
         return
