@@ -503,9 +503,8 @@ If none were set, return an error message.
         if not self.breaks:
             return 'There are no breakpoints'
         for bp in Breakpoint.bpbynumber:
-            if not bp:
-                continue
-            bp.deleteMe()
+            if bp:
+                bp.deleteMe()
         self.breaks = {}
 
     def get_bpbynumber(self, arg):
@@ -832,24 +831,23 @@ If no such entry exists, then (None, None) is returned.
     for b in possibles:
         if not b.enabled:
             continue
-        if not checkfuncname(b, frame):
-            continue
-        b.hits += 1
-        if not b.cond:
-            if b.ignore > 0:
-                b.ignore -= 1
-                continue
-            return b, True
-        try:
-            val = eval(b.cond, frame.f_globals, frame.f_locals)
-            if val:
+        if checkfuncname(b, frame):
+            b.hits += 1
+            if not b.cond:
                 if b.ignore > 0:
                     b.ignore -= 1
-                else:
-                    return b, True
-        except:
-            b, False
-            return
+                    continue
+                return b, True
+            try:
+                val = eval(b.cond, frame.f_globals, frame.f_locals)
+                if val:
+                    if b.ignore > 0:
+                        b.ignore -= 1
+                    else:
+                        return b, True
+            except:
+                b, False
+                return
     return (None, None)
 
 class Tdb(Bdb):

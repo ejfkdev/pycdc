@@ -109,9 +109,8 @@ def poll(timeout=0.0, map=None):
             is_w = obj.writable()
             if is_r:
                 r.append(fd)
-            if is_w:
-                if not obj.accepting:
-                    w.append(fd)
+            if is_w and not obj.accepting:
+                w.append(fd)
             if is_r or is_w:
                 e.append(fd)
         if [] == r:
@@ -146,9 +145,8 @@ def poll2(timeout=0.0, map=None):
             flags = 0
             if obj.readable():
                 flags |= select.POLLIN | select.POLLPRI
-            if obj.writable():
-                if not obj.accepting:
-                    flags |= select.POLLOUT
+            if obj.writable() and not obj.accepting:
+                flags |= select.POLLOUT
             if flags:
                 pollster.register(fd, flags)
         r = pollster.poll(timeout)

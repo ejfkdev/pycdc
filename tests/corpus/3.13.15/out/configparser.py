@@ -950,9 +950,8 @@ section names. Please note that comments get stripped off when reading configura
             if not line.clean:
                 if self._empty_lines_in_values:
                     if not line.has_comments and st.cursect is not None:
-                        if st.optname:
-                            if st.cursect[st.optname] is not None:
-                                st.cursect[st.optname].append('')
+                        if st.optname and st.cursect[st.optname] is not None:
+                            st.cursect[st.optname].append('')
                 else:
                     st.indent_level = sys.maxsize
                 continue

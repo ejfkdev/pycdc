@@ -41,9 +41,8 @@ def _findall(haystack, needle):
 def _fixmonths(months):
     yield from months
     for s in months:
-        if 'i̇' not in s:
-            continue
-        yield s.replace('i̇', 'İ')
+        if 'i̇' in s:
+            yield s.replace('i̇', 'İ')
 
 lzh_TW_alt_digits = ('〇', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '廿', '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '卅', '卅一')
 
@@ -170,9 +169,8 @@ since changing the timezone is worthless without that call.
                 current_format = current_format.replace(self.am_pm[1], '%p')
             for tz_values in self.timezone:
                 for tz in tz_values:
-                    if not tz:
-                        continue
-                    current_format = current_format.replace(tz, '%Z')
+                    if tz:
+                        current_format = current_format.replace(tz, '%Z')
             if not current_format.isascii() and self.LC_alt_digits is None:
                 current_format = re_sub('\\d(?<![0-9])', (lambda m: chr(1632 + int(m[0]))), current_format)
             for old, new in replacement_pairs:

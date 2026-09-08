@@ -246,11 +246,9 @@ location in a file.
             continue
         if 'lineno' in child._attributes:
             child.lineno = getattr(child, 'lineno', 0) + n
-        if 'end_lineno' not in child._attributes:
-            continue
-        if (end_lineno := getattr(child, 'end_lineno', 0)) is None:
-            continue
-        child.end_lineno = end_lineno + n
+        if 'end_lineno' in child._attributes:
+            if (end_lineno := getattr(child, 'end_lineno', 0)) is not None:
+                child.end_lineno = end_lineno + n
     return node
 
 def iter_fields(node):
@@ -274,13 +272,10 @@ and all items of fields that are lists of nodes.
     for name, field in iter_fields(node):
         if isinstance(field, AST):
             yield field
-        else:
-            if not isinstance(field, list):
-                continue
+        elif isinstance(field, list):
             for item in field:
-                if not isinstance(item, AST):
-                    continue
-                yield item
+                if isinstance(item, AST):
+                    yield item
 
 def get_docstring(node, clean=True):
     '''
@@ -320,9 +315,8 @@ This mimics how the Python parser splits source code.
         _line_pattern = re.compile('(.*?(?:\\r\\n|\\n|\\r|$))')
     lines = []
     for lineno, match in enumerate(_line_pattern.finditer(source), 1):
-        if maxlines is not None:
-            if lineno > maxlines:
-                return lines
+        if maxlines is not None and lineno > maxlines:
+            return lines
         lines.append(match[0])
     return lines
 
@@ -482,12 +476,9 @@ allows modifications.
         for field, value in iter_fields(node):
             if isinstance(value, list):
                 for item in value:
-                    if not isinstance(item, AST):
-                        continue
-                    self.visit(item)
-            else:
-                if not isinstance(value, AST):
-                    continue
+                    if isinstance(item, AST):
+                        self.visit(item)
+            elif isinstance(value, AST):
                 self.visit(value)
 
 
@@ -541,9 +532,7 @@ Usually you use the transformer like this::
                             continue
                     new_values.append(value)
                 old_value[slice(None, None, None)] = new_values
-            else:
-                if not isinstance(old_value, AST):
-                    continue
+            elif isinstance(old_value, AST):
                 new_node = self.visit(old_value)
                 if new_node is None:
                     delattr(node, field)

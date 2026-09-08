@@ -43,8 +43,8 @@
  "3.13.15": {
   "interp": "/opt/homebrew/bin/python3.13",
   "counts": {
-   "PASS": 18,
-   "SIG-DIFF": 15,
+   "PASS": 19,
+   "SIG-DIFF": 14,
    "INCOMPLETE": 6,
    "AST-PASS": 1
   }
@@ -52,9 +52,9 @@
  "3.14.7": {
   "interp": "/opt/homebrew/bin/python3.14",
   "counts": {
-   "PASS": 15,
+   "PASS": 16,
    "INCOMPLETE": 10,
-   "SIG-DIFF": 14,
+   "SIG-DIFF": 13,
    "AST-PASS": 1
   }
  },
@@ -100,8 +100,8 @@
  "3.9.25": {
   "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
   "counts": {
-   "PASS": 20,
-   "SIG-DIFF": 16,
+   "PASS": 21,
+   "SIG-DIFF": 15,
    "INCOMPLETE": 4
   }
  }

@@ -971,9 +971,8 @@ section names. Please note that comments get stripped off when reading configura
             if not line.clean:
                 if self._empty_lines_in_values:
                     if not line.has_comments and st.cursect is not None:
-                        if st.optname:
-                            if st.cursect[st.optname] is not None:
-                                st.cursect[st.optname].append('')
+                        if st.optname and st.cursect[st.optname] is not None:
+                            st.cursect[st.optname].append('')
                 else:
                     st.indent_level = sys.maxsize
                 continue
@@ -1229,9 +1228,8 @@ section proxies to find and use the implementation on the parser class.
         for getter in dir(self._parser):
             m = self.GETTERCRE.match(getter)
             if m:
-                if not callable(getattr(self._parser, getter)):
-                    continue
-            self._data[m.group('name')] = None
+                if callable(getattr(self._parser, getter)):
+                    self._data[m.group('name')] = None
 
     def __getitem__(self, key):
         return self._data[key]

@@ -236,9 +236,9 @@
   {
    "module": "copyreg",
    "verdict": "INCOMPLETE",
-   "ndiff": 435,
-   "ntotal": 671,
-   "detail": "line 219: orig ('FOR_ITER', 'to 196') | got ('FOR_ITER', 'to 206')\nline 226: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 116') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 204')\nline 231: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 116') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 114')"
+   "ndiff": 429,
+   "ntotal": 668,
+   "detail": "line 219: orig ('FOR_ITER', 'to 196') | got ('FOR_ITER', 'to 154')\nline 233: orig ('JUMP_FORWARD', 'to 210') | got ('JUMP_FORWARD', 'to 168')\nline 237: orig ('LOAD_GLOBAL', 'NULL + isinstance') | got ('LOAD_FAST', 'new')"
   },
   {
    "module": "crypt",

@@ -33,9 +33,8 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
         which = hi if need_hi else lo
         need.add(which)
         ws.add(which)
-        if lo == hi:
-            continue
-        ws.add(w - which)
+        if lo != hi:
+            ws.add(w - which)
     cands = need.copy()
     extra = set()
     while cands:

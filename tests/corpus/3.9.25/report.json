@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 20,
-  "SIG-DIFF": 16,
+  "PASS": 21,
+  "SIG-DIFF": 15,
   "INCOMPLETE": 4
  },
  "results": [
@@ -237,11 +237,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 209: orig  body=[Break()] | dec  body=[Pass()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 369,
-   "ntotal": 563,
-   "detail": "line 176: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 78')\nline 188: orig ('POP_TOP', '') | got ('JUMP_ABSOLUTE', '')\nline 189: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'base')"
+   "verdict": "PASS"
   }
  ]
 }

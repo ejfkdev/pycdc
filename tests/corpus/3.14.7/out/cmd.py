@@ -309,9 +309,8 @@ Otherwise try to call complete_<command> to get list of completions.
         cmds_undoc = []
         topics = set()
         for name in names:
-            if name[:5] != 'help_':
-                continue
-            topics.add(name[5:])
+            if name[:5] == 'help_':
+                topics.add(name[5:])
         names.sort()
         prevname = ''
         for name in names:

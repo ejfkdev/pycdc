@@ -2,8 +2,8 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 18,
-  "SIG-DIFF": 15,
+  "PASS": 19,
+  "SIG-DIFF": 14,
   "INCOMPLETE": 6,
   "AST-PASS": 1
  },
@@ -95,9 +95,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 65: orig  body=[Break()]) | dec  body=[Return()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1233,
+   "ndiff": 1232,
    "ntotal": 2990,
-   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 188: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 596: orig ('LOAD_CONST', \"frozenset({'\u4e5d', '\u4e00', '\u5eff', '\u5341', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u5341', '\u5eff', '\u4e00', '\u4e5d', '\u4e03'})\")"
+   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 596: orig ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e00', '\u4e03', '\u5341', '\u4e5d'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e5d', '\u4e03', '\u4e00', '\u5341'})\")\nline 636: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -144,7 +144,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 240: orig  body=[If(test=Attribute(value=Name(id='entry' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 271: orig  body=[Continue()])]) | dec  body=[Pass()])])",
    "verdict": "SIG-DIFF",
    "ndiff": 299,
    "ntotal": 725,
@@ -224,15 +224,11 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 178: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 225,
-   "ntotal": 635,
-   "detail": "line 192: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L7')\nline 199: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L3')\nline 200: orig ('LOAD_FAST', 'base') | got ('JUMP_BACKWARD', 'to L2')"
+   "verdict": "PASS"
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 863: orig  body=[Continue()])]) | dec  body=[Pass()])])",
+   "ast_detail": "diff at token 785: orig  If(test=Name(id='matches' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 1397,
    "ntotal": 1701,

@@ -52,9 +52,8 @@ class WeakSet:
         with _IterationGuard(self):
             for itemref in self.data:
                 item = itemref()
-                if item is None:
-                    continue
-                yield item
+                if item is not None:
+                    yield item
 
     def __len__(self):
         return len(self.data) - len(self._pending_removals)

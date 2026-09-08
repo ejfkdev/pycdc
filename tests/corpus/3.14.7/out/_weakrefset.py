@@ -17,9 +17,8 @@ class WeakSet:
     def __iter__(self):
         for itemref in self.data.copy():
             item = itemref()
-            if item is None:
-                continue
-            yield item
+            if item is not None:
+                yield item
 
     def __len__(self):
         return len(self.data)
@@ -50,7 +49,7 @@ class WeakSet:
             except KeyError:
                 raise KeyError('pop from empty WeakSet') from None
             item = itemref()
-            if item is None:
+            if item is not None:
                 break
         return item
 

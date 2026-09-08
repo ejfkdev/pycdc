@@ -42,9 +42,8 @@ class _MonitoringTracer:
         for event, cb_name in self.EVENT_CALLBACK_MAP.items():
             callback = self.callback_wrapper(getattr(self, f'{cb_name}_callback'), event)
             sys.monitoring.register_callback(self._tool_id, event, callback)
-            if event == E.INSTRUCTION:
-                continue
-            all_events |= event
+            if event != E.INSTRUCTION:
+                all_events |= event
         self.update_local_events()
         sys.monitoring.set_events(self._tool_id, self.GLOBAL_EVENTS)
         self._enabled = True
@@ -694,9 +693,8 @@ If none were set, return an error message.
         if not self.breaks:
             return 'There are no breakpoints'
         for bp in Breakpoint.bpbynumber:
-            if not bp:
-                continue
-            bp.deleteMe()
+            if bp:
+                bp.deleteMe()
         self.breaks = {}
 
     def get_bpbynumber(self, arg):

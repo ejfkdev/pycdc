@@ -17599,7 +17599,7 @@ impl<'a> Ctx<'a> {
     }
 
     fn try_guard_chain(&self, cond: &ExprRef, jump_if_true: bool, target: usize)
-        -> Option<(ExprRef, usize, usize)>
+        -> Option<(ExprRef, usize, usize, usize)>
     {
         let is_cond_jump = |o: Op| {
             matches!(
@@ -17614,9 +17614,17 @@ impl<'a> Ctx<'a> {
         let ci = *self.idx_of.get(&self.cur_offset)?;
         // shape A's trampoline must be separated from the jump by real
         // NOT_TAKEN padding (3.12+); a bare adjacent back jump is py2/3.11
-        // `if c: continue` and belongs to the historical machinery
-        let pad_present =
-            matches!(self.instrs.get(ci + 1).map(|x| x.op), Some(Op::NOT_TAKEN));
+        // `if c: continue` and belongs to the historical machinery.
+        // 3.13+ dropped NOT_TAKEN from this position entirely: the
+        // continue trampoline sits DIRECTLY after the cond jump (copyreg
+        // 3.13 _reduce_ex `if isinstance(...) and new.__self__ is base:
+        // break` — PJIT→next cond; JUMP_BACKWARD loop_top) — admit the
+        // bare-adjacent shape only there; the degenerate single-guard
+        // path still renders `if c: continue` correctly
+        let pad_present = matches!(
+            self.instrs.get(ci + 1).map(|x| x.op),
+            Some(Op::NOT_TAKEN)
+        ) || self.version.at_least(3, 13);
         let mut t = ci + 1;
         while matches!(self.instrs.get(t).map(|x| x.op), Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)) {
             t += 1;
@@ -17636,9 +17644,11 @@ impl<'a> Ctx<'a> {
             // Strict admission: mid-chain guards (whose fall-through is a
             // plain body) must fall back to the generic If nesting.
             if self.shape_b_admit(ci, target) {
-                return self.try_guard_chain_fallthrough(cond, jump_if_true, target);
+return self
+                        .try_guard_chain_fallthrough(cond, jump_if_true, target)
+                        .map(|(m, bs, be)| (m, bs, be, usize::MAX));
             }
-            return None;
+return None;
         }
         let loop_top = tramp.target?;
         let tramp_off = tramp.offset;
@@ -17648,6 +17658,146 @@ impl<'a> Ctx<'a> {
                     || (b.cond_end != usize::MAX && b.cond_end == loop_top))
         }) {
             return None;
+        }
+        // sequential shape check: when the pass-jump target IS the very
+        // next real instruction after this guard's own continue
+        // trampoline, the guard is locally ambiguous between a
+        // standalone `if not X: continue` and a fused and-chain link.
+        // Decide by the chain TAIL: walk the guarded links; a chain
+        // ending at a break chunk is the real fused `if A and B: break`
+        // (copyreg 3.13 _reduce_ex — the links are separated by their
+        // own trampolines so its target is NOT next-after-tramp, but
+        // _slotnames-style single guards are). A chain that stops at
+        // plain statements after advancing means sibling `if not X:
+        // continue` guards — fusing them nests the loop's tail
+        // statements under the last guard and drops their continue
+        // semantics (bdb 3.13 effective: the fused form ran the try
+        // tail for disabled breakpoints). Bail to the historical
+        // per-guard machinery in that case.
+        let after_tramp = {
+            let mut k = self.idx_of.get(&tramp_off).map(|&i2| i2 + 1);
+            while let Some(kk) = k {
+                match self.instrs.get(kk).map(|x| x.op) {
+                    Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE) => {
+                        k = Some(kk + 1);
+                    }
+                    _ => break,
+                }
+            }
+            k.and_then(|kk| self.instrs.get(kk)).map(|x| x.offset)
+        };
+        if after_tramp == Some(target)
+            && self.version.at_least(3, 13)
+            && !self.version.at_least(3, 14)
+        {
+            // veto applies to 3.13 ONLY: with NOT_TAKEN padding present
+            // (3.14+) the historical multi-link fusion renders these
+            // chains better (compileall 3.14 _walk_dir 5-operand elif
+            // chain, bdb 3.14 effective — the veto there split them
+            // into per-link continues and raised nd)
+            let is_cj = |o: Op| {
+                matches!(
+                    o,
+                    Op::POP_JUMP_IF_FALSE
+                        | Op::POP_JUMP_IF_TRUE
+                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                )
+            };
+            let mut cur = target;
+            let mut advanced = false;
+            let tail = loop {
+                let Some(&ri) = self.idx_of.get(&cur) else {
+                    break None;
+                };
+                let mut jk = ri;
+                let mut cond_at = None;
+                while jk < self.instrs.len() {
+                    let ins = &self.instrs[jk];
+                    if is_cj(ins.op) {
+                        cond_at = Some(jk);
+                        break;
+                    }
+                    if !is_pure_value_op(ins.op)
+                        && !matches!(
+                            ins.op,
+                            Op::NOT_TAKEN | Op::NOP | Op::CACHE | Op::TO_BOOL
+                        )
+                    {
+                        break;
+                    }
+                    jk += 1;
+                }
+                let Some(cj) = cond_at else {
+                    break Some(cur);
+                };
+                let mut ft = cj + 1;
+                while matches!(
+                    self.instrs.get(ft).map(|x| x.op),
+                    Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+                ) {
+                    ft += 1;
+                }
+                let ok_tramp = self.instrs.get(ft).map_or(false, |x| {
+                    x.is_backward
+                        && x.target == Some(loop_top)
+                        && matches!(
+                            x.op,
+                            Op::JUMP_BACKWARD
+                                | Op::JUMP_ABSOLUTE
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                        )
+                });
+                if !ok_tramp {
+                    break Some(cur);
+                }
+                let Some(nt) = self.instrs[cj].target else {
+                    break Some(cur);
+                };
+                advanced = true;
+                cur = nt;
+            };
+            if let Some(stop) = tail {
+                if advanced {
+                    // stop must be a break chunk ([POP_TOP/pads] + a
+                    // forward jump to a loop exit) or the "chain" is a
+                    // run of sibling continue guards
+                    let is_break_chunk = self
+                        .idx_of
+                        .get(&stop)
+                        .map_or(false, |&si| {
+                            let mut k = si;
+                            while matches!(
+                                self.instrs.get(k).map(|x| x.op),
+                                Some(Op::POP_TOP)
+                                    | Some(Op::NOT_TAKEN)
+                                    | Some(Op::NOP)
+                                    | Some(Op::CACHE)
+                            ) {
+                                k += 1;
+                            }
+                            self.instrs.get(k).map_or(false, |x| {
+                                !x.is_backward
+                                    && matches!(
+                                        x.op,
+                                        Op::JUMP_FORWARD
+                                            | Op::JUMP
+                                            | Op::JUMP_ABSOLUTE
+                                    )
+                                    && x.target
+                                        .map_or(false, |t| {
+                                            self.find_loop_exit(t).is_some()
+                                        })
+                            })
+                        });
+                    if !is_break_chunk {
+                        return None;
+                    }
+                }
+                // !advanced: sequential SINGLE guard — the consumer
+                // decides between the threaded nested-if form and the
+                // historical inverted continue
+            }
         }
         // walk the guard chain. Shape A: the chain advances through the
         // JUMP and the fall-through is the continue trampoline, so an
@@ -17677,6 +17827,27 @@ impl<'a> Ctx<'a> {
                             | Op::POP_JUMP_FORWARD_IF_TRUE
                     ) {
                         return true;
+                    }
+                    // a trampoline INSIDE the lookahead span means the
+                    // target begins a NEW statement, not another link of
+                    // this and-chain: the sequential per-link trampoline
+                    // walk below would have consumed it as an operand
+                    // guard had the chain been real. 3.13 bare adjacency
+                    // made the `if not A: continue; if not B: continue`
+                    // guard pair look like one fused `if A and B:` chain
+                    // (bdb 3.13 effective: the loop-level try tail was
+                    // swallowed into a nested body, dropping the
+                    // guards' continue semantics)
+                    if ins.is_backward
+                        && matches!(
+                            ins.op,
+                            Op::JUMP_BACKWARD
+                                | Op::JUMP_ABSOLUTE
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                        )
+                        && ins.target == Some(loop_top)
+                    {
+                        return false;
                     }
                     if !is_pure_value_op(ins.op) || steps > 40 {
                         return false;
@@ -17712,6 +17883,34 @@ impl<'a> Ctx<'a> {
         if target_is_loop_top || rotated_back_edge {
             return None;
         }
+        // the pass side lands on an enclosing loop's exit: a rotated
+        // while's re-eval link (3.13 `while A and B:` — POP_JUMP_IF_NONE
+        // followed directly by the body back edge) belongs to the
+        // dup_while machinery; shape A would read it as a degenerate
+        // guard and emit a phantom `if <cond>: break` (b16 while_and,
+        // v38_walrus 3.13). Genuine guard-chain bodies live INSIDE the
+        // loop span — a pass exit into a chain body still lands before
+        // the loop's end (copyreg 3.13 _reduce_ex)
+        if self
+            .blocks
+            .iter()
+            .rev()
+            .find(|b| matches!(b.kind, BlockType::While | BlockType::For))
+            .map_or(false, |b| {
+                self.loop_exit_offset(b).map_or(false, |le| {
+                    self.effective_offset(le) == self.effective_offset(target)
+                        // the re-eval's false exit may land on the
+                        // loop's own sunk tail-return stub right
+                        // before the registered exit (configparser
+                        // 3.13 `while rest:` — the re-eval PJIF
+                        // targets a duplicated RETURN_CONST one
+                        // stub before the exit)
+                        || self.is_term_pad_before(target, le, false)
+                })
+            })
+        {
+            return None;
+        }
         let first = if chain_continues {
             if jump_if_true {
                 cond.clone()
@@ -17728,7 +17927,7 @@ impl<'a> Ctx<'a> {
         let mut body_start;
         loop {
             let Some(&ni) = self.idx_of.get(&next) else {
-                return None;
+return None;
             };
             // scan the operand region up to its cond jump
             let region_start = ni;
@@ -17751,15 +17950,18 @@ impl<'a> Ctx<'a> {
                     // and the jump target is the LOOP-LEVEL body —
                     // `if <guards>: continue` with the body outside
                     let merged = self.merge_guard_values(std::mem::take(&mut values));
-                    return Some((merged, next, tramp_off));
+                    return Some((merged, next, tramp_off, loop_top));
                 }
                 body_start = next;
                 break;
             }
             // the guard's fall-through must be the continue trampoline
-            // (NOT_TAKEN padding then the back jump)
-            if !matches!(self.instrs.get(jk + 1).map(|x| x.op), Some(Op::NOT_TAKEN)) {
-                return None;
+            // (NOT_TAKEN padding then the back jump; 3.13+ dropped the
+            // padding — the back jump is directly adjacent)
+            if !matches!(self.instrs.get(jk + 1).map(|x| x.op), Some(Op::NOT_TAKEN))
+                && !self.version.at_least(3, 13)
+            {
+return None;
             }
             let mut ft = jk + 1;
             while matches!(self.instrs.get(ft).map(|x| x.op), Some(Op::NOT_TAKEN) | Some(Op::NOP)) {
@@ -17778,14 +17980,14 @@ impl<'a> Ctx<'a> {
                 // the operand region belongs to the body, not a guard —
                 // only accept when nothing was consumed as an operand
                 if jk != region_start {
-                    return None;
+return None;
                 }
                 break;
             }
             let operand = match self.sim_value_region(region_start, jk) {
                             Some(o) => o,
                             None => {
-                                return None;
+return None;
                             }
                         };
             let jins = &self.instrs[jk];
@@ -17803,11 +18005,11 @@ impl<'a> Ctx<'a> {
             next = jins.target?;
         }
         if values.is_empty() {
-            return None;
+return None;
         }
         // the body ends at its back edge to the loop top (or a break)
         let Some(&bi) = self.idx_of.get(&body_start) else {
-            return None;
+return None;
         };
         let mut body_end = None;
         for ins in self.instrs[bi..].iter() {
@@ -17823,6 +18025,34 @@ impl<'a> Ctx<'a> {
                         )
                     {
                         body_end = Some(ins.offset);
+                        break;
+                    }
+                    // terminal break chunk: the body IS [POP_TOP...] +
+                    // a forward jump past the loop exit — scanning past
+                    // it never finds the loop's back edge (copyreg 3.13
+                    // _reduce_ex: `if A and B: break` over a for-else,
+                    // the break chunk is followed by END_FOR + the else
+                    // region). Bound the body at the break jump
+                    if !ins.is_backward
+                        && matches!(
+                            ins.op,
+                            Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+                        )
+                        && self.find_loop_exit(t).is_some()
+                        && self.instrs[bi..]
+                            .iter()
+                            .take_while(|x| x.offset < ins.offset)
+                            .all(|x| {
+                                matches!(
+                                    x.op,
+                                    Op::POP_TOP
+                                        | Op::NOP
+                                        | Op::NOT_TAKEN
+                                        | Op::CACHE
+                                )
+                            })
+                    {
+                        body_end = Some(ins.end());
                         break;
                     }
                     // a break jump out of the loop lives inside the body;
@@ -17863,7 +18093,7 @@ impl<'a> Ctx<'a> {
                             })
                             .map_or(false, |b| t < b.end);
                         if !inside {
-                            return None;
+return None;
                         }
                     }
                 }
@@ -17872,17 +18102,17 @@ impl<'a> Ctx<'a> {
         let body_end = match body_end {
             Some(b) => b,
             None => {
-                return None;
+return None;
             }
         };
         if body_end <= body_start {
-            return None;
+return None;
         }
         let merged = Rc::new(Expr::BoolOp {
             op: BoolOpKind::And,
             values,
         });
-        Some((merged as ExprRef, body_start, body_end))
+        Some((merged as ExprRef, body_start, body_end, loop_top))
     }
 
     /// Recognize a value-position `A and B or C` chain. CPython (3.x)
@@ -18582,7 +18812,7 @@ impl<'a> Ctx<'a> {
             }
         }
         if self.version.at_least(3, 11) {
-            if let Some((merged, body_start, body_end)) =
+            if let Some((merged, body_start, body_end, chain_loop_top)) =
                 self.try_guard_chain(&cond, jump_if_true, target)
             {
                 if body_end <= body_start {
@@ -18628,6 +18858,256 @@ impl<'a> Ctx<'a> {
                             .unwrap_or(body_start);
                                                 self.skip_until = Some(after);
                         return;
+                    }
+                    // sequential shape-A guard (3.13+ bare adjacency):
+                    // the pass target IS the next real instruction after
+                    // this guard's own continue trampoline. Locally
+                    // ambiguous between (a) a standalone `if not X:
+                    // continue` statement with sibling statements
+                    // after it, (b) the first link of a fused and-chain
+                    // ending in break (copyreg 3.13 _reduce_ex `if A
+                    // and B: break`), and (c) a threaded `if X: <body
+                    // to loop end>` (copyreg 3.13 _slotnames outer if).
+                    // Walk the chain tail to decide: (b) ends at a
+                    // break chunk -> emit the fused break; (c) the
+                    // chain never advances and the body runs to the
+                    // loop's own back edge -> nested If (3.13 only —
+                    // 3.14 keeps the historical inverted continue,
+                    // nesting there swallowed sibling guards and
+                    // dropped tail breaks: _py_warnings, bdb,
+                    // configparser 3.14); anything else falls to the
+                    // historical inverted continue — fusing sibling
+                    // guards nests the loop's tail statements under
+                    // the last guard and loses their continue
+                    // semantics (bdb 3.13 effective: the fused form
+                    // ran the try tail for disabled breakpoints).
+                    if chain_loop_top != usize::MAX {
+                        let after_tramp = {
+                            let mut k = self
+                                .idx_of
+                                .get(&body_end)
+                                .map(|&i2| i2 + 1);
+                            while let Some(kk) = k {
+                                match self.instrs.get(kk).map(|x| x.op) {
+                                    Some(Op::NOT_TAKEN)
+                                    | Some(Op::NOP)
+                                    | Some(Op::CACHE) => k = Some(kk + 1),
+                                    _ => break,
+                                }
+                            }
+                            k.and_then(|kk| self.instrs.get(kk))
+                                .map(|x| x.offset)
+                        };
+                        if after_tramp == Some(body_start) {
+                            let is_cj = |o: Op| {
+                                matches!(
+                                    o,
+                                    Op::POP_JUMP_IF_FALSE
+                                        | Op::POP_JUMP_IF_TRUE
+                                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                                )
+                            };
+                            // walk successive guarded links: pure-value
+                            // region + cond jump whose fall-through is
+                            // [pads] JUMP_BACKWARD chain_loop_top
+                            let mut cur = body_start;
+                            let mut advanced = false;
+                            let tail = loop {
+                                let Some(&ri) = self.idx_of.get(&cur) else {
+                                    break None;
+                                };
+                                let mut jk = ri;
+                                let mut cond_at = None;
+                                while jk < self.instrs.len() {
+                                    let ins = &self.instrs[jk];
+                                    if is_cj(ins.op) {
+                                        cond_at = Some(jk);
+                                        break;
+                                    }
+                                    if !is_pure_value_op(ins.op)
+                                        && !matches!(
+                                            ins.op,
+                                            Op::NOT_TAKEN
+                                                | Op::NOP
+                                                | Op::CACHE
+                                                | Op::TO_BOOL
+                                        )
+                                    {
+                                        break;
+                                    }
+                                    jk += 1;
+                                }
+                                let Some(cj) = cond_at else {
+                                    break Some(cur);
+                                };
+                                let mut ft = cj + 1;
+                                while matches!(
+                                    self.instrs.get(ft).map(|x| x.op),
+                                    Some(Op::NOT_TAKEN)
+                                        | Some(Op::NOP)
+                                        | Some(Op::CACHE)
+                                ) {
+                                    ft += 1;
+                                }
+                                let ok_tramp = self
+                                    .instrs
+                                    .get(ft)
+                                    .map_or(false, |x| {
+                                        x.is_backward
+                                            && x.target
+                                                == Some(chain_loop_top)
+                                            && matches!(
+                                                x.op,
+                                                Op::JUMP_BACKWARD
+                                                    | Op::JUMP_ABSOLUTE
+                                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                            )
+                                    });
+                                if !ok_tramp {
+                                    break Some(cur);
+                                }
+                                let Some(nt) = self.instrs[cj].target else {
+                                    break Some(cur);
+                                };
+                                advanced = true;
+                                cur = nt;
+                            };
+                            // (b) the chain stopped at a break chunk:
+                            // [POP_TOP/pads] forward jump to a loop exit
+                            if let Some(stop) = tail {
+                                if advanced {
+                                    if let Some(&si) = self.idx_of.get(&stop) {
+                                        let mut k = si;
+                                        while matches!(
+                                            self.instrs.get(k).map(|x| x.op),
+                                            Some(Op::POP_TOP)
+                                                | Some(Op::NOT_TAKEN)
+                                                | Some(Op::NOP)
+                                                | Some(Op::CACHE)
+                                        ) {
+                                            k += 1;
+                                        }
+                                        let break_hop = self
+                                            .instrs
+                                            .get(k)
+                                            .filter(|jins| {
+                                                !jins.is_backward
+                                                    && matches!(
+                                                        jins.op,
+                                                        Op::JUMP_FORWARD
+                                                            | Op::JUMP
+                                                            | Op::JUMP_ABSOLUTE
+                                                    )
+                                                    && jins
+                                                        .target
+                                                        .map_or(false, |t| {
+                                                            self.find_loop_exit(t)
+                                                                .is_some()
+                                                        })
+                                            })
+                                            .map(|jins| jins.end());
+                                        if let Some(hop_end) = break_hop {
+                                            self.push_stmt(Stmt::If {
+                                                cond: merged.clone(),
+                                                body: vec![Stmt::Break],
+                                                orelse: Vec::new(),
+                                            });
+                                            self.skip_until = Some(hop_end);
+                                            return;
+                                        }
+                                    }
+                                } else if jump_if_true
+                                    && self.version.at_least(3, 13)
+                                {
+                                    // (c) threaded if: no chain link at
+                                    // the target — it is a plain body
+                                    // that must run to the loop's OWN
+                                    // back edge (the LAST one before
+                                    // the loop end; an inner guard's
+                                    // trampoline would cut the body
+                                    // short and swallow siblings)
+                                    let lb = self
+                                        .blocks
+                                        .iter()
+                                        .rev()
+                                        .find(|b| {
+                                            matches!(
+                                                b.kind,
+                                                BlockType::While
+                                                    | BlockType::For
+                                            ) && (b.start == chain_loop_top
+                                                || (b.cond_end != usize::MAX
+                                                    && b.cond_end
+                                                        == chain_loop_top))
+                                        });
+                                    if let Some(lb) = lb {
+                                        let lb_end = lb.end;
+                                        let mut back_off = None;
+                                        let mut ok = self
+                                            .idx_of
+                                            .get(&body_start)
+                                            .is_some();
+                                        if ok {
+                                            let bi = self.idx_of[&body_start];
+                                            for ins in self.instrs[bi..].iter()
+                                            {
+                                                if ins.offset >= lb_end {
+                                                    break;
+                                                }
+                                                if let Some(t) = ins.target {
+                                                    if ins.is_backward
+                                                        && t == chain_loop_top
+                                                        && matches!(
+                                                            ins.op,
+                                                            Op::JUMP_BACKWARD
+                                                                | Op::JUMP_ABSOLUTE
+                                                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                        )
+                                                    {
+                                                        back_off =
+                                                            Some(ins.offset);
+                                                    }
+                                                    if !ins.is_backward
+                                                        && t >= lb_end
+                                                    {
+                                                        ok = false;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if let (true, Some(be)) = (ok, back_off) {
+                                            if be > body_start {
+                                                // merged is the NEGATED
+                                                // guard (shape A PJIT
+                                                // degenerate folds `in`
+                                                // to `not in` via
+                                                // negate_cond) — restore
+                                                // the source polarity
+                                                let c = negate_cond(
+                                                    merged.clone(),
+                                                );
+                                                let mut blk = Block::new(
+                                                    BlockType::If,
+                                                    body_start,
+                                                    be,
+                                                );
+                                                blk.cond = Some(c);
+                                                blk.cond_set = true;
+                                                blk.jump_if_true = false;
+                                                blk.stack_depth =
+                                                    self.stack.len();
+                                                self.blocks.push(blk);
+                                                self.skip_until =
+                                                    Some(body_start);
+                                                return;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     // emit `if <merged>: continue` and resume at the
                     // loop-level body that follows the trampoline
@@ -19389,11 +19869,47 @@ impl<'a> Ctx<'a> {
                     // mixed merge for `A and not B` chains with else
                     // arms (copyreg _slotnames 3.8).
                     && (!self.version.at_least(3, 10)
-                        || top.jump_if_true == jump_if_true)
+                        || top.jump_if_true == jump_if_true
+                        // mixed polarity on 3.10+ is safe only INSIDE an
+                        // already-open loop body with the shared target
+                        // strictly before the loop's end: rotated-while
+                        // conds/re-evals merge at loop setup time (no
+                        // loop block open yet — b16 while_and 3.11/3.13,
+                        // v38_walrus) or land on the loop exit (cmd 3.10
+                        // re-eval, caught by find_loop_exit), while a
+                        // statement-level `if A and not B: ... else:`
+                        // lands on its else arm inside the loop body
+                        // (copyreg 3.13/3.14 _slotnames elif chain — the
+                        // nested rendering dropped the else arm out of
+                        // the chain)
+                        || self
+                            .blocks
+                            .iter()
+                            .rev()
+                            .find(|b| {
+                                matches!(
+                                    b.kind,
+                                    BlockType::While | BlockType::For
+                                )
+                            })
+                            .map_or(false, |b| {
+                                b.start < top.start && target < b.end
+                            })
+                            && self.find_loop_exit(target).is_none()
+                            // the chain body must not contain a WHILE
+                            // back edge: a backward jump to a top that
+                            // is strictly before this If chain and is
+                            // not any open loop's top means the links
+                            // are a pending while cond (`while A and
+                            // not B:` in cmd 3.10 columnize — fusing
+                            // into the If left a phantom
+                            // `while texts: pass`), NOT a statement
+                            // and-chain inside an established loop body
+                            && !self.pending_while_back_edge(top.start, target))
                     && top.stmts.is_empty()
                     && self.is_split_cond_region(top.start, self.cur_offset, target, jump_if_true)
             });
-        if split_cond {
+if split_cond {
             if let Some(top) = self.blocks.last_mut() {
                 let prev = top.cond.take().unwrap();
                 // two same-target cond jumps always AND: the body runs only
@@ -20950,6 +21466,42 @@ impl<'a> Ctx<'a> {
     /// targeting the same merge are tolerated when they originate INSIDE
     /// the else region (the else body's own guards converge on the merge;
     /// e.g. 3.12 `if a and b: break` in a for-else loop, codeop).
+    /// A backward jump between `from` and `to` whose target is not the
+    /// (cond) start of any open loop block: the back edge of a while
+    /// loop whose cond head is the If chain currently being fused — the
+    /// chain is the while's condition, not a statement inside a loop
+    /// body. Covers BOTH the pre-3.11 plain back edge (JABS before the
+    /// chain's merge, cmd 3.8/3.9) and the 3.10+ ROTATED re-eval whose
+    /// back edge is a backward CONDITIONAL jump to the body top
+    /// (cmd 3.10 columnize: PJIF->body_top sits inside the fused span).
+    /// Backward jumps landing on an OPEN loop's top are legitimate
+    /// in-body continues (copyreg 3.13 elif chain over `for name`).
+    fn pending_while_back_edge(&self, from: usize, to: usize) -> bool {
+        self.instrs.iter().any(|ins| {
+            ins.offset >= from
+                && ins.offset < to
+                && ins.is_backward
+                && (matches!(
+                    ins.op,
+                    Op::JUMP_BACKWARD
+                        | Op::JUMP_ABSOLUTE
+                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                ) || matches!(
+                    ins.op,
+                    Op::POP_JUMP_IF_FALSE
+                        | Op::POP_JUMP_IF_TRUE
+                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                ))
+                && ins.target.map_or(false, |t| {
+                    !self.blocks.iter().any(|b| {
+                        matches!(b.kind, BlockType::While | BlockType::For)
+                            && (b.start == t || b.cond_end == t)
+                    })
+                })
+        })
+    }
+
     fn register_break_over_else(&mut self, target: usize) {
         for b in self.blocks.iter_mut().rev() {
             if matches!(b.kind, BlockType::While | BlockType::For) {

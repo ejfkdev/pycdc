@@ -2,9 +2,9 @@
  "version": "3.14.7",
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
-  "PASS": 15,
+  "PASS": 16,
   "INCOMPLETE": 10,
-  "SIG-DIFF": 14,
+  "SIG-DIFF": 13,
   "AST-PASS": 1
  },
  "results": [
@@ -31,7 +31,7 @@
   {
    "module": "_ast_unparse",
    "verdict": "INCOMPLETE",
-   "ndiff": 1170,
+   "ndiff": 1168,
    "ntotal": 7144,
    "detail": "line 3809: orig ('BINARY_OP', '[]') | got ('BINARY_OP', '+')\nline 3886: orig ('LOAD_FAST', 'value') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'value, quote_types')\nline 3887: orig ('LOAD_FAST', 'quote_types') | got ('LOAD_CONST', 'True')"
   },
@@ -65,7 +65,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 951,
    "ntotal": 1366,
-   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'link', 'attlist', 'element', 'linktype'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'element', 'linktype', 'link', 'attlist'})\")"
+   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'element', 'link', 'linktype', 'attlist'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'link', 'element', 'attlist', 'linktype'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -92,9 +92,9 @@
   {
    "module": "_pylong",
    "verdict": "INCOMPLETE",
-   "ndiff": 633,
+   "ndiff": 631,
    "ntotal": 1553,
-   "detail": "line 185: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 186: orig ('POP_JUMP_IF_TRUE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 257: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')"
+   "detail": "line 257: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')\nline 907: orig ('CALL_INTRINSIC_1', 'INTRINSIC_UNARY_POSITIVE') | got ('BUILD_TUPLE', '')\nline 908: orig ('BUILD_TUPLE', '') | got ('LOAD_DEREF', 'pow256')"
   },
   {
    "module": "_sitebuiltins",
@@ -104,9 +104,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 65: orig  body=[Break()]) | dec  body=[Return()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2478,
+   "ndiff": 2476,
    "ntotal": 3211,
-   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 204: orig ('CONTAINS_OP', 'in') | got ('CONTAINS_OP', 'not in')\nline 205: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')"
+   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 618: orig ('LOAD_CONST', 'slice(None, 10, None)') | got ('LOAD_GLOBAL', 'slice + NULL')\nline 619: orig ('STORE_SUBSCR', '') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -118,11 +118,11 @@
   },
   {
    "module": "_weakrefset",
-   "ast_detail": "diff at token 76: orig  ops=[IsNot()] | dec  ops=[Is()]",
+   "ast_detail": "diff at token 182: orig  body=[Return(value=Name(id='item' | dec  body=[Break()])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 444,
+   "ndiff": 443,
    "ntotal": 772,
-   "detail": "line 313: orig ('POP_JUMP_IF_NOT_NONE', 'to L2') | got ('POP_JUMP_IF_NONE', 'to L2')\nline 316: orig ('LOAD_FAST', 'item') | got ('NOP', '')\nline 317: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'item')"
+   "detail": "line 316: orig ('LOAD_FAST', 'item') | got ('NOP', '')\nline 317: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'item')\nline 318: orig ('PUSH_EXC_INFO', '') | got ('RETURN_VALUE', '')"
   },
   {
    "module": "abc",
@@ -154,9 +154,9 @@
   {
    "module": "bdb",
    "verdict": "INCOMPLETE",
-   "ndiff": 3357,
+   "ndiff": 3355,
    "ntotal": 4008,
-   "detail": "line 353: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 354: orig ('POP_JUMP_IF_TRUE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L5')\nline 533: orig ('LOAD_GLOBAL', 'sys') | got ('LOAD_CONST', 'False')"
+   "detail": "line 533: orig ('LOAD_GLOBAL', 'sys') | got ('LOAD_CONST', 'False')\nline 534: orig ('LOAD_ATTR', 'monitoring') | got ('LOAD_DEREF', 'self')\nline 535: orig ('LOAD_ATTR', 'DISABLE') | got ('STORE_ATTR', '_disable_current_event')"
   },
   {
    "module": "bisect",
@@ -168,7 +168,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 241: orig  body=[If(test=Attribute(value=Name(id='entry' | dec  body=[If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 272: orig  body=[Continue()])]) | dec  body=[Pass()])])",
    "verdict": "SIG-DIFF",
    "ndiff": 437,
    "ntotal": 779,
@@ -227,7 +227,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 94: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 3663,
+   "ndiff": 3671,
    "ntotal": 5099,
    "detail": "line 1328: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', 'None')\nline 1329: orig ('JUMP_BACKWARD', 'to L1') | got ('RETURN_VALUE', '')\nline 1335: orig ('EXTENDED_ARG', '') | got ('NOP', '')"
   },
@@ -248,11 +248,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 198: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 456,
-   "ntotal": 692,
-   "detail": "line 226: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 235: orig ('POP_TOP', '') | got ('JUMP_FORWARD', 'to L4')\nline 236: orig ('JUMP_FORWARD', 'to L7') | got ('LOAD_FAST', 'base')"
+   "verdict": "PASS"
   }
  ]
 }

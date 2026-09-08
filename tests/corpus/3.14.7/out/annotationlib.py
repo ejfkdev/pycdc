@@ -468,11 +468,9 @@ class _StringifierDict(dict):
             if isinstance(obj.__ast_node__, str):
                 obj.__arg__ = obj.__ast_node__
                 obj.__ast_node__ = None
-            if cell_dict is None:
-                continue
-            if obj.__cell__ is not None:
-                continue
-            obj.__cell__ = cell_dict
+            if cell_dict is not None:
+                if obj.__cell__ is None:
+                    obj.__cell__ = cell_dict
 
     def create_unique_name(self):
         name = f'__annotationlib_name_{self.next_id}__'

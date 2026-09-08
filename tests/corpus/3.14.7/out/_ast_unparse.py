@@ -889,9 +889,8 @@ Returns the tuple (string literal to write, possible quote types).
             if d:
                 self.write('=')
                 self.traverse(d)
-            if index != len(node.posonlyargs):
-                continue
-            self.write(', /')
+            if index == len(node.posonlyargs):
+                self.write(', /')
         if node.vararg or node.kwonlyargs:
             if first:
                 first = False
@@ -907,10 +906,9 @@ Returns the tuple (string literal to write, possible quote types).
             for a, d in zip(node.kwonlyargs, node.kw_defaults):
                 self.write(', ')
                 self.traverse(a)
-                if not d:
-                    continue
-                self.write('=')
-                self.traverse(d)
+                if d:
+                    self.write('=')
+                    self.traverse(d)
         if node.kwarg:
             if first:
                 first = False

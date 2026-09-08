@@ -487,9 +487,8 @@ class StreamReader(Codec):
                     line = line0withoutend
                     return line
             if not data or size is not None:
-                if line:
-                    if not keepends:
-                        line = line.splitlines(keepends=False)[0]
+                if line and not keepends:
+                    line = line.splitlines(keepends=False)[0]
                 return line
             if readsize < 8000:
                 readsize *= 2

@@ -227,9 +227,9 @@
   {
    "module": "copyreg",
    "verdict": "INCOMPLETE",
-   "ndiff": 393,
+   "ndiff": 267,
    "ntotal": 616,
-   "detail": "line 189: orig ('FOR_ITER', 'to 228') | got ('FOR_ITER', 'to 238')\nline 195: orig ('POP_JUMP_IF_FALSE', 'to 136') | got ('POP_JUMP_IF_TRUE', 'to 96')\nline 196: orig ('LOAD_FAST', 'base') | got ('JUMP_BACKWARD', 'to 64')"
+   "detail": "line 216: orig ('POP_JUMP_IF_TRUE', 'to 224') | got ('POP_JUMP_IF_FALSE', 'to 224')\nline 293: orig ('POP_JUMP_IF_FALSE', 'to 714') | got ('POP_JUMP_IF_FALSE', 'to 732')\nline 331: orig ('POP_EXCEPT', '') | got ('LOAD_GLOBAL', 'AttributeError')"
   },
   {
    "module": "crypt",

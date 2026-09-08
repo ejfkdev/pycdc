@@ -100,9 +100,8 @@ def _remove_original_values(_config_vars):
     '''Remove original unmodified values for testing'''
 
     for k in list(_config_vars):
-        if not k.startswith(_INITPRE):
-            continue
-        del _config_vars[k]
+        if k.startswith(_INITPRE):
+            del _config_vars[k]
 
 def _save_modified_value(_config_vars, cv, newvalue):
     '''Save modified and original unmodified value of configuration var'''
@@ -127,15 +126,11 @@ def _default_sysroot(cc):
             in_incdirs = True
         elif line.startswith('End of search list'):
             in_incdirs = False
-        else:
-            if not in_incdirs:
-                continue
+        elif in_incdirs:
             line = line.strip()
             if line == '/usr/include':
                 _cache_default_sysroot = '/'
-            else:
-                if not line.endswith('.sdk/usr/include'):
-                    continue
+            elif line.endswith('.sdk/usr/include'):
                 _cache_default_sysroot = line[:-12]
     if _cache_default_sysroot is None:
         _cache_default_sysroot = '/'

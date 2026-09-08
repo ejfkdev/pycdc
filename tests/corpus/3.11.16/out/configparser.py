@@ -925,9 +925,8 @@ class RawConfigParser(MutableMapping):
                 if not value:
                     if self._empty_lines_in_values:
                         if comment_start is None and cursect is not None:
-                            if optname:
-                                if cursect[optname] is not None:
-                                    cursect[optname].append('')
+                            if optname and cursect[optname] is not None:
+                                cursect[optname].append('')
                     else:
                         indent_level = sys.maxsize
                     continue

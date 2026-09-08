@@ -239,7 +239,7 @@ by the SGML/HTML and XHTML parsers.'''
                     c = rawdata[j:j + 1]
                     if not c:
                         return -1
-                if c != '>':
+                if c == '>':
                     break
         return j + 1
 

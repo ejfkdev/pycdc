@@ -245,11 +245,11 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 230: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Call(func=Name(id='hasattr'",
+   "ast_detail": "diff at token 253: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Attribute(value=Name(id='new'",
    "verdict": "SIG-DIFF",
-   "ndiff": 371,
+   "ndiff": 353,
    "ntotal": 597,
-   "detail": "line 210: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 86')\nline 216: orig ('POP_JUMP_IF_FALSE', 'to 52') | got ('POP_JUMP_IF_FALSE', 'to 84')\nline 221: orig ('POP_JUMP_IF_TRUE', 'to 52') | got ('POP_JUMP_IF_TRUE', 'to 50')"
+   "detail": "line 210: orig ('FOR_ITER', 'to 84') | got ('FOR_ITER', 'to 74')\nline 223: orig ('JUMP_FORWARD', 'to 88') | got ('JUMP_FORWARD', 'to 78')\nline 227: orig ('LOAD_GLOBAL', 'isinstance') | got ('LOAD_FAST', 'new')"
   },
   {
    "module": "crypt",

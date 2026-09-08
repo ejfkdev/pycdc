@@ -385,9 +385,8 @@ class _CallableGenericAlias(GenericAlias):
     def __parameters__(self):
         params = []
         for arg in self.__args__:
-            if isinstance(arg, type):
-                if not isinstance(arg, GenericAlias):
-                    continue
+            if isinstance(arg, type) and not isinstance(arg, GenericAlias):
+                continue
             if hasattr(arg, '__parameters__') and isinstance(arg.__parameters__, tuple):
                 params.extend(arg.__parameters__)
             elif _is_typevarlike(arg):
@@ -420,10 +419,9 @@ class _CallableGenericAlias(GenericAlias):
         subst = dict(zip(self.__parameters__, item))
         new_args = []
         for arg in self.__args__:
-            if isinstance(arg, type):
-                if not isinstance(arg, GenericAlias):
-                    new_args.append(arg)
-                    continue
+            if isinstance(arg, type) and not isinstance(arg, GenericAlias):
+                new_args.append(arg)
+                continue
             if _is_typevarlike(arg):
                 if _is_param_expr(arg):
                     arg = subst[arg]

@@ -319,9 +319,8 @@ Otherwise try to call complete_<command> to get list of completions.
         cmds_undoc = []
         topics = set()
         for name in names:
-            if name[:5] != 'help_':
-                continue
-            topics.add(name[5:])
+            if name[:5] == 'help_':
+                topics.add(name[5:])
         names.sort()
         prevname = ''
         for name in names:
@@ -382,8 +381,9 @@ Columns are separated by two spaces (one was not legible enough).
                     colwidth = max(colwidth, len(x))
                 colwidths.append(colwidth)
                 totwidth += colwidth + 2
-                if totwidth > displaywidth:
-                    break
+                if not totwidth > displaywidth:
+                    continue
+                break
             if not totwidth <= displaywidth:
                 continue
             break

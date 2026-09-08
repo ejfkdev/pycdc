@@ -110,9 +110,8 @@ with the statement in force.'''
         if flags & PyCF_ONLY_AST:
             return codeob
         for feature in _features:
-            if not codeob.co_flags & feature.compiler_flag:
-                continue
-            self.flags |= feature.compiler_flag
+            if codeob.co_flags & feature.compiler_flag:
+                self.flags |= feature.compiler_flag
         return codeob
 
 

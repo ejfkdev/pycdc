@@ -493,13 +493,11 @@ read() method.
                     return line
             if data:
                 if size is not None:
-                    if line:
-                        if not keepends:
-                            line = line.splitlines(keepends=False)[0]
+                    if line and not keepends:
+                        line = line.splitlines(keepends=False)[0]
                     return line
-            if not readsize < 8000:
-                continue
-            readsize *= 2
+            if readsize < 8000:
+                readsize *= 2
 
     def readlines(self, sizehint=None, keepends=True):
         """Read all lines available on the input stream
@@ -907,9 +905,8 @@ constructor.
     encoder = getincrementalencoder(encoding)(errors, **kwargs)
     for input in iterator:
         output = encoder.encode(input)
-        if not output:
-            continue
-        yield output
+        if output:
+            yield output
     output = encoder.encode('', True)
     if output:
         yield output
@@ -927,9 +924,8 @@ constructor.
     decoder = getincrementaldecoder(encoding)(errors, **kwargs)
     for input in iterator:
         output = decoder.decode(input)
-        if not output:
-            continue
-        yield output
+        if output:
+            yield output
     output = decoder.decode(b'', True)
     if output:
         yield output
