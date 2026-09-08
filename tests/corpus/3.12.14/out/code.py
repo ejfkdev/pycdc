@@ -102,11 +102,12 @@ class InteractiveInterpreter:
         try:
             typ, value, tb = sys.exc_info()
             if filename and typ is SyntaxError:
-                msg, (dummy_filename, lineno, offset, line) = value.args
+                try:
+                    msg, (dummy_filename, lineno, offset, line) = value.args
+                except ValueError:
+                    pass
                 value = SyntaxError(msg, (filename, lineno, offset, line))
             self._showtraceback(typ, value, None)
-        except ValueError:
-            pass
         finally:
             typ = value = tb = None
 
@@ -205,21 +206,22 @@ class InteractiveConsole(InteractiveInterpreter):
                     prompt = sys.ps2
                 else:
                     prompt = sys.ps1
+                try:
+                    line = self.raw_input(prompt)
+                except EOFError:
+                    self.write('\n')
+                else:
+                    more = self.push(line)
+                    if AttributeError:
+                        None
+                        sys.ps1 = '>>> '
+                    if AttributeError:
+                        None
+                        sys.ps2 = '... '
             except KeyboardInterrupt:
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
                 more = 0
-            else:
-                try:
-                    try:
-                        line = self.raw_input(prompt)
-                    except EOFError:
-                        self.write('\n')
-                except KeyboardInterrupt:
-                    self.write('\nKeyboardInterrupt\n')
-                    self.resetbuffer()
-                    more = 0
-                more = self.push(line)
         if exitmsg is None:
             self.write('now exiting %s...\n' % self.__class__.__name__)
             return

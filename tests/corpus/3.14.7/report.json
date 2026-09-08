@@ -64,7 +64,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 942,
    "ntotal": 1352,
-   "detail": "line 394: orig ('LOAD_CONST', \"frozenset({'linktype', 'element', 'link', 'attlist'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 395: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 396: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'element', 'attlist', 'linktype', 'link'})\")"
+   "detail": "line 394: orig ('LOAD_CONST', \"frozenset({'element', 'attlist', 'linktype', 'link'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 395: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 396: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'linktype', 'link', 'element'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -190,17 +190,17 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 229: orig  body=[Try(body=[Assign(targets=[Name(id='line' | dec  body=[Assign(targets=[Name(id='line'",
+   "ast_detail": "diff at token 322: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 920,
+   "ndiff": 1059,
    "ntotal": 1410,
-   "detail": "line 262: orig ('NOP', '') | got ('LOAD_GLOBAL', 'input + NULL')\nline 263: orig ('LOAD_GLOBAL', 'input + NULL') | got ('LOAD_FAST', 'self')\nline 264: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'prompt')"
+   "detail": "line 324: orig ('POP_JUMP_IF_FALSE', 'to L14') | got ('POP_JUMP_IF_FALSE', 'to L13')\nline 332: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')\nline 333: orig ('LOAD_CONST', 'None') | got ('LOAD_SMALL_INT', '')"
   },
   {
    "module": "code",
    "verdict": "INCOMPLETE",
-   "ndiff": 548,
-   "ntotal": 1231,
+   "ndiff": 372,
+   "ntotal": 1060,
    "detail": "line 682: orig ('NOP', '') | got ('LOAD_FAST', 'more')\nline 683: orig ('LOAD_FAST', 'more') | got ('TO_BOOL', '')\nline 684: orig ('TO_BOOL', '') | got ('POP_JUMP_IF_FALSE', 'to L7')"
   },
   {

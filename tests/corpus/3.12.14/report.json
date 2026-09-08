@@ -164,18 +164,18 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 236: orig  body=[Try(body=[Assign(targets=[Name(id='line' | dec  body=[Assign(targets=[Name(id='line'",
+   "ast_detail": "diff at token 331: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1129,
-   "ntotal": 1372,
-   "detail": "line 209: orig ('POP_JUMP_IF_TRUE', 'to 898') | got ('POP_JUMP_IF_TRUE', 'to 896')\nline 219: orig ('JUMP_FORWARD', 'to 788') | got ('JUMP_FORWARD', 'to 786')\nline 222: orig ('POP_JUMP_IF_FALSE', 'to 548') | got ('POP_JUMP_IF_FALSE', 'to 546')"
+   "ndiff": 1062,
+   "ntotal": 1373,
+   "detail": "line 279: orig ('LOAD_ATTR', 'NULL|self + postloop') | got ('LOAD_ATTR', 'use_rawinput')\nline 280: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 956')\nline 281: orig ('POP_TOP', '') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "code",
    "verdict": "INCOMPLETE",
-   "ndiff": 489,
+   "ndiff": 162,
    "ntotal": 721,
-   "detail": "line 212: orig ('POP_JUMP_IF_FALSE', 'to 146') | got ('POP_JUMP_IF_FALSE', 'to 144')\nline 216: orig ('POP_JUMP_IF_FALSE', 'to 146') | got ('POP_JUMP_IF_FALSE', 'to 144')\nline 217: orig ('NOP', '') | got ('LOAD_FAST', 'value')"
+   "detail": "line 256: orig ('JUMP_BACKWARD', 'to 146') | got ('JUMP_BACKWARD', 'to 114')\nline 558: orig ('NOP', '') | got ('LOAD_GLOBAL', 'AttributeError')\nline 559: orig ('JUMP_BACKWARD', 'to 304') | got ('POP_JUMP_IF_FALSE', 'to 482')"
   },
   {
    "module": "codecs",

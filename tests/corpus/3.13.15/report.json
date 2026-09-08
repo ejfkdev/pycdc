@@ -101,7 +101,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1372,
    "ntotal": 2941,
-   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u5341', '\u4e00', '\u5eff', '\u4e5d'})\") | got ('LOAD_CONST', \"frozenset({'\u4e03', '\u5341', '\u4e5d', '\u4e00', '\u5eff'})\")"
+   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 187: orig ('POP_JUMP_IF_TRUE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 587: orig ('LOAD_CONST', \"frozenset({'\u5341', '\u4e5d', '\u4e03', '\u5eff', '\u4e00'})\") | got ('LOAD_CONST', \"frozenset({'\u5341', '\u4e5d', '\u5eff', '\u4e03', '\u4e00'})\")"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -164,18 +164,18 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 241: orig  body=[Try(body=[Assign(targets=[Name(id='line' | dec  body=[Assign(targets=[Name(id='line'",
+   "ast_detail": "diff at token 320: orig  ctx=Load())]))]) | dec  ctx=Load())]))])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1139,
-   "ntotal": 1421,
-   "detail": "line 257: orig ('NOP', '') | got ('LOAD_GLOBAL', 'input + NULL')\nline 258: orig ('LOAD_GLOBAL', 'input + NULL') | got ('LOAD_FAST', 'self')\nline 259: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'prompt')"
+   "ndiff": 1080,
+   "ntotal": 1422,
+   "detail": "line 315: orig ('LOAD_ATTR', 'postloop + NULL|self') | got ('LOAD_ATTR', 'use_rawinput')\nline 316: orig ('CALL', '') | got ('TO_BOOL', '')\nline 317: orig ('POP_TOP', '') | got ('POP_JUMP_IF_FALSE', 'to L13')"
   },
   {
    "module": "code",
    "verdict": "INCOMPLETE",
-   "ndiff": 546,
-   "ntotal": 1180,
-   "detail": "line 629: orig ('NOP', '') | got ('LOAD_FAST', 'more')\nline 630: orig ('LOAD_FAST', 'more') | got ('TO_BOOL', '')\nline 631: orig ('TO_BOOL', '') | got ('POP_JUMP_IF_FALSE', 'to L7')"
+   "ndiff": 310,
+   "ntotal": 947,
+   "detail": "line 629: orig ('NOP', '') | got ('LOAD_FAST', 'more')\nline 630: orig ('LOAD_FAST', 'more') | got ('TO_BOOL', '')\nline 631: orig ('TO_BOOL', '') | got ('POP_JUMP_IF_FALSE', 'to L8')"
   },
   {
    "module": "codecs",

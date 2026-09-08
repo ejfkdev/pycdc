@@ -971,7 +971,50 @@ pub fn decompile_in_scope(
                         return false;
                     }
                     if r.cover_end() == e.start {
-                        return true;
+                        if same_handler0 {
+                            return true;
+                        }
+                        // a contiguous entry with a DIFFERENT handler may
+                        // be the next fragment of an EARLIER region's
+                        // split family — but ONLY when the gap between
+                        // that region and this entry tiles exactly with
+                        // the nested regions in between (code 3.11
+                        // interact: the outer KI fragment [492,534)->612
+                        // abuts the inner EOF region end 492, and the
+                        // outer fragment [394,446) plus the inner region
+                        // tile the gap). Otherwise keep the historical
+                        // extension: a break-exit split's second
+                        // fragment abuts its own region's end with the
+                        // inlined exit path in between and must NOT be
+                        // body-merged (_sitebuiltins 3.12 Quitter: the
+                        // try/with/break collapsed to `pass` under the
+                        // wide form)
+                        let family = regions.iter().rposition(|r2| {
+                            (if is_exc {
+                                r2.except_handler == Some(e.target)
+                            } else {
+                                r2.finally_handler == Some(e.target)
+                            }) && r2.region_end <= e.start
+                        });
+                        let split_family = family.map_or(false, |fi| {
+                            let mut cur = regions[fi].region_end;
+                            if cur >= e.start {
+                                return false;
+                            }
+                            for r2 in &regions[fi + 1..] {
+                                if r2.start != cur && !is_pad_gap(cur, r2.start)
+                                {
+                                    return false;
+                                }
+                                if r2.region_end > e.start {
+                                    return false;
+                                }
+                                cur = r2.region_end;
+                            }
+                            cur == e.start
+                                || (cur < e.start && is_pad_gap(cur, e.start))
+                        });
+                        return !split_family;
                     }
                     let same_handler = if is_exc { same_exc(r) } else { same_fin(r) };
                     let b = same_handler
@@ -1043,7 +1086,49 @@ pub fn decompile_in_scope(
                     }
                 }
             }
-            if extends {
+            // same-handler forward extension: an earlier except region
+            // whose handler gets ANOTHER fragment past nested regions —
+            // the fragments belong to one source-level try split by the
+            // nesting (code 3.11 interact: [394,446) and [492,534) both
+            // -> 612, sandwiching the inner EOFError region). The
+            // `resumes_past` cap on the contiguous path already proves
+            // the family continues; extend the body across the nested
+            // region (it stays its own TryCtx and the walk nests it)
+            let mut deep_exc_idx: Option<usize> = None;
+            if !extends && !bridged && is_exc {
+                if let Some(ri) = regions.iter().enumerate().rev().find(|(_, r)| {
+                    same_exc(r) && r.start < e.start && e.start >= r.region_end
+                }).map(|(ri, _)| ri) {
+                    // the gap must tile exactly with the intervening
+                    // regions (nested tries inside the body) — an
+                    // untiled gap is a break-exit or protocol split,
+                    // not a nesting split
+                    let mut cur = regions[ri].region_end;
+                    let mut ok = cur < e.start;
+                    for r2 in &regions[ri + 1..] {
+                        if !ok {
+                            break;
+                        }
+                        if r2.start != cur && !is_pad_gap(cur, r2.start) {
+                            ok = false;
+                            break;
+                        }
+                        if r2.region_end > e.start {
+                            ok = false;
+                            break;
+                        }
+                        cur = r2.region_end;
+                    }
+                    if ok && (cur == e.start || (cur < e.start && is_pad_gap(cur, e.start))) {
+                        deep_exc_idx = Some(ri);
+                    }
+                }
+            }
+            if let Some(ri) = deep_exc_idx {
+                let e2 = e.end.max(e.start);
+                regions[ri].body_end = regions[ri].body_end.max(e2);
+                regions[ri].region_end = regions[ri].region_end.max(e2);
+            } else if extends {
                 let r = regions.last_mut().unwrap();
                 if is_exc {
                     r.except_handler.get_or_insert(e.target);
@@ -2229,6 +2314,124 @@ impl<'a> Ctx<'a> {
                 "EG tail [{}] tc start={} body_end={} region_end={} exc={:?} fin={:?} pos={} star_inline={} body_jf={:?}",
                 self.code.name, tc.start, tc.body_end, tc.region_end, tc.except_handler, tc.finally_handler, pos, star_inline, body_jf
             );
+        }
+        // 3.11+ nested try/except/else inside a try/except body: the
+        // outer protected range arrives as same-handler fragments
+        // sandwiching the nested region (merged by the builder), and
+        // the nested chain's out-of-line dispatch lies BETWEEN the
+        // outer body end and the outer chain head. The regular walk
+        // emits the nested Try at its own body end — before the else
+        // span (the outer's second fragment) has run — so its tail
+        // logic misreads the span, and the outer body collects the
+        // else statements flat (code 3.11 interact: doubled
+        // `except KeyboardInterrupt` + `else: if EOFError:` garbage).
+        // Rebuild every span from offsets: outer body = [start, nested)
+        // + nested Try{body, chain, orelse=[nested region end, nested
+        // chain end)}, outer handlers = the outer chain
+        if !star_inline
+            && body_jf.is_none()
+            && tc.finally_handler.is_none()
+            && tc.body_end == tc.region_end
+        {
+            if let Some(h_outer) = tc.except_handler {
+                let nested = self
+                    .try_ctxs
+                    .values()
+                    .find(|r| {
+                        r.start > tc.start
+                            && r.region_end <= tc.body_end
+                            && r.finally_handler.is_none()
+                            && r.except_handler
+                                .map_or(false, |h| h >= tc.body_end && h < h_outer)
+                    })
+                    .cloned();
+                if let Some(inner) = nested {
+                    let h_inner = inner.except_handler.unwrap();
+                    // the nested chain ends at its last RERAISE; the
+                    // outward hop right after it resumes the outer flow
+                    let mut last_reraise_end = None;
+                    let mut chain_stop = h_outer;
+                    if let Some(&ci) = self.idx_of.get(&h_inner) {
+                        for x in &self.instrs[ci..] {
+                            if x.offset >= h_outer {
+                                break;
+                            }
+                            if x.op == Op::RERAISE {
+                                last_reraise_end = Some(x.end());
+                            }
+                            if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                                && !x.is_backward
+                                && x.target.map_or(false, |t| t >= h_outer)
+                                && last_reraise_end.is_some()
+                            {
+                                chain_stop = last_reraise_end.unwrap();
+                                break;
+                            }
+                        }
+                    }
+                    if chain_stop > inner.region_end && chain_stop <= h_outer {
+                        // the span re-walks must not re-open these regions
+                        self.try_ctxs.remove(&tc.start);
+                        self.try_ctxs.remove(&inner.start);
+                        // drop the statements the walk leaked into the
+                        // enclosing block (the guard if/else of body1,
+                        // the nested Try emitted at its own body end,
+                        // the flat else-span stores)
+                        let mark = self.pending_orelse_mark.take();
+                        if let Some(top) = self.blocks.last_mut() {
+                            if let Some(m) = mark {
+                                if m <= top.stmts.len() {
+                                    top.stmts.truncate(m);
+                                }
+                            }
+                        }
+                        let handlers = self.parse_except_dispatch(h_outer);
+                        let body1 = self.decompile_region(tc.start, inner.start);
+                        // adjacent nested chains: the dispatch parse of
+                        // the INNER head splits — it stashes the inner
+                        // clauses in nested_inner_handlers and RETURNS
+                        // the enclosing chain's clauses (the re-raise
+                        // wrapper design). Take the stash as the inner
+                        // handlers; the returned vec duplicates the
+                        // outer parse when the split fired
+                        let stash_depth = self.nested_inner_handlers.len();
+                        let parsed_inner =
+                            self.parse_except_dispatch(h_inner);
+                        let inner_handlers =
+                            if self.nested_inner_handlers.len() > stash_depth
+                            {
+                                self.nested_inner_handlers.pop().unwrap()
+                            } else {
+                                parsed_inner
+                            };
+                        let inner_body =
+                            self.decompile_region(inner.start, inner.region_end);
+                        // the else span ends at the nested chain head —
+                        // its body-exit jump hops over the chain to the
+                        // outward merge; chain_stop is only the walk's
+                        // resume point
+                        let inner_orelse =
+                            self.decompile_region(inner.region_end, h_inner);
+                        let mut body = body1;
+                        body.push(Stmt::Try {
+                            body: inner_body,
+                            handlers: inner_handlers,
+                            orelse: inner_orelse,
+                            finalbody: Vec::new(),
+                        });
+                        self.push_stmt(Stmt::Try {
+                            body,
+                            handlers,
+                            orelse: Vec::new(),
+                            finalbody: Vec::new(),
+                        });
+                        if self.skip_until.map_or(true, |s| s < chain_stop) {
+                            self.skip_until = Some(chain_stop);
+                        }
+                        return;
+                    }
+                }
+            }
         }
         if let Some((jf_off, else_at)) = body_jf {
             // statements collected after the try opened (the body's last

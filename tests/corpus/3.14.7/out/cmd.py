@@ -121,7 +121,10 @@ sys.stdin and sys.stdout are used.
                 if self.cmdqueue:
                     line = self.cmdqueue.pop(0)
                 elif self.use_rawinput:
-                    line = input(self.prompt)
+                    try:
+                        line = input(self.prompt)
+                    except EOFError:
+                        line = 'EOF'
                 else:
                     self.stdout.write(self.prompt)
                     self.stdout.flush()
@@ -134,8 +137,6 @@ sys.stdin and sys.stdout are used.
                 stop = self.onecmd(line)
                 stop = self.postcmd(stop, line)
             self.postloop()
-        except EOFError:
-            line = 'EOF'
         finally:
             if self.use_rawinput:
                 if self.completekey:

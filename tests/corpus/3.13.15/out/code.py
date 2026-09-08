@@ -223,59 +223,62 @@ a default message is printed.
                     prompt = sys.ps2
                 else:
                     prompt = sys.ps1
-            except KeyboardInterrupt:
-                self.write('\nKeyboardInterrupt\n')
-                self.resetbuffer()
-                more = 0
-            try:
                 try:
                     line = self.raw_input(prompt)
                 except EOFError:
                     self.write('\n')
+                else:
+                    more = self.push(line)
+                    try:
+                        pass
+                    finally:
+                        if _exit is not None:
+                            builtins.exit = _exit
+                        if _quit is not None:
+                            builtins.quit = _quit
+                        if exitmsg is None:
+                            self.write('now exiting %s...\n' % self.__class__.__name__)
+                        if exitmsg != '':
+                            self.write('%s\n' % exitmsg)
+                    if AttributeError:
+                        None
+                        sys.ps1 = '>>> '
+                    if AttributeError:
+                        None
+                        sys.ps2 = '... '
             except KeyboardInterrupt:
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
                 more = 0
-            finally:
-                if _exit is not None:
-                    builtins.exit = _exit
-                if _quit is not None:
-                    builtins.quit = _quit
-                if exitmsg is None:
-                    self.write('now exiting %s...\n' % self.__class__.__name__)
-                if exitmsg != '':
-                    self.write('%s\n' % exitmsg)
-            more = self.push(line)
-            try:
-                # WARNING: unrecovered try/except structure
-                continue
-            finally:
-                if SystemExit:
+        if SystemExit:
+            e = None
+            if self.local_exit:
+                self.write('\n')
+                try:
                     e = None
-                    if self.local_exit:
-                        self.write('\n')
-                        try:
-                            e = None
-                            del e
-                        finally:
-                            if _exit is not None:
-                                builtins.exit = _exit
-                            if _quit is not None:
-                                builtins.quit = _quit
-                            if exitmsg is None:
-                                self.write('now exiting %s...\n' % self.__class__.__name__)
-                            if exitmsg != '':
-                                self.write('%s\n' % exitmsg)
-                    else:
-                        raise e
-                        e = None
-                        del e
-                if _exit is not None:
-                    builtins.exit = _exit
-                if _quit is not None:
-                    builtins.quit = _quit
-                if exitmsg is None:
-                    self.write('now exiting %s...\n' % self.__class__.__name__)
+                    del e
+                finally:
+                    if _exit is not None:
+                        builtins.exit = _exit
+                    if _quit is not None:
+                        builtins.quit = _quit
+                    if exitmsg is None:
+                        self.write('now exiting %s...\n' % self.__class__.__name__)
+                    if exitmsg != '':
+                        self.write('%s\n' % exitmsg)
+            else:
+                raise e
+                e = None
+                del e
+        if _exit is not None:
+            builtins.exit = _exit
+        if _quit is not None:
+            builtins.quit = _quit
+        if exitmsg is None:
+            self.write('now exiting %s...\n' % self.__class__.__name__)
+            return
+        if exitmsg != '':
+            self.write('%s\n' % exitmsg)
 
     def push(self, line, filename=None, _symbol='single'):
         self.buffer.append(line)
