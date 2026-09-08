@@ -24,9 +24,9 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 277: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2899,
-   "ntotal": 3674,
-   "detail": "line 677: orig ('FOR_ITER', 'to 148') | got ('FOR_ITER', 'to 162')\nline 681: orig ('FOR_ITER', 'to 130') | got ('FOR_ITER', 'to 144')\nline 701: orig ('JUMP_BACKWARD', 'to 30') | got ('LOAD_GLOBAL', 'NotImplemented')"
+   "ndiff": 1452,
+   "ntotal": 3671,
+   "detail": "line 2202: orig ('FOR_ITER', 'to 34') | got ('FOR_ITER', 'to 36')\nline 2207: orig ('POP_JUMP_IF_FALSE', 'to 32') | got ('POP_JUMP_IF_TRUE', 'to 26')\nline 2208: orig ('LOAD_FAST', 'value') | got ('JUMP_BACKWARD', 'to 10')"
   },
   {
    "module": "_compat_pickle",

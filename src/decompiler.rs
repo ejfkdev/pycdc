@@ -13090,16 +13090,45 @@ impl<'a> Ctx<'a> {
                                 }
                             }
                             if let (Some(ii), Some(iend)) = (inner_idx, inner_end) {
-                                if let Some(jb) = self.instrs[ci + 1..].iter().find(|x| {
-                                    x.is_backward
-                                        && matches!(
-                                            x.op,
-                                            Op::JUMP_BACKWARD
-                                                | Op::JUMP_BACKWARD_NO_INTERRUPT
-                                                | Op::JUMP_ABSOLUTE
-                                        )
-                                        && x.target == Some(target)
-                                }) {
+                                // the else bound: the outer loop's own
+                                // back edge after the inner end (while
+                                // case), or — for 3.13 nested FOR loops,
+                                // whose outer has NO back edge — the
+                                // outer loop's exhaustion end (_check_
+                                // methods: the break JB threads onto the
+                                // outer FOR_ITER and the else arm
+                                // [END_FOR+POP_TOP .. outer END_FOR)
+                                // diverges with `return NotImplemented`)
+                                let outer_end_bound = self
+                                    .blocks
+                                    .iter()
+                                    .rev()
+                                    .find(|b| {
+                                        matches!(
+                                            b.kind,
+                                            BlockType::While | BlockType::For
+                                        ) && (b.start == target
+                                            || b.cond_end == target)
+                                    })
+                                    .map(|b| b.end)
+                                    .filter(|e| {
+                                        *e != usize::MAX && *e > iend
+                                    });
+                                let jb_bound = self.instrs[ci + 1..]
+                                    .iter()
+                                    .find(|x| {
+                                        x.is_backward
+                                            && matches!(
+                                                x.op,
+                                                Op::JUMP_BACKWARD
+                                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                    | Op::JUMP_ABSOLUTE
+                                            )
+                                            && x.target == Some(target)
+                                    })
+                                    .map(|x| x.offset)
+                                    .or(outer_end_bound);
+                                if let Some(jb_off) = jb_bound {
                                     // an else region holds statements
                                     // between the exhaustion point and
                                     // the threaded jump; loop padding
@@ -13112,7 +13141,7 @@ impl<'a> Ctx<'a> {
                                         .iter()
                                         .any(|x| {
                                             x.offset >= iend
-                                                && x.offset < jb.offset
+                                                && x.offset < jb_off
                                                 && !matches!(
                                                     x.op,
                                                     Op::END_FOR
@@ -13128,7 +13157,7 @@ impl<'a> Ctx<'a> {
                                         && self.blocks[ii].loop_else_end.is_none()
                                     {
                                         self.blocks[ii].loop_else_end =
-                                            Some(jb.offset);
+                                            Some(jb_off);
                                     }
                                 }
                             }

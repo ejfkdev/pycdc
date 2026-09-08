@@ -40,9 +40,9 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 220: orig  body=Yield()))])) | dec  body=Yield(value=Constant(value=None))))]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 3261,
+   "ndiff": 1261,
    "ntotal": 4046,
-   "detail": "line 706: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L5')\nline 710: orig ('FOR_ITER', 'to L5') | got ('FOR_ITER', 'to L4')\nline 715: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L2')"
+   "detail": "line 2761: orig ('LOAD_FAST', 'self') | got ('JUMP_BACKWARD', 'to L1')\nline 2762: orig ('LOAD_ATTR', 'pop + NULL|self') | got ('__ior__', 2)\nline 2763: orig ('CALL', '') | got ('RESUME', '')"
   },
   {
    "module": "_colorize",

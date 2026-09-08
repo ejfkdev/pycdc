@@ -63,7 +63,8 @@ def _check_methods(C, *methods):
                 if B.__dict__[method] is None:
                     return NotImplemented
                 break
-        return NotImplemented
+        else:
+            return NotImplemented
     return True
 
 class Hashable(metaclass=ABCMeta):
