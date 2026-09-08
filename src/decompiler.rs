@@ -523,6 +523,11 @@ struct Ctx<'a> {
     /// 3.8+ unconditional `while True` loops found by the back-edge
     /// prescan: loop top -> back-edge instruction end (loop region end)
     while_true_loops: Vec<(usize, usize)>,
+    /// or-rotated while re-eval spans [start, end): cond-jump copies of
+    /// a `while A or B:` tail re-evaluation whose mid-links target the
+    /// next region instead of the loop exit — the walk must drop them
+    /// (the final back edge still closes the loop)
+    or_rot_revals: Vec<(usize, usize)>,
     /// `except E as name` cleanup (`name = None; del name`) that follows a
     /// folded handler: the None-store is held until the matching delete
     /// confirms it (a real `x = None` statement must not be swallowed)
@@ -802,6 +807,7 @@ pub fn decompile_in_scope(
         threaded_break_at: HashSet::new(),
         closed_loop_tops: Vec::new(),
         while_true_loops: Vec::new(),
+        or_rot_revals: Vec::new(),
         pending_as_cleanup: None,
         star_tail: Vec::new(),
         star_tail_end: None,
@@ -2039,6 +2045,26 @@ impl<'a> Ctx<'a> {
               }
             }
 
+            // or-rotated while tail re-eval: skip the whole copy span
+            if !self.or_rot_revals.is_empty() {
+                if let Some((rs, re)) = self
+                    .or_rot_revals
+                    .iter()
+                    .find(|(rs, _)| *rs == pos)
+                    .copied()
+                {
+                    self.or_rot_revals.retain(|(a, _)| *a != rs);
+                    self.skip_until = Some(re);
+                }
+                if self
+                    .or_rot_revals
+                    .iter()
+                    .any(|(rs, re)| pos >= *rs && pos < *re)
+                {
+                    pc += 1;
+                    continue;
+                }
+            }
             // Close finished blocks before handling this instruction —
             // except when a backward jump lands exactly at an open If/Else
             // boundary: that jump is either a fused elif-chain exit or a
@@ -21038,6 +21064,20 @@ return None;
         if target != raw_target {
             self.cond_jump_redirect.insert(self.cur_offset, target);
         }
+        // 3.12+ OR-shaped pre-checked rotated while (`while A or B:`):
+        // the A link jumps TRUE straight to the body top and only the
+        // LAST operand (B) exits to the loop end; the tail re-eval
+        // inverts each non-final link (pjFALSE->next region, fall-
+        // through JB->body) and repeats the final link + back edge
+        // (_collections_abc 3.13 Sequence.index `while stop is None
+        // or i < stop:` rendered `if stop is not None: while i <
+        // stop:` — semantically wrong for stop=None)
+        if self.version.at_least(3, 12)
+            && jump_if_true
+            && self.try_pre_rot_or(&cond, target)
+        {
+            return;
+        }
         // value-form `A and B or C`: the `and`'s PJIF target is the `or`'s
         // second operand, so the chain merges into one BoolOp value instead
         // of an `if A: pass` + a truncated `B or C` (ast 3.6 _format).
@@ -26773,6 +26813,233 @@ if split_cond {
             }
         }
         false
+    }
+
+    /// OR-shaped pre-checked rotated while detection/conversion. See the
+    /// call site in handle_cond_jump. `cond` is this (A-link) jump's
+    /// operand, `target` the shared body top.
+    fn try_pre_rot_or(&mut self, cond: &ExprRef, target: usize) -> bool {
+        let Some(&ci) = self.idx_of.get(&self.cur_offset) else {
+            return false;
+        };
+        let is_pad = |x: &crate::bytecode::Instruction| {
+            matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG)
+        };
+        let next_real = |i: usize| -> Option<usize> {
+            let mut k = i + 1;
+            while k < self.instrs.len() && is_pad(&self.instrs[k]) {
+                k += 1;
+            }
+            (k < self.instrs.len()).then_some(k)
+        };
+        // A operand region must be non-empty
+        let mut a_lo = ci;
+        while a_lo > 0 {
+            let p = &self.instrs[a_lo - 1];
+            if is_pure_value_op(p.op) || matches!(p.op, Op::TO_BOOL) || is_pad(p) {
+                a_lo -= 1;
+            } else {
+                break;
+            }
+        }
+        if a_lo == ci {
+            return false;
+        }
+        // B region: [cur_next, jb) pure values ending in a forward
+        // PJIF-family jump to the loop exit; its fall-through is the
+        // body top (comparing EFFECTIVE offsets: a 3.13 NOP line marker
+        // can sit at the top)
+        let Some(&ni) = self.idx_of.get(&self.cur_next) else {
+            return false;
+        };
+        let mut k = ni;
+        while k < self.instrs.len() {
+            let ins = &self.instrs[k];
+            if matches!(
+                ins.op,
+                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+            ) && !ins.is_backward
+            {
+                break;
+            }
+            if !is_pure_value_op(ins.op)
+                && !matches!(ins.op, Op::TO_BOOL)
+                && !is_pad(ins)
+            {
+                return false;
+            }
+            k += 1;
+        }
+        if k >= self.instrs.len() || k <= ni {
+            return false;
+        }
+        let jb = k;
+        let Some(exit) = self.instrs[jb].target else {
+            return false;
+        };
+        if exit <= self.instrs[jb].offset {
+            return false;
+        }
+        let ft_ok = next_real(jb).map_or(false, |i2| {
+            self.effective_offset(self.instrs[i2].offset)
+                == self.effective_offset(target)
+        });
+        if !ft_ok {
+            return false;
+        }
+        // final back edge: the LAST backward unconditional jump onto the
+        // body top between the B jump and the loop exit
+        let Some(be_idx) = self
+            .instrs
+            .iter()
+            .filter(|x| {
+                x.offset < exit
+                    && x.offset > self.instrs[jb].offset
+                    && x.is_backward
+                    && x.target == Some(target)
+                    && matches!(
+                        x.op,
+                        Op::JUMP_BACKWARD
+                            | Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    )
+            })
+            .map(|x| x.offset)
+            .last()
+            .and_then(|bo| self.idx_of.get(&bo).copied())
+        else {
+            return false;
+        };
+        // B' region: [.., be_idx) ends with a jump matching jb (op +
+        // absolute exit target); its operand run mirrors B's
+        let b_run: Vec<u8> = self.instrs[ni..jb]
+            .iter()
+            .filter(|x| !is_pad(x))
+            .map(|x| x.op as u8)
+            .collect();
+        if b_run.is_empty() || be_idx == 0 {
+            return false;
+        }
+        let bjump = &self.instrs[be_idx - 1];
+        if is_pad(bjump)
+            || bjump.op != self.instrs[jb].op
+            || bjump.target != Some(exit)
+            || bjump.is_backward
+        {
+            return false;
+        }
+        let mut b_lo = be_idx - 1;
+        let mut run: Vec<u8> = Vec::new();
+        while b_lo > 0 {
+            let p = &self.instrs[b_lo - 1];
+            if is_pad(p) {
+                b_lo -= 1;
+                continue;
+            }
+            if is_pure_value_op(p.op) || matches!(p.op, Op::TO_BOOL) {
+                run.push(p.op as u8);
+                b_lo -= 1;
+                continue;
+            }
+            break;
+        }
+        run.reverse();
+        if run != b_run {
+            return false;
+        }
+        // mid JB -> body top between the A' and B' regions
+        if b_lo == 0 {
+            return false;
+        }
+        let mid = &self.instrs[b_lo - 1];
+        if !(mid.is_backward
+            && mid.target == Some(target)
+            && matches!(
+                mid.op,
+                Op::JUMP_BACKWARD
+                    | Op::JUMP_ABSOLUTE
+                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+            ))
+        {
+            return false;
+        }
+        // A' region: ends with the polarity-inverse of this A jump,
+        // targeting the B' region start; operand run mirrors A's
+        if b_lo < 2 {
+            return false;
+        }
+        let a_jump_idx = b_lo - 2;
+        let Some(ajump) = self.instrs.get(a_jump_idx) else {
+            return false;
+        };
+        if is_pad(ajump) {
+            return false;
+        }
+        let inverse_ok = match (self.instrs[ci].op, ajump.op) {
+            (Op::POP_JUMP_IF_NONE, Op::POP_JUMP_IF_NOT_NONE)
+            | (Op::POP_JUMP_IF_NOT_NONE, Op::POP_JUMP_IF_NONE)
+            | (Op::POP_JUMP_FORWARD_IF_NONE, Op::POP_JUMP_FORWARD_IF_NOT_NONE)
+            | (Op::POP_JUMP_FORWARD_IF_NOT_NONE, Op::POP_JUMP_FORWARD_IF_NONE)
+            | (Op::POP_JUMP_BACKWARD_IF_NONE, Op::POP_JUMP_BACKWARD_IF_NOT_NONE)
+            | (Op::POP_JUMP_BACKWARD_IF_NOT_NONE, Op::POP_JUMP_BACKWARD_IF_NONE)
+            | (Op::POP_JUMP_IF_TRUE, Op::POP_JUMP_IF_FALSE)
+            | (Op::POP_JUMP_IF_FALSE, Op::POP_JUMP_IF_TRUE)
+            | (Op::POP_JUMP_FORWARD_IF_TRUE, Op::POP_JUMP_FORWARD_IF_FALSE)
+            | (Op::POP_JUMP_FORWARD_IF_FALSE, Op::POP_JUMP_FORWARD_IF_TRUE) => {
+                true
+            }
+            _ => false,
+        };
+        if !inverse_ok || ajump.target != Some(self.instrs[b_lo].offset) {
+            return false;
+        }
+        let a_run: Vec<u8> = self.instrs[a_lo..ci]
+            .iter()
+            .filter(|x| !is_pad(x))
+            .map(|x| x.op as u8)
+            .collect();
+        let mut a2_lo = a_jump_idx;
+        let mut arun: Vec<u8> = Vec::new();
+        while a2_lo > 0 {
+            let p = &self.instrs[a2_lo - 1];
+            if is_pad(p) {
+                a2_lo -= 1;
+                continue;
+            }
+            if is_pure_value_op(p.op) || matches!(p.op, Op::TO_BOOL) {
+                arun.push(p.op as u8);
+                a2_lo -= 1;
+                continue;
+            }
+            break;
+        }
+        arun.reverse();
+        if arun != a_run || a_run.is_empty() {
+            return false;
+        }
+        // everything matched: build `while A or B:` over [target, exit)
+        let b_expr = match self.sim_value_region(ni, jb) {
+            Some(e) => e,
+            None => return false,
+        };
+        let merged: ExprRef = Rc::new(Expr::BoolOp {
+            op: BoolOpKind::Or,
+            values: vec![cond.clone(), b_expr],
+        });
+        self.while_true_loops.retain(|(t, _)| *t != target);
+        let mut blk = Block::new(BlockType::While, target, exit);
+        blk.cond = Some(merged);
+        blk.cond_set = true;
+        blk.cond_end = self.instrs[ci].end();
+        blk.jump_if_true = false;
+        blk.stack_depth = self.stack.len();
+        self.blocks.push(blk);
+        // drop the tail re-eval when the walk reaches it (its mid link
+        // targets the B' region head, which dup_while cannot match)
+        let reval_start = self.instrs[a2_lo].offset;
+        self.or_rot_revals.push((reval_start, self.instrs[be_idx].end()));
+        self.skip_until = Some(target);
+        true
     }
 
     fn handle_jump_backward(&mut self, target: usize) {
