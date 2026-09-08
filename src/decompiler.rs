@@ -19321,22 +19321,59 @@ impl<'a> Ctx<'a> {
         }
         // the body ends at the loop's back edge (first backward
         // unconditional jump to a loop top at/after the body start)
-        let body_end = self.instrs[e0..]
-            .iter()
-            .find(|x| {
-                x.is_backward
-                    && matches!(
-                        x.op,
-                        Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP_BACKWARD_NO_INTERRUPT
-                    )
-                    && x.target.map_or(false, |t| {
-                        self.blocks.iter().any(|b| {
-                            matches!(b.kind, BlockType::While | BlockType::For)
-                                && (b.start == t || b.cond_end == t)
-                        })
+        let back_edge = self.instrs[e0..].iter().find(|x| {
+            x.is_backward
+                && matches!(
+                    x.op,
+                    Op::JUMP_ABSOLUTE
+                        | Op::JUMP_BACKWARD
+                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                )
+                && x.target.map_or(false, |t| {
+                    self.blocks.iter().any(|b| {
+                        matches!(b.kind, BlockType::While | BlockType::For)
+                            && (b.start == t || b.cond_end == t)
                     })
-            })
-            .map(|x| x.offset)?;
+                })
+        });
+        let body_end = match back_edge {
+            Some(x) => x.offset,
+            None => {
+                // no back edge before the loop ends: the shared success
+                // block may be a sunk return stub ([POP_TOP/pads/loads]
+                // RETURN) — `if A or B: return K` at the loop tail
+                // (_collections_abc 3.13 ItemsView.__contains__). Only
+                // the stub shape qualifies; a statement body keeps
+                // requiring the back edge.
+                let mut rend = None;
+                for x in self.instrs[e0..].iter() {
+                    if matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                        rend = Some(x.end());
+                        break;
+                    }
+                    if is_pure_value_op(x.op)
+                        || matches!(
+                            x.op,
+                            Op::NOP
+                                | Op::NOT_TAKEN
+                                | Op::CACHE
+                                | Op::EXTENDED_ARG
+                                | Op::POP_TOP
+                                | Op::POP_ITER
+                                | Op::SWAP
+                                | Op::COPY
+                                | Op::TO_BOOL
+                        )
+                    {
+                        continue;
+                    }
+                    if x.target.is_some() {
+                        break;
+                    }
+                }
+                rend?
+            }
+        };
         if body_end <= target {
             return None;
         }

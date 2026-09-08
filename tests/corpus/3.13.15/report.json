@@ -32,7 +32,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 220: orig  body=Yield()))])) | dec  body=Yield(value=Constant(value=None))))]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2959,
+   "ndiff": 2958,
    "ntotal": 3787,
    "detail": "line 700: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L5')\nline 704: orig ('FOR_ITER', 'to L5') | got ('FOR_ITER', 'to L4')\nline 710: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L2')"
   },
