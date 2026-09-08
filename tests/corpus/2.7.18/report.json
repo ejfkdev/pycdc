@@ -163,7 +163,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 1851: orig  TryExcept(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self' | dec  If(test=Compare(left=Subscript(value=Attribute(value=Name(id='why'",
    "verdict": "SIG-DIFF",
-   "ndiff": 334,
+   "ndiff": 325,
    "ntotal": 2185,
    "detail": "line 133: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 165: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 1430: orig ('SETUP_EXCEPT', '#21') | got ('LOAD_FAST', 'why')"
   },

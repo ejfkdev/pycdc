@@ -1027,8 +1027,9 @@ class _Unparser(NodeVisitor):
         '''
 
         def escape_char(c):
-            if not escape_special_whitespace and c in '\n\t':
-                return c
+            if not escape_special_whitespace:
+                if c in '\n\t':
+                    return c
             if c == '\\' or not c.isprintable():
                 return c.encode('unicode_escape').decode('ascii')
             return c

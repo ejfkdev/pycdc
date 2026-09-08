@@ -6469,6 +6469,73 @@ impl<'a> Ctx<'a> {
                     }
                     lt.else_stop = t;
                 }
+                // 3.5/3.6 deferred fold: the clause-exit back edge
+                // arrives while the handler is STILL open (the as-
+                // cleanup wrapper defers the fold past POP_EXCEPT:
+                // POP_BLOCK; POP_EXCEPT; LOAD None; cleanup;
+                // END_FINALLY; JABS->loop-top). Same structural test
+                // as the folded case: a pending clause head ahead +
+                // a backward edge onto the enclosing loop top means
+                // this is the clause's normal exit fused with the
+                // loop back edge — fold the handler WITHOUT the
+                // source-level Continue and consume the jump
+                // (asyncore 3.5/3.6 close_all clause 1). Scoped to
+                // 3.5/3.6: 3.7 folds before the edge (the lh-none
+                // consume above), and py2/3.9+ chain states rely on
+                // their own fold paths (asyncore 2.7/3.9 close_all
+                // tore when this fired there)
+                if self.legacy_handler.is_some()
+                    && !lt.has_finally
+                    && self.version.at_least(3, 3)
+                    && !self.version.at_least(3, 7)
+                {
+                    let clause_exit = inst.is_backward
+                        && matches!(
+                            inst.op,
+                            Op::JUMP_ABSOLUTE
+                                | Op::JUMP_BACKWARD
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                | Op::JUMP
+                        )
+                        && inst.target.map_or(false, |t| {
+                            t < pos && self.is_loop_top_target(t)
+                        })
+                        && lt
+                            .pending_mismatch
+                            .iter()
+                            .any(|&m| m > pos && self.pending_clause_head_at(m));
+                    if clause_exit {
+                        if let Some(mut h) = self.legacy_handler.take() {
+                            while self.blocks.len() > h.block_depth {
+                                let e = self
+                                    .blocks
+                                    .last()
+                                    .map(|b| b.end.min(pos))
+                                    .unwrap_or(pos);
+                                self.force_close_top(e);
+                            }
+                            if let Some(he) = &h.name {
+                                if let Expr::Name(n) = &**he {
+                                    self.pending_as_cleanup = Some(n.clone());
+                                }
+                            }
+                            if let Some(l) = self.legacy_try.as_mut() {
+                                l.handlers.push(ExceptHandler {
+                                    type_: h.type_,
+                                    name: h.name,
+                                    body: std::mem::take(&mut h.body),
+                                    is_star: false,
+                                });
+                            }
+                        }
+                        self.legacy_handler_end = None;
+                        let ie = inst.end();
+                        if self.skip_until.map_or(true, |sk| sk < ie) {
+                            self.skip_until = Some(ie);
+                        }
+                        return;
+                    }
+                }
                 if self.legacy_handler.is_none() && !lt.has_finally {
                     let in_else = lt
                         .else_start
@@ -20210,8 +20277,14 @@ return None;
                     // loop (b16 while_and 3.11, cmd 3.10
                     // `while texts and not texts[-1]`). <=3.9 needs the
                     // mixed merge for `A and not B` chains with else
-                    // arms (copyreg _slotnames 3.8).
-                    && (!self.version.at_least(3, 10)
+                    // arms (copyreg _slotnames 3.8) — but only in that
+                    // polarity order: a PJIT link followed by a PJIF
+                    // link is `if not A:` + `if B:` nested, whose fused
+                    // rendering recompiles UNARY_NOT + PJIF while the
+                    // nested guards recompile PJIT + PJIF byte-exact
+                    // (asyncore 3.5 handle_write_event)
+                    && ((!self.version.at_least(3, 10)
+                        && !(top.jump_if_true && !jump_if_true))
                         || top.jump_if_true == jump_if_true
                         // mixed polarity on 3.10+ is safe only INSIDE an
                         // already-open loop body with the shared target

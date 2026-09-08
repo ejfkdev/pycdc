@@ -366,8 +366,9 @@ class dispatcher:
     def handle_write_event(self):
         if self.accepting:
             return
-        if not self.connected and self.connecting:
-            self.handle_connect_event()
+        if not self.connected:
+            if self.connecting:
+                self.handle_connect_event()
         self.handle_write()
 
     def handle_expt_event(self):
