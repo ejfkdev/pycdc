@@ -430,6 +430,8 @@ on the stream, these should be read too.
                         lines = newchars.splitlines(keepends=True)
                         if len(lines) <= 1:
                             raise
+                    else:
+                        raise
                 self.bytebuffer = data[decodedbytes:]
                 self.charbuffer += newchars
                 if not newdata:

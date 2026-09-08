@@ -2,8 +2,8 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 22,
-  "SIG-DIFF": 11,
+  "PASS": 23,
+  "SIG-DIFF": 10,
   "INCOMPLETE": 6,
   "AST-PASS": 1
  },
@@ -93,7 +93,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1207,
    "ntotal": 2986,
-   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u5341', '\u4e03', '\u4e5d', '\u5eff', '\u4e00'})\") | got ('LOAD_CONST', \"frozenset({'\u4e00', '\u5341', '\u5eff', '\u4e5d', '\u4e03'})\")\nline 1631: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 1632: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')"
+   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e5d', '\u4e00', '\u5eff', '\u4e03', '\u5341'})\") | got ('LOAD_CONST', \"frozenset({'\u4e03', '\u5eff', '\u4e5d', '\u5341', '\u4e00'})\")\nline 1631: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 1632: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -167,11 +167,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 863: orig  body=[Raise()]) | dec  body=[Raise()])])])])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1136,
-   "ntotal": 2206,
-   "detail": "line 1027: orig ('POP_JUMP_IF_FALSE', 'to L14') | got ('POP_JUMP_IF_FALSE', 'to L13')\nline 1031: orig ('POP_JUMP_IF_FALSE', 'to L13') | got ('POP_JUMP_IF_FALSE', 'to L12')\nline 1063: orig ('RAISE_VARARGS', '') | got ('LOAD_CONST', 'None')"
+   "verdict": "PASS"
   },
   {
    "module": "codeop",

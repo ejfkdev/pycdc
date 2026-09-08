@@ -7899,6 +7899,58 @@ impl<'a> Ctx<'a> {
                     else_blk.folded_exit = true;
                     self.pending_then.push(body);
                     self.blocks.push(else_blk);
+                } else if b.else_end.is_none()
+                    && b.end > pos
+                    && self.version.at_least(3, 11)
+                    && self
+                        .idx_of
+                        .get(&b.end)
+                        .copied()
+                        .map_or(false, |ti| {
+                            // 3.11+ out-of-line handler: the else arm's
+                            // bare `raise` is relocated PAST the
+                            // handler's normal-exit resume stub (codecs
+                            // 3.13 read: PJIF(firstline) targets a bare
+                            // RAISE_VARARGS after the JBNI resume) — the
+                            // linear body region cannot include it, so
+                            // attach it here when the guard's target is
+                            // exactly that raise and only exception-path
+                            // cleanup follows it
+                            self.instrs[ti].op == Op::RAISE_VARARGS
+                                && self.instrs[ti].arg == 0
+                                && self.instrs[ti + 1..].iter().all(|x| {
+                                    matches!(
+                                        x.op,
+                                        Op::LOAD_CONST
+                                            | Op::STORE_FAST
+                                            | Op::STORE_NAME
+                                            | Op::STORE_DEREF
+                                            | Op::DELETE_FAST
+                                            | Op::DELETE_NAME
+                                            | Op::DELETE_DEREF
+                                            | Op::RERAISE
+                                            | Op::COPY
+                                            | Op::SWAP
+                                            | Op::POP_EXCEPT
+                                            | Op::POP_TOP
+                                            | Op::NOP
+                                            | Op::NOT_TAKEN
+                                            | Op::CACHE
+                                            | Op::RAISE_VARARGS
+                                    )
+                                })
+                        })
+                {
+                    self.push_stmt(Stmt::If {
+                        cond,
+                        body,
+                        orelse: vec![Stmt::Raise {
+                            exc: None,
+                            cause: None,
+                            py2_inst: None,
+                            py2_tb: None,
+                        }],
+                    });
                 } else {
                     self.push_stmt(Stmt::If {
                         cond,

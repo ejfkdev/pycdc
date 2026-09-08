@@ -65,7 +65,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 954,
    "ntotal": 1362,
-   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'attlist', 'element', 'linktype', 'link'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'linktype', 'element', 'attlist', 'link'})\")"
+   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'attlist', 'link', 'linktype', 'element'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'element', 'attlist', 'link', 'linktype'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -106,7 +106,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1335,
    "ntotal": 3207,
-   "detail": "line 622: orig ('LOAD_CONST', \"frozenset({'\u4e5d', '\u5eff', '\u5341', '\u4e03', '\u4e00'})\") | got ('LOAD_CONST', \"frozenset({'\u5341', '\u4e00', '\u4e5d', '\u4e03', '\u5eff'})\")\nline 1696: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 1697: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')"
+   "detail": "line 622: orig ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e00', '\u4e03', '\u5341', '\u4e5d'})\") | got ('LOAD_CONST', \"frozenset({'\u4e00', '\u5eff', '\u4e03', '\u5341', '\u4e5d'})\")\nline 1696: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 1697: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -193,9 +193,9 @@
    "module": "codecs",
    "ast_detail": "diff at token 756: orig  ctx=Load()))]) | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1183,
+   "ndiff": 3,
    "ntotal": 2377,
-   "detail": "line 1050: orig ('POP_JUMP_IF_FALSE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L9')\nline 1153: orig ('POP_JUMP_IF_FALSE', 'to L13') | got ('POP_JUMP_IF_FALSE', 'to L12')\nline 1158: orig ('POP_JUMP_IF_FALSE', 'to L12') | got ('POP_JUMP_IF_FALSE', 'to L11')"
+   "detail": "line 1050: orig ('POP_JUMP_IF_FALSE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L9')\nline 2362: orig ('CONTAINS_OP', 'in') | got ('CONTAINS_OP', 'not in')\nline 2363: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')"
   },
   {
    "module": "codeop",
