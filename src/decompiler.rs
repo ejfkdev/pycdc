@@ -20843,12 +20843,38 @@ return None;
             &*chain,
             Expr::BoolOp { op: BoolOpKind::And, values } if values.len() >= 2
         );
-        if !chain_is_and {
+        // 3.12+ admits the PLAIN `A or B` single-operand chain too when
+        // the skip is a clean forward label INSIDE the enclosing loop:
+        // the historical or-merge for this shape is py2/<=3.7-gated, and
+        // on 3.13 the nested fallback renders polarity-inverted guards
+        // (`if v is not value: if not v == value: continue` for
+        // Sequence.index's `if v is value or v == value: return i`).
+        // The skip must NOT be the loop's own exit: a top-level while
+        // cond `while X and (A or B):` lays its or-links out with the
+        // false exit AT the loop exit (_py_warnings 3.14
+        // _next_external_frame — folding it there dropped the loop
+        // exit into a phantom if-skip and the body lost its back-edge
+        // semantics). The fused form (skip == loop top) keeps requiring
+        // a genuine and-chain (asyncore poll lesson).
+        let chain_ok = chain_is_and
+            || (!fused
+                && self.version.at_least(3, 12)
+                && self.find_loop_exit(skip).is_none()
+                && matches!(&*chain, Expr::BoolOp { op: BoolOpKind::And, values } if values.len() == 1));
+        if !chain_ok {
             return None;
         }
         let mut or_vals = Vec::new();
         flatten_boolop(cond, BoolOpKind::Or, &mut or_vals);
-        flatten_boolop(chain, BoolOpKind::Or, &mut or_vals);
+        if let Expr::BoolOp { op: BoolOpKind::And, values } = &*chain {
+            if values.len() == 1 {
+                flatten_boolop(values[0].clone(), BoolOpKind::Or, &mut or_vals);
+            } else {
+                flatten_boolop(chain, BoolOpKind::Or, &mut or_vals);
+            }
+        } else {
+            flatten_boolop(chain, BoolOpKind::Or, &mut or_vals);
+        }
         let merged = Rc::new(Expr::BoolOp {
             op: BoolOpKind::Or,
             values: or_vals,
