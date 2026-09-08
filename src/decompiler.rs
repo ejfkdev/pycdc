@@ -13782,20 +13782,53 @@ impl<'a> Ctx<'a> {
         if self.instrs.get(si).map(|x| x.op) != Some(Op::PUSH_NULL) {
             return None;
         }
-        // slow path: PUSH_NULL; LOAD_CONST <genexpr code>; MAKE_FUNCTION;
-        // <iterable>; GET_ITER; CALL 0; CALL 1
-        let lc = self.instrs.get(si + 1)?;
-        if lc.op != Op::LOAD_CONST {
+        // slow path: PUSH_NULL; [closure vars; BUILD_TUPLE n;]
+        // LOAD_CONST <genexpr code>; MAKE_FUNCTION;
+        // [SET_FUNCTION_ATTRIBUTE closure]; <iterable>; GET_ITER;
+        // CALL 0; CALL 1 — the closure prologue exists when the genexpr
+        // captures locals (_py_abc 3.14 __instancecheck__'s
+        // `any(cls.__subclasscheck__(c) ...)` closes over cls)
+        let mut k = si + 1;
+        let mut lci = None;
+        while let Some(ins) = self.instrs.get(k) {
+            if ins.op == Op::LOAD_CONST {
+                match self.code.consts.get(ins.arg as usize).map(|o| &**o) {
+                    Some(PyObject::Code(c)) if c.name == "<genexpr>" => {
+                        lci = Some(k);
+                        break;
+                    }
+                    _ => return None,
+                }
+            }
+            if matches!(
+                ins.op,
+                Op::LOAD_FAST
+                    | Op::LOAD_FAST_BORROW
+                    | Op::LOAD_FAST_CHECK
+                    | Op::LOAD_DEREF
+                    | Op::LOAD_FAST_LOAD_FAST
+                    | Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW
+                    | Op::BUILD_TUPLE
+                    | Op::NOP
+                    | Op::NOT_TAKEN
+                    | Op::CACHE
+            ) {
+                k += 1;
+                continue;
+            }
             return None;
         }
-        match self.code.consts.get(lc.arg as usize).map(|o| &**o) {
-            Some(PyObject::Code(c)) if c.name == "<genexpr>" => {}
-            _ => return None,
-        }
-        if self.instrs.get(si + 2).map(|x| x.op) != Some(Op::MAKE_FUNCTION) {
+        let lci = lci?;
+        if self.instrs.get(lci + 1).map(|x| x.op) != Some(Op::MAKE_FUNCTION) {
             return None;
         }
-        let mut k = si + 3;
+        let mut k = lci + 2;
+        while matches!(
+            self.instrs.get(k).map(|x| x.op),
+            Some(Op::SET_FUNCTION_ATTRIBUTE)
+        ) {
+            k += 1;
+        }
         let mut saw_get_iter = false;
         let mut call0 = None;
         while let Some(ins) = self.instrs.get(k) {
@@ -30970,11 +31003,25 @@ impl<'a> Ctx<'a> {
                         // pre-3.7 calling convention: no marker slot
                         stack.pop().unwrap_or_else(underflow)
                     } else if self.version.at_least(3, 14) {
-                        // [callable, marker, args]
-                        if matches!(stack.last(), Some(m) if is_null_marker(m)) {
-                            stack.pop();
+                        // plain call: [NULL, callable, args] — the
+                        // callable is on top. Method call (LOAD_ATTR
+                        // arg&1): [attr, receiver, args] — the receiver
+                        // rides on top and must be dropped, the attr is
+                        // the callable (_py_abc 3.14 __instancecheck__'s
+                        // genexp rendered `cls(c)` — the receiver popped
+                        // as the func — instead of
+                        // `cls.__subclasscheck__(c)`)
+                        if stack.len() >= 2
+                            && matches!(&*stack[stack.len() - 2], Expr::Attribute { .. })
+                        {
+                            stack.pop(); // receiver marker
+                            stack.pop().unwrap_or_else(underflow)
+                        } else {
+                            if matches!(stack.last(), Some(m) if is_null_marker(m)) {
+                                stack.pop();
+                            }
+                            stack.pop().unwrap_or_else(underflow)
                         }
-                        stack.pop().unwrap_or_else(underflow)
                     } else if self.version.at_least(3, 11) {
                         // [marker, callable, args]
                         let f = stack.pop().unwrap_or_else(underflow);

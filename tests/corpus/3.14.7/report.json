@@ -2,9 +2,9 @@
  "version": "3.14.7",
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
-  "PASS": 14,
-  "INCOMPLETE": 12,
-  "SIG-DIFF": 13,
+  "PASS": 15,
+  "INCOMPLETE": 10,
+  "SIG-DIFF": 14,
   "AST-PASS": 1
  },
  "results": [
@@ -37,9 +37,10 @@
   },
   {
    "module": "_collections_abc",
-   "verdict": "INCOMPLETE",
-   "ndiff": 3294,
-   "ntotal": 4067,
+   "ast_detail": "diff at token 220: orig  body=Yield()))])) | dec  body=Yield(value=Constant(value=None))))]))",
+   "verdict": "SIG-DIFF",
+   "ndiff": 3280,
+   "ntotal": 4065,
    "detail": "line 706: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L5')\nline 710: orig ('FOR_ITER', 'to L5') | got ('FOR_ITER', 'to L4')\nline 714: orig ('CONTAINS_OP', 'in') | got ('CONTAINS_OP', 'not in')"
   },
   {
@@ -64,7 +65,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 951,
    "ntotal": 1366,
-   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'element', 'linktype', 'link', 'attlist'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'element', 'link', 'linktype', 'attlist'})\")"
+   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'link', 'attlist', 'element', 'linktype'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'element', 'linktype', 'link', 'attlist'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -79,16 +80,13 @@
   },
   {
    "module": "_py_abc",
-   "verdict": "INCOMPLETE",
-   "ndiff": 263,
-   "ntotal": 637,
-   "detail": "line 368: orig ('COPY', '') | got ('LOAD_GLOBAL', 'any')\nline 369: orig ('LOAD_COMMON_CONSTANT', '<built-in function any>') | got ('IS_OP', 'is')\nline 370: orig ('IS_OP', 'is') | got ('POP_JUMP_IF_FALSE', 'to L7')"
+   "verdict": "PASS"
   },
   {
    "module": "_py_warnings",
    "verdict": "INCOMPLETE",
-   "ndiff": 2552,
-   "ntotal": 3262,
+   "ndiff": 2505,
+   "ntotal": 3209,
    "detail": "line 650: orig ('JUMP_BACKWARD', 'to L5') | got ('JUMP_BACKWARD', 'to L7')\nline 653: orig ('LOAD_FAST', 's') | got ('LOAD_CONST', 'None')\nline 655: orig ('LOAD_FAST', 'suggest_tracemalloc') | got ('LOAD_CONST', 'None')"
   },
   {
@@ -133,7 +131,7 @@
   {
    "module": "annotationlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 3776,
+   "ndiff": 3778,
    "ntotal": 4164,
    "detail": "line 56: orig ('LOAD_NAME', 'type') | got ('NOP', '')\nline 57: orig ('PUSH_NULL', '') | got ('LOAD_NAME', 'type')\nline 58: orig ('LOAD_CONST', \"('',)\") | got ('PUSH_NULL', '')"
   },

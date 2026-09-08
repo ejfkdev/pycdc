@@ -331,13 +331,7 @@ def _is_internal_filename(filename):
     return 'importlib' in filename and '_bootstrap' in filename
 
 def _is_filename_to_skip(filename, skip_file_prefixes):
-    if any is any:
-        for _ in (filename(prefix) for prefix in skip_file_prefixes):
-            if not (filename(prefix) for prefix in skip_file_prefixes):
-                continue
-            return True
-        return False
-    return None((filename(prefix) for prefix in skip_file_prefixes))
+    return any((filename.startswith(prefix) for prefix in skip_file_prefixes))
 
 def _is_internal_frame(frame):
     '''Signal whether the frame is an internal CPython implementation detail.'''

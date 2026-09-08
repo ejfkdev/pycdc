@@ -316,7 +316,7 @@ Returns a formatted day.
 Returns a single week in a string (no newline).
 '''
 
-        return ' '.join((self(d, wd, width) for d, wd in theweek))
+        return ' '.join((self.formatday(d, wd, width) for d, wd in theweek))
 
     def formatweekday(self, day, width):
         '''
@@ -334,7 +334,7 @@ Returns a formatted week day name.
 Return a header for a week.
 '''
 
-        return ' '.join((self(i, width) for i in self.iterweekdays()))
+        return ' '.join((self.formatweekday(i, width) for i in self.iterweekdays()))
 
     def formatmonthname(self, theyear, themonth, width, withyear=True):
         _validate_month(themonth)
@@ -380,7 +380,7 @@ Returns a year's calendar as a multi-line string.
         for i, row in enumerate(self.yeardays2calendar(theyear, m)):
             months = range(m * i + 1, min(m * (i + 1) + 1, 13))
             a('\n' * l)
-            names = (self(theyear, k, colwidth, False) for k in months)
+            names = (self.formatmonthname(theyear, k, colwidth, False) for k in months)
             a(formatstring(names, colwidth, c).rstrip())
             a('\n' * l)
             headers = (header for k in months)
@@ -429,7 +429,7 @@ Return a day as a table cell.
 Return a complete week as a table row.
 '''
 
-        s = ''.join((self(d, wd) for d, wd in theweek))
+        s = ''.join((self.formatday(d, wd) for d, wd in theweek))
         return '<tr>%s</tr>' % s
 
     def formatweekday(self, day):
@@ -444,7 +444,7 @@ Return a weekday name as a table header.
 Return a header for a week as a table row.
 '''
 
-        s = ''.join((self(i) for i in self.iterweekdays()))
+        s = ''.join((self.formatweekday(i) for i in self.iterweekdays()))
         return '<tr>%s</tr>' % s
 
     def formatmonthname(self, theyear, themonth, withyear=True):
@@ -602,7 +602,7 @@ Returns a single week in a string (no newline).
             reset = ansi.RESET
         else:
             highlight = reset = ''
-        return ' '.join((self(d, wd, width) for d, wd in theweek if d == highlight_day))
+        return ' '.join((self.formatday(d, wd, width) for d, wd in theweek if d == highlight_day))
 
     def formatmonth(self, theyear, themonth, w=0, l=0):
         """
@@ -642,7 +642,7 @@ Returns a year's calendar as a multi-line string.
         for i, row in enumerate(self.yeardays2calendar(theyear, m)):
             months = range(m * i + 1, min(m * (i + 1) + 1, 13))
             a('\n' * l)
-            names = (self(theyear, k, colwidth, False) for k in months)
+            names = (self.formatmonthname(theyear, k, colwidth, False) for k in months)
             a(formatstring(names, colwidth, c).rstrip())
             a('\n' * l)
             headers = (header for k in months)
@@ -699,7 +699,7 @@ def formatstring(cols, colwidth=_colwidth, spacing=_spacing):
     '''Returns a string formatted from n strings, centered within n columns.'''
 
     spacing *= ' '
-    return spacing.join((c(colwidth) for c in cols))
+    return spacing.join((c.center(colwidth) for c in cols))
 
 EPOCH = 1970
 _EPOCH_ORD = datetime.date(EPOCH, 1, 1).toordinal()

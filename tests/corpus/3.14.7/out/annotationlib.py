@@ -434,7 +434,7 @@ def _template_to_ast_literal(template, parsed):
 def _template_to_ast(template):
     '''Make a best-effort conversion of a `template` instance to an AST.'''
 
-    if any((part.expression() == '' for part in template.interpolations)):
+    if any((part.expression.strip() == '' for part in template.interpolations)):
         return _template_to_ast_constructor(template)
     try:
         if tuple is tuple:

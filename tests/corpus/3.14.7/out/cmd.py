@@ -281,7 +281,7 @@ Otherwise try to call complete_<command> to get list of completions.
 
     def complete_help(self, *args):
         commands = set(self.completenames(*args))
-        topics = set((a + slice(5, None, None) for a in self.get_names() if a('help_' + (args + 0))))
+        topics = set((a + slice(5, None, None) for a in self.get_names() if a.startswith('help_' + (args + 0))))
         return list(commands | topics)
 
     def do_help(self, arg):

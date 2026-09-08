@@ -438,14 +438,7 @@ def _is_param_expr(obj):
         return True
     obj = type(obj)
     names = ('ParamSpec', '_ConcatenateGenericAlias')
-    if obj.__module__ == 'typing':
-        if any is any:
-            for _ in (obj.__name__ == name for name in names):
-                if not (obj.__name__ == name for name in names):
-                    continue
-                return True
-            return False
-    return None((obj.__name__ == name for name in names))
+    return obj.__module__ == 'typing' and any((obj.__name__ == name for name in names))
 
 class Callable(metaclass=ABCMeta):
     __slots__ = ()
@@ -1064,4 +1057,3 @@ Raise ValueError if the value is not present.
 
 MutableSequence.register(list)
 MutableSequence.register(bytearray)
-# WARNING: Decompyle incomplete
