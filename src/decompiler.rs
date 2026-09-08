@@ -18806,6 +18806,50 @@ impl<'a> Ctx<'a> {
                                         | Op::JUMP_BACKWARD_NO_INTERRUPT
                                 )
                             {
+                                // fused and-chain: the PREVIOUS operand's
+                                // jump-to-loop-top opened a fused If over
+                                // the SAME then-body (its end == this back
+                                // edge) and is still open and empty — merge
+                                // this operand into its cond instead of
+                                // nesting a second guard (copyreg 3.3
+                                // _reduce_ex `if hasattr(...) and not
+                                // base.__flags__ & _HEAPTYPE: break`
+                                // rendered nested: PJIT+JABS glue instead
+                                // of UNARY_NOT+PJF)
+                                let mergeable =
+                                    self.blocks.last().map_or(false, |top| {
+                                        matches!(top.kind, BlockType::If)
+                                            && top.end == inst.start
+                                            && top.cond_set
+                                            && top.else_end.is_none()
+                                            && top.short_circuit.is_none()
+                                            && top.stmts.is_empty()
+                                            && top.start < self.cur_offset
+                                            && self.is_split_cond_region(
+                                                top.start,
+                                                self.cur_offset,
+                                                inst.start,
+                                                jump_if_true,
+                                            )
+                                    });
+                                if mergeable {
+                                    if let Some(top) = self.blocks.last_mut() {
+                                        let prev = top.cond.take().unwrap();
+                                        let c2 = if jump_if_true {
+                                            negate_cond(cond.clone())
+                                        } else {
+                                            cond.clone()
+                                        };
+                                        let mut values = Vec::new();
+                                        flatten_boolop(prev, BoolOpKind::And, &mut values);
+                                        flatten_boolop(c2, BoolOpKind::And, &mut values);
+                                        top.cond = Some(Rc::new(Expr::BoolOp {
+                                            op: BoolOpKind::And,
+                                            values,
+                                        }));
+                                    }
+                                    return;
+                                }
                                 let mut blk =
                                     Block::new(BlockType::If, self.cur_next, inst.start);
                                 let c = if jump_if_true {
@@ -19157,6 +19201,49 @@ impl<'a> Ctx<'a> {
                             }
                         }
                     }
+                    // fused and-chain: the PREVIOUS operand's PJIF opened
+                    // a fused If over the same then-body (same backward
+                    // terminus) and is still open and empty — merge this
+                    // operand into its cond instead of nesting a second
+                    // guard (copyreg 3.3 _reduce_ex `if hasattr(...) and
+                    // not base.__flags__ & _HEAPTYPE: break` rendered as
+                    // two nested ifs: PJIT+JABS glue instead of
+                    // UNARY_NOT+PJF)
+                    if let Some(te) = then_end {
+                        let mergeable = self.blocks.last().map_or(false, |top| {
+                            matches!(top.kind, BlockType::If)
+                                && top.end == te
+                                && top.cond_set
+                                && top.else_end.is_none()
+                                && top.short_circuit.is_none()
+                                && top.stmts.is_empty()
+                                && top.start < self.cur_offset
+                                && self.is_split_cond_region(
+                                    top.start,
+                                    self.cur_offset,
+                                    te,
+                                    jump_if_true,
+                                )
+                        });
+                        if mergeable {
+                            if let Some(top) = self.blocks.last_mut() {
+                                let prev = top.cond.take().unwrap();
+                                let c2 = if jump_if_true {
+                                    negate_cond(cond)
+                                } else {
+                                    cond
+                                };
+                                let mut values = Vec::new();
+                                flatten_boolop(prev, BoolOpKind::And, &mut values);
+                                flatten_boolop(c2, BoolOpKind::And, &mut values);
+                                top.cond = Some(Rc::new(Expr::BoolOp {
+                                    op: BoolOpKind::And,
+                                    values,
+                                }));
+                            }
+                            return;
+                        }
+                    }
                     if let Some(te) = then_end {
                         let mut blk = Block::new(BlockType::If, self.cur_next, te);
                         blk.cond = Some(cond);
@@ -19169,7 +19256,6 @@ impl<'a> Ctx<'a> {
                 }
             }
         }
-
         // close inner blocks that end at the current instruction before
         // opening the new one
         self.close_blocks_at(self.cur_offset);

@@ -161,12 +161,11 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         for index, opt_level in enumerate(optimize):
             cfile = opt_cfiles[opt_level]
             ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
-            if index > 0:
-                if hardlink_dupes:
-                    previous_cfile = opt_cfiles[optimize[index - 1]]
-                    if filecmp.cmp(cfile, previous_cfile, shallow=False):
-                        os.unlink(cfile)
-                        os.link(previous_cfile, cfile)
+            if index > 0 and hardlink_dupes:
+                previous_cfile = opt_cfiles[optimize[index - 1]]
+                if filecmp.cmp(cfile, previous_cfile, shallow=False):
+                    os.unlink(cfile)
+                    os.link(previous_cfile, cfile)
     except py_compile.PyCompileError as err:
         success = False
         if quiet >= 2:

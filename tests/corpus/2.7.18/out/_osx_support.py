@@ -113,23 +113,21 @@ def _find_appropriate_compiler(_config_vars):
         raise SystemError('Cannot locate working compiler')
     if cc != oldcc:
         for cv in _COMPILER_CONFIG_VARS:
-            if cv in _config_vars:
-                if cv not in os.environ:
-                    cv_split = _config_vars[cv].split()
-                    cv_split[0] = cc if cv != 'CXX' else cc + '++'
-                    _save_modified_value(_config_vars, cv, ' '.join(cv_split))
+            if cv in _config_vars and cv not in os.environ:
+                cv_split = _config_vars[cv].split()
+                cv_split[0] = cc if cv != 'CXX' else cc + '++'
+                _save_modified_value(_config_vars, cv, ' '.join(cv_split))
     return _config_vars
 
 def _remove_universal_flags(_config_vars):
     '''Remove all universal build arguments from config vars'''
 
     for cv in _UNIVERSAL_CONFIG_VARS:
-        if cv in _config_vars:
-            if cv not in os.environ:
-                flags = _config_vars[cv]
-                flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
-                flags = re.sub('-isysroot [^ \t]*', ' ', flags)
-                _save_modified_value(_config_vars, cv, flags)
+        if cv in _config_vars and cv not in os.environ:
+            flags = _config_vars[cv]
+            flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
+            flags = re.sub('-isysroot [^ \t]*', ' ', flags)
+            _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def _remove_unsupported_archs(_config_vars):
@@ -141,11 +139,10 @@ def _remove_unsupported_archs(_config_vars):
         status = os.system("echo 'int main{};' | '%s' -c -arch ppc -x c -o /dev/null /dev/null 2>/dev/null" % (_config_vars['CC'].replace("'", "'\"'\"'"),))
         if status:
             for cv in _UNIVERSAL_CONFIG_VARS:
-                if cv in _config_vars:
-                    if cv not in os.environ:
-                        flags = _config_vars[cv]
-                        flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
-                        _save_modified_value(_config_vars, cv, flags)
+                if cv in _config_vars and cv not in os.environ:
+                    flags = _config_vars[cv]
+                    flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
+                    _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def _override_all_archs(_config_vars):
@@ -154,12 +151,11 @@ def _override_all_archs(_config_vars):
     if 'ARCHFLAGS' in os.environ:
         arch = os.environ['ARCHFLAGS']
         for cv in _UNIVERSAL_CONFIG_VARS:
-            if cv in _config_vars:
-                if '-arch' in _config_vars[cv]:
-                    flags = _config_vars[cv]
-                    flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
-                    flags = flags + ' ' + arch
-                    _save_modified_value(_config_vars, cv, flags)
+            if cv in _config_vars and '-arch' in _config_vars[cv]:
+                flags = _config_vars[cv]
+                flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
+                flags = flags + ' ' + arch
+                _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def _check_for_unavailable_sdk(_config_vars):
@@ -171,11 +167,10 @@ def _check_for_unavailable_sdk(_config_vars):
         sdk = m.group(1)
         if not os.path.exists(sdk):
             for cv in _UNIVERSAL_CONFIG_VARS:
-                if cv in _config_vars:
-                    if cv not in os.environ:
-                        flags = _config_vars[cv]
-                        flags = re.sub('-isysroot\\s+\\S+(?:\\s|$)', ' ', flags)
-                        _save_modified_value(_config_vars, cv, flags)
+                if cv in _config_vars and cv not in os.environ:
+                    flags = _config_vars[cv]
+                    flags = re.sub('-isysroot\\s+\\S+(?:\\s|$)', ' ', flags)
+                    _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def compiler_fixup(compiler_so, cc_args):

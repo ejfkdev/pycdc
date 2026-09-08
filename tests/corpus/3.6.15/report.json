@@ -2,9 +2,9 @@
  "version": "3.6.15",
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
-  "PASS": 25,
-  "AST-PASS": 3,
-  "SIG-DIFF": 12
+  "PASS": 27,
+  "AST-PASS": 2,
+  "SIG-DIFF": 11
  },
  "results": [
   {
@@ -109,7 +109,7 @@
   },
   {
    "module": "binhex",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "bisect",
@@ -177,11 +177,11 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 169: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
+   "ast_detail": "diff at token 195: orig  ctx=Load())]) | dec  ctx=Load())])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 819,
+   "ndiff": 821,
    "ntotal": 1030,
-   "detail": "line 135: orig ('SETUP_LOOP', 'to 284') | got ('SETUP_LOOP', 'to 282')\nline 138: orig ('FOR_ITER', 'to 282') | got ('FOR_ITER', 'to 280')\nline 201: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
+   "detail": "line 135: orig ('SETUP_LOOP', 'to 284') | got ('SETUP_LOOP', 'to 282')\nline 138: orig ('FOR_ITER', 'to 282') | got ('FOR_ITER', 'to 280')\nline 179: orig ('POP_JUMP_IF_FALSE', '') | got ('JUMP_IF_FALSE_OR_POP', '')"
   },
   {
    "module": "configparser",
@@ -201,11 +201,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 729: orig  ctx=Del())]) | dec  ctx=Del())",
-   "verdict": "SIG-DIFF",
-   "ndiff": 352,
-   "ntotal": 542,
-   "detail": "line 169: orig ('SETUP_LOOP', 'to 58') | got ('SETUP_LOOP', 'to 56')\nline 174: orig ('FOR_ITER', 'to 52') | got ('FOR_ITER', 'to 50')\nline 185: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
+   "verdict": "PASS"
   },
   {
    "module": "crypt",

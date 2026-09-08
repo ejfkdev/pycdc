@@ -277,9 +277,8 @@ def _url_collapse_path(path):
     for part in path_parts[:-1]:
         if part == '..':
             head_parts.pop()
-        elif part:
-            if part != '.':
-                head_parts.append(part)
+        elif part and part != '.':
+            head_parts.append(part)
     if path_parts:
         tail_part = path_parts.pop()
         if tail_part:

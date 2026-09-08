@@ -142,9 +142,8 @@ class Calendar(object):
                 date += oneday
             except OverflowError:
                 break
-            if date.month != month:
-                if date.weekday() == self.firstweekday:
-                    break
+            if date.month != month and date.weekday() == self.firstweekday:
+                break
 
     def itermonthdays2(self, year, month):
         '''

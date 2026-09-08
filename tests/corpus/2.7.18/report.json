@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
   "PASS": 21,
-  "SIG-DIFF": 15,
-  "AST-PASS": 4
+  "SIG-DIFF": 14,
+  "AST-PASS": 5
  },
  "results": [
   {
@@ -19,8 +19,8 @@
    "module": "CGIHTTPServer",
    "ast_detail": "diff at token 776: orig  If(test=Compare(left=Call(func=Attribute(value=Subscript(value=Name(id='authorization' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 189,
-   "ntotal": 1243,
+   "ndiff": 38,
+   "ntotal": 1242,
    "detail": "line 48: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 524: orig ('SETUP_EXCEPT', '#323') | got ('LOAD_GLOBAL', 'len')\nline 525: orig ('LOAD_FAST', 'base64') | got ('LOAD_FAST', 'authorization')"
   },
   {
@@ -123,8 +123,8 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 161: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 947,
-   "ntotal": 1164,
+   "ndiff": 986,
+   "ntotal": 1160,
    "detail": "line 129: orig ('POP_JUMP_IF_TRUE', '#73') | got ('POP_JUMP_IF_TRUE', '#72')\nline 130: orig ('SETUP_LOOP', '#71') | got ('SETUP_LOOP', '#74')\nline 152: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', '#74')"
   },
   {
@@ -157,11 +157,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 624: orig  values=[Call(func=Name(id='hasattr' | dec  values=[Compare(left=Name(id='attr'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 697,
-   "ntotal": 961,
-   "detail": "line 190: orig ('POP_JUMP_IF_FALSE', '#143') | got ('POP_JUMP_IF_FALSE', '#142')\nline 196: orig ('JUMP_FORWARD', '#143') | got ('JUMP_FORWARD', '#142')\nline 201: orig ('POP_JUMP_IF_FALSE', '#143') | got ('POP_JUMP_IF_FALSE', '#142')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "asynchat",
@@ -215,9 +211,9 @@
    "module": "calendar",
    "ast_detail": "diff at token 1060: orig  body=[Assign(targets=[Name(id='months' | dec  body=[For(target=Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1958,
+   "ndiff": 1796,
    "ntotal": 2732,
-   "detail": "line 676: orig ('SETUP_LOOP', '#69') | got ('SETUP_LOOP', '#70')\nline 678: orig ('POP_JUMP_IF_FALSE', '#68') | got ('POP_JUMP_IF_FALSE', '#69')\nline 710: orig ('POP_JUMP_IF_FALSE', '#31') | got ('POP_JUMP_IF_FALSE', '#68')"
+   "detail": "line 897: orig ('BUILD_LIST', '0') | got ('SETUP_LOOP', '#12')\nline 905: orig ('FOR_ITER', '#17') | got ('FOR_ITER', '#11')\nline 907: orig ('LOAD_FAST', 'self') | got ('JUMP_ABSOLUTE', '#8')"
   },
   {
    "module": "cgi",

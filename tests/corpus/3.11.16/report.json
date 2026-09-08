@@ -208,7 +208,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 138: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
+   "ast_detail": "diff at token 223: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Name(id='ddir'",
    "verdict": "SIG-DIFF",
    "ndiff": 1476,
    "ntotal": 1591,

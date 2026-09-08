@@ -39,12 +39,9 @@ def _walk_dir(dir, maxlevels, quiet=0):
         fullname = os.path.join(dir, name)
         if not os.path.isdir(fullname):
             yield fullname
-        elif maxlevels > 0:
-            if name != os.curdir:
-                if name != os.pardir:
-                    if os.path.isdir(fullname):
-                        if not os.path.islink(fullname):
-                            yield from _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
+        elif maxlevels > 0 and name != os.curdir and name != os.pardir and os.path.isdir(fullname):
+            if not os.path.islink(fullname):
+                yield from _walk_dir(fullname, maxlevels=maxlevels - 1, quiet=quiet)
 
 def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, legacy=False, optimize=-1, workers=1, invalidation_mode=None, *, stripdir=None, prependdir=None, limit_sl_dest=None, hardlink_dupes=False):
     '''Byte-compile all modules in the given directory tree.
@@ -200,12 +197,11 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 for index, opt_level in enumerate(optimize):
                     cfile = opt_cfiles[opt_level]
                     ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
-                    if index > 0:
-                        if hardlink_dupes:
-                            previous_cfile = opt_cfiles[optimize[index - 1]]
-                            if filecmp.cmp(cfile, previous_cfile, shallow=False):
-                                os.unlink(cfile)
-                                os.link(previous_cfile, cfile)
+                    if index > 0 and hardlink_dupes:
+                        previous_cfile = opt_cfiles[optimize[index - 1]]
+                        if filecmp.cmp(cfile, previous_cfile, shallow=False):
+                            os.unlink(cfile)
+                            os.link(previous_cfile, cfile)
             except py_compile.PyCompileError as err:
                 success = False
                 if quiet >= 2:

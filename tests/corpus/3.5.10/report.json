@@ -2,9 +2,9 @@
  "version": "3.5.10",
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
-  "PASS": 26,
+  "PASS": 28,
   "AST-PASS": 2,
-  "SIG-DIFF": 12
+  "SIG-DIFF": 10
  },
  "results": [
   {
@@ -81,11 +81,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 597: orig  values=[Call(func=Name(id='hasattr' | dec  values=[Compare(left=Name(id='attr'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 757,
-   "ntotal": 999,
-   "detail": "line 235: orig ('JUMP_FORWARD', 'to 511') | got ('LOAD_GLOBAL', 'isinstance')\nline 236: orig ('LOAD_GLOBAL', 'isinstance') | got ('LOAD_FAST', 'node')\nline 237: orig ('LOAD_FAST', 'node') | got ('LOAD_GLOBAL', 'BinOp')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "asynchat",
@@ -113,7 +109,7 @@
   },
   {
    "module": "binhex",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "bisect",
@@ -177,7 +173,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 157: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
+   "ast_detail": "diff at token 183: orig  ctx=Load())]) | dec  ctx=Load())])])",
    "verdict": "SIG-DIFF",
    "ndiff": 792,
    "ntotal": 1026,
@@ -201,11 +197,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 712: orig  ctx=Del())]) | dec  ctx=Del())",
-   "verdict": "SIG-DIFF",
-   "ndiff": 335,
-   "ntotal": 525,
-   "detail": "line 169: orig ('SETUP_LOOP', 'to 77') | got ('SETUP_LOOP', 'to 76')\nline 174: orig ('FOR_ITER', 'to 70') | got ('FOR_ITER', 'to 69')\nline 185: orig ('UNARY_NOT', '') | got ('POP_JUMP_IF_TRUE', '')"
+   "verdict": "PASS"
   },
   {
    "module": "crypt",

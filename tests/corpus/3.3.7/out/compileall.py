@@ -54,13 +54,11 @@ def compile_dir(dir, maxlevels=10, ddir=None, force=False, rx=None, quiet=False,
         if not os.path.isdir(fullname):
             if not compile_file(fullname, ddir, force, rx, quiet, legacy, optimize):
                 success = 0
-        elif maxlevels > 0:
-            if name != os.curdir:
-                if name != os.pardir:
-                    if os.path.isdir(fullname):
-                        if not os.path.islink(fullname):
-                            if not compile_dir(fullname, maxlevels - 1, dfile, force, rx, quiet, legacy, optimize):
-                                success = 0
+        elif maxlevels > 0 and name != os.curdir:
+            if name != os.pardir and os.path.isdir(fullname):
+                if not os.path.islink(fullname):
+                    if not compile_dir(fullname, maxlevels - 1, dfile, force, rx, quiet, legacy, optimize):
+                        success = 0
     return success
 
 def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=False, optimize=-1):

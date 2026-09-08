@@ -112,10 +112,9 @@ def copy_location(new_node, old_node):
     '''
 
     for attr in ('lineno', 'col_offset'):
-        if attr in old_node._attributes:
-            if attr in new_node._attributes:
-                if hasattr(old_node, attr):
-                    setattr(new_node, attr, getattr(old_node, attr))
+        if attr in old_node._attributes and attr in new_node._attributes:
+            if hasattr(old_node, attr):
+                setattr(new_node, attr, getattr(old_node, attr))
     return new_node
 
 def fix_missing_locations(node):

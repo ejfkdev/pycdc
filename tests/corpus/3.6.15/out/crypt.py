@@ -50,7 +50,6 @@ METHOD_SHA512 = _Method('SHA512', '6', 16, 106)
 methods = []
 for _method in METHOD_SHA512, METHOD_SHA256, METHOD_MD5, METHOD_CRYPT:
     _result = crypt('', _method)
-    if _result:
-        if len(_result) == _method.total_size:
-            methods.append(_method)
+    if _result and len(_result) == _method.total_size:
+        methods.append(_method)
 del _result, _method

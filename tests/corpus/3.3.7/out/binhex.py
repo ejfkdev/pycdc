@@ -254,9 +254,8 @@ class _Hqxdecoderengine:
                 continue
             decdata = decdata + decdatacur
             wtd = totalwtd - len(decdata)
-            if not decdata:
-                if not self.eof:
-                    raise Error('Premature EOF on binhex file')
+            if not decdata and not self.eof:
+                raise Error('Premature EOF on binhex file')
         return decdata
 
     def close(self):
