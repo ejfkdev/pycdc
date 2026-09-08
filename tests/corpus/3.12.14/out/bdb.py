@@ -785,8 +785,7 @@ def effective(file, line, frame):
                     else:
                         return b, True
             except:
-                b, False
-                return
+                return b, False
     return (None, None)
 
 class Tdb(Bdb):

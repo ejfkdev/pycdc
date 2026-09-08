@@ -26,6 +26,25 @@ def byte_at(s, i):
     return ord(s[i]) if isinstance(s, str) else s[i]
 
 
+def _norm_const(c):
+    # set/frozenset consts serialize in hash-iteration order, which
+    # varies with PYTHONHASHSEED between the original build and the
+    # recompile -- sort the elements so identical sets compare equal
+    # (_strptime 3.14 CJK frozensets made sig permanently unstable)
+    if isinstance(c, (set, frozenset)):
+        if not c:
+            return repr(c)
+        try:
+            items = sorted(c, key=repr)
+        except Exception:
+            items = list(c)
+        inner = ", ".join(repr(x) for x in items)
+        if isinstance(c, frozenset):
+            return "frozenset({%s})" % inner
+        return "set({%s})" % inner
+    return repr(c)
+
+
 def describe2(code, op, arg, label):
     import opcode
     if op in opcode.hasconst:
@@ -37,7 +56,7 @@ def describe2(code, op, arg, label):
                 # a recompiled pyc compare equal (the nested code's own
                 # instructions are dumped recursively below anyway)
                 return "<code %s>" % c.co_name
-            return repr(c)[:60]
+            return _norm_const(c)[:60]
         except Exception:
             return "<const>"
     if op in opcode.hasname:
@@ -136,7 +155,7 @@ def sig3_manual(code, out):
                         # normalize away address/path noise (see describe2)
                         r = "<code %s>" % c.co_name
                     else:
-                        r = repr(c)[:60]
+                        r = _norm_const(c)[:60]
                 except Exception:
                     r = "<const>"
             elif op in opcode.hasname:
@@ -185,6 +204,8 @@ def sig3(code, out):
         if i in skip:
             continue
         r = inst.argrepr
+        if isinstance(getattr(inst, "argval", None), (set, frozenset)):
+            r = _norm_const(inst.argval)
         if r.startswith("<code object"):
             r = "<code %s>" % r.split()[2]
         if inst.opname in dis.hasjrel or inst.opname in dis.hasjabs:

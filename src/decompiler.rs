@@ -1504,8 +1504,36 @@ pub fn decompile_in_scope(
     }
 
     let tail_pair = bytecode_tail_return_pair(code, &ctx.instrs, version);
+    let mut body = postprocess_body(body, code);
+    // `from __future__ import annotations` leaves NO bytecode — only the
+    // CO_FUTURE_ANNOTATIONS flag. Re-emit it at the module head (after a
+    // leading docstring) so the annotations we rendered as raw source
+    // text recompile to the stored string forms (_colorize 3.13)
+    if code.name == "<module>"
+        && code.flags & crate::code::CO_FUTURE_ANNOTATIONS != 0
+        && !body.iter().any(|st| {
+            matches!(st, Stmt::ImportFrom { module, .. } if module == "__future__")
+        })
+    {
+        let at = match body.first() {
+            Some(Stmt::Expr(e))
+                if matches!(&**e, Expr::Const(o) if matches!(&**o, PyObject::Str(_))) =>
+            {
+                1
+            }
+            _ => 0,
+        };
+        body.insert(
+            at,
+            Stmt::ImportFrom {
+                module: "__future__".to_string(),
+                level: 0,
+                names: vec![("annotations".to_string(), None)],
+            },
+        );
+    }
     Ok(Decompiled {
-        body: postprocess_body(body, code),
+        body,
         clean: ctx.clean,
         tail_pair,
     })
@@ -3981,6 +4009,7 @@ impl<'a> Ctx<'a> {
         let saved_active_try = self.active_try.take();
         let saved_active_stack = std::mem::take(&mut self.active_try_stack);
         let saved_cur = (self.cur_offset, self.cur_next);
+        let saved_prev = (self.prev_op, self.prev_op_at_exec);
         // an outer walk's skip range must not swallow this region's
         // instructions — the span walk starts with clean skip state
         self.skip_until = None;
@@ -4076,6 +4105,13 @@ impl<'a> Ctx<'a> {
             self.cur_offset = pos;
             self.cur_next = inst.end();
             self.close_blocks_at(pos);
+            // keep prev_op_at_exec meaningful inside the sub-walk —
+            // value-merge detection (COPY/TO_BOOL before the guard's
+            // cond jump) reads it, and a stale main-walk value loses
+            // the boolop (_colorize 3.13 can_colorize `return A and B`
+            // in an except clause rendered as a statement If)
+            let prev = self.prev_op;
+            self.prev_op_at_exec = prev;
             if !self.exec(&inst) {
                 if std::env::var("PYCDC_TRACE").is_ok() {
                     eprintln!("AW BREAK at {} {:?}", pos, inst.op);
@@ -4156,6 +4192,9 @@ impl<'a> Ctx<'a> {
         let (saved_cur_offset, saved_cur_next) = saved_cur;
         self.cur_offset = saved_cur_offset;
         self.cur_next = saved_cur_next;
+        let (saved_prev_op, saved_prev_at_exec) = saved_prev;
+        self.prev_op = saved_prev_op;
+        self.prev_op_at_exec = saved_prev_at_exec;
         self.cur_line = saved_line;
         self.region_collect_only = saved_collect;
         self.pending_stores = saved_stores;
@@ -17166,6 +17205,42 @@ impl<'a> Ctx<'a> {
                         star_kwargs: None,
                     }));
                 }
+                // 3.13+/3.14 keyword call: [callable, args..., kwnames]
+                // with oparg = positional + keyword count
+                Op::CALL_KW => {
+                    let kw_names_e = pop1(&mut st);
+                    let names: Vec<String> = match &*kw_names_e {
+                        Expr::Const(o) => match &**o {
+                            PyObject::Tuple(items) => items
+                                .iter()
+                                .filter_map(|it| match &**it {
+                                    PyObject::Str(t) => Some(t.clone()),
+                                    _ => None,
+                                })
+                                .collect(),
+                            _ => Vec::new(),
+                        },
+                        _ => Vec::new(),
+                    };
+                    let n = arg.min(st.len());
+                    let all: Vec<ExprRef> = st.split_off(st.len() - n);
+                    let npos = n.saturating_sub(names.len());
+                    let args = all[..npos.min(all.len())].to_vec();
+                    let mut keywords = Vec::new();
+                    for (ki, nm) in names.iter().enumerate() {
+                        if let Some(v) = all.get(npos + ki) {
+                            keywords.push((Some(nm.clone()), v.clone()));
+                        }
+                    }
+                    let func = pop1(&mut st);
+                    st.push(Rc::new(Expr::Call {
+                        func,
+                        args,
+                        keywords,
+                        star_args: None,
+                        star_kwargs: None,
+                    }));
+                }
                 // stack shuffles: chain heads (DUP_TOP+ROT_THREE <=3.11,
                 // SWAP+COPY 3.12+) and or-arm setups move values without
                 // consuming them
@@ -27195,6 +27270,11 @@ fn is_pure_value_op(op: Op) -> bool {
             | Op::CALL_FUNCTION
             | Op::CALL_METHOD
             | Op::CALL_FUNCTION_KW
+            // 3.13+ keyword call; f-string/`%`-format value ops
+            | Op::CALL_KW
+            | Op::FORMAT_SIMPLE
+            | Op::FORMAT_WITH_SPEC
+            | Op::CONVERT_VALUE
             | Op::BUILD_TUPLE
             | Op::BUILD_LIST
             | Op::BUILD_MAP
@@ -27416,6 +27496,32 @@ fn cmp_from_index(idx: usize) -> CmpOp {
 
 impl<'a> Ctx<'a> {
     fn handle_pop_top(&mut self) {
+        // 3.12+ value-preserving boolop/chain arm: COPY 1 + TO_BOOL
+        // before the guard's cond jump retains the tested operand under
+        // the arm; the arm's leading POP_TOP drops that copy before the
+        // second operand evaluates — it is arm bookkeeping, NOT an
+        // expression statement (_colorize 3.13 can_colorize `return
+        // hasattr(file, 'isatty') and file.isatty()`: the retained
+        // hasattr call leaked as a body statement and the value merge
+        // never saw an empty body)
+        if self.version.at_least(3, 12) {
+            let armed = self
+                .blocks
+                .last()
+                .map_or(false, |b| b.value_merge.is_some() && b.stmts.is_empty())
+                && self
+                    .idx_of
+                    .get(&self.cur_offset)
+                    .and_then(|&pi| (pi > 0).then(|| &self.instrs[pi - 1]))
+                    .map_or(false, |p| {
+                        matches!(p.op, Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_IF_TRUE)
+                            && !p.is_backward
+                    });
+            if armed {
+                self.pop();
+                return;
+            }
+        }
         // import-star intrinsic placeholder: pure cleanup, never a stmt
         if self.import_star_pop_pending {
             self.import_star_pop_pending = false;
@@ -31203,7 +31309,10 @@ impl<'a> Ctx<'a> {
                     .map(|p| map.iter().find(|(k, _)| k == &p.name).map(|(_, v)| v.clone()))
                     .collect();
             }
-            0x04 => apply_annotations_313(&mut params, &value),
+            0x04 => {
+                let raw = self.code.flags & crate::code::CO_FUTURE_ANNOTATIONS != 0;
+                apply_annotations_313(&mut params, &value, raw)
+            }
             0x08 => returns_opt = Some(value.clone()),
             _ => {}
         }
@@ -31516,10 +31625,26 @@ fn apply_annotations_313_dictexpr(params: &mut Parameters, value: &ExprRef) {
     }
 }
 
-fn apply_annotations_313(params: &mut Parameters, value: &ExprRef) {
+fn apply_annotations_313(params: &mut Parameters, value: &ExprRef, raw_strings: bool) {
+    // PEP 563 (`from __future__ import annotations`): annotation values
+    // are Const source-text strings — render them RAW (Name carries the
+    // text verbatim through codegen); a quoted string literal would
+    // re-stringify with quotes and break sig-exactness
+    let conv = |e: &ExprRef| -> ExprRef {
+        if raw_strings {
+            if let Expr::Const(o) = &**e {
+                if let PyObject::Str(t) = &**o {
+                    return Rc::new(Expr::Name(t.clone()));
+                }
+            }
+        }
+        e.clone()
+    };
     // 3.13+: annotations as a flat runtime tuple (name, value, ...) —
-    // including the "return" entry
-    if let Expr::Tuple(items) = &**value {
+    // including the "return" entry. The tuple arrives as a LOAD-ed
+    // constant (Const(Tuple)) — normalize through tuple_items
+    {
+        let items = tuple_items(value);
         if items.len() >= 2 && items.len() % 2 == 0 {
             let mut handled = true;
             for pair in items.chunks(2) {
@@ -31532,31 +31657,31 @@ fn apply_annotations_313(params: &mut Parameters, value: &ExprRef) {
                     break;
                 };
                 if name == "return" {
-                    params.returns_annotation = Some(pair[1].clone());
+                    params.returns_annotation = Some(conv(&pair[1]));
                     continue;
                 }
                 let mut done = false;
                 for p in params.args.iter_mut() {
                     if p.name == *name {
-                        p.annotation = Some(pair[1].clone());
+                        p.annotation = Some(conv(&pair[1]));
                         done = true;
                     }
                 }
                 for p in params.kwonly.iter_mut() {
                     if p.name == *name {
-                        p.annotation = Some(pair[1].clone());
+                        p.annotation = Some(conv(&pair[1]));
                         done = true;
                     }
                 }
                 if let Some(p) = params.vararg.as_mut() {
                     if p.name == *name {
-                        p.annotation = Some(pair[1].clone());
+                        p.annotation = Some(conv(&pair[1]));
                         done = true;
                     }
                 }
                 if let Some(p) = params.kwarg.as_mut() {
                     if p.name == *name {
-                        p.annotation = Some(pair[1].clone());
+                        p.annotation = Some(conv(&pair[1]));
                         done = true;
                     }
                 }

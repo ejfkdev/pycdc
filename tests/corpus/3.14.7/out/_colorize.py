@@ -258,9 +258,8 @@ and possible, and empty strings otherwise.
 
 
 def get_colors(colorize: bool=False, *, file: IO[str] | IO[bytes] | None=None) -> ANSIColors:
-    if not colorize:
-        if can_colorize(file=file):
-            return ANSIColors()
+    if colorize or can_colorize(file=file):
+        return ANSIColors()
     return NoColors
 
 def decolor(text: str) -> str:
@@ -306,9 +305,7 @@ def can_colorize(*, file: IO[str] | IO[bytes] | None=None) -> bool:
     try:
         return os.isatty(file.fileno())
     except OSError:
-        if hasattr(file, 'isatty'):
-            hasattr(file, 'isatty')
-        return file.isatty()
+        return hasattr(file, 'isatty') and file.isatty()
 
 default_theme = Theme()
 theme_no_color = default_theme.no_colors()

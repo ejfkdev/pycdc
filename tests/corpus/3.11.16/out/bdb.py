@@ -772,7 +772,7 @@ def effective(file, line, frame):
                 else:
                     return b, True
         except:
-            b, False
+            return b, False
         else:
             return
     return (None, None)

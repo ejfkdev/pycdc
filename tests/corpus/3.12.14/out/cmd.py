@@ -135,6 +135,7 @@ class Cmd:
                 if self.completekey:
                     try:
                         import readline
+                        readline.set_completer(self.old_completer)
                     except ImportError:
                         pass
         try:

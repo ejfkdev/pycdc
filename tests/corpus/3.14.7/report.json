@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 21,
-  "SIG-DIFF": 11,
-  "INCOMPLETE": 7,
+  "SIG-DIFF": 12,
+  "INCOMPLETE": 6,
   "AST-PASS": 1
  },
  "results": [
@@ -48,7 +48,7 @@
    "module": "_colorize",
    "ast_detail": "diff at token 0: orig Module(body=[Import(names=[alias(name='os') | dec Module(body=[FunctionDef(name='__annotate__'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1655,
+   "ndiff": 1652,
    "ntotal": 1683,
    "detail": "line 1: orig ('MAKE_CELL', '__conditional_annotations__') | got ('RESUME', '')\nline 2: orig ('RESUME', '') | got ('LOAD_CONST', '<code __annotate__>')\nline 3: orig ('LOAD_CONST', '<code __annotate__>') | got ('MAKE_FUNCTION', '')"
   },
@@ -66,7 +66,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 962,
    "ntotal": 1374,
-   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'linktype', 'link', 'element', 'attlist'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'linktype', 'element', 'attlist', 'link'})\")"
+   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'attlist', 'element', 'link', 'linktype'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'element', 'link', 'linktype'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -106,9 +106,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 65: orig  body=[Break()]) | dec  body=[Return()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1335,
+   "ndiff": 1334,
    "ntotal": 3207,
-   "detail": "line 622: orig ('LOAD_CONST', \"frozenset({'\u4e5d', '\u5eff', '\u4e00', '\u5341', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u4e03', '\u5eff', '\u4e5d', '\u5341', '\u4e00'})\")\nline 1696: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 1697: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')"
+   "detail": "line 1696: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 1697: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')\nline 1831: orig ('COPY', '') | got ('LOAD_CONST', \"'Y'\")"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -151,7 +151,8 @@
   },
   {
    "module": "bdb",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 493: orig  body=[Return(value=Attribute(value=Attribute(value=Name(id='sys' | dec  body=[Assign(targets=[Attribute(value=Name(id='self'",
+   "verdict": "SIG-DIFF",
    "ndiff": 3353,
    "ntotal": 3996,
    "detail": "line 532: orig ('LOAD_GLOBAL', 'sys') | got ('LOAD_CONST', 'False')\nline 533: orig ('LOAD_ATTR', 'monitoring') | got ('LOAD_DEREF', 'self')\nline 534: orig ('LOAD_ATTR', 'DISABLE') | got ('STORE_ATTR', '_disable_current_event')"

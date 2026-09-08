@@ -20,6 +20,10 @@ pub const CO_COROUTINE: u32 = 0x0080;
 pub const CO_ITERABLE_COROUTINE: u32 = 0x0100;
 pub const CO_ASYNC_GENERATOR: u32 = 0x0200;
 pub const CO_FUTURE_DIVISION: u32 = 0x2000;
+/// `from __future__ import annotations` (PEP 563): annotations are
+/// stored as source-text strings; propagates to every code object in
+/// the module
+pub const CO_FUTURE_ANNOTATIONS: u32 = 0x1000000;
 
 /// 3.11+ `co_localspluskinds` flags.
 pub const CO_FAST_LOCAL: u8 = 0x20;

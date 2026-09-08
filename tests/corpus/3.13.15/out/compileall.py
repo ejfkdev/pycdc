@@ -225,9 +225,7 @@ hardlink_dupes: hardlink duplicated pyc files
                     print('*** Error compiling {!r}...'.format(fullname))
                 else:
                     print('*** ', end='')
-                if not sys.stdout.encoding:
-                    sys.stdout.encoding
-                encoding = sys.getdefaultencoding()
+                encoding = sys.stdout.encoding or sys.getdefaultencoding()
                 msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
                 print(msg)
                 return success

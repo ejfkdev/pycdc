@@ -52,14 +52,13 @@ for attr in dir(NoColors):
         continue
     setattr(NoColors, attr, '')
 
-def get_colors(colorize=False, *, file=None):
-    if not colorize:
-        if can_colorize(file=file):
-            return ANSIColors()
+def get_colors(colorize: bool=False, *, file: IO[str] | IO[bytes] | None=None) -> ANSIColors:
+    if colorize or can_colorize(file=file):
+        return ANSIColors()
     return NoColors
 
-def can_colorize(*, file=None):
-    def _safe_getenv(k, fallback=None):
+def can_colorize(*, file: IO[str] | IO[bytes] | None=None) -> bool:
+    def _safe_getenv(k: str, fallback: str | None=None) -> str | None:
         '''Exception-safe environment retrieval. See gh-128636.'''
 
         try:
@@ -94,7 +93,5 @@ def can_colorize(*, file=None):
     try:
         return os.isatty(file.fileno())
     except OSError:
-        if hasattr(file, 'isatty'):
-            hasattr(file, 'isatty')
-        return file.isatty()
+        return hasattr(file, 'isatty') and file.isatty()
 

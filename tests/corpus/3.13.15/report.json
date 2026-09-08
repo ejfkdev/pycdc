@@ -2,9 +2,9 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 24,
+  "PASS": 25,
   "SIG-DIFF": 9,
-  "INCOMPLETE": 6,
+  "INCOMPLETE": 5,
   "AST-PASS": 1
  },
  "results": [
@@ -38,11 +38,7 @@
   },
   {
    "module": "_colorize",
-   "ast_detail": "diff at token 8: orig  If(test=Constant(value=False) | dec  ClassDef(name='ANSIColors'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 265,
-   "ntotal": 328,
-   "detail": "line 57: orig ('LOAD_CONST', \"('colorize', 'bool', 'file', 'IO[str] | IO[bytes] | None', 'return', 'ANSIColors')\") | got ('LOAD_CONST', '<code get_colors>')\nline 58: orig ('LOAD_CONST', '<code get_colors>') | got ('MAKE_FUNCTION', '')\nline 59: orig ('MAKE_FUNCTION', '') | got ('SET_FUNCTION_ATTRIBUTE', 'kwdefaults')"
+   "verdict": "PASS"
   },
   {
    "module": "_compat_pickle",
@@ -91,9 +87,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 65: orig  body=[Break()]) | dec  body=[Return()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1205,
+   "ndiff": 1204,
    "ntotal": 2986,
-   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e00', '\u4e5d', '\u5341', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u5341', '\u5eff', '\u4e00', '\u4e03', '\u4e5d'})\")\nline 1762: orig ('COPY', '') | got ('LOAD_CONST', \"'Y'\")\nline 1763: orig ('LOAD_CONST', \"'Y'\") | got ('COMPARE_OP', 'bool(==)')"
+   "detail": "line 1762: orig ('COPY', '') | got ('LOAD_CONST', \"'Y'\")\nline 1763: orig ('LOAD_CONST', \"'Y'\") | got ('COMPARE_OP', 'bool(==)')\nline 1764: orig ('COMPARE_OP', 'bool(==)') | got ('POP_JUMP_IF_FALSE', 'to L1')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -121,7 +117,8 @@
   },
   {
    "module": "bdb",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 203: orig  body=[Return()]) | dec  body=[Return()])])",
+   "verdict": "SIG-DIFF",
    "ndiff": 2323,
    "ntotal": 2803,
    "detail": "line 416: orig ('LOAD_FAST', 'event') | got ('LOAD_CONST', 'None')\nline 417: orig ('LOAD_CONST', \"'line'\") | got ('LOAD_CONST', 'None')\nline 418: orig ('COMPARE_OP', 'bool(==)') | got ('LOAD_CONST', 'None')"
@@ -154,8 +151,8 @@
    "module": "cmd",
    "ast_detail": "diff at token 320: orig  ctx=Load())]))]) | dec  ctx=Load())]))])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1107,
-   "ntotal": 1449,
+   "ndiff": 1124,
+   "ntotal": 1461,
    "detail": "line 317: orig ('LOAD_ATTR', 'postloop + NULL|self') | got ('LOAD_ATTR', 'use_rawinput')\nline 318: orig ('CALL', '') | got ('TO_BOOL', '')\nline 319: orig ('POP_TOP', '') | got ('POP_JUMP_IF_FALSE', 'to L13')"
   },
   {
@@ -180,8 +177,8 @@
   {
    "module": "compileall",
    "verdict": "INCOMPLETE",
-   "ndiff": 1311,
-   "ntotal": 1573,
+   "ndiff": 1212,
+   "ntotal": 1571,
    "detail": "line 145: orig ('FOR_ITER', 'to L14') | got ('FOR_ITER', 'to L13')\nline 150: orig ('POP_JUMP_IF_FALSE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 151: orig ('JUMP_BACKWARD', 'to L4') | got ('JUMP_BACKWARD', 'to L3')"
   },
   {

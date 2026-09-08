@@ -1037,8 +1037,7 @@ If no such entry exists, then (None, None) is returned.
                 else:
                     return b, True
         except:
-            b, False
-            return
+            return b, False
     return (None, None)
 
 class Tdb(Bdb):
@@ -1078,4 +1077,3 @@ def test():
     t = Tdb()
     t.run('import bdb; bdb.foo(10)')
 
-# WARNING: Decompyle incomplete

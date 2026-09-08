@@ -118,7 +118,7 @@
   {
    "module": "bdb",
    "verdict": "INCOMPLETE",
-   "ndiff": 700,
+   "ndiff": 715,
    "ntotal": 2537,
    "detail": "line 602: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 130') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 130')\nline 1795: orig ('LOAD_GLOBAL', 'NULL + eval') | got ('JUMP_FORWARD', 'to 162')\nline 1796: orig ('LOAD_FAST', 'expr') | got ('PUSH_EXC_INFO', '')"
   },

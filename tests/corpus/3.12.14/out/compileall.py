@@ -226,9 +226,7 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     print('*** Error compiling {!r}...'.format(fullname))
                 else:
                     print('*** ', end='')
-                if not sys.stdout.encoding:
-                    sys.stdout.encoding
-                encoding = sys.getdefaultencoding()
+                encoding = sys.stdout.encoding or sys.getdefaultencoding()
                 msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
                 print(msg)
                 return success
@@ -318,7 +316,7 @@ def main():
                     compile_dests.append(line.strip())
         except OSError:
             if args.quiet < 2:
-                pass
+                print('Error reading file list {}'.format(args.flist))
             return False
     if args.invalidation_mode:
         ivl_mode = args.invalidation_mode.replace('-', '_').upper()
