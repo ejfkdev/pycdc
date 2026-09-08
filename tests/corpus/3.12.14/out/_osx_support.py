@@ -97,9 +97,8 @@ def _remove_original_values(_config_vars):
     '''Remove original unmodified values for testing'''
 
     for k in list(_config_vars):
-        if not k.startswith(_INITPRE):
-            continue
-        del _config_vars[k]
+        if k.startswith(_INITPRE):
+            del _config_vars[k]
 
 def _save_modified_value(_config_vars, cv, newvalue):
     '''Save modified and original unmodified value of configuration var'''
@@ -124,15 +123,11 @@ def _default_sysroot(cc):
             in_incdirs = True
         elif line.startswith('End of search list'):
             in_incdirs = False
-        else:
-            if not in_incdirs:
-                continue
+        elif in_incdirs:
             line = line.strip()
             if line == '/usr/include':
                 _cache_default_sysroot = '/'
-            else:
-                if not line.endswith('.sdk/usr/include'):
-                    continue
+            elif line.endswith('.sdk/usr/include'):
                 _cache_default_sysroot = line[:-12]
     if _cache_default_sysroot is None:
         _cache_default_sysroot = '/'
@@ -172,11 +167,10 @@ def _find_appropriate_compiler(_config_vars):
         for cv in _COMPILER_CONFIG_VARS:
             if cv not in _config_vars:
                 continue
-            if cv in os.environ:
-                continue
-            cv_split = _config_vars[cv].split()
-            cv_split[0] = cc if cv != 'CXX' else cc + '++'
-            _save_modified_value(_config_vars, cv, ' '.join(cv_split))
+            if cv not in os.environ:
+                cv_split = _config_vars[cv].split()
+                cv_split[0] = cc if cv != 'CXX' else cc + '++'
+                _save_modified_value(_config_vars, cv, ' '.join(cv_split))
     return _config_vars
 
 def _remove_universal_flags(_config_vars):
@@ -185,12 +179,11 @@ def _remove_universal_flags(_config_vars):
     for cv in _UNIVERSAL_CONFIG_VARS:
         if cv not in _config_vars:
             continue
-        if cv in os.environ:
-            continue
-        flags = _config_vars[cv]
-        flags = re.sub('-arch\\s+\\w+\\s', ' ', flags, flags=re.ASCII)
-        flags = re.sub('-isysroot\\s*\\S+', ' ', flags)
-        _save_modified_value(_config_vars, cv, flags)
+        if cv not in os.environ:
+            flags = _config_vars[cv]
+            flags = re.sub('-arch\\s+\\w+\\s', ' ', flags, flags=re.ASCII)
+            flags = re.sub('-isysroot\\s*\\S+', ' ', flags)
+            _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def _remove_unsupported_archs(_config_vars):
@@ -204,11 +197,10 @@ def _remove_unsupported_archs(_config_vars):
             for cv in _UNIVERSAL_CONFIG_VARS:
                 if cv not in _config_vars:
                     continue
-                if cv in os.environ:
-                    continue
-                flags = _config_vars[cv]
-                flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
-                _save_modified_value(_config_vars, cv, flags)
+                if cv not in os.environ:
+                    flags = _config_vars[cv]
+                    flags = re.sub('-arch\\s+ppc\\w*\\s', ' ', flags)
+                    _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def _override_all_archs(_config_vars):
@@ -219,12 +211,11 @@ def _override_all_archs(_config_vars):
         for cv in _UNIVERSAL_CONFIG_VARS:
             if cv not in _config_vars:
                 continue
-            if '-arch' not in _config_vars[cv]:
-                continue
-            flags = _config_vars[cv]
-            flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
-            flags = flags + ' ' + arch
-            _save_modified_value(_config_vars, cv, flags)
+            if '-arch' in _config_vars[cv]:
+                flags = _config_vars[cv]
+                flags = re.sub('-arch\\s+\\w+\\s', ' ', flags)
+                flags = flags + ' ' + arch
+                _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def _check_for_unavailable_sdk(_config_vars):
@@ -238,11 +229,10 @@ def _check_for_unavailable_sdk(_config_vars):
             for cv in _UNIVERSAL_CONFIG_VARS:
                 if cv not in _config_vars:
                     continue
-                if cv in os.environ:
-                    continue
-                flags = _config_vars[cv]
-                flags = re.sub('-isysroot\\s*\\S+(?:\\s|$)', ' ', flags)
-                _save_modified_value(_config_vars, cv, flags)
+                if cv not in os.environ:
+                    flags = _config_vars[cv]
+                    flags = re.sub('-isysroot\\s*\\S+(?:\\s|$)', ' ', flags)
+                    _save_modified_value(_config_vars, cv, flags)
     return _config_vars
 
 def compiler_fixup(compiler_so, cc_args):
@@ -275,9 +265,8 @@ def compiler_fixup(compiler_so, cc_args):
                         for idx in reversed(range(len(compiler_so))):
                             if compiler_so[idx] != '-arch':
                                 continue
-                            if compiler_so[idx + 1] != 'arm64':
-                                continue
-                            del compiler_so[idx:idx + 2]
+                            if compiler_so[idx + 1] == 'arm64':
+                                del compiler_so[idx:idx + 2]
     if 'ARCHFLAGS' in os.environ:
         if not stripArch:
             compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()

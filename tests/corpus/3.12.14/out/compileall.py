@@ -157,9 +157,8 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
         stripdir_parts = stripdir.split(os.path.sep)
         ddir_parts = list(fullname_parts)
         for spart, opart in zip(stripdir_parts, fullname_parts):
-            if spart != opart:
-                continue
-            ddir_parts.remove(spart)
+            if spart == opart:
+                ddir_parts.remove(spart)
         dfile = os.path.join(*ddir_parts)
     if prependdir is not None:
         if dfile is None:
@@ -214,13 +213,11 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
                     if not index > 0:
                         continue
-                    if not hardlink_dupes:
-                        continue
-                    previous_cfile = opt_cfiles[optimize[index - 1]]
-                    if not filecmp.cmp(cfile, previous_cfile, shallow=False):
-                        continue
-                    os.unlink(cfile)
-                    os.link(previous_cfile, cfile)
+                    if hardlink_dupes:
+                        previous_cfile = opt_cfiles[optimize[index - 1]]
+                        if filecmp.cmp(cfile, previous_cfile, shallow=False):
+                            os.unlink(cfile)
+                            os.link(previous_cfile, cfile)
             except py_compile.PyCompileError as err:
                 success = False
                 if quiet >= 2:
@@ -272,11 +269,10 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
     for dir in sys.path:
         if dir:
             if dir == os.curdir and skip_curdir:
-                if not quiet < 2:
+                if quiet < 2:
+                    print('Skipping current directory')
                     continue
-                print('Skipping current directory')
-            else:
-                success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
+        success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
     return success
 
 def main():

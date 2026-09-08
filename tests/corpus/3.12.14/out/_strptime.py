@@ -124,9 +124,8 @@ class LocaleTime(object):
                 current_format = current_format.replace(self.am_pm[1], '%p')
             for tz_values in self.timezone:
                 for tz in tz_values:
-                    if not tz:
-                        continue
-                    current_format = current_format.replace(tz, '%Z')
+                    if tz:
+                        current_format = current_format.replace(tz, '%Z')
             current_format = re_sub('\\d(?<![0-9])', (lambda m: chr(1632 + int(m[0]))), current_format)
             for old, new in replacement_pairs:
                 current_format = current_format.replace(old, new)
@@ -263,9 +262,8 @@ class TimeRE(dict):
 
         to_convert = sorted(to_convert, key=len, reverse=True)
         for value in to_convert:
-            if value == '':
-                continue
-            break
+            if value != '':
+                break
         else:
             return ''
         regex = '|'.join((re_escape(stuff) for stuff in to_convert))

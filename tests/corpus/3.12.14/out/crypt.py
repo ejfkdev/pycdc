@@ -97,9 +97,8 @@ def _add_method(name, *args, rounds=None):
 _add_method('SHA512', '6', 16, 106)
 _add_method('SHA256', '5', 16, 63)
 for _v in ('b', 'y', 'a', ''):
-    if not _add_method('BLOWFISH', '2' + _v, 22, 59 + len(_v), rounds=16):
-        continue
-    break
+    if _add_method('BLOWFISH', '2' + _v, 22, 59 + len(_v), rounds=16):
+        break
 _add_method('MD5', '1', 8, 34)
 _add_method('CRYPT', None, 2, 13)
 del _v, _add_method

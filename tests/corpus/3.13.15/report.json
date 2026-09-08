@@ -91,9 +91,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 65: orig  body=[Break()]) | dec  body=[Return()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1207,
+   "ndiff": 1205,
    "ntotal": 2986,
-   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e5d', '\u4e00', '\u5eff', '\u4e03', '\u5341'})\") | got ('LOAD_CONST', \"frozenset({'\u4e03', '\u5eff', '\u4e5d', '\u5341', '\u4e00'})\")\nline 1631: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 1632: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')"
+   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e00', '\u4e5d', '\u5341', '\u5eff', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u4e00', '\u4e03', '\u4e5d', '\u5341', '\u5eff'})\")\nline 1762: orig ('COPY', '') | got ('LOAD_CONST', \"'Y'\")\nline 1763: orig ('LOAD_CONST', \"'Y'\") | got ('COMPARE_OP', 'bool(==)')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -212,7 +212,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 785: orig  If(test=Name(id='matches' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 1288: orig  While(test=BoolOp(op=And() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 379,
    "ntotal": 1693,

@@ -3472,6 +3472,24 @@ impl<'a> Ctx<'a> {
                         }
                         scan_end = scan_end.min(tail_end);
                     }
+                    // the chain's own resume jump can sit exactly AT the
+                    // extent boundary (copyreg 3.12 _reduce_ex: POP_EXCEPT
+                    // @710; JUMP_BACKWARD 712->510, extent=712) — the
+                    // tail-cleanup walk already vetted it as chain
+                    // material, so admit the single jump instruction
+                    if let Some(&si) = self.idx_of.get(&scan_end) {
+                        let x = &self.instrs[si];
+                        if x.is_backward
+                            && matches!(
+                                x.op,
+                                Op::JUMP_BACKWARD
+                                    | Op::JUMP_ABSOLUTE
+                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                            )
+                        {
+                            scan_end = x.end();
+                        }
+                    }
                     // The try body may be FRAGMENTED into several exception
                     // -table regions sharing this handler (3.12+ inlines a
                     // comprehension in the try body as its own region). The
@@ -3566,6 +3584,23 @@ impl<'a> Ctx<'a> {
                     let merge = if let Some(m) = backward_merge {
                         Some((m, m))
                     } else {
+                        // the handler's own resume hop: chain_end can be
+                        // a forward jump whose target is the true
+                        // mainline merge (copyreg 3.11 _reduce_ex: the
+                        // else arm's JF@486 targets 662 = the resume
+                        // JF@652's target, not chain_end itself)
+                        let resume_hop = self
+                            .idx_of
+                            .get(&chain_end)
+                            .and_then(|&ci3| self.instrs.get(ci3))
+                            .and_then(|x| {
+                                (matches!(
+                                    x.op,
+                                    Op::JUMP_FORWARD | Op::JUMP
+                                ) && !x.is_backward)
+                                    .then_some(x.target)
+                            })
+                            .flatten();
                         let mut j = bi;
                         let mut found = None;
                         while !is_with_region && j < self.instrs.len() {
@@ -3574,7 +3609,9 @@ impl<'a> Ctx<'a> {
                                 break;
                             }
                             if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
-                                && x.target == Some(chain_end)
+                                && (x.target == Some(chain_end)
+                                    || resume_hop.is_some()
+                                        && x.target == resume_hop)
                             {
                                 found = Some(x.offset);
                                 break;
@@ -3821,6 +3858,57 @@ impl<'a> Ctx<'a> {
             }
             // nested tries inside a handler body open from the same table
             self.open_exception_blocks(pos);
+            // a nested out-of-line chain head reached LINEARLY (the
+            // nested try's tail emission parsed but did not skip it):
+            // executing PUSH_EXC_INFO/CHECK_EXC_MATCH as statements
+            // leaks the clause head as garbage (copyreg 3.12
+            // _reduce_ex: `if AttributeError: None; dict = None`) —
+            // skip the whole chain region like the main walk does
+            if self.chain_heads.contains(&pos)
+                && inst.op == Op::PUSH_EXC_INFO
+                // EXCEPT-dispatch chains only: a finally chain head
+                // reached by a region sub-walk is walked/parsed by the
+                // finally machinery (b15 break_in_try: the loop-break
+                // finally copy lost f1/f2 when skipped)
+                && self.try_ctxs.values().any(|tc| {
+                    tc.except_handler == Some(pos)
+                        && tc.finally_handler != Some(pos)
+                })
+                && self
+                    .pending_try_ctx
+                    .as_ref()
+                    .map_or(true, |tc| tc.except_handler != Some(pos))
+            {
+                let mut after = self.chain_extent(pos);
+                loop {
+                    let tramp = self
+                        .idx_of
+                        .get(&after)
+                        .and_then(|&ti| self.instrs.get(ti))
+                        .map(|x| {
+                            matches!(
+                                x.op,
+                                Op::JUMP_FORWARD | Op::JUMP | Op::NOP | Op::NOT_TAKEN
+                            ) && x.target.map_or(false, |t| t > x.offset)
+                        })
+                        .unwrap_or(false);
+                    if !tramp {
+                        break;
+                    }
+                    let ti = self.idx_of[&after];
+                    let t = self.instrs[ti].target.unwrap();
+                    if t <= after {
+                        break;
+                    }
+                    after = t;
+                }
+                self.close_blocks_at(pos);
+                if after > pos {
+                    self.skip_until = Some(after);
+                }
+                pc += 1;
+                continue;
+            }
             // pre-3.11: a skipped NESTED handler chain parses with the same
             // state machine as the main walk (finally-body and 3.11+ handler
             // regions must NOT drive it — the outer chain state is live)
@@ -18845,6 +18933,54 @@ return None;
         {
             return None;
         }
+        // single guard exiting DIRECTLY into a break chunk (copyreg
+        // 3.12 _reduce_ex `if new.__self__ is base: break`): PJIT
+        // jumps into [POP_TOP; JF loop-exit], the fall-through is the
+        // continue trampoline. The historical inverted rendering
+        // (`if is not base: continue` + loop-level break) recompiles
+        // the operand (is -> is-not + PJIF) and breaks sig-exactness;
+        // the degenerate direct form keeps the single computation.
+        // 3.13 already routes this through the consumer's tailwalk
+        // case (b); 3.14 keeps the historical form (untested there).
+        // Sunk-return breaks (POP_TOP + loads + RETURN, no hop) are
+        // left to the existing direct-form branch below.
+        if values.is_empty()
+            && !chain_continues
+            && jump_if_true
+            && self.version.at_least(3, 12)
+            && !self.version.at_least(3, 14)
+        {
+            if let Some(&ti) = self.idx_of.get(&target) {
+                let mut k = ti;
+                while matches!(
+                    self.instrs.get(k).map(|x| x.op),
+                    Some(Op::POP_TOP)
+                        | Some(Op::POP_ITER)
+                        | Some(Op::NOT_TAKEN)
+                        | Some(Op::NOP)
+                        | Some(Op::CACHE)
+                ) {
+                    k += 1;
+                }
+                if self.instrs.get(k).map_or(false, |x| {
+                    !x.is_backward
+                        && matches!(
+                            x.op,
+                            Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+                        )
+                        && x.target
+                            .map_or(false, |t| self.jump_is_loop_exit_or_merge(t))
+                }) {
+                    let hop_end = self.instrs[k].end();
+                    return Some((
+                        cond.clone(),
+                        target,
+                        hop_end,
+                        loop_top,
+                    ));
+                }
+            }
+        }
         let first = if chain_continues {
             if jump_if_true {
                 cond.clone()
@@ -18980,6 +19116,67 @@ return None;
                                         });
                                 if !break_bears {
                                     ok = false;
+                                }
+                                // 3.12 plain threaded body (copyreg
+                                // _slotnames `if "__slots__" in
+                                // c.__dict__:` — the guard is the
+                                // loop's last statement and the body
+                                // runs to the loop's OWN back edge):
+                                // direct nested If, mirroring the 3.13
+                                // case (c) consumer. Tolerate the
+                                // final back edge (the break_bears ok
+                                // scan rejected it); require it to be
+                                // the body's last meaningful
+                                // instruction (a mid-body continue
+                                // would be swallowed into the If)
+                                if ret_idx.is_none()
+                                    && self.version.at_least(3, 12)
+                                    && !self.version.at_least(3, 13)
+                                {
+                                    let mut back_off = None;
+                                    let mut last_real = None;
+                                    let mut ok2 = true;
+                                    for ins in self.instrs[ti..bi].iter() {
+                                        if !is_pad(ins) {
+                                            last_real = Some(ins.offset);
+                                        }
+                                        if let Some(t) = ins.target {
+                                            if ins.is_backward {
+                                                if t == loop_top
+                                                    && matches!(
+                                                        ins.op,
+                                                        Op::JUMP_BACKWARD
+                                                            | Op::JUMP_ABSOLUTE
+                                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                    )
+                                                {
+                                                    back_off =
+                                                        Some(ins.offset);
+                                                }
+                                            } else if t >= lb_end
+                                                && !self
+                                                    .jump_is_loop_exit_or_merge(
+                                                        t,
+                                                    )
+                                            {
+                                                ok2 = false;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if ok2
+                                        && back_off.is_some()
+                                        && back_off == last_real
+                                    {
+                                        let direct =
+                                            negate_cond(values[0].clone());
+                                        return Some((
+                                            direct,
+                                            target,
+                                            lb_end,
+                                            loop_top,
+                                        ));
+                                    }
                                 }
                                 // the return's value run must mirror the
                                 // function's tail return run

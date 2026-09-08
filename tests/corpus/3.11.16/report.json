@@ -2,9 +2,9 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 24,
+  "PASS": 25,
   "SIG-DIFF": 13,
-  "INCOMPLETE": 3
+  "INCOMPLETE": 2
  },
  "results": [
   {
@@ -215,10 +215,7 @@
   },
   {
    "module": "copyreg",
-   "verdict": "INCOMPLETE",
-   "ndiff": 371,
-   "ntotal": 668,
-   "detail": "line 287: orig ('LOAD_GLOBAL', 'NULL + type') | got ('JUMP_FORWARD', 'to 534')\nline 288: orig ('LOAD_FAST', 'self') | got ('PUSH_EXC_INFO', '')\nline 289: orig ('PRECALL', '') | got ('LOAD_GLOBAL', 'AttributeError')"
+   "verdict": "PASS"
   },
   {
    "module": "crypt",

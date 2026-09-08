@@ -193,15 +193,14 @@ def parse_header(line):
     pdict = {}
     for p in parts:
         i = p.find('=')
-        if not i >= 0:
-            continue
-        name = p[:i].strip().lower()
-        value = p[i + 1:].strip()
-        if len(value) >= 2:
-            if value[0] == value[-1] == '"':
-                value = value[1:-1]
-                value = value.replace('\\\\', '\\').replace('\\"', '"')
-        pdict[name] = value
+        if i >= 0:
+            name = p[:i].strip().lower()
+            value = p[i + 1:].strip()
+            if len(value) >= 2:
+                if value[0] == value[-1] == '"':
+                    value = value[1:-1]
+                    value = value.replace('\\\\', '\\').replace('\\"', '"')
+            pdict[name] = value
     return key, pdict
 
 class MiniFieldStorage:
@@ -449,9 +448,8 @@ class FieldStorage:
             raise TypeError('not indexable')
         found = []
         for item in self.list:
-            if item.name != key:
-                continue
-            found.append(item)
+            if item.name == key:
+                found.append(item)
         if not found:
             raise KeyError(key)
         if len(found) == 1:

@@ -811,9 +811,8 @@ class Aifc_write:
         for marker in self._markers:
             id, pos, name = marker
             length = length + len(name) + 1 + 6
-            if len(name) & 1 != 0:
-                continue
-            length = length + 1
+            if len(name) & 1 == 0:
+                length = length + 1
         _write_ulong(self._file, length)
         self._marklength = length + 8
         _write_short(self._file, len(self._markers))

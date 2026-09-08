@@ -199,9 +199,8 @@ class Sniffer:
         for restr in ('(?P<delim>[^\\w\\n"\\\'])(?P<space> ?)(?P<quote>["\\\'])%s(?P=quote)(?P=delim)', '(?:^|\\n)(?P<quote>["\\\'])%s(?P=quote)(?P<delim>[^\\w\\n"\\\'])(?P<space> ?)', '(?P<delim>[^\\w\\n"\\\'])(?P<space> ?)(?P<quote>["\\\'])%s(?P=quote)(?:$|\\n)', '(?:^|\\n)(?P<quote>["\\\'])%s(?P=quote)(?:$|\\n)'):
             regexp = re.compile(restr % body, re.DOTALL | re.MULTILINE)
             matches = regexp.findall(data)
-            if not matches:
-                continue
-            break
+            if matches:
+                break
         if not matches:
             return ('', False, None, 0)
         quotes = {}
@@ -225,9 +224,8 @@ class Sniffer:
                 n = groupindex['space'] - 1
             except KeyError:
                 continue
-            if not m[n]:
-                continue
-            spaces += 1
+            if m[n]:
+                spaces += 1
         quotechar = max(quotes, key=quotes.get)
         if delims:
             delim = max(delims, key=delims.get)
@@ -300,15 +298,16 @@ class Sniffer:
                             continue
                         if not v[1] > 0:
                             continue
-                        if not v[1] / total >= consistency:
+                        if v[1] / total >= consistency:
+                            if delimiters is None or k in delimiters:
+                                delims[k] = v
+                        else:
+                            consistency -= 0.01
+                            if len(delims) != 0:
+                                break
+                            if not consistency >= threshold:
+                                break
                             continue
-                        if delimiters is None or k in delimiters:
-                            delims[k] = v
-                    consistency -= 0.01
-                    if len(delims) != 0:
-                        break
-                    if not consistency >= threshold:
-                        break
             if len(delims) == 1:
                 delim = list(delims.keys())[0]
                 skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)

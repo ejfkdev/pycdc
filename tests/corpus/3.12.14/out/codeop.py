@@ -44,9 +44,8 @@ def _maybe_compile(compiler, source, filename, symbol):
         line = line.strip()
         if not line:
             continue
-        if line[0] == '#':
-            continue
-        break
+        if line[0] != '#':
+            break
     else:
         if symbol != 'eval':
             source = 'pass'
@@ -120,9 +119,8 @@ class Compile:
             flags &= ~PyCF_ALLOW_INCOMPLETE_INPUT
         codeob = compile(source, filename, symbol, flags, True)
         for feature in _features:
-            if not codeob.co_flags & feature.compiler_flag:
-                continue
-            self.flags |= feature.compiler_flag
+            if codeob.co_flags & feature.compiler_flag:
+                self.flags |= feature.compiler_flag
         return codeob
 
 

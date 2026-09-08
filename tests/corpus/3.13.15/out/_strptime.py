@@ -315,9 +315,8 @@ matching when 'abcdef' should have been the match).
 
         to_convert = sorted(to_convert, key=len, reverse=True)
         for value in to_convert:
-            if value == '':
-                continue
-            break
+            if value != '':
+                break
         else:
             return ''
         regex = '|'.join((re_escape(stuff) for stuff in to_convert))

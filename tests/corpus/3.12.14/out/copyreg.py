@@ -51,9 +51,8 @@ def _reduce_ex(self, proto):
         new = base.__new__
         if not isinstance(new, _new_type):
             continue
-        if new.__self__ is not base:
-            continue
-        break
+        if new.__self__ is base:
+            break
     else:
         base = object
     if base is object:
@@ -72,12 +71,10 @@ def _reduce_ex(self, proto):
             dict = self.__dict__
         except AttributeError:
             dict = None
-        if AttributeError:
-            None
-            dict = None
-    if type(self).__getstate__ is object.__getstate__ and getattr(self, '__slots__', None):
-        raise TypeError('a class that defines __slots__ without defining __getstate__ cannot be pickled')
-    dict = getstate()
+    else:
+        if type(self).__getstate__ is object.__getstate__ and getattr(self, '__slots__', None):
+            raise TypeError('a class that defines __slots__ without defining __getstate__ cannot be pickled')
+        dict = getstate()
     if dict:
         return _reconstructor, args, dict
     return _reconstructor, args
@@ -111,22 +108,21 @@ def _slotnames(cls):
         pass
     else:
         for c in cls.__mro__:
-            if '__slots__' not in c.__dict__:
-                continue
-            slots = c.__dict__['__slots__']
-            if isinstance(slots, str):
-                slots = (slots,)
-            for name in slots:
-                if name in ('__dict__', '__weakref__'):
-                    continue
-                if name.startswith('__') and not name.endswith('__'):
-                    stripped = c.__name__.lstrip('_')
-                    if stripped:
-                        names.append(f'_{stripped!s}{name!s}')
+            if '__slots__' in c.__dict__:
+                slots = c.__dict__['__slots__']
+                if isinstance(slots, str):
+                    slots = (slots,)
+                for name in slots:
+                    if name in ('__dict__', '__weakref__'):
+                        continue
+                    if name.startswith('__') and not name.endswith('__'):
+                        stripped = c.__name__.lstrip('_')
+                        if stripped:
+                            names.append(f'_{stripped!s}{name!s}')
+                        else:
+                            names.append(name)
                     else:
                         names.append(name)
-                else:
-                    names.append(name)
     try:
         cls.__slotnames__ = names
     except:
@@ -166,4 +162,3 @@ def remove_extension(module, name, code):
 def clear_extension_cache():
     _extension_cache.clear()
 
-# WARNING: Decompyle incomplete

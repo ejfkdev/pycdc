@@ -314,9 +314,8 @@ class Cmd:
         cmds_undoc = []
         topics = set()
         for name in names:
-            if name[:5] != 'help_':
-                continue
-            topics.add(name[5:])
+            if name[:5] == 'help_':
+                topics.add(name[5:])
         names.sort()
         prevname = ''
         for name in names:
@@ -377,12 +376,10 @@ class Cmd:
                     colwidth = max(colwidth, len(x))
                 colwidths.append(colwidth)
                 totwidth += colwidth + 2
-                if not totwidth > displaywidth:
-                    continue
+                if totwidth > displaywidth:
+                    break
+            if totwidth <= displaywidth:
                 break
-            if not totwidth <= displaywidth:
-                continue
-            break
         else:
             nrows = len(list)
             ncols = 1

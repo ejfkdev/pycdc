@@ -2,9 +2,9 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 21,
+  "PASS": 22,
   "SIG-DIFF": 13,
-  "INCOMPLETE": 5,
+  "INCOMPLETE": 4,
   "AST-PASS": 1
  },
  "results": [
@@ -53,7 +53,7 @@
   },
   {
    "module": "_py_abc",
-   "ast_detail": "diff at token 99: orig  If(test=Call(func=Name(id='getattr' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 571: orig  body=[If(test=Call(func=Name(id='issubclass' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 402,
    "ntotal": 504,
@@ -71,9 +71,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 77: orig  body=[Break()] | dec  body=[Return()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 349,
+   "ndiff": 347,
    "ntotal": 2284,
-   "detail": "line 1102: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 1103: orig ('POP_JUMP_IF_TRUE', 'to 60') | got ('POP_JUMP_IF_FALSE', 'to 60')\nline 1428: orig ('FOR_ITER', 'to 3018') | got ('FOR_ITER', 'to 3010')"
+   "detail": "line 1428: orig ('FOR_ITER', 'to 3018') | got ('FOR_ITER', 'to 3010')\nline 1568: orig ('COMPARE_OP', '==') | got ('COMPARE_OP', '!=')\nline 1569: orig ('POP_JUMP_IF_TRUE', 'to 1612') | got ('POP_JUMP_IF_FALSE', 'to 1612')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -174,9 +174,9 @@
    "module": "codeop",
    "ast_detail": "diff at token 56: orig  If(test=BoolOp(op=And() | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 255,
+   "ndiff": 253,
    "ntotal": 380,
-   "detail": "line 94: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 95: orig ('POP_JUMP_IF_TRUE', 'to 98') | got ('POP_JUMP_IF_FALSE', 'to 98')\nline 119: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')"
+   "detail": "line 119: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 120: orig ('LOAD_FAST', 'compiler') | got ('LOAD_CONST', 'None')\nline 121: orig ('LOAD_FAST', 'source') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "colorsys",
@@ -185,8 +185,8 @@
   {
    "module": "compileall",
    "verdict": "INCOMPLETE",
-   "ndiff": 1253,
-   "ntotal": 1513,
+   "ndiff": 1277,
+   "ntotal": 1511,
    "detail": "line 78: orig ('POP_JUMP_IF_FALSE', 'to 242') | got ('POP_JUMP_IF_FALSE', 'to 224')\nline 167: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 168: orig ('POP_JUMP_IF_TRUE', 'to 452') | got ('POP_JUMP_IF_FALSE', 'to 452')"
   },
   {
@@ -210,10 +210,7 @@
   },
   {
    "module": "copyreg",
-   "verdict": "INCOMPLETE",
-   "ndiff": 277,
-   "ntotal": 612,
-   "detail": "line 216: orig ('POP_JUMP_IF_TRUE', 'to 224') | got ('POP_JUMP_IF_FALSE', 'to 224')\nline 292: orig ('POP_JUMP_IF_FALSE', 'to 714') | got ('POP_JUMP_IF_FALSE', 'to 732')\nline 329: orig ('POP_EXCEPT', '') | got ('LOAD_GLOBAL', 'AttributeError')"
+   "verdict": "PASS"
   },
   {
    "module": "crypt",
@@ -221,11 +218,11 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 960: orig  If(test=Name(id='matches' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 1532: orig  While(test=BoolOp(op=And() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 379,
-   "ntotal": 1649,
-   "detail": "line 1072: orig ('POP_JUMP_IF_FALSE', 'to 1278') | got ('POP_JUMP_IF_FALSE', 'to 1284')\nline 1223: orig ('POP_JUMP_IF_FALSE', 'to 1052') | got ('POP_JUMP_IF_FALSE', 'to 1058')\nline 1227: orig ('POP_JUMP_IF_FALSE', 'to 1052') | got ('POP_JUMP_IF_FALSE', 'to 1058')"
+   "ndiff": 387,
+   "ntotal": 1651,
+   "detail": "line 1072: orig ('POP_JUMP_IF_FALSE', 'to 1278') | got ('POP_JUMP_IF_FALSE', 'to 1288')\nline 1223: orig ('POP_JUMP_IF_FALSE', 'to 1052') | got ('POP_JUMP_IF_FALSE', 'to 1062')\nline 1227: orig ('POP_JUMP_IF_FALSE', 'to 1052') | got ('POP_JUMP_IF_FALSE', 'to 1062')"
   },
   {
    "module": "datetime",
