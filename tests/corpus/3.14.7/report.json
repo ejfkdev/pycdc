@@ -86,9 +86,9 @@
   {
    "module": "_py_warnings",
    "verdict": "INCOMPLETE",
-   "ndiff": 2436,
-   "ntotal": 3159,
-   "detail": "line 642: orig ('JUMP_BACKWARD', 'to L5') | got ('JUMP_BACKWARD', 'to L7')\nline 645: orig ('LOAD_FAST', 's') | got ('LOAD_CONST', 'None')\nline 647: orig ('LOAD_FAST', 'suggest_tracemalloc') | got ('LOAD_CONST', 'None')"
+   "ndiff": 2290,
+   "ntotal": 3168,
+   "detail": "line 824: orig ('LOAD_CONST', \"frozenset({'all', 'always', 'default', 'error', 'ignore', 'module', 'once'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 825: orig ('CONTAINS_OP', 'not in') | got ('BUILD_SET', '')\nline 826: orig ('POP_JUMP_IF_FALSE', 'to L1') | got ('LOAD_CONST', \"frozenset({'all', 'always', 'default', 'error', 'ignore', 'module', 'once'})\")"
   },
   {
    "module": "_pylong",
@@ -207,8 +207,8 @@
   {
    "module": "compileall",
    "verdict": "INCOMPLETE",
-   "ndiff": 1295,
-   "ntotal": 1660,
+   "ndiff": 1298,
+   "ntotal": 1675,
    "detail": "line 157: orig ('FOR_ITER', 'to L14') | got ('FOR_ITER', 'to L13')\nline 162: orig ('POP_JUMP_IF_FALSE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 164: orig ('JUMP_BACKWARD', 'to L4') | got ('JUMP_BACKWARD', 'to L3')"
   },
   {

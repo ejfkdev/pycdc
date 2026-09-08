@@ -142,14 +142,13 @@ def _formatwarnmsg_impl(msg):
                         line = None
                 except Exception:
                     line = None
-                while line:
+                if line:
                     line = line.strip()
                     s += '    %s\n' % line
-                    continue
-                    return s
-                    if suggest_tracemalloc:
-                        s += f'{category}: Enable tracemalloc to get the object allocation traceback\n'
-                    return s
+            return s
+        if suggest_tracemalloc:
+            s += f'{category}: Enable tracemalloc to get the object allocation traceback\n'
+    return s
 
 _showwarning_orig = showwarning
 

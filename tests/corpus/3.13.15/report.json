@@ -2,8 +2,8 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 25,
-  "SIG-DIFF": 9,
+  "PASS": 26,
+  "SIG-DIFF": 8,
   "INCOMPLETE": 5,
   "AST-PASS": 1
  },
@@ -56,8 +56,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 408: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1028,
-   "ntotal": 1346,
+   "ndiff": 1033,
+   "ntotal": 1344,
    "detail": "line 284: orig ('POP_JUMP_IF_FALSE', 'to L20') | got ('EXTENDED_ARG', '')\nline 285: orig ('LOAD_FAST', 'rawdata') | got ('POP_JUMP_IF_FALSE', 'to L20')\nline 286: orig ('LOAD_FAST', 'j') | got ('LOAD_FAST', 'rawdata')"
   },
   {
@@ -67,7 +67,7 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1203,
+   "ndiff": 1183,
    "ntotal": 1567,
    "detail": "line 339: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 340: orig ('LOAD_ATTR', 'close + NULL|self') | got ('CHECK_EXC_MATCH', '')\nline 341: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to L3')"
   },
@@ -119,7 +119,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 203: orig  body=[Return()]) | dec  body=[Return()])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2323,
+   "ndiff": 2332,
    "ntotal": 2803,
    "detail": "line 416: orig ('LOAD_FAST', 'event') | got ('LOAD_CONST', 'None')\nline 417: orig ('LOAD_CONST', \"'line'\") | got ('LOAD_CONST', 'None')\nline 418: orig ('COMPARE_OP', 'bool(==)') | got ('LOAD_CONST', 'None')"
   },
@@ -205,11 +205,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 101: orig  ctx=Load())]))] | dec  ctx=Load())]))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 379,
-   "ntotal": 1693,
-   "detail": "line 1101: orig ('POP_JUMP_IF_FALSE', 'to L21') | got ('POP_JUMP_IF_FALSE', 'to L23')\nline 1255: orig ('POP_JUMP_IF_FALSE', 'to L19') | got ('POP_JUMP_IF_FALSE', 'to L21')\nline 1259: orig ('POP_JUMP_IF_FALSE', 'to L19') | got ('POP_JUMP_IF_FALSE', 'to L21')"
+   "verdict": "PASS"
   },
   {
    "module": "datetime",

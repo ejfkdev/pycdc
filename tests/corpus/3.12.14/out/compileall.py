@@ -198,9 +198,8 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                     for cfile in opt_cfiles.values():
                         with open(cfile, 'rb') as chandle:
                             actual = chandle.read(12)
-                        if expect == actual:
-                            continue
-                        break
+                        if expect != actual:
+                            break
                     else:
                         return success
                 except OSError:

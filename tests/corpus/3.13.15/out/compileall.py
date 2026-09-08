@@ -198,7 +198,7 @@ hardlink_dupes: hardlink duplicated pyc files
                     for cfile in opt_cfiles.values():
                         with open(cfile, 'rb') as chandle:
                             actual = chandle.read(12)
-                        if expect == actual:
+                        if not expect != actual:
                             continue
                     else:
                         return success

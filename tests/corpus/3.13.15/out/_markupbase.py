@@ -167,13 +167,8 @@ by the SGML/HTML and XHTML parsers.'''
             else:
                 if c == ']':
                     j = j + 1
-                    if j < n and rawdata[j].isspace():
-                        while True:
-                            j = j + 1
-                            if not j < n:
-                                break
-                            if not rawdata[j].isspace():
-                                break
+                    while j < n and rawdata[j].isspace():
+                        j = j + 1
                     if j < n:
                         if rawdata[j] == '>':
                             return j

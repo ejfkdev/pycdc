@@ -47,7 +47,7 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1137,
+   "ndiff": 1118,
    "ntotal": 1481,
    "detail": "line 320: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 321: orig ('LOAD_ATTR', 'NULL|self + close') | got ('CHECK_EXC_MATCH', '')\nline 322: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 314')"
   },
@@ -132,11 +132,11 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 665: orig  While(test=BoolOp(op=And() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 925: orig  body=[Return(value=BinOp(left=Constant(value='MiniFieldStorage(%r | dec  body=[Return(value=JoinedStr(values=[Constant(value='MiniFieldStorage(')",
    "verdict": "SIG-DIFF",
-   "ndiff": 2251,
-   "ntotal": 2876,
-   "detail": "line 162: orig ('POP_JUMP_IF_FALSE', 'to 434') | got ('POP_JUMP_IF_FALSE', 'to 432')\nline 497: orig ('POP_JUMP_IF_FALSE', 'to 406') | got ('POP_JUMP_IF_FALSE', 'to 412')\nline 511: orig ('POP_JUMP_IF_FALSE', 'to 298') | got ('POP_JUMP_IF_FALSE', 'to 304')"
+   "ndiff": 611,
+   "ntotal": 2873,
+   "detail": "line 162: orig ('POP_JUMP_IF_FALSE', 'to 434') | got ('POP_JUMP_IF_FALSE', 'to 432')\nline 2246: orig ('POP_JUMP_IF_NONE', 'to 126') | got ('POP_JUMP_IF_NONE', 'to 142')\nline 2250: orig ('SWAP', '') | got ('COMPARE_OP', '<=')"
   },
   {
    "module": "cgitb",
@@ -150,8 +150,8 @@
    "module": "cmd",
    "ast_detail": "diff at token 331: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1080,
-   "ntotal": 1369,
+   "ndiff": 1076,
+   "ntotal": 1367,
    "detail": "line 276: orig ('LOAD_ATTR', 'NULL|self + postloop') | got ('LOAD_ATTR', 'use_rawinput')\nline 277: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 1010')\nline 278: orig ('POP_TOP', '') | got ('LOAD_FAST', 'self')"
   },
   {
@@ -181,8 +181,8 @@
    "module": "configparser",
    "ast_detail": "diff at token 110: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 1811,
-   "ntotal": 4216,
+   "ndiff": 1803,
+   "ntotal": 4214,
    "detail": "line 2336: orig ('LOAD_FAST', 'raw') | got ('BUILD_MAP', '')\nline 2337: orig ('LOAD_FAST', 'vars') | got ('LOAD_FAST', 'raw')\nline 2338: orig ('LOAD_CONST', \"('raw', 'vars')\") | got ('LOAD_FAST', 'vars')"
   },
   {
@@ -208,9 +208,9 @@
    "module": "csv",
    "ast_detail": "diff at token 118: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 387,
-   "ntotal": 1651,
-   "detail": "line 1072: orig ('POP_JUMP_IF_FALSE', 'to 1278') | got ('POP_JUMP_IF_FALSE', 'to 1288')\nline 1223: orig ('POP_JUMP_IF_FALSE', 'to 1052') | got ('POP_JUMP_IF_FALSE', 'to 1062')\nline 1227: orig ('POP_JUMP_IF_FALSE', 'to 1052') | got ('POP_JUMP_IF_FALSE', 'to 1062')"
+   "ndiff": 1,
+   "ntotal": 1647,
+   "detail": "line 1352: orig ('POP_JUMP_IF_TRUE', 'to 1380') | got ('POP_JUMP_IF_FALSE', 'to 1380')"
   },
   {
    "module": "datetime",

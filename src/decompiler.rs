@@ -99,6 +99,12 @@ struct Block {
     short_circuit: Option<bool>,
     /// 3.12+ chained-comparison link (COPY + PJIF + SWAP/POP else arm)
     chain_link: bool,
+    /// direct-form guard If spanning to its loop's end: the body's final
+    /// iteration edge is NOT a folded chain exit — exempt from jfold
+    /// spine marking (csv 3.13 _guess_delimiter: the JB-to-loop-top at
+    /// the body tail marked the span If folded_exit, opening a phantom
+    /// Else[MAX] that swallowed the while tail)
+    no_fold: bool,
 }
 
 impl Block {
@@ -128,6 +134,7 @@ impl Block {
             jump_if_true: false,
             short_circuit: None,
             chain_link: false,
+            no_fold: false,
         }
     }
 }
@@ -12441,12 +12448,15 @@ impl<'a> Ctx<'a> {
                         for t in self.blocks.iter().rev() {
                             if matches!(t.kind, BlockType::If | BlockType::Else)
                                 && t.end > self.cur_offset
+                                && !t.no_fold
                             {
                                 mark_spine.push(t.start);
                             } else if !matches!(
                                 t.kind,
                                 BlockType::If | BlockType::Else
-                            ) {
+                            )
+                                || t.no_fold
+                            {
                                 break;
                             }
                         }
@@ -19417,12 +19427,29 @@ return None;
             .any(|ins| ins.is_backward && ins.target == Some(target));
         // rotated-while signature: a backward jump in the chain span
         // loops onto a pure cond-expr top strictly before this jump —
-        // these jumps belong to a loop structure, not a guard chain
+        // these jumps belong to a loop structure, not a guard chain.
+        // The scan stays INSIDE the guard's own loop span: 3.11+
+        // out-of-line exception handlers sit at the function tail and
+        // their JBNI resumes can point back at a cond-looking region
+        // (csv 3.13 has_header: the try handler's JBNI->330 inside a
+        // 300-instr window vetoed the `if thisType != ...` guard)
+        let rbe_bound = self
+            .blocks
+            .iter()
+            .rev()
+            .find(|b| {
+                matches!(b.kind, BlockType::While | BlockType::For)
+                    && (b.start == loop_top
+                        || (b.cond_end != usize::MAX && b.cond_end == loop_top))
+            })
+            .map(|b| b.end)
+            .filter(|e| *e != usize::MAX);
         let rotated_back_edge = self
             .instrs
             .iter()
             .skip(ci)
             .take(300)
+            .take_while(|ins| rbe_bound.map_or(true, |bnd| ins.offset < bnd))
             .any(|ins| {
                 ins.is_backward
                     && ins.target.map_or(false, |bt| {
@@ -19654,6 +19681,164 @@ return None;
                                 if !break_bears {
                                     ok = false;
                                 }
+                                // 3.13+ direct-form guard whose body is
+                                // the loop's tail: `if X: <body-to-loop-
+                                // end>` compiles to PJIT-over-trampoline
+                                // with the body running to the loop's own
+                                // back edge. Two body shapes: (A) plain
+                                // threaded (csv 3.13 has_header `if
+                                // thisType != columnTypes[col]:` — case
+                                // (c) misses it when the body leads with
+                                // a non-PJ* conditional jump like
+                                // POP_JUMP_IF_NOT_NONE); (B) genuine
+                                // body-ending return preceded by for-loop
+                                // iterator cleanup SWAP 2; POP_TOP (csv
+                                // 3.13 _guess_delimiter `if d in
+                                // delims.keys(): ... return`) — a sunk
+                                // tail-return COPY lacks that cleanup and
+                                // lacks computed ops in its value run
+                                // 3.13 ONLY: 3.14 keeps the historical
+                                // inverted form — direct nesting there
+                                // swallowed sibling elif guards and the
+                                // post-loop tail (_osx_support 3.14
+                                // _default_sysroot: the post-for `if
+                                // _cache_default_sysroot is None` landed
+                                // inside the elif's else)
+                                if self.version.at_least(3, 13)
+                                    && !self.version.at_least(3, 14)
+                                    && jump_if_true
+                                {
+                                    let mut back_off = None;
+                                    let mut last_real = None;
+                                    let mut ok3 = true;
+                                    let mut first_ret = None;
+                                    for ins in self.instrs[ti..bi].iter() {
+                                        if !is_pad(ins) {
+                                            last_real = Some(ins.offset);
+                                        }
+                                        if matches!(
+                                            ins.op,
+                                            Op::RETURN_VALUE
+                                                | Op::RETURN_CONST
+                                        ) && first_ret.is_none()
+                                        {
+                                            first_ret = Some(ins.offset);
+                                        }
+                                        if let Some(t) = ins.target {
+                                            if ins.is_backward {
+                                                if t == loop_top {
+                                                    if matches!(
+                                                        ins.op,
+                                                        Op::JUMP_BACKWARD
+                                                            | Op::JUMP_ABSOLUTE
+                                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                    ) {
+                                                        back_off =
+                                                            Some(ins.offset);
+                                                    } else {
+                                                        ok3 = false;
+                                                        break;
+                                                    }
+                                                }
+                                            } else if t >= lb_end {
+                                                ok3 = false;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if ok3 {
+                                        let mut accept = false;
+                                        if let Some(ro) = first_ret {
+                                            // (B): body ENDS at the
+                                            // return, with iterator
+                                            // cleanup before it and a
+                                            // computed value in the run
+                                            if last_real == Some(ro) {
+                                                let rj = self.instrs[ti..bi]
+                                                    .iter()
+                                                    .position(|x| {
+                                                        x.offset == ro
+                                                    })
+                                                    .map(|p| ti + p);
+                                                if let Some(rj) = rj {
+                                                    let mut p1 = None;
+                                                    let mut p2 = None;
+                                                    let mut k = rj;
+                                                    while k > ti && p2.is_none()
+                                                    {
+                                                        k -= 1;
+                                                        if is_pad(
+                                                            &self.instrs[k],
+                                                        ) {
+                                                            continue;
+                                                        }
+                                                        if p1.is_none() {
+                                                            p1 = Some(k);
+                                                        } else {
+                                                            p2 = Some(k);
+                                                        }
+                                                    }
+                                                    let cleanup = p1
+                                                        .zip(p2)
+                                                        .map_or(false, |(a, b)| {
+                                                            matches!(
+                                                                self.instrs[a].op,
+                                                                Op::POP_TOP
+                                                            ) && matches!(
+                                                                self.instrs[b].op,
+                                                                Op::SWAP
+                                                                    | Op::COPY
+                                                            )
+                                                        });
+                                                    if cleanup {
+                                                        accept = self.instrs
+                                                            [ti..bi]
+                                                            .iter()
+                                                            .any(|ins| {
+                                                                !is_pad(ins)
+                                                                    && ins.offset
+                                                                        < ro
+                                                                    && !matches!(
+                                                                        ins.op,
+                                                                        Op::SWAP
+                                                                            | Op::COPY
+                                                                            | Op::POP_TOP
+                                                                            | Op::LOAD_FAST
+                                                                            | Op::LOAD_NAME
+                                                                            | Op::LOAD_GLOBAL
+                                                                            | Op::LOAD_DEREF
+                                                                            | Op::LOAD_CONST
+                                                                            | Op::LOAD_ATTR
+                                                                            | Op::LOAD_METHOD
+                                                                            | Op::LOAD_FAST_LOAD_FAST
+                                                                            | Op::LOAD_FAST_AND_CLEAR
+                                                                            | Op::PUSH_NULL
+                                                                            | Op::RESUME
+                                                                    )
+                                                            });
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            // (A): plain threaded body —
+                                            // the back edge is the body's
+                                            // last real instruction
+                                            accept = back_off.is_some()
+                                                && back_off == last_real;
+                                        }
+                                        if accept {
+                                            let direct =
+                                                negate_cond(values[0].clone());
+                                            return Some((
+                                                direct,
+                                                target,
+                                                lb_end,
+                                                loop_top,
+                                            ));
+                                        }
+                                    }
+                                }
+
                                 // 3.12 plain threaded body (copyreg
                                 // _slotnames `if "__slots__" in
                                 // c.__dict__:` — the guard is the
@@ -21086,6 +21271,16 @@ return None;
                 blk.cond_set = true;
                 blk.jump_if_true = false;
                 blk.stack_depth = self.stack.len();
+                // direct-form body running to the loop's own end: its
+                // tail iteration edge must not fold the spine
+                blk.no_fold = self
+                    .blocks
+                    .iter()
+                    .rev()
+                    .find(|b| {
+                        matches!(b.kind, BlockType::While | BlockType::For)
+                    })
+                    .map_or(false, |lb| lb.end == body_end);
                 self.blocks.push(blk);
                                 self.skip_until = Some(body_start);
                 return;
@@ -21735,6 +21930,11 @@ return None;
                     }));
                     top.cond_end = new_cond_end;
                 }
+                // merged pre-check chain of a rotated while (csv 3.13
+                // _guess_delimiter): convert to the real While now
+                if self.try_pre_rot_fallthrough(target, jump_if_true) {
+                    return;
+                }
                 return;
             }
         }
@@ -21953,6 +22153,11 @@ if split_cond {
                 flatten_boolop(prev, kind, &mut values);
                 flatten_boolop(c2, kind, &mut values);
                 top.cond = Some(Rc::new(Expr::BoolOp { op: kind, values }));
+                if matches!(kind, BoolOpKind::And)
+                    && self.try_pre_rot_fallthrough(target, jump_if_true)
+                {
+                    return;
+                }
                 return;
             }
         }
@@ -22444,6 +22649,12 @@ if split_cond {
                                             values,
                                         }));
                                     }
+                                    // merged pre-check chain of a rotated
+                                    // while (csv 3.13 _guess_delimiter):
+                                    // convert to the real While now
+                                    if self.try_pre_rot_fallthrough(target, jump_if_true) {
+                                        return;
+                                    }
                                     return;
                                 }
                                 let mut blk =
@@ -22635,6 +22846,9 @@ if split_cond {
                     blk.stack_depth = self.stack.len();
                     self.blocks.push(blk);
                     self.skip_until = Some(target);
+                    return;
+                }
+                if self.try_pre_rot_fallthrough(target, jump_if_true) {
                     return;
                 }
                 for inst in &self.instrs[ci..ti] {
@@ -23056,6 +23270,11 @@ if split_cond {
                                     op: BoolOpKind::And,
                                     values,
                                 }));
+                            }
+                            if self
+                                .try_pre_rot_fallthrough(target, jump_if_true)
+                            {
+                                return;
                             }
                             return;
                         }
@@ -25643,6 +25862,186 @@ if split_cond {
         dedup.sort_by_key(|x| x.2);
         self.while_true_loops =
             dedup.into_iter().map(|(t, e, _)| (t, e)).collect();
+    }
+
+    /// 3.12+ pre-checked rotated while, FALL-THROUGH-TO-BODY variant
+    /// (csv 3.13 _guess_delimiter): convert the merged pre-check If into
+    /// the real While when the fall-through is a prescan-claimed
+    /// while-True top and the tail re-eval mirrors the pre-check chain.
+    fn try_pre_rot_fallthrough(&mut self, target: usize, jump_if_true: bool) -> bool {
+        let Some(&ci) = self.idx_of.get(&self.cur_offset) else {
+            return false;
+        };
+        // 3.12+ pre-checked rotated while, FALL-THROUGH-TO-BODY
+        // variant (csv 3.13 _guess_delimiter `while len(delims)
+        // == 0 and consistency >= threshold:`): the pre-check
+        // chain's last jump falls through onto the body top —
+        // which the while-True prescan claimed — and the tail
+        // re-eval chain mirrors the pre-check instruction-for-
+        // instruction before the back edge. Convert the merged
+        // pre-check If (split_cond already folded the and-chain)
+        // into the real While and un-claim the prescan top.
+        if self.version.at_least(3, 12) && !jump_if_true {
+            let fall_top = self
+                .idx_of
+                .get(&self.cur_next)
+                .map(|&fi2| self.instrs[fi2].offset);
+            let claimed = fall_top
+                .and_then(|ft| {
+                    self.while_true_loops
+                        .iter()
+                        .find(|(t, _)| *t == ft)
+                        .copied()
+                });
+            if let (Some(ft), Some((wtop, wend))) = (fall_top, claimed) {
+                // back edge: the last backward jump onto wtop
+                let back = self
+                    .instrs
+                    .iter()
+                    .filter(|x| {
+                        x.offset < wend
+                            && x.is_backward
+                            && x.target == Some(wtop)
+                            && matches!(
+                                x.op,
+                                Op::JUMP_BACKWARD
+                                    | Op::JUMP_ABSOLUTE
+                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                            )
+                    })
+                    .map(|x| x.offset)
+                    .last();
+                if let Some(bo) = back {
+                    // walk the pre-check chain back from this
+                    // jump: contiguous pure-value runs and
+                    // same-exit same-polarity cond jumps
+                    // chain start = walk back over [pure-value operand
+                    // runs + same-exit PJIF links]; stop at the first
+                    // non-pure instruction (the preceding statement)
+                    let mut s = ci;
+                    let mut chain_lo = ci;
+                    loop {
+                        while s > 0 {
+                            let p = &self.instrs[s - 1];
+                            if is_pure_value_op(p.op)
+                                || matches!(
+                                    p.op,
+                                    Op::TO_BOOL
+                                        | Op::NOP
+                                        | Op::NOT_TAKEN
+                                        | Op::CACHE
+                                )
+                            {
+                                s -= 1;
+                                chain_lo = s;
+                                continue;
+                            }
+                            break;
+                        }
+                        if s > 0
+                            && matches!(
+                                self.instrs[s - 1].op,
+                                Op::POP_JUMP_IF_FALSE
+                                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                            )
+                            && self.instrs[s - 1].target == Some(target)
+                        {
+                            s -= 1;
+                            continue;
+                        }
+                        break;
+                    }
+                    let seq = |a: usize, b: usize| -> Vec<(u8, u32)> {
+                        self.instrs[a..=b]
+                            .iter()
+                            .filter(|x| {
+                                !matches!(
+                                    x.op,
+                                    Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                                )
+                            })
+                            // jumps compare by absolute TARGET: the
+                            // 3.13 PJIF arg is a relative delta that
+                            // differs between the pre-check and the
+                            // re-eval copy even with the same exit
+                            .map(|x| {
+                                (
+                                    x.op as u8,
+                                    x.target.map(|t| t as u32).unwrap_or(x.arg),
+                                )
+                            })
+                            .collect()
+                    };
+                    let pre_seq = seq(chain_lo, ci);
+                    // re-eval chain: same-length span ending at
+                    // the instruction before the back edge
+                    let pre_len = ci - chain_lo + 1;
+                    let bi_opt = self.idx_of.get(&bo).copied();
+                    if let (true, Some(bi)) =
+                        (pre_len > 0 && bi_opt.map_or(false, |bi2| bi2 >= pre_len), bi_opt)
+                    {
+                        let re_seq = seq(bi - pre_len, bi - 1);
+                        // re-eval chain must end at a same-exit
+                        // cond jump and mirror the pre-check
+                        let re_last_cj = self.instrs[bi - 1].target
+                            == Some(target)
+                            && matches!(
+                                self.instrs[bi - 1].op,
+                                Op::POP_JUMP_IF_FALSE
+                                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                            );
+                                if re_last_cj && re_seq == pre_seq {
+                            // the merged pre-check If must be
+                            // open on top (split_cond folded the
+                            // chain) and start at/before the
+                            // chain's first operand
+                            // the merged pre-check If starts at the
+                            // FIRST jump's fall-through (past operand
+                            // 1's run) — require only that it lies
+                            // within the chain span and ends at the
+                            // shared exit
+                            let chain_start_off =
+                                self.instrs[s].offset;
+                            let ok_top = self
+                                .blocks
+                                .last()
+                                .map_or(false, |b| {
+                                    b.kind == BlockType::If
+                                        && b.cond_set
+                                        && b.end == target
+                                        && b.start >= chain_start_off
+                                        && b.start <= self.cur_offset
+                                });
+                            if ok_top {
+                                let wcond = self
+                                    .blocks
+                                    .last()
+                                    .and_then(|b| b.cond.clone())
+                                    .unwrap();
+                                self.blocks.pop();
+                                self.while_true_loops
+                                    .retain(|(t, _)| *t != wtop);
+                                let mut blk = Block::new(
+                                    BlockType::While,
+                                    wtop,
+                                    target,
+                                );
+                                blk.cond = Some(wcond);
+                                blk.cond_set = true;
+                                blk.cond_end = self.instrs[ci].end();
+                                blk.jump_if_true = false;
+                                blk.stack_depth = self.stack.len();
+                                self.blocks.push(blk);
+                                self.skip_until = Some(wtop);
+                                return true;
+                            }
+                        }
+                    }
+                    let _ = ft;
+                }
+            }
+        }
+        false
     }
 
     fn handle_jump_backward(&mut self, target: usize) {

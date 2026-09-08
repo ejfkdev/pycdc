@@ -292,23 +292,16 @@ class Sniffer:
             total = float(min(chunkLength * iteration, len(data)))
             consistency = 1.0
             threshold = 0.9
-            if len(delims) == 0 and consistency >= threshold:
-                while True:
-                    for k, v in modeList:
-                        if not v[0] > 0:
-                            continue
-                        if not v[1] > 0:
-                            continue
-                        if v[1] / total >= consistency:
-                            if delimiters is None or k in delimiters:
-                                delims[k] = v
-                        else:
-                            consistency -= 0.01
-                            if len(delims) != 0:
-                                break
-                            if not consistency >= threshold:
-                                break
-                            continue
+            while len(delims) == 0 and consistency >= threshold:
+                for k, v in modeList:
+                    if not v[0] > 0:
+                        continue
+                    if not v[1] > 0:
+                        continue
+                    if v[1] / total >= consistency:
+                        if delimiters is None or k in delimiters:
+                            delims[k] = v
+                consistency -= 0.01
             if len(delims) == 1:
                 delim = list(delims.keys())[0]
                 skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)
@@ -349,12 +342,11 @@ class Sniffer:
                     thisType(row[col])
                 except (ValueError, OverflowError):
                     thisType = len(row[col])
-                if thisType == columnTypes[col]:
-                    continue
-                if columnTypes[col] is None:
-                    columnTypes[col] = thisType
-                else:
-                    del columnTypes[col]
+                if thisType != columnTypes[col]:
+                    if columnTypes[col] is None:
+                        columnTypes[col] = thisType
+                    else:
+                        del columnTypes[col]
         hasHeader = 0
         for col, colType in columnTypes.items():
             if isinstance(colType, int):
