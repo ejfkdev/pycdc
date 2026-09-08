@@ -90,6 +90,8 @@ def sig2(code, out):
             # limit).  Restored sources never reproduce the original blank
             # line/comment layout, so this pair is systematic sig noise;
             # semantically LOAD_NAME None == LOAD_CONST None.
+            if name == "STORE_GLOBAL" and code.co_name == "<module>":
+                name = "STORE_NAME"
             if name == "LOAD_NAME" and r in ("None", "True", "False"):
                 name = "LOAD_CONST"
             out.append((name, r))
@@ -145,6 +147,9 @@ def sig3_manual(code, out):
                 r = str((code.co_cellvars + code.co_freevars)[arg])
             else:
                 r = str(arg)
+            # module-level STORE_GLOBAL == STORE_NAME (see sig3)
+            if name == "STORE_GLOBAL" and code.co_name == "<module>":
+                name = "STORE_NAME"
             # 3.0-3.3 LOAD_CONST-folding quirk (see sig3): LOAD_NAME
             # None/True/False is the line-layout-dependent spelling of
             # the keyword constant -- normalize
@@ -187,6 +192,15 @@ def sig3(code, out):
             if isinstance(tgt, int):
                 r = "#%s" % off2idx.get(tgt, "?")
         name = inst.opname
+        # module-level STORE_GLOBAL vs STORE_NAME: a `global X` decl in
+        # any function makes the compiler use STORE_GLOBAL for the
+        # module-level assignment of X; the declaration itself emits NO
+        # bytecode, so restored sources can only reproduce it by
+        # guessing which function held it. Both store into the module
+        # dict -- semantically identical, systematic sig noise
+        # (_strptime 3.10 `_regex_cache = {}`)
+        if name == "STORE_GLOBAL" and code.co_name == "<module>":
+            name = "STORE_NAME"
         # bare NOPs are line-table padding (elided-jump markers, blank
         # line anchors): their count/placement depends on source line
         # layout the restored source can never reproduce -- systematic

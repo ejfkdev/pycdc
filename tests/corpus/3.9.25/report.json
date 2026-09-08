@@ -66,9 +66,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1729: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 720,
-   "ntotal": 2144,
-   "detail": "line 80: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 1250: orig ('FOR_ITER', 'to 1608') | got ('FOR_ITER', 'to 1612')\nline 1414: orig ('JUMP_FORWARD', 'to 846') | got ('EXTENDED_ARG', '')"
+   "ndiff": 722,
+   "ntotal": 2143,
+   "detail": "line 1250: orig ('FOR_ITER', 'to 1608') | got ('FOR_ITER', 'to 1610')\nline 1414: orig ('JUMP_FORWARD', 'to 846') | got ('EXTENDED_ARG', '')\nline 1415: orig ('LOAD_FAST', 'ampm') | got ('JUMP_ABSOLUTE', '')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -212,7 +212,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1707: orig  If(test=BoolOp(op=And() | dec  Assign(targets=[Name(id='replace'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2815,
+   "ndiff": 2827,
    "ntotal": 4333,
    "detail": "line 1451: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')\nline 1452: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_ATTR', 'partial')\nline 1453: orig ('LOAD_CONST', \"'%('\") | got ('LOAD_FAST', 'self')"
   },

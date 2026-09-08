@@ -131,9 +131,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1858: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1199,
+   "ndiff": 1198,
    "ntotal": 1709,
-   "detail": "line 89: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 448: orig ('SETUP_LOOP', '#172') | got ('SETUP_LOOP', '#173')\nline 454: orig ('FOR_ITER', '#171') | got ('FOR_ITER', '#172')"
+   "detail": "line 448: orig ('SETUP_LOOP', '#172') | got ('SETUP_LOOP', '#173')\nline 454: orig ('FOR_ITER', '#171') | got ('FOR_ITER', '#172')\nline 462: orig ('SETUP_LOOP', '#142') | got ('SETUP_LOOP', '#143')"
   },
   {
    "module": "_threading_local",

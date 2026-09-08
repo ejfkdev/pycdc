@@ -2,9 +2,9 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "PASS": 25,
+  "PASS": 26,
   "SIG-DIFF": 11,
-  "AST-PASS": 4
+  "AST-PASS": 3
  },
  "results": [
   {
@@ -125,7 +125,7 @@
   },
   {
    "module": "_strptime",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "_sysconfigdata",

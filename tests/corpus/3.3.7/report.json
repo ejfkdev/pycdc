@@ -2,8 +2,8 @@
  "version": "3.3.7",
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
-  "PASS": 22,
-  "AST-PASS": 6,
+  "PASS": 23,
+  "AST-PASS": 5,
   "SIG-DIFF": 12
  },
  "results": [
@@ -37,7 +37,7 @@
   },
   {
    "module": "_strptime",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "_sysconfigdata",

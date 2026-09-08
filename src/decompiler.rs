@@ -19067,7 +19067,69 @@ return None;
                             | Op::JUMP_BACKWARD_NO_INTERRUPT
                     )
                 {
-                    ins.target
+                    // only thread when nothing but pads/operand value
+                    // ops lies between this cond jump and the back
+                    // edge: a real statement there means the back edge
+                    // is a fused ARM-END trampoline and this jump is a
+                    // nested guard whose merge is the trampoline itself
+                    // (_strptime 3.10 _strptime: `if ampm in (...):
+                    // if hour == 12: hour = 0` — the guard's PJIF
+                    // landed on the elif arm's end JABS, threading to
+                    // the loop top opened If[..,454], the body ejected
+                    // and the arm grew a phantom continue)
+                    // scope: the 3.8-3.10 JUMP_ABSOLUTE back-edge idiom
+                    // only — 3.11+ JUMP_BACKWARD chains (elif spines
+                    // ending on the fused edge) rely on the threading
+                    // to keep their skip jumps aligned (_strptime
+                    // 3.13/3.14 LC_alt_digits elif broke when the
+                    // guard applied there)
+                    // and only when the back edge's target is NOT a
+                    // recognizable loop top: the ampm guard's landing
+                    // edge targets the for's GET_ITER (one instruction
+                    // before the For block's recorded start) — an
+                    // arm-end trampoline, not a continue edge
+                    // veto the threading only for the 3.8-3.10
+                    // JUMP_ABSOLUTE idiom, only when the edge is not a
+                    // recognizable loop top, and only when the span
+                    // holds real statements: or/and-chain operand runs
+                    // (pure values + cond jumps) still thread so
+                    // `if a or b: continue` reads right (_pylong), and
+                    // 3.11+ JUMP_BACKWARD chains keep their threading
+                    // (_strptime 3.13/3.14 LC_alt_digits elif). A
+                    // statement-only span means the back edge is a
+                    // fused ARM-END trampoline and this jump is a
+                    // nested guard whose merge is the trampoline itself
+                    // (_strptime 3.10 ampm: `if hour == 12: hour = 0`
+                    // threaded to the loop top ejected the body and
+                    // grew a phantom continue)
+                    let cj_end = self.cur_next;
+                    let span_pure = ins.op != Op::JUMP_ABSOLUTE
+                        || ins.target
+                            .map_or(false, |bt| self.is_loop_top_target(bt))
+                        || self
+                            .idx_of
+                            .get(&cj_end)
+                            .map_or(false, |&si| {
+                                self.instrs[si..ti].iter().all(|x| {
+                                    matches!(
+                                        x.op,
+                                        Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                                    ) || is_pure_value_op(x.op)
+                                        || matches!(
+                                            x.op,
+                                            Op::POP_JUMP_IF_FALSE
+                                                | Op::POP_JUMP_IF_TRUE
+                                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                | Op::TO_BOOL
+                                        )
+                                })
+                            });
+                    if span_pure {
+                        ins.target
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }

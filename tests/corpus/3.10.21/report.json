@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 18,
-  "SIG-DIFF": 18,
+  "PASS": 19,
+  "SIG-DIFF": 17,
   "INCOMPLETE": 4
  },
  "results": [
@@ -65,11 +65,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1604: orig  value=Constant(value=2000))] | dec  value=Constant(value=2000))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 65,
-   "ntotal": 2141,
-   "detail": "line 80: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 1275: orig ('FOR_ITER', 'to 1532') | got ('FOR_ITER', 'to 1542')\nline 1397: orig ('POP_JUMP_IF_FALSE', 'to 802') | got ('POP_JUMP_IF_FALSE', 'to 808')"
+   "verdict": "PASS"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -121,9 +117,9 @@
   {
    "module": "base64",
    "verdict": "INCOMPLETE",
-   "ndiff": 1091,
+   "ndiff": 1089,
    "ntotal": 1931,
-   "detail": "line 76: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 78: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 764: orig ('POP_JUMP_IF_TRUE', 'to 310') | got ('POP_JUMP_IF_TRUE', 'to 318')"
+   "detail": "line 764: orig ('POP_JUMP_IF_TRUE', 'to 310') | got ('POP_JUMP_IF_TRUE', 'to 318')\nline 766: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 767: orig ('CONTAINS_OP', '') | got ('BUILD_SET', '')"
   },
   {
    "module": "bdb",

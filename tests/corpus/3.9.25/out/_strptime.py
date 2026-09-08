@@ -380,17 +380,17 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                         if z.startswith('-'):
                             gmtoff = -gmtoff
                             gmtoff_fraction = -gmtoff_fraction
-                            if group_key == 'Z':
-                                pass
-                            found_zone = found_dict['Z'].lower()
-                        else:
-                            for value, tz_values in enumerate(locale_time.timezone):
-                                if found_zone in tz_values:
-                                    if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                                        continue
-                                    else:
-                                        tz = value
-                                        continue
+                else:
+                    if group_key == 'Z':
+                        pass
+                    found_zone = found_dict['Z'].lower()
+                    for value, tz_values in enumerate(locale_time.timezone):
+                        if found_zone in tz_values:
+                            if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
+                                continue
+                            else:
+                                tz = value
+                                continue
         continue
     if year is None and iso_year is not None:
         if iso_week is None or weekday is None:

@@ -67,9 +67,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 977: orig  value=BinOp(left=Constant(value='(?P<%s>%s') | dec  value=JoinedStr(values=[Constant(value='(?P<')",
    "verdict": "SIG-DIFF",
-   "ndiff": 982,
+   "ndiff": 981,
    "ntotal": 2246,
-   "detail": "line 86: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 1235: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 884') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 882')\nline 1242: orig ('JUMP_FORWARD', 'to 864') | got ('JUMP_FORWARD', 'to 862')"
+   "detail": "line 1235: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 884') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 882')\nline 1242: orig ('JUMP_FORWARD', 'to 864') | got ('JUMP_FORWARD', 'to 862')\nline 1246: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 800') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 798')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -111,9 +111,9 @@
    "module": "base64",
    "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1802,
+   "ndiff": 1800,
    "ntotal": 2107,
-   "detail": "line 72: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 74: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 230: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 146') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 86')"
+   "detail": "line 230: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 146') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 86')\nline 237: orig ('PUSH_EXC_INFO', '') | got ('LOAD_GLOBAL', 'NULL + isinstance')\nline 238: orig ('LOAD_GLOBAL', 'UnicodeEncodeError') | got ('LOAD_FAST', 's')"
   },
   {
    "module": "bdb",
