@@ -20027,6 +20027,151 @@ return None;
                                             accept = back_off.is_some()
                                                 && back_off == last_real;
                                         }
+                                            if !accept {
+                                                // (C): body contains a
+                                                // RETURN before its last
+                                                // instruction and every
+                                                // forward exit targets a
+                                                // registered loop
+                                                // exit/merge (`if method
+                                                // in B.__dict__:` over a
+                                                // body with `return
+                                                // NotImplemented` + break
+                                                // — _collections_abc 3.13
+                                                // _check_methods). The
+                                                // first scan's partial
+                                                // state is discarded;
+                                                // rescan fully.
+                                                let mut ok4 = true;
+                                                let mut lreal4 = None;
+                                                let mut fret4 = None;
+                                                for ins2 in
+                                                    self.instrs[ti..bi].iter()
+                                                {
+                                                    if !is_pad(ins2) {
+                                                        lreal4 =
+                                                            Some(ins2.offset);
+                                                    }
+                                                    if matches!(
+                                                        ins2.op,
+                                                        Op::RETURN_VALUE
+                                                            | Op::RETURN_CONST
+                                                    ) && fret4.is_none()
+                                                    {
+                                                        fret4 =
+                                                            Some(ins2.offset);
+                                                    }
+                                                    if let Some(t2) =
+                                                        ins2.target
+                                                    {
+                                                        if ins2.is_backward {
+                                                            if t2 == loop_top
+                                                                && !matches!(
+                                                                    ins2.op,
+                                                                    Op::JUMP_BACKWARD
+                                                                        | Op::JUMP_ABSOLUTE
+                                                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                                )
+                                                            {
+                                                                ok4 = false;
+                                                                break;
+                                                            }
+                                                        } else if t2 >= lb_end
+                                                            && !self
+                                                                .jump_is_loop_exit_or_merge(
+                                                                    t2,
+                                                                )
+                                                        {
+                                                            ok4 = false;
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                                accept = ok4
+                                                    && fret4.is_some()
+                                                    && lreal4.is_some()
+                                                    && fret4 < lreal4;
+                                            }
+                                            if !accept {
+                                                // (D): the body is a
+                                                // bare sunk return stub
+                                                // [POP_TOP/pads]
+                                                // RETURN_CONST whose
+                                                // constant does NOT
+                                                // mirror the function's
+                                                // tail return — a
+                                                // genuine in-loop
+                                                // `if cond: return K`
+                                                // (_collections_abc
+                                                // 3.13 Set.__le__ `if
+                                                // elem not in other:
+                                                // return False` before
+                                                // a tail `return
+                                                // True`). A mirroring
+                                                // stub stays with the
+                                                // sunk for-break fold.
+                                                let mut ok5 = true;
+                                                let mut k5 = ti;
+                                                while k5 < bi
+                                                    && (is_pad(
+                                                        &self.instrs[k5],
+                                                    ) || matches!(
+                                                        self.instrs[k5].op,
+                                                        Op::POP_TOP
+                                                            | Op::POP_ITER
+                                                    ))
+                                                {
+                                                    k5 += 1;
+                                                }
+                                                if self
+                                                    .instrs
+                                                    .get(k5)
+                                                    .map_or(false, |x| {
+                                                        x.op == Op::RETURN_CONST
+                                                    })
+                                                {
+                                                    let n = self.instrs.len();
+                                                    let tail_c = (n >= 1)
+                                                        .then(|| {
+                                                            &self.instrs[n - 1]
+                                                        })
+                                                        .filter(|x| {
+                                                            x.op
+                                                                == Op::RETURN_CONST
+                                                        })
+                                                        .map(|x| x.arg);
+                                                    ok5 = tail_c
+                                                        .map_or(true, |tc| {
+                                                            tc != self.instrs[k5].arg
+                                                        });
+                                                    // an or-chain success
+                                                    // block is targeted
+                                                    // by several cond
+                                                    // jumps — folding the
+                                                    // first link alone
+                                                    // tears the chain
+                                                    // (ItemsView
+                                                    // __contains__ `if v
+                                                    // is value or
+                                                    // v == value:`)
+                                                    if ok5 {
+                                                        let ntarget = self
+                                                            .instrs
+                                                            .iter()
+                                                            .filter(|x| {
+                                                                x.target
+                                                                    == Some(
+                                                                        target,
+                                                                    )
+                                                            })
+                                                            .count();
+                                                        ok5 = ntarget <= 1;
+                                                    }
+                                                    if ok5 {
+                                                        accept = true;
+                                                    }
+                                                }
+                                        }
                                         if accept {
                                             let direct =
                                                 negate_cond(values[0].clone());

@@ -34,7 +34,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 2959,
    "ntotal": 3787,
-   "detail": "line 700: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L5')\nline 704: orig ('FOR_ITER', 'to L5') | got ('FOR_ITER', 'to L4')\nline 710: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L2')"
+   "detail": "line 700: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L5')\nline 704: orig ('FOR_ITER', 'to L5') | got ('FOR_ITER', 'to L4')\nline 710: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L2')"
   },
   {
    "module": "_colorize",

@@ -214,9 +214,8 @@ Return self.trace_dispatch to continue tracing in this scope.
         if module_name is None:
             return False
         for pattern in self.skip:
-            if not fnmatch.fnmatch(module_name, pattern):
-                continue
-            return True
+            if fnmatch.fnmatch(module_name, pattern):
+                return True
         return False
 
     def stop_here(self, frame):
@@ -833,6 +832,7 @@ If no such entry exists, then (None, None) is returned.
                         return b, True
             except:
                 return b, False
+            continue
     return (None, None)
 
 class Tdb(Bdb):

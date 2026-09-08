@@ -59,11 +59,10 @@ def _check_methods(C, *methods):
     mro = C.__mro__
     for method in methods:
         for B in mro:
-            if not method in B.__dict__:
-                continue
-            if B.__dict__[method] is None:
-                return NotImplemented
-            break
+            if method in B.__dict__:
+                if B.__dict__[method] is None:
+                    return NotImplemented
+                break
         return NotImplemented
     return True
 
@@ -489,9 +488,8 @@ then the other operations will automatically follow suit.
         if len(self) > len(other):
             return False
         for elem in self:
-            if not elem not in other:
-                continue
-            return False
+            if elem not in other:
+                return False
         return True
 
     def __lt__(self, other):
@@ -510,9 +508,8 @@ then the other operations will automatically follow suit.
         if len(self) < len(other):
             return False
         for elem in other:
-            if not elem not in self:
-                continue
-            return False
+            if elem not in self:
+                return False
         return True
 
     def __eq__(self, other):
@@ -540,9 +537,8 @@ does not accept an iterable for an input.
         '''Return True if two sets have a null intersection.'''
 
         for value in other:
-            if not value in self:
-                continue
-            return False
+            if value in self:
+                return False
         return True
 
     def __or__(self, other):
