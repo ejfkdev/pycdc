@@ -157,9 +157,9 @@
    "module": "cProfile",
    "ast_detail": "diff at token 312: orig  body=[Continue()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 275,
-   "ntotal": 680,
-   "detail": "line 398: orig ('SETUP_FINALLY', 'to 34') | got ('SETUP_FINALLY', 'to 22')\nline 399: orig ('LOAD_FAST', 'func') | got ('POP_BLOCK', '')\nline 400: orig ('LOAD_FAST', 'args') | got ('LOAD_FAST', 'self')"
+   "ndiff": 23,
+   "ntotal": 679,
+   "detail": "line 564: orig ('POP_JUMP_IF_FALSE', 'to 444') | got ('POP_JUMP_IF_FALSE', 'to 446')\nline 641: orig ('POP_BLOCK', '') | got ('LOAD_FAST', 'parser')\nline 642: orig ('LOAD_FAST', 'parser') | got ('POP_BLOCK', '')"
   },
   {
    "module": "calendar",

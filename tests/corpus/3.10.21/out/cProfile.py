@@ -90,10 +90,9 @@ class Profile(_lsprof.Profiler):
     def runcall(self, func, /, *args, **kw):
         self.enable()
         try:
-            pass
+            return func(*args, **kw)
         finally:
             self.disable()
-        return func(*args, **kw)
 
     def __enter__(self):
         self.enable()

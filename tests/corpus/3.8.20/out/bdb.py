@@ -558,11 +558,10 @@ class Bdb:
         self.reset()
         sys.settrace(self.trace_dispatch)
         try:
-            pass
+            return eval(expr, globals, locals)
         finally:
             self.quitting = True
             sys.settrace(None)
-        return eval(expr, globals, locals)
 
     def runctx(self, cmd, globals, locals):
         self.run(cmd, globals, locals)

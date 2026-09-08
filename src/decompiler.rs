@@ -9797,6 +9797,86 @@ impl<'a> Ctx<'a> {
                     self.close_handler_blocks();
                 }
                 let e = self.pop_expr();
+                // 3.9/3.10 computed `try: return expr finally:` — no
+                // CALL_FINALLY marker; the inline finally copy ran into
+                // the open Finally block and this RETURN lands on top of
+                // it with the body slot still empty: fold it back as the
+                // body's return (cProfile 3.9/3.10 runcall rendered
+                // `try: pass finally: ...` + stray return). A real
+                // `finally: ...; return v` keeps its body statements, so
+                // the empty-body gate makes the read unambiguous.
+                let is_val_return =
+                    !matches!(&*e, Expr::Const(o) if matches!(&**o, PyObject::None));
+                if !self.version.at_least(3, 11)
+                    && self.legacy_handler.is_none()
+                    && matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Finally))
+                    && self.pending_try_body.last().map_or(false, |b| b.is_empty())
+                    && is_val_return
+                {
+                    if let Some(body) = self.pending_try_body.last_mut() {
+                        body.push(Stmt::Return(Some(e)));
+                    }
+                    return !matches!(
+                        self.blocks.last().map(|b| b.kind),
+                        Some(BlockType::Main)
+                    );
+                }
+                // 3.9/3.10 legacy inline-finally path: the chain carries
+                // the finally as its "else" region and the body slot is
+                // still empty (the value rode the stack) — fold this
+                // return into lt.body and let the chain's flush render
+                // `try: return expr finally: ...` (cProfile 3.9/3.10
+                // runcall). A real `finally: ...; return v` would have
+                // non-empty body statements, so the gate is unambiguous.
+                if !self.version.at_least(3, 11)
+                    && is_val_return
+                    && self.legacy_nest.is_empty()
+                    // the value must have ridden the stack UNDER the
+                    // inline finally copies (computed inside the
+                    // protected body): the instruction right before this
+                    // RETURN is the copy's trailing POP_TOP. A value
+                    // LOADed right before the RETURN is the nested-try
+                    // shared tail (3.9 computes it after BOTH copies —
+                    // b15 ret_both_nested) and belongs to the existing
+                    // flat rendering
+                    && self
+                        .idx_of
+                        .get(&self.cur_offset)
+                        .and_then(|&ri| {
+                            (ri > 0).then(|| self.instrs[ri - 1].op)
+                        })
+                        .map_or(false, |p| p == Op::POP_TOP)
+                    // OUTERMOST chain only: an enclosing Try/Finally
+                    // block still open means this return belongs to a
+                    // NESTED try/finally (b15 ret_both_nested: folding
+                    // the inner return and ending the walk dropped the
+                    // outer finally order)
+                    && matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
+                    && self
+                        .legacy_try
+                        .as_ref()
+                        .map_or(false, |l| {
+                            l.has_finally
+                                && l.handlers.is_empty()
+                                && l.body.is_empty()
+                                && l.orelse.is_empty()
+                                && l.else_start
+                                    .map_or(false, |es| self.cur_offset >= es)
+                                // an except dispatch still unparsed in
+                                // the chain means this is a try/except
+                                // (/finally) — folding here would end
+                                // the walk before its clauses parse
+                                // (bdb 3.8 runeval lost `except BdbQuit`)
+                                && !self.chain_has_exc_dispatch(l.handler_start)
+                        })
+                {
+                    if let Some(l) = self.legacy_try.as_mut() {
+                        l.body.push(Stmt::Return(Some(e)));
+                    }
+                    // flow ends at this return; the run() teardown
+                    // flushes the chain into its Try statement
+                    return false;
+                }
                 // handler-side copy of the sunk 3.10 tail terminator:
                 // drop the return, fold the handler without it. Pre-3.10
                 // (and any shape without the success-side copy) the drop
@@ -12748,11 +12828,33 @@ impl<'a> Ctx<'a> {
                     let handlers = lt.handlers;
                     // the legacy try keeps its body on the LegacyTry
                     // record (pending_try_body stays empty pre-3.11)
-                    let body = if lt.body.is_empty() {
+                    let mut body = if lt.body.is_empty() {
                         std::mem::take(&mut self.pending_try_body).pop().unwrap_or_default()
                     } else {
                         lt.body
                     };
+                    // 3.8 computed `try: return expr finally:`: the
+                    // value rides UNDER the CALL_FINALLY slot and the
+                    // RETURN right after this jump belongs to the try
+                    // BODY — fold it in, or it renders after the Try
+                    // (cProfile 3.8 runcall: `try: pass finally:
+                    // self.disable()` + stray `return func(*args, **kw)`;
+                    // the sig lost the CALL_FINALLY; RETURN shape)
+                    let mut folded_return = false;
+                    if self
+                        .idx_of
+                        .get(&self.cur_next)
+                        .map_or(false, |&ni| {
+                            self.instrs[ni].op == Op::RETURN_VALUE
+                        })
+                        && matches!(self.stack.last(), Some(Sv::E(_)))
+                        && !self.chain_has_exc_dispatch(target)
+                    {
+                        if let Some(Sv::E(v)) = self.stack.pop() {
+                            body.push(Stmt::Return(Some(v)));
+                            folded_return = true;
+                        }
+                    }
                     if !handlers.is_empty() || !fin.is_empty() {
                         self.push_stmt(Stmt::Try {
                             body,
@@ -12765,6 +12867,32 @@ impl<'a> Ctx<'a> {
                     }
                     // the handler region is folded; the flow continues
                     // with the return value right after this jump
+                    if folded_return {
+                        if let Some(&ni) = self.idx_of.get(&self.cur_next) {
+                            if let Some(after) = self.instrs.get(ni + 1) {
+                                // try/except/finally (3.8): the except
+                                // chain sits between the folded return
+                                // and the finally copy — its clauses are
+                                // already rendered, so hop the walk to
+                                // the copy (bdb 3.8 runeval: resuming at
+                                // the chain head double-walked it and
+                                // marked the module unclean)
+                                let resume = if after.op == Op::DUP_TOP
+                                    && self.chain_has_exc_dispatch(after.offset)
+                                {
+                                    target
+                                } else {
+                                    after.offset
+                                };
+                                if self
+                                    .skip_until
+                                    .map_or(true, |s| s < resume)
+                                {
+                                    self.skip_until = Some(resume);
+                                }
+                            }
+                        }
+                    }
                     self.legacy_handler = None;
                     self.legacy_handler_end = None;
                 } else if !as_cleanup_wrapper
@@ -12902,6 +13030,13 @@ impl<'a> Ctx<'a> {
                 } else if let Some(top) = self.blocks.last_mut() {
                     top.finally_target = Some(target);
                 }
+                // 3.8 computed `try: return expr finally:`: the value
+                // rides UNDER the CALL_FINALLY slot and the RETURN right
+                // after it belongs to the try BODY — fold it into the
+                // pending body now, or it renders after the Try (cProfile
+                // 3.8 runcall: `try: pass finally: self.disable()` +
+                // stray `return func(*args, **kw)`; the sig lost the
+                // CALL_FINALLY; RETURN body shape)
                 self.stack.push(Sv::Null);
                 true
             }
@@ -21276,6 +21411,31 @@ impl<'a> Ctx<'a> {
                 Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE | Op::JUMP
             )
             && prev.target.map_or(false, |t| t > prev.offset)
+    }
+
+    /// True when the chain at `h` holds an except dispatch (3.8-3.10:
+    /// DUP_TOP; pattern; COMPARE_OP exception-match / JUMP_IF_NOT_EXC_
+    /// MATCH) before its terminating RERAISE/END_FINALLY — a pure
+    /// finally copy region has neither
+    fn chain_has_exc_dispatch(&self, h: usize) -> bool {
+        let Some(&hi) = self.idx_of.get(&h) else {
+            return false;
+        };
+        for x in self.instrs[hi..].iter().take(60) {
+            match x.op {
+                Op::JUMP_IF_NOT_EXC_MATCH => return true,
+                Op::COMPARE_OP
+                    if cmp_from_index(
+                        compare_op_index(x.arg as u32, self.version),
+                    ) == CmpOp::ExceptionMatch =>
+                {
+                    return true;
+                }
+                Op::RERAISE | Op::END_FINALLY => return false,
+                _ => {}
+            }
+        }
+        false
     }
 
     fn is_dead_forward_glue(&self) -> bool {

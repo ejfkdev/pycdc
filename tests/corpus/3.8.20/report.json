@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 21,
-  "SIG-DIFF": 16,
+  "PASS": 22,
+  "SIG-DIFF": 15,
   "INCOMPLETE": 3
  },
  "results": [
@@ -118,9 +118,9 @@
    "module": "bdb",
    "ast_detail": "diff at token 945: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 692,
+   "ndiff": 697,
    "ntotal": 2369,
-   "detail": "line 1660: orig ('SETUP_FINALLY', 'to 100') | got ('SETUP_FINALLY', 'to 60')\nline 1661: orig ('SETUP_FINALLY', 'to 76') | got ('POP_BLOCK', '')\nline 1662: orig ('LOAD_GLOBAL', 'eval') | got ('BEGIN_FINALLY', '')"
+   "detail": "line 1660: orig ('SETUP_FINALLY', 'to 100') | got ('SETUP_FINALLY', 'to 72')\nline 1661: orig ('SETUP_FINALLY', 'to 76') | got ('LOAD_GLOBAL', 'eval')\nline 1662: orig ('LOAD_GLOBAL', 'eval') | got ('LOAD_FAST', 'expr')"
   },
   {
    "module": "binhex",
@@ -139,11 +139,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 610: orig  type_comment=None)] | dec  type_comment=None)",
-   "verdict": "SIG-DIFF",
-   "ndiff": 263,
-   "ntotal": 715,
-   "detail": "line 445: orig ('SETUP_FINALLY', 'to 134') | got ('SETUP_FINALLY', 'to 124')\nline 446: orig ('LOAD_FAST', 'func') | got ('POP_BLOCK', '')\nline 447: orig ('LOAD_FAST', 'args') | got ('BEGIN_FINALLY', '')"
+   "verdict": "PASS"
   },
   {
    "module": "calendar",
@@ -164,7 +160,7 @@
    "module": "cgitb",
    "ast_detail": "diff at token 316: orig  body=[If(test=Compare(left=Name(id='lasttoken' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 791,
+   "ndiff": 792,
    "ntotal": 1431,
    "detail": "line 582: orig ('FOR_ITER', 'to 694') | got ('FOR_ITER', 'to 692')\nline 592: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 688')\nline 593: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_CONST', '1')"
   },
