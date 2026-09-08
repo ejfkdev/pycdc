@@ -21474,7 +21474,13 @@ if split_cond {
         }
         let ri = raise_idx?;
         // the raise must land on `target`, possibly through dead padding
-        // jumps (py2 emits JUMP_FORWARD 0 after the raise)
+        // jumps (py2 emits JUMP_FORWARD 0 after the raise for BOTH the
+        // assert and the manual-raise shape, so it proves nothing there).
+        // 3.x: `assert` lands on the target DIRECTLY, while a manual
+        // `if not c: raise AssertionError(...)` keeps an arm-end glue
+        // JUMP_FORWARD (3.3 verified; 3.5-3.8 asserts have no glue) —
+        // glue there means manual raise, not assert (asyncore 3.3
+        // compact_traceback)
         let mut off = self.instrs[ri].end();
         loop {
             if self.effective_offset(off) == self.effective_offset(target) {
@@ -21486,6 +21492,9 @@ if split_cond {
                     if matches!(p.op, Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE)
                         && p.target == Some(target)
                     {
+                        if self.version.major >= 3 {
+                            return None;
+                        }
                         let nxt = p.end();
                         off = nxt;
                         true

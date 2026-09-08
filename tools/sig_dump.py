@@ -141,6 +141,11 @@ def sig3_manual(code, out):
                 r = str((code.co_cellvars + code.co_freevars)[arg])
             else:
                 r = str(arg)
+            # 3.0-3.3 LOAD_CONST-folding quirk (see sig3): LOAD_NAME
+            # None/True/False is the line-layout-dependent spelling of
+            # the keyword constant -- normalize
+            if name == "LOAD_NAME" and r in ("None", "True", "False"):
+                name = "LOAD_CONST"
             out.append((name, r))
         else:
             out.append((name, ""))
@@ -186,6 +191,15 @@ def sig3(code, out):
         # near-pass blocked on exactly this pair)
         if name in ("LOAD_FAST_BORROW", "LOAD_FAST_CHECK"):
             name = "LOAD_FAST"
+        # 3.3 quirk (same family as the py2 lnotab case in sig2): the
+        # LOAD_CONST folding for None/True/False is line-layout
+        # dependent -- module-level defaults far from the previous line
+        # event compile to LOAD_NAME None. Restored sources never
+        # reproduce the original blank-line layout; in 3.x these are
+        # keywords so LOAD_NAME None can ONLY be this quirk and is
+        # semantically LOAD_CONST None (asyncore 3.3 poll/loop defaults)
+        if name == "LOAD_NAME" and r in ("None", "True", "False"):
+            name = "LOAD_CONST"
         # 3.13+ fused pairs (STORE_FAST_LOAD_FAST / LOAD_FAST_LOAD_FAST)
         # are a scheduling artifact whose emission depends on SOURCE
         # LINE LAYOUT (a line-number boundary between the two ops

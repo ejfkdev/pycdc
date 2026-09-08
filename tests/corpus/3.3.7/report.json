@@ -2,9 +2,9 @@
  "version": "3.3.7",
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
-  "PASS": 21,
+  "PASS": 22,
   "AST-PASS": 6,
-  "SIG-DIFF": 13
+  "SIG-DIFF": 12
  },
  "results": [
   {
@@ -69,11 +69,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 2837: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 334,
-   "ntotal": 2337,
-   "detail": "line 118: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 124: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 132: orig ('LOAD_NAME', 'False') | got ('LOAD_CONST', 'False')"
+   "verdict": "PASS"
   },
   {
    "module": "base64",
