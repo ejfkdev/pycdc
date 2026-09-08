@@ -42,7 +42,7 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 145: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1093,
+   "ndiff": 1094,
    "ntotal": 1272,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 128') | got ('SETUP_LOOP', 'to 134')\nline 161: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 134')\nline 162: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')"
   },
@@ -188,11 +188,11 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 720: orig  Try(body=[Assign(targets=[Name(id='ok' | dec  If(test=Compare(left=Name(id='ok'",
+   "ast_detail": "diff at token 902: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Name(id='dir'",
    "verdict": "SIG-DIFF",
-   "ndiff": 178,
+   "ndiff": 41,
    "ntotal": 1112,
-   "detail": "line 545: orig ('SETUP_EXCEPT', 'to 394') | got ('LOAD_FAST', 'ok')\nline 546: orig ('LOAD_GLOBAL', 'py_compile') | got ('LOAD_CONST', '0')\nline 547: orig ('LOAD_ATTR', 'compile') | got ('COMPARE_OP', '==')"
+   "detail": "line 997: orig ('SETUP_EXCEPT', 'to 676') | got ('SETUP_EXCEPT', 'to 672')\nline 1071: orig ('POP_BLOCK', '') | got ('DUP_TOP', '')\nline 1072: orig ('JUMP_FORWARD', 'to 718') | got ('LOAD_GLOBAL', 'KeyboardInterrupt')"
   },
   {
    "module": "configparser",

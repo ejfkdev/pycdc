@@ -43,7 +43,7 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 145: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 988,
+   "ndiff": 989,
    "ntotal": 1168,
    "detail": "line 139: orig ('SETUP_LOOP', 'to 128') | got ('SETUP_LOOP', 'to 134')\nline 161: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 134')\nline 162: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')"
   },
@@ -179,7 +179,7 @@
    "module": "compileall",
    "ast_detail": "diff at token 195: orig  ctx=Load())]) | dec  ctx=Load())])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 821,
+   "ndiff": 818,
    "ntotal": 1030,
    "detail": "line 135: orig ('SETUP_LOOP', 'to 284') | got ('SETUP_LOOP', 'to 282')\nline 138: orig ('FOR_ITER', 'to 282') | got ('FOR_ITER', 'to 280')\nline 179: orig ('POP_JUMP_IF_FALSE', '') | got ('JUMP_IF_FALSE_OR_POP', '')"
   },

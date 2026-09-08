@@ -61,12 +61,13 @@ def _get_system_version():
             m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
         finally:
             f.close()
-        if m is not None:
-            _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
-            try:
-                f = open('/System/Library/CoreServices/SystemVersion.plist')
-            except IOError:
-                pass
+        try:
+            f = open('/System/Library/CoreServices/SystemVersion.plist')
+        except IOError:
+            pass
+        else:
+            if m is not None:
+                _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
     return _SYSTEM_VERSION
 
 def _remove_original_values(_config_vars):

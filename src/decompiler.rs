@@ -1810,6 +1810,27 @@ impl<'a> Ctx<'a> {
                 // would strand the else body's last store in the enclosing
                 // block, emitting it as a sibling before the Try.
                 self.flush_pending_stores();
+                // the else region's own branch blocks end AT the flush
+                // offset — close them before the emission, else push_stmt
+                // routes the Try into the still-open block (compileall
+                // 3.7 compile_file: the flush at the merge 650 fired with
+                // the else's If[ok==0] open — the whole try/except group
+                // rendered INSIDE `if ok == 0:`). ONLY blocks that opened
+                // at/after the else start: enclosing wrappers that merely
+                // END at the merge must fold after the emission, into
+                // their own parents (closing them here redirects whole
+                // wrapper Ifs into the orelse)
+                if let Some(es) = self.legacy_try.as_ref().and_then(|l| l.else_start) {
+                    while self.blocks.len() > 1 {
+                        let end = self.blocks.last().map(|b| (b.start, b.end));
+                        match end {
+                            Some((bs, be)) if bs >= es && be <= pos => {
+                                self.force_close_top(pos);
+                            }
+                            _ => break,
+                        }
+                    }
+                }
                 let l = self.legacy_try.take().unwrap();
                 if let Some(depth) = self.finish_legacy_nest() {
                     while self.blocks.len() > depth.max(1) {
