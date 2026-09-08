@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 22,
-  "SIG-DIFF": 13,
+  "PASS": 23,
+  "SIG-DIFF": 12,
   "INCOMPLETE": 4,
   "AST-PASS": 1
  },
@@ -172,11 +172,7 @@
   },
   {
    "module": "codeop",
-   "ast_detail": "diff at token 56: orig  If(test=BoolOp(op=And() | dec  If(test=UnaryOp(op=Not()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 196,
-   "ntotal": 385,
-   "detail": "line 143: orig ('POP_JUMP_IF_FALSE', 'to 454') | got ('POP_JUMP_IF_FALSE', 'to 466')\nline 164: orig ('POP_JUMP_IF_FALSE', 'to 442') | got ('POP_JUMP_IF_FALSE', 'to 454')\nline 183: orig ('POP_EXCEPT', '') | got ('LOAD_CONST', 'None')"
+   "verdict": "PASS"
   },
   {
    "module": "colorsys",
@@ -185,8 +181,8 @@
   {
    "module": "compileall",
    "verdict": "INCOMPLETE",
-   "ndiff": 1245,
-   "ntotal": 1503,
+   "ndiff": 1256,
+   "ntotal": 1497,
    "detail": "line 78: orig ('POP_JUMP_IF_FALSE', 'to 242') | got ('POP_JUMP_IF_FALSE', 'to 224')\nline 167: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 168: orig ('POP_JUMP_IF_TRUE', 'to 452') | got ('POP_JUMP_IF_FALSE', 'to 452')"
   },
   {
@@ -200,8 +196,8 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1758,
-   "ntotal": 2196,
+   "ndiff": 1751,
+   "ntotal": 2190,
    "detail": "line 400: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 401: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + wraps')\nline 402: orig ('LOAD_GLOBAL', 'NULL + wraps') | got ('LOAD_FAST', 'func')"
   },
   {

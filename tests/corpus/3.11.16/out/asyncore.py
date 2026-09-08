@@ -88,8 +88,6 @@ def readwrite(obj, flags):
         else:
             obj.handle_close()
             return
-        e = None
-        del e
         return
     except _reraised_exceptions:
         raise
@@ -287,8 +285,6 @@ class dispatcher:
             if why.errno in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
                 return
             raise
-            why = None
-            del why
         return conn, addr
 
     def send(self, data):
@@ -300,12 +296,8 @@ class dispatcher:
                 return 0
             if why.errno in _DISCONNECTED:
                 self.handle_close()
-                why = None
-                del why
                 return 0
             raise
-            why = None
-            del why
 
     def recv(self, buffer_size):
         try:
@@ -318,8 +310,6 @@ class dispatcher:
                 self.handle_close()
                 return b''
             raise
-            why = None
-            del why
         try:
             return data
         except OSError as why:
@@ -327,8 +317,6 @@ class dispatcher:
                 self.handle_close()
                 return b''
             raise
-            why = None
-            del why
 
     def close(self):
         self.connected = False

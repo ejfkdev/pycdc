@@ -211,9 +211,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 encoding = sys.stdout.encoding or sys.getdefaultencoding()
                 msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
                 print(msg)
-                err = None
-                del err, err
-                err = None
             except (SyntaxError, UnicodeError, OSError) as e:
                 success = False
                 if quiet >= 2:
@@ -223,9 +220,6 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 else:
                     print('*** ', end='')
                 print(e.__class__.__name__ + ':', e)
-                e = None
-                del e, e
-                e = None
             if ok == 0:
                 success = False
     return success

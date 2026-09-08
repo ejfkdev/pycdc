@@ -142,12 +142,8 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
                 return False
             if isinstance(value, StopIteration) and exc.__cause__ is value:
                 value.__traceback__ = traceback
-                exc = None
-                del exc
                 return False
             raise
-            exc = None
-            del exc
         except BaseException as exc:
             if exc is not value:
                 raise
@@ -191,12 +187,8 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 return False
             if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
                 value.__traceback__ = traceback
-                exc = None
-                del exc
                 return False
             raise
-            exc = None
-            del exc
         except BaseException as exc:
             if exc is not value:
                 raise
@@ -218,12 +210,8 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 return False
             if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
                 value.__traceback__ = traceback
-                exc = None
-                del exc
                 return False
             raise
-            exc = None
-            del exc
         except BaseException as exc:
             if exc is not value:
                 raise

@@ -87,8 +87,6 @@ def _add_method(name, *args, rounds=None):
         if e.errno in {errno.EINVAL, errno.EPERM, errno.ENOSYS}:
             return False
         raise
-        e = None
-        del e
     if result and len(result) == method.total_size:
         methods.append(method)
         return True

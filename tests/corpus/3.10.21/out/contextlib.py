@@ -133,12 +133,8 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             return exc is not value
         try:
             if exc is value:
-                exc = None
-                del exc
                 return False
             if isinstance(value, StopIteration) and exc.__cause__ is value:
-                exc = None
-                del exc
                 return False
             raise
         except BaseException as exc:
@@ -173,12 +169,8 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             return exc is not value
         try:
             if exc is value:
-                exc = None
-                del exc
                 return False
             if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
-                exc = None
-                del exc
                 return False
             raise
         except BaseException as exc:

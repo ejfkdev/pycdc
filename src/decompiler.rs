@@ -27623,6 +27623,13 @@ impl<'a> Ctx<'a> {
                 if matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
                     && self.blocks.len() == 1
                 {
+                    // region-walk outright swallow: arm the chained del
+                    // expectation (as the legacy path does) and KEEP pac
+                    // — 3.12 duplicates the eager pair into every exit
+                    // arm (codeop: else-arm pair confirmed via this
+                    // path must not consume the marker before the
+                    // exception-path stub pair arrives)
+                    self.swallowed_cleanup_del = Some(n.clone());
                     return;
                 }
                 self.held_cleanup_store = Some((target, val));
@@ -28067,8 +28074,18 @@ impl<'a> Ctx<'a> {
         self.swallowed_cleanup_del = None;
         if let Expr::Name(n) = &*target {
             if self.pending_as_cleanup.as_deref() == Some(n.as_str()) {
-                self.pending_as_cleanup = None;
+                // a CONFIRMED pair (held `name = None` + this del) may
+                // have siblings: 3.12 eager as-cleanup is duplicated
+                // into EVERY exit arm of the clause body (codeop
+                // _maybe_compile: then-arm return, else-arm
+                // fall-through, exception-path stub) — keep the marker
+                // armed so the later pairs swallow too. A LONE del
+                // disarms as before (_strptime explicit-del semantics)
+                let had_held = self.held_cleanup_store.is_some();
                 self.held_cleanup_store = None;
+                if !had_held {
+                    self.pending_as_cleanup = None;
+                }
                 return;
             }
         }

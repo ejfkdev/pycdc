@@ -93,7 +93,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1205,
    "ntotal": 2986,
-   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u5eff', '\u4e00', '\u5341', '\u4e5d'})\") | got ('LOAD_CONST', \"frozenset({'\u4e00', '\u5eff', '\u4e03', '\u4e5d', '\u5341'})\")\nline 1762: orig ('COPY', '') | got ('LOAD_CONST', \"'Y'\")\nline 1763: orig ('LOAD_CONST', \"'Y'\") | got ('COMPARE_OP', 'bool(==)')"
+   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e5d', '\u5341', '\u5eff', '\u4e03', '\u4e00'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e00', '\u4e03', '\u4e5d', '\u5341'})\")\nline 1762: orig ('COPY', '') | got ('LOAD_CONST', \"'Y'\")\nline 1763: orig ('LOAD_CONST', \"'Y'\") | got ('COMPARE_OP', 'bool(==)')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -180,8 +180,8 @@
   {
    "module": "compileall",
    "verdict": "INCOMPLETE",
-   "ndiff": 1298,
-   "ntotal": 1579,
+   "ndiff": 1311,
+   "ntotal": 1573,
    "detail": "line 145: orig ('FOR_ITER', 'to L14') | got ('FOR_ITER', 'to L13')\nline 150: orig ('POP_JUMP_IF_FALSE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 151: orig ('JUMP_BACKWARD', 'to L4') | got ('JUMP_BACKWARD', 'to L3')"
   },
   {
@@ -194,8 +194,8 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1811,
-   "ntotal": 2257,
+   "ndiff": 1802,
+   "ntotal": 2251,
    "detail": "line 408: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 409: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'wraps + NULL')\nline 410: orig ('LOAD_GLOBAL', 'wraps + NULL') | got ('LOAD_FAST', 'func')"
   },
   {

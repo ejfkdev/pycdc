@@ -103,9 +103,9 @@
    "module": "asyncore",
    "ast_detail": "diff at token 259: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1328,
-   "ntotal": 2324,
-   "detail": "line 371: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 506') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 512')\nline 395: orig ('POP_EXCEPT', '') | got ('LOAD_CONST', 'None')\nline 396: orig ('LOAD_CONST', 'None') | got ('STORE_FAST', 'e')"
+   "ndiff": 1774,
+   "ntotal": 2318,
+   "detail": "line 430: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 760') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 758')\nline 491: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 492: orig ('COPY', '') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 440')"
   },
   {
    "module": "base64",
@@ -178,9 +178,9 @@
    "module": "codeop",
    "ast_detail": "diff at token 113: orig  keywords=[])) | dec  keywords=[]))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 255,
-   "ntotal": 409,
-   "detail": "line 129: orig ('JUMP_FORWARD', 'to 484') | got ('JUMP_FORWARD', 'to 470')\nline 133: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 476') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 462')\nline 145: orig ('POP_EXCEPT', '') | got ('JUMP_FORWARD', 'to 458')"
+   "ndiff": 259,
+   "ntotal": 404,
+   "detail": "line 129: orig ('JUMP_FORWARD', 'to 484') | got ('JUMP_FORWARD', 'to 458')\nline 133: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 476') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 450')\nline 145: orig ('POP_EXCEPT', '') | got ('JUMP_FORWARD', 'to 446')"
   },
   {
    "module": "colorsys",
@@ -190,9 +190,9 @@
    "module": "compileall",
    "ast_detail": "diff at token 315: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='workers'",
    "verdict": "SIG-DIFF",
-   "ndiff": 658,
-   "ntotal": 1583,
-   "detail": "line 78: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 254') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 236')\nline 333: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 520') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 588')\nline 623: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 2918') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 2940')"
+   "ndiff": 223,
+   "ntotal": 1571,
+   "detail": "line 78: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 254') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 236')\nline 333: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 520') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 588')\nline 623: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 2918') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 2916')"
   },
   {
    "module": "configparser",
@@ -205,8 +205,8 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1795,
-   "ntotal": 2268,
+   "ndiff": 1815,
+   "ntotal": 2263,
    "detail": "line 434: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 435: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + wraps')\nline 436: orig ('LOAD_GLOBAL', 'NULL + wraps') | got ('LOAD_FAST', 'func')"
   },
   {

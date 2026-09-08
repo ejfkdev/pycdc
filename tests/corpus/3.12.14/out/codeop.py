@@ -60,9 +60,6 @@ def _maybe_compile(compiler, source, filename, symbol):
             except SyntaxError as e:
                 if 'incomplete input' in str(e):
                     return
-                e = None
-                del e, e
-                e = None
     return compiler(source, filename, symbol, incomplete_input=False)
 
 def _is_syntax_error(err1, err2):

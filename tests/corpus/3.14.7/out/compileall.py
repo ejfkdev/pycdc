@@ -215,8 +215,6 @@ hardlink_dupes: hardlink duplicated pyc files
                                 encoding = sys.getdefaultencoding()
                                 msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
                                 print(msg)
-                                err = None
-                                del err
                                 return success
                             except (SyntaxError, UnicodeError, OSError) as e:
                                 success = False
@@ -227,8 +225,6 @@ hardlink_dupes: hardlink duplicated pyc files
                                 else:
                                     print('*** ', end='')
                                 print(e.__class__.__name__ + ':', e)
-                                e = None
-                                del e
                                 return success
                             if ok == 0:
                                 success = False

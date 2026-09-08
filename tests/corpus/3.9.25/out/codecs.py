@@ -9,8 +9,6 @@ Written by Marc-Andre Lemburg (mal@lemburg.com).
 
 import builtins
 import sys
-why = None
-del why
 try:
     from _codecs import *
 except ImportError as why:

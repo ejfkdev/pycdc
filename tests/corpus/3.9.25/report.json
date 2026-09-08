@@ -186,11 +186,11 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 2: orig  Try(body=[ImportFrom(module='_codecs' | dec  Assign(targets=[Name(id='why'",
+   "ast_detail": "diff at token 1064: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1841,
-   "ntotal": 2148,
-   "detail": "line 11: orig ('SETUP_FINALLY', 'to 34') | got ('LOAD_CONST', 'None')\nline 12: orig ('LOAD_CONST', '0') | got ('STORE_NAME', 'why')\nline 13: orig ('LOAD_CONST', \"('*',)\") | got ('DELETE_NAME', 'why')"
+   "ndiff": 1092,
+   "ntotal": 2146,
+   "detail": "line 1002: orig ('JUMP_FORWARD', 'to 238') | got ('JUMP_FORWARD', 'to 236')\nline 1009: orig ('SETUP_FINALLY', 'to 228') | got ('SETUP_FINALLY', 'to 226')\nline 1039: orig ('JUMP_FORWARD', 'to 216') | got ('RAISE_VARARGS', '')"
   },
   {
    "module": "codeop",
