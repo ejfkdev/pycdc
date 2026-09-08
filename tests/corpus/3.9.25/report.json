@@ -43,8 +43,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 479: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 979,
-   "ntotal": 1406,
+   "ndiff": 974,
+   "ntotal": 1405,
    "detail": "line 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 385: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')"
   },
   {
@@ -188,8 +188,8 @@
    "module": "codecs",
    "ast_detail": "diff at token 2: orig  Try(body=[ImportFrom(module='_codecs' | dec  Assign(targets=[Name(id='why'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2071,
-   "ntotal": 2149,
+   "ndiff": 1841,
+   "ntotal": 2148,
    "detail": "line 11: orig ('SETUP_FINALLY', 'to 34') | got ('LOAD_CONST', 'None')\nline 12: orig ('LOAD_CONST', '0') | got ('STORE_NAME', 'why')\nline 13: orig ('LOAD_CONST', \"('*',)\") | got ('DELETE_NAME', 'why')"
   },
   {

@@ -2,9 +2,9 @@
  "3.14.7": {
   "interp": "/opt/homebrew/bin/python3.14",
   "counts": {
-   "PASS": 19,
+   "PASS": 20,
    "INCOMPLETE": 10,
-   "SIG-DIFF": 10,
+   "SIG-DIFF": 9,
    "AST-PASS": 1
   }
  }

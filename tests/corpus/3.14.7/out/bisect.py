@@ -11,7 +11,7 @@ slice of a to be searched.
 A custom key function can be supplied to customize the sort order.
 '''
 
-    if key is None:
+    if not key is not None:
         lo = bisect_right(a, x, lo, hi)
     else:
         lo = bisect_right(a, key(x), lo, hi, key=key)
@@ -32,9 +32,9 @@ A custom key function can be supplied to customize the sort order.
 
     if lo < 0:
         raise ValueError('lo must be non-negative')
-    if hi is None:
+    if not hi is not None:
         hi = len(a)
-    if key is None:
+    if not key is not None:
         while lo < hi:
             mid = (lo + hi) // 2
             if x < a[mid]:
@@ -61,7 +61,7 @@ slice of a to be searched.
 A custom key function can be supplied to customize the sort order.
 '''
 
-    if key is None:
+    if not key is not None:
         lo = bisect_left(a, x, lo, hi)
     else:
         lo = bisect_left(a, key(x), lo, hi, key=key)
@@ -82,9 +82,9 @@ A custom key function can be supplied to customize the sort order.
 
     if lo < 0:
         raise ValueError('lo must be non-negative')
-    if hi is None:
+    if not hi is not None:
         hi = len(a)
-    if key is None:
+    if not key is not None:
         while lo < hi:
             mid = (lo + hi) // 2
             if a[mid] < x:

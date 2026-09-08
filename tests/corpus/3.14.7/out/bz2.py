@@ -245,11 +245,11 @@ handling behavior, and line ending(s).
         if 'b' in mode:
             raise ValueError(f'Invalid mode: {mode!r}')
     else:
-        if encoding is not None:
+        if not encoding is None:
             raise ValueError("Argument 'encoding' not supported in binary mode")
-        if errors is not None:
+        if not errors is None:
             raise ValueError("Argument 'errors' not supported in binary mode")
-        if newline is not None:
+        if not newline is None:
             raise ValueError("Argument 'newline' not supported in binary mode")
     bz_mode = mode.replace('t', '')
     binary_file = BZ2File(filename, bz_mode, compresslevel=compresslevel)

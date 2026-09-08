@@ -1950,6 +1950,19 @@ impl<'a> Ctx<'a> {
                 // there shifted codecs 3.8 read's loop nesting.
                 if t_top != pos {
                     self.close_blocks_at(pos);
+                } else if self
+                    .blocks
+                    .last()
+                    .map_or(false, |b| !matches!(b.kind, BlockType::Main) && b.end <= pos)
+                {
+                    // exact-match open with a block merging EXACTLY at
+                    // the loop top: close it FIRST — the generic close
+                    // below is blocked by the freshly opened loop (its
+                    // end > pos) and the guard arm would swallow the
+                    // loop (codecs 3.14 read: If[148,154] trapped
+                    // While[154,550], `while True` nested under
+                    // `if chars < 0`)
+                    self.close_blocks_at(pos);
                 }
                 // statements before the loop top must not flow into it
                 if !self.pending_stores.is_empty() {
@@ -22511,8 +22524,18 @@ if split_cond {
         // 7) regular if statement: the fall-through region [next, target)
         // is the then-body. With POP_JUMP_IF_TRUE the fall-through runs when
         // the condition is false, so negate.
+        // 3.14 exception: `if not A in B:` keeps the operand's CONTAINS/
+        // IS/COMPARE op UNFLIPPED and inverts the jump instead (arm order
+        // swaps; codecs make_encoding_map) — rendering the folded
+        // `not in`/`is not` form recompiles to CONTAINS-NOT-IN + PJIF
+        // and breaks sig-exactness. The explicit Unary Not reproduces
+        // the original op+polarity
         let c = if jump_if_true {
-            negate_cond(cond)
+            if self.version.at_least(3, 14) {
+                simplify_not_or_wrap(cond)
+            } else {
+                negate_cond(cond)
+            }
         } else {
             cond
         };

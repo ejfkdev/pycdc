@@ -43,7 +43,7 @@ class CodecInfo(tuple):
         self.incrementaldecoder = incrementaldecoder
         self.streamwriter = streamwriter
         self.streamreader = streamreader
-        if _is_text_encoding is not None:
+        if not _is_text_encoding is None:
             self._is_text_encoding = _is_text_encoding
         return self
 
@@ -412,30 +412,30 @@ on the stream, these should be read too.
             self.linebuffer = None
         if chars < 0:
             chars = size
-            while True:
-                if chars >= 0 and len(self.charbuffer) >= chars:
-                    break
-                if size < 0:
-                    newdata = self.stream.read()
-                else:
-                    newdata = self.stream.read(size)
-                data = self.bytebuffer + newdata
-                if not data:
-                    break
-                try:
-                    newchars, decodedbytes = self.decode(data, self.errors)
-                except UnicodeDecodeError as exc:
-                    if firstline:
-                        newchars, decodedbytes = self.decode(data[:exc.start], self.errors)
-                        lines = newchars.splitlines(keepends=True)
-                        if len(lines) <= 1:
-                            raise
-                    else:
+        while True:
+            if chars >= 0 and len(self.charbuffer) >= chars:
+                break
+            if size < 0:
+                newdata = self.stream.read()
+            else:
+                newdata = self.stream.read(size)
+            data = self.bytebuffer + newdata
+            if not data:
+                break
+            try:
+                newchars, decodedbytes = self.decode(data, self.errors)
+            except UnicodeDecodeError as exc:
+                if firstline:
+                    newchars, decodedbytes = self.decode(data[:exc.start], self.errors)
+                    lines = newchars.splitlines(keepends=True)
+                    if len(lines) <= 1:
                         raise
-                self.bytebuffer = data[decodedbytes:]
-                self.charbuffer += newchars
-                if not newdata:
-                    break
+                else:
+                    raise
+            self.bytebuffer = data[decodedbytes:]
+            self.charbuffer += newchars
+            if not newdata:
+                break
         if chars < 0:
             result = self.charbuffer
             self.charbuffer = self._empty_charbuffer
@@ -690,7 +690,7 @@ StreamWriter/Readers.
         return data
 
     def readline(self, size=None):
-        if size is None:
+        if not size is not None:
             data = self.reader.readline()
         else:
             data = self.reader.readline(size)
@@ -777,11 +777,11 @@ parameter.
 
     import warnings
     warnings.warn('codecs.open() is deprecated. Use open() instead.', DeprecationWarning, stacklevel=2)
-    if encoding is not None:
+    if not encoding is None:
         if 'b' not in mode:
             mode = mode + 'b'
     file = builtins.open(filename, mode, buffering)
-    if encoding is None:
+    if not encoding is not None:
         return file
     try:
         info = lookup(encoding)
@@ -817,7 +817,7 @@ introspection by Python programs.
 
 """
 
-    if file_encoding is None:
+    if not file_encoding is not None:
         file_encoding = data_encoding
     data_info = lookup(data_encoding)
     file_info = lookup(file_encoding)
@@ -856,7 +856,7 @@ or the codecs doesn't provide an incremental encoder.
 """
 
     encoder = lookup(encoding).incrementalencoder
-    if encoder is None:
+    if not encoder is not None:
         raise LookupError(encoding)
     return encoder
 
@@ -870,7 +870,7 @@ or the codecs doesn't provide an incremental decoder.
 """
 
     decoder = lookup(encoding).incrementaldecoder
-    if decoder is None:
+    if not decoder is not None:
         raise LookupError(encoding)
     return decoder
 
@@ -957,7 +957,7 @@ multiple character to \\u001a.
 
     m = {}
     for k, v in decoding_map.items():
-        if v not in m:
+        if not v in m:
             m[v] = k
         else:
             m[v] = None

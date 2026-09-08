@@ -2,9 +2,9 @@
  "version": "3.14.7",
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
-  "PASS": 19,
+  "PASS": 20,
   "INCOMPLETE": 10,
-  "SIG-DIFF": 10,
+  "SIG-DIFF": 9,
   "AST-PASS": 1
  },
  "results": [
@@ -31,7 +31,7 @@
   {
    "module": "_ast_unparse",
    "verdict": "INCOMPLETE",
-   "ndiff": 1168,
+   "ndiff": 1167,
    "ntotal": 7138,
    "detail": "line 3803: orig ('BINARY_OP', '[]') | got ('BINARY_OP', '+')\nline 3880: orig ('LOAD_FAST', 'value') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'value, quote_types')\nline 3881: orig ('LOAD_FAST', 'quote_types') | got ('LOAD_CONST', 'True')"
   },
@@ -63,9 +63,9 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 352: orig  ctx=Load())))] | dec  ctx=Load())))",
    "verdict": "SIG-DIFF",
-   "ndiff": 954,
-   "ntotal": 1362,
-   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'link', 'element', 'attlist', 'linktype'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'linktype', 'link', 'element'})\")"
+   "ndiff": 962,
+   "ntotal": 1374,
+   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'attlist', 'element', 'link', 'linktype'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'linktype', 'attlist', 'element', 'link'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -106,7 +106,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1335,
    "ntotal": 3207,
-   "detail": "line 622: orig ('LOAD_CONST', \"frozenset({'\u5eff', '\u5341', '\u4e5d', '\u4e00', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e03', '\u4e00', '\u4e5d', '\u5341'})\")\nline 1696: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 1697: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')"
+   "detail": "line 622: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u5341', '\u5eff', '\u4e5d', '\u4e00'})\") | got ('LOAD_CONST', \"frozenset({'\u4e00', '\u5eff', '\u5341', '\u4e03', '\u4e5d'})\")\nline 1696: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 1697: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -168,11 +168,11 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 411: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 487: orig  right=Constant(value=400))))]) | dec  right=Constant(value=400))))",
    "verdict": "SIG-DIFF",
-   "ndiff": 3370,
+   "ndiff": 3369,
    "ntotal": 4353,
-   "detail": "line 791: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 871: orig ('_validate_month', 1) | got ('LOAD_CONST', 'None')\nline 872: orig ('RESUME', '') | got ('RETURN_VALUE', '')"
+   "detail": "line 871: orig ('_validate_month', 1) | got ('LOAD_CONST', 'None')\nline 872: orig ('RESUME', '') | got ('RETURN_VALUE', '')\nline 873: orig ('LOAD_SMALL_INT', '') | got ('_validate_month', 1)"
   },
   {
    "module": "cmd",
@@ -191,11 +191,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 756: orig  ctx=Load()))]) | dec  ctx=Load()))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 3,
-   "ntotal": 2377,
-   "detail": "line 1050: orig ('POP_JUMP_IF_FALSE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L9')\nline 2362: orig ('CONTAINS_OP', 'in') | got ('CONTAINS_OP', 'not in')\nline 2363: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')"
+   "verdict": "PASS"
   },
   {
    "module": "codeop",

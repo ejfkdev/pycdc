@@ -27,7 +27,7 @@ key "__doc__" set to None.
 
 '''
 
-        if locals is None:
+        if not locals is not None:
             locals = {'__name__': '__console__', '__doc__': None}
         self.locals = locals
         self.compile = CommandCompiler()
@@ -62,7 +62,7 @@ line.
         except (OverflowError, SyntaxError, ValueError):
             self.showsyntaxerror(filename, source=source)
             return False
-        if code is None:
+        if not code is not None:
             return True
         self.runcode(code)
         return False
@@ -208,7 +208,7 @@ a default message is printed.
             sys.ps2 = '... '
             delete_ps2_after = True
         cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
-        if banner is None:
+        if not banner is not None:
             self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
         elif banner:
             self.write('%s\n' % str(banner))
@@ -254,21 +254,21 @@ a default message is printed.
                         raise e
                         e = None
                         del e
-                if _exit is not None:
+                if not _exit is None:
                     builtins.exit = _exit
-                if _quit is not None:
+                if not _quit is None:
                     builtins.quit = _quit
                 if delete_ps1_after:
                     del sys.ps1
                 if delete_ps2_after:
                     del sys.ps2
-                if exitmsg is None:
+                if not exitmsg is not None:
                     self.write('now exiting %s...\n' % self.__class__.__name__)
 
     def push(self, line, filename=None, _symbol='single'):
         self.buffer.append(line)
         source = '\n'.join(self.buffer)
-        if filename is None:
+        if not filename is not None:
             filename = self.filename
         more = self.runsource(source, filename, symbol=_symbol)
         if not more:
@@ -323,7 +323,7 @@ local_exit -- passed to InteractiveConsole.__init__()
 '''
 
     console = InteractiveConsole(local, local_exit=local_exit)
-    if readfunc is not None:
+    if not readfunc is None:
         console.raw_input = readfunc
     else:
         try:

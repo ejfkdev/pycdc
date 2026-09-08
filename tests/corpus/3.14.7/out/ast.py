@@ -35,7 +35,7 @@ Pass type_comments=True to get back type comments where the syntax allows.
         flags |= PyCF_OPTIMIZED_AST
     if type_comments:
         flags |= PyCF_TYPE_COMMENTS
-    if feature_version is None:
+    if not feature_version is not None:
         feature_version = -1
     elif isinstance(feature_version, tuple):
         major, minor = feature_version
@@ -121,7 +121,7 @@ will be omitted from the output for better readability.
 '''
 
     def _format(node, level=0):
-        if indent is not None:
+        if not indent is None:
             level += 1
             prefix = '\n' + indent * level
             sep = ',\n' + indent * level
@@ -140,7 +140,7 @@ will be omitted from the output for better readability.
                 except AttributeError:
                     keywords = True
                     continue
-                if value is None and getattr(cls, name, ...) is None:
+                if not value is not None and getattr(cls, name, ...) is None:
                     keywords = True
                     continue
                 if not show_empty:
@@ -180,7 +180,7 @@ will be omitted from the output for better readability.
 
     if not isinstance(node, AST):
         raise TypeError('expected AST, got %r' % node.__class__.__name__)
-    if indent is not None and not isinstance(indent, str):
+    if not (indent is None or isinstance(indent, str)):
         indent = ' ' * indent
     return _format(node)[0]
 
@@ -213,7 +213,7 @@ parent node.  It works recursively starting at *node*.
             else:
                 lineno = node.lineno
         if 'end_lineno' in node._attributes:
-            if getattr(node, 'end_lineno', None) is None:
+            if not getattr(node, 'end_lineno', None) is not None:
                 node.end_lineno = end_lineno
             else:
                 end_lineno = node.end_lineno
@@ -223,7 +223,7 @@ parent node.  It works recursively starting at *node*.
             else:
                 col_offset = node.col_offset
         if 'end_col_offset' in node._attributes:
-            if getattr(node, 'end_col_offset', None) is None:
+            if not getattr(node, 'end_col_offset', None) is not None:
                 node.end_col_offset = end_col_offset
             else:
                 end_col_offset = node.end_col_offset
@@ -310,12 +310,12 @@ This mimics how the Python parser splits source code.
 '''
 
     global _line_pattern
-    if _line_pattern is None:
+    if not _line_pattern is not None:
         import re
         _line_pattern = re.compile('(.*?(?:\\r\\n|\\n|\\r|$))')
     lines = []
     for lineno, match in enumerate(_line_pattern.finditer(source), 1):
-        if maxlines is not None and lineno > maxlines:
+        if not maxlines is None and lineno > maxlines:
             return lines
         lines.append(match[0])
     return lines
@@ -524,7 +524,7 @@ Usually you use the transformer like this::
                 for value in old_value:
                     if isinstance(value, AST):
                         value = self.visit(value)
-                        if value is None:
+                        if not value is not None:
                             continue
                         if not isinstance(value, AST):
                             new_values.extend(value)
@@ -533,7 +533,7 @@ Usually you use the transformer like this::
                 old_value[:] = new_values
             elif isinstance(old_value, AST):
                 new_node = self.visit(old_value)
-                if new_node is None:
+                if not new_node is not None:
                     delattr(node, field)
                 else:
                     setattr(node, field, new_node)

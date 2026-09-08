@@ -73,14 +73,14 @@ See the module's __doc__ string for more info.
     if issubclass(cls, type):
         return x
     copier = getattr(cls, '__copy__', None)
-    if copier is not None:
+    if not copier is None:
         return copier(x)
     reductor = dispatch_table.get(cls)
-    if reductor is not None:
+    if not reductor is None:
         rv = reductor(x)
     else:
         reductor = getattr(x, '__reduce_ex__', None)
-        if reductor is not None:
+        if not reductor is None:
             rv = reductor(4)
         else:
             reductor = getattr(x, '__reduce__', None)
@@ -105,20 +105,20 @@ See the module's __doc__ string for more info.
     if cls in _atomic_types:
         return x
     d = id(x)
-    if memo is None:
+    if not memo is not None:
         memo = {}
     else:
         y = memo.get(d, _nil)
         if y is not _nil:
             return y
     copier = _deepcopy_dispatch.get(cls)
-    if copier is not None:
+    if not copier is None:
         y = copier(x, memo)
     elif issubclass(cls, type):
         y = x
     else:
         copier = getattr(x, '__deepcopy__', None)
-        if copier is not None:
+        if not copier is None:
             y = copier(memo)
         else:
             reductor = dispatch_table.get(cls)
@@ -126,7 +126,7 @@ See the module's __doc__ string for more info.
                 rv = reductor(x)
             else:
                 reductor = getattr(x, '__reduce_ex__', None)
-                if reductor is not None:
+                if not reductor is None:
                     rv = reductor(4)
                 else:
                     reductor = getattr(x, '__reduce__', None)
@@ -210,7 +210,7 @@ def _reconstruct(x, memo, func, args, state=None, listiter=None, dictiter=None, 
     y = func(*args)
     if deep:
         memo[id(x)] = y
-    if state is not None:
+    if not state is None:
         if deep:
             state = deepcopy(state, memo)
         if hasattr(y, '__setstate__'):
@@ -220,12 +220,12 @@ def _reconstruct(x, memo, func, args, state=None, listiter=None, dictiter=None, 
                 state, slotstate = state
             else:
                 slotstate = None
-            if state is not None:
+            if not state is None:
                 y.__dict__.update(state)
-            if slotstate is not None:
+            if not slotstate is None:
                 for key, value in slotstate.items():
                     setattr(y, key, value)
-    if listiter is not None:
+    if not listiter is None:
         if deep:
             for item in listiter:
                 item = deepcopy(item, memo)
@@ -233,7 +233,7 @@ def _reconstruct(x, memo, func, args, state=None, listiter=None, dictiter=None, 
         else:
             for item in listiter:
                 y.append(item)
-    if dictiter is not None:
+    if not dictiter is None:
         if deep:
             for key, value in dictiter:
                 key = deepcopy(key, memo)
@@ -255,7 +255,7 @@ frozen dataclasses.
 
     cls = obj.__class__
     func = getattr(cls, '__replace__', None)
-    if func is None:
+    if not func is not None:
         raise TypeError(f'replace() does not support {cls.__name__} objects')
     return func(obj, **changes)
 

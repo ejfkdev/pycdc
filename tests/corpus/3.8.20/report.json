@@ -35,8 +35,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 596: orig  comparators=[Set(elts=[Constant(value='attlist' | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 968,
-   "ntotal": 1412,
+   "ndiff": 978,
+   "ntotal": 1411,
    "detail": "line 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 472')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 472')\nline 385: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 472')"
   },
   {
@@ -178,11 +178,11 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1432: orig  type_comment=None)] | dec  type_comment=None)",
+   "ast_detail": "diff at token 1564: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 335,
+   "ndiff": 1087,
    "ntotal": 2183,
-   "detail": "line 992: orig ('POP_JUMP_IF_FALSE', '') | got ('EXTENDED_ARG', '')\nline 993: orig ('LOAD_FAST', 'size') | got ('POP_JUMP_IF_FALSE', '')\nline 994: orig ('STORE_FAST', 'chars') | got ('LOAD_FAST', 'size')"
+   "detail": "line 1044: orig ('JUMP_FORWARD', 'to 236') | got ('JUMP_FORWARD', 'to 234')\nline 1052: orig ('SETUP_FINALLY', 'to 222') | got ('SETUP_FINALLY', 'to 220')\nline 1082: orig ('JUMP_FORWARD', 'to 218') | got ('RAISE_VARARGS', '')"
   },
   {
    "module": "codeop",

@@ -6,7 +6,7 @@ except ImportError:
     objc = None
 else:
     lib = util.find_library('objc')
-    if lib is None:
+    if not lib is not None:
         raise ImportError("ObjC runtime library couldn't be loaded")
     objc = cdll.LoadLibrary(lib)
     objc.objc_getClass.restype = c_void_p

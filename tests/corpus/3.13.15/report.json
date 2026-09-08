@@ -93,7 +93,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1205,
    "ntotal": 2986,
-   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e00', '\u4e5d', '\u5341', '\u5eff', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u4e00', '\u4e03', '\u4e5d', '\u5341', '\u5eff'})\")\nline 1762: orig ('COPY', '') | got ('LOAD_CONST', \"'Y'\")\nline 1763: orig ('LOAD_CONST', \"'Y'\") | got ('COMPARE_OP', 'bool(==)')"
+   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e00', '\u4e5d', '\u5341', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u4e5d', '\u4e03', '\u5341', '\u4e00', '\u5eff'})\")\nline 1762: orig ('COPY', '') | got ('LOAD_CONST', \"'Y'\")\nline 1763: orig ('LOAD_CONST', \"'Y'\") | got ('COMPARE_OP', 'bool(==)')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

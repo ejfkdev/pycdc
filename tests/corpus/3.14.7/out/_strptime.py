@@ -144,7 +144,7 @@ since changing the timezone is worthless without that call.
         replacement_pairs = []
         if self.LC_alt_digits or self.LC_alt_digits is None:
             for n, d in ((19, '%OC'), (99, '%Oy'), (22, '%OH'), (44, '%OM'), (55, '%OS'), (17, '%Od'), (3, '%Om'), (2, '%Ow'), (10, '%OI')):
-                if self.LC_alt_digits is None:
+                if not self.LC_alt_digits is not None:
                     s = chr(1632 + n // 10) + chr(1632 + n % 10)
                     replacement_pairs.append((s, d))
                     if n < 10:
@@ -204,12 +204,12 @@ does not use the month name.
             time_tuple = time.struct_time((1999, m, 17, 22, 44, 55, 2, 76, 0))
             datetime = time.strftime(directive, time_tuple).lower()
             indices = set(_findall(datetime, self.f_month[m]))
-            if full_indices is None:
+            if not full_indices is not None:
                 full_indices = indices
             else:
                 full_indices &= indices
             indices = set(_findall(datetime, self.a_month[m]))
-            if abbr_indices is None:
+            if not abbr_indices is not None:
                 abbr_indices = set(indices)
             else:
                 abbr_indices &= indices
@@ -235,13 +235,13 @@ Similar to __find_month_format().
             time_tuple = time.struct_time((1999, 3, 17, 22, 44, 55, wd, 76, 0))
             datetime = time.strftime(directive, time_tuple).lower()
             indices = set(_findall(datetime, self.f_weekday[wd]))
-            if full_indices is None:
+            if not full_indices is not None:
                 full_indices = indices
             else:
                 full_indices &= indices
             if self.f_weekday[wd] != self.a_weekday[wd]:
                 indices = set(_findall(datetime, self.a_weekday[wd]))
-            if abbr_indices is None:
+            if not abbr_indices is not None:
                 abbr_indices = set(indices)
             else:
                 abbr_indices &= indices
@@ -287,7 +287,7 @@ Order of execution is important for dependency reasons.
             self.locale_time = LocaleTime()
         base = super()
         mapping = {'d': '(?P<d>3[0-1]|[1-2]\\d|0[1-9]|[1-9]| [1-9])', 'f': '(?P<f>[0-9]{1,6})', 'H': '(?P<H>2[0-3]|[0-1]\\d|\\d| \\d)', 'k': '(?P<H>2[0-3]|[0-1]\\d|\\d| \\d)', 'I': '(?P<I>1[0-2]|0[1-9]|[1-9]| [1-9])', 'l': '(?P<I>1[0-2]|0[1-9]|[1-9]| [1-9])', 'G': '(?P<G>\\d\\d\\d\\d)', 'j': '(?P<j>36[0-6]|3[0-5]\\d|[1-2]\\d\\d|0[1-9]\\d|00[1-9]|[1-9]\\d|0[1-9]|[1-9])', 'm': '(?P<m>1[0-2]|0[1-9]|[1-9])', 'M': '(?P<M>[0-5]\\d|\\d)', 'S': '(?P<S>6[0-1]|[0-5]\\d|\\d)', 'U': '(?P<U>5[0-3]|[0-4]\\d|\\d)', 'w': '(?P<w>[0-6])', 'u': '(?P<u>[1-7])', 'V': '(?P<V>5[0-3]|0[1-9]|[1-4]\\d|\\d)', 'y': '(?P<y>\\d\\d)', 'Y': '(?P<Y>\\d\\d\\d\\d)', 'z': '(?P<z>[+-]\\d\\d:?[0-5]\\d(:?[0-5]\\d(\\.\\d{1,6})?)?|(?-i:Z))', 'A': self.__seqToRE(self.locale_time.f_weekday, 'A'), 'a': self.__seqToRE(self.locale_time.a_weekday, 'a'), 'B': self.__seqToRE(_fixmonths(self.locale_time.f_month[1:]), 'B'), 'b': self.__seqToRE(_fixmonths(self.locale_time.a_month[1:]), 'b'), 'p': self.__seqToRE(self.locale_time.am_pm, 'p'), 'Z': self.__seqToRE((tz for tz_names in self.locale_time.timezone for tz in tz_names), 'Z'), '%': '%'}
-        if self.locale_time.LC_alt_digits is None:
+        if not self.locale_time.LC_alt_digits is not None:
             for d in 'dmyCHIMS':
                 mapping['O' + d] = '(?P<%s>\\d\\d|\\d| \\d)' % d
             mapping['Ow'] = '(?P<w>\\d)'
@@ -321,7 +321,7 @@ matching when 'abcdef' should have been the match).
         else:
             return ''
         regex = '|'.join((re_escape(stuff) for stuff in to_convert))
-        if altregex is not None:
+        if not altregex is None:
             regex += '|' + altregex
         return f'(?P<{directive!s}>{regex!s})'
 
@@ -556,55 +556,55 @@ format string.'''
             gmtoff = -gmtoff
             gmtoff_fraction = -gmtoff_fraction
             continue
-        if group_key != 'Z':
+        if not group_key == 'Z':
             continue
         found_zone = found_dict['Z'].lower()
         for value, tz_values in enumerate(locale_time.timezone):
-            if found_zone not in tz_values:
+            if not found_zone in tz_values:
                 continue
             if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
                 continue
             tz = value
             continue
         continue
-    if iso_year is not None:
-        if julian is not None:
+    if not iso_year is None:
+        if not julian is None:
             raise ValueError("Day of the year directive '%j' is not compatible with ISO year directive '%G'. Use '%Y' instead.")
         if iso_week is None or weekday is None:
             raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")
-    elif iso_week is not None:
+    elif not iso_week is None:
         if year is None or weekday is None:
             raise ValueError("ISO week directive '%V' must be used with the ISO year directive '%G' and a weekday directive ('%A', '%a', '%w', or '%u').")
         raise ValueError("ISO week directive '%V' is incompatible with the year directive '%Y'. Use the ISO year '%G' instead.")
     leap_year_fix = False
-    if year is None:
+    if not year is not None:
         if month == 2 and day == 29:
             year = 1904
             leap_year_fix = True
         else:
             year = 1900
-    if julian is None and weekday is not None:
-        if week_of_year is not None:
+    if not julian is not None and weekday is not None:
+        if not week_of_year is None:
             week_starts_Mon = True if week_of_year_start == 0 else False
             julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
-        elif iso_year is not None and iso_week is not None:
+        elif not iso_year is None and iso_week is not None:
             datetime_result = datetime_date.fromisocalendar(iso_year, iso_week, weekday + 1)
             year = datetime_result.year
             month = datetime_result.month
             day = datetime_result.day
-        if julian is not None:
+        if not julian is None:
             if julian <= 0:
                 year -= 1
                 yday = 366 if calendar.isleap(year) else 365
                 julian += yday
-    if julian is None:
+    if not julian is not None:
         julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
     else:
         datetime_result = datetime_date.fromordinal(julian - 1 + datetime_date(year, 1, 1).toordinal())
         year = datetime_result.year
         month = datetime_result.month
         day = datetime_result.day
-    if weekday is None:
+    if not weekday is not None:
         weekday = datetime_date(year, month, day).weekday()
     tzname = found_dict.get('Z')
     if leap_year_fix:
@@ -637,7 +637,7 @@ format string.'''
     tt, fraction, gmtoff_fraction = _strptime(data_string, format)
     tzname, gmtoff = tt[-2:]
     args = tt[3:6] + (fraction,)
-    if gmtoff is None:
+    if not gmtoff is not None:
         return cls(*args)
     tz = _parse_tz(tzname, gmtoff, gmtoff_fraction)
     return cls(tz, *args)
@@ -649,7 +649,7 @@ format string.'''
     tt, fraction, gmtoff_fraction = _strptime(data_string, format)
     tzname, gmtoff = tt[-2:]
     args = tt[:6] + (fraction,)
-    if gmtoff is None:
+    if not gmtoff is not None:
         return cls(*args)
     tz = _parse_tz(tzname, gmtoff, gmtoff_fraction)
     return cls(tz, *args)

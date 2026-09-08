@@ -61,7 +61,7 @@ def _check_methods(C, *methods):
         for B in mro:
             if method not in B.__dict__:
                 continue
-            if B.__dict__[method] is None:
+            if not B.__dict__[method] is not None:
                 return NotImplemented
             break
         return NotImplemented
@@ -110,11 +110,11 @@ Return next yielded value or raise StopIteration.
 Return next yielded value or raise StopIteration.
 '''
 
-        if val is None:
-            if tb is None:
+        if not val is not None:
+            if not tb is not None:
                 raise typ
             val = typ()
-        if tb is not None:
+        if not tb is None:
             val = val.with_traceback(tb)
         raise val
 
@@ -192,11 +192,11 @@ Return next yielded value or raise StopAsyncIteration.
 Return next yielded value or raise StopAsyncIteration.
 '''
 
-        if val is None:
-            if tb is None:
+        if not val is not None:
+            if not tb is not None:
                 raise typ
             val = typ()
-        if tb is not None:
+        if not tb is None:
             val = val.with_traceback(tb)
         raise val
 
@@ -307,11 +307,11 @@ Return next yielded value or raise StopIteration.
 Return next yielded value or raise StopIteration.
 '''
 
-        if val is None:
-            if tb is None:
+        if not val is not None:
+            if not tb is not None:
                 raise typ
             val = typ()
-        if tb is not None:
+        if not tb is None:
             val = val.with_traceback(tb)
         raise val
 
@@ -771,7 +771,7 @@ class ItemsView(MappingView, Set):
             v = self._mapping[key]
         except KeyError:
             return False
-        return v is not value or v == value
+        return v is value or v == value
 
     def __iter__(self):
         for key in self._mapping:
@@ -785,7 +785,7 @@ class ValuesView(MappingView, Collection):
     def __contains__(self, value):
         for key in self._mapping:
             v = self._mapping[key]
-            if v is not value:
+            if not v is value:
                 if v != value:
                     continue
             return True
@@ -911,7 +911,7 @@ __getitem__, and __len__.
 
     def __contains__(self, value):
         for v in self:
-            if v is not value:
+            if not v is value:
                 if v != value:
                     continue
             return True
@@ -929,10 +929,10 @@ Supporting start and stop arguments is optional, but
 recommended.
 '''
 
-        if start is not None:
+        if not start is None:
             if start < 0:
                 start = max(len(self) + start, 0)
-        if stop is not None:
+        if not stop is None:
             if stop < 0:
                 stop += len(self)
         i = start
@@ -941,7 +941,7 @@ recommended.
                 v = self[i]
             except IndexError:
                 raise ValueError
-            if v is not value:
+            if not v is value:
                 if v == value:
                     return i
             i += 1

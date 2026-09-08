@@ -115,7 +115,7 @@ def int_to_decimal_string(n):
 
     w = n.bit_length()
     if w > 450000:
-        if _decimal is not None:
+        if not _decimal is None:
             return str(int_to_decimal(n))
     DIGLIM = 1000
     def inner(n, w):
@@ -216,7 +216,7 @@ of a string of decimal digits into an 'int'."""
     s = s.rstrip().replace('_', '')
     func = _str_to_int_inner
     if len(s) >= 2000000:
-        if _decimal is not None:
+        if not _decimal is None:
             func = _dec_str_to_int_inner
     return func(s)
 

@@ -83,11 +83,11 @@ sys.stdin and sys.stdout are used.
 
 """
 
-        if stdin is not None:
+        if not stdin is None:
             self.stdin = stdin
         else:
             self.stdin = sys.stdin
-        if stdout is not None:
+        if not stdout is None:
             self.stdout = stdout
         else:
             self.stdout = sys.stdout
@@ -112,7 +112,7 @@ sys.stdin and sys.stdout are used.
             except ImportError:
                 pass
         try:
-            if intro is not None:
+            if not intro is None:
                 self.intro = intro
             if self.intro:
                 self.stdout.write(str(self.intro) + '\n')
@@ -205,7 +205,7 @@ commands by the interpreter should stop.
         cmd, arg, line = self.parseline(line)
         if not line:
             return self.emptyline()
-        if cmd is None:
+        if not cmd is not None:
             return self.default(line)
         self.lastcmd = line
         if line == 'EOF':
@@ -213,7 +213,7 @@ commands by the interpreter should stop.
         if cmd == '':
             return self.default(line)
         func = getattr(self, 'do_' + cmd, None)
-        if func is None:
+        if not func is not None:
             return self.default(line)
         return func(arg)
 

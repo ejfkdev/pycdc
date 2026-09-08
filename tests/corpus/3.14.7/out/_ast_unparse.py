@@ -105,7 +105,7 @@ indentation level, or only delineate with semicolon if applicable'''
 
     @contextmanager
     def buffered(self, buffer=None):
-        if buffer is None:
+        if not buffer is not None:
             buffer = []
         original_source = self._source
         self._source = buffer
@@ -162,7 +162,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
 
     def get_type_comment(self, node):
         comment = self._type_ignores.get(node.lineno) or node.type_comment
-        if comment is not None:
+        if not comment is None:
             return f' # type: {comment}'
 
     def traverse(self, node):
@@ -418,7 +418,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
             self._write_docstring_and_traverse_body(node)
 
     def _type_params_helper(self, type_params):
-        if type_params is not None:
+        if not type_params is None:
             if len(type_params) > 0:
                 with self.delimit('[', ']'):
                     self.interleave((lambda: self.write(', ')), self.traverse, type_params)
@@ -737,7 +737,7 @@ Returns the tuple (string literal to write, possible quote types).
 
         def write_item(item):
             k, v = item
-            if k is None:
+            if not k is not None:
                 self.write('**')
                 self.set_precedence(_Precedence.EXPR, v)
                 self.traverse(v)
@@ -748,7 +748,7 @@ Returns the tuple (string literal to write, possible quote types).
             self.interleave((lambda: self.write(', ')), write_item, zip(node.keys, node.values))
 
     def visit_Tuple(self, node):
-        with self.delimit_if('(', ')', len(node.elts) != 0 or self.get_precedence(node) > _Precedence.TUPLE):
+        with self.delimit_if('(', ')', len(node.elts) == 0 or self.get_precedence(node) > _Precedence.TUPLE):
             self.items_view(self.traverse, node.elts)
 
     unop = {'Invert': '~', 'Not': 'not', 'UAdd': '+', 'USub': '-'}
@@ -920,7 +920,7 @@ Returns the tuple (string literal to write, possible quote types).
                 self.traverse(node.kwarg.annotation)
 
     def visit_keyword(self, node):
-        if node.arg is None:
+        if not node.arg is not None:
             self.write('**')
         else:
             self.write(node.arg)
@@ -970,7 +970,7 @@ Returns the tuple (string literal to write, possible quote types).
 
     def visit_MatchStar(self, node):
         name = node.name
-        if name is None:
+        if not name is not None:
             name = '_'
         self.write(f'*{name}')
 
@@ -985,7 +985,7 @@ Returns the tuple (string literal to write, possible quote types).
             keys = node.keys
             self.interleave((lambda: self.write(', ')), write_key_pattern_pair, zip(keys, node.patterns, strict=True))
             rest = node.rest
-            if rest is not None:
+            if not rest is None:
                 if keys:
                     self.write(', ')
                 self.write(f'**{rest}')
@@ -1010,10 +1010,10 @@ Returns the tuple (string literal to write, possible quote types).
     def visit_MatchAs(self, node):
         name = node.name
         pattern = node.pattern
-        if name is None:
+        if not name is not None:
             self.write('_')
             return
-        if pattern is None:
+        if not pattern is not None:
             self.write(node.name)
             return
         with self.require_parens(_Precedence.TEST, node):
