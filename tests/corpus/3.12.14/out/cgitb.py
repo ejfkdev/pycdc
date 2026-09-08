@@ -229,6 +229,8 @@ def text(einfo, context=5):
 class Hook:
     '''A hook to replace sys.excepthook that shows tracebacks in HTML.'''
 
+    ''
+    ''
     def __init__(self, display=1, logdir=None, context=5, file=None, format='html'):
         self.display = display
         self.logdir = logdir

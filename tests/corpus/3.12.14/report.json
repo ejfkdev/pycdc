@@ -130,9 +130,9 @@
    "module": "cgi",
    "ast_detail": "diff at token 925: orig  body=[Return(value=BinOp(left=Constant(value='MiniFieldStorage(%r | dec  body=[Return(value=JoinedStr(values=[Constant(value='MiniFieldStorage(')",
    "verdict": "SIG-DIFF",
-   "ndiff": 611,
+   "ndiff": 610,
    "ntotal": 2873,
-   "detail": "line 162: orig ('POP_JUMP_IF_FALSE', 'to 434') | got ('POP_JUMP_IF_FALSE', 'to 432')\nline 2246: orig ('POP_JUMP_IF_NONE', 'to 126') | got ('POP_JUMP_IF_NONE', 'to 142')\nline 2250: orig ('SWAP', '') | got ('COMPARE_OP', '<=')"
+   "detail": "line 2246: orig ('POP_JUMP_IF_NONE', 'to 126') | got ('POP_JUMP_IF_NONE', 'to 142')\nline 2250: orig ('SWAP', '') | got ('COMPARE_OP', '<=')\nline 2251: orig ('COPY', '') | got ('POP_JUMP_IF_FALSE', 'to 142')"
   },
   {
    "module": "cgitb",

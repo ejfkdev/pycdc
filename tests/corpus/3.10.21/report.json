@@ -161,9 +161,9 @@
    "module": "cgi",
    "ast_detail": "diff at token 1520: orig  Continue()] | dec  Return()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 751,
+   "ndiff": 617,
    "ntotal": 2910,
-   "detail": "line 2063: orig ('POP_JUMP_IF_FALSE', 'to 154') | got ('POP_JUMP_IF_FALSE', 'to 162')\nline 2067: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 166')\nline 2125: orig ('COMPARE_OP', '>') | got ('COMPARE_OP', '>=')"
+   "detail": "line 2277: orig ('POP_JUMP_IF_FALSE', 'to 68') | got ('POP_JUMP_IF_FALSE', 'to 66')\nline 2281: orig ('DUP_TOP', '') | got ('COMPARE_OP', '<=')\nline 2282: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', 'to 66')"
   },
   {
    "module": "cgitb",

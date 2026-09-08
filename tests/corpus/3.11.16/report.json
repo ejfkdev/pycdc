@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 26,
-  "SIG-DIFF": 12,
+  "PASS": 27,
+  "SIG-DIFF": 11,
   "INCOMPLETE": 2
  },
  "results": [
@@ -144,11 +144,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 916: orig  body=[Return(value=BinOp(left=Constant(value='MiniFieldStorage(%r | dec  body=[Return(value=JoinedStr(values=[Constant(value='MiniFieldStorage(')",
-   "verdict": "SIG-DIFF",
-   "ndiff": 877,
-   "ntotal": 3153,
-   "detail": "line 165: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 422') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 420')\nline 2172: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 492') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 504')\nline 2176: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 496') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 508')"
+   "verdict": "PASS"
   },
   {
    "module": "cgitb",

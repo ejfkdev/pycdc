@@ -1,6 +1,7 @@
 '''exec' "$(dirname -- "$(realpath -- "$0")")/python3.12" "$0" "$@"
 ' '''
 
+''
 __version__ = '2.6'
 from io import (StringIO, BytesIO, TextIOWrapper)
 from collections.abc import Mapping

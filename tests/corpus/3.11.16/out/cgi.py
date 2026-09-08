@@ -1,6 +1,7 @@
 '''exec' "$(dirname -- "$(realpath -- "$0")")/python3.11" "$0" "$@"
 ' '''
 
+''
 __version__ = '2.6'
 from io import (StringIO, BytesIO, TextIOWrapper)
 from collections.abc import Mapping
@@ -584,16 +585,17 @@ class FieldStorage:
 
         self.file = self.make_file()
         todo = self.length
-        while todo >= 0 and todo > 0:
-            data = self.fp.read(min(todo, self.bufsize))
-            if not isinstance(data, bytes):
-                raise ValueError(f'{self.fp!s} should return bytes, got {type(data).__name__!s}')
-            self.bytes_read += len(data)
-            if not data:
-                self.done = -1
-                return
-            self.file.write(data)
-            todo = todo - len(data)
+        if todo >= 0:
+            while todo > 0:
+                data = self.fp.read(min(todo, self.bufsize))
+                if not isinstance(data, bytes):
+                    raise ValueError(f'{self.fp!s} should return bytes, got {type(data).__name__!s}')
+                self.bytes_read += len(data)
+                if not data:
+                    self.done = -1
+                    return
+                self.file.write(data)
+                todo = todo - len(data)
 
     def read_lines(self):
         '''Internal: read lines until EOF or outerboundary.'''

@@ -2066,6 +2066,50 @@ impl<'a> Ctx<'a> {
                 }
             }
 
+            // 3.10+: a string-expression statement directly after the
+            // module docstring is folded to a position NOP (cgi 3.11's
+            // exec-magic header: the shebang trick string IS the stored
+            // __doc__ and the real docstring that follows is dropped,
+            // leaving only a multi-line NOP). The dropped constant is
+            // unrecoverable — emit an empty-string Expr placeholder so
+            // the recompile reproduces the NOP and the module offsets
+            // (a missing NOP shifted every later jump target by 2)
+            if matches!(inst.op, Op::NOP) && self.version.at_least(3, 10) {
+                let prev_is_doc_store = self.idx_of.get(&pos).map_or(false, |&i| {
+                    let mut k = i;
+                    while k > 0 {
+                        k -= 1;
+                        if matches!(
+                            self.instrs[k].op,
+                            Op::NOP | Op::CACHE | Op::NOT_TAKEN
+                        ) {
+                            continue;
+                        }
+                        return matches!(self.instrs[k].op, Op::STORE_NAME)
+                            && self.const_name(self.instrs[k].arg as usize)
+                                == "__doc__";
+                    }
+                    false
+                });
+                // a NOP adjacent to an exception-table region is the
+                // 3.12+ try-position ANCHOR, not a dropped string
+                // (decimal 3.12 `try: from _decimal import *` — its
+                // anchor NOP sits 2 bytes before the region start)
+                let try_anchor = self.exc_entries.iter().any(|e| {
+                    e.start <= pos + 2 && pos < e.end.saturating_add(2)
+                });
+                if prev_is_doc_store
+                    && !try_anchor
+                    && self
+                        .blocks
+                        .last()
+                        .map_or(false, |b| b.kind == BlockType::Main)
+                {
+                    self.push_stmt(Stmt::Expr(Rc::new(Expr::Const(Rc::new(
+                        PyObject::Str(String::new()),
+                    )))));
+                }
+            }
             // comprehension loop-target stores consume no stack value —
             // only while the comprehension is live and its target unset
             // (an unpacked `for k, v in` target arrives via the frame
@@ -17513,11 +17557,22 @@ impl<'a> Ctx<'a> {
     /// body top into one And condition (all operands evaluated left to
     /// right, each false-exiting to the same label).
     fn merge_forward_cond_chain(&self, ci: usize, target: usize) -> Option<ExprRef> {
+        self.merge_forward_cond_chain_bt(ci, target).map(|(c, _)| c)
+    }
+
+    /// Like merge_forward_cond_chain, also returning the offset just past
+    /// the chain's last collected cond jump (the loop body top).
+    fn merge_forward_cond_chain_bt(
+        &self,
+        ci: usize,
+        target: usize,
+    ) -> Option<(ExprRef, usize)> {
         let &xi0 = self.idx_of.get(&target)?;
         let exit_off = self.instrs[xi0].offset;
         let mut values: Vec<ExprRef> = Vec::new();
         let mut k = ci + 1;
         let mut region_start = k;
+        let mut body_top = self.instrs.get(ci + 1).map(|x| x.offset)?;
         while let Some(ins) = self.instrs.get(k) {
             if matches!(
                 ins.op,
@@ -17559,6 +17614,7 @@ impl<'a> Ctx<'a> {
                 ) {
                     k += 1;
                 }
+                body_top = self.instrs.get(k).map(|x| x.offset).unwrap_or(body_top);
                 region_start = k;
                 continue;
             }
@@ -17574,10 +17630,13 @@ impl<'a> Ctx<'a> {
         for v in values {
             flatten_boolop(v, BoolOpKind::And, &mut flat);
         }
-        Some(Rc::new(Expr::BoolOp {
-            op: BoolOpKind::And,
-            values: flat,
-        }))
+        Some((
+            Rc::new(Expr::BoolOp {
+                op: BoolOpKind::And,
+                values: flat,
+            }),
+            body_top,
+        ))
     }
 
     /// Shape-B admission: the fall-through of `ci` must reach another
@@ -23109,6 +23168,18 @@ if split_cond {
                             && t >= self.cur_next
                             && t < target
                             && self.is_rotated_multijump_while(ci, ti, t)
+                            // the re-entry must land at/past the merged
+                            // chain's body top: a backward re-eval that
+                            // jumps INTO the middle of the initial test
+                            // chain means the loop's real cond starts
+                            // there — the earlier tests are wrapper
+                            // guards with their own exit stubs (cgi 3.11
+                            // read_binary `if todo >= 0: while todo > 0:`
+                            // fused into `while todo >= 0 and todo > 0:`,
+                            // duplicating the first test in the re-eval)
+                            && self
+                                .merge_forward_cond_chain_bt(ci, target)
+                                .map_or(true, |(_, bt)| t >= bt)
                         {
                             let mut blk = Block::new(BlockType::While, t, target);
                             let mut merged = cond.clone();
@@ -23121,6 +23192,115 @@ if split_cond {
                                     op: BoolOpKind::And,
                                     values: flat,
                                 });
+                                // the tail re-eval must cover the WHOLE
+                                // merged chain: a backward jump whose own
+                                // operand run sim-equals only a SUFFIX
+                                // means the earlier operands are wrapper
+                                // guards with their own exit stubs, not
+                                // loop cond (cgi 3.11 read_binary `if
+                                // todo >= 0: while todo > 0:` — the
+                                // re-eval re-ran only `todo > 0`; the
+                                // fusion duplicated the first test in
+                                // the recompiled re-eval)
+                                let Some(&ii) = self.idx_of.get(&inst.offset) else {
+                                    return;
+                                };
+                                // walk the re-eval copies backwards:
+                                // pure-value runs separated by forward
+                                // cond jumps that exit like the chain's
+                                // own links (the loop exit or its own
+                                // LOAD-None/RETURN stub)
+                                let is_pad = |x: &crate::bytecode::Instruction| {
+                                    matches!(
+                                        x.op,
+                                        Op::NOP
+                                            | Op::NOT_TAKEN
+                                            | Op::CACHE
+                                            | Op::EXTENDED_ARG
+                                    )
+                                };
+                                let exit_ok = |t2: usize| -> bool {
+                                    if t2 == target {
+                                        return true;
+                                    }
+                                    self.idx_of.get(&t2).map_or(false, |&xi| {
+                                        matches!(
+                                            self.instrs[xi].op,
+                                            Op::LOAD_CONST | Op::RETURN_CONST
+                                        ) && (matches!(
+                                            self.instrs
+                                                .get(xi + 1)
+                                                .map(|x| x.op),
+                                            Some(Op::RETURN_VALUE)
+                                                | Some(Op::RETURN_CONST)
+                                        ) || matches!(
+                                            self.instrs[xi].op,
+                                            Op::RETURN_CONST
+                                        ))
+                                    })
+                                };
+                                let mut reval_vals: Vec<ExprRef> = Vec::new();
+                                let mut kk = ii;
+                                let mut complete = true;
+                                loop {
+                                    let mut rs = kk;
+                                    while rs > 0 {
+                                        let p = &self.instrs[rs - 1];
+                                        if is_pad(p)
+                                            || is_pure_value_op(p.op)
+                                            || matches!(p.op, Op::TO_BOOL)
+                                        {
+                                            rs -= 1;
+                                        } else {
+                                            break;
+                                        }
+                                    }
+                                    match self.sim_value_region(rs, kk) {
+                                        Some(v) => reval_vals.push(v),
+                                        None => {
+                                            complete = false;
+                                            break;
+                                        }
+                                    }
+                                    // continue past a preceding re-eval
+                                    // link jump?
+                                    let mut j = rs;
+                                    while j > 0 && is_pad(&self.instrs[j - 1]) {
+                                        j -= 1;
+                                    }
+                                    if j > 0 {
+                                        let pj = &self.instrs[j - 1];
+                                        if matches!(
+                                            pj.op,
+                                            Op::POP_JUMP_IF_FALSE
+                                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                | Op::POP_JUMP_IF_TRUE
+                                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                                        ) && !pj.is_backward
+                                            && pj.target.map_or(false, exit_ok)
+                                        {
+                                            kk = j - 1;
+                                            continue;
+                                        }
+                                    }
+                                    break;
+                                }
+                                if complete && !reval_vals.is_empty() {
+                                    reval_vals.reverse();
+                                    let mut flat_rv = Vec::new();
+                                    for v in reval_vals {
+                                        flatten_boolop(v, BoolOpKind::And, &mut flat_rv);
+                                    }
+                                    let rv: ExprRef = Rc::new(Expr::BoolOp {
+                                        op: BoolOpKind::And,
+                                        values: flat_rv,
+                                    });
+                                    if format!("{:?}", simplify_not(rv.clone()))
+                                        != format!("{:?}", simplify_not(merged.clone()))
+                                    {
+                                        continue;
+                                    }
+                                }
                             }
                             // an operand tested BEFORE this jump into an
                             // enclosing If that ends exactly at this
