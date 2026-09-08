@@ -94,7 +94,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 774: orig  orelse=[]) | dec  orelse=[While(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1454,
+   "ndiff": 1475,
    "ntotal": 2207,
    "detail": "line 701: orig ('SETUP_LOOP', 'to 102') | got ('SETUP_LOOP', 'to 100')\nline 711: orig ('JUMP_FORWARD', 'to 102') | got ('SETUP_LOOP', 'to 100')\nline 712: orig ('SETUP_LOOP', 'to 102') | got ('LOAD_FAST', 'map')"
   },

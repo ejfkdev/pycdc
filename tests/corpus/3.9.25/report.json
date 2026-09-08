@@ -105,9 +105,9 @@
    "module": "asyncore",
    "ast_detail": "diff at token 2144: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
    "verdict": "SIG-DIFF",
-   "ndiff": 818,
-   "ntotal": 2212,
-   "detail": "line 1361: orig ('SETUP_FINALLY', 'to 42') | got ('SETUP_FINALLY', 'to 38')\nline 1380: orig ('POP_BLOCK', '') | got ('DUP_TOP', '')\nline 1381: orig ('JUMP_FORWARD', 'to 116') | got ('LOAD_GLOBAL', 'OSError')"
+   "ndiff": 241,
+   "ntotal": 2218,
+   "detail": "line 1859: orig ('LOAD_GLOBAL', 'AssertionError') | got ('LOAD_ASSERTION_ERROR', '')\nline 1937: orig ('FOR_ITER', 'to 136') | got ('FOR_ITER', 'to 148')\nline 1952: orig ('SETUP_FINALLY', 'to 90') | got ('SETUP_FINALLY', 'to 102')"
   },
   {
    "module": "base64",
@@ -208,8 +208,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 747: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  Try(body=[For(target=Tuple(elts=[Name(id='index'",
    "verdict": "SIG-DIFF",
-   "ndiff": 902,
-   "ntotal": 1515,
+   "ndiff": 904,
+   "ntotal": 1517,
    "detail": "line 587: orig ('LOAD_GLOBAL', 'os') | got ('SETUP_FINALLY', 'to 522')\nline 588: orig ('LOAD_ATTR', 'path') | got ('LOAD_GLOBAL', 'enumerate')\nline 589: orig ('LOAD_METHOD', 'isfile') | got ('LOAD_FAST', 'optimize')"
   },
   {

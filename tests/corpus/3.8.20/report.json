@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 23,
-  "SIG-DIFF": 14,
+  "PASS": 24,
+  "SIG-DIFF": 13,
   "INCOMPLETE": 3
  },
  "results": [
@@ -96,11 +96,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 2703: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 817,
-   "ntotal": 2206,
-   "detail": "line 1360: orig ('SETUP_FINALLY', 'to 42') | got ('SETUP_FINALLY', 'to 38')\nline 1379: orig ('POP_BLOCK', '') | got ('DUP_TOP', '')\nline 1380: orig ('JUMP_FORWARD', 'to 110') | got ('LOAD_GLOBAL', 'OSError')"
+   "verdict": "PASS"
   },
   {
    "module": "base64",
@@ -200,8 +196,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 619: orig  type_comment=None) | dec  type_comment=None)]",
    "verdict": "SIG-DIFF",
-   "ndiff": 686,
-   "ntotal": 1097,
+   "ndiff": 689,
+   "ntotal": 1099,
    "detail": "line 399: orig ('LOAD_GLOBAL', 'os') | got ('SETUP_FINALLY', 'to 130')\nline 400: orig ('LOAD_ATTR', 'path') | got ('LOAD_GLOBAL', 'py_compile')\nline 401: orig ('LOAD_METHOD', 'isfile') | got ('LOAD_ATTR', 'compile')"
   },
   {

@@ -6233,14 +6233,10 @@ impl<'a> Ctx<'a> {
                         .as_ref()
                         .map_or(false, |l| {
                             !l.handlers.is_empty()
-                                && !l.pending_mismatch.iter().any(|&m| {
-                                    m > pos
-                                        && self
-                                            .idx_of
-                                            .get(&m)
-                                            .and_then(|&mi| self.instrs.get(mi))
-                                            .map_or(false, |x| x.op == Op::DUP_TOP)
-                                })
+                                && !l
+                                    .pending_mismatch
+                                    .iter()
+                                    .any(|&m| m > pos && self.pending_clause_head_at(m))
                         });
                 } else if self
                     .legacy_try
@@ -6588,6 +6584,33 @@ impl<'a> Ctx<'a> {
                                 l.else_stop = stop;
                             }
                         } else if !lt.handlers.is_empty()
+                            && past_chain
+                            && target < pos
+                            && self.is_loop_top_target(target)
+                            && lt
+                                .pending_mismatch
+                                .iter()
+                                .any(|&m| {
+                                    m > pos && self.pending_clause_head_at(m)
+                                })
+                        {
+                            // a clause's normal exit fused with the
+                            // enclosing loop's back edge (the try is
+                            // the loop body's LAST statement: every
+                            // clause's POP_EXCEPT exit is a JABS to
+                            // the loop top). A pending clause head
+                            // means the chain continues — this edge is
+                            // clause-terminator glue, NOT a Continue
+                            // statement: an explicit continue in an
+                            // as-clause recompiles with CALL_FINALLY-
+                            // style cleanup instead of the original's
+                            // BEGIN_FINALLY fall-through (asyncore 3.8
+                            // close_all clause 1). Consume it
+                            let ie = inst.end();
+                            if self.skip_until.map_or(true, |s| s < ie) {
+                                self.skip_until = Some(ie);
+                            }
+                        } else if !lt.handlers.is_empty()
                             && (in_else
                                 || (past_chain
                                     && target < pos
@@ -6600,14 +6623,10 @@ impl<'a> Ctx<'a> {
                                     // loop; the chain's own RERAISE stub
                                     // follows the LAST clause, so a real
                                     // chain end never has a pending head
-                                    && !lt.pending_mismatch.iter().any(|&m| {
-                                        m > pos
-                                            && self
-                                                .idx_of
-                                                .get(&m)
-                                                .and_then(|&mi| self.instrs.get(mi))
-                                                .map_or(false, |x| x.op == Op::DUP_TOP)
-                                    })))
+                                    && !lt
+                                    .pending_mismatch
+                                    .iter()
+                                    .any(|&m| m > pos && self.pending_clause_head_at(m))))
                             // a jump landing INSIDE the else region is not
                             // the region end. Backward: a nested loop's back
                             // edge (the region's own while/for continuing)
@@ -7397,25 +7416,80 @@ impl<'a> Ctx<'a> {
                         .find(|bl| bl.kind == BlockType::Try)
                         .map(|bl| bl.start)
                     {
+                        // the else arm is a straight-line value-run
+                        // ending in RETURN, optionally preceded by its
+                        // own POP_BLOCK (asyncore 3.8 recv:
+                        // `else: return data` compiles LOAD; POP_BLOCK;
+                        // RETURN — the FIRST POP_BLOCK from pos is the
+                        // arm's own, not the body-exit one; the exit
+                        // pair is the POP_BLOCK followed by a forward
+                        // JUMP)
                         let pop_at = self
                             .idx_of
                             .get(&pos)
                             .and_then(|&pi| {
                                 self.instrs[pi..]
                                     .iter()
-                                    .position(|x| x.op == Op::POP_BLOCK)
-                                    .map(|k| self.instrs[pi + k].offset)
+                                    // the EXIT pair: a POP_BLOCK
+                                    // followed by a forward jump — an
+                                    // arm-internal POP_BLOCK (before
+                                    // its RETURN) is skipped
+                                    .find(|pb| {
+                                        if pb.op != Op::POP_BLOCK {
+                                            return false;
+                                        }
+                                        self.idx_of
+                                            .get(&pb.offset)
+                                            .and_then(|&pj| {
+                                                self.instrs.get(pj + 1)
+                                            })
+                                            .map_or(false, |nx| {
+                                                matches!(
+                                                    nx.op,
+                                                    Op::JUMP_FORWARD
+                                                        | Op::JUMP
+                                                        | Op::DUP_TOP
+                                                ) && nx
+                                                    .target
+                                                    .map_or(true, |t| {
+                                                        t > pb.offset
+                                                    })
+                                            })
+                                    })
+                                    .map(|pb| pb.offset)
                             });
                         let ok = pop_at.map_or(false, |p| {
                             p > pos
+                                // the arm [pos, p) must be a pure value
+                                // run ending in RETURN (its optional
+                                // POP_BLOCK precedes p and is the arm's
+                                // own block pop)
                                 && self
-                                    .instrs
-                                    .iter()
-                                    .all(|x| x.offset != p - 2 || {
-                                        matches!(
-                                            x.op,
-                                            Op::RETURN_VALUE | Op::RETURN_CONST
-                                        )
+                                    .idx_of
+                                    .get(&pos)
+                                    .map_or(false, |&si| {
+                                        let mut saw_ret = false;
+                                        self.instrs[si..]
+                                            .iter()
+                                            .take_while(|x| x.offset < p)
+                                            .all(|x| {
+                                                if matches!(
+                                                    x.op,
+                                                    Op::RETURN_VALUE
+                                                        | Op::RETURN_CONST
+                                                ) {
+                                                    saw_ret = true;
+                                                    true
+                                                } else if x.op == Op::POP_BLOCK {
+                                                    !saw_ret
+                                                } else {
+                                                    !saw_ret
+                                                        && is_pure_value_op(
+                                                            x.op,
+                                                        )
+                                                }
+                                            })
+                                            && saw_ret
                                     })
                                 && self.idx_of.get(&p).map_or(false, |&pj| {
                                     self.instrs.get(pj + 1).map_or(false, |nx| {
@@ -14166,14 +14240,10 @@ impl<'a> Ctx<'a> {
                     && l.orelse.is_empty()
                     && l.else_start.is_some()
                     // no unparsed clause heads past this chain end
-                    && !l.pending_mismatch.iter().any(|&m| {
-                        m > pos
-                            && self
-                                .idx_of
-                                .get(&m)
-                                .and_then(|&mi| self.instrs.get(mi))
-                                .map_or(false, |x| x.op == Op::DUP_TOP)
-                    })
+                    && !l
+                        .pending_mismatch
+                        .iter()
+                        .any(|&m| m > pos && self.pending_clause_head_at(m))
                     && l.handlers
                         .iter()
                         .all(|h| {
@@ -21583,6 +21653,43 @@ if split_cond {
         None
     }
 
+    /// A pending mismatch target still holds an unparsed clause head:
+    /// a typed clause starts with DUP_TOP (the dispatch); a BARE
+    /// `except:` clause starts with the POP_TOP x3 prelude and runs
+    /// its body to a POP_EXCEPT exit — while the chain's dead
+    /// mismatch-cleanup tail also starts with POP_TOP x3 but folds
+    /// straight into END_FINALLY (asyncore 3.8 close_all: the bare
+    /// third clause at the mismatch target read as cleanup, the chain
+    /// emitted after clause 2 and the `except:` body leaked to
+    /// function level)
+    fn pending_clause_head_at(&self, m: usize) -> bool {
+        let Some(&mi) = self.idx_of.get(&m) else {
+            return false;
+        };
+        if self.instrs.get(mi).map(|x| x.op) == Some(Op::DUP_TOP) {
+            return true;
+        }
+        let mut k = mi;
+        let mut pops = 0;
+        while pops < 3 && self.instrs.get(k).map(|x| x.op) == Some(Op::POP_TOP) {
+            k += 1;
+            pops += 1;
+        }
+        if pops < 3 {
+            return false;
+        }
+        let mut saw_stmt = false;
+        for x in self.instrs[k..].iter().take(80) {
+            match x.op {
+                Op::POP_EXCEPT => return saw_stmt,
+                Op::END_FINALLY => return false,
+                Op::NOP | Op::NOT_TAKEN | Op::CACHE => {}
+                _ => saw_stmt = true,
+            }
+        }
+        false
+    }
+
     fn open_except_block(&mut self, target: usize, pattern: Option<ExprRef>) {
         if self.legacy_try.is_some() {
             // handler body collects into the legacy handler, not a block
@@ -22769,7 +22876,80 @@ if split_cond {
                 .map(|b| b.end)
                 .filter(|e| *e != usize::MAX)
         });
-        for x in self.instrs[jabs_idx + 1..].iter() {
+        // pending clause heads ahead: their chain material (dispatch,
+        // body, cleanups) lies between this exit edge and the loop's
+        // back edge — a later clause's body op (its RAISE, a CALL...)
+        // must not count as skipped real body (asyncore 3.8 close_all
+        // clause 1: clause 2's RAISE_VARARGS read as body material and
+        // the structural clause exit rendered `continue`, whose
+        // as-clause unwind recompiles CALL_FINALLY-style vs the
+        // original BEGIN_FINALLY fall-through). Hop each pending
+        // clause: head .. first POP_EXCEPT + its exit jump.
+        let pending_heads: Vec<usize> = self
+            .legacy_try
+            .as_ref()
+            .map(|l| {
+                let mut v: Vec<usize> = l
+                    .pending_mismatch
+                    .iter()
+                    .copied()
+                    .filter(|&m| {
+                        m > self.instrs.get(jabs_idx).map_or(0, |j| j.offset)
+                    })
+                    .collect();
+                v.sort();
+                v
+            })
+            .unwrap_or_default();
+        let mut k = jabs_idx + 1;
+        while k < self.instrs.len() {
+            let x = &self.instrs[k];
+            // hop trigger: a pending mismatch head, or any clause-head
+            // pattern (typed dispatch DUP_TOP / bare except POP_TOP x3)
+            // — later clauses register their heads only when their
+            // dispatch is parsed, which has not happened yet while the
+            // enclosing clause is still folding
+            let clause_head = pending_heads.contains(&x.offset)
+                || x.op == Op::DUP_TOP
+                || (x.op == Op::POP_TOP
+                    && self.instrs.get(k + 1).map(|y| y.op) == Some(Op::POP_TOP)
+                    && self.instrs.get(k + 2).map(|y| y.op) == Some(Op::POP_TOP));
+            if clause_head {
+                let mut m = k;
+                let mut exit_after = None;
+                let mut is_clause = true;
+                while m < self.instrs.len() {
+                    match self.instrs[m].op {
+                        Op::POP_EXCEPT => {
+                            exit_after = Some(m + 1);
+                            break;
+                        }
+                        // a cleanup tail (POP x3; END_FINALLY) or a
+                        // re-raise stub is NOT a clause body — hopping
+                        // over it would swallow the real statements
+                        // that follow (csv 3.5/3.6 has_header lost its
+                        // source-level continue)
+                        Op::END_FINALLY | Op::RERAISE => {
+                            is_clause = false;
+                            break;
+                        }
+                        _ => m += 1,
+                    }
+                    if m - k > 400 {
+                        is_clause = false;
+                        break;
+                    }
+                }
+                if is_clause {
+                    match exit_after {
+                        Some(a) => {
+                            k = a + 1;
+                            continue;
+                        }
+                        None => return saw_real,
+                    }
+                }
+            }
             if let Some(le) = loop_end {
                 if x.offset >= le {
                     return saw_real;
@@ -22777,16 +22957,14 @@ if split_cond {
             }
             if let Some(es) = chain_es {
                 if x.offset >= es && x.offset < chain_ee {
+                    k += 1;
                     continue;
                 }
             }
-            match x.op {
+            let stop = match x.op {
                 Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP | Op::JUMP_BACKWARD_NO_INTERRUPT
-                    if x.is_backward =>
-                {
-                    return saw_real;
-                }
-                Op::POP_BLOCK | Op::FOR_ITER => return saw_real,
+                    if x.is_backward => true,
+                Op::POP_BLOCK | Op::FOR_ITER => true,
                 Op::POP_TOP | Op::POP_EXCEPT | Op::END_FINALLY | Op::RERAISE
                 | Op::DUP_TOP | Op::COPY | Op::SWAP | Op::NOP | Op::NOT_TAKEN
                 | Op::CACHE | Op::EXTENDED_ARG | Op::LOAD_CONST
@@ -22797,9 +22975,16 @@ if split_cond {
                 | Op::JUMP_IF_NOT_EXC_MATCH | Op::CHECK_EXC_MATCH
                 | Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_IF_TRUE
                 | Op::POP_JUMP_FORWARD_IF_FALSE | Op::POP_JUMP_FORWARD_IF_TRUE
-                | Op::JUMP_IF_FALSE_OR_POP | Op::JUMP_IF_TRUE_OR_POP => {}
-                _ => saw_real = true,
+                | Op::JUMP_IF_FALSE_OR_POP | Op::JUMP_IF_TRUE_OR_POP => false,
+                _ => {
+                    saw_real = true;
+                    false
+                }
+            };
+            if stop {
+                return saw_real;
             }
+            k += 1;
         }
         saw_real
     }

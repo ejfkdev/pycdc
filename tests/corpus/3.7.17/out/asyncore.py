@@ -436,11 +436,11 @@ def close_all(map=None, ignore_all=False):
                 pass
             elif not ignore_all:
                 raise
-            continue
         except _reraised_exceptions:
             raise
-    if not ignore_all:
-        raise
+        except:
+            if not ignore_all:
+                raise
     map.clear()
 
 if os.name == 'posix':
