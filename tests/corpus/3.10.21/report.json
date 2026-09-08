@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 16,
-  "SIG-DIFF": 20,
+  "PASS": 17,
+  "SIG-DIFF": 19,
   "INCOMPLETE": 4
  },
  "results": [
@@ -17,11 +17,11 @@
   },
   {
    "module": "_bootsubprocess",
-   "ast_detail": "diff at token 89: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 48: orig  body=[Try(body=[If(test=Compare(left=Attribute(value=Name(id='self' | dec  body=[Expr(value=Call(func=Attribute(value=Name(id='os'",
    "verdict": "SIG-DIFF",
-   "ndiff": 271,
+   "ndiff": 294,
    "ntotal": 364,
-   "detail": "line 60: orig ('POP_JUMP_IF_FALSE', 'to 122') | got ('POP_JUMP_IF_FALSE', 'to 132')\nline 61: orig ('SETUP_FINALLY', 'to 110') | got ('SETUP_FINALLY', 'to 120')\nline 79: orig ('JUMP_FORWARD', 'to 92') | got ('JUMP_FORWARD', 'to 102')"
+   "detail": "line 60: orig ('POP_JUMP_IF_FALSE', 'to 122') | got ('POP_JUMP_IF_FALSE', 'to 28')\nline 61: orig ('SETUP_FINALLY', 'to 110') | got ('LOAD_GLOBAL', 'os')\nline 62: orig ('LOAD_FAST', 'self') | got ('LOAD_METHOD', '_exit')"
   },
   {
    "module": "_collections_abc",
@@ -55,8 +55,8 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 311: orig  body=[Pass()])] | dec  body=[Return(value=Name(id='_SYSTEM_VERSION'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1097,
-   "ntotal": 1422,
+   "ndiff": 1093,
+   "ntotal": 1421,
    "detail": "line 289: orig ('POP_JUMP_IF_FALSE', 'to 128') | got ('POP_JUMP_IF_FALSE', 'to 130')\nline 300: orig ('JUMP_FORWARD', 'to 50') | got ('JUMP_FORWARD', 'to 52')\nline 303: orig ('JUMP_IF_NOT_EXC_MATCH', 'to 48') | got ('JUMP_IF_NOT_EXC_MATCH', 'to 50')"
   },
   {
@@ -155,11 +155,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 312: orig  body=[Continue()])] | dec  body=[Pass()])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 23,
-   "ntotal": 679,
-   "detail": "line 564: orig ('POP_JUMP_IF_FALSE', 'to 444') | got ('POP_JUMP_IF_FALSE', 'to 446')\nline 641: orig ('POP_BLOCK', '') | got ('LOAD_FAST', 'parser')\nline 642: orig ('LOAD_FAST', 'parser') | got ('POP_BLOCK', '')"
+   "verdict": "PASS"
   },
   {
    "module": "calendar",

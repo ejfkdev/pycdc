@@ -427,6 +427,11 @@ struct Ctx<'a> {
     /// EOFError chain; pushing that Try into the loop body ordered it
     /// BEFORE the outer Try emitted at the back edge — rotated body)
     chain_absorb_body: Option<Vec<Stmt>>,
+    /// offset of a 3.10 sunk value-return copy suppressed by
+    /// sunk_value_return_mirror — an If whose then arm ends with it had
+    /// its else-skip jump replaced by the sink, so the else region must
+    /// be rebuilt at the If close (cProfile 3.10 main)
+    sunk_return_fold_at: Option<usize>,
     /// 3.12+ relocated chains: a nested region whose chain head lies
     /// past its enclosing merged region's body end defers its own
     /// emit_try_tail — the enclosing rebuild parses the nested chain
@@ -738,6 +743,7 @@ pub fn decompile_in_scope(
         legacy_body_redirect: None,
         pending_loop_close_at_chain: None,
         chain_absorb_body: None,
+        sunk_return_fold_at: None,
         nested_tail_defer: false,
         pending_try_handlers: Vec::new(),
         pending_loop: Vec::new(),
@@ -7033,6 +7039,71 @@ impl<'a> Ctx<'a> {
                                         return;
                                     }
                                 }
+                            }
+                        }
+                    }
+                }
+                // 3.10 sunk-copy else rebuild: the then arm's else-skip
+                // jump was replaced by a sunk `LOAD v; RETURN` (suppressed
+                // and recorded) — the region from this If's end to the
+                // function's final return run is the else arm
+                if b.else_end.is_none()
+                    && !body.is_empty()
+                    && self
+                        .sunk_return_fold_at
+                        .map_or(false, |fo| fo > b.start && fo < pos)
+                {
+                    self.sunk_return_fold_at = None;
+                    let n = self.instrs.len();
+                    let final_ret = (n >= 2)
+                        .then(|| self.instrs[n - 1].offset)
+                        .filter(|_| {
+                            matches!(
+                                self.instrs[n - 1].op,
+                                Op::RETURN_VALUE | Op::RETURN_CONST
+                            )
+                        });
+                    if let Some(fr) = final_ret {
+                        if fr > pos {
+                            // find the start of the final return's value
+                            // run — the else arm ends there
+                            let is_pad = |x: &crate::bytecode::Instruction| {
+                                matches!(
+                                    x.op,
+                                    Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                                        | Op::EXTENDED_ARG
+                                )
+                            };
+                            let mut fb = n - 1;
+                            let mut fhops = 0;
+                            while fb > 0 && fhops < 8 {
+                                let p = &self.instrs[fb - 1];
+                                if is_pad(p)
+                                    || matches!(
+                                        p.op,
+                                        Op::LOAD_FAST
+                                            | Op::LOAD_NAME
+                                            | Op::LOAD_GLOBAL
+                                            | Op::LOAD_DEREF
+                                            | Op::LOAD_CONST
+                                            | Op::LOAD_ATTR
+                                            | Op::LOAD_METHOD
+                                    )
+                                {
+                                    fb -= 1;
+                                    fhops += 1;
+                                    continue;
+                                }
+                                break;
+                            }
+                            let else_stop = self.instrs[fb].offset;
+                            if else_stop > pos {
+                                let mut else_blk =
+                                    Block::new(BlockType::Else, pos, else_stop);
+                                else_blk.cond = Some(cond.clone());
+                                self.pending_then.push(body);
+                                self.blocks.push(else_blk);
+                                return;
                             }
                         }
                     }
@@ -25802,6 +25873,295 @@ impl<'a> Ctx<'a> {
         j >= 2 && is_ret(j - 1) && is_none_load(j - 2)
     }
 
+    /// 3.10 value-return sunk copies: when a post-if/else merge
+    /// `return v` is the function's last statement, the compiler sinks
+    /// an identical `LOAD v; RETURN` copy into every early exit (try
+    /// body end, handler exit) so each path terminates in place. The
+    /// copies are machinery: rendering them duplicates the return in
+    /// the body/handler and blocks the flat-render recompile from
+    /// regenerating the sinks (cProfile 3.10 main: `return parser`
+    /// inside the try body and the BrokenPipeError clause). Detect by
+    /// an exact normalized-run mirror against the function's FINAL
+    /// return run, with the copy sitting at the chain body end or
+    /// inside the chain span.
+    fn sunk_value_return_mirror(&self, ret_offset: usize) -> bool {
+        if !self.version.at_least(3, 10)
+            || self.version.at_least(3, 11)
+            || self.code.is_generator()
+            || self.code.is_async_generator()
+            || self.code.name == "<module>"
+        {
+            return false;
+        }
+        let Some(l) = self.legacy_try.as_ref().map(|l| l.handler_start) else {
+            return false;
+        };
+        let Some(&ri) = self.idx_of.get(&ret_offset) else {
+            return false;
+        };
+        let is_pad = |x: &crate::bytecode::Instruction| {
+            matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG)
+        };
+        let norm = |x: &crate::bytecode::Instruction| (x.op as u8, x.arg);
+        // value run before this return (bounded)
+        let mut b = ri;
+        let mut hops = 0;
+        while b > 0 && hops < 8 {
+            let p = &self.instrs[b - 1];
+            if is_pad(p) {
+                b -= 1;
+                hops += 1;
+                continue;
+            }
+            if matches!(
+                p.op,
+                Op::LOAD_FAST
+                    | Op::LOAD_NAME
+                    | Op::LOAD_GLOBAL
+                    | Op::LOAD_DEREF
+                    | Op::LOAD_CONST
+                    | Op::LOAD_ATTR
+                    | Op::LOAD_METHOD
+            ) {
+                b -= 1;
+                hops += 1;
+                continue;
+            }
+            break;
+        }
+        let run_a: Vec<(u8, u32)> = self.instrs[b..=ri]
+            .iter()
+            .filter(|x| !is_pad(x))
+            .map(norm)
+            .collect();
+        if run_a.len() < 2
+            || !matches!(
+                run_a.last().map(|t| t.0),
+                Some(op) if op == Op::RETURN_VALUE as u8
+            )
+        {
+            return false;
+        }
+        // position: body end (next meaningful == handler head) or inside
+        // the chain span
+        let next_meaningful = self.instrs[ri + 1..]
+            .iter()
+            .find(|x| !is_pad(x))
+            .map(|x| x.offset);
+        let chain_end = self.chain_extent(l);
+        let at_body_end = next_meaningful == Some(l);
+        // inside the chain, a sunk copy sits on the clause's EXIT path —
+        // past its POP_EXCEPT (and any as-cleanup). A genuine `return v`
+        // INSIDE a clause body can mirror the function tail exactly
+        // (crypt 3.10 _add_method: `if e.errno in {...}: return False`
+        // mirrors the final `return False`) and must not be dropped
+        let in_chain = ret_offset > l
+            && ret_offset < chain_end
+            && self
+                .idx_of
+                .get(&l)
+                .zip(self.idx_of.get(&ret_offset))
+                .map_or(false, |(&hi, &ri2)| {
+                    self.instrs[hi..ri2].iter().any(|x| x.op == Op::POP_EXCEPT)
+                });
+        if !at_body_end && !in_chain {
+            return false;
+        }
+        // the function's final return run must mirror this one exactly
+        let n = self.instrs.len();
+        if n < 2 || ri >= n - 2 {
+            return false;
+        }
+        let mut f = n - 1;
+        if !matches!(
+            self.instrs[f].op,
+            Op::RETURN_VALUE | Op::RETURN_CONST
+        ) {
+            return false;
+        }
+        let mut fb = f;
+        let mut fhops = 0;
+        while fb > 0 && fhops < 8 {
+            let p = &self.instrs[fb - 1];
+            if is_pad(p)
+                || matches!(
+                    p.op,
+                    Op::LOAD_FAST
+                        | Op::LOAD_NAME
+                        | Op::LOAD_GLOBAL
+                        | Op::LOAD_DEREF
+                        | Op::LOAD_CONST
+                        | Op::LOAD_ATTR
+                        | Op::LOAD_METHOD
+                )
+            {
+                fb -= 1;
+                fhops += 1;
+                continue;
+            }
+            break;
+        }
+        let run_f: Vec<(u8, u32)> = self.instrs[fb..=f]
+            .iter()
+            .filter(|x| !is_pad(x))
+            .map(norm)
+            .collect();
+        if run_f != run_a || self.instrs[f].offset <= chain_end {
+            return false;
+        }
+        // a sunk copy is the clause's LAST flow: only compiler stub
+        // material may follow it (bounded window). A source-level
+        // `return v` inside a handler is followed by the rest of the
+        // clause (`raise` -> RAISE_VARARGS, more matches, real
+        // statements) — crypt 3.10 _add_method's `if e.errno in {...}:
+        // return False` mirrors the final `return False` exactly and
+        // rendered `pass` under the position-only form. The try-body-end
+        // copy (at_body_end) is exempt: its chain lies AHEAD
+        if in_chain {
+            // scan bound: the chain's own extent, extended over trailing
+            // stub runs to the first mainline instruction
+            let mut scan_bound = chain_end;
+            if let Some(&ci2) = self.idx_of.get(&chain_end) {
+                for x in self.instrs[ci2..].iter().take(16) {
+                    if matches!(
+                        x.op,
+                        Op::RERAISE | Op::END_FINALLY | Op::POP_EXCEPT
+                            | Op::POP_TOP | Op::COPY | Op::SWAP | Op::NOP
+                            | Op::NOT_TAKEN | Op::CACHE
+                    ) {
+                        scan_bound = x.end();
+                    } else {
+                        break;
+                    }
+                }
+            }
+            // every normal exit of the chain must carry an identical copy
+        // (the compiler sinks the merge return into ALL of them). A
+        // clause whose body merely ENDS in a matching return with
+        // another exit falling through to the real tail is a genuine
+        // source return (code 3.10 runsource Case-1 `return False` vs
+        // the final `return False`)
+        {
+            let run_at = |idx: usize| -> Option<Vec<(u8, u32)>> {
+                if !matches!(
+                    self.instrs.get(idx).map(|x| x.op),
+                    Some(Op::RETURN_VALUE) | Some(Op::RETURN_CONST)
+                ) {
+                    return None;
+                }
+                let mut bb = idx;
+                let mut hh = 0;
+                while bb > 0 && hh < 8 {
+                    let p = &self.instrs[bb - 1];
+                    if is_pad(p)
+                        || matches!(
+                            p.op,
+                            Op::LOAD_FAST
+                                | Op::LOAD_NAME
+                                | Op::LOAD_GLOBAL
+                                | Op::LOAD_DEREF
+                                | Op::LOAD_CONST
+                                | Op::LOAD_ATTR
+                                | Op::LOAD_METHOD
+                        )
+                    {
+                        bb -= 1;
+                        hh += 1;
+                        continue;
+                    }
+                    break;
+                }
+                Some(
+                    self.instrs[bb..=idx]
+                        .iter()
+                        .filter(|x| !is_pad(x))
+                        .map(norm)
+                        .collect(),
+                )
+            };
+            let mut exits = 0usize;
+            let mut copies = 0usize;
+            if let Some(&hi) = self.idx_of.get(&l) {
+                // the body-end copy sits immediately before the chain
+                // head (at_body_end branch) — count it too
+                let wstart = hi.saturating_sub(6);
+                for k in wstart..hi {
+                    if matches!(
+                        self.instrs[k].op,
+                        Op::RETURN_VALUE | Op::RETURN_CONST
+                    ) && run_at(k).as_ref() == Some(&run_a)
+                    {
+                        copies += 1;
+                    }
+                }
+                for k in hi..self.instrs.len() {
+                    let x = &self.instrs[k];
+                    if x.offset >= scan_bound {
+                        break;
+                    }
+                    let is_exit_jump = match x.op {
+                        Op::JUMP_FORWARD | Op::JUMP => !x.is_backward,
+                        Op::JUMP_ABSOLUTE => false,
+                        _ => false,
+                    };
+                    if is_exit_jump
+                        && x.target.map_or(false, |t| t >= scan_bound)
+                    {
+                        exits += 1;
+                    }
+                    if matches!(
+                        x.op,
+                        Op::RETURN_VALUE | Op::RETURN_CONST
+                    ) && run_at(k).as_ref() == Some(&run_a)
+                    {
+                        copies += 1;
+                    }
+                }
+            }
+            // this return + any body-end copy are the copies; a
+            // fall-through exit (no jump) with no copy disqualifies
+            if copies + exits != 2 {
+                return false;
+            }
+        }
+        // stubs are allowed until the chain's terminating RERAISE run
+            // has been seen; the first non-stub AFTER that is the resumed
+            // mainline flow (cProfile 3.10: the else arm's LOAD parser
+            // follows the chain's RERAISE stubs), while a non-stub BEFORE
+            // it is more clause code (crypt's RAISE_VARARGS)
+            let mut saw_reraise = false;
+            for x in self.instrs[ri + 1..].iter().take(14) {
+                match x.op {
+                    Op::RERAISE => saw_reraise = true,
+                    Op::END_FINALLY
+                    | Op::POP_EXCEPT
+                    | Op::POP_TOP
+                    | Op::COPY
+                    | Op::SWAP
+                    | Op::LOAD_CONST
+                    | Op::STORE_FAST
+                    | Op::STORE_NAME
+                    | Op::STORE_DEREF
+                    | Op::DELETE_FAST
+                    | Op::DELETE_NAME
+                    | Op::DELETE_DEREF
+                    | Op::NOP
+                    | Op::NOT_TAKEN
+                    | Op::CACHE
+                    | Op::JUMP_FORWARD
+                    | Op::JUMP => {}
+                    _ => {
+                        if !saw_reraise {
+                            return false;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        true
+    }
+
     fn sunk_tail_terminator(&self, ret_offset: usize, is_none_value: bool) -> bool {
         if !is_none_value
             || !self.version.at_least(3, 10)
@@ -26016,6 +26376,13 @@ impl<'a> Ctx<'a> {
         if self.legacy_handler.is_none()
             && self.sunk_tail_terminator(self.cur_offset, is_none_value)
         {
+            return;
+        }
+        // 3.10 value-return sunk copy of the function's final return
+        // (try body end / handler exit): drop it — the merge return
+        // renders from the main flow (cProfile 3.10 main)
+        if !is_none_value && self.sunk_value_return_mirror(self.cur_offset) {
+            self.sunk_return_fold_at = Some(self.cur_offset);
             return;
         }
         // <=3.10: the function-tail `LOAD None; RETURN` epilogue reached
