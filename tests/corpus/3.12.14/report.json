@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 17,
-  "SIG-DIFF": 17,
+  "PASS": 18,
+  "SIG-DIFF": 16,
   "INCOMPLETE": 5,
   "AST-PASS": 1
  },
@@ -128,11 +128,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 285: orig  body=[If(test=Attribute(value=Name(id='entry' | dec  body=[If(test=UnaryOp(op=Not()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1,
-   "ntotal": 699,
-   "detail": "line 586: orig ('JUMP_FORWARD', 'to 994') | got ('JUMP_FORWARD', 'to 870')"
+   "verdict": "PASS"
   },
   {
    "module": "calendar",

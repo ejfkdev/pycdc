@@ -22582,7 +22582,32 @@ if split_cond {
                     .iter()
                     .skip_while(|i| i.offset < t)
                     .take_while(|i| i.offset < limit)
-                    .any(|i| i.is_backward && i.target == Some(t));
+                    .any(|i| i.is_backward && i.target == Some(t))
+                // 3.12 with-cleanup REJOIN: the out-of-line exception
+                // cleanup (WITH_EXCEPT_START; ... POP_EXCEPT; POP_TOPs)
+                // resumes the main flow with a JUMP_BACKWARD to the
+                // with's success exit — that landing point is machinery,
+                // not an early region boundary (cProfile 3.12 main: the
+                // else arm truncated at the with exit, `spec`/`globs`/
+                // try ejected to the outer level and `progname` read
+                // unbound on the -m path)
+                || self.instrs.iter().any(|i| {
+                    i.is_backward
+                        && i.target == Some(t)
+                        && self
+                            .idx_of
+                            .get(&i.offset)
+                            .map_or(false, |&ii| {
+                                self.instrs[ii.saturating_sub(8)..ii]
+                                    .iter()
+                                    .any(|p| {
+                                        matches!(
+                                            p.op,
+                                            Op::WITH_EXCEPT_START
+                                        )
+                                    })
+                            })
+                });
             if !internal {
                 best = t;
             }
