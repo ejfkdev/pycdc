@@ -193,17 +193,17 @@ class InteractiveConsole(InteractiveInterpreter):
         more = 0
         while True:
             try:
-                line = self.raw_input(prompt)
-            except EOFError:
-                self.write('\n')
-                break
-            else:
-                more = self.push(line)
-            try:
                 if more:
                     prompt = sys.ps2
                 else:
                     prompt = sys.ps1
+                try:
+                    line = self.raw_input(prompt)
+                except EOFError:
+                    self.write('\n')
+                    break
+                else:
+                    more = self.push(line)
             except KeyboardInterrupt:
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()

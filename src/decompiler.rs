@@ -419,6 +419,14 @@ struct Ctx<'a> {
     /// precedes the out-of-line handler in layout — defer the loop close
     /// until the chain folds so the Try lands inside the loop body
     pending_loop_close_at_chain: Option<usize>,
+    /// a chain Try folded at the POP_BLOCK that CREATED a new chain
+    /// while the enclosing loop stays open for that new chain: the Try
+    /// belongs to the new chain's body, not the enclosing block — hold
+    /// it here and let push_legacy_try absorb it at the new chain's fold
+    /// (code 3.10 interact: the outer try's POP_BLOCK folds the inner
+    /// EOFError chain; pushing that Try into the loop body ordered it
+    /// BEFORE the outer Try emitted at the back edge — rotated body)
+    chain_absorb_body: Option<Vec<Stmt>>,
     pending_try_handlers: Vec<Vec<ExceptHandler>>,
     pending_loop: Vec<(Option<ExprRef>, Option<ExprRef>, Option<ExprRef>, Vec<Stmt>, bool)>,
     pending_with: Vec<Vec<WithItem>>,
@@ -721,6 +729,7 @@ pub fn decompile_in_scope(
         pending_orelse_mark: None,
         legacy_body_redirect: None,
         pending_loop_close_at_chain: None,
+        chain_absorb_body: None,
         pending_try_handlers: Vec::new(),
         pending_loop: Vec::new(),
         pending_with: Vec::new(),
@@ -7308,7 +7317,39 @@ impl<'a> Ctx<'a> {
                         // fold the completed inner chain FIRST so its Try
                         // statement is in place before the enclosing chain
                         // starts collecting
+                        //
+                        // when the folded chain's protected region lies
+                        // INSIDE this closing Try block's span, its Try is
+                        // lexically part of the new chain's body (`body`
+                        // below): absorb it instead of leaving it as an
+                        // enclosing-block sibling that would render ahead
+                        // of the outer Try (code 3.10 interact: the outer
+                        // try's POP_BLOCK folds the inner EOFError chain
+                        // [164,222) inside the outer span [146,224); the
+                        // loop-body push ordered the inner Try BEFORE the
+                        // outer Try emitted at the back edge — rotated
+                        // body). Chains outside the span (inside the
+                        // region's else, or already-pushed enclosing
+                        // chains) keep the historical sibling push.
+                        let absorb = p.handler_start >= b.start
+                            && p.handler_start < b.end
+                            && self.chain_absorb_body.is_none();
+                        let before =
+                            self.blocks.last().map(|b| b.stmts.len()).unwrap_or(0);
                         self.push_legacy_try(p);
+                        if absorb {
+                            let taken = self
+                                .blocks
+                                .last_mut()
+                                .filter(|b| {
+                                    b.stmts.len() == before + 1
+                                        && matches!(b.stmts.last(), Some(Stmt::Try { .. }))
+                                })
+                                .and_then(|b| b.stmts.pop());
+                            if let Some(st) = taken {
+                                self.chain_absorb_body = Some(vec![st]);
+                            }
+                        }
                     }
                     self.legacy_try = Some(LegacyTry {
                         body,
@@ -13232,12 +13273,31 @@ impl<'a> Ctx<'a> {
     }
 
     fn push_legacy_try(&mut self, l: LegacyTry) {
-        let try_stmt = Stmt::Try {
+        let mut try_stmt = Stmt::Try {
             body: l.body,
             handlers: l.handlers,
             orelse: l.orelse,
             finalbody: l.finalbody,
         };
+        // a chain Try absorbed for THIS chain's body (armed at the
+        // POP_BLOCK that created the chain, see chain_absorb_body):
+        // merge it into the body — before any trailing returns — so it
+        // renders INSIDE this try, then route the merged statement
+        // normally. Only while the loop is still open for the chain
+        // (once the loop closed, the holder is stale)
+        if self.pending_loop_close_at_chain.is_none() {
+            if let Some(stash) = self.chain_absorb_body.take() {
+                if let Stmt::Try { body, .. } = &mut try_stmt {
+                    let mut at = body.len();
+                    while at > 0 && matches!(body[at - 1], Stmt::Return(_)) {
+                        at -= 1;
+                    }
+                    for (k, st) in stash.into_iter().enumerate() {
+                        body.insert(at + k, st);
+                    }
+                }
+            }
+        }
         // swap-in fold: route into the swapped-out chain's body (it may
         // be active again already — the fold path restores the nest
         // BEFORE pushing) or still stashed

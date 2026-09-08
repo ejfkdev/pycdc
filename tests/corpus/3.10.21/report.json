@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 11,
-  "SIG-DIFF": 18,
+  "PASS": 12,
+  "SIG-DIFF": 17,
   "INCOMPLETE": 11
  },
  "results": [
@@ -205,11 +205,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 252: orig  Continue()] | dec  Return()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 157,
-   "ntotal": 669,
-   "detail": "line 508: orig ('SETUP_FINALLY', 'to 224') | got ('SETUP_FINALLY', 'to 160')\nline 509: orig ('LOAD_FAST', 'more') | got ('LOAD_FAST', 'self')\nline 510: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('LOAD_METHOD', 'raw_input')"
+   "verdict": "PASS"
   },
   {
    "module": "codecs",
