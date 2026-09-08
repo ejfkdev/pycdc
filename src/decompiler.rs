@@ -22694,6 +22694,7 @@ if split_cond {
                     // THIS loop's unconditional back edge (not a nested
                     // loop's)
                     let loop_start = self.blocks[i].start;
+                    let loop_end = self.blocks[i].end;
                     if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
                         for inst in self.instrs.iter().skip(ci + 1) {
                             if inst.is_backward
@@ -22789,12 +22790,22 @@ if split_cond {
                                                 Op::NOP | Op::NOT_TAKEN | Op::CACHE
                                             )
                                     });
-                                let is_break_chunk = prev_real.map_or(false, |k2| {
-                                    matches!(
-                                        self.instrs[k2].op,
-                                        Op::POP_TOP | Op::POP_ITER
-                                    )
-                                });
+                                // a forward jump onto THIS loop's own
+                                // registered exit is the break itself
+                                // (3.8 while-True break is a bare
+                                // JABS->exit with no iterator pop —
+                                // codecs 3.8 StreamReader.read `if not
+                                // newdata: break`); a POP_TOP/POP_ITER
+                                // prefix marks the for-break idiom
+                                let is_break_chunk = inst
+                                    .target
+                                    .map_or(false, |t| t == loop_end)
+                                    || prev_real.map_or(false, |k2| {
+                                        matches!(
+                                            self.instrs[k2].op,
+                                            Op::POP_TOP | Op::POP_ITER
+                                        )
+                                    });
                                 if !is_break_chunk {
                                     break;
                                 }
@@ -23409,7 +23420,15 @@ if split_cond {
                         | Op::POP_JUMP_FORWARD_IF_FALSE
                         | Op::POP_JUMP_IF_TRUE
                         | Op::POP_JUMP_FORWARD_IF_TRUE => {
-                            depth += 1;
+                            // an and-chain sibling operand exiting to the
+                            // SAME loop exit is not nesting (codecs 3.8
+                            // readline `if line and not keepends: ...
+                            // break` — the depth bump hid the terminal
+                            // break jump and the first link flipped to a
+                            // phantom `if not line: break`)
+                            if x.target != Some(target) {
+                                depth += 1;
+                            }
                         }
                         Op::RETURN_VALUE | Op::RETURN_CONST | Op::RERAISE => {
                             break;
@@ -23585,6 +23604,109 @@ if split_cond {
                 }
             }
         }
+        // an If opened here whose merge `target` is also the else_end of
+        // an enclosing already-closed-arm If would swallow that else arm
+        // (codecs 3.8 StreamReader.read: the handler's `if firstline:`
+        // then-arm ends in `if len(lines)<=1: raise` whose no-else merge
+        // is the POP_BLOCK PAST the outer `else: raise` — the flat inner
+        // span ran the outer else raise into the inner then arm and lost
+        // the arm-end JUMP_FORWARD). Clamp the span at the outer arm end
+        // when the region between holds no other jump into [arm_end,
+        // target): the arm is entered only by the outer cond jump, which
+        // has already been consumed
+        let mut if_end = target;
+        if !self.version.at_least(3, 11) {
+            if let Some((outer_end, outer_else)) = self
+                .blocks
+                .iter()
+                .rev()
+                .find(|b| {
+                    matches!(b.kind, BlockType::If)
+                        && !b.jump_if_true
+                        && b.else_end.is_none()
+                        && b.end < target
+                        && b.end > self.cur_next
+                })
+                .map(|b| (b.end, target))
+            {
+                // the outer's else-arm span [outer_end, target) must be a
+                // plain terminator region (no jumps, at most a couple of
+                // instructions), and this body's region must not jump
+                // INTO the arm — the arm is entered only by the outer
+                // cond jump, which has already been consumed
+                let arm_plain = match (
+                    self.idx_of.get(&outer_end),
+                    self.idx_of.get(&target),
+                ) {
+                    (Some(&ae), Some(&be)) => {
+                        be > ae
+                            && be - ae <= 3
+                            && self.instrs[ae..be]
+                                .iter()
+                                .all(|x| x.target.is_none())
+                    }
+                    _ => false,
+                };
+                // the inner then-arm must end in a terminator (its
+                // arm-end skip is then fused with the else-skip by the
+                // compiler, which is why the inner merge overshoots the
+                // arm) — a plain inner if keeps its own arm-end skip and
+                // the clamp would steal the OUTER else arm (py2
+                // CGIHTTPServer translate_path `if path_parts: ... else:
+                // tail_part = ''` reattached to the inner `if tail_part:`)
+                let then_terminates = self
+                    .idx_of
+                    .get(&outer_end)
+                    .map_or(false, |&be_idx| {
+                        let mut t = be_idx;
+                        while t > 0 {
+                            t -= 1;
+                            let p = &self.instrs[t];
+                            if matches!(
+                                p.op,
+                                Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                            ) {
+                                continue;
+                            }
+                            // step over the arm-end skip(s) fused onto
+                            // the inner merge
+                            if !p.is_backward
+                                && matches!(
+                                    p.op,
+                                    Op::JUMP_FORWARD
+                                        | Op::JUMP
+                                        | Op::JUMP_ABSOLUTE
+                                )
+                                && p.target == Some(target)
+                            {
+                                continue;
+                            }
+                            return matches!(
+                                p.op,
+                                Op::RETURN_VALUE
+                                    | Op::RETURN_CONST
+                                    | Op::RAISE_VARARGS
+                                    | Op::RERAISE
+                            );
+                        }
+                        false
+                    });
+                let span_clean = self
+                    .idx_of
+                    .get(&self.cur_next)
+                    .zip(self.idx_of.get(&outer_end))
+                    .map_or(false, |(a, b)| {
+                        self.instrs[*a..*b].iter().all(|x| {
+                            x.target.map_or(true, |t| {
+                                t < outer_end || t >= outer_else
+                            })
+                        })
+                    });
+                if arm_plain && then_terminates && span_clean {
+                    if_end = outer_end;
+                }
+            }
+        }
         // 7) regular if statement: the fall-through region [next, target)
         // is the then-body. With POP_JUMP_IF_TRUE the fall-through runs when
         // the condition is false, so negate.
@@ -23657,7 +23779,7 @@ if split_cond {
             }
             _ => None,
         };
-        let blk_end = chain_merge.unwrap_or(target);
+        let blk_end = chain_merge.unwrap_or(if_end);
         let mut blk = Block::new(BlockType::If, self.cur_next, blk_end);
         blk.merge_pos = value_merge.is_some();
         blk.value_merge = value_merge;
@@ -31730,22 +31852,40 @@ impl<'a> Ctx<'a> {
             if inst.op == Op::MAKE_CLOSURE {
                 let _closure = self.pop_expr();
             }
+            // stack order of the flat kwdefault pairs vs the positional
+            // defaults flipped between 3.4 and 3.5: <=3.4 pushes the kw
+            // pairs FIRST (defaults on top: configparser 3.3 get()),
+            // 3.5+ pushes the defaults first (kw pairs on top — codecs
+            // 3.5 CodecInfo.__new__ mis-assigned the kw pair name as a
+            // positional default when the pops ran in the wrong order)
             let mut defaults = Vec::new();
-            for _ in 0..ndefaults {
-                defaults.push(self.pop_expr());
-            }
-            defaults.reverse();
             let mut kw_pairs: Vec<(String, ExprRef)> = Vec::new();
-            for _ in 0..nkw_pairs {
-                let v = self.pop_expr();
-                let n = self.pop_expr();
-                if let Expr::Const(o) = &*n {
-                    if let PyObject::Str(s) = &**o {
-                        kw_pairs.push((s.clone(), v));
+            let pop_defaults = |slf: &mut Self, out: &mut Vec<ExprRef>| {
+                for _ in 0..ndefaults {
+                    out.push(slf.pop_expr());
+                }
+                out.reverse();
+            };
+            let pop_kw = |slf: &mut Self,
+                          out: &mut Vec<(String, ExprRef)>| {
+                for _ in 0..nkw_pairs {
+                    let v = slf.pop_expr();
+                    let n = slf.pop_expr();
+                    if let Expr::Const(o) = &*n {
+                        if let PyObject::Str(s) = &**o {
+                            out.push((s.clone(), v));
+                        }
                     }
                 }
+                out.reverse();
+            };
+            if self.version.at_least(3, 5) {
+                pop_kw(self, &mut kw_pairs);
+                pop_defaults(self, &mut defaults);
+            } else {
+                pop_defaults(self, &mut defaults);
+                pop_kw(self, &mut kw_pairs);
             }
-            kw_pairs.reverse();
             params = self.build_params_legacy(&code_obj, defaults, kw_pairs);
         }
 

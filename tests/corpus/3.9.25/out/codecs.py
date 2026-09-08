@@ -423,10 +423,12 @@ class StreamReader(Codec):
                     lines = newchars.splitlines(keepends=True)
                     if len(lines) <= 1:
                         raise
+                    else:
                         raise
             self.bytebuffer = data[decodedbytes:]
             self.charbuffer += newchars
-            break
+            if not newdata:
+                break
         if chars < 0:
             result = self.charbuffer
             self.charbuffer = self._empty_charbuffer
@@ -485,10 +487,9 @@ class StreamReader(Codec):
                         line = line0withoutend
                     break
             if not data or size is not None:
-                if not line:
-                    break
-                if not keepends:
-                    line = line.splitlines(keepends=False)[0]
+                if line:
+                    if not keepends:
+                        line = line.splitlines(keepends=False)[0]
                 break
             if readsize < 8000:
                 readsize *= 2

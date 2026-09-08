@@ -164,11 +164,11 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1244: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 1245: orig  Continue()] | dec  Raise(exc=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 1096,
+   "ndiff": 246,
    "ntotal": 2187,
-   "detail": "line 995: orig ('SETUP_LOOP', 'to 272') | got ('SETUP_LOOP', 'to 270')\nline 1043: orig ('JUMP_FORWARD', 'to 234') | got ('JUMP_FORWARD', 'to 232')\nline 1051: orig ('SETUP_FINALLY', 'to 220') | got ('SETUP_FINALLY', 'to 218')"
+   "detail": "line 1938: orig ('SETUP_EXCEPT', 'to 88') | got ('LOAD_FAST', 'file')\nline 1939: orig ('LOAD_GLOBAL', 'lookup') | got ('LOAD_METHOD', 'close')\nline 1940: orig ('LOAD_FAST', 'encoding') | got ('CALL_METHOD', '')"
   },
   {
    "module": "codeop",

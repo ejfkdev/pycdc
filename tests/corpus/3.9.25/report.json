@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 23,
-  "SIG-DIFF": 13,
+  "PASS": 24,
+  "SIG-DIFF": 12,
   "INCOMPLETE": 4
  },
  "results": [
@@ -152,9 +152,9 @@
   {
    "module": "cgi",
    "verdict": "INCOMPLETE",
-   "ndiff": 1011,
+   "ndiff": 991,
    "ntotal": 2887,
-   "detail": "line 1834: orig ('LOAD_FAST', 'data') | got ('EXTENDED_ARG', '')\nline 1835: orig ('LOAD_METHOD', 'strip') | got ('JUMP_ABSOLUTE', '')\nline 1836: orig ('CALL_METHOD', '') | got ('EXTENDED_ARG', '')"
+   "detail": "line 1846: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 566')\nline 1847: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'self')\nline 1848: orig ('LOAD_FAST', 'self') | got ('DUP_TOP', '')"
   },
   {
    "module": "cgitb",
@@ -186,11 +186,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1064: orig  orelse=[]) | dec  orelse=[])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1092,
-   "ntotal": 2146,
-   "detail": "line 1002: orig ('JUMP_FORWARD', 'to 238') | got ('JUMP_FORWARD', 'to 236')\nline 1009: orig ('SETUP_FINALLY', 'to 228') | got ('SETUP_FINALLY', 'to 226')\nline 1039: orig ('JUMP_FORWARD', 'to 216') | got ('RAISE_VARARGS', '')"
+   "verdict": "PASS"
   },
   {
    "module": "codeop",

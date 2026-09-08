@@ -2,9 +2,9 @@
  "version": "3.5.10",
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
-  "PASS": 29,
+  "PASS": 30,
   "AST-PASS": 2,
-  "SIG-DIFF": 9
+  "SIG-DIFF": 8
  },
  "results": [
   {
@@ -153,11 +153,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 156: orig  kw_defaults=[NameConstant(value=None)] | dec  kw_defaults=[None]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1756,
-   "ntotal": 2151,
-   "detail": "line 351: orig ('LOAD_CONST', 'None') | got ('LOAD_CONST', \"'_is_text_encoding'\")\nline 353: orig ('LOAD_CONST', \"'_is_text_encoding'\") | got ('LOAD_CONST', '<code __new__>')\nline 354: orig ('LOAD_CONST', 'None') | got ('LOAD_CONST', \"'CodecInfo.__new__'\")"
+   "verdict": "PASS"
   },
   {
    "module": "codeop",
@@ -177,11 +173,11 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 2172: orig  kw_defaults=[Tuple(elts=[Str(s='=') | dec  kw_defaults=[None",
+   "ast_detail": "diff at token 3156: orig  args=[Name(id='section' | dec  args=[Name(id='raw'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2576,
+   "ndiff": 1789,
    "ntotal": 4295,
-   "detail": "line 1638: orig ('LOAD_CONST', 'None') | got ('LOAD_NAME', '_UNSET')\nline 1639: orig ('LOAD_NAME', '_default_dict') | got ('LOAD_CONST', \"'converters'\")\nline 1640: orig ('LOAD_CONST', 'False') | got ('LOAD_NAME', '_UNSET')"
+   "detail": "line 2464: orig ('SETUP_EXCEPT', 'to 41') | got ('SETUP_EXCEPT', 'to 35')\nline 2467: orig ('LOAD_FAST', 'section') | got ('LOAD_FAST', 'raw')\nline 2468: orig ('LOAD_FAST', 'conv') | got ('LOAD_CONST', \"'vars'\")"
   },
   {
    "module": "contextlib",

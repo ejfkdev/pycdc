@@ -498,7 +498,7 @@ class RawConfigParser(MutableMapping):
     OPTCRE_NV = re.compile(_OPT_NV_TMPL.format(delim='=|:'), re.VERBOSE)
     NONSPACECRE = re.compile('\\S')
     BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True, '0': False, 'no': False, 'false': False, 'off': False}
-    def __init__(self, defaults=_UNSET, dict_type='converters', allow_no_value=_UNSET, *, delimiters, comment_prefixes, inline_comment_prefixes, strict, empty_lines_in_values, default_section, interpolation, converters):
+    def __init__(self, defaults=None, dict_type=_default_dict, allow_no_value=False, *, delimiters=('=', ':'), comment_prefixes=('#', ';'), inline_comment_prefixes=None, strict=True, empty_lines_in_values=True, default_section=DEFAULTSECT, interpolation=_UNSET, converters=_UNSET):
         self._dict = dict_type
         self._sections = self._dict()
         self._defaults = self._dict()
@@ -1101,7 +1101,7 @@ class SectionProxy(MutableMapping):
     def name(self):
         return self._name
 
-    def get(self, option, fallback=None, *, raw, vars, _impl, **kwargs):
+    def get(self, option, fallback=None, *, raw=False, vars=None, _impl=None, **kwargs):
         '''Get an option value.
 
         Unless `fallback` is provided, `None` will be returned if the option

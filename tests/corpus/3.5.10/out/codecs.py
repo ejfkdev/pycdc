@@ -34,7 +34,7 @@ class CodecInfo(tuple):
     '''Codec details when looking up the codec registry'''
 
     _is_text_encoding = True
-    def __new__(cls, encode, decode, streamreader=None, streamwriter=None, incrementalencoder=None, incrementaldecoder='_is_text_encoding', name=None, *, _is_text_encoding):
+    def __new__(cls, encode, decode, streamreader=None, streamwriter=None, incrementalencoder=None, incrementaldecoder=None, name=None, *, _is_text_encoding=None):
         self = tuple.__new__(cls, (encode, decode, streamreader, streamwriter))
         self.name = name
         self.encode = encode
@@ -424,6 +424,7 @@ class StreamReader(Codec):
                     lines = newchars.splitlines(keepends=True)
                     if len(lines) <= 1:
                         raise
+                    else:
                         raise
             self.bytebuffer = data[decodedbytes:]
             self.charbuffer += newchars
