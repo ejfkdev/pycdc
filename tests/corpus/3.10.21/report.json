@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 21,
-  "SIG-DIFF": 15,
+  "PASS": 22,
+  "SIG-DIFF": 14,
   "INCOMPLETE": 4
  },
  "results": [
@@ -229,11 +229,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 569: orig  ctx=Load()))] | dec  ctx=Load()))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2,
-   "ntotal": 597,
-   "detail": "line 456: orig ('POP_BLOCK', '') | got ('LOAD_FAST', 'names')\nline 457: orig ('LOAD_FAST', 'names') | got ('POP_BLOCK', '')"
+   "verdict": "PASS"
   },
   {
    "module": "crypt",

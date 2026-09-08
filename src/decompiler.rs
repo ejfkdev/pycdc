@@ -436,6 +436,10 @@ struct Ctx<'a> {
     /// Break — the ForElse close must lift the else arm's trailing
     /// mirror Return out to function level (copy _deepcopy_tuple)
     sunk_loop_return_lift: bool,
+    /// batch-111: legacy tail-position try with the post-try return sunk
+    /// into both exits — (handler mirror start, resume offset): skip the
+    /// handler-side copy when the walk reaches it
+    sunk_pair_drop: Option<(usize, usize)>,
     /// batch-103: a `while True:` loop whose source-level post-loop
     /// `return v` was sunk into EVERY break path ([NOP] loads RETURN
     /// copies, no physical tail return past the back edge) — the first
@@ -755,6 +759,7 @@ pub fn decompile_in_scope(
         chain_absorb_body: None,
         sunk_return_fold_at: None,
         sunk_loop_return_lift: false,
+        sunk_pair_drop: None,
         sunk_while_lift: None,
         nested_tail_defer: false,
         pending_try_handlers: Vec::new(),
@@ -1527,6 +1532,17 @@ impl<'a> Ctx<'a> {
                 }
                 if e >= self.instrs.last().map_or(0, |x| x.end()) {
                     break;
+                }
+            }
+            // batch-111: skip the handler-side sunk copy of a tail
+            // try's post-try return (the function-level return renders
+            // from the success-side copy)
+            if let Some((ds, de)) = self.sunk_pair_drop {
+                if pos == ds {
+                    self.sunk_pair_drop = None;
+                    self.skip_until = Some(de);
+                    pc += 1;
+                    continue;
                 }
             }
             if self.chain_heads.contains(&pos) && inst.op == Op::PUSH_EXC_INFO {
@@ -15299,6 +15315,111 @@ impl<'a> Ctx<'a> {
                 l.else_start = None;
             }
         }
+    }
+
+    /// Legacy (3.8-3.10) tail-position try whose post-try `return v` was
+    /// SUNK into both exits (copyreg 3.10 _slotnames `try: cls.__slotnames__
+    /// = names; except: pass; return names`): the success-path copy sits
+    /// between the body's POP_BLOCK and handler_start, and the handler
+    /// region opens (after the bare-except prelude POPs) with a mirrored
+    /// copy. Detect the pair: [POP_BLOCK] [success run] RETURN
+    /// handler_start [POP_TOP*/POP_EXCEPT] [mirror run] RETURN.
+    fn legacy_sunk_pair_return(&self, lt: &LegacyTry, ret_off: usize) -> Option<usize> {
+        let hs = lt.handler_start;
+        if ret_off >= hs || !self.version.at_least(3, 8) {
+            return None;
+        }
+        let (Some(&si), Some(&hi)) =
+            (self.idx_of.get(&hs), self.idx_of.get(&ret_off))
+        else {
+            return None;
+        };
+        let is_pad = |x: &crate::bytecode::Instruction| {
+            matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG)
+        };
+        let is_load = |o: Op| {
+            matches!(
+                o,
+                Op::LOAD_FAST
+                    | Op::LOAD_NAME
+                    | Op::LOAD_GLOBAL
+                    | Op::LOAD_DEREF
+                    | Op::LOAD_CONST
+                    | Op::LOAD_ATTR
+                    | Op::LOAD_METHOD
+            )
+        };
+        let norm = |x: &crate::bytecode::Instruction| (x.op as u8, x.arg);
+        // success run: back-walk from the return over loads/pads
+        let mut b = hi;
+        let mut hops = 0;
+        while b > 0 && hops < 8 {
+            let p = &self.instrs[b - 1];
+            if is_pad(p) || is_load(p.op) {
+                b -= 1;
+                hops += 1;
+                continue;
+            }
+            break;
+        }
+        let run_a: Vec<(u8, u32)> = self.instrs[b..=hi]
+            .iter()
+            .filter(|x| !is_pad(x))
+            .map(norm)
+            .collect();
+        if run_a.len() < 2
+            || !matches!(run_a.last().map(|t| t.0), Some(op) if op == Op::RETURN_VALUE as u8)
+        {
+            return None;
+        }
+        // the run must start right after the body's POP_BLOCK (+pads)
+        let mut after_pop_block = false;
+        {
+            let mut k = b;
+            while k > 0 {
+                let p = &self.instrs[k - 1];
+                if is_pad(p) {
+                    k -= 1;
+                    continue;
+                }
+                after_pop_block = p.op == Op::POP_BLOCK;
+                break;
+            }
+        }
+        if !after_pop_block {
+            return None;
+        }
+        // handler region: bare prelude POPs/pads, then the mirrored run
+        let mut k = si;
+        while k < self.instrs.len() {
+            let x = &self.instrs[k];
+            if matches!(x.op, Op::POP_TOP | Op::POP_EXCEPT) || is_pad(x) {
+                k += 1;
+                continue;
+            }
+            break;
+        }
+        let hb = k;
+        let mut k2 = k;
+        let mut hops2 = 0;
+        while k2 < self.instrs.len() && hops2 < 10 {
+            let x = &self.instrs[k2];
+            if is_pad(x) || is_load(x.op) {
+                k2 += 1;
+                hops2 += 1;
+                continue;
+            }
+            break;
+        }
+        if k2 >= self.instrs.len() || self.instrs[k2].op != Op::RETURN_VALUE {
+            return None;
+        }
+        let run_h: Vec<(u8, u32)> = self.instrs[hb..=k2]
+            .iter()
+            .filter(|x| !is_pad(x))
+            .map(norm)
+            .collect();
+        (run_h == run_a).then(|| self.instrs[hb].offset)
     }
 
     fn push_legacy_try(&mut self, l: LegacyTry) {
@@ -29992,17 +30113,68 @@ impl<'a> Ctx<'a> {
                 !l.has_finally && l.handlers.is_empty() && l.orelse.is_empty()
             })
         {
-            let value = match e {
-                Some(v) => match &*v {
-                    Expr::Const(o) if matches!(&**o, PyObject::None) => None,
-                    _ => Some(v),
-                },
-                None => None,
-            };
-            if let Some(l) = self.legacy_try.as_mut() {
-                l.body.push(Stmt::Return(value));
+            // batch-111 veto: a TAIL-position try whose post-try return
+            // was sunk into BOTH exits (copyreg 3.10 _slotnames) — the
+            // handler opens with a mirrored copy. Routing this return
+            // into the body renders it INSIDE the try; keep it at
+            // function level (push_legacy_try inserts the Try before
+            // trailing returns) and skip the handler-side copy when the
+            // chain walk reaches it
+            let mirror = self
+                .legacy_try
+                .as_ref()
+                .and_then(|l| self.legacy_sunk_pair_return(l, self.cur_offset));
+            if let Some(ms) = mirror {
+                let resume = self
+                    .idx_of
+                    .get(&ms)
+                    .and_then(|&mi| {
+                        let mut k = mi;
+                        let mut hops = 0;
+                        while k < self.instrs.len() && hops < 12 {
+                            let x = &self.instrs[k];
+                            if matches!(
+                                x.op,
+                                Op::RETURN_VALUE | Op::RETURN_CONST
+                            ) {
+                                return Some(x.end());
+                            }
+                            if matches!(
+                                x.op,
+                                Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG
+                            ) || matches!(
+                                x.op,
+                                Op::LOAD_FAST
+                                    | Op::LOAD_NAME
+                                    | Op::LOAD_GLOBAL
+                                    | Op::LOAD_DEREF
+                                    | Op::LOAD_CONST
+                                    | Op::LOAD_ATTR
+                                    | Op::LOAD_METHOD
+                            ) {
+                                k += 1;
+                                hops += 1;
+                                continue;
+                            }
+                            break;
+                        }
+                        None
+                    })
+                    .unwrap_or(usize::MAX);
+                self.sunk_pair_drop = Some((ms, resume));
+            } else {
+                let value = match e {
+                    Some(v) => match &*v {
+                        Expr::Const(o) if matches!(&**o, PyObject::None) => None,
+                        _ => Some(v),
+                    },
+                    None => None,
+                };
+                if let Some(l) = self.legacy_try.as_mut() {
+                    l.body.push(Stmt::Return(value));
+                }
+                return;
             }
-            return;
         }
         if self.legacy_handler.is_none()
             && self.legacy_try.as_ref().map_or(false, |l| {

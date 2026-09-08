@@ -126,7 +126,6 @@ def _slotnames(cls):
                         names.append(name)
     try:
         cls.__slotnames__ = names
-        return names
     except:
         pass
     return names
