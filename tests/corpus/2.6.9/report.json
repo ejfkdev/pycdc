@@ -19,9 +19,9 @@
    "module": "CGIHTTPServer",
    "ast_detail": "diff at token 796: orig  If(test=Compare(left=Call(func=Attribute(value=Subscript(value=Name(id='authorization' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 938,
+   "ndiff": 937,
    "ntotal": 1241,
-   "detail": "line 41: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 243: orig ('SETUP_LOOP', '#67') | got ('SETUP_LOOP', '#68')\nline 247: orig ('JUMP_IF_FALSE', '#65') | got ('JUMP_IF_FALSE', '#66')"
+   "detail": "line 243: orig ('SETUP_LOOP', '#67') | got ('SETUP_LOOP', '#68')\nline 247: orig ('JUMP_IF_FALSE', '#65') | got ('JUMP_IF_FALSE', '#66')\nline 269: orig ('JUMP_IF_FALSE', '#62') | got ('JUMP_IF_FALSE', '#63')"
   },
   {
    "module": "ConfigParser",
@@ -35,9 +35,9 @@
    "module": "Cookie",
    "ast_detail": "diff at token 1838: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 985,
+   "ndiff": 984,
    "ntotal": 1892,
-   "detail": "line 609: orig ('LOAD_CONST', 'None') | got ('LOAD_NAME', 'None')\nline 790: orig ('SETUP_LOOP', '#176') | got ('SETUP_LOOP', '#177')\nline 803: orig ('JUMP_IF_FALSE', '#174') | got ('JUMP_IF_FALSE', '#175')"
+   "detail": "line 790: orig ('SETUP_LOOP', '#176') | got ('SETUP_LOOP', '#177')\nline 803: orig ('JUMP_IF_FALSE', '#174') | got ('JUMP_IF_FALSE', '#175')\nline 860: orig ('JUMP_IF_FALSE', '#143') | got ('JUMP_IF_FALSE', '#144')"
   },
   {
    "module": "DocXMLRPCServer",
@@ -179,9 +179,9 @@
    "module": "asyncore",
    "ast_detail": "diff at token 873: orig  orelse=[]) | dec  orelse=[While(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1725,
+   "ndiff": 1720,
    "ntotal": 2270,
-   "detail": "line 96: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 101: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 109: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')"
+   "detail": "line 115: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 148: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 424: orig ('JUMP_IF_FALSE', '#210') | got ('JUMP_IF_FALSE', '#211')"
   },
   {
    "module": "atexit",

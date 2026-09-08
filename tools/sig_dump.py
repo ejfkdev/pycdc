@@ -80,7 +80,17 @@ def sig2(code, out):
             else:
                 tgt = None
             label = "#%s" % off2idx.get(tgt, "?") if tgt is not None else str(arg)
-            out.append((name, describe2(code, op, arg, label)))
+            r = describe2(code, op, arg, label)
+            # py2 quirk: None/True/False are real names in Python 2 and the
+            # compiler's LOAD_CONST folding for them is line-number dependent
+            # (a statement >254 lines past the previous line event compiles
+            # to LOAD_NAME None instead of LOAD_CONST None -- lnotab delta
+            # limit).  Restored sources never reproduce the original blank
+            # line/comment layout, so this pair is systematic sig noise;
+            # semantically LOAD_NAME None == LOAD_CONST None.
+            if name == "LOAD_NAME" and r in ("None", "True", "False"):
+                name = "LOAD_CONST"
+            out.append((name, r))
         else:
             out.append((name, ""))
     for c in code.co_consts:

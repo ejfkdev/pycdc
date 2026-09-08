@@ -5785,6 +5785,11 @@ impl<'a> Ctx<'a> {
             // a JUMP_FORWARD inside a handler (not part of an open handler
             // body anymore) ends the chain: emit try (+else target region)
             Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE => {
+                // py2.7 dead glue (see is_dead_forward_glue): skip the
+                // chain logic — the exec-side arms suppress it too
+                if self.is_dead_forward_glue() {
+                    return;
+                }
                 // py2 handler normal exits are forward jumps: one
                 // landing exactly on the body jump's target retracts the
                 // presumed else region (no-else chain)
@@ -6076,7 +6081,19 @@ impl<'a> Ctx<'a> {
                                             BlockType::If | BlockType::Else
                                         ) && t.start >= es
                                             && t.end > pos
-                                            && t.end == self.cur_next
+                                            && (t.end == self.cur_next
+                                                // the arm-end edge flies
+                                                // straight to the region
+                                                // If's own merge (py2.7
+                                                // pads dead glue between
+                                                // the arm end and the
+                                                // region end: CGIHTTPServer
+                                                // 2.7 run_cgi's else-region
+                                                // guard `if len(...)==2:`
+                                                // emitted the Try INSIDE
+                                                // the guard at its arm-end
+                                                // JABS)
+                                                || inst.target == Some(t.end))
                                     })
                                 },
                             );
@@ -6686,6 +6703,9 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 if let Some(else_end) = b.else_end {
+                    if std::env::var("PYCDC_EG_DBG").is_ok() {
+                        eprintln!("ELSEOPEN kind={:?} start={} pos={} else_end={}", b.kind, b.start, pos, else_end);
+                    }
                     // value-merge block (COPY+cond jump) with a forward jump:
                     // both branches produce values — merge into chain compare
                     // or ternary and skip the false-path instructions
@@ -9525,6 +9545,9 @@ impl<'a> Ctx<'a> {
             // ---------- control flow ----------
             Op::JUMP_FORWARD => {
                 let target = inst.target.unwrap_or(inst.end());
+                if self.is_dead_forward_glue() {
+                    return true;
+                }
                 if !self.version.at_least(3, 11)
                     && target > self.cur_offset
                     && self.legacy_split_finally_rebuild(target)
@@ -9674,6 +9697,9 @@ impl<'a> Ctx<'a> {
                 r
             }
             Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::CONTINUE_LOOP => {
+                if self.is_dead_forward_glue() {
+                    return true;
+                }
                 // 3.9 break-in-try/finally exits via a FORWARD
                 // JUMP_ABSOLUTE past the handler copy
                 if !self.version.at_least(3, 11)
@@ -20435,6 +20461,58 @@ impl<'a> Ctx<'a> {
     /// (RETURN/NOP/NOT_TAKEN/CACHE) with at least one return: `off` is a
     /// loop exit whose block end overshot into sunk function-tail return
     /// copies (3.11+ rotated while in tail flow, chunk.skip).
+    /// py2.7 dead glue: an UNTARGETED forward unconditional jump sitting
+    /// right after another forward unconditional jump — the previous edge
+    /// already left the region, this one is unreachable fall-through
+    /// padding. Executing it marks a phantom else_end on the overflown
+    /// If (CGIHTTPServer 2.7 run_cgi: the glue after the else region's
+    /// arm-end JABS gave the region's guard If an else arm holding the
+    /// whole Try)
+    fn is_dup_forward_jump(&self) -> bool {
+        if self.targets.contains(&self.cur_offset) {
+            return false;
+        }
+        let Some(&ci) = self.idx_of.get(&self.cur_offset) else {
+            return false;
+        };
+        let x = &self.instrs[ci];
+        if !x.target.map_or(false, |t| t > x.offset) {
+            return false;
+        }
+        let mut p = ci;
+        while p > 0 && self.instrs[p - 1].op == Op::EXTENDED_ARG {
+            p -= 1;
+        }
+        if p == 0 {
+            return false;
+        }
+        let prev = &self.instrs[p - 1];
+        !prev.is_backward
+            && matches!(
+                prev.op,
+                Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE | Op::JUMP
+            )
+            && prev.target.map_or(false, |t| t > prev.offset)
+    }
+
+    fn is_dead_forward_glue(&self) -> bool {
+        if !self.is_dup_forward_jump() {
+            return false;
+        }
+        // Skip the duplicate edge only inside a live legacy-try region:
+        // there the chain machinery re-walks the pad and the glue's
+        // execution would mark a phantom else_end on the overflown If
+        // (CGIHTTPServer 2.7 run_cgi: JABS 945→951 after the else
+        // region's arm-end JABS 942→948 stretched the guard If's else
+        // over the whole Try). Outside a try region the same shape is
+        // load-bearing: the padding JABS 1599 after the arm-end JABS
+        // 1004 is the closing edge of the inner `elif ampm == ...`
+        // If[976,1599] (3.3/2.7 _strptime); skipping it strands that
+        // block open and the chain's arm-end back edge tears the whole
+        // elif ladder down into `continue` + fresh `if`
+        self.legacy_try.is_some()
+    }
+
     fn is_term_pad_before(&self, off: usize, end: usize, allow_load_none: bool) -> bool {
         if off >= end {
             return false;

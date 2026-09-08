@@ -108,25 +108,26 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=False, legacy=
                     pass
             if not quiet:
                 print('Compiling {!r}...'.format(fullname))
-            if ok == 0:
+            try:
+                ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
+            except py_compile.PyCompileError as err:
+                if quiet:
+                    print('*** Error compiling {!r}...'.format(fullname))
+                else:
+                    print('*** ', end='')
+                msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
+                msg = msg.decode(sys.stdout.encoding)
+                print(msg)
                 success = 0
-                try:
-                    ok = py_compile.compile(fullname, cfile, dfile, True, optimize=optimize)
-                except py_compile.PyCompileError as err:
-                    if quiet:
-                        print('*** Error compiling {!r}...'.format(fullname))
-                    else:
-                        print('*** ', end='')
-                    msg = err.msg.encode(sys.stdout.encoding, errors='backslashreplace')
-                    msg = msg.decode(sys.stdout.encoding)
-                    print(msg)
-                    success = 0
-                except (SyntaxError, UnicodeError, IOError) as e:
-                    if quiet:
-                        print('*** Error compiling {!r}...'.format(fullname))
-                    else:
-                        print('*** ', end='')
-                    print(e.__class__.__name__ + ':', e)
+            except (SyntaxError, UnicodeError, IOError) as e:
+                if quiet:
+                    print('*** Error compiling {!r}...'.format(fullname))
+                else:
+                    print('*** ', end='')
+                print(e.__class__.__name__ + ':', e)
+                success = 0
+            else:
+                if ok == 0:
                     success = 0
     return success
 

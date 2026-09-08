@@ -2,8 +2,8 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "PASS": 21,
-  "SIG-DIFF": 14,
+  "PASS": 22,
+  "SIG-DIFF": 13,
   "AST-PASS": 5
  },
  "results": [
@@ -17,11 +17,7 @@
   },
   {
    "module": "CGIHTTPServer",
-   "ast_detail": "diff at token 776: orig  If(test=Compare(left=Call(func=Attribute(value=Subscript(value=Name(id='authorization' | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 38,
-   "ntotal": 1242,
-   "detail": "line 48: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 524: orig ('SETUP_EXCEPT', '#323') | got ('LOAD_GLOBAL', 'len')\nline 525: orig ('LOAD_FAST', 'base64') | got ('LOAD_FAST', 'authorization')"
+   "verdict": "PASS"
   },
   {
    "module": "ConfigParser",
@@ -35,9 +31,9 @@
    "module": "Cookie",
    "ast_detail": "diff at token 693: orig  right=Num(n=2))) | dec  right=Num(n=2)))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 983,
+   "ndiff": 982,
    "ntotal": 1876,
-   "detail": "line 613: orig ('LOAD_CONST', 'None') | got ('LOAD_NAME', 'None')\nline 787: orig ('SETUP_LOOP', '#157') | got ('SETUP_LOOP', '#158')\nline 799: orig ('POP_JUMP_IF_FALSE', '#156') | got ('POP_JUMP_IF_FALSE', '#157')"
+   "detail": "line 787: orig ('SETUP_LOOP', '#157') | got ('SETUP_LOOP', '#158')\nline 799: orig ('POP_JUMP_IF_FALSE', '#156') | got ('POP_JUMP_IF_FALSE', '#157')\nline 848: orig ('POP_JUMP_IF_FALSE', '#126') | got ('POP_JUMP_IF_FALSE', '#127')"
   },
   {
    "module": "DocXMLRPCServer",
@@ -71,9 +67,9 @@
    "module": "SimpleXMLRPCServer",
    "ast_detail": "diff at token 115: orig  ifs=[BoolOp(op=And() | dec  ifs=[Call(func=Attribute(value=Name(id='member'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1400,
+   "ndiff": 1399,
    "ntotal": 1550,
-   "detail": "line 51: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 66: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 110: orig ('POP_JUMP_IF_FALSE', '#140') | got ('POP_JUMP_IF_FALSE', '#138')"
+   "detail": "line 66: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 110: orig ('POP_JUMP_IF_FALSE', '#140') | got ('POP_JUMP_IF_FALSE', '#138')\nline 115: orig ('LOAD_CONST', \"'localhost'\") | got ('LOAD_CONST', \"('localhost', 8000)\")"
   },
   {
    "module": "SocketServer",
@@ -171,9 +167,9 @@
    "module": "asyncore",
    "ast_detail": "diff at token 904: orig  orelse=[]) | dec  orelse=[While(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 359,
+   "ndiff": 354,
    "ntotal": 2185,
-   "detail": "line 114: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 119: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')\nline 127: orig ('LOAD_NAME', 'None') | got ('LOAD_CONST', 'None')"
+   "detail": "line 133: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 165: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 758: orig ('POP_JUMP_IF_FALSE', '#34') | got ('POP_JUMP_IF_FALSE', '#52')"
   },
   {
    "module": "atexit",
