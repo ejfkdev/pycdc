@@ -24,9 +24,8 @@ os.environ['PATH'].  Returns the complete filename or None if not found.
     if not os.path.isfile(executable):
         for p in paths:
             f = os.path.join(p, executable)
-            if not os.path.isfile(f):
-                continue
-            return f
+            if os.path.isfile(f):
+                return f
         return
     return executable
 

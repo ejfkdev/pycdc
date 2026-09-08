@@ -2,8 +2,8 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 21,
-  "SIG-DIFF": 12,
+  "PASS": 22,
+  "SIG-DIFF": 11,
   "INCOMPLETE": 6,
   "AST-PASS": 1
  },
@@ -93,7 +93,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1234,
    "ntotal": 2986,
-   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e00', '\u5eff', '\u4e03', '\u4e5d', '\u5341'})\") | got ('LOAD_CONST', \"frozenset({'\u4e03', '\u5eff', '\u4e00', '\u5341', '\u4e5d'})\")\nline 635: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')\nline 638: orig ('POP_JUMP_IF_NOT_NONE', 'to L7') | got ('POP_JUMP_IF_NOT_NONE', 'to L6')"
+   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u4e5d', '\u5341', '\u5eff', '\u4e00'})\") | got ('LOAD_CONST', \"frozenset({'\u4e00', '\u5341', '\u4e03', '\u4e5d', '\u5eff'})\")\nline 635: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')\nline 638: orig ('POP_JUMP_IF_NOT_NONE', 'to L7') | got ('POP_JUMP_IF_NOT_NONE', 'to L6')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -208,11 +208,7 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 701: orig  ops=[IsNot()] | dec  ops=[Is()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 334,
-   "ntotal": 941,
-   "detail": "line 601: orig ('POP_JUMP_IF_TRUE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 607: orig ('POP_TOP', '') | got ('LOAD_FAST', 'y')\nline 608: orig ('LOAD_FAST', 'y') | got ('SWAP', '')"
+   "verdict": "PASS"
   },
   {
    "module": "copyreg",

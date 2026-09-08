@@ -2,9 +2,9 @@
  "version": "3.14.7",
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
-  "PASS": 18,
+  "PASS": 19,
   "INCOMPLETE": 10,
-  "SIG-DIFF": 11,
+  "SIG-DIFF": 10,
   "AST-PASS": 1
  },
  "results": [
@@ -65,7 +65,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 954,
    "ntotal": 1362,
-   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'attlist', 'link', 'linktype', 'element'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'link', 'linktype', 'element'})\")"
+   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'link', 'attlist', 'element', 'linktype'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'linktype', 'link', 'element', 'attlist'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -106,7 +106,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1363,
    "ntotal": 3207,
-   "detail": "line 622: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u4e5d', '\u4e00', '\u5eff', '\u5341'})\") | got ('LOAD_CONST', \"frozenset({'\u4e5d', '\u5eff', '\u5341', '\u4e00', '\u4e03'})\")\nline 665: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')\nline 669: orig ('POP_JUMP_IF_NOT_NONE', 'to L7') | got ('POP_JUMP_IF_NOT_NONE', 'to L6')"
+   "detail": "line 622: orig ('LOAD_CONST', \"frozenset({'\u4e00', '\u5eff', '\u4e03', '\u4e5d', '\u5341'})\") | got ('LOAD_CONST', \"frozenset({'\u5341', '\u4e5d', '\u4e00', '\u5eff', '\u4e03'})\")\nline 665: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')\nline 669: orig ('POP_JUMP_IF_NOT_NONE', 'to L7') | got ('POP_JUMP_IF_NOT_NONE', 'to L6')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -232,11 +232,7 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 578: orig  ops=[IsNot()] | dec  ops=[Is()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 347,
-   "ntotal": 882,
-   "detail": "line 528: orig ('IS_OP', 'is not') | got ('IS_OP', 'is')\nline 529: orig ('POP_JUMP_IF_TRUE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 536: orig ('POP_TOP', '') | got ('LOAD_FAST', 'y')"
+   "verdict": "PASS"
   },
   {
    "module": "copyreg",

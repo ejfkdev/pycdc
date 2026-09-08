@@ -163,11 +163,11 @@ def _deepcopy_tuple(x, memo, deepcopy=deepcopy):
     except KeyError:
         pass
     for k, j in zip(x, y):
-        if k is j:
-            continue
-        y = tuple(y)
-        return y
-    y = x
+        if k is not j:
+            y = tuple(y)
+            break
+    else:
+        y = x
     return y
 
 d[tuple] = _deepcopy_tuple

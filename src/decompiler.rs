@@ -18574,7 +18574,6 @@ return None;
                     if values.len() == 1
                         && jump_if_true
                         && self.version.at_least(3, 12)
-                        && !self.version.at_least(3, 13)
                         && target > tramp_off
                     {
                         if let Some(lb) = self.blocks.iter().rev().find(|b| {
@@ -27974,10 +27973,10 @@ impl<'a> Ctx<'a> {
     /// ForElse close to lift the else arm's trailing mirror Return to
     /// function level.
     fn try_fold_sunk_for_break(&mut self) -> bool {
-        // 3.10-3.12: the break path carries POP_TOP(iterator) + a
-        // direct copy of the tail return (3.11/3.12 keep the shape —
-        // copy 3.12 _deepcopy_tuple); 3.13+ changed the sunk layout
-        if !self.version.at_least(3, 10) || self.version.at_least(3, 13) {
+        // 3.10+: the break path carries POP_TOP(iterator) + a direct
+        // copy of the tail return (3.11 SWAP 2 prelude, 3.12-3.14 keep
+        // the bare shape — copy _deepcopy_tuple is sig-exact on all)
+        if !self.version.at_least(3, 10) {
             return false;
         }
         if self.legacy_handler.is_some() || self.legacy_try.is_some() {
