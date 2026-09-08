@@ -2,8 +2,8 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "PASS": 22,
-  "SIG-DIFF": 13,
+  "PASS": 23,
+  "SIG-DIFF": 12,
   "AST-PASS": 5
  },
  "results": [
@@ -177,11 +177,7 @@
   },
   {
    "module": "audiodev",
-   "ast_detail": "diff at token 221: orig  ctx=Load())) | dec  ctx=Load()))]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 61,
-   "ntotal": 957,
-   "detail": "line 795: orig ('SETUP_EXCEPT', '#7') | got ('LOAD_CONST', '-1')\nline 796: orig ('LOAD_CONST', '-1') | got ('LOAD_CONST', 'None')\nline 797: orig ('LOAD_CONST', 'None') | got ('IMPORT_NAME', 'sys')"
+   "verdict": "PASS"
   },
   {
    "module": "base64",

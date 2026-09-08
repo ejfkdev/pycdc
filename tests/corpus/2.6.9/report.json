@@ -191,7 +191,7 @@
    "module": "audiodev",
    "ast_detail": "diff at token 221: orig  ctx=Load())) | dec  ctx=Load()))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 610,
+   "ndiff": 607,
    "ntotal": 1021,
    "detail": "line 352: orig ('SETUP_LOOP', '#29') | got ('SETUP_LOOP', '#30')\nline 356: orig ('FOR_ITER', '#25') | got ('FOR_ITER', '#26')\nline 363: orig ('JUMP_IF_FALSE', '#23') | got ('JUMP_IF_FALSE', '#24')"
   },

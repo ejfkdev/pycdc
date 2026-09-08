@@ -216,6 +216,8 @@ class InteractiveConsole(InteractiveInterpreter):
                 pass
             except EOFError:
                 pass
+            else:
+                more = self.push(line)
             prompt = sys.ps2
             prompt = sys.ps1
             if more:
@@ -225,6 +227,8 @@ class InteractiveConsole(InteractiveInterpreter):
                 pass
             except EOFError:
                 pass
+            else:
+                more = self.push(line)
             prompt = sys.ps2
             prompt = sys.ps1
             if more:
@@ -234,6 +238,8 @@ class InteractiveConsole(InteractiveInterpreter):
                 pass
             except EOFError:
                 pass
+            else:
+                more = self.push(line)
             try:
                 if more:
                     prompt = sys.ps2
@@ -243,6 +249,8 @@ class InteractiveConsole(InteractiveInterpreter):
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
                 more = 0
+        else:
+            more = self.push(line)
         if exitmsg is None:
             self.write('now exiting %s...\n' % self.__class__.__name__)
         elif exitmsg != '':

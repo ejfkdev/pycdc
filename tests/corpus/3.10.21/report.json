@@ -144,8 +144,8 @@
   {
    "module": "binhex",
    "verdict": "INCOMPLETE",
-   "ndiff": 1722,
-   "ntotal": 2054,
+   "ndiff": 1724,
+   "ntotal": 2057,
    "detail": "line 273: orig ('SETUP_WITH', 'to 48') | got ('SETUP_WITH', 'to 50')\nline 285: orig ('POP_BLOCK', '') | got ('NOP', '')\nline 286: orig ('LOAD_CONST', 'None') | got ('POP_BLOCK', '')"
   },
   {
@@ -215,7 +215,7 @@
    "module": "codecs",
    "ast_detail": "diff at token 1086: orig  If(test=UnaryOp(op=Not() | dec  Break()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1779,
+   "ndiff": 1778,
    "ntotal": 2129,
    "detail": "line 300: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, None, None, None)')\nline 301: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 302: orig ('LOAD_CONST', '(None, None, None, None, None)') | got ('LOAD_CONST', \"('_is_text_encoding',)\")"
   },

@@ -193,12 +193,9 @@ class Play_Audio_sun:
 
 
 def AudioDev():
-    import sys
     try:
         import al
     except ImportError:
-        return Play_Audio_sgi()
-        return
         try:
             import sunaudiodev
             return Play_Audio_sun()
@@ -207,6 +204,10 @@ def AudioDev():
                 import Audio_mac
             except ImportError:
                 raise error, 'no audio device'
+            else:
+                return Audio_mac.Play_Audio_mac()
+    else:
+        return Play_Audio_sgi()
 
 def test(fn=None):
     import sys

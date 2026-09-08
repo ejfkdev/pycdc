@@ -191,8 +191,8 @@
    "module": "code",
    "ast_detail": "diff at token 513: orig  While(test=Name(id='True' | dec  Try(body=[Assign(targets=[Name(id='line'",
    "verdict": "SIG-DIFF",
-   "ndiff": 237,
-   "ntotal": 743,
+   "ndiff": 253,
+   "ntotal": 758,
    "detail": "line 501: orig ('SETUP_FINALLY', 'to 228') | got ('SETUP_FINALLY', 'to 160')\nline 502: orig ('LOAD_FAST', 'more') | got ('LOAD_FAST', 'self')\nline 503: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_METHOD', 'raw_input')"
   },
   {

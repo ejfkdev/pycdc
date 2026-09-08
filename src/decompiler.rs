@@ -320,6 +320,17 @@ struct Ctx<'a> {
     as_cleanup_wrappers: Vec<(usize, usize)>,
     /// a py2 sub-walk bound `sys.exc_info()[1]` — ensure `import sys`
     used_exc_info: bool,
+    /// a region sub-walk whose statements must collect into the region
+    /// root and be returned to the caller — never route them into a
+    /// (possibly stashed) legacy handler body (audiodev 2.7 AudioDev:
+    /// the flown-over else spans parsed by parse_skipped_nested_chain
+    /// leaked into the outer handler ahead of the nested Try)
+    region_collect_only: bool,
+    /// the offset the walk landed on when a nested try's body-end jump
+    /// flew over its handler chain (parse_skipped_nested_chain): the
+    /// function-tail epilogue reached THIS way is machinery, while an
+    /// explicit `return` walked linearly inside a handler is source
+    skipped_chain_landing: Option<usize>,
     pending_gen_code: Option<std::rc::Rc<crate::code::CodeObject>>,
     recent_code_const: Option<std::rc::Rc<crate::code::CodeObject>>,
     /// class expression for a no-dup `case Cls(...)` whose LOAD cls was
@@ -674,6 +685,8 @@ pub fn decompile_in_scope(
         last_py26_temp: None,
         as_cleanup_wrappers: Vec::new(),
         used_exc_info: false,
+        region_collect_only: false,
+        skipped_chain_landing: None,
         pending_gen_code: None,
         recent_code_const: None,
         pending_match_class: None,
@@ -1208,6 +1221,20 @@ pub fn decompile_in_scope(
             if let Some(root) = ctx.blocks.first_mut() {
                 root.stmts.insert(0, Stmt::Import { names: vec![("sys".to_string(), None)] });
             }
+        }
+    }
+    // a handler still open at walk end (its chain never reached the
+    // fold point — the body-end jump of a nested try flew over the
+    // whole tail): fold it into its chain before the final flush
+    // (audiodev 2.7 AudioDev: handler1 of the outer chain)
+    if let Some(h) = ctx.legacy_handler.take() {
+        if let Some(lt) = ctx.legacy_try.as_mut() {
+            lt.handlers.push(crate::ast::ExceptHandler {
+                type_: h.type_,
+                name: h.name,
+                body: h.body,
+                is_star: false,
+            });
         }
     }
     if let Some(l) = ctx.legacy_try.take() {
@@ -3136,6 +3163,7 @@ impl<'a> Ctx<'a> {
         // instructions — the span walk starts with clean skip state
         self.skip_until = None;
         let saved_line = self.cur_line;
+        let saved_collect = self.region_collect_only;
         let saved_stores = std::mem::take(&mut self.pending_stores);
         // whether a legacy chain was already live on entry: only a
         // chain CREATED inside this sub-walk runs the state machine
@@ -3256,6 +3284,7 @@ impl<'a> Ctx<'a> {
         self.cur_offset = saved_cur_offset;
         self.cur_next = saved_cur_next;
         self.cur_line = saved_line;
+        self.region_collect_only = saved_collect;
         self.pending_stores = saved_stores;
         stmts
     }
@@ -4751,11 +4780,31 @@ impl<'a> Ctx<'a> {
         if !lt.handlers.is_empty() || target <= lt.handler_start {
             return false;
         }
+        // the body-end jump flies over BOTH the nested chain AND the
+        // stashed outer chain's else region: clamp the sub-walk at the
+        // outer else_start and parse the else span separately into the
+        // outer chain (audiodev 2.7 AudioDev: the else body
+        // `return Play_Audio_sgi()` executed inside this sub-walk and
+        // push_stmt's nest routing sent it to the outer HANDLER body,
+        // ahead of the nested Try)
+        let mut end = target;
+        let mut outer_else: Option<(usize, usize, usize)> = None;
+        if let Some(ni) = self.legacy_nest.len().checked_sub(1) {
+            if let Some(olt) = &self.legacy_nest[ni].outer_try {
+                if let Some(es) = olt.else_start {
+                    if es > lt.handler_start && es < end {
+                        outer_else = Some((es, end, ni));
+                        end = es;
+                    }
+                }
+            }
+        }
+        self.skipped_chain_landing = Some(target);
         self.legacy_nest_depth += 1;
-        self.decompile_region(lt.handler_start, target);
+        self.decompile_region(lt.handler_start, end);
         self.legacy_nest_depth -= 1;
         if let Some(nest) = self.legacy_nest.last_mut() {
-            nest.skipped_chain = Some((lt.handler_start, target));
+            nest.skipped_chain = Some((lt.handler_start, end));
         }
         if let Some(h) = self.legacy_handler.take() {
             if let Some(l) = self.legacy_try.as_mut() {
@@ -4768,12 +4817,77 @@ impl<'a> Ctx<'a> {
             }
             self.legacy_handler_end = None;
         }
-        if let Some(l) = self.legacy_try.as_mut() {
-            if !l.handlers.is_empty() {
+        let has_clauses = self
+            .legacy_try
+            .as_ref()
+            .map_or(false, |l| !l.handlers.is_empty());
+        if has_clauses {
+            // this chain's OWN else region may also have been flown
+            // over: py2 pads a handler's terminating `raise` with a
+            // dead JUMP_ABSOLUTE to the chain end (audiodev 2.7:
+            // JABS 112->130 after `raise error, ...` flew over the
+            // else span [116,126) holding
+            // `return Audio_mac.Play_Audio_mac()`) — parse it now,
+            // before the redirect is disarmed
+            let skipped_else = self.legacy_try.as_ref().and_then(|l| {
+                l.else_start.filter(|&es| {
+                    l.orelse.is_empty() && es > lt.handler_start && es < end
+                })
+            });
+            if let Some(l) = self.legacy_try.as_mut() {
                 l.chain_done = true;
-                // the region after the chain belongs to the OUTER flow —
-                // never redirect statements into the nested else
+            }
+            if let Some(es) = skipped_else {
+                let stop = self
+                    .idx_of
+                    .get(&es)
+                    .and_then(|&ei| {
+                        self.instrs[ei + 1..]
+                            .iter()
+                            .take_while(|x| x.offset < end)
+                            .find(|x| {
+                                x.op == Op::END_FINALLY
+                                    || (matches!(
+                                        x.op,
+                                        Op::JUMP_FORWARD
+                                            | Op::JUMP_ABSOLUTE
+                                            | Op::JUMP
+                                    ) && !x.is_backward)
+                            })
+                            .map(|x| x.offset)
+                    })
+                    .unwrap_or(end);
+                if stop > es {
+                    self.region_collect_only = true;
+                    let stmts = self.decompile_region(es, stop);
+                    self.region_collect_only = false;
+                    if let Some(l) = self.legacy_try.as_mut() {
+                        l.orelse.extend(stmts);
+                    }
+                }
+            }
+            // the region after the chain belongs to the OUTER flow —
+            // never redirect statements into the nested else
+            if let Some(l) = self.legacy_try.as_mut() {
                 l.else_start = None;
+            }
+        }
+        // the clamped-away outer else span: parse it into the stashed
+        // outer chain's orelse — by its recorded nest INDEX: the region
+        // sub-walk pushes deeper stashes (the nested chain's own), so
+        // last() would drop the else into the WRONG chain (audiodev
+        // 2.7: `else: return Play_Audio_sgi()` rendered on the nested
+        // sunaudiodev try instead of the outer al try)
+        if let Some((es, oe, ni)) = outer_else {
+            self.region_collect_only = true;
+            let stmts = self.decompile_region(es, oe);
+            self.region_collect_only = false;
+            if let Some(nest) = self.legacy_nest.get_mut(ni) {
+                if let Some(olt) = &mut nest.outer_try {
+                    olt.orelse.extend(stmts);
+                    olt.chain_done = true;
+                    olt.else_start = None;
+                }
             }
         }
         matches!(self.legacy_try.as_ref(), Some(l) if !l.handlers.is_empty())
@@ -6703,9 +6817,6 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 if let Some(else_end) = b.else_end {
-                    if std::env::var("PYCDC_EG_DBG").is_ok() {
-                        eprintln!("ELSEOPEN kind={:?} start={} pos={} else_end={}", b.kind, b.start, pos, else_end);
-                    }
                     // value-merge block (COPY+cond jump) with a forward jump:
                     // both branches produce values — merge into chain compare
                     // or ternary and skip the false-path instructions
@@ -7485,19 +7596,24 @@ impl<'a> Ctx<'a> {
             self.flushing = false;
         }
         self.last_flush_offset = self.cur_offset;
-        if let Some(h) = self.legacy_handler.as_mut() {
-            if self.blocks.len() <= h.block_depth {
-                h.body.push(stmt);
-                return;
+        if !self.region_collect_only {
+            if let Some(h) = self.legacy_handler.as_mut() {
+                if self.blocks.len() <= h.block_depth {
+                    h.body.push(stmt);
+                    return;
+                }
+                // a block (If/While/...) opened inside the handler collects the
+                // statement; it lands in the handler body when the block closes
             }
-            // a block (If/While/...) opened inside the handler collects the
-            // statement; it lands in the handler body when the block closes
         }
         // statements emitted while a NESTED chain is being parsed (the
         // outer handler state is stashed) still belong to the outermost
         // stashed handler's body — e.g. the success-path fall-through
         // after a nested try inside an except body
-        if self.legacy_handler.is_none() && !self.legacy_nest.is_empty() {
+        if !self.region_collect_only
+            && self.legacy_handler.is_none()
+            && !self.legacy_nest.is_empty()
+        {
             if let Some(h) = self.legacy_nest[0].outer_handler.as_mut() {
                 if self.blocks.len() <= h.block_depth {
                     h.body.push(stmt);
@@ -8737,8 +8853,50 @@ impl<'a> Ctx<'a> {
                     // skipped-chain sub-walk (where the store is rendered as
                     // an assignment, not captured as the clause name) give
                     // it a real binding: sys.exc_info()[1], buried under a
-                    // tb placeholder the first prelude POP_TOP consumes
-                    if self.version.major == 2 && self.legacy_nest_depth > 0 {
+                    // tb placeholder the first prelude POP_TOP consumes.
+                    // ONLY when this handler really binds (PJIF followed by
+                    // POP_TOP + STORE): a bare `except E:` handler pops all
+                    // three slots and the placeholder never renders — the
+                    // eager flag injected a phantom `import sys` at the top
+                    // of the enclosing function (audiodev 2.7 AudioDev)
+                    let binds_exc = self
+                        .idx_of
+                        .get(&inst.offset)
+                        .map_or(false, |&ci| {
+                            self.instrs[ci + 1..]
+                                .iter()
+                                .take(10)
+                                .enumerate()
+                                .find(|(_, x)| {
+                                    matches!(
+                                        x.op,
+                                        Op::POP_JUMP_IF_FALSE | Op::JUMP_IF_FALSE
+                                    )
+                                })
+                                .map_or(false, |(k, _)| {
+                                    // k is 0-based over ci+1..: the cond
+                                    // jump sits at ci+1+k. The implicit-as
+                                    // STORE follows the prelude pops: 2.7
+                                    // is POP_TOP; STORE; POP_TOP, 2.6 is
+                                    // POP_TOP; POP_TOP; STORE; POP_TOP —
+                                    // skip up to three POP_TOPs
+                                    self.instrs[ci + 2 + k..]
+                                        .iter()
+                                        .take(4)
+                                        .skip_while(|x| x.op == Op::POP_TOP)
+                                        .next()
+                                        .map_or(false, |x| {
+                                            matches!(
+                                                x.op,
+                                                Op::STORE_FAST | Op::STORE_NAME
+                                            )
+                                        })
+                                })
+                        });
+                    if self.version.major == 2
+                        && self.legacy_nest_depth > 0
+                        && binds_exc
+                    {
                         self.used_exc_info = true;
                         self.push(Rc::new(Expr::Subscript {
                             value: Rc::new(Expr::Call {
@@ -24962,6 +25120,48 @@ impl<'a> Ctx<'a> {
         };
         if self.legacy_handler.is_none()
             && self.sunk_tail_terminator(self.cur_offset, is_none_value)
+        {
+            return;
+        }
+        // <=3.10: the function-tail `LOAD None; RETURN` epilogue reached
+        // by a nested try's body-end jump that flew over the handler
+        // chains (parse_skipped_nested_chain territory): a legacy
+        // handler is still open collecting, so emitting would leak a
+        // bare `return` into the handler body (audiodev 2.7 AudioDev:
+        // the tail landed after the nested Try inside
+        // `except ImportError:`). Only the true epilogue qualifies —
+        // from here to the code end nothing but terminators and pads,
+        // so an except body's own final `return` (chain material or
+        // real statements follow it) is untouched
+        if is_none_value
+            && !self.version.at_least(3, 11)
+            && self.legacy_nest_depth == 0
+            && self.code.name != "<module>"
+            && self
+                .skipped_chain_landing
+                .map_or(false, |l| self.cur_offset >= l)
+            && self.blocks.iter().all(|b| matches!(b.kind, BlockType::Main))
+            && (self.legacy_handler.is_some()
+                || self.legacy_nest.iter().any(|n| n.outer_handler.is_some()))
+            && self
+                .idx_of
+                .get(&self.cur_offset)
+                .map_or(false, |&ci| {
+                    self.instrs[ci..].iter().all(|x| {
+                        matches!(
+                            x.op,
+                            Op::RETURN_VALUE
+                                | Op::RETURN_CONST
+                                | Op::LOAD_CONST
+                                | Op::JUMP_ABSOLUTE
+                                | Op::JUMP_FORWARD
+                                | Op::JUMP
+                                | Op::END_FINALLY
+                                | Op::POP_BLOCK
+                                | Op::NOP
+                        )
+                    })
+                })
         {
             return;
         }

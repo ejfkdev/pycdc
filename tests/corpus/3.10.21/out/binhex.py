@@ -139,6 +139,22 @@ class BinHex:
             ofname = ofp
             ofp = io.open(ofname, 'wb')
             close_on_error = True
+        try:
+            ofp.write(b'(This file must be converted with BinHex 4.0)\r\r:')
+            hqxer = _Hqxcoderengine(ofp)
+            self.ofp = _Rlecoderengine(hqxer)
+            self.crc = 0
+            if finfo is None:
+                finfo = FInfo()
+            self.dlen = dlen
+            self.rlen = rlen
+            self._writeinfo(name, finfo)
+            self.state = _DID_HEADER
+            return
+        except:
+            if close_on_error:
+                ofp.close()
+            raise
 
     def _writeinfo(self, name, finfo):
         nl = len(name)
