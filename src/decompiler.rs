@@ -8472,6 +8472,38 @@ impl<'a> Ctx<'a> {
                 self.split_arm_prints(&mut b);
                 let cond = b.cond.take().unwrap_or_else(|| self.name_expr("???"));
                 let mut orelse = std::mem::take(&mut b.stmts);
+                // skipped else-arm break: the arm's single instruction is
+                // a forward jump onto the enclosing loop's exit and the
+                // walk's skip hopped over it (the then arm's try-success
+                // JF set else_end past an out-of-line handler chain —
+                // configparser 3.11 before_get `if value and '%(' in
+                // value: <try> else: break` lost the break, running the
+                // loop tail for empty values)
+                if orelse.is_empty() {
+                    if let Some(&si) = self.idx_of.get(&b.start) {
+                        let sins = &self.instrs[si];
+                        if !sins.is_backward
+                            && matches!(
+                                sins.op,
+                                Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+                            )
+                            && sins.target.map_or(false, |t| {
+                                t > sins.offset && self.find_loop_exit(t).is_some()
+                            })
+                            && self
+                                .blocks
+                                .iter()
+                                .any(|bl| {
+                                    matches!(
+                                        bl.kind,
+                                        BlockType::While | BlockType::For
+                                    )
+                                })
+                        {
+                            orelse.push(Stmt::Break);
+                        }
+                    }
+                }
                 let body = self.pending_then.pop().unwrap_or_default();
                 if body.is_empty() && orelse.is_empty() {
                     // chained comparison merge: one value on the stack that

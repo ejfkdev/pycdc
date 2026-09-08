@@ -475,6 +475,8 @@ class LegacyInterpolation(Interpolation):
                     value = value % vars
                 except KeyError as e:
                     raise InterpolationMissingOptionError(option, section, rawval, e.args[0]) from None
+            else:
+                break
         if value and '%(' in value:
             raise InterpolationDepthError(option, section, rawval)
         return value
