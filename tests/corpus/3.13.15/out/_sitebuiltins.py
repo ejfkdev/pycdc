@@ -42,7 +42,7 @@ contributors and the copyright notice.'''
                     data = fp.read()
                 break
             except OSError:
-                pass
+                continue
         if not data:
             data = self.__data
         self.__lines = data.split('\n')

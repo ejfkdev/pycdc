@@ -210,14 +210,14 @@ class Sniffer:
                 n = groupindex['delim'] - 1
                 key = m[n]
             except KeyError:
-                pass
+                continue
             if key:
                 if delimiters is None or key in delimiters:
                     delims[key] = delims.get(key, 0) + 1
             try:
                 n = groupindex['space'] - 1
             except KeyError:
-                pass
+                continue
             if m[n]:
                 spaces += 1
         quotechar = max(quotes, key=quotes.get)

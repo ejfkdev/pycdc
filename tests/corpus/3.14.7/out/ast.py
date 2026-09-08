@@ -164,7 +164,7 @@ will be omitted from the output for better readability.
                     try:
                         value = getattr(node, name)
                     except AttributeError:
-                        pass
+                        continue
                     if value is not None or getattr(cls, name, ...) is not None:
                         value, simple = _format(value, level)
                         allsimple = allsimple and simple
@@ -261,7 +261,7 @@ that is present on *node*.
         try:
             yield (field, getattr(node, field))
         except AttributeError:
-            pass
+            continue
 
 def iter_child_nodes(node):
     '''

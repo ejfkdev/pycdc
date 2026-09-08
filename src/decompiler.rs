@@ -3215,6 +3215,47 @@ impl<'a> Ctx<'a> {
                 finalbody = body;
             }
         }
+        // 3.11+ `try: return <expr> finally: <cleanup>`: the protected
+        // region holds ONLY the value loads (region_end == body_end),
+        // the inline finally copy follows, and the RETURN sits right
+        // after it (fin_span_stop). The walk leaves the value on the
+        // stack and would emit the Return AFTER the Try (cProfile
+        // 3.11-3.13 runcall rendered `try: pass finally: disable()` +
+        // `return func(...)` — semantically wrong: disable ran before
+        // the call). Fold the return into the body and hop the walk
+        // past it.
+        if self.version.at_least(3, 11)
+            && tc.except_handler.is_none()
+            && tc.region_end == tc.body_end
+            && fin_span_stop > pos
+        {
+            let ret_end = self.idx_of.get(&fin_span_stop).and_then(|&ri| {
+                let r = &self.instrs[ri];
+                if r.op == Op::RETURN_VALUE {
+                    Some(r.end())
+                } else {
+                    None
+                }
+            });
+            if let Some(ret_end) = ret_end {
+                let body_empty = self
+                    .pending_try_body
+                    .last()
+                    .map_or(true, |b| b.is_empty());
+                if body_empty
+                    && matches!(self.stack.last(), Some(Sv::E(_)))
+                {
+                    if let Some(Sv::E(v)) = self.stack.pop() {
+                        if let Some(body) = self.pending_try_body.last_mut() {
+                            body.push(Stmt::Return(Some(v)));
+                        }
+                        if self.skip_until.map_or(true, |sk| sk < ret_end) {
+                            self.skip_until = Some(ret_end);
+                        }
+                    }
+                }
+            }
+        }
         let mut body = self.pending_try_body.pop().unwrap_or_default();
         // 3.12+ shared fall-through terminator: a post-try `raise X`
         // (function's last statement) is compiled into BOTH exits — the
@@ -4512,6 +4553,48 @@ impl<'a> Ctx<'a> {
                         Vec::new()
                     };
                     body.push(Stmt::Break);
+                    return body;
+                }
+                // `except E: continue` — a backward body jump onto an
+                // enclosing loop's top: the region sub-walk swaps the
+                // block stack and cannot see the loop, so rebuild the
+                // Continue here while the live blocks are still on the
+                // stack (cProfile 3.11-3.13 snapshot_stats
+                // `except KeyError: continue` rendered `pass`, losing
+                // the loop-skip; the clause exit edge is a JB to the
+                // FOR_ITER top, not a loop exit, so the break rebuild
+                // above does not claim it)
+                let mut cj = None;
+                if let (Some(&bi2), Some(&li2)) =
+                    (self.idx_of.get(&body_from), self.idx_of.get(&limit))
+                {
+                    for j in bi2..li2 {
+                        let ins = self.instrs[j];
+                        if ins.is_backward
+                            && matches!(
+                                ins.op,
+                                Op::JUMP_BACKWARD
+                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    | Op::JUMP_ABSOLUTE
+                                    | Op::JUMP
+                            )
+                            && ins
+                                .target
+                                .map_or(false, |t| self.is_loop_top_target(t))
+                        {
+                            cj = Some(j);
+                            break;
+                        }
+                    }
+                }
+                if let Some(j) = cj {
+                    let joff = self.instrs[j].offset;
+                    let mut body = if joff > body_from {
+                        self.decompile_region(body_from, joff)
+                    } else {
+                        Vec::new()
+                    };
+                    body.push(Stmt::Continue);
                     return body;
                 }
             }

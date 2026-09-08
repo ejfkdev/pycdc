@@ -598,7 +598,7 @@ class RawConfigParser(MutableMapping):
                 with open(filename, encoding=encoding) as fp:
                     self._read(fp, filename)
             except OSError:
-                pass
+                continue
             if isinstance(filename, os.PathLike):
                 filename = os.fspath(filename)
             read_ok.append(filename)
@@ -1200,7 +1200,7 @@ class ConverterMapping(MutableMapping):
             try:
                 delattr(inst, k)
             except AttributeError:
-                pass
+                continue
 
     def __iter__(self):
         return iter(self._data)

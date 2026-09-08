@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 18,
-  "SIG-DIFF": 19,
+  "PASS": 19,
+  "SIG-DIFF": 18,
   "INCOMPLETE": 3
  },
  "results": [
@@ -136,11 +136,7 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 312: orig  body=[Continue()])] | dec  body=[Pass()])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 304,
-   "ntotal": 744,
-   "detail": "line 311: orig ('JUMP_BACKWARD', 'to 328') | got ('JUMP_FORWARD', 'to 420')\nline 432: orig ('PUSH_NULL', '') | got ('NOP', '')\nline 433: orig ('LOAD_FAST', 'func') | got ('LOAD_FAST', 'self')"
+   "verdict": "PASS"
   },
   {
    "module": "calendar",
@@ -162,9 +158,9 @@
    "module": "cgitb",
    "ast_detail": "diff at token 498: orig  value=BinOp(left=Constant(value='<a href=\"file://%s\">%s</a>') | dec  value=JoinedStr(values=[Constant(value='<a href=\"file://')",
    "verdict": "SIG-DIFF",
-   "ndiff": 717,
-   "ntotal": 1607,
-   "detail": "line 858: orig ('LOAD_GLOBAL', 'NULL + linecache') | got ('NOP', '')\nline 859: orig ('LOAD_ATTR', 'getline') | got ('NOP', '')\nline 860: orig ('LOAD_DEREF', 'file') | got ('LOAD_FAST', 'lnum')"
+   "ndiff": 535,
+   "ntotal": 1603,
+   "detail": "line 858: orig ('LOAD_GLOBAL', 'NULL + linecache') | got ('NOP', '')\nline 859: orig ('LOAD_ATTR', 'getline') | got ('LOAD_GLOBAL', 'NULL + linecache')\nline 860: orig ('LOAD_DEREF', 'file') | got ('LOAD_ATTR', 'getline')"
   },
   {
    "module": "chunk",
@@ -246,7 +242,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 965: orig  body=[Continue()])] | dec  body=[Pass()])]",
+   "ast_detail": "diff at token 1451: orig  While(test=BoolOp(op=And() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 1402,
    "ntotal": 1724,

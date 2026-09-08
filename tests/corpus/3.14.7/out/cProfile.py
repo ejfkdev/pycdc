@@ -64,7 +64,7 @@ is, in seconds).
                     try:
                         callers = callersdicts[id(subentry.code)]
                     except KeyError:
-                        pass
+                        continue
                     nc = subentry.callcount
                     cc = nc - subentry.reccallcount
                     tt = subentry.inlinetime
@@ -93,10 +93,9 @@ is, in seconds).
     def runcall(self, func, /, *args, **kw):
         self.enable()
         try:
-            pass
+            return func(*args, **kw)
         finally:
             self.disable()
-        return func(*args, **kw)
 
     def __enter__(self):
         self.enable()

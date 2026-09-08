@@ -130,9 +130,9 @@
    "module": "cProfile",
    "ast_detail": "diff at token 285: orig  body=[If(test=Attribute(value=Name(id='entry' | dec  body=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 290,
-   "ntotal": 700,
-   "detail": "line 347: orig ('JUMP_BACKWARD', 'to 404') | got ('JUMP_BACKWARD', 'to 460')\nline 403: orig ('PUSH_NULL', '') | got ('NOP', '')\nline 404: orig ('LOAD_FAST', 'func') | got ('LOAD_FAST', 'self')"
+   "ndiff": 1,
+   "ntotal": 699,
+   "detail": "line 586: orig ('JUMP_FORWARD', 'to 994') | got ('JUMP_FORWARD', 'to 870')"
   },
   {
    "module": "calendar",
@@ -154,8 +154,8 @@
    "module": "cgitb",
    "ast_detail": "diff at token 164: orig  Continue()] | dec  Return(value=Tuple(elts=[Constant(value=None)",
    "verdict": "SIG-DIFF",
-   "ndiff": 1212,
-   "ntotal": 1487,
+   "ndiff": 1222,
+   "ntotal": 1485,
    "detail": "line 231: orig ('FOR_ITER', 'to 444') | got ('FOR_ITER', 'to 446')\nline 242: orig ('POP_JUMP_IF_FALSE', 'to 140') | got ('POP_JUMP_IF_FALSE', 'to 142')\nline 243: orig ('POP_TOP', '') | got ('LOAD_FAST', 'vars')"
   },
   {
@@ -205,9 +205,9 @@
    "module": "configparser",
    "ast_detail": "diff at token 110: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 1848,
+   "ndiff": 1847,
    "ntotal": 4237,
-   "detail": "line 2094: orig ('JUMP_BACKWARD', 'to 132') | got ('JUMP_BACKWARD', 'to 220')\nline 2265: orig ('POP_JUMP_IF_TRUE', 'to 94') | got ('POP_JUMP_IF_TRUE', 'to 98')\nline 2346: orig ('LOAD_FAST', 'raw') | got ('BUILD_MAP', '')"
+   "detail": "line 2265: orig ('POP_JUMP_IF_TRUE', 'to 94') | got ('POP_JUMP_IF_TRUE', 'to 98')\nline 2346: orig ('LOAD_FAST', 'raw') | got ('BUILD_MAP', '')\nline 2347: orig ('LOAD_FAST', 'vars') | got ('LOAD_FAST', 'raw')"
   },
   {
    "module": "contextlib",
@@ -237,9 +237,9 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1045: orig  body=[Continue()])] | dec  body=[Pass()])]",
+   "ast_detail": "diff at token 1090: orig  If(test=Subscript(value=Name(id='m' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1365,
+   "ndiff": 1364,
    "ntotal": 1657,
    "detail": "line 269: orig ('NOP', '') | got ('LOAD_CONST', \"(None, None, None, 'excel')\")\nline 270: orig ('NOP', '') | got ('LOAD_CONST', '<code __init__>')\nline 271: orig ('LOAD_CONST', \"(None, None, None, 'excel')\") | got ('MAKE_FUNCTION', 'defaults')"
   },

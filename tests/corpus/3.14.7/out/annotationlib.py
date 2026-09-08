@@ -99,13 +99,9 @@ If the forward reference cannot be evaluated, raise an exception.
         if isinstance(self.__cell__, dict):
             for cell_name, cell in self.__cell__.items():
                 try:
-                    pass
+                    cell_value = cell.cell_contents
                 except ValueError:
-                    try:
-                        cell_value = cell.cell_contents
-                        return
-                    except ValueError:
-                        pass
+                    continue
                 locals.setdefault(cell_name, cell_value)
         if self.__extra_names__:
             locals.update(self.__extra_names__)

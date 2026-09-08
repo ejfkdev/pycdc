@@ -65,7 +65,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 951,
    "ntotal": 1366,
-   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'link', 'element', 'attlist', 'linktype'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'linktype', 'element', 'link', 'attlist'})\")"
+   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'element', 'attlist', 'linktype', 'link'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'linktype', 'link', 'element'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -139,8 +139,8 @@
    "module": "ast",
    "ast_detail": "diff at token 229: orig  body=[Return(value=UnaryOp(op=UAdd() | dec  body=[Return(value=Name(id='operand'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2104,
-   "ntotal": 2545,
+   "ndiff": 2090,
+   "ntotal": 2546,
    "detail": "line 414: orig ('CALL_INTRINSIC_1', 'INTRINSIC_UNARY_POSITIVE') | got ('RETURN_VALUE', '')\nline 415: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'operand')\nline 416: orig ('LOAD_FAST', 'operand') | got ('UNARY_NEGATIVE', '')"
   },
   {
@@ -168,11 +168,11 @@
   },
   {
    "module": "cProfile",
-   "ast_detail": "diff at token 272: orig  body=[Continue()])]) | dec  body=[Pass()])])",
+   "ast_detail": "diff at token 558: orig  slice=Slice() | dec  slice=Call(func=Name(id='slice'",
    "verdict": "SIG-DIFF",
-   "ndiff": 437,
-   "ntotal": 779,
-   "detail": "line 97: orig ('LOAD_FAST', 'locals') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'locals, filename')\nline 98: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'filename, sort') | got ('LOAD_FAST', 'sort')\nline 294: orig ('FOR_ITER', 'to L8') | got ('FOR_ITER', 'to L9')"
+   "ndiff": 183,
+   "ntotal": 782,
+   "detail": "line 97: orig ('LOAD_FAST', 'locals') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'locals, filename')\nline 98: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'filename, sort') | got ('LOAD_FAST', 'sort')\nline 597: orig ('LOAD_CONST', 'slice(None, None, None)') | got ('LOAD_GLOBAL', 'slice + NULL')"
   },
   {
    "module": "calendar",
