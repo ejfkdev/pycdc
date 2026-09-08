@@ -20955,13 +20955,64 @@ impl<'a> Ctx<'a> {
             if matches!(b.kind, BlockType::While | BlockType::For) {
                 if b.end < target && b.loop_else_end.is_none() {
                     let b_end = b.end;
+                    let b_start = b.start;
+                    // other edges to the merge may sit in the else
+                    // region [b_end, target) OR inside the loop body —
+                    // 3.12+ `break` is POP_TOP + JUMP_FORWARD over the
+                    // whole else, so sibling breaks target the merge
+                    // from before b_end (copyreg 3.13 _reduce_ex__: two
+                    // in-body breaks made others_ok fail, the for-else
+                    // `base = object` sank into the loop and the breaks
+                    // rendered `pass`). Jumps from BEFORE the loop are
+                    // still foreign flow and disqualify.
+                    let b_is_for = b.kind == BlockType::For;
                     let others_ok = self
                         .instrs
                         .iter()
                         .filter(|i| {
                             i.target == Some(target) && i.offset != self.cur_offset
                         })
-                        .all(|i| i.offset >= b_end && i.offset < target);
+                        .all(|i| {
+                            if i.offset >= target {
+                                return false;
+                            }
+                            if i.offset >= b_end {
+                                // an exit jump from inside the else
+                                // region itself
+                                return true;
+                            }
+                            // an in-body targeter must be a genuine
+                            // for-break (POP_TOP/POP_ITER + a forward
+                            // unconditional jump: JUMP_FORWARD on
+                            // 3.12+, forward JUMP_ABSOLUTE on ≤3.10 —
+                            // copyreg 3.9 _reduce_ex has two POP_TOP +
+                            // JUMP_ABSOLUTE breaks over the for-else)
+                            // — an if/else arm-end jump to the merge is
+                            // NOT a break (asyncore 3.8/3.9 loop: the
+                            // rotated while's arm end grew a spurious
+                            // break under the wide form)
+                            b_is_for
+                                && i.offset > b_start
+                                && !i.is_backward
+                                && matches!(
+                                    i.op,
+                                    Op::JUMP_FORWARD
+                                        | Op::JUMP
+                                        | Op::JUMP_ABSOLUTE
+                                )
+                                && self
+                                    .idx_of
+                                    .get(&i.offset)
+                                    .and_then(|&ii| {
+                                        (ii > 0).then(|| self.instrs[ii - 1].op)
+                                    })
+                                    .map_or(false, |p| {
+                                        matches!(
+                                            p,
+                                            Op::POP_TOP | Op::POP_ITER
+                                        )
+                                    })
+                        });
                     if others_ok {
                         b.loop_else_end = Some(target);
                     }
