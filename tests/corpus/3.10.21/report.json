@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 19,
-  "SIG-DIFF": 17,
+  "PASS": 20,
+  "SIG-DIFF": 16,
   "INCOMPLETE": 4
  },
  "results": [
@@ -229,11 +229,7 @@
   },
   {
    "module": "copy",
-   "ast_detail": "diff at token 854: orig  Break()] | dec  Return(value=Name(id='y'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 282,
-   "ntotal": 913,
-   "detail": "line 618: orig ('FOR_ITER', 'to 96') | got ('FOR_ITER', 'to 98')\nline 625: orig ('POP_JUMP_IF_FALSE', 'to 94') | got ('POP_JUMP_IF_FALSE', 'to 96')\nline 630: orig ('POP_TOP', '') | got ('LOAD_FAST', 'y')"
+   "verdict": "PASS"
   },
   {
    "module": "copyreg",

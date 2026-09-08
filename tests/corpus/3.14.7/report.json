@@ -65,7 +65,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 954,
    "ntotal": 1362,
-   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'attlist', 'link', 'element', 'linktype'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'link', 'element', 'attlist', 'linktype'})\")"
+   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'linktype', 'link', 'attlist', 'element'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'linktype', 'link', 'element', 'attlist'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -106,7 +106,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1363,
    "ntotal": 3207,
-   "detail": "line 622: orig ('LOAD_CONST', \"frozenset({'\u4e00', '\u5eff', '\u4e03', '\u5341', '\u4e5d'})\") | got ('LOAD_CONST', \"frozenset({'\u5341', '\u4e00', '\u5eff', '\u4e03', '\u4e5d'})\")\nline 665: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')\nline 669: orig ('POP_JUMP_IF_NOT_NONE', 'to L7') | got ('POP_JUMP_IF_NOT_NONE', 'to L6')"
+   "detail": "line 622: orig ('LOAD_CONST', \"frozenset({'\u4e00', '\u5eff', '\u5341', '\u4e03', '\u4e5d'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e00', '\u5341', '\u4e5d', '\u4e03'})\")\nline 665: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')\nline 669: orig ('POP_JUMP_IF_NOT_NONE', 'to L7') | got ('POP_JUMP_IF_NOT_NONE', 'to L6')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -200,9 +200,9 @@
   {
    "module": "codeop",
    "verdict": "INCOMPLETE",
-   "ndiff": 263,
+   "ndiff": 261,
    "ntotal": 411,
-   "detail": "line 103: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 104: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 138: orig ('LOAD_FAST', 'compiler') | got ('LOAD_CONST', 'None')"
+   "detail": "line 138: orig ('LOAD_FAST', 'compiler') | got ('LOAD_CONST', 'None')\nline 139: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 140: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'source, filename') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "colorsys",

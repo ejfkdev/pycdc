@@ -432,6 +432,10 @@ struct Ctx<'a> {
     /// its else-skip jump replaced by the sink, so the else region must
     /// be rebuilt at the If close (cProfile 3.10 main)
     sunk_return_fold_at: Option<usize>,
+    /// batch-101: a 3.10 for-break sunk value-return was folded to
+    /// Break — the ForElse close must lift the else arm's trailing
+    /// mirror Return out to function level (copy _deepcopy_tuple)
+    sunk_loop_return_lift: bool,
     /// 3.12+ relocated chains: a nested region whose chain head lies
     /// past its enclosing merged region's body end defers its own
     /// emit_try_tail — the enclosing rebuild parses the nested chain
@@ -744,6 +748,7 @@ pub fn decompile_in_scope(
         pending_loop_close_at_chain: None,
         chain_absorb_body: None,
         sunk_return_fold_at: None,
+        sunk_loop_return_lift: false,
         nested_tail_defer: false,
         pending_try_handlers: Vec::new(),
         pending_loop: Vec::new(),
@@ -9718,6 +9723,9 @@ impl<'a> Ctx<'a> {
 
             // ---------- stack manipulation ----------
             Op::POP_TOP => {
+                if self.try_fold_sunk_for_break() {
+                    return true;
+                }
                 self.handle_pop_top();
                 true
             }
@@ -18384,7 +18392,7 @@ return None;
                                     )
                                     && x.target
                                         .map_or(false, |t| {
-                                            self.find_loop_exit(t).is_some()
+                                            self.jump_is_loop_exit_or_merge(t)
                                         })
                             })
                         });
@@ -18636,7 +18644,7 @@ return None;
                             ins.op,
                             Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
                         )
-                        && self.find_loop_exit(t).is_some()
+                        && self.jump_is_loop_exit_or_merge(t)
                         && self.instrs[bi..]
                             .iter()
                             .take_while(|x| x.offset < ins.offset)
@@ -19662,8 +19670,7 @@ return None;
                                                     && jins
                                                         .target
                                                         .map_or(false, |t| {
-                                                            self.find_loop_exit(t)
-                                                                .is_some()
+                                                            self.jump_is_loop_exit_or_merge(t)
                                                         })
                                             })
                                             .map(|jins| jins.end());
@@ -23014,6 +23021,40 @@ if split_cond {
 
     /// If `target` is an exit point of some enclosing loop (the offset
     /// right after its back edge / a FOR_ITER exit), return its block index.
+    /// find_loop_exit, extended with the post-loop-ELSE merge: a break
+    /// flying over a for/while-else lands past the else arm — the same
+    /// spot the else arm's own skip jump targets, so the merge IS a jump
+    /// target and find_loop_exit's untargeted-merge clause rejects it
+    /// (codeop 3.13 _maybe_compile `if line and line[0] != '#': break`
+    /// over the for-else: the else arm's PJIF also lands on the merge).
+    /// Accept when every targeter is either past the loop's exhaustion
+    /// exit (else-arm material) or a forward unconditional jump from the
+    /// walk frontier (this break chunk itself).
+    fn jump_is_loop_exit_or_merge(&self, t: usize) -> bool {
+        if self.find_loop_exit(t).is_some() {
+            return true;
+        }
+        self.blocks.iter().rev().any(|b| {
+            matches!(b.kind, BlockType::While | BlockType::For)
+                && t > b.end
+                && self
+                    .instrs
+                    .iter()
+                    .filter(|x| x.target == Some(t))
+                    .all(|x| {
+                        x.offset > b.end
+                            || (x.offset > self.cur_offset
+                                && !x.is_backward
+                                && matches!(
+                                    x.op,
+                                    Op::JUMP_FORWARD
+                                        | Op::JUMP
+                                        | Op::JUMP_ABSOLUTE
+                                ))
+                    })
+        })
+    }
+
     fn find_loop_exit(&self, target: usize) -> Option<usize> {
         let te = self.effective_offset(target);
         for (i, b) in self.blocks.iter().enumerate() {
@@ -27683,6 +27724,167 @@ impl<'a> Ctx<'a> {
     /// an exact normalized-run mirror against the function's FINAL
     /// return run, with the copy sitting at the chain body end or
     /// inside the chain span.
+    /// 3.10 for-loop break with the post-loop value return SUNK into
+    /// the break path: `for ...: if A: <stmts>; break / else: <tail>` +
+    /// `return v` compiles the break as POP_TOP (iterator) followed
+    /// DIRECTLY by a copy of the tail return run (no jump), then a dead
+    /// JABS back edge (copy 3.10 _deepcopy_tuple: rendering the copy as
+    /// `return y` lost the break/for-else and recompiled with the
+    /// return-from-loop ROT_TWO cleanup order). Fold: emit Break, skip
+    /// to the exhaustion exit so the else machinery runs, and flag the
+    /// ForElse close to lift the else arm's trailing mirror Return to
+    /// function level.
+    fn try_fold_sunk_for_break(&mut self) -> bool {
+        if !self.version.at_least(3, 10) || self.version.at_least(3, 11) {
+            return false;
+        }
+        if self.legacy_handler.is_some() || self.legacy_try.is_some() {
+            return false;
+        }
+        let Some(lb) = self.blocks.iter().rev().find(|b| {
+            matches!(b.kind, BlockType::For)
+        }) else {
+            return false;
+        };
+        let (lb_start, lb_end) = (lb.start, lb.end);
+        if !(lb_start < self.cur_offset && self.cur_offset < lb_end) {
+            return false;
+        }
+        let is_pad = |x: &crate::bytecode::Instruction| {
+            matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG)
+        };
+        let norm = |x: &crate::bytecode::Instruction| (x.op as u8, x.arg);
+        let Some(&pi) = self.idx_of.get(&self.cur_offset) else {
+            return false;
+        };
+        // forward: [value loads] RETURN
+        let mut k = pi + 1;
+        let mut hops = 0;
+        while k < self.instrs.len() && hops < 8 {
+            let x = &self.instrs[k];
+            if is_pad(x) {
+                k += 1;
+                continue;
+            }
+            if matches!(
+                x.op,
+                Op::LOAD_FAST
+                    | Op::LOAD_NAME
+                    | Op::LOAD_GLOBAL
+                    | Op::LOAD_DEREF
+                    | Op::LOAD_CONST
+                    | Op::LOAD_ATTR
+                    | Op::LOAD_METHOD
+            ) {
+                k += 1;
+                hops += 1;
+                continue;
+            }
+            break;
+        }
+        let ret_at = k;
+        if !matches!(
+            self.instrs.get(ret_at).map(|x| x.op),
+            Some(Op::RETURN_VALUE) | Some(Op::RETURN_CONST)
+        ) {
+            return false;
+        }
+        let run_a: Vec<(u8, u32)> = self.instrs[pi + 1..=ret_at]
+            .iter()
+            .filter(|x| !is_pad(x))
+            .map(norm)
+            .collect();
+        if run_a.is_empty() {
+            return false;
+        }
+        // the function's final return run must mirror it
+        let n = self.instrs.len();
+        if n < 2 || ret_at >= n - 1 {
+            return false;
+        }
+        let mut f = n - 1;
+        if !matches!(
+            self.instrs[f].op,
+            Op::RETURN_VALUE | Op::RETURN_CONST
+        ) {
+            return false;
+        }
+        let mut fb = f;
+        let mut fhops = 0;
+        while fb > 0 && fhops < 8 {
+            let p = &self.instrs[fb - 1];
+            if is_pad(p)
+                || matches!(
+                    p.op,
+                    Op::LOAD_FAST
+                        | Op::LOAD_NAME
+                        | Op::LOAD_GLOBAL
+                        | Op::LOAD_DEREF
+                        | Op::LOAD_CONST
+                        | Op::LOAD_ATTR
+                        | Op::LOAD_METHOD
+                )
+            {
+                fb -= 1;
+                fhops += 1;
+                continue;
+            }
+            break;
+        }
+        let run_f: Vec<(u8, u32)> = self.instrs[fb..=f]
+            .iter()
+            .filter(|x| !is_pad(x))
+            .map(norm)
+            .collect();
+        if run_f != run_a {
+            return false;
+        }
+        // after the copy: only a dead back edge to the loop top
+        let mut m = ret_at + 1;
+        while m < self.instrs.len() && is_pad(&self.instrs[m]) {
+            m += 1;
+        }
+        let dead_edge_ok = match self.instrs.get(m) {
+            Some(x)
+                if x.is_backward
+                    && x.target == Some(lb_start)
+                    && matches!(
+                        x.op,
+                        Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    ) =>
+            {
+                true
+            }
+            Some(x) if x.offset >= lb_end => true,
+            _ => false,
+        };
+        if !dead_edge_ok {
+            return false;
+        }
+        // the exhaustion path may hold a for-ELSE arm whose flow ends in
+        // the same sunk return run ([lb_end, fb) = else stmts, [fb,..] =
+        // the tail copy): register the else end so the For close builds
+        // the Else block and the tail return renders at function level
+        let else_end_off = self.instrs[fb].offset;
+        if else_end_off > lb_end {
+            if let Some(b) = self.blocks.iter_mut().rev().find(|b| {
+                matches!(b.kind, BlockType::For) && b.start == lb_start
+            }) {
+                if b.loop_else_end.is_none() {
+                    b.loop_else_end = Some(else_end_off);
+                }
+            }
+        }
+        self.push_stmt(Stmt::Break);
+        self.sunk_loop_return_lift = true;
+        if self.skip_until.map_or(true, |sk| sk < lb_end) {
+            self.skip_until = Some(lb_end);
+        }
+        true
+    }
+
     fn sunk_value_return_mirror(&self, ret_offset: usize) -> bool {
         if !self.version.at_least(3, 10)
             || self.version.at_least(3, 11)

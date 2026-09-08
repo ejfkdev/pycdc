@@ -93,7 +93,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1234,
    "ntotal": 2986,
-   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e00', '\u4e03', '\u4e5d', '\u5341'})\") | got ('LOAD_CONST', \"frozenset({'\u5341', '\u5eff', '\u4e00', '\u4e03', '\u4e5d'})\")\nline 635: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')\nline 638: orig ('POP_JUMP_IF_NOT_NONE', 'to L7') | got ('POP_JUMP_IF_NOT_NONE', 'to L6')"
+   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e00', '\u5341', '\u4e03', '\u5eff', '\u4e5d'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e03', '\u4e5d', '\u5341', '\u4e00'})\")\nline 635: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')\nline 638: orig ('POP_JUMP_IF_NOT_NONE', 'to L7') | got ('POP_JUMP_IF_NOT_NONE', 'to L6')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -175,11 +175,11 @@
   },
   {
    "module": "codeop",
-   "ast_detail": "diff at token 50: orig  If(test=BoolOp(op=And() | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 80: orig  ctx=Load())])) | dec  ctx=Load())]))])",
    "verdict": "SIG-DIFF",
-   "ndiff": 243,
+   "ndiff": 241,
    "ntotal": 378,
-   "detail": "line 98: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 99: orig ('POP_JUMP_IF_TRUE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L3')\nline 126: orig ('LOAD_FAST', 'compiler') | got ('LOAD_CONST', 'None')"
+   "detail": "line 126: orig ('LOAD_FAST', 'compiler') | got ('LOAD_CONST', 'None')\nline 127: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 128: orig ('LOAD_FAST', 'source') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "colorsys",
