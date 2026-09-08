@@ -147,7 +147,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 764: orig  Return(value=ListComp(elt=Subscript(value=Name(id='a' | dec  Return(value=ListComp(elt=Subscript(value=Num(n=3)",
    "verdict": "SIG-DIFF",
-   "ndiff": 701,
+   "ndiff": 698,
    "ntotal": 1316,
    "detail": "line 596: orig ('FOR_ITER', 'to 32') | got ('FOR_ITER', 'to 28')\nline 603: orig ('LOAD_FAST', 'a') | got ('LOAD_CONST', '3')\nline 604: orig ('LOAD_CONST', '3') | got ('LOAD_CONST', 'None')"
   },

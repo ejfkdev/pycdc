@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 27,
-  "SIG-DIFF": 8,
+  "PASS": 28,
+  "SIG-DIFF": 7,
   "INCOMPLETE": 4,
   "AST-PASS": 1
  },
@@ -175,11 +175,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 110: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1803,
-   "ntotal": 4214,
-   "detail": "line 2336: orig ('LOAD_FAST', 'raw') | got ('BUILD_MAP', '')\nline 2337: orig ('LOAD_FAST', 'vars') | got ('LOAD_FAST', 'raw')\nline 2338: orig ('LOAD_CONST', \"('raw', 'vars')\") | got ('LOAD_FAST', 'vars')"
+   "verdict": "PASS"
   },
   {
    "module": "contextlib",

@@ -215,7 +215,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 94: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 3252,
+   "ndiff": 3272,
    "ntotal": 5081,
    "detail": "line 1327: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', 'None')\nline 1328: orig ('JUMP_BACKWARD', 'to L1') | got ('RETURN_VALUE', '')\nline 1334: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', 'None')"
   },

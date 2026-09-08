@@ -1152,7 +1152,7 @@ class ConverterMapping(MutableMapping):
         self._data = {}
         for getter in dir(self._parser):
             m = self.GETTERCRE.match(getter)
-            if m or not callable(getattr(self._parser, getter)):
+            if not m or not callable(getattr(self._parser, getter)):
                 continue
             self._data[m.group('name')] = None
 

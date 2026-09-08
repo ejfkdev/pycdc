@@ -10695,9 +10695,66 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 let (pos, star) = flatten_ex_args(args);
-                let (ex_kws, star_kw) = match kwargs_opt {
-                    Some(kw) => flatten_ex_kwargs(kw),
-                    None => (Vec::new(), None),
+                let merge_built = self
+                    .idx_of
+                    .get(&self.cur_offset)
+                    .and_then(|&ci| {
+                        (ci > 0).then(|| self.instrs[ci - 1].op)
+                    })
+                    .map_or(false, |o| o == Op::DICT_MERGE);
+                let (ex_kws, star_kw) = if let Some(kw) = kwargs_opt {
+                    let (k, s) = flatten_ex_kwargs(kw.clone());
+                    // a DICT_MERGE-built kwargs dict with const keys
+                    // plus ONE trailing star is the compiler's own
+                    // layout for `f(kw=..., **x)` — decompose it back
+                    // (the whole-dict rendering recompiles to
+                    // BUILD_MAP + DICT_UPDATE and breaks sig-exactness;
+                    // configparser 3.12 _get_conv). A DICT_UPDATE-built
+                    // literal must stay whole: its recompile reproduces
+                    // BUILD_MAP + DICT_UPDATE exactly
+                    let decomposed: Option<(
+                        Vec<(Option<String>, ExprRef)>,
+                        Option<ExprRef>,
+                    )> = 'dc: {
+                        if !merge_built || !k.is_empty() || s.is_none() {
+                            break 'dc None;
+                        }
+                        if let Expr::Dict(entries) = &*kw {
+                            if entries.len() >= 2
+                                && matches!(
+                                    &*entries[entries.len() - 1].0,
+                                    Expr::Starred(_)
+                                )
+                                && entries[..entries.len() - 1].iter().all(
+                                    |(kk, _)| {
+                                        matches!(&**kk, Expr::Const(o)
+                                            if matches!(&**o, PyObject::Str(_)))
+                                    },
+                                )
+                            {
+                                let mut kws = Vec::new();
+                                for (kk, v) in &entries[..entries.len() - 1] {
+                                    if let Expr::Const(o) = &**kk {
+                                        if let PyObject::Str(name) = &**o {
+                                            kws.push((
+                                                Some(name.clone()),
+                                                v.clone(),
+                                            ));
+                                        }
+                                    }
+                                }
+                                if let Expr::Starred(inner) =
+                                    &*entries[entries.len() - 1].0
+                                {
+                                    break 'dc Some((kws, Some(inner.clone())));
+                                }
+                            }
+                        }
+                        None
+                    };
+                    decomposed.unwrap_or((k, s))
+                } else {
+                    (Vec::new(), None)
                 };
                 self.push(Rc::new(Expr::Call {
                     func,
@@ -16691,7 +16748,21 @@ impl<'a> Ctx<'a> {
         let Some(&ci) = self.idx_of.get(&self.cur_offset) else {
             return None;
         };
-        let mut parts: Vec<ExprRef> = vec![first_cond.clone()];
+        // the Or-chain contribution of the FIRST operand follows its own
+        // jump polarity: a PJIF-to-top jumps to the continue when the
+        // operand is FALSE, so it contributes Not(operand) (configparser
+        // 3.12 RawConfigParser.__init__ `if not m or not callable(...)`
+        // rendered `if m or ...` — polarity-inverted). The And forms
+        // (top_parts) keep the raw operand and normalize separately.
+        let first_part: ExprRef = if self.jump_if_true_at_ci(ci) {
+            first_cond.clone()
+        } else {
+            Rc::new(Expr::Unary {
+                op: UnaryOp::Not,
+                operand: first_cond.clone(),
+            })
+        };
+        let mut parts: Vec<ExprRef> = vec![first_part];
         // operands collected via jumps to the loop top, with their polarity
         let mut top_parts: Vec<ExprRef> = vec![first_cond.clone()];
         let mut top_jumps_true = true;

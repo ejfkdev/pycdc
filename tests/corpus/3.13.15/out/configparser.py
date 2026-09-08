@@ -737,20 +737,20 @@ The section DEFAULT is special.
 
     def _get_conv(self, section, option, conv, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
         try:
-            return self._get(section, conv, option, **{'raw': raw, 'vars': vars, **kwargs})
+            return self._get(section, conv, option, raw=raw, vars=vars, **kwargs)
         except (NoSectionError, NoOptionError):
             if fallback is _UNSET:
                 raise
             return fallback
 
     def getint(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(section, option, int, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
+        return self._get_conv(section, option, int, raw=raw, vars=vars, fallback=fallback, **kwargs)
 
     def getfloat(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(section, option, float, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
+        return self._get_conv(section, option, float, raw=raw, vars=vars, fallback=fallback, **kwargs)
 
     def getboolean(self, section, option, *, raw=False, vars=None, fallback=_UNSET, **kwargs):
-        return self._get_conv(section, option, self._convert_to_boolean, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
+        return self._get_conv(section, option, self._convert_to_boolean, raw=raw, vars=vars, fallback=fallback, **kwargs)
 
     def items(self, section=_UNSET, raw=False, vars=None):
         '''Return a list of (name, value) tuples for each option in a section.
@@ -1175,7 +1175,7 @@ is not found.
 
         if not _impl:
             _impl = self._parser.get
-        return _impl(self._name, option, **{'raw': raw, 'vars': vars, 'fallback': fallback, **kwargs})
+        return _impl(self._name, option, raw=raw, vars=vars, fallback=fallback, **kwargs)
 
 
 class ConverterMapping(MutableMapping):
@@ -1192,7 +1192,7 @@ section proxies to find and use the implementation on the parser class.
         self._data = {}
         for getter in dir(self._parser):
             m = self.GETTERCRE.match(getter)
-            if m or not callable(getattr(self._parser, getter)):
+            if not m or not callable(getattr(self._parser, getter)):
                 continue
             self._data[m.group('name')] = None
 

@@ -176,8 +176,8 @@
   {
    "module": "configparser",
    "verdict": "INCOMPLETE",
-   "ndiff": 2102,
-   "ntotal": 4681,
+   "ndiff": 194,
+   "ntotal": 4671,
    "detail": "line 1537: orig ('SETUP_ANNOTATIONS', '') | got ('LOAD_NAME', 'set')\nline 1538: orig ('LOAD_NAME', 'set') | got ('LOAD_NAME', 'str')\nline 1539: orig ('LOAD_NAME', 'str') | got ('BINARY_SUBSCR', '')"
   },
   {

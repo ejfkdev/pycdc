@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 22,
-  "SIG-DIFF": 14,
+  "PASS": 23,
+  "SIG-DIFF": 13,
   "INCOMPLETE": 4
  },
  "results": [
@@ -210,11 +210,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 2463: orig  body=[Continue()])] | dec  body=[Pass()])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1797,
-   "ntotal": 4299,
-   "detail": "line 2419: orig ('SETUP_FINALLY', 'to 32') | got ('SETUP_FINALLY', 'to 36')\nline 2426: orig ('LOAD_FAST', 'raw') | got ('BUILD_MAP', '')\nline 2427: orig ('LOAD_FAST', 'vars') | got ('LOAD_FAST', 'raw')"
+   "verdict": "PASS"
   },
   {
    "module": "contextlib",
