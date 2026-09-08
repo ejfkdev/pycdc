@@ -439,7 +439,6 @@ def close_all(map=None, ignore_all=False):
                 pass
             elif not ignore_all:
                 raise
-            continue
         except _reraised_exceptions:
             raise
         except:

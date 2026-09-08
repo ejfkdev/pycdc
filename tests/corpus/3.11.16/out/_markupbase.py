@@ -84,7 +84,8 @@ class ParserBase:
                 if decltype == 'doctype':
                     j = self._parse_doctype_subset(j + 1, i)
                 else:
-                    assert decltype not in frozenset({'link', 'attlist', 'element', 'linktype'}), "unsupported '[' char in %s declaration" % decltype
+                    if decltype in frozenset({'link', 'attlist', 'element', 'linktype'}):
+                        raise AssertionError("unsupported '[' char in %s declaration" % decltype)
                     raise AssertionError("unexpected '[' char in declaration")
                     raise AssertionError('unexpected %r char in declaration' % rawdata[j])
             if j < 0:
@@ -112,7 +113,8 @@ class ParserBase:
 
     def parse_comment(self, i, report=1):
         rawdata = self.rawdata
-        assert rawdata[i:i + 4] == '<!--', 'unexpected call to parse_comment()'
+        if rawdata[i:i + 4] != '<!--':
+            raise AssertionError('unexpected call to parse_comment()')
         match = _commentclose.search(rawdata, i + 4)
         if not match:
             return -1

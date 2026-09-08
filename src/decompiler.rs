@@ -6487,7 +6487,7 @@ impl<'a> Ctx<'a> {
                 if self.legacy_handler.is_some()
                     && !lt.has_finally
                     && self.version.at_least(3, 3)
-                    && !self.version.at_least(3, 7)
+                    && !self.version.at_least(3, 11)
                 {
                     let clause_exit = inst.is_backward
                         && matches!(
@@ -6529,9 +6529,27 @@ impl<'a> Ctx<'a> {
                             }
                         }
                         self.legacy_handler_end = None;
-                        let ie = inst.end();
-                        if self.skip_until.map_or(true, |sk| sk < ie) {
-                            self.skip_until = Some(ie);
+                        // resume target: the next clause head when one
+                        // is pending — an inline as-cleanup's
+                        // exception-time copy (LOAD None; STORE; DEL;
+                        // RERAISE) trails the exit edge and must not
+                        // be walked as flow (3.9 close_all: walking it
+                        // with a folded handler tore the remaining
+                        // clauses); otherwise just past this jump
+                        let mut resume = inst.end();
+                        let next_head = lt
+                            .pending_mismatch
+                            .iter()
+                            .copied()
+                            .filter(|&m| m > pos)
+                            .min();
+                        if let Some(nh) = next_head {
+                            if nh > resume {
+                                resume = nh;
+                            }
+                        }
+                        if self.skip_until.map_or(true, |sk| sk < resume) {
+                            self.skip_until = Some(resume);
                         }
                         return;
                     }
@@ -21404,7 +21422,19 @@ if split_cond {
             // 3.14: LOAD_COMMON_CONSTANT arg 0 = AssertionError
             // (dis._common_constants)
             Some(ins) if ins.op == Op::LOAD_COMMON_CONSTANT => ins.arg == 0,
-            Some(ins) if matches!(ins.op, Op::LOAD_GLOBAL | Op::LOAD_NAME) => {
+            // LOAD_GLOBAL/LOAD_NAME AssertionError is the assert shape
+            // only PRE-3.9: 3.9 introduced the dedicated
+            // LOAD_ASSERTION_ERROR (3.8 asserts still LOAD_GLOBAL, so
+            // there the canonical reading stays assert), and from 3.9
+            // on a LOAD_GLOBAL AssertionError is a manual `raise
+            // AssertionError(...)` that must render as the raise
+            // (asyncore 3.9 compact_traceback: `if not tb: raise
+            // AssertionError(...)` rebuilt to `assert tb, ...` whose
+            // recompile swapped in LOAD_ASSERTION_ERROR)
+            Some(ins)
+                if matches!(ins.op, Op::LOAD_GLOBAL | Op::LOAD_NAME)
+                    && !self.version.at_least(3, 9) =>
+            {
                 let idx = if ins.op == Op::LOAD_GLOBAL && self.version.at_least(3, 10) {
                     (ins.arg as usize) >> 1
                 } else {

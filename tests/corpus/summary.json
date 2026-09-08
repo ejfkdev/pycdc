@@ -100,8 +100,8 @@
  "3.9.25": {
   "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
   "counts": {
-   "PASS": 22,
-   "SIG-DIFF": 14,
+   "PASS": 23,
+   "SIG-DIFF": 13,
    "INCOMPLETE": 4
   }
  }
