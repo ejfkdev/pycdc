@@ -38,8 +38,8 @@
   {
    "module": "_collections_abc",
    "verdict": "INCOMPLETE",
-   "ndiff": 3343,
-   "ntotal": 4121,
+   "ndiff": 3294,
+   "ntotal": 4067,
    "detail": "line 706: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L5')\nline 710: orig ('FOR_ITER', 'to L5') | got ('FOR_ITER', 'to L4')\nline 714: orig ('CONTAINS_OP', 'in') | got ('CONTAINS_OP', 'not in')"
   },
   {
@@ -64,7 +64,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 951,
    "ntotal": 1366,
-   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'element', 'linktype', 'link', 'attlist'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'link', 'linktype', 'element'})\")"
+   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'link', 'linktype', 'attlist', 'element'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'linktype', 'link', 'attlist', 'element'})\")"
   },
   {
    "module": "_opcode_metadata",

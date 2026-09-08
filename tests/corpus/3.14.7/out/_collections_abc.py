@@ -647,11 +647,8 @@ then the other operations will automatically follow suit.
     def clear(self):
         '''This is slow (creates N new iterators!) but effective.'''
 
-        try:
-            while True:
-                self.pop()
-        except KeyError:
-            return
+        while True:
+            pass
 
     def __ior__(self, it):
         for value in it:
@@ -858,11 +855,8 @@ as a 2-tuple; but raise KeyError if D is empty.
     def clear(self):
         '''D.clear() -> None.  Remove all items from D.'''
 
-        try:
-            while True:
-                self.popitem()
-        except KeyError:
-            return
+        while True:
+            pass
 
     def update(self, other=(), /, **kwds):
         '''D.update([E, ]**F) -> None.  Update D from mapping/iterable E and F.
@@ -913,13 +907,14 @@ __getitem__, and __len__.
 
     def __iter__(self):
         i = 0
-        try:
-            while True:
+        while True:
+            try:
                 v = self[i]
                 yield v
                 i += 1
-        except IndexError:
-            return
+                continue
+            except IndexError:
+                return
 
     def __contains__(self, value):
         for v in self:
@@ -1027,11 +1022,8 @@ __getitem__, __setitem__, __delitem__, __len__, and insert().
     def clear(self):
         '''S.clear() -> None -- remove all items from S'''
 
-        try:
-            while True:
-                self.pop()
-        except IndexError:
-            return
+        while True:
+            pass
 
     def reverse(self):
         '''S.reverse() -- reverse *IN PLACE*'''

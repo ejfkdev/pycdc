@@ -325,14 +325,14 @@ class HexBin:
     def __init__(self, ifp):
         if isinstance(ifp, str):
             ifp = io.open(ifp, 'rb')
-            while True:
-                ch = ifp.read(1)
-                if not ch:
-                    raise Error('No binhex data found')
-                if ch != b'\r':
-                    break
-        if ch == b':':
-            pass
+        while True:
+            ch = ifp.read(1)
+            if not ch:
+                raise Error('No binhex data found')
+            if ch == b'\r':
+                continue
+            if ch == b':':
+                break
         hqxifp = _Hqxdecoderengine(ifp)
         self.ifp = _Rledecoderengine(hqxifp)
         self.crc = 0

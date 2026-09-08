@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 15,
-  "SIG-DIFF": 21,
+  "PASS": 16,
+  "SIG-DIFF": 20,
   "INCOMPLETE": 4
  },
  "results": [
@@ -139,11 +139,7 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "diff at token 733: orig  ctx=Load()))] | dec  ctx=Load()))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 9,
-   "ntotal": 2054,
-   "detail": "line 1582: orig ('POP_JUMP_IF_FALSE', 'to 22') | got ('POP_JUMP_IF_FALSE', 'to 58')\nline 1603: orig ('COMPARE_OP', '==') | got ('COMPARE_OP', '!=')\nline 1605: orig ('JUMP_ABSOLUTE', 'to 22') | got ('JUMP_FORWARD', 'to 58')"
+   "verdict": "PASS"
   },
   {
    "module": "bisect",

@@ -1873,27 +1873,59 @@ impl<'a> Ctx<'a> {
             self.open_exception_blocks(pos);
 
             // a prescanned unconditional `while True` loop starts here
-            if self.while_true_loops.iter().any(|(t, _)| *t == pos)
-                && !self.blocks.iter().any(|b| {
-                    matches!(b.kind, BlockType::While | BlockType::For) && b.start == pos
+            // (tops are effective offsets: a 3.10 NOP line marker opens
+            // the match one instruction early — close the blocks that
+            // END at the top FIRST, or a guard If merging exactly here
+            // stays open underneath and traps the loop in its arm)
+            // match the walk position to a prescanned top: exact, or
+            // the position is a NOP line marker immediately before the
+            // top (3.10 while-True heads)
+            let wtop = self.while_true_loops.iter().find(|(t, _)| {
+                *t == pos
+                    || (*t > pos
+                        && self.idx_of.get(t).map_or(false, |&i| {
+                            i > 0 && self.instrs[i - 1].offset == pos
+                                && self.instrs[i - 1].op == Op::NOP
+                        }))
+            }).map(|(t, e)| (*t, *e));
+            if let Some((t_top, _)) = wtop {
+              if !self.blocks.iter().any(|b| {
+                    matches!(b.kind, BlockType::While | BlockType::For)
+                        && (b.start == pos || b.start == t_top)
                 })
-            {
+              {
+                let pos_eff = t_top;
                 let end = self
                     .while_true_loops
                     .iter()
-                    .find(|(t, _)| *t == pos)
+                    .find(|(t, _)| *t == t_top)
                     .map(|(_, e)| *e)
                     .unwrap_or(usize::MAX);
+                // opened via the NOP marker (t_top != pos): a guard
+                // merging exactly at the marker must close BEFORE the
+                // loop opens or it traps the loop in its arm (binhex
+                // 3.10). Exact-match opens keep the historical order
+                // (open first; the generic close follows) — reordering
+                // there shifted codecs 3.8 read's loop nesting.
+                if t_top != pos {
+                    self.close_blocks_at(pos);
+                }
                 // statements before the loop top must not flow into it
                 if !self.pending_stores.is_empty() {
                     self.flushing = true;
                     self.flush_pending_stores();
                     self.flushing = false;
                 }
-                let mut blk = Block::new(BlockType::While, pos, end);
+                // start at the EFFECTIVE top (past the 3.10 NOP line
+                // marker): the body's own back edge targets it directly,
+                // and matching b.start against the raw NOP offset would
+                // read the natural iteration edge as an explicit
+                // `continue` (binhex 3.10 HexBin.__init__)
+                let mut blk = Block::new(BlockType::While, pos_eff, end);
                 blk.cond = Some(self.true_cond_expr());
                 blk.cond_set = true;
                 self.blocks.push(blk);
+              }
             }
 
             // Close finished blocks before handling this instruction —
@@ -22086,9 +22118,30 @@ impl<'a> Ctx<'a> {
                 continue;
             }
             let mut breaks: Vec<usize> = Vec::new();
+            // 3.10 while-True lays a line-marker NOP at the loop head:
+            // `continue` targets the NOP (22) while the body's own back
+            // edge targets the instruction after it (24) — one logical
+            // top, two offsets. Normalize back edges through
+            // effective_offset so the continue does not disqualify the
+            // REAL loop span (binhex 3.10 HexBin.__init__: the rejected
+            // (24,68) span left the fake (22,56) continue-derived loop,
+            // trapping it inside the preceding isinstance guard and
+            // stranding the `if ch == b':': break`)
+            // the NOP must be a line marker IMMEDIATELY before the top
+            let nop_top = ti > 0
+                && self.instrs[ti - 1].op == Op::NOP
+                && self.instrs[ti - 1].offset < t;
             let clean = self.instrs[ti..bi].iter().all(|ins| {
                 ins.target.map_or(true, |it| {
-                    if (it >= t && it <= bj.offset) || (ins.is_backward && it == t) {
+                    if (it >= t && it <= bj.offset)
+                        || (ins.is_backward && it == t)
+                        || (nop_top
+                            && ins.is_backward
+                            && ins.offset < bj.offset
+                            && self.idx_of.get(&it).map_or(false, |&ii| {
+                                ii + 1 == ti
+                            }))
+                    {
                         true
                     } else if !ins.is_backward && it > bj.offset {
                         // a `break` flying to the loop exit
@@ -22136,7 +22189,53 @@ impl<'a> Ctx<'a> {
                 resolved.push((t, x.1));
             }
         }
-        self.while_true_loops = resolved;
+        // NOP-marker tops: a continue-derived fake span (top = the NOP,
+        // end = an inner cond target) and the real back-edge span (top =
+        // NOP+2) share one logical top — group ONLY when the earlier
+        // offset is a NOP line marker immediately before the other, and
+        // keep the span from the LAST (outermost) back edge. Raw offsets
+        // otherwise: effective_offset also skips 3.11+ RESUME-era
+        // NOT_TAKEN/CACHE padding and shifted loop opens there
+        // (_sitebuiltins/_weakrefset/code 3.11-3.13 regressed under the
+        // wide form)
+        let nop_before = |off: usize| -> bool {
+            self.idx_of
+                .get(&off)
+                .map_or(false, |&i| i > 0 && self.instrs[i - 1].op == Op::NOP)
+        };
+        let mut dedup: Vec<(usize, usize, usize)> = Vec::new();
+        for (i, (t, e)) in resolved.into_iter().enumerate() {
+            let te = self.effective_offset(t);
+            let grp = dedup
+                .iter()
+                .position(|(t2, _, _)| {
+                    *t2 == t
+                        || ((nop_before(t) || nop_before(*t2))
+                            && self.effective_offset(*t2) == te)
+                });
+            match grp {
+                Some(k) => {
+                    // keep the later (outermost back edge) span; the
+                    // group key must be the NON-marker top: back_edge_exit
+                    // keys off a backward edge targeting exactly the
+                    // start, and only the real top has one (the continue
+                    // targets the NOP)
+                    // the marker top IS the NOP; the real top is the
+                    // offset after it
+                    let at_nop = |off: usize| {
+                        self.idx_of
+                            .get(&off)
+                            .map_or(false, |&i| self.instrs[i].op == Op::NOP)
+                    };
+                    let key = if at_nop(t) { dedup[k].0 } else { t };
+                    dedup[k] = (key, e, i);
+                }
+                None => dedup.push((t, e, i)),
+            }
+        }
+        dedup.sort_by_key(|x| x.2);
+        self.while_true_loops =
+            dedup.into_iter().map(|(t, e, _)| (t, e)).collect();
     }
 
     fn handle_jump_backward(&mut self, target: usize) {
