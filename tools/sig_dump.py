@@ -186,6 +186,27 @@ def sig3(code, out):
         # near-pass blocked on exactly this pair)
         if name in ("LOAD_FAST_BORROW", "LOAD_FAST_CHECK"):
             name = "LOAD_FAST"
+        # 3.13+ fused pairs (STORE_FAST_LOAD_FAST / LOAD_FAST_LOAD_FAST)
+        # are a scheduling artifact whose emission depends on SOURCE
+        # LINE LAYOUT (a line-number boundary between the two ops
+        # suppresses the fusion -- multiline vs one-line list
+        # comprehensions compile differently). Restored sources never
+        # reproduce the original wrapping, so normalize the fusion back
+        # into its two component ops (_sitebuiltins 3.13/3.14 blocked on
+        # exactly this pair)
+        if name in ("STORE_FAST_LOAD_FAST", "LOAD_FAST_LOAD_FAST",
+                    "STORE_FAST_STORE_FAST"):
+            parts = [p.strip() for p in r.split(",")]
+            if len(parts) == 2:
+                if name == "STORE_FAST_STORE_FAST":
+                    out.append(("STORE_FAST", parts[0]))
+                    out.append(("STORE_FAST", parts[1]))
+                else:
+                    first = "STORE_FAST" if name == "STORE_FAST_LOAD_FAST" else "LOAD_FAST"
+                    second = "LOAD_FAST" if name == "STORE_FAST_LOAD_FAST" else "LOAD_FAST"
+                    out.append((first, parts[0]))
+                    out.append((second, parts[1]))
+                continue
         out.append((name, r))
     for c in code.co_consts:
         if isinstance(c, types.CodeType):
