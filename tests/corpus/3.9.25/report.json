@@ -93,9 +93,9 @@
   {
    "module": "ast",
    "verdict": "INCOMPLETE",
-   "ndiff": 5184,
+   "ndiff": 2476,
    "ntotal": 7116,
-   "detail": "line 1723: orig ('FOR_ITER', 'to 64') | got ('FOR_ITER', 'to 54')\nline 1727: orig ('LOAD_GLOBAL', 'isinstance') | got ('LOAD_FAST', 'name')\nline 1728: orig ('LOAD_FAST', 'value') | got ('STORE_FAST', 'type_name')"
+   "detail": "line 4532: orig ('SETUP_WITH', 'to 178') | got ('SETUP_WITH', 'to 192')\nline 4547: orig ('WITH_EXCEPT_START', '') | got ('POP_BLOCK', '')\nline 4548: orig ('POP_JUMP_IF_TRUE', '') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "asynchat",
@@ -212,7 +212,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1707: orig  If(test=BoolOp(op=And() | dec  Assign(targets=[Name(id='replace'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2827,
+   "ndiff": 2821,
    "ntotal": 4333,
    "detail": "line 1451: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')\nline 1452: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_ATTR', 'partial')\nline 1453: orig ('LOAD_CONST', \"'%('\") | got ('LOAD_FAST', 'self')"
   },

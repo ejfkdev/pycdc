@@ -412,8 +412,9 @@ class NodeVisitor(object):
         type_name = _const_node_type_names.get(type(value))
         if type_name is None:
             for cls, name in _const_node_type_names.items():
-                type_name = name
-                break
+                if isinstance(value, cls):
+                    type_name = name
+                    break
         if type_name is not None:
             method = 'visit_' + type_name
             try:

@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 24,
-  "SIG-DIFF": 13,
+  "PASS": 25,
+  "SIG-DIFF": 12,
   "INCOMPLETE": 3
  },
  "results": [
@@ -84,11 +84,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 1966: orig  body=[If(test=Call(func=Name(id='isinstance' | dec  body=[Assign(targets=[Name(id='type_name'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 356,
-   "ntotal": 1734,
-   "detail": "line 1368: orig ('FOR_ITER', 'to 64') | got ('FOR_ITER', 'to 54')\nline 1372: orig ('LOAD_GLOBAL', 'isinstance') | got ('LOAD_FAST', 'name')\nline 1373: orig ('LOAD_FAST', 'value') | got ('STORE_FAST', 'type_name')"
+   "verdict": "PASS"
   },
   {
    "module": "asynchat",

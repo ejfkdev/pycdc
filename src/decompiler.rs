@@ -22770,11 +22770,34 @@ if split_cond {
                             // a RETURN may sit inside the then region —
                             // 3.8/3.9 jump-threading leaves the loop's
                             // (dead) back edge AFTER it; only stop at a
-                            // forward escape out of the loop
+                            // forward escape out of the loop that ISN'T
+                            // a break chunk: `if c: stmt; break` keeps
+                            // the structural back edge after the break's
+                            // POP_TOP + jump-to-exit, and bailing there
+                            // dropped the guard entirely (ast 3.8
+                            // visit_Constant `if isinstance(value, cls):
+                            // type_name = name; break`)
                             if inst.target.map_or(false, |t| {
                                 t > inst.offset && self.find_loop_exit(t).is_some()
                             }) {
-                                break;
+                                let prev_real = (ci..self.instrs.len())
+                                    .rev()
+                                    .find(|&k2| {
+                                        k2 < self.instrs.iter().position(|x| std::ptr::eq(x, inst)).unwrap_or(0)
+                                            && !matches!(
+                                                self.instrs[k2].op,
+                                                Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                                            )
+                                    });
+                                let is_break_chunk = prev_real.map_or(false, |k2| {
+                                    matches!(
+                                        self.instrs[k2].op,
+                                        Op::POP_TOP | Op::POP_ITER
+                                    )
+                                });
+                                if !is_break_chunk {
+                                    break;
+                                }
                             }
                         }
                     }
