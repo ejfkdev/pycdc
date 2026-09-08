@@ -126,7 +126,7 @@ def main():
         parser.print_usage()
         sys.exit(2)
     options, args = parser.parse_args()
-    sys.argv[slice(None, None, None)] = args
+    sys.argv[:] = args
     if options.outfile is not None:
         options.outfile = os.path.abspath(options.outfile)
     if len(args) > 0:
@@ -138,11 +138,11 @@ def main():
             sys.path.insert(0, os.path.dirname(progname))
             with io.open_code(progname) as fp:
                 code = compile(fp.read(), progname, 'exec')
-        spec = importlib.machinery.ModuleSpec(name='__main__', loader=None, origin=progname)
-        module = importlib.util.module_from_spec(spec)
-        sys.modules['__main__'] = module
-        globs = module.__dict__
-        globs.update({'__spec__': spec, '__file__': spec.origin, '__name__': spec.name, '__package__': None, '__cached__': None})
+            spec = importlib.machinery.ModuleSpec(name='__main__', loader=None, origin=progname)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules['__main__'] = module
+            globs = module.__dict__
+            globs.update({'__spec__': spec, '__file__': spec.origin, '__name__': spec.name, '__package__': None, '__cached__': None})
         try:
             runctx(code, globs, None, options.outfile, options.sort)
         except BrokenPipeError as exc:

@@ -531,7 +531,7 @@ Usually you use the transformer like this::
                             new_values.extend(value)
                             continue
                     new_values.append(value)
-                old_value[slice(None, None, None)] = new_values
+                old_value[:] = new_values
             elif isinstance(old_value, AST):
                 new_node = self.visit(old_value)
                 if new_node is None:

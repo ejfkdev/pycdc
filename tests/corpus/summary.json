@@ -54,8 +54,8 @@
   "counts": {
    "PASS": 16,
    "INCOMPLETE": 10,
-   "SIG-DIFF": 13,
-   "AST-PASS": 1
+   "SIG-DIFF": 12,
+   "AST-PASS": 2
   }
  },
  "3.3.7": {

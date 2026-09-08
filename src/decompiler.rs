@@ -9264,6 +9264,11 @@ impl<'a> Ctx<'a> {
                     let val = self.pop_expr();
                     (val, obj, idx)
                 };
+                // 3.14 constant-folded `x[:] = v`: the index arrives as
+                // a marshalled slice const (or a slice() call) — render
+                // the canonical Slice so the recompile folds it back
+                // (cProfile 3.14 main `sys.argv[:] = args`)
+                let idx = normalize_slice_call(idx);
                 let target = Rc::new(Expr::Subscript { value: obj, index: idx });
                 self.emit_store(target, val);
                 true
@@ -22583,14 +22588,17 @@ if split_cond {
                     .skip_while(|i| i.offset < t)
                     .take_while(|i| i.offset < limit)
                     .any(|i| i.is_backward && i.target == Some(t))
-                // 3.12 with-cleanup REJOIN: the out-of-line exception
-                // cleanup (WITH_EXCEPT_START; ... POP_EXCEPT; POP_TOPs)
-                // resumes the main flow with a JUMP_BACKWARD to the
-                // with's success exit — that landing point is machinery,
-                // not an early region boundary (cProfile 3.12 main: the
-                // else arm truncated at the with exit, `spec`/`globs`/
-                // try ejected to the outer level and `progname` read
-                // unbound on the -m path)
+                // out-of-line cleanup REJOIN: with/finally exception
+                // cleanups resume the main flow with a backward jump
+                // (3.12/3.13: WITH_EXCEPT_START ... POP_EXCEPT;
+                // POP_TOPs; JUMP_BACKWARD — 3.14 dropped
+                // WITH_EXCEPT_START for LOAD_SPECIAL __exit__ and
+                // resumes via JUMP_BACKWARD_NO_INTERRUPT). The landing
+                // point is machinery, not an early region boundary
+                // (cProfile 3.12/3.14 main: the else arm truncated at
+                // the with exit, `spec`/`globs`/try ejected to the
+                // outer level and `progname` read unbound on the -m
+                // path)
                 || self.instrs.iter().any(|i| {
                     i.is_backward
                         && i.target == Some(t)
@@ -22598,14 +22606,77 @@ if split_cond {
                             .idx_of
                             .get(&i.offset)
                             .map_or(false, |&ii| {
-                                self.instrs[ii.saturating_sub(8)..ii]
+                                // either the 3.12/3.13 with cleanup
+                                // (WITH_EXCEPT_START nearby, plain
+                                // JUMP_BACKWARD rejoin) or the 3.11+
+                                // non-interrupting resume op
+                                // (JUMP_BACKWARD_NO_INTERRUPT after
+                                // POP_EXCEPT). Scoped to JBNI for the
+                                // POP_EXCEPT marker: a plain backward
+                                // jump after POP_EXCEPT is an
+                                // `except: continue/break` source edge
+                                // whose loop-top target IS a legit
+                                // region bound (widening it there
+                                // tore 19 3.14 modules' boundaries)
+                                let pop_exc = i.op == Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    && self.instrs[ii.saturating_sub(10)..ii]
+                                        .iter()
+                                        .any(|p| p.op == Op::POP_EXCEPT)
+                                    // the landing point must be a WITH
+                                    // success exit: an inline __exit__
+                                    // call run ([None...] CALL; POP_TOP,
+                                    // 3.14 LOAD_SPECIAL __exit__) ends
+                                    // right at t — a generic JBNI resume
+                                    // onto plain statements is a real
+                                    // region boundary
+                                    && self
+                                        .idx_of
+                                        .get(&t)
+                                        .map_or(false, |&ti| {
+                                            ti >= 6
+                                                && self.instrs[ti - 1].op
+                                                    == Op::POP_TOP
+                                                && matches!(
+                                                    self.instrs[ti - 2].op,
+                                                    Op::CALL | Op::CALL_FUNCTION
+                                                )
+                                                && {
+                                                    // the __exit__ call
+                                                    // feeds on a run of
+                                                    // None args (3.12+:
+                                                    // LOAD None x3; CALL
+                                                    // — 3.14 the same via
+                                                    // LOAD_SMALL_INT/
+                                                    // borrowed locals);
+                                                    // demand at least
+                                                    // two None consts in
+                                                    // the operand window
+                                                    self.instrs
+                                                        [ti.saturating_sub(10)..ti - 2]
+                                                        .iter()
+                                                        .filter(|p| {
+                                                            p.op == Op::LOAD_CONST
+                                                                && self
+                                                                    .code
+                                                                    .consts
+                                                                    .get(p.arg as usize)
+                                                                    .map_or(false, |o| {
+                                                                        matches!(&**o, PyObject::None)
+                                                                    })
+                                                        })
+                                                        .count()
+                                                        >= 2
+                                                }
+                                        });
+                                let with_exc = self.instrs[ii.saturating_sub(10)..ii]
                                     .iter()
                                     .any(|p| {
                                         matches!(
                                             p.op,
                                             Op::WITH_EXCEPT_START
                                         )
-                                    })
+                                    });
+                                pop_exc || with_exc
                             })
                 });
             if !internal {

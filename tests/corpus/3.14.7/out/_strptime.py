@@ -131,7 +131,7 @@ since changing the timezone is worthless without that call.
             self.LC_alt_digits = [a + b for a in digits for b in digits]
             time_tuple2 = time.struct_time((2000, 1, 1, 1, 1, 1, 5, 1, 0))
             if self.LC_alt_digits[1] not in time.strftime('%x %X', time_tuple2):
-                self.LC_alt_digits[slice(None, 10, None)] = digits
+                self.LC_alt_digits[:10] = digits
             return
         if {'一', '七', '九', '十', '廿'}.issubset(s):
             self.LC_alt_digits = lzh_TW_alt_digits
