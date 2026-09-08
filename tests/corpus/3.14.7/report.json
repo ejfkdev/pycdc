@@ -64,7 +64,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 942,
    "ntotal": 1352,
-   "detail": "line 394: orig ('LOAD_CONST', \"frozenset({'element', 'attlist', 'linktype', 'link'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 395: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 396: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'linktype', 'link', 'element'})\")"
+   "detail": "line 394: orig ('LOAD_CONST', \"frozenset({'attlist', 'linktype', 'link', 'element'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 395: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 396: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'element', 'linktype', 'link'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -73,8 +73,8 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1349,
-   "ntotal": 1743,
+   "ndiff": 1331,
+   "ntotal": 1744,
    "detail": "line 362: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 363: orig ('LOAD_ATTR', 'close + NULL|self') | got ('CHECK_EXC_MATCH', '')\nline 364: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to L3')"
   },
   {
@@ -87,9 +87,9 @@
   {
    "module": "_py_warnings",
    "verdict": "INCOMPLETE",
-   "ndiff": 2640,
-   "ntotal": 3266,
-   "detail": "line 553: orig ('JUMP_FORWARD', 'to L2') | got ('LOAD_FAST', 'msg')\nline 554: orig ('LOAD_FAST', 'msg') | got ('LOAD_ATTR', 'line')\nline 555: orig ('LOAD_ATTR', 'line') | got ('STORE_FAST', 'line')"
+   "ndiff": 2394,
+   "ntotal": 3251,
+   "detail": "line 650: orig ('JUMP_BACKWARD', 'to L5') | got ('JUMP_BACKWARD', 'to L7')\nline 653: orig ('LOAD_FAST', 's') | got ('LOAD_CONST', 'None')\nline 655: orig ('LOAD_FAST', 'suggest_tracemalloc') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "_pylong",
@@ -192,14 +192,14 @@
    "module": "cmd",
    "ast_detail": "diff at token 322: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1059,
+   "ndiff": 1054,
    "ntotal": 1410,
    "detail": "line 324: orig ('POP_JUMP_IF_FALSE', 'to L14') | got ('POP_JUMP_IF_FALSE', 'to L13')\nline 332: orig ('LOAD_SMALL_INT', '') | got ('NOP', '')\nline 333: orig ('LOAD_CONST', 'None') | got ('LOAD_SMALL_INT', '')"
   },
   {
    "module": "code",
    "verdict": "INCOMPLETE",
-   "ndiff": 372,
+   "ndiff": 376,
    "ntotal": 1060,
    "detail": "line 682: orig ('NOP', '') | got ('LOAD_FAST', 'more')\nline 683: orig ('LOAD_FAST', 'more') | got ('TO_BOOL', '')\nline 684: orig ('TO_BOOL', '') | got ('POP_JUMP_IF_FALSE', 'to L7')"
   },

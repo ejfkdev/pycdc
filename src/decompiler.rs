@@ -427,6 +427,14 @@ struct Ctx<'a> {
     /// EOFError chain; pushing that Try into the loop body ordered it
     /// BEFORE the outer Try emitted at the back edge — rotated body)
     chain_absorb_body: Option<Vec<Stmt>>,
+    /// 3.12+ relocated chains: a nested region whose chain head lies
+    /// past its enclosing merged region's body end defers its own
+    /// emit_try_tail — the enclosing rebuild parses the nested chain
+    /// and emits the nested Try (code 3.12 interact: the inner tail at
+    /// its body end ran its else-span walk into the function-tail
+    /// chains, rendering `if AttributeError:` garbage and skipping the
+    /// outer body end so the outer tail never fired)
+    nested_tail_defer: bool,
     pending_try_handlers: Vec<Vec<ExceptHandler>>,
     pending_loop: Vec<(Option<ExprRef>, Option<ExprRef>, Option<ExprRef>, Vec<Stmt>, bool)>,
     pending_with: Vec<Vec<WithItem>>,
@@ -730,6 +738,7 @@ pub fn decompile_in_scope(
         legacy_body_redirect: None,
         pending_loop_close_at_chain: None,
         chain_absorb_body: None,
+        nested_tail_defer: false,
         pending_try_handlers: Vec::new(),
         pending_loop: Vec::new(),
         pending_with: Vec::new(),
@@ -2010,6 +2019,26 @@ impl<'a> Ctx<'a> {
                 || tc.body_end <= pos
                 || !shadow_of_active
             {
+                // an enclosing merged same-handler split region whose
+                // rebuild will parse THIS region's chain (its head lies
+                // in [enclosing body end, enclosing chain head)): defer
+                // this region's own tail emit — running it here walks
+                // its else-span into the relocated chains (code 3.12
+                // interact) and its skip_until strands the enclosing
+                // region's tail
+                if let Some(h) = tc.except_handler {
+                    if self.try_ctxs.values().any(|r| {
+                        r.start < tc.start
+                            && r.region_end > tc.region_end
+                            && r.finally_handler.is_none()
+                            && r.body_end == r.region_end
+                            && r.except_handler.map_or(false, |ho| {
+                                h >= r.body_end && h < ho
+                            })
+                    }) {
+                        self.nested_tail_defer = true;
+                    }
+                }
                 let mut blk = Block::new(BlockType::Try, pos, tc.body_end);
                 blk.finally_target = tc.except_handler.or(tc.finally_handler);
                 if let Some(prev) = self.active_try.take() {
@@ -2315,6 +2344,14 @@ impl<'a> Ctx<'a> {
                 self.code.name, tc.start, tc.body_end, tc.region_end, tc.except_handler, tc.finally_handler, pos, star_inline, body_jf
             );
         }
+        // deferred nested tail: an enclosing merged same-handler region
+        // will rebuild this try from spans (see the nested-split branch
+        // below) — emitting here would misparse the relocated chain
+        if self.nested_tail_defer {
+            self.nested_tail_defer = false;
+            return;
+        }
+
         // 3.11+ nested try/except/else inside a try/except body: the
         // outer protected range arrives as same-handler fragments
         // sandwiching the nested region (merged by the builder), and
@@ -2348,7 +2385,13 @@ impl<'a> Ctx<'a> {
                 if let Some(inner) = nested {
                     let h_inner = inner.except_handler.unwrap();
                     // the nested chain ends at its last RERAISE; the
-                    // outward hop right after it resumes the outer flow
+                    // outward hop right after it resumes the outer flow.
+                    // 3.12 relocates every chain to the function tail and
+                    // the clause's break/exit hop (JF to the loop exit)
+                    // comes BEFORE the cleanup RERAISEs — accept the
+                    // first outward forward hop and cut at the last
+                    // chain material seen (RERAISE end, or the POP_EXCEPT
+                    // the hop itself follows)
                     let mut last_reraise_end = None;
                     let mut chain_stop = h_outer;
                     if let Some(&ci) = self.idx_of.get(&h_inner) {
@@ -2362,9 +2405,9 @@ impl<'a> Ctx<'a> {
                             if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
                                 && !x.is_backward
                                 && x.target.map_or(false, |t| t >= h_outer)
-                                && last_reraise_end.is_some()
                             {
-                                chain_stop = last_reraise_end.unwrap();
+                                chain_stop =
+                                    last_reraise_end.unwrap_or(x.offset);
                                 break;
                             }
                         }
@@ -2406,12 +2449,15 @@ impl<'a> Ctx<'a> {
                             };
                         let inner_body =
                             self.decompile_region(inner.start, inner.region_end);
-                        // the else span ends at the nested chain head —
-                        // its body-exit jump hops over the chain to the
-                        // outward merge; chain_stop is only the walk's
-                        // resume point
+                        // the else span ends at the merged body end —
+                        // the nested chain head bounds it only when the
+                        // chain is inline (3.11); 3.12 relocates chains
+                        // to the function tail past the loop back edge,
+                        // and the span would swallow the back edge and
+                        // the chain material as code
+                        let orelse_end = tc.body_end.min(h_inner);
                         let inner_orelse =
-                            self.decompile_region(inner.region_end, h_inner);
+                            self.decompile_region(inner.region_end, orelse_end);
                         let mut body = body1;
                         body.push(Stmt::Try {
                             body: inner_body,
@@ -2425,8 +2471,17 @@ impl<'a> Ctx<'a> {
                             orelse: Vec::new(),
                             finalbody: Vec::new(),
                         });
-                        if self.skip_until.map_or(true, |s| s < chain_stop) {
-                            self.skip_until = Some(chain_stop);
+                        // resume the walk at the merged body end when
+                        // the chains are relocated past it (3.12: the
+                        // loop back edge and post-loop flow must run
+                        // normally); otherwise hop the inline chain
+                        let resume = if chain_stop > tc.body_end {
+                            tc.body_end.max(pos)
+                        } else {
+                            chain_stop
+                        };
+                        if self.skip_until.map_or(true, |s| s < resume) {
+                            self.skip_until = Some(resume);
                         }
                         return;
                     }
@@ -3135,6 +3190,67 @@ impl<'a> Ctx<'a> {
                     // The else body is [body_end, merge). Guard: no with-
                     // protocol op in it (a `with` in the try is its own stmt).
                     let chain_end = self.chain_extent(handler);
+                    // 3.12 relocated chains: the clause-exit jump (the
+                    // backward rejoin that delimits the else span) sits
+                    // PAST chain_extent's stop, inside the chain's own
+                    // exit/stub tail — bound the merge scan at the next
+                    // chain head instead so the exit jump is visible
+                    // (code 3.12 showsyntaxerror: JUMP_BACKWARD 218->146
+                    // lies after extent 216; without it the inner
+                    // try/except ValueError/else flattened and the
+                    // re-wrap ran even on the pass path)
+                    let mut scan_end = chain_end;
+                    if let Some(&hi) = self.idx_of.get(&handler) {
+                        for x in &self.instrs[hi..] {
+                            if x.offset > chain_end
+                                // PUSH_EXC_INFO only: a misclassified
+                                // cleanup stub in chain_heads let the
+                                // window drift into the next real chain
+                                // (cmd 3.12 cmdloop: the EOFError try
+                                // matched the KeyboardInterrupt chain's
+                                // resume JB 1652->546 as its else merge)
+                                && x.op == Op::PUSH_EXC_INFO
+                            {
+                                scan_end = x.offset;
+                                break;
+                            }
+                        }
+                    }
+                    // hard cap: never scan past this chain's own
+                    // exit/stub tail into a LATER sibling chain — its
+                    // resume jump targets the sibling's continuation
+                    // and misreads as THIS try's else merge (code 3.12
+                    // interact: the ps1 try swallowed the ps2 try as a
+                    // phantom else via the ps2 chain's JB 544->70)
+                    if let Some(&hi) = self.idx_of.get(&handler) {
+                        let mut tail_end = chain_end;
+                        for x in &self.instrs[hi..] {
+                            if x.offset < chain_end {
+                                continue;
+                            }
+                            if matches!(
+                                x.op,
+                                Op::JUMP_BACKWARD
+                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    | Op::JUMP_ABSOLUTE
+                                    | Op::JUMP_FORWARD
+                                    | Op::JUMP
+                                    | Op::RERAISE
+                                    | Op::COPY
+                                    | Op::SWAP
+                                    | Op::POP_EXCEPT
+                                    | Op::POP_TOP
+                                    | Op::NOP
+                                    | Op::NOT_TAKEN
+                                    | Op::END_FINALLY
+                            ) {
+                                tail_end = x.end();
+                            } else {
+                                break;
+                            }
+                        }
+                        scan_end = scan_end.min(tail_end);
+                    }
                     // The try body may be FRAGMENTED into several exception
                     // -table regions sharing this handler (3.12+ inlines a
                     // comprehension in the try body as its own region). The
@@ -3151,6 +3267,14 @@ impl<'a> Ctx<'a> {
                         .map(|t| t.body_end)
                         .max()
                         .unwrap_or(tc.body_end);
+                    // the genuine else rejoin is the chain's LAST
+                    // backward jump: every clause's normal exit resumes
+                    // the mainline at the SAME merge, and the final
+                    // clause's exit is the last one before the mismatch
+                    // stubs — a FIRST match picks an earlier clause's
+                    // resume or a misclassified sibling stub-tail jump
+                    // (cmd 3.12 cmdloop: the EOFError try grew a phantom
+                    // else holding the elif chain's else arm)
                     let backward_merge = self
                         .instrs
                         .iter()
@@ -3162,8 +3286,8 @@ impl<'a> Ctx<'a> {
                         // are sequential at module level) and misreads as
                         // an else merge, swallowing the code between the
                         // tries into a phantom else region
-                        .filter(|x| x.offset < chain_end)
-                        .find(|x| {
+                        .filter(|x| x.offset < scan_end)
+                        .filter(|x| {
                             // 3.14 rejoins the mainline with
                             // JUMP_BACKWARD_NO_INTERRUPT; the t < handler
                             // bound excludes await-resume JBNIs (their
@@ -3190,9 +3314,34 @@ impl<'a> Ctx<'a> {
                                     // import guards) targets plain
                                     // mainline flow, never a loop exit.
                                     && self.find_loop_exit(t).is_none()
+                                    // the body's own exit jump flying to
+                                    // the SAME target means the success
+                                    // path skips the span entirely — the
+                                    // span is an enclosing branch's arm,
+                                    // not this try's else (cmd 3.12
+                                    // cmdloop: the EOFError try's body
+                                    // ends in JF 546->788 and the clause
+                                    // exit JB 1104->788; the span
+                                    // [546,788) is the elif chain's else
+                                    // arm and rendered as a phantom
+                                    // try-else)
+                                    && !self
+                                        .idx_of
+                                        .get(&tc.body_end)
+                                        .map_or(false, |&bj| {
+                                            let x = &self.instrs[bj];
+                                            matches!(
+                                                x.op,
+                                                Op::JUMP_FORWARD
+                                                    | Op::JUMP
+                                                    | Op::JUMP_NO_INTERRUPT
+                                            ) && !x.is_backward
+                                                && x.target == Some(t)
+                                        })
                             })
                         })
-                        .and_then(|x| x.target);
+                        .filter_map(|x| x.target)
+                        .last();
                     let merge = if let Some(m) = backward_merge {
                         Some((m, m))
                     } else {
@@ -20777,6 +20926,23 @@ impl<'a> Ctx<'a> {
                 // instruction no jump targets (post-else continuation)
                 if target > b.end && !self.targets.contains(&target) {
                     return Some(i);
+                }
+                // 3.12+ relocated handler zone: the loop's end was capped
+                // at the first out-of-line chain, so the block end is not
+                // the true exit — a clause's break hop flies over the
+                // WHOLE zone to the continuation. Recognize targets that
+                // no exception-table entry covers (everything inside the
+                // zone is covered; the continuation past it is not)
+                if let Some(hz) = self.handler_zone {
+                    if hz <= b.end
+                        && target > b.end
+                        && !self.exc_entries.iter().any(|e| {
+                            e.start <= target && target < e.end
+                        })
+                        && !self.chain_heads.contains(&target)
+                    {
+                        return Some(i);
+                    }
                 }
                 // a break jumping over the loop epilogue (END_FOR and the
                 // iterator-drop POP_TOPs) lands on the real continuation

@@ -106,7 +106,8 @@ class InteractiveInterpreter:
                     msg, (dummy_filename, lineno, offset, line) = value.args
                 except ValueError:
                     pass
-                value = SyntaxError(msg, (filename, lineno, offset, line))
+                else:
+                    value = SyntaxError(msg, (filename, lineno, offset, line))
             self._showtraceback(typ, value, None)
         finally:
             typ = value = tb = None
@@ -210,14 +211,9 @@ class InteractiveConsole(InteractiveInterpreter):
                     line = self.raw_input(prompt)
                 except EOFError:
                     self.write('\n')
+                    break
                 else:
                     more = self.push(line)
-                    if AttributeError:
-                        None
-                        sys.ps1 = '>>> '
-                    if AttributeError:
-                        None
-                        sys.ps2 = '... '
             except KeyboardInterrupt:
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()

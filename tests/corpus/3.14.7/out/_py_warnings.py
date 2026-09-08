@@ -113,8 +113,8 @@ def _formatwarnmsg_impl(msg):
         except Exception:
             line = None
             linecache = None
-        else:
-            line = msg.line
+    else:
+        line = msg.line
     if line:
         line = line.strip()
         s += '  %s\n' % line
@@ -142,11 +142,6 @@ def _formatwarnmsg_impl(msg):
                         line = None
                 except Exception:
                     line = None
-                else:
-                    try:
-                        line = None
-                    except Exception:
-                        line = None
                 while line:
                     line = line.strip()
                     s += '    %s\n' % line

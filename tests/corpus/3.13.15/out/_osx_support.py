@@ -364,8 +364,8 @@ def get_platform_osx(_config_vars, osname, release, machine):
                 macrelease = tuple((int(i) for i in macrelease.split('.')[0:2]))
             except ValueError:
                 macrelease = (10, 3)
-            else:
-                macrelease = (10, 3)
+        else:
+            macrelease = (10, 3)
         if macrelease >= (10, 4) and '-arch' in cflags.strip():
             machine = 'fat'
             archs = re.findall('-arch\\s+(\\S+)', cflags)

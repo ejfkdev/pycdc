@@ -329,8 +329,9 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
             raise ValueError('Non-Ascii85 digit found: %c' % x)
             result = b''.join(decoded)
             padding = 4 - len(curr)
-            if padding:
-                result = result[:-padding]
+            if not padding:
+                break
+            result = result[:-padding]
     return result
 
 _b85alphabet = b'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~'

@@ -2,9 +2,9 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 16,
+  "PASS": 17,
   "SIG-DIFF": 17,
-  "INCOMPLETE": 6,
+  "INCOMPLETE": 5,
   "AST-PASS": 1
  },
  "results": [
@@ -47,7 +47,7 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 826,
+   "ndiff": 678,
    "ntotal": 1489,
    "detail": "line 323: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 324: orig ('LOAD_ATTR', 'NULL|self + close') | got ('CHECK_EXC_MATCH', '')\nline 325: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 314')"
   },
@@ -95,8 +95,8 @@
    "module": "aifc",
    "ast_detail": "diff at token 254: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2752,
-   "ntotal": 3367,
+   "ndiff": 2724,
+   "ntotal": 3374,
    "detail": "line 519: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 520: orig ('COPY', '') | got ('POP_JUMP_IF_FALSE', 'to 148')\nline 521: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },
   {
@@ -166,16 +166,13 @@
    "module": "cmd",
    "ast_detail": "diff at token 331: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1062,
-   "ntotal": 1373,
+   "ndiff": 1066,
+   "ntotal": 1374,
    "detail": "line 279: orig ('LOAD_ATTR', 'NULL|self + postloop') | got ('LOAD_ATTR', 'use_rawinput')\nline 280: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 956')\nline 281: orig ('POP_TOP', '') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "code",
-   "verdict": "INCOMPLETE",
-   "ndiff": 162,
-   "ntotal": 721,
-   "detail": "line 256: orig ('JUMP_BACKWARD', 'to 146') | got ('JUMP_BACKWARD', 'to 114')\nline 558: orig ('NOP', '') | got ('LOAD_GLOBAL', 'AttributeError')\nline 559: orig ('JUMP_BACKWARD', 'to 304') | got ('POP_JUMP_IF_FALSE', 'to 482')"
+   "verdict": "PASS"
   },
   {
    "module": "codecs",

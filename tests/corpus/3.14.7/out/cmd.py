@@ -268,8 +268,8 @@ Otherwise try to call complete_<command> to get list of completions.
                         compfunc = getattr(self, 'complete_' + cmd)
                     except AttributeError:
                         compfunc = self.completedefault
-                    else:
-                        compfunc = self.completenames
+            else:
+                compfunc = self.completenames
             self.completion_matches = compfunc(text, line, begidx, endidx)
         try:
             return self.completion_matches[state]
