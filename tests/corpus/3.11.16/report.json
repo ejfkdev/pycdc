@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 23,
-  "SIG-DIFF": 14,
+  "PASS": 24,
+  "SIG-DIFF": 13,
   "INCOMPLETE": 3
  },
  "results": [
@@ -103,8 +103,8 @@
    "module": "asyncore",
    "ast_detail": "diff at token 259: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1322,
-   "ntotal": 2325,
+   "ndiff": 1328,
+   "ntotal": 2324,
    "detail": "line 371: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 506') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 512')\nline 395: orig ('POP_EXCEPT', '') | got ('LOAD_CONST', 'None')\nline 396: orig ('LOAD_CONST', 'None') | got ('STORE_FAST', 'e')"
   },
   {
@@ -172,11 +172,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 2464: orig  ctx=Load())) | dec  ctx=Load()))]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 266,
-   "ntotal": 2320,
-   "detail": "line 2053: orig ('LOAD_FAST', 'srw') | got ('JUMP_FORWARD', 'to 232')\nline 2054: orig ('RETURN_VALUE', '') | got ('PUSH_EXC_INFO', '')\nline 2055: orig ('PUSH_EXC_INFO', '') | got ('POP_TOP', '')"
+   "verdict": "PASS"
   },
   {
    "module": "codeop",

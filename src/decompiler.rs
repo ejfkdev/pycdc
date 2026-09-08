@@ -28957,8 +28957,7 @@ impl<'a> Ctx<'a> {
         // return means the flow continued past the try (aifc __init__:
         // then-arm terminating return after the try) — leave it to the
         // branch-tail strip in postprocess.
-        if is_none_value
-            && self.version.at_least(3, 11)
+        if self.version.at_least(3, 11)
             && self.legacy_handler.is_none()
             && self.pending_try_ctx.is_none()
             // module level has its own synthetic-return handling below
@@ -28968,23 +28967,44 @@ impl<'a> Ctx<'a> {
             && self.code.name != "<module>"
         {
             if let Some(top) = self.blocks.last() {
+                // function level (Main) admitted for VALUE returns:
+                // codecs open 3.11 `try: ...; return srw except: ...`
+                // — the try flushed at body_end with the narrowed
+                // value loads + RETURN just past it
                 let is_branch =
-                    matches!(top.kind, BlockType::If | BlockType::Else);
+                    matches!(top.kind, BlockType::If | BlockType::Else)
+                        || (matches!(top.kind, BlockType::Main)
+                            && !is_none_value);
                 let end_at = top.end;
                 if is_branch && self.cur_offset < end_at {
                     if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
                         // walk back over the value load(s) of this return
                         let mut b = ci;
-                        while b > 0 {
+                        let mut hops = 0;
+                        while b > 0 && hops < 8 {
                             let p = &self.instrs[b - 1];
                             if matches!(
                                 p.op,
                                 Op::LOAD_CONST | Op::NOP | Op::NOT_TAKEN | Op::CACHE
-                            ) {
+                            ) || (!is_none_value
+                                && matches!(
+                                    p.op,
+                                    Op::LOAD_FAST
+                                        | Op::LOAD_NAME
+                                        | Op::LOAD_GLOBAL
+                                        | Op::LOAD_DEREF
+                                        | Op::LOAD_ATTR
+                                        | Op::LOAD_METHOD
+                                        | Op::LOAD_FAST_LOAD_FAST
+                                        | Op::LOAD_FAST_BORROW
+                                        | Op::LOAD_SMALL_INT
+                                ))
+                            {
                                 b -= 1;
-                            } else {
-                                break;
+                                hops += 1;
+                                continue;
                             }
+                            break;
                         }
                         let back = self.instrs.get(b).map(|x| x.offset);
                         // forward: this return, then the chain head, then
@@ -29023,18 +29043,63 @@ impl<'a> Ctx<'a> {
                             // between): the narrowed-range tail shape.
                             // aifc's then-arm return sits past the body's
                             // final POP_TOP and must stay branch-level.
+                            // body_end may point one value-load PAST the
+                            // back-walk start when the flush position was
+                            // the return itself (codecs open 3.11: ltb=
+                            // 180 = end of LOAD srw@178 = back) — allow
+                            // be in [back, back+16] too; everything
+                            // between back and the return stays
+                            // value-load material either way
                             let adjacent =
                                 self.last_try_body_end.map_or(false, |be| {
-                                    be <= back
-                                        && back - be <= 16
+                                    if is_none_value {
+                                        // strict form (chunk.skip): the
+                                        // LOAD None starts AT/after the
+                                        // body end with pads between —
+                                        // a GAP means the flow continued
+                                        // past the try (aifc)
+                                        return be <= back
+                                            && back - be <= 16
+                                            && !self.instrs.iter().any(|x| {
+                                                x.offset >= be
+                                                    && x.offset < back
+                                                    && !matches!(
+                                                        x.op,
+                                                        Op::NOP
+                                                            | Op::NOT_TAKEN
+                                                            | Op::CACHE
+                                                    )
+                                            });
+                                    }
+                                    let (lo, hi) = if be <= back {
+                                        (be, back)
+                                    } else if be <= back + 16 {
+                                        (back, be)
+                                    } else {
+                                        return false;
+                                    };
+                                    hi - lo <= 16
                                         && !self.instrs.iter().any(|x| {
-                                            x.offset >= be
-                                                && x.offset < back
+                                            x.offset >= lo
+                                                && x.offset < hi
                                                 && !matches!(
                                                     x.op,
                                                     Op::NOP
                                                         | Op::NOT_TAKEN
                                                         | Op::CACHE
+                                                )
+                                                && !matches!(
+                                                    x.op,
+                                                    Op::LOAD_FAST
+                                                        | Op::LOAD_NAME
+                                                        | Op::LOAD_GLOBAL
+                                                        | Op::LOAD_DEREF
+                                                        | Op::LOAD_CONST
+                                                        | Op::LOAD_ATTR
+                                                        | Op::LOAD_METHOD
+                                                        | Op::LOAD_FAST_LOAD_FAST
+                                                        | Op::LOAD_FAST_BORROW
+                                                        | Op::LOAD_SMALL_INT
                                                 )
                                         })
                                 });
@@ -29066,9 +29131,74 @@ impl<'a> Ctx<'a> {
                                 .map_or(false, |x| {
                                     x.op == Op::RAISE_VARARGS && x.arg == 0
                                 });
+                            // an always-raising chain vetoes recovery
+                            // ONLY when the protected body itself
+                            // terminates (aifc __init__: initfp always
+                            // raises — the return is the branch's, not
+                            // the body's). A normally-ending body falls
+                            // through into its own tail return even
+                            // when every exception path re-raises
+                            // (codecs open 3.11 `try: ...; return srw
+                            // except: file.close(); raise`)
+                            let body_terminal = self
+                                .last_try_body_end
+                                .and_then(|be| {
+                                    self.instrs
+                                        .iter()
+                                        .rev()
+                                        .find(|x| {
+                                            x.offset < be
+                                                && !matches!(
+                                                    x.op,
+                                                    Op::NOP
+                                                        | Op::NOT_TAKEN
+                                                        | Op::CACHE
+                                                        | Op::POP_TOP
+                                                )
+                                        })
+                                        .map(|x| {
+                                            matches!(
+                                                x.op,
+                                                Op::RAISE_VARARGS
+                                                    | Op::RETURN_VALUE
+                                                    | Op::RETURN_CONST
+                                                    | Op::RERAISE
+                                            )
+                                        })
+                                })
+                                .unwrap_or(false);
+                            // line-table discriminator for VALUE
+                            // returns: the return's source line must
+                            // precede the handler clause's first line —
+                            // a try body's tail return is always above
+                            // its `except`. copyreg _reduce_ex 3.13:
+                            // the post-try if/else returns (line 92/94)
+                            // sit lexically BEFORE the out-of-line
+                            // chain of the EARLIER try (except line 75)
+                            // — sinking moved them; folding them into
+                            // the body is wrong
+                            let handler_line = self
+                                .instrs
+                                .iter()
+                                .filter(|x| x.offset > h)
+                                .find_map(|x| x.line);
+                            let ret_line = self
+                                .idx_of
+                                .get(&self.cur_offset)
+                                .and_then(|&ci2| self.instrs[ci2].line);
+                            let line_ok = is_none_value
+                                || match (ret_line, handler_line) {
+                                    (Some(r), Some(hl)) => r < hl,
+                                    _ => true,
+                                };
+                            if std::env::var("PYCDC_REC_DBG").is_ok() {
+                                eprintln!("REC off={} targeted={} adjacent={} always={} body_term={} line_ok={} h={} end_at={} ltb={:?}", self.cur_offset, targeted, adjacent, chain_always_raises, body_terminal, line_ok, h, end_at, self.last_try_body_end);
+                            }
                             if !targeted
                                 && adjacent
-                                && !chain_always_raises
+                                && (!chain_always_raises
+                                    || (!is_none_value && !body_terminal))
+                                && line_ok
                                 && h < end_at
                             {
                                 let ext = self.chain_extent(h);
@@ -29119,6 +29249,13 @@ impl<'a> Ctx<'a> {
                     }
                 }
             }
+        }
+        if std::env::var("PYCDC_REC_DBG").is_ok() && self.code.name == "open" {
+            eprintln!("REC2 off={} ptc={:?} ptb={:?} top={:?} topstmts={}", self.cur_offset,
+                self.pending_try_ctx.as_ref().map(|t| (t.start, t.body_end, t.region_end, t.except_handler)),
+                self.pending_try_body.iter().map(|b| b.len()).collect::<Vec<_>>(),
+                self.blocks.last().map(|b| format!("{:?}", b.kind)),
+                self.blocks.last().map(|b| b.stmts.len()).unwrap_or(999));
         }
         // 3.11+: the exception-table region often ends exactly at the
         // RETURN that closes the try body (only the value computation is

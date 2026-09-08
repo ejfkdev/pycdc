@@ -294,6 +294,7 @@ class dispatcher:
     def send(self, data):
         try:
             result = self.socket.send(data)
+            return result
         except OSError as why:
             if why.errno == EWOULDBLOCK:
                 return 0
@@ -305,7 +306,6 @@ class dispatcher:
             raise
             why = None
             del why
-        return result
 
     def recv(self, buffer_size):
         try:
