@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 18,
-  "SIG-DIFF": 16,
+  "PASS": 19,
+  "SIG-DIFF": 15,
   "INCOMPLETE": 5,
   "AST-PASS": 1
  },
@@ -24,8 +24,8 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 277: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2917,
-   "ntotal": 3693,
+   "ndiff": 2900,
+   "ntotal": 3674,
    "detail": "line 677: orig ('FOR_ITER', 'to 148') | got ('FOR_ITER', 'to 162')\nline 681: orig ('FOR_ITER', 'to 130') | got ('FOR_ITER', 'to 144')\nline 687: orig ('POP_JUMP_IF_TRUE', 'to 76') | got ('POP_JUMP_IF_FALSE', 'to 76')"
   },
   {
@@ -40,16 +40,16 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 471: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 897,
-   "ntotal": 1303,
+   "ndiff": 908,
+   "ntotal": 1299,
    "detail": "line 281: orig ('POP_JUMP_IF_FALSE', 'to 818') | got ('POP_JUMP_IF_FALSE', 'to 840')\nline 335: orig ('JUMP_FORWARD', 'to 792') | got ('JUMP_FORWARD', 'to 814')\nline 348: orig ('JUMP_FORWARD', 'to 792') | got ('JUMP_FORWARD', 'to 814')"
   },
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 678,
-   "ntotal": 1489,
-   "detail": "line 323: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 324: orig ('LOAD_ATTR', 'NULL|self + close') | got ('CHECK_EXC_MATCH', '')\nline 325: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 314')"
+   "ndiff": 1137,
+   "ntotal": 1481,
+   "detail": "line 320: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 321: orig ('LOAD_ATTR', 'NULL|self + close') | got ('CHECK_EXC_MATCH', '')\nline 322: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 314')"
   },
   {
    "module": "_py_abc",
@@ -72,8 +72,8 @@
    "ast_detail": "diff at token 77: orig  body=[Break()] | dec  body=[Return()]",
    "verdict": "SIG-DIFF",
    "ndiff": 350,
-   "ntotal": 2287,
-   "detail": "line 91: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 1104: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 1105: orig ('POP_JUMP_IF_TRUE', 'to 60') | got ('POP_JUMP_IF_FALSE', 'to 60')"
+   "ntotal": 2284,
+   "detail": "line 91: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 1102: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 1103: orig ('POP_JUMP_IF_TRUE', 'to 60') | got ('POP_JUMP_IF_FALSE', 'to 60')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -95,24 +95,24 @@
    "module": "aifc",
    "ast_detail": "diff at token 254: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2724,
-   "ntotal": 3374,
-   "detail": "line 519: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 520: orig ('COPY', '') | got ('POP_JUMP_IF_FALSE', 'to 148')\nline 521: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
+   "ndiff": 2719,
+   "ntotal": 3361,
+   "detail": "line 513: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 514: orig ('COPY', '') | got ('POP_JUMP_IF_FALSE', 'to 148')\nline 515: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
   },
   {
    "module": "base64",
    "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1680,
-   "ntotal": 1936,
+   "ndiff": 1627,
+   "ntotal": 1926,
    "detail": "line 70: orig ('STORE_GLOBAL', '_b32tab2') | got ('STORE_NAME', '_b32tab2')\nline 72: orig ('STORE_GLOBAL', '_b32rev') | got ('STORE_NAME', '_b32rev')\nline 217: orig ('POP_JUMP_IF_FALSE', 'to 70') | got ('POP_JUMP_IF_FALSE', 'to 68')"
   },
   {
    "module": "bdb",
    "verdict": "INCOMPLETE",
-   "ndiff": 2260,
-   "ntotal": 2530,
-   "detail": "line 198: orig ('NOP', '') | got ('LOAD_CONST', '(False, None, None)')\nline 199: orig ('NOP', '') | got ('LOAD_CONST', '<code set_break>')\nline 200: orig ('LOAD_CONST', '(False, None, None)') | got ('MAKE_FUNCTION', 'defaults')"
+   "ndiff": 2078,
+   "ntotal": 2518,
+   "detail": "line 381: orig ('LOAD_FAST', 'event') | got ('LOAD_CONST', 'None')\nline 382: orig ('LOAD_CONST', \"'line'\") | got ('LOAD_CONST', 'None')\nline 383: orig ('COMPARE_OP', '==') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "bisect",
@@ -120,11 +120,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 166: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
-   "verdict": "SIG-DIFF",
-   "ndiff": 750,
-   "ntotal": 802,
-   "detail": "line 51: orig ('NOP', '') | got ('LOAD_CONST', \"('rb', 9, None, None, None)\")\nline 52: orig ('NOP', '') | got ('LOAD_CONST', '<code open>')\nline 53: orig ('LOAD_CONST', \"('rb', 9, None, None, None)\") | got ('MAKE_FUNCTION', 'defaults')"
+   "verdict": "PASS"
   },
   {
    "module": "cProfile",
@@ -142,16 +138,16 @@
    "module": "cgi",
    "ast_detail": "diff at token 665: orig  While(test=BoolOp(op=And() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2432,
-   "ntotal": 2886,
-   "detail": "line 4: orig ('NOP', '') | got ('LOAD_CONST', \"'2.6'\")\nline 5: orig ('LOAD_CONST', \"'2.6'\") | got ('STORE_NAME', '__version__')\nline 6: orig ('STORE_NAME', '__version__') | got ('LOAD_CONST', '0')"
+   "ndiff": 2241,
+   "ntotal": 2873,
+   "detail": "line 162: orig ('POP_JUMP_IF_FALSE', 'to 434') | got ('POP_JUMP_IF_FALSE', 'to 432')\nline 497: orig ('POP_JUMP_IF_FALSE', 'to 406') | got ('POP_JUMP_IF_FALSE', 'to 412')\nline 511: orig ('POP_JUMP_IF_FALSE', 'to 298') | got ('POP_JUMP_IF_FALSE', 'to 304')"
   },
   {
    "module": "cgitb",
    "ast_detail": "diff at token 164: orig  Continue()] | dec  Return(value=Tuple(elts=[Constant(value=None)",
    "verdict": "SIG-DIFF",
-   "ndiff": 1222,
-   "ntotal": 1485,
+   "ndiff": 1211,
+   "ntotal": 1480,
    "detail": "line 231: orig ('FOR_ITER', 'to 444') | got ('FOR_ITER', 'to 446')\nline 242: orig ('POP_JUMP_IF_FALSE', 'to 140') | got ('POP_JUMP_IF_FALSE', 'to 142')\nline 243: orig ('POP_TOP', '') | got ('LOAD_FAST', 'vars')"
   },
   {
@@ -162,9 +158,9 @@
    "module": "cmd",
    "ast_detail": "diff at token 331: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1066,
-   "ntotal": 1374,
-   "detail": "line 279: orig ('LOAD_ATTR', 'NULL|self + postloop') | got ('LOAD_ATTR', 'use_rawinput')\nline 280: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 956')\nline 281: orig ('POP_TOP', '') | got ('LOAD_FAST', 'self')"
+   "ndiff": 1064,
+   "ntotal": 1358,
+   "detail": "line 276: orig ('LOAD_ATTR', 'NULL|self + postloop') | got ('LOAD_ATTR', 'use_rawinput')\nline 277: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 956')\nline 278: orig ('POP_TOP', '') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "code",
@@ -174,17 +170,17 @@
    "module": "codecs",
    "ast_detail": "diff at token 1149: orig  If(test=UnaryOp(op=Not() | dec  Break()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1815,
-   "ntotal": 2138,
-   "detail": "line 273: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, None, None, None)')\nline 274: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 275: orig ('LOAD_CONST', '(None, None, None, None, None)') | got ('LOAD_CONST', \"('_is_text_encoding',)\")"
+   "ndiff": 1118,
+   "ntotal": 2125,
+   "detail": "line 904: orig ('JUMP_FORWARD', 'to 488') | got ('JUMP_FORWARD', 'to 482')\nline 928: orig ('JUMP_FORWARD', 'to 488') | got ('JUMP_FORWARD', 'to 482')\nline 951: orig ('LOAD_FAST', 'newdata') | got ('LOAD_FAST', 'chars')"
   },
   {
    "module": "codeop",
    "ast_detail": "diff at token 56: orig  If(test=BoolOp(op=And() | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 258,
-   "ntotal": 382,
-   "detail": "line 94: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 95: orig ('POP_JUMP_IF_TRUE', 'to 98') | got ('POP_JUMP_IF_FALSE', 'to 98')\nline 119: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
+   "ndiff": 255,
+   "ntotal": 380,
+   "detail": "line 94: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 95: orig ('POP_JUMP_IF_TRUE', 'to 98') | got ('POP_JUMP_IF_FALSE', 'to 98')\nline 119: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "colorsys",
@@ -193,39 +189,39 @@
   {
    "module": "compileall",
    "verdict": "INCOMPLETE",
-   "ndiff": 1440,
-   "ntotal": 1524,
-   "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
+   "ndiff": 1253,
+   "ntotal": 1513,
+   "detail": "line 78: orig ('POP_JUMP_IF_FALSE', 'to 242') | got ('POP_JUMP_IF_FALSE', 'to 224')\nline 167: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 168: orig ('POP_JUMP_IF_TRUE', 'to 452') | got ('POP_JUMP_IF_FALSE', 'to 452')"
   },
   {
    "module": "configparser",
    "ast_detail": "diff at token 110: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 1847,
-   "ntotal": 4237,
-   "detail": "line 2265: orig ('POP_JUMP_IF_TRUE', 'to 94') | got ('POP_JUMP_IF_TRUE', 'to 98')\nline 2346: orig ('LOAD_FAST', 'raw') | got ('BUILD_MAP', '')\nline 2347: orig ('LOAD_FAST', 'vars') | got ('LOAD_FAST', 'raw')"
+   "ndiff": 1812,
+   "ntotal": 4216,
+   "detail": "line 2256: orig ('POP_JUMP_IF_TRUE', 'to 94') | got ('POP_JUMP_IF_TRUE', 'to 98')\nline 2336: orig ('LOAD_FAST', 'raw') | got ('BUILD_MAP', '')\nline 2337: orig ('LOAD_FAST', 'vars') | got ('LOAD_FAST', 'raw')"
   },
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1585,
-   "ntotal": 2217,
+   "ndiff": 1758,
+   "ntotal": 2196,
    "detail": "line 400: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 401: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + wraps')\nline 402: orig ('LOAD_GLOBAL', 'NULL + wraps') | got ('LOAD_FAST', 'func')"
   },
   {
    "module": "copy",
    "ast_detail": "diff at token 790: orig  finalbody=[]) | dec  finalbody=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 636,
-   "ntotal": 870,
-   "detail": "line 223: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, None)')\nline 224: orig ('LOAD_CONST', '(None, None, None)') | got ('LOAD_NAME', 'deepcopy')\nline 225: orig ('LOAD_NAME', 'deepcopy') | got ('LOAD_CONST', \"('deepcopy',)\")"
+   "ndiff": 290,
+   "ntotal": 867,
+   "detail": "line 560: orig ('JUMP_FORWARD', 'to 116') | got ('RETURN_CONST', 'None')\nline 565: orig ('LOAD_GLOBAL', 'NULL + zip') | got ('_deepcopy_dict', 3)\nline 566: orig ('LOAD_FAST', 'x') | got ('RESUME', '')"
   },
   {
    "module": "copyreg",
    "verdict": "INCOMPLETE",
-   "ndiff": 267,
-   "ntotal": 616,
-   "detail": "line 216: orig ('POP_JUMP_IF_TRUE', 'to 224') | got ('POP_JUMP_IF_FALSE', 'to 224')\nline 293: orig ('POP_JUMP_IF_FALSE', 'to 714') | got ('POP_JUMP_IF_FALSE', 'to 732')\nline 331: orig ('POP_EXCEPT', '') | got ('LOAD_GLOBAL', 'AttributeError')"
+   "ndiff": 277,
+   "ntotal": 612,
+   "detail": "line 216: orig ('POP_JUMP_IF_TRUE', 'to 224') | got ('POP_JUMP_IF_FALSE', 'to 224')\nline 292: orig ('POP_JUMP_IF_FALSE', 'to 714') | got ('POP_JUMP_IF_FALSE', 'to 732')\nline 329: orig ('POP_EXCEPT', '') | got ('LOAD_GLOBAL', 'AttributeError')"
   },
   {
    "module": "crypt",
@@ -235,9 +231,9 @@
    "module": "csv",
    "ast_detail": "diff at token 1090: orig  If(test=Subscript(value=Name(id='m' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1364,
-   "ntotal": 1657,
-   "detail": "line 269: orig ('NOP', '') | got ('LOAD_CONST', \"(None, None, None, 'excel')\")\nline 270: orig ('NOP', '') | got ('LOAD_CONST', '<code __init__>')\nline 271: orig ('LOAD_CONST', \"(None, None, None, 'excel')\") | got ('MAKE_FUNCTION', 'defaults')"
+   "ndiff": 379,
+   "ntotal": 1649,
+   "detail": "line 1072: orig ('POP_JUMP_IF_FALSE', 'to 1278') | got ('POP_JUMP_IF_FALSE', 'to 1284')\nline 1223: orig ('POP_JUMP_IF_FALSE', 'to 1052') | got ('POP_JUMP_IF_FALSE', 'to 1058')\nline 1227: orig ('POP_JUMP_IF_FALSE', 'to 1052') | got ('POP_JUMP_IF_FALSE', 'to 1058')"
   },
   {
    "module": "datetime",

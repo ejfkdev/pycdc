@@ -263,9 +263,6 @@ class Hook:
             try:
                 with os.fdopen(fd, 'w') as file:
                     file.write(doc)
-            except:
-                msg = 'Tried to save traceback to %s, but failed.' % path
-            try:
                 msg = '%s contains the description of this error.' % path
             except:
                 msg = 'Tried to save traceback to %s, but failed.' % path

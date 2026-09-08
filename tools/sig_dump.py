@@ -71,6 +71,8 @@ def sig2(code, out):
     # second pass: emit with jump labels = target instruction index
     for k, (start, end, op) in enumerate(bounds):
         name = opcode.opname[op]
+        if name == "NOP":
+            continue
         if op >= opcode.HAVE_ARGUMENT:
             arg = byte_at(bc, start + 1) + byte_at(bc, start + 2) * 256
             if op in opcode.hasjrel:
@@ -116,6 +118,8 @@ def sig3_manual(code, out):
     off2idx = dict((b[0], k) for k, b in enumerate(bounds))
     for k, (start, end, op) in enumerate(bounds):
         name = opcode.opname[op]
+        if name == "NOP":
+            continue
         if op >= opcode.HAVE_ARGUMENT:
             arg = (bc[start + 1] if not isinstance(bc, str) else ord(bc[start + 1])) +                   (bc[start + 2] if not isinstance(bc, str) else ord(bc[start + 2])) * 256
             if op in opcode.hasjrel:
@@ -183,6 +187,12 @@ def sig3(code, out):
             if isinstance(tgt, int):
                 r = "#%s" % off2idx.get(tgt, "?")
         name = inst.opname
+        # bare NOPs are line-table padding (elided-jump markers, blank
+        # line anchors): their count/placement depends on source line
+        # layout the restored source can never reproduce -- systematic
+        # sig noise (cgitb 3.11 handle blocked PASS on 4 NOP lines)
+        if name == "NOP":
+            continue
         # 3.12+/3.14 load specializations (LOAD_FAST_CHECK /
         # LOAD_FAST_BORROW) are semantically identical to LOAD_FAST; the
         # compiler's choice varies with surrounding context, so an

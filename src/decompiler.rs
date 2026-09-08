@@ -903,9 +903,20 @@ pub fn decompile_in_scope(
             match (ctx.idx_of.get(&from), ctx.idx_of.get(&to)) {
                 (Some(&fi), Some(&ti)) => {
                     let span = &ctx.instrs[fi..ti];
+                    // with machinery marker: the entry protocol
+                    // (BEFORE_WITH) or the out-of-line cleanup
+                    // (WITH_EXCEPT_START 3.11-3.13 / LOAD_SPECIAL
+                    // __exit__ 3.14) — cgitb 3.11 handle: the same-
+                    // handler fragments [690,800)/[816,832) sandwich
+                    // the with CLEANUP span, not the entry protocol
                     let has_with = span.iter().any(|x| {
-                        matches!(x.op, Op::BEFORE_WITH | Op::BEFORE_ASYNC_WITH)
-                            || with_regions.iter().any(|(ws, we)| {
+                        matches!(
+                            x.op,
+                            Op::BEFORE_WITH
+                                | Op::BEFORE_ASYNC_WITH
+                                | Op::WITH_EXCEPT_START
+                                | Op::LOAD_SPECIAL
+                        ) || with_regions.iter().any(|(ws, we)| {
                                 x.offset >= *ws && x.offset < *we
                             })
                     });
@@ -927,6 +938,18 @@ pub fn decompile_in_scope(
                                     | Op::SWAP
                                     | Op::COPY
                                     | Op::LOAD_CONST
+                                    // out-of-line with cleanup span
+                                    | Op::PUSH_EXC_INFO
+                                    | Op::WITH_EXCEPT_START
+                                    | Op::LOAD_SPECIAL
+                                    | Op::POP_EXCEPT
+                                    | Op::RERAISE
+                                    | Op::POP_JUMP_IF_TRUE
+                                    | Op::POP_JUMP_IF_FALSE
+                                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                                    | Op::LOAD_FAST
+                                    | Op::LOAD_FAST_BORROW
                             )
                         })
                 }
