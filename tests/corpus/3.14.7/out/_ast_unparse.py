@@ -1027,4 +1027,3 @@ Returns the tuple (string literal to write, possible quote types).
             self.interleave((lambda: self.write(' | ')), self.traverse, node.patterns)
 
 
-# WARNING: Decompyle incomplete

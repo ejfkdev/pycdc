@@ -410,6 +410,7 @@ class FieldStorage:
     def __del__(self):
         try:
             self.file.close()
+            return
         except AttributeError:
             return
 

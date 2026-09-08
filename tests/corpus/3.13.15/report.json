@@ -2,8 +2,8 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 23,
-  "SIG-DIFF": 10,
+  "PASS": 24,
+  "SIG-DIFF": 9,
   "INCOMPLETE": 6,
   "AST-PASS": 1
  },
@@ -93,7 +93,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1205,
    "ntotal": 2986,
-   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e00', '\u4e5d', '\u5341', '\u4e03'})\") | got ('LOAD_CONST', \"frozenset({'\u4e5d', '\u4e03', '\u5341', '\u4e00', '\u5eff'})\")\nline 1762: orig ('COPY', '') | got ('LOAD_CONST', \"'Y'\")\nline 1763: orig ('LOAD_CONST', \"'Y'\") | got ('COMPARE_OP', 'bool(==)')"
+   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u5eff', '\u4e00', '\u5341', '\u4e5d'})\") | got ('LOAD_CONST', \"frozenset({'\u4e00', '\u5eff', '\u4e03', '\u4e5d', '\u5341'})\")\nline 1762: orig ('COPY', '') | got ('LOAD_CONST', \"'Y'\")\nline 1763: orig ('LOAD_CONST', \"'Y'\") | got ('COMPARE_OP', 'bool(==)')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -122,7 +122,7 @@
   {
    "module": "bdb",
    "verdict": "INCOMPLETE",
-   "ndiff": 2329,
+   "ndiff": 2323,
    "ntotal": 2803,
    "detail": "line 416: orig ('LOAD_FAST', 'event') | got ('LOAD_CONST', 'None')\nline 417: orig ('LOAD_CONST', \"'line'\") | got ('LOAD_CONST', 'None')\nline 418: orig ('COMPARE_OP', 'bool(==)') | got ('LOAD_CONST', 'None')"
   },
@@ -171,11 +171,7 @@
   },
   {
    "module": "codeop",
-   "ast_detail": "diff at token 80: orig  ctx=Load())])) | dec  ctx=Load())]))])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 241,
-   "ntotal": 378,
-   "detail": "line 126: orig ('LOAD_FAST', 'compiler') | got ('LOAD_CONST', 'None')\nline 127: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 128: orig ('LOAD_FAST', 'source') | got ('LOAD_CONST', 'None')"
+   "verdict": "PASS"
   },
   {
    "module": "colorsys",
@@ -212,7 +208,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1288: orig  While(test=BoolOp(op=And() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 101: orig  ctx=Load())]))] | dec  ctx=Load())]))",
    "verdict": "SIG-DIFF",
    "ndiff": 379,
    "ntotal": 1693,

@@ -35,6 +35,7 @@ class Dialect:
     def _validate(self):
         try:
             _Dialect(self)
+            return
         except TypeError as e:
             raise Error(str(e))
 

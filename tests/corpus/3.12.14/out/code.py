@@ -81,6 +81,7 @@ class InteractiveInterpreter:
 
         try:
             exec(code, self.locals)
+            return
         except SystemExit:
             raise
         except:
@@ -137,6 +138,7 @@ class InteractiveInterpreter:
             return
         try:
             sys.excepthook(typ, value, tb)
+            return
         except SystemExit:
             raise
         except BaseException as e:

@@ -82,6 +82,7 @@ caller should be prepared to deal with it.
 
         try:
             exec(code, self.locals)
+            return
         except SystemExit:
             raise
         except:
@@ -139,6 +140,7 @@ The output is written by self.write(), below.
             return
         try:
             sys.excepthook(typ, value, tb)
+            return
         except SystemExit:
             raise
         except BaseException as e:

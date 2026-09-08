@@ -110,7 +110,7 @@
   {
    "module": "bdb",
    "verdict": "INCOMPLETE",
-   "ndiff": 2078,
+   "ndiff": 2086,
    "ntotal": 2518,
    "detail": "line 381: orig ('LOAD_FAST', 'event') | got ('LOAD_CONST', 'None')\nline 382: orig ('LOAD_CONST', \"'line'\") | got ('LOAD_CONST', 'None')\nline 383: orig ('COMPARE_OP', '==') | got ('LOAD_CONST', 'None')"
   },
@@ -174,9 +174,9 @@
    "module": "codeop",
    "ast_detail": "diff at token 56: orig  If(test=BoolOp(op=And() | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 253,
-   "ntotal": 380,
-   "detail": "line 119: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 120: orig ('LOAD_FAST', 'compiler') | got ('LOAD_CONST', 'None')\nline 121: orig ('LOAD_FAST', 'source') | got ('LOAD_CONST', 'None')"
+   "ndiff": 196,
+   "ntotal": 385,
+   "detail": "line 143: orig ('POP_JUMP_IF_FALSE', 'to 454') | got ('POP_JUMP_IF_FALSE', 'to 466')\nline 164: orig ('POP_JUMP_IF_FALSE', 'to 442') | got ('POP_JUMP_IF_FALSE', 'to 454')\nline 183: orig ('POP_EXCEPT', '') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "colorsys",
@@ -185,8 +185,8 @@
   {
    "module": "compileall",
    "verdict": "INCOMPLETE",
-   "ndiff": 1277,
-   "ntotal": 1511,
+   "ndiff": 1245,
+   "ntotal": 1503,
    "detail": "line 78: orig ('POP_JUMP_IF_FALSE', 'to 242') | got ('POP_JUMP_IF_FALSE', 'to 224')\nline 167: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 168: orig ('POP_JUMP_IF_TRUE', 'to 452') | got ('POP_JUMP_IF_FALSE', 'to 452')"
   },
   {
@@ -218,7 +218,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1532: orig  While(test=BoolOp(op=And() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 118: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 387,
    "ntotal": 1651,

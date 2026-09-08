@@ -94,28 +94,21 @@ class Bdb:
             if self.quitting:
                 return
         if event == 'line':
-            None(None, None)
-            return
+            return self.dispatch_line(frame)
         if event == 'call':
-            None(None, None)
-            return
+            return self.dispatch_call(frame, arg)
         if event == 'return':
-            None(None, None)
-            return
+            return self.dispatch_return(frame, arg)
         if event == 'exception':
-            None(None, None)
-            return
+            return self.dispatch_exception(frame, arg)
         if event == 'c_call':
-            None(None, None)
-            return
+            return self.trace_dispatch
         if event == 'c_exception':
-            None(None, None)
-            return
+            return self.trace_dispatch
         if event == 'c_return':
-            None(None, None)
-            return
+            return self.trace_dispatch
         print('bdb.Bdb.dispatch: unknown debugging event:', repr(event))
-        None(None, None)
+        return self.trace_dispatch
 
     def dispatch_line(self, frame):
         '''Invoke user function and return trace function for line event.

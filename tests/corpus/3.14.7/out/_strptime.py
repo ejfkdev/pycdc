@@ -565,6 +565,7 @@ format string.'''
             if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
                 continue
             tz = value
+            None
             continue
         continue
     if not iso_year is None:

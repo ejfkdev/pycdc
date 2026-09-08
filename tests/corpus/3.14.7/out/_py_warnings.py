@@ -430,7 +430,6 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
     else:
         action = _wm.defaultaction
     if action == 'ignore':
-        None(None, None, None)
         return
     if action == 'error':
         raise message
@@ -438,7 +437,6 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
         registry[key] = 1
         oncekey = text, category
         if _wm.onceregistry.get(oncekey):
-            None(None, None, None)
             return
         _wm.onceregistry[oncekey] = 1
     elif action in frozenset({'all', 'always'}):
@@ -447,14 +445,12 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
         registry[key] = 1
         altkey = text, category, 0
         if registry.get(altkey):
-            None(None, None, None)
             return
         registry[altkey] = 1
     elif action == 'default':
         registry[key] = 1
     else:
         raise RuntimeError(f'Unrecognized action ({action!r}) in warnings.filters:\n {item!s}')
-    None(None, None, None)
     import linecache
     linecache.getlines(filename, module_globals)
     msg = _wm.WarningMessage(message, category, filename, lineno, source=source)

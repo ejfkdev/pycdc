@@ -226,6 +226,7 @@ the memo itself...
 
     try:
         memo[id(memo)].append(x)
+        return
     except KeyError:
         memo[id(memo)] = [x]
 

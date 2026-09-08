@@ -322,7 +322,7 @@ def main():
                     compile_dests.append(line.strip())
         except OSError:
             if args.quiet < 2:
-                print('Error reading file list {}'.format(args.flist))
+                pass
             return False
     if args.invalidation_mode:
         ivl_mode = args.invalidation_mode.replace('-', '_').upper()

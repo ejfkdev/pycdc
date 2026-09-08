@@ -352,4 +352,3 @@ Its time complexity is O(n**1.58), where n = #bits(a) + #bits(b).
         return ~q, b + ~r
     return _divmod_pos(a, b)
 
-# WARNING: Decompyle incomplete

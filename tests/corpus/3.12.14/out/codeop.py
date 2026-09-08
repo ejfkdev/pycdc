@@ -51,18 +51,18 @@ def _maybe_compile(compiler, source, filename, symbol):
             source = 'pass'
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', (SyntaxWarning, DeprecationWarning))
-    try:
-        compiler(source, filename, symbol)
-    except SyntaxError:
         try:
-            compiler(source + '\n', filename, symbol)
-        except SyntaxError as e:
-            if 'incomplete input' in str(e):
+            compiler(source, filename, symbol)
+        except SyntaxError:
+            try:
+                compiler(source + '\n', filename, symbol)
                 return
-            e = None
-            del e, e
-            e = None
-    None(None, None)
+            except SyntaxError as e:
+                if 'incomplete input' in str(e):
+                    return
+                e = None
+                del e, e
+                e = None
     return compiler(source, filename, symbol, incomplete_input=False)
 
 def _is_syntax_error(err1, err2):

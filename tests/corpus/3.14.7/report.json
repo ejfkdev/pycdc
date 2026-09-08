@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 20,
-  "INCOMPLETE": 10,
-  "SIG-DIFF": 9,
+  "SIG-DIFF": 12,
+  "INCOMPLETE": 7,
   "AST-PASS": 1
  },
  "results": [
@@ -30,7 +30,8 @@
   },
   {
    "module": "_ast_unparse",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 198: orig  body=[Pass()])] | dec  body=[Return()])])",
+   "verdict": "SIG-DIFF",
    "ndiff": 1167,
    "ntotal": 7138,
    "detail": "line 3803: orig ('BINARY_OP', '[]') | got ('BINARY_OP', '+')\nline 3880: orig ('LOAD_FAST', 'value') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'value, quote_types')\nline 3881: orig ('LOAD_FAST', 'quote_types') | got ('LOAD_CONST', 'True')"
@@ -65,7 +66,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 962,
    "ntotal": 1374,
-   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'attlist', 'element', 'link', 'linktype'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'linktype', 'attlist', 'element', 'link'})\")"
+   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'link', 'element', 'attlist', 'linktype'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'element', 'attlist', 'link', 'linktype'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -85,13 +86,14 @@
   {
    "module": "_py_warnings",
    "verdict": "INCOMPLETE",
-   "ndiff": 2496,
-   "ntotal": 3186,
+   "ndiff": 2465,
+   "ntotal": 3158,
    "detail": "line 642: orig ('JUMP_BACKWARD', 'to L5') | got ('JUMP_BACKWARD', 'to L7')\nline 645: orig ('LOAD_FAST', 's') | got ('LOAD_CONST', 'None')\nline 647: orig ('LOAD_FAST', 'suggest_tracemalloc') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "_pylong",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 161: orig  Assert(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "verdict": "SIG-DIFF",
    "ndiff": 625,
    "ntotal": 1551,
    "detail": "line 256: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')\nline 906: orig ('CALL_INTRINSIC_1', 'INTRINSIC_UNARY_POSITIVE') | got ('BUILD_TUPLE', '')\nline 907: orig ('BUILD_TUPLE', '') | got ('LOAD_DEREF', 'pow256')"
@@ -106,7 +108,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1335,
    "ntotal": 3207,
-   "detail": "line 622: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u5341', '\u5eff', '\u4e5d', '\u4e00'})\") | got ('LOAD_CONST', \"frozenset({'\u4e00', '\u5eff', '\u5341', '\u4e03', '\u4e5d'})\")\nline 1696: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 1697: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')"
+   "detail": "line 622: orig ('LOAD_CONST', \"frozenset({'\u4e00', '\u4e5d', '\u4e03', '\u5eff', '\u5341'})\") | got ('LOAD_CONST', \"frozenset({'\u4e00', '\u4e5d', '\u5341', '\u5eff', '\u4e03'})\")\nline 1696: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 1697: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -150,7 +152,7 @@
   {
    "module": "bdb",
    "verdict": "INCOMPLETE",
-   "ndiff": 3338,
+   "ndiff": 3353,
    "ntotal": 3996,
    "detail": "line 532: orig ('LOAD_GLOBAL', 'sys') | got ('LOAD_CONST', 'False')\nline 533: orig ('LOAD_ATTR', 'monitoring') | got ('LOAD_DEREF', 'self')\nline 534: orig ('LOAD_ATTR', 'DISABLE') | got ('STORE_ATTR', '_disable_current_event')"
   },
@@ -195,8 +197,9 @@
   },
   {
    "module": "codeop",
-   "verdict": "INCOMPLETE",
-   "ndiff": 261,
+   "ast_detail": "diff at token 81: orig  ctx=Load())])) | dec  ctx=Load())]))])",
+   "verdict": "SIG-DIFF",
+   "ndiff": 253,
    "ntotal": 411,
    "detail": "line 138: orig ('LOAD_FAST', 'compiler') | got ('LOAD_CONST', 'None')\nline 139: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 140: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'source, filename') | got ('LOAD_CONST', 'None')"
   },

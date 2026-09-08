@@ -176,11 +176,11 @@
   },
   {
    "module": "codeop",
-   "ast_detail": "diff at token 91: orig  keywords=[])) | dec  keywords=[]))])",
+   "ast_detail": "diff at token 113: orig  keywords=[])) | dec  keywords=[]))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 278,
-   "ntotal": 404,
-   "detail": "line 121: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 122: orig ('LOAD_FAST', 'compiler') | got ('LOAD_CONST', 'None')\nline 123: orig ('LOAD_FAST', 'source') | got ('LOAD_CONST', 'None')"
+   "ndiff": 255,
+   "ntotal": 409,
+   "detail": "line 129: orig ('JUMP_FORWARD', 'to 484') | got ('JUMP_FORWARD', 'to 470')\nline 133: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 476') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 462')\nline 145: orig ('POP_EXCEPT', '') | got ('JUMP_FORWARD', 'to 458')"
   },
   {
    "module": "colorsys",

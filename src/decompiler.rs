@@ -3336,6 +3336,98 @@ impl<'a> Ctx<'a> {
             }
         }
         let mut body = self.pending_try_body.pop().unwrap_or_default();
+        // 3.12+ with-wrapped try: the body's tail `return None` sits in
+        // the gap between body_end and the chain head, AFTER the inline
+        // with success-exit sequence (POP_EXCEPT; LOAD None ×3; CALL;
+        // POP_TOP; RETURN_CONST None — codeop 3.13 _maybe_compile inner
+        // try). The region ended before it, so the walk would leak it
+        // (or drop it at a sub-walk bound). RETURN_CONST-only: the 3.11
+        // LOAD None; RETURN_VALUE form is indistinguishable from a sunk
+        // post-try continuation (c4f3cc0 lesson)
+        if self.version.at_least(3, 12)
+            && self.code.name != "<module>"
+            && tc.finally_handler.is_none()
+            && tc.region_end == tc.body_end
+            && orelse.is_empty()
+            && !matches!(body.last(), Some(Stmt::Return(_)))
+        {
+            if let (Some(h), Some(&bi)) =
+                (tc.except_handler, self.idx_of.get(&tc.body_end))
+            {
+                let mut k = bi;
+                let mut ret_at = None;
+                let mut ok = true;
+                while k < self.instrs.len() {
+                    let x = &self.instrs[k];
+                    if x.offset >= h {
+                        break;
+                    }
+                    match x.op {
+                        Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::POP_EXCEPT => {
+                            k += 1;
+                        }
+                        Op::RETURN_CONST if matches!(
+                            self.code.consts.get(x.arg as usize).map(|o| &**o),
+                            Some(PyObject::None)
+                        ) => {
+                            ret_at = Some(x.end());
+                            k += 1;
+                            break;
+                        }
+                        Op::LOAD_CONST => {
+                            // inline with-exit sequence only
+                            match self.inline_with_exit_span(x.offset) {
+                                Some(after) => {
+                                    let ai = self
+                                        .idx_of
+                                        .get(&after)
+                                        .copied()
+                                        .unwrap_or(k);
+                                    if ai <= k {
+                                        ok = false;
+                                        break;
+                                    }
+                                    k = ai;
+                                }
+                                None => {
+                                    ok = false;
+                                    break;
+                                }
+                            }
+                        }
+                        _ => {
+                            ok = false;
+                            break;
+                        }
+                    }
+                }
+                // the gap past the return must be only pads
+                if ok {
+                    if let Some(re) = ret_at {
+                        let rest_pad = self
+                            .idx_of
+                            .get(&re)
+                            .map_or(true, |&ri2| {
+                                self.instrs[ri2..]
+                                    .iter()
+                                    .take_while(|x| x.offset < h)
+                                    .all(|x| {
+                                        matches!(
+                                            x.op,
+                                            Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                                        )
+                                    })
+                            });
+                        if rest_pad {
+                            body.push(Stmt::Return(None));
+                            if self.skip_until.map_or(true, |s2| s2 < re) {
+                                self.skip_until = Some(re);
+                            }
+                        }
+                    }
+                }
+            }
+        }
         // 3.12+ shared fall-through terminator: a post-try `raise X`
         // (function's last statement) is compiled into BOTH exits — the
         // body-side sunk copy at [body_end, handler_head) and the
@@ -4151,6 +4243,9 @@ impl<'a> Ctx<'a> {
             return handlers;
         }
         pc += 1;
+        if std::env::var("PYCDC_EG_DBG").is_ok() {
+            eprintln!("EG dispatch from={} end={} region_end={} nested={}", from, end, region_end, nested);
+        }
         let mut pattern: Option<ExprRef> = None;
         // except* (3.11+): clauses match with CHECK_EG_MATCH and branch
         // on POP_JUMP_IF_NONE; the star flag is per-clause
@@ -4254,6 +4349,9 @@ impl<'a> Ctx<'a> {
                     }
                     let body =
                         self.decompile_handler_body(&mut pc, next, region_end, star_clause);
+                    if std::env::var("PYCDC_EG_DBG").is_ok() {
+                        eprintln!("EG clause next={} bodylen={}", next, body.len());
+                    }
                     self.pending_as_cleanup = saved_pac;
                     handlers.push(ExceptHandler {
                         type_: pattern.take(),
@@ -5508,13 +5606,37 @@ impl<'a> Ctx<'a> {
             if e.start > from && e.start < end && e.target > from {
                 // only a NESTED chain head bounds the region — an
                 // except* clause body's lasti redirect targets in-chain
-                // cleanup (LIST_APPEND stubs), not another chain
+                // cleanup (LIST_APPEND stubs), not another chain.
+                // A WITH cleanup handler also starts with PUSH_EXC_INFO
+                // (WITH_EXCEPT_START / 3.14 LOAD_SPECIAL __exit__ in
+                // its window): clause fragments protected by the
+                // enclosing with must NOT cut the dispatch region
+                // (codeop 3.13 _maybe_compile: the [394,396)->476
+                // with fragment bounded the inner chain at 394 and
+                // `except SyntaxError as e: pass` @422 was dropped)
                 let is_chain_head = self
                     .idx_of
                     .get(&e.target)
-                    .and_then(|&ti| self.instrs.get(ti))
-                    .map(|x| x.op == Op::PUSH_EXC_INFO)
-                    .unwrap_or(false);
+                    .and_then(|&ti| {
+                        let mut window_ok =
+                            self.instrs.get(ti).map(|x| x.op) == Some(Op::PUSH_EXC_INFO);
+                        if window_ok {
+                            for x in self.instrs.iter().skip(ti).take(40) {
+                                if matches!(
+                                    x.op,
+                                    Op::WITH_EXCEPT_START | Op::LOAD_SPECIAL
+                                ) {
+                                    window_ok = false;
+                                    break;
+                                }
+                                if x.op == Op::RERAISE {
+                                    break;
+                                }
+                            }
+                        }
+                        window_ok.then_some(ti)
+                    })
+                    .is_some();
                 if is_chain_head {
                     end = e.start;
                 }
@@ -7380,6 +7502,80 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    /// 3.12+ inline with success-exit span: `LOAD None; LOAD None;
+    /// LOAD None; CALL; POP_TOP` starting at `off` — returns the offset
+    /// just past the POP_TOP. The callable is the VM-managed bound
+    /// __exit__ (never modeled); the sequence is pure machinery.
+    fn inline_with_exit_span(&self, off: usize) -> Option<usize> {
+        let Some(&ci) = self.idx_of.get(&off) else {
+            return None;
+        };
+        let is_pad = |x: &crate::bytecode::Instruction| {
+            matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)
+        };
+        let mut k = ci;
+        let mut nones = 0;
+        while nones < 3 {
+            let x = self.instrs.get(k)?;
+            if is_pad(x) {
+                k += 1;
+                continue;
+            }
+            if x.op == Op::LOAD_CONST
+                && matches!(
+                    self.code.consts.get(x.arg as usize).map(|o| &**o),
+                    Some(PyObject::None)
+                )
+            {
+                nones += 1;
+                k += 1;
+                continue;
+            }
+            return None;
+        }
+        while matches!(self.instrs.get(k).map(|x| x.op), Some(op) if matches!(op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)) {
+            k += 1;
+        }
+        if self.instrs.get(k).map(|x| x.op) != Some(Op::CALL) {
+            return None;
+        }
+        k += 1;
+        while matches!(self.instrs.get(k).map(|x| x.op), Some(op) if matches!(op, Op::NOP | Op::NOT_TAKEN | Op::CACHE)) {
+            k += 1;
+        }
+        if self.instrs.get(k).map(|x| x.op) != Some(Op::POP_TOP) {
+            return None;
+        }
+        Some(self.instrs[k].end())
+    }
+
+    /// Close the open With block(s) down through the innermost one —
+    /// the inline success exit IS the with's end; statements after it
+    /// (the post-with function tail) belong outside
+    fn close_with_blocks(&mut self, pos: usize) {
+        let Some(i) = self
+            .blocks
+            .iter()
+            .rposition(|b| matches!(b.kind, BlockType::With))
+        else {
+            return;
+        };
+        while self.blocks.len() > i {
+            let p = self
+                .blocks
+                .last()
+                .map(|b| {
+                    if b.end == usize::MAX || b.end > pos {
+                        pos
+                    } else {
+                        b.end
+                    }
+                })
+                .unwrap_or(pos);
+            self.force_close_top(p);
+        }
+    }
+
     fn force_close_top(&mut self, pos: usize) {
 
         // stores that happened inside this block must land in it, not in
@@ -8933,6 +9129,31 @@ impl<'a> Ctx<'a> {
 
             // ---------- constants / names ----------
             Op::LOAD_CONST => {
+                // 3.12+ inline with success exit: swallow the machinery
+                // sequence and close the With here (codeop 3.13
+                // _maybe_compile: the leak rendered `None(None, None)`
+                // and trapped the post-with tail return inside the with)
+                if self.version.at_least(3, 12) && self.with_exits > 0 {
+                    if let Some(after) = self.inline_with_exit_span(self.cur_offset) {
+                        // close the With ONLY when it is topmost: a sunk
+                        // exit inside an open branch arm (`if quitting:
+                        // return` — bdb 3.12 trace_dispatch) must keep
+                        // the with/if open so the following RETURN
+                        // renders inside the arm and the walk stays
+                        // alive; the with closes at its own end or at
+                        // the next success-path exit
+                        if matches!(
+                            self.blocks.last().map(|b| b.kind),
+                            Some(BlockType::With)
+                        ) {
+                            self.close_with_blocks(self.cur_offset);
+                        }
+                        if self.skip_until.map_or(true, |s| s < after) {
+                            self.skip_until = Some(after);
+                        }
+                        return true;
+                    }
+                }
                 if let Some(PyObject::Code(c)) =
                     self.code.consts.get(arg as usize).map(|o| &**o)
                 {
@@ -13663,7 +13884,7 @@ impl<'a> Ctx<'a> {
                 // target here swallows sequential following statements
                 // into the with body.
                 let start = inst.end();
-                let end = self
+                let mut end = self
                     .with_regions
                     .get(&start)
                     .copied()
@@ -13674,6 +13895,71 @@ impl<'a> Ctx<'a> {
                             .map(|e| e.end)
                     })
                     .unwrap_or(usize::MAX);
+                // a nested try chain SPLITS the with body into same-
+                // handler fragments around the out-of-line chain
+                // (codeop 3.13 _maybe_compile: [180,248) + [346,348)
+                // + [394,396) + [448,452) + [470,476) all -> the
+                // WITH_EXCEPT_START handler): when later fragments
+                // targeting the SAME handler exist, extend the block
+                // over the chain material up to the last fragment's
+                // end — the chain walk skips the handler material, so
+                // the block simply stays open until the with's own
+                // cleanup head
+                if let Some(&first_end) = self.with_regions.get(&start) {
+                    let handler = self
+                        .exc_entries
+                        .iter()
+                        .find(|e| e.start == start && e.end == first_end)
+                        .map(|e| e.target);
+                    if let Some(h) = handler {
+                        let later_ends: Vec<usize> = self
+                            .exc_entries
+                            .iter()
+                            .filter(|e| {
+                                e.target == h
+                                    && e.start > first_end
+                                    && e.end <= h
+                                    && e.end > first_end
+                            })
+                            .map(|e| e.end)
+                            .collect();
+                        if !later_ends.is_empty() {
+                            let span_end =
+                                later_ends.iter().copied().max().unwrap();
+                            // the gap must be nested-try material:
+                            // every inner entry targets the out-of-line
+                            // handler zone [first chain head, h] (the
+                            // cleanup-stub cascades target RERAISE/COPY
+                            // stubs, not PUSH_EXC_INFO heads — offset
+                            // bounds cover both)
+                            let zone_start = self
+                                .idx_of
+                                .get(&first_end)
+                                .and_then(|&fi2| {
+                                    self.instrs[fi2..]
+                                        .iter()
+                                        .find(|x| {
+                                            x.offset < h
+                                                && x.op == Op::PUSH_EXC_INFO
+                                        })
+                                        .map(|x| x.offset)
+                                });
+                            let chainy = zone_start.map_or(false, |zs| {
+                                self.exc_entries
+                                    .iter()
+                                    .filter(|e| {
+                                        e.start >= first_end
+                                            && e.end <= span_end
+                                            && e.target != h
+                                    })
+                                    .all(|e| e.target >= zs && e.target <= h)
+                            });
+                            if chainy && span_end > end {
+                                end = span_end;
+                            }
+                        }
+                    }
+                }
                 let mut wb = Block::new(BlockType::With, start, end);
                 wb.is_async = false;
                 self.blocks.push(wb);
