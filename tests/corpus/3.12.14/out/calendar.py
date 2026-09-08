@@ -104,7 +104,7 @@ month_abbr = _localized_month('%b')
 def isleap(year):
     '''Return True for leap years, False for non-leap years.'''
 
-    return year % 4 == 0 and (year % 100 == 0 or year % 400 == 0)
+    return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
 
 def leapdays(y1, y2):
     '''Return number of leap years in range [y1, y2).
@@ -119,7 +119,7 @@ def weekday(year, month, day):
 
     if not datetime.MINYEAR <= year <= datetime.MAXYEAR:
         year = 2000 + year % 400
-        return Day(datetime.date(year, month, day).weekday())
+    return Day(datetime.date(year, month, day).weekday())
 
 def _validate_month(month):
     if not 1 <= month <= 12:

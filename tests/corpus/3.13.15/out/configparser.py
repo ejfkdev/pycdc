@@ -811,7 +811,7 @@ assumed. If the specified `section` does not exist, returns False.'''
         if section not in self._sections:
             return False
         option = self.optionxform(option)
-        return option not in self._sections[section] or option in self._defaults
+        return option in self._sections[section] or option in self._defaults
 
     def set(self, section, option, value=None):
         '''Set an option.'''
@@ -911,7 +911,7 @@ preserved when writing the configuration back.
         self.remove_section(key)
 
     def __contains__(self, key):
-        return key != self.default_section or self.has_section(key)
+        return key == self.default_section or self.has_section(key)
 
     def __len__(self):
         return len(self._sections) + 1

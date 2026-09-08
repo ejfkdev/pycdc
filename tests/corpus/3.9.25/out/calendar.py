@@ -89,7 +89,7 @@ def weekday(year, month, day):
 
     if not datetime.MINYEAR <= year <= datetime.MAXYEAR:
         year = 2000 + year % 400
-        return datetime.date(year, month, day).weekday()
+    return datetime.date(year, month, day).weekday()
 
 def monthrange(year, month):
     '''Return weekday (0-6 ~ Mon-Sun) and number of days (28-31) for

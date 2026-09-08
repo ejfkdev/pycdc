@@ -135,11 +135,11 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 665: orig  type_comment=None)] | dec  type_comment=None)",
+   "ast_detail": "diff at token 1421: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2363,
+   "ndiff": 1937,
    "ntotal": 3067,
-   "detail": "line 615: orig ('monthrange', 2) | got ('LOAD_CONST', 'None')\nline 616: orig ('LOAD_CONST', '1') | got ('RETURN_VALUE', '')\nline 617: orig ('LOAD_FAST', 'month') | got ('monthrange', 2)"
+   "detail": "line 1054: orig ('STORE_DEREF', 'dates') | got ('STORE_FAST', 'dates')\nline 1055: orig ('LOAD_CLOSURE', 'dates') | got ('LOAD_CONST', '<code <listcomp>>')\nline 1056: orig ('BUILD_TUPLE', '') | got ('LOAD_CONST', \"'Calendar.monthdatescalendar.<locals>.<listcomp>'\")"
   },
   {
    "module": "cgi",

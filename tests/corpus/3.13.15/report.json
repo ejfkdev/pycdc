@@ -2,8 +2,8 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 26,
-  "SIG-DIFF": 8,
+  "PASS": 27,
+  "SIG-DIFF": 7,
   "INCOMPLETE": 5,
   "AST-PASS": 1
  },
@@ -141,11 +141,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 411: orig  ops=[NotEq()] | dec  ops=[Eq()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2747,
-   "ntotal": 3531,
-   "detail": "line 663: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 741: orig ('_validate_month', 1) | got ('RETURN_CONST', 'None')\nline 742: orig ('RESUME', '') | got ('_validate_month', 1)"
+   "verdict": "PASS"
   },
   {
    "module": "cmd",

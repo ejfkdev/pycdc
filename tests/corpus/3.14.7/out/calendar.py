@@ -119,7 +119,7 @@ def weekday(year, month, day):
 
     if not datetime.MINYEAR <= year <= datetime.MAXYEAR:
         year = 2000 + year % 400
-        return Day(datetime.date(year, month, day).weekday())
+    return Day(datetime.date(year, month, day).weekday())
 
 def _validate_month(month):
     if not 1 <= month <= 12:

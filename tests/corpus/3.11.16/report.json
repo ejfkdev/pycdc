@@ -136,11 +136,11 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 478: orig  right=Constant(value=400))))] | dec  right=Constant(value=400))))",
+   "ast_detail": "diff at token 1061: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2802,
+   "ndiff": 2349,
    "ntotal": 3519,
-   "detail": "line 612: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 88') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 168')\nline 632: orig ('monthrange', 2) | got ('LOAD_CONST', 'None')\nline 633: orig ('RESUME', '') | got ('RETURN_VALUE', '')"
+   "detail": "line 1111: orig ('MAKE_CELL', 'dates') | got ('RESUME', '')\nline 1112: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + list')\nline 1113: orig ('LOAD_GLOBAL', 'NULL + list') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "cgi",

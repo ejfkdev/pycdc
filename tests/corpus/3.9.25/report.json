@@ -143,11 +143,11 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 471: orig  right=Constant(value=400))))] | dec  right=Constant(value=400))))",
+   "ast_detail": "diff at token 1054: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2393,
+   "ndiff": 1965,
    "ntotal": 3063,
-   "detail": "line 582: orig ('monthrange', 2) | got ('LOAD_CONST', 'None')\nline 583: orig ('LOAD_CONST', '1') | got ('RETURN_VALUE', '')\nline 584: orig ('LOAD_FAST', 'month') | got ('monthrange', 2)"
+   "detail": "line 1021: orig ('STORE_DEREF', 'dates') | got ('STORE_FAST', 'dates')\nline 1022: orig ('LOAD_CLOSURE', 'dates') | got ('LOAD_CONST', '<code <listcomp>>')\nline 1023: orig ('BUILD_TUPLE', '') | got ('LOAD_CONST', \"'Calendar.monthdatescalendar.<locals>.<listcomp>'\")"
   },
   {
    "module": "cgi",

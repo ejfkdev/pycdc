@@ -105,6 +105,10 @@ struct Block {
     /// the body tail marked the span If folded_exit, opening a phantom
     /// Else[MAX] that swallowed the while tail)
     no_fold: bool,
+    /// value-merge block whose cond was stored POSITIVE (the 3.12+ COPY
+    /// idiom contributes the operand as-is): close-time must NOT run the
+    /// statement-guard simplify_not polarity restore on it
+    merge_pos: bool,
 }
 
 impl Block {
@@ -135,6 +139,7 @@ impl Block {
             short_circuit: None,
             chain_link: false,
             no_fold: false,
+            merge_pos: false,
         }
     }
 }
@@ -7887,8 +7892,16 @@ impl<'a> Ctx<'a> {
                     // value-flow merge: `a and b` / `a or b` chains
                     let right = self.pop_expr();
                     // restore the tested value's polarity (the block cond was
-                    // negated for jump-if-true fall-through modeling)
-                    let cond = if b.jump_if_true { simplify_not(cond) } else { cond };
+                    // negated for jump-if-true fall-through modeling) — the
+                    // 3.12+ COPY-idiom merge blocks store the operand
+                    // POSITIVE: a simplify_not here would leave a folded
+                    // compare flip unrecovered (calendar 3.13 isleap
+                    // `year % 100 != 0 or ...` rendered `== 0`)
+                    let cond = if b.jump_if_true && !b.merge_pos {
+                        simplify_not(cond)
+                    } else {
+                        cond
+                    };
                     if let Some(merged) = merge_chain_compare(&cond, &right) {
                         self.push(merged);
                         return;
@@ -8316,7 +8329,7 @@ impl<'a> Ctx<'a> {
                                 // the cond was popped by the branch POP_TOP
                                 // and the fall-through produced one value
                                 let kind = b.value_merge.unwrap();
-                                let cond = if b.jump_if_true {
+                                let cond = if b.jump_if_true && !b.merge_pos {
                                     simplify_not(cond)
                                 } else {
                                     cond
@@ -18142,6 +18155,7 @@ impl<'a> Ctx<'a> {
             let mut k = ci + 1;
             let mut prev_link_end = ci + 1;
             let mut final_ok = false;
+            let mut m_off1 = None;
             while k < bi {
                 let ins = self.instrs[k];
                 let is_link = matches!(
@@ -18220,6 +18234,7 @@ impl<'a> Ctx<'a> {
                     if scc_dbg { eprintln!("SCC-neg: bail final hop into copy"); }
                     return None;
                 }
+                m_off1 = Some(jt);
                 final_ok = true;
                 break;
             }
@@ -18231,6 +18246,12 @@ impl<'a> Ctx<'a> {
                 operands: acc_operands2,
                 ops: acc_ops2,
             });
+            // the shared body may flow into the merge instead of
+            // terminating: clamp its end at M
+            let be = match m_off1 {
+                Some(mo) if mo > target => be.min(mo),
+                _ => be,
+            };
             return Some((negate_cond(merged), target, be));
         }
         // negated chain over a shared body reached through a cleanup
@@ -18275,6 +18296,7 @@ impl<'a> Ctx<'a> {
                         let mut prev_link_end = ci + 1;
                         let mut pjit_seen = false;
                         let mut jf_seen = false;
+                        let mut m_off = None;
                         let mut ok = true;
                         while k < pi {
                             let ins = self.instrs[k];
@@ -18359,6 +18381,7 @@ impl<'a> Ctx<'a> {
                                     ok = false;
                                     break;
                                 }
+                                m_off = ins.target;
                                 pjit_seen = true;
                                 prev_link_end = k + 1;
                                 k += 1;
@@ -18378,12 +18401,23 @@ impl<'a> Ctx<'a> {
                             break;
                         }
                         if ok && pjit_seen && acc_ops_t.len() >= 2 {
-                            // body end: first terminator from B; a cond
-                            // jump inside means this is an or-operand
-                            // region, not a terminator body
+                            // body end: first terminator from B, OR the
+                            // merge M when the body flows into it (the
+                            // success path resumes at M — a non-
+                            // terminating body ends there, not at the
+                            // function's own tail return; calendar 3.13
+                            // weekday swallowed `return Day(...)`); a
+                            // cond jump inside means this is an
+                            // or-operand region, not a terminator body
                             let mut body_end = None;
                             let mut k2 = bx;
                             while let Some(ins) = self.instrs.get(k2) {
+                                if let Some(mo) = m_off {
+                                    if mo > b_off && ins.offset >= mo {
+                                        body_end = Some(mo);
+                                        break;
+                                    }
+                                }
                                 if matches!(
                                     ins.op,
                                     Op::POP_JUMP_IF_FALSE
@@ -23309,15 +23343,6 @@ if split_cond {
         // `not in`/`is not` form recompiles to CONTAINS-NOT-IN + PJIF
         // and breaks sig-exactness. The explicit Unary Not reproduces
         // the original op+polarity
-        let c = if jump_if_true {
-            if self.version.at_least(3, 14) {
-                simplify_not_or_wrap(cond)
-            } else {
-                negate_cond(cond)
-            }
-        } else {
-            cond
-        };
         // COPY/TO_BOOL + cond jump = value-preserving branch (3.12+ and/or
         // chains, chained comparisons); plain statements are guarded at
         // close time by requiring an empty body and a live stack value
@@ -23334,16 +23359,6 @@ if split_cond {
                     && self.instrs[bi - 1].op == Op::TO_BOOL
                     && self.instrs[bi - 2].op == Op::COPY
             });
-        // 3.14 value-position `A and B or C`: the whole chain merges here
-        // (the per-jump value_merge blocks below would mis-nest it).
-        // !jump_if_true path only, where `c` is `cond` un-negated.
-        if !jump_if_true {
-            if let Some((merged, m)) = self.try_value_and_or_314(&c, target) {
-                self.push(merged);
-                                self.skip_until = Some(m);
-                return;
-            }
-        }
         let value_merge = (matches!(self.prev_op_at_exec, Some(Op::COPY))
             || (matches!(self.prev_op_at_exec, Some(Op::TO_BOOL))
                 && (copy_to_bool_before
@@ -23356,6 +23371,29 @@ if split_cond {
                     BoolOpKind::And
                 }
             });
+        // value-merge operands contribute POSITIVELY (the COPY idiom
+        // carries the operand value itself to the merge) — negating a
+        // PJIT link folds its comparison and the close-time
+        // simplify_not cannot recover it (calendar 3.13 isleap)
+        let c = if jump_if_true && value_merge.is_none() {
+            if self.version.at_least(3, 14) {
+                simplify_not_or_wrap(cond)
+            } else {
+                negate_cond(cond)
+            }
+        } else {
+            cond
+        };
+        // 3.14 value-position `A and B or C`: the whole chain merges here
+        // (the per-jump value_merge blocks below would mis-nest it).
+        // !jump_if_true path only, where `c` is `cond` un-negated.
+        if !jump_if_true {
+            if let Some((merged, m)) = self.try_value_and_or_314(&c, target) {
+                self.push(merged);
+                                self.skip_until = Some(m);
+                return;
+            }
+        }
         // 3.12+ chained comparison: the then arm recomputes the next link
         // and merges at its own end (a consuming instruction or a forward
         // jump), NOT at the else arm (`SWAP 2; POP_TOP`) — closing there
@@ -23370,6 +23408,7 @@ if split_cond {
         };
         let blk_end = chain_merge.unwrap_or(target);
         let mut blk = Block::new(BlockType::If, self.cur_next, blk_end);
+        blk.merge_pos = value_merge.is_some();
         blk.value_merge = value_merge;
         blk.chain_link = matches!(&value_merge, Some(BoolOpKind::And))
             && self.is_chain_else_arm(target);

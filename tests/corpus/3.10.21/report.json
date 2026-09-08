@@ -151,11 +151,11 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 478: orig  right=Constant(value=400))))] | dec  right=Constant(value=400))))",
+   "ast_detail": "diff at token 1061: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2371,
+   "ndiff": 1976,
    "ntotal": 3039,
-   "detail": "line 561: orig ('POP_JUMP_IF_TRUE', 'to 38') | got ('POP_JUMP_IF_TRUE', 'to 56')\nline 579: orig ('monthrange', 2) | got ('LOAD_CONST', 'None')\nline 580: orig ('LOAD_CONST', '1') | got ('RETURN_VALUE', '')"
+   "detail": "line 1023: orig ('STORE_DEREF', 'dates') | got ('STORE_FAST', 'dates')\nline 1024: orig ('LOAD_CLOSURE', 'dates') | got ('LOAD_CONST', '<code <listcomp>>')\nline 1025: orig ('BUILD_TUPLE', '') | got ('LOAD_CONST', \"'Calendar.monthdatescalendar.<locals>.<listcomp>'\")"
   },
   {
    "module": "cgi",

@@ -171,11 +171,11 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 487: orig  right=Constant(value=400))))]) | dec  right=Constant(value=400))))",
+   "ast_detail": "diff at token 1344: orig  value=BinOp(left=Constant(value='%s %r') | dec  value=JoinedStr(values=[FormattedValue(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 3369,
+   "ndiff": 1077,
    "ntotal": 4353,
-   "detail": "line 871: orig ('_validate_month', 1) | got ('LOAD_CONST', 'None')\nline 872: orig ('RESUME', '') | got ('RETURN_VALUE', '')\nline 873: orig ('LOAD_SMALL_INT', '') | got ('_validate_month', 1)"
+   "detail": "line 3264: orig ('MAKE_CELL', 'highlight') | got ('RESUME', '')\nline 3265: orig ('MAKE_CELL', 'reset') | got ('LOAD_DEREF', 'highlight_day')\nline 3266: orig ('RESUME', '') | got ('TO_BOOL', '')"
   },
   {
    "module": "cmd",

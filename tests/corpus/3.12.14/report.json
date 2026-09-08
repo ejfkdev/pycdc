@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 26,
-  "SIG-DIFF": 9,
+  "PASS": 27,
+  "SIG-DIFF": 8,
   "INCOMPLETE": 4,
   "AST-PASS": 1
  },
@@ -124,11 +124,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 529: orig  ops=[NotEq()] | dec  ops=[Eq()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2628,
-   "ntotal": 3396,
-   "detail": "line 648: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 704: orig ('POP_JUMP_IF_TRUE', 'to 100') | got ('POP_JUMP_IF_TRUE', 'to 192')\nline 724: orig ('_validate_month', 1) | got ('RETURN_CONST', 'None')"
+   "verdict": "PASS"
   },
   {
    "module": "cgi",

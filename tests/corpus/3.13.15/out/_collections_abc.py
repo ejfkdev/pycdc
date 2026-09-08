@@ -791,7 +791,7 @@ class ItemsView(MappingView, Set):
             v = self._mapping[key]
         except KeyError:
             return False
-        return v is not value or v == value
+        return v is value or v == value
 
     def __iter__(self):
         for key in self._mapping:
