@@ -89,10 +89,10 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 238: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 939: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2611,
-   "ntotal": 3109,
+   "ndiff": 2691,
+   "ntotal": 3110,
    "detail": "line 143: orig ('POP_JUMP_IF_FALSE', 'to 624') | got ('POP_JUMP_IF_FALSE', 'to 610')\nline 170: orig ('SETUP_WITH', 'to 602') | got ('SETUP_WITH', 'to 584')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to 586') | got ('POP_JUMP_IF_FALSE', 'to 570')"
   },
   {
@@ -114,7 +114,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 253: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1792,
+   "ndiff": 1791,
    "ntotal": 2191,
    "detail": "line 309: orig ('SETUP_FINALLY', 'to 98') | got ('SETUP_FINALLY', 'to 96')\nline 356: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 176')\nline 357: orig ('RETURN_VALUE', '') | got ('DUP_TOP', '')"
   },

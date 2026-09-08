@@ -588,16 +588,16 @@ class FieldStorage:
 
         self.file = self.make_file()
         todo = self.length
-        while todo >= 0 and todo > 0:
+        if todo >= 0 and todo > 0:
             data = self.fp.read(min(todo, self.bufsize))
             if not isinstance(data, bytes):
                 raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))
             self.bytes_read += len(data)
             if not data:
                 self.done = -1
-                break
-            self.file.write(data)
-            todo = todo - len(data)
+            else:
+                self.file.write(data)
+                todo = todo - len(data)
 
     def read_lines(self):
         '''Internal: read lines until EOF or outerboundary.'''

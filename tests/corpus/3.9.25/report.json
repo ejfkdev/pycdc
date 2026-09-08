@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 21,
-  "SIG-DIFF": 15,
+  "PASS": 22,
+  "SIG-DIFF": 14,
   "INCOMPLETE": 4
  },
  "results": [
@@ -88,11 +88,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 240: orig  ops=[Eq() | dec  ops=[Eq()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2590,
-   "ntotal": 3098,
-   "detail": "line 489: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 490: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 491: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
+   "verdict": "PASS"
   },
   {
    "module": "ast",
@@ -107,11 +103,11 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 385: orig  If(test=Compare(left=List(elts=[] | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 2144: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1687,
+   "ndiff": 818,
    "ntotal": 2212,
-   "detail": "line 473: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 474: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 475: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'r')"
+   "detail": "line 1361: orig ('SETUP_FINALLY', 'to 42') | got ('SETUP_FINALLY', 'to 38')\nline 1380: orig ('POP_BLOCK', '') | got ('DUP_TOP', '')\nline 1381: orig ('JUMP_FORWARD', 'to 116') | got ('LOAD_GLOBAL', 'OSError')"
   },
   {
    "module": "base64",
@@ -160,7 +156,7 @@
   {
    "module": "cgi",
    "verdict": "INCOMPLETE",
-   "ndiff": 1013,
+   "ndiff": 1011,
    "ntotal": 2887,
    "detail": "line 1834: orig ('LOAD_FAST', 'data') | got ('EXTENDED_ARG', '')\nline 1835: orig ('LOAD_METHOD', 'strip') | got ('JUMP_ABSOLUTE', '')\nline 1836: orig ('CALL_METHOD', '') | got ('EXTENDED_ARG', '')"
   },

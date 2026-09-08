@@ -100,8 +100,9 @@ class DecompressReader(io.RawIOBase):
         elif whence == io.SEEK_CUR:
             offset = self._pos + offset
         elif whence == io.SEEK_END:
-            while self._size < 0 and self.read(io.DEFAULT_BUFFER_SIZE):
-                pass
+            if self._size < 0:
+                while self.read(io.DEFAULT_BUFFER_SIZE):
+                    pass
             offset = self._size + offset
         else:
             raise ValueError('Invalid value for whence: {}'.format(whence))

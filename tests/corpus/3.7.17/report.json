@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 28,
-  "SIG-DIFF": 12
+  "PASS": 29,
+  "SIG-DIFF": 11
  },
  "results": [
   {
@@ -80,11 +80,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 265: orig  ops=[Eq() | dec  ops=[Eq()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2600,
-   "ntotal": 3095,
-   "detail": "line 474: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 475: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 476: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
+   "verdict": "PASS"
   },
   {
    "module": "ast",
@@ -96,11 +92,11 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 441: orig  If(test=Compare(left=List(elts=[] | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 774: orig  orelse=[]) | dec  orelse=[While(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1691,
+   "ndiff": 1454,
    "ntotal": 2207,
-   "detail": "line 475: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 476: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 477: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'r')"
+   "detail": "line 701: orig ('SETUP_LOOP', 'to 102') | got ('SETUP_LOOP', 'to 100')\nline 711: orig ('JUMP_FORWARD', 'to 102') | got ('SETUP_LOOP', 'to 100')\nline 712: orig ('SETUP_LOOP', 'to 102') | got ('LOAD_FAST', 'map')"
   },
   {
    "module": "base64",

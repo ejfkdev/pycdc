@@ -105,10 +105,9 @@ def poll(timeout=0.0, map=None):
                 w.append(fd)
             if is_r or is_w:
                 e.append(fd)
-        if [] == r:
-            if r == w == e:
-                time.sleep(timeout)
-                return
+        if [] == r == w == e:
+            time.sleep(timeout)
+            return
         r, w, e = select.select(r, w, e, timeout)
         for fd in r:
             obj = map.get(fd)
@@ -157,7 +156,7 @@ def loop(timeout=30.0, use_poll=False, map=None, count=None):
         poll_fun = poll2
     else:
         poll_fun = poll
-    while count is None:
+    if count is None:
         while map:
             poll_fun(timeout, map)
     else:

@@ -17178,7 +17178,19 @@ impl<'a> Ctx<'a> {
                     }
                     break;
                 }
-                if !is_pure_value_op(ins.op) {
+                if !is_pure_value_op(ins.op)
+                    // <=3.11 chained comparisons keep the rhs value
+                    // alive across links with DUP_TOP + ROT_* right
+                    // before the link's COMPARE — chain bookkeeping,
+                    // not a statement (asyncore 3.8 poll
+                    // `if [] == r == w == e:` — link 1's region bailed
+                    // on DUP_TOP and the head link split off as an
+                    // outer if)
+                    && !matches!(
+                        ins.op,
+                        Op::DUP_TOP | Op::ROT_TWO | Op::ROT_THREE | Op::ROT_FOUR
+                    )
+                {
                     if scc_dbg { eprintln!("SCC: bail impure {:?} off={}", ins.op, ins.offset); }
                     return None;
                 }
@@ -17284,7 +17296,19 @@ impl<'a> Ctx<'a> {
                 if scc_dbg { eprintln!("SCC: bail not-cmp {:?}", self.instrs[cmp_idx].op); }
                 return None;
             }
-            let rhs = match self.sim_value_region(region_start, cmp_idx) {
+            // trim the trailing chain bookkeeping (DUP/ROT run feeding
+            // the COMPARE's retained operand) — the region sim starts
+            // from an empty stack and would duplicate placeholders
+            let mut sim_end = cmp_idx;
+            while sim_end > region_start
+                && matches!(
+                    self.instrs[sim_end - 1].op,
+                    Op::DUP_TOP | Op::ROT_TWO | Op::ROT_THREE | Op::ROT_FOUR
+                )
+            {
+                sim_end -= 1;
+            }
+            let rhs = match self.sim_value_region(region_start, sim_end) {
                 Some(r) => r,
                 None => {
                     if scc_dbg { eprintln!("SCC: bail sim"); }
@@ -20699,11 +20723,76 @@ if split_cond {
                                 if t < cur { self.is_cond_expr_top(t, cur) } else { false }
                             );
                         }
+                        // the back edge must belong to THIS cond, not
+                        // to an inner loop whose cond top coincides with
+                        // cur_next: a pure-value run from t ending in a
+                        // forward cond jump that exits at/past `target`
+                        // is an inner `while c:` head + its exit
+                        // (asyncore 3.8 loop: the outer `if count is
+                        // None:` PJIF@42 saw the inner while's back
+                        // edge JABS@58->44 == cur_next and opened a
+                        // phantom While, rendering `while count is
+                        // None:` + while-else)
+                        // pre-3.12 ONLY: 3.12+ rotated whiles re-eval
+                        // the cond after the body with a forward PJIF
+                        // exit + a plain JUMP_BACKWARD body-top edge —
+                        // the same run shape (the S6 second-arm and
+                        // _compression 3.12/3.13 seek rely on it)
+                        let inner_cond_exit = |t: usize| -> bool {
+                            if self.version.at_least(3, 12) {
+                                return false;
+                            }
+                            self.idx_of.get(&t).map_or(false, |&tk| {
+                                let mut k = tk;
+                                let mut steps = 0;
+                                while let Some(x) = self.instrs.get(k) {
+                                    if matches!(
+                                        x.op,
+                                        Op::POP_JUMP_IF_FALSE
+                                            | Op::POP_JUMP_IF_TRUE
+                                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                                    ) {
+                                        // the run ending at THIS jump is
+                                        // its own cond expr, not an inner
+                                        // loop's head
+                                        if x.offset == self.cur_offset {
+                                            return false;
+                                        }
+                                        return !x.is_backward
+                                            && x.target
+                                                .map_or(false, |xt| {
+                                                    xt >= target
+                                                });
+                                    }
+                                    if !is_pure_value_op(x.op)
+                                        && !matches!(
+                                            x.op,
+                                            Op::NOP
+                                                | Op::NOT_TAKEN
+                                                | Op::CACHE
+                                                | Op::TO_BOOL
+                                        )
+                                    {
+                                        return false;
+                                    }
+                                    k += 1;
+                                    steps += 1;
+                                    if steps > 40 {
+                                        return false;
+                                    }
+                                }
+                                false
+                            })
+                        };
                         if inst.is_backward
                             && t < target
                             && (t == cur
-                                || t == self.cur_next
-                                || (t < cur && self.is_cond_expr_top(t, cur)))
+                                || (t == self.cur_next
+                                    && !inner_cond_exit(t))
+                                || (t < cur
+                                    && self.is_cond_expr_top(t, cur)
+                                    && !inner_cond_exit(t)))
                         {
                             let cond_end = self.instrs[ci].end();
                             let mut blk = Block::new(BlockType::While, t, target);
