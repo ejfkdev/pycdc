@@ -63,7 +63,7 @@
    "module": "Queue",
    "ast_detail": "diff at token 391: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
-   "ndiff": 341,
+   "ndiff": 343,
    "ntotal": 718,
    "detail": "line 346: orig ('SETUP_FINALLY', '#122') | got ('SETUP_FINALLY', '#72')\nline 351: orig ('JUMP_IF_FALSE', '#102') | got ('JUMP_IF_FALSE', '#52')\nline 354: orig ('JUMP_IF_TRUE', '#28') | got ('JUMP_IF_TRUE', '#22')"
   },
@@ -177,9 +177,9 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 873: orig  orelse=[]) | dec  orelse=[While(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 2388: orig  values=[UnaryOp(op=Not() | dec  values=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1720,
+   "ndiff": 1738,
    "ntotal": 2270,
    "detail": "line 115: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 148: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 424: orig ('JUMP_IF_FALSE', '#210') | got ('JUMP_IF_FALSE', '#211')"
   },

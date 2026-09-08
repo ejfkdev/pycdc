@@ -89,11 +89,11 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 774: orig  orelse=[]) | dec  orelse=[While(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 2360: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1089,
-   "ntotal": 2212,
-   "detail": "line 707: orig ('SETUP_LOOP', 'to 143') | got ('SETUP_LOOP', 'to 140')\nline 717: orig ('JUMP_FORWARD', 'to 143') | got ('SETUP_LOOP', 'to 140')\nline 718: orig ('SETUP_LOOP', 'to 143') | got ('LOAD_FAST', 'map')"
+   "ndiff": 622,
+   "ntotal": 2213,
+   "detail": "line 1580: orig ('POP_JUMP_IF_TRUE', '') | got ('UNARY_NOT', '')\nline 1581: orig ('LOAD_FAST', 'self') | got ('POP_JUMP_IF_FALSE', '')\nline 1582: orig ('LOAD_ATTR', 'connecting') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "base64",

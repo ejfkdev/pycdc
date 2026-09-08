@@ -100,16 +100,15 @@ class Queue:
             elif timeout is None:
                 while not self._qsize():
                     self.not_empty.wait()
-                else:
-                    if timeout < 0:
-                        raise ValueError("'timeout' must be a non-negative number")
-                    else:
-                        endtime = _time() + timeout
-                        while not self._qsize():
-                            remaining = endtime - _time()
-                            if remaining <= 0.0:
-                                raise Empty
-                            self.not_empty.wait(remaining)
+            elif timeout < 0:
+                raise ValueError("'timeout' must be a non-negative number")
+            else:
+                endtime = _time() + timeout
+                while not self._qsize():
+                    remaining = endtime - _time()
+                    if remaining <= 0.0:
+                        raise Empty
+                    self.not_empty.wait(remaining)
             item = self._get()
             self.not_full.notify()
             return item

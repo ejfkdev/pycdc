@@ -161,11 +161,11 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 904: orig  orelse=[]) | dec  orelse=[While(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 1851: orig  TryExcept(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self' | dec  If(test=Compare(left=Subscript(value=Attribute(value=Name(id='why'",
    "verdict": "SIG-DIFF",
-   "ndiff": 354,
+   "ndiff": 334,
    "ntotal": 2185,
-   "detail": "line 133: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 165: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 758: orig ('POP_JUMP_IF_FALSE', '#34') | got ('POP_JUMP_IF_FALSE', '#52')"
+   "detail": "line 133: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 165: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 1430: orig ('SETUP_EXCEPT', '#21') | got ('LOAD_FAST', 'why')"
   },
   {
    "module": "atexit",

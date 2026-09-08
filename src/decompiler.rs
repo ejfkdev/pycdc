@@ -20339,7 +20339,30 @@ if split_cond {
                     // its close separates the else region.
                     if let Some(&pi) = self.idx_of.get(&target) {
                         let pb_end = self.instrs[pi].end();
-                        top.loop_else_end = Some(top.end);
+                        // a forward JUMP at the POP_BLOCK's end targeting
+                        // the loop end is an ENCLOSING branch's arm-end
+                        // skip, not a fall-through into an else body:
+                        // the span past it is the branch's else ARM
+                        // (asyncore 3.5-3.7 loop: `if count is None:
+                        // while map: ... else: while ...` — marking the
+                        // arm as while-else nested the second loop
+                        // under the first and the recompile lost the
+                        // arm-end JF)
+                        let arm_end_skip = self
+                            .idx_of
+                            .get(&pb_end)
+                            .map_or(false, |&ji| {
+                                let j = &self.instrs[ji];
+                                !j.is_backward
+                                    && matches!(
+                                        j.op,
+                                        Op::JUMP_FORWARD | Op::JUMP
+                                    )
+                                    && j.target == Some(top.end)
+                            });
+                        if !arm_end_skip {
+                            top.loop_else_end = Some(top.end);
+                        }
                         top.end = pb_end;
                     }
                 }
