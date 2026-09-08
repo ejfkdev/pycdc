@@ -37,11 +37,11 @@
   },
   {
    "module": "_compression",
-   "ast_detail": "diff at token 304: orig  body=[If(test=Attribute(value=Attribute(value=Name(id='self' | dec  body=[Try(body=[Assign(targets=[Name(id='data'",
+   "ast_detail": "diff at token 569: orig  body=[If(test=Compare(left=Attribute(value=Name(id='self' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 233,
+   "ndiff": 30,
    "ntotal": 575,
-   "detail": "line 317: orig ('LOAD_FAST', 'self') | got ('SETUP_FINALLY', 'to 56')\nline 318: orig ('LOAD_ATTR', '_decompressor') | got ('LOAD_FAST', 'self')\nline 319: orig ('LOAD_ATTR', 'eof') | got ('LOAD_ATTR', '_decompressor')"
+   "detail": "line 504: orig ('NOP', '') | got ('LOAD_FAST', 'self')\nline 505: orig ('LOAD_FAST', 'self') | got ('LOAD_METHOD', 'read')\nline 506: orig ('LOAD_METHOD', 'read') | got ('LOAD_GLOBAL', 'io')"
   },
   {
    "module": "_markupbase",

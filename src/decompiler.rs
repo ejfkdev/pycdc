@@ -6555,10 +6555,27 @@ impl<'a> Ctx<'a> {
                             matches!(b.kind, BlockType::While | BlockType::For)
                                 && b.end == target
                         });
+                        // the body-end jump flies over an ENCLOSING
+                        // branch's else boundary into the branch merge:
+                        // an open If/Else whose end lies strictly
+                        // between the handler head and the target owns
+                        // the gap — the region past the chain is the
+                        // branch's else arm, not a try-else (3.10
+                        // _compression.read: `if eof: ... try: ...
+                        // except: break / else: <needs_input arm>` —
+                        // presuming else at the merge swallowed the
+                        // whole else arm into the try's orelse and
+                        // hoisted the try out of the then arm)
+                        let crosses_branch_else = self.blocks.iter().any(|b| {
+                            matches!(b.kind, BlockType::If | BlockType::Else)
+                                && b.end > lt.handler_start
+                                && b.end < target
+                        });
                         if lt.handlers.is_empty() && lt.else_start.is_none()
                             && target > pos && target > lt.handler_start
                             && !onto_loop_back_edge && !bare_chain
                             && !onto_loop_exit
+                            && !crosses_branch_else
                         {
                             // end of the try body: forward jump over the
                             // handler chain into the else region. Handlers
