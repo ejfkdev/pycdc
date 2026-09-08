@@ -195,15 +195,44 @@ hardlink_dupes: hardlink duplicated pyc files
                             return success
                             if not quiet:
                                 print('Compiling {!r}...'.format(fullname))
-                            for index, opt_level in enumerate(optimize):
-                                cfile = opt_cfiles[opt_level]
-                                ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
-                                if index > 0 and hardlink_dupes:
-                                    previous_cfile = opt_cfiles[optimize[index - 1]]
-                                    if not filecmp.cmp(cfile, previous_cfile, shallow=False):
-                                        continue
-                                os.unlink(cfile)
-                                os.link(previous_cfile, cfile)
+                            try:
+                                for index, opt_level in enumerate(optimize):
+                                    cfile = opt_cfiles[opt_level]
+                                    ok = py_compile.compile(fullname, cfile, dfile, True, optimize=opt_level, invalidation_mode=invalidation_mode)
+                                    if index > 0 and hardlink_dupes:
+                                        previous_cfile = opt_cfiles[optimize[index - 1]]
+                                        if not filecmp.cmp(cfile, previous_cfile, shallow=False):
+                                            continue
+                                    os.unlink(cfile)
+                                    os.link(previous_cfile, cfile)
+                            except py_compile.PyCompileError as err:
+                                success = False
+                                if quiet >= 2:
+                                    return success
+                                if quiet:
+                                    print('*** Error compiling {!r}...'.format(fullname))
+                                else:
+                                    print('*** ', end='')
+                                if not sys.stdout.encoding:
+                                    sys.stdout.encoding
+                                encoding = sys.getdefaultencoding()
+                                msg = err.msg.encode(encoding, errors='backslashreplace').decode(encoding)
+                                print(msg)
+                                err = None
+                                del err
+                                return success
+                            except (SyntaxError, UnicodeError, OSError) as e:
+                                success = False
+                                if quiet >= 2:
+                                    return success
+                                if quiet:
+                                    print('*** Error compiling {!r}...'.format(fullname))
+                                else:
+                                    print('*** ', end='')
+                                print(e.__class__.__name__ + ':', e)
+                                e = None
+                                del e
+                                return success
                             if ok == 0:
                                 success = False
                             return success
@@ -283,7 +312,7 @@ def main():
                     compile_dests.append(line.strip())
         except OSError:
             if args.quiet < 2:
-                pass
+                print('Error reading file list {}'.format(args.flist))
             return False
     if args.invalidation_mode:
         ivl_mode = args.invalidation_mode.replace('-', '_').upper()
@@ -309,7 +338,12 @@ def main():
         if args.quiet < 2:
             print('\n[interrupted]')
         return False
-    return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
+    try:
+        return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
+    except KeyboardInterrupt:
+        if args.quiet < 2:
+            print('\n[interrupted]')
+        return False
 
 if __name__ == '__main__':
     exit_status = int(not main())

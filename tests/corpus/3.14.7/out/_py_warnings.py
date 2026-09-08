@@ -389,16 +389,17 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
         lineno = 0
     else:
         if None is not None:
-            try:
-                raise ValueError
-            except ValueError:
-                globals = sys.__dict__
-                filename = '<sys>'
-                lineno = 0
-            else:
-                globals = frame.f_globals
-                filename = frame.f_code.co_filename
-                lineno = frame.f_lineno
+            pass
+        try:
+            raise ValueError
+        except ValueError:
+            globals = sys.__dict__
+            filename = '<sys>'
+            lineno = 0
+        else:
+            globals = frame.f_globals
+            filename = frame.f_code.co_filename
+            lineno = frame.f_lineno
     if '__name__' in globals:
         module = globals['__name__']
     else:

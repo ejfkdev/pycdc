@@ -165,20 +165,12 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
     async def __aenter__(self):
         del self.args, self.kwds, self.func
         try:
-            pass
-        except StopAsyncIteration:
-            raise RuntimeError("generator didn't yield") from None
-        try:
             return await anext(self.gen)
         except StopAsyncIteration:
             raise RuntimeError("generator didn't yield") from None
 
     async def __aexit__(self, typ, value, traceback):
         if typ is None:
-            try:
-                pass
-            except StopAsyncIteration:
-                return False
             try:
                 await anext(self.gen)
             except StopAsyncIteration:
@@ -189,27 +181,6 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 await self.gen.aclose()
         if value is None:
             value = typ()
-        try:
-            pass
-        except StopAsyncIteration as exc:
-            return exc is not value
-        except RuntimeError as exc:
-            if exc is value:
-                exc.__traceback__ = traceback
-                return False
-            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
-                value.__traceback__ = traceback
-                exc = None
-                del exc
-                return False
-            raise
-            exc = None
-            del exc
-        except BaseException as exc:
-            if exc is not value:
-                raise
-            exc.__traceback__ = traceback
-            return False
         try:
             await self.gen.athrow(value)
         except StopAsyncIteration as exc:
@@ -699,14 +670,14 @@ method.'''
                     cb_suppress = cb(*exc_details)
                 else:
                     cb_suppress = await cb(*exc_details)
+                if cb_suppress:
+                    suppressed_exc = True
+                    pending_raise = False
+                    exc = None
             except BaseException as new_exc:
                 _fix_exception_context(new_exc, exc)
                 pending_raise = True
                 exc = new_exc
-            if cb_suppress:
-                suppressed_exc = True
-                pending_raise = False
-                exc = None
         if pending_raise:
             try:
                 fixed_ctx = exc.__context__

@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 15,
-  "SIG-DIFF": 22,
+  "PASS": 16,
+  "SIG-DIFF": 21,
   "INCOMPLETE": 3
  },
  "results": [
@@ -21,11 +21,7 @@
   },
   {
    "module": "_bootsubprocess",
-   "ast_detail": "diff at token 359: orig  Try(body=[With(items=[withitem(context_expr=Call(func=Name(id='open' | dec  With(items=[withitem(context_expr=Call(func=Name(id='open'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 83,
-   "ntotal": 396,
-   "detail": "line 307: orig ('NOP', '') | got ('LOAD_GLOBAL', 'NULL + open')\nline 308: orig ('LOAD_GLOBAL', 'NULL + open') | got ('LOAD_FAST', 'tmp_filename')\nline 309: orig ('LOAD_FAST', 'tmp_filename') | got ('LOAD_CONST', \"'rb'\")"
+   "verdict": "PASS"
   },
   {
    "module": "_collections_abc",
@@ -111,8 +107,8 @@
    "module": "asyncore",
    "ast_detail": "diff at token 259: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1784,
-   "ntotal": 2314,
+   "ndiff": 1833,
+   "ntotal": 2345,
    "detail": "line 377: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 506') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 512')\nline 401: orig ('POP_EXCEPT', '') | got ('LOAD_CONST', 'None')\nline 402: orig ('LOAD_CONST', 'None') | got ('STORE_FAST', 'e')"
   },
   {
@@ -218,8 +214,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 138: orig  values=[Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  values=[Compare(left=Name(id='maxlevels'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1482,
-   "ntotal": 1597,
+   "ndiff": 1476,
+   "ntotal": 1591,
    "detail": "line 48: orig ('NOP', '') | got ('LOAD_CONST', '(None, None, False, None, 0, False, -1, 1, None)')\nline 49: orig ('NOP', '') | got ('LOAD_CONST', 'None')\nline 50: orig ('NOP', '') | got ('LOAD_CONST', 'None')"
   },
   {

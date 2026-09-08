@@ -65,13 +65,15 @@ def check_output(cmd, **kwargs):
         exitcode = os.waitstatus_to_exitcode(status)
         if exitcode:
             raise ValueError(f'Command {cmd!r} returned non-zero exit status {exitcode!r}')
-        with open(tmp_filename, 'rb') as fp:
-            stdout = fp.read()
+        try:
+            with open(tmp_filename, 'rb') as fp:
+                stdout = fp.read()
+        except FileNotFoundError:
+            stdout = b''
     finally:
         try:
             os.unlink(tmp_filename)
         except OSError:
             pass
-    os.unlink(tmp_filename)
     return stdout
 

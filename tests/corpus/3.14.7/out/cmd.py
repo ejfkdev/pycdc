@@ -116,42 +116,35 @@ sys.stdin and sys.stdout are used.
                 self.intro = intro
             if self.intro:
                 self.stdout.write(str(self.intro) + '\n')
-        finally:
-            try:
-                self.stdout.write(str(self.intro) + '\n')
-                stop = None
-                while not stop:
-                    if self.cmdqueue:
-                        line = self.cmdqueue.pop(0)
-                    elif self.use_rawinput:
-                        line = input(self.prompt)
+            stop = None
+            while not stop:
+                if self.cmdqueue:
+                    line = self.cmdqueue.pop(0)
+                elif self.use_rawinput:
+                    line = input(self.prompt)
+                else:
+                    self.stdout.write(self.prompt)
+                    self.stdout.flush()
+                    line = self.stdin.readline()
+                    if not len(line):
+                        line = 'EOF'
                     else:
-                        self.stdout.write(self.prompt)
-                        self.stdout.flush()
-                        line = self.stdin.readline()
-                        if not len(line):
-                            line = 'EOF'
-                        else:
-                            line = line.rstrip('\r\n')
-                    line = self.precmd(line)
-                    stop = self.onecmd(line)
-                    stop = self.postcmd(stop, line)
-            finally:
-                if self.use_rawinput:
-                    if self.completekey:
-                        try:
-                            import readline
-                            readline.set_completer(self.old_completer)
-                        except ImportError:
-                            pass
-        self.postloop()
-        if self.use_rawinput:
-            if self.completekey:
-                try:
-                    import readline
-                    readline.set_completer(self.old_completer)
-                except ImportError:
-                    return
+                        line = line.rstrip('\r\n')
+                line = self.precmd(line)
+                stop = self.onecmd(line)
+                stop = self.postcmd(stop, line)
+            self.postloop()
+        except EOFError:
+            line = 'EOF'
+        finally:
+            if self.use_rawinput:
+                if self.completekey:
+                    pass
+            try:
+                import readline
+                readline.set_completer(self.old_completer)
+            except ImportError:
+                return
 
     def precmd(self, line):
         '''Hook method executed just before the command line is
@@ -403,4 +396,3 @@ Columns are separated by two spaces (one was not legible enough).
             self.stdout.write('%s\n' % str('  '.join(texts)))
 
 
-# WARNING: Decompyle incomplete

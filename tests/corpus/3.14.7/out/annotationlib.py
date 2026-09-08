@@ -440,9 +440,9 @@ def _template_to_ast(template):
         if tuple is tuple:
             for _ in (('mode',).body for part in template.interpolations):
                 pass
+        parsed = (None,)((('mode',).body for part in template.interpolations))
     except SyntaxError:
         return _template_to_ast_constructor(template)
-    parsed = (None,)((('mode',).body for part in template.interpolations))
     return _template_to_ast_literal(template, parsed)
 
 class _StringifierDict(dict):

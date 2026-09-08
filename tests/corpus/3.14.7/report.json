@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 13,
-  "INCOMPLETE": 13,
-  "SIG-DIFF": 13,
+  "INCOMPLETE": 12,
+  "SIG-DIFF": 14,
   "AST-PASS": 1
  },
  "results": [
@@ -38,8 +38,8 @@
   {
    "module": "_collections_abc",
    "verdict": "INCOMPLETE",
-   "ndiff": 3354,
-   "ntotal": 4117,
+   "ndiff": 3328,
+   "ntotal": 4100,
    "detail": "line 706: orig ('FOR_ITER', 'to L6') | got ('FOR_ITER', 'to L5')\nline 710: orig ('FOR_ITER', 'to L5') | got ('FOR_ITER', 'to L4')\nline 714: orig ('CONTAINS_OP', 'in') | got ('CONTAINS_OP', 'not in')"
   },
   {
@@ -64,7 +64,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 942,
    "ntotal": 1352,
-   "detail": "line 394: orig ('LOAD_CONST', \"frozenset({'linktype', 'attlist', 'link', 'element'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 395: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 396: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'linktype', 'link', 'element'})\")"
+   "detail": "line 394: orig ('LOAD_CONST', \"frozenset({'attlist', 'linktype', 'link', 'element'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 395: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 396: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'element', 'attlist', 'link', 'linktype'})\")"
   },
   {
    "module": "_opcode_metadata",
@@ -73,8 +73,8 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1401,
-   "ntotal": 1796,
+   "ndiff": 1349,
+   "ntotal": 1743,
    "detail": "line 362: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 363: orig ('LOAD_ATTR', 'close + NULL|self') | got ('CHECK_EXC_MATCH', '')\nline 364: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to L3')"
   },
   {
@@ -87,8 +87,8 @@
   {
    "module": "_py_warnings",
    "verdict": "INCOMPLETE",
-   "ndiff": 2645,
-   "ntotal": 3267,
+   "ndiff": 2640,
+   "ntotal": 3266,
    "detail": "line 553: orig ('JUMP_FORWARD', 'to L2') | got ('LOAD_FAST', 'msg')\nline 554: orig ('LOAD_FAST', 'msg') | got ('LOAD_ATTR', 'line')\nline 555: orig ('LOAD_ATTR', 'line') | got ('STORE_FAST', 'line')"
   },
   {
@@ -145,8 +145,8 @@
    "module": "ast",
    "ast_detail": "diff at token 229: orig  body=[Return(value=UnaryOp(op=UAdd() | dec  body=[Return(value=Name(id='operand'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2073,
-   "ntotal": 2513,
+   "ndiff": 2072,
+   "ntotal": 2527,
    "detail": "line 413: orig ('CALL_INTRINSIC_1', 'INTRINSIC_UNARY_POSITIVE') | got ('RETURN_VALUE', '')\nline 414: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'operand')\nline 415: orig ('LOAD_FAST', 'operand') | got ('UNARY_NEGATIVE', '')"
   },
   {
@@ -160,9 +160,9 @@
   {
    "module": "bdb",
    "verdict": "INCOMPLETE",
-   "ndiff": 3385,
+   "ndiff": 3372,
    "ntotal": 4001,
-   "detail": "line 352: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 353: orig ('POP_JUMP_IF_TRUE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L5')\nline 519: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_FALSE', 'to L4')"
+   "detail": "line 352: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 353: orig ('POP_JUMP_IF_TRUE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L5')\nline 532: orig ('LOAD_GLOBAL', 'sys') | got ('LOAD_CONST', 'False')"
   },
   {
    "module": "bisect",
@@ -190,10 +190,11 @@
   },
   {
    "module": "cmd",
-   "verdict": "INCOMPLETE",
-   "ndiff": 1332,
-   "ntotal": 1603,
-   "detail": "line 238: orig ('LOAD_CONST', 'None') | got ('NOP', '')\nline 239: orig ('STORE_FAST', 'stop') | got ('LOAD_FAST', 'self')\nline 240: orig ('LOAD_FAST', 'stop') | got ('LOAD_ATTR', 'stdout')"
+   "ast_detail": "diff at token 229: orig  body=[Try(body=[Assign(targets=[Name(id='line' | dec  body=[Assign(targets=[Name(id='line'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 920,
+   "ntotal": 1410,
+   "detail": "line 262: orig ('NOP', '') | got ('LOAD_GLOBAL', 'input + NULL')\nline 263: orig ('LOAD_GLOBAL', 'input + NULL') | got ('LOAD_FAST', 'self')\nline 264: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', 'prompt')"
   },
   {
    "module": "code",
@@ -224,7 +225,7 @@
   {
    "module": "compileall",
    "verdict": "INCOMPLETE",
-   "ndiff": 1309,
+   "ndiff": 1310,
    "ntotal": 1666,
    "detail": "line 158: orig ('FOR_ITER', 'to L14') | got ('FOR_ITER', 'to L13')\nline 163: orig ('POP_JUMP_IF_FALSE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 165: orig ('JUMP_BACKWARD', 'to L4') | got ('JUMP_BACKWARD', 'to L3')"
   },
@@ -232,15 +233,15 @@
    "module": "configparser",
    "ast_detail": "diff at token 94: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 3647,
+   "ndiff": 3640,
    "ntotal": 5071,
    "detail": "line 1324: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', 'None')\nline 1325: orig ('JUMP_BACKWARD', 'to L1') | got ('RETURN_VALUE', '')\nline 1331: orig ('EXTENDED_ARG', '') | got ('NOP', '')"
   },
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1879,
-   "ntotal": 2604,
+   "ndiff": 1708,
+   "ntotal": 2448,
    "detail": "line 483: orig ('LOAD_DEREF', 'func') | got ('NOP', '')\nline 484: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 485: orig ('LOAD_FAST', 'args') | got ('LOAD_CONST', 'None')"
   },
   {

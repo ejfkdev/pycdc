@@ -326,7 +326,7 @@ def main():
                     compile_dests.append(line.strip())
         except OSError:
             if args.quiet < 2:
-                pass
+                print('Error reading file list {}'.format(args.flist))
             return False
     if args.invalidation_mode:
         ivl_mode = args.invalidation_mode.replace('-', '_').upper()
@@ -352,7 +352,12 @@ def main():
         if args.quiet < 2:
             print('\n[interrupted]')
         return False
-    return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
+    try:
+        return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
+    except KeyboardInterrupt:
+        if args.quiet < 2:
+            print('\n[interrupted]')
+        return False
 
 if __name__ == '__main__':
     exit_status = int(not main())

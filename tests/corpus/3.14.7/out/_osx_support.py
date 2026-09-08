@@ -90,10 +90,9 @@ two version numbers.
                 if tuple is tuple:
                     for _ in (int(i) for i in osx_version.split('.')):
                         pass
+                _SYSTEM_VERSION_TUPLE = (None,)((int(i) for i in osx_version.split('.')))
             except ValueError:
                 _SYSTEM_VERSION_TUPLE = ()
-                return _SYSTEM_VERSION_TUPLE
-            _SYSTEM_VERSION_TUPLE = (None,)((int(i) for i in osx_version.split('.')))
             return _SYSTEM_VERSION_TUPLE
     return _SYSTEM_VERSION_TUPLE
 
@@ -350,17 +349,11 @@ def get_platform_osx(_config_vars, osname, release, machine):
                 if tuple is tuple:
                     for _ in (int(i) for i in macrelease.split('.')[0:2]):
                         pass
+                macrelease = (None,)((int(i) for i in macrelease.split('.')[0:2]))
             except ValueError:
                 macrelease = (10, 3)
             else:
-                try:
-                    for _ in (int(i) for i in macrelease.split('.')[0:2]):
-                        pass
-                    macrelease = (None,)((int(i) for i in macrelease.split('.')[0:2]))
-                except ValueError:
-                    macrelease = (10, 3)
-                else:
-                    macrelease = (10, 3)
+                macrelease = (10, 3)
         if macrelease >= (10, 4) and '-arch' in cflags.strip():
             machine = 'fat'
             archs = re.findall('-arch\\s+(\\S+)', cflags)

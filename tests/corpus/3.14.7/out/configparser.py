@@ -1253,10 +1253,9 @@ section proxies to find and use the implementation on the parser class.
 
     def __delitem__(self, key):
         try:
-            pass
+            k = 'get' + (key or None)
         except TypeError:
             raise KeyError(key)
-        k = 'get' + (key or None)
         del self._data[key]
         for inst in itertools.chain((self._parser,), self._parser.values()):
             try:

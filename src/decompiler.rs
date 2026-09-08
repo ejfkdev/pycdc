@@ -343,6 +343,9 @@ struct Ctx<'a> {
     with_regions: HashMap<usize, usize>,
     /// try context whose body block is currently open
     active_try: Option<TryCtx>,
+    /// enclosing active_try contexts saved when a genuinely NESTED region
+    /// opens under a live one; restored when the nested block closes
+    active_try_stack: Vec<TryCtx>,
     /// body_end of the most recently emitted exception-table try — the
     /// tail-return recovery in emit_return uses it to verify the stray
     /// return starts exactly at the body end (narrowed protected range)
@@ -684,6 +687,7 @@ pub fn decompile_in_scope(
         chain_heads,
         with_regions: with_regions.clone(),
         active_try: None,
+        active_try_stack: Vec::new(),
         last_try_body_end: None,
         pending_try_tail: None,
         pending_post_chain_stmt: None,
@@ -850,13 +854,65 @@ pub fn decompile_in_scope(
                 _ => false,
             }
         };
+        // with-in-try: a `with` inside the try body splits the protected
+        // range around BEFORE_WITH / the with body (protected by the
+        // with's OWN handler, excluded from main_entries) / the __exit__
+        // call. Bridge same-handler fragments when the gap is entirely
+        // with-protocol material and actually contains with machinery
+        // (_bootsubprocess 3.11 check_output: the FileNotFoundError try's
+        // fragments [360,390)/[434,456) never merged and its chain was
+        // left unparsed — the with rendered bare)
+        let with_bridge = |from: usize, to: usize| -> bool {
+            match (ctx.idx_of.get(&from), ctx.idx_of.get(&to)) {
+                (Some(&fi), Some(&ti)) => {
+                    let span = &ctx.instrs[fi..ti];
+                    let has_with = span.iter().any(|x| {
+                        matches!(x.op, Op::BEFORE_WITH | Op::BEFORE_ASYNC_WITH)
+                            || with_regions.iter().any(|(ws, we)| {
+                                x.offset >= *ws && x.offset < *we
+                            })
+                    });
+                    has_with
+                        && span.iter().all(|x| {
+                            matches!(
+                                x.op,
+                                Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                            ) || with_regions.iter().any(|(ws, we)| {
+                                x.offset >= *ws && x.offset < *we
+                            }) || matches!(
+                                x.op,
+                                Op::BEFORE_WITH
+                                    | Op::BEFORE_ASYNC_WITH
+                                    | Op::STORE_FAST
+                                    | Op::STORE_NAME
+                                    | Op::STORE_DEREF
+                                    | Op::POP_TOP
+                                    | Op::SWAP
+                                    | Op::COPY
+                                    | Op::LOAD_CONST
+                            )
+                        })
+                }
+                _ => false,
+            }
+        };
         // region extension must never swallow a LATER entry's protected
         // range (overlapping region nesting breaks the tail order)
         let mut all_starts: Vec<usize> = main_entries.iter().map(|e2| e2.start).collect();
         all_starts.sort_unstable();
-        let other_start_after = |r: &TryCtx| -> Option<usize> {
-            all_starts.iter().copied().find(|s| *s > r.cover_end())
-        };
+        // note: `all_starts` must EXCLUDE the candidate entry's own start
+        // — a fragmented region's next fragment legitimately starts past
+        // cover_end, and counting it as an intervening sibling caps every
+        // bridged merge (the cap's intent is a THIRD entry's protected
+        // range starting strictly between the region end and the
+        // candidate's end)
+        let other_start_after_ex =
+            |r: &TryCtx, e: &crate::code::ExceptionEntry| -> Option<usize> {
+                all_starts
+                    .iter()
+                    .copied()
+                    .find(|s| *s > r.cover_end() && *s != e.start)
+            };
         for e in &main_entries {
             let is_exc = handler_kind[&e.target];
             let same_fin = |r: &TryCtx| r.finally_handler == Some(e.target);
@@ -869,7 +925,26 @@ pub fn decompile_in_scope(
             let extends = regions
                 .last()
                 .map(|r| {
-                    let capped = other_start_after(r).map_or(false, |s| e.end > s);
+                    let same_handler0 = if is_exc { same_exc(r) } else { same_fin(r) };
+                    // the cap guards against swallowing a LATER sibling's
+                    // protected range; when the region's own handler gets
+                    // another fragment at/after this entry, the
+                    // intervening starts are nested chains inside the
+                    // body and the merge stays ordered
+                    // (_bootsubprocess 3.11 check_output: the outer
+                    // finally's fragments sandwich the inner with-try,
+                    // and the with-try's own second fragment trips the
+                    // naive cap)
+                    let resumes_past = same_handler0
+                        && main_entries.iter().any(|e3| {
+                            (if is_exc {
+                                r.except_handler == Some(e3.target)
+                            } else {
+                                r.finally_handler == Some(e3.target)
+                            }) && e3.start >= e.end
+                        });
+                    let capped = other_start_after_ex(r, e)
+                        .map_or(false, |s| e.end > s && !resumes_past);
                     if capped {
                         return false;
                     }
@@ -879,7 +954,8 @@ pub fn decompile_in_scope(
                     let same_handler = if is_exc { same_exc(r) } else { same_fin(r) };
                     let b = same_handler
                         && e.start > r.cover_end()
-                        && protocol_only(r.cover_end(), e.start);
+                        && (protocol_only(r.cover_end(), e.start)
+                            || with_bridge(r.cover_end(), e.start));
                     if b {
                         bridged = true;
                     }
@@ -1263,6 +1339,7 @@ impl<'a> Ctx<'a> {
     fn run(&mut self) {
         self.pending_try_tail = None;
         self.pending_post_chain_stmt = None;
+        self.active_try_stack.clear();
         self.prescan_while_true();
         self.prescan_dup_copies();
         let mut pc = 0usize;
@@ -1781,14 +1858,45 @@ impl<'a> Ctx<'a> {
             self.emit_try_tail(tc, pos);
         }
         if let Some(tc) = self.try_ctxs.get(&pos).cloned() {
+            // close expired blocks BEFORE opening the new Try: an outer
+            // try whose region_end lies behind pos must fold first or the
+            // new block shields it from close_blocks_at and the inline
+            // finally span gets walked as its body (_bootsubprocess 3.11
+            // check_output: unlink copy rendered inside the outer body
+            // AND again in the finally decompose)
+            self.close_blocks_at(pos);
+            // the fold may have consumed THIS region as its inline
+            // finally span (decompose + skip) — opening it again renders
+            // a duplicate empty try
+            if self.skip_until.map_or(false, |s| pos < s) {
+                return;
+            }
             // a protocol-continuation shadow (3.12+ await inside try: the
             // exception table splits the protected range around the
             // YIELD_VALUE suspension point) only extends the previous
             // body — its statements flow into the pending body and the
-            // tail already emitted at the first fragment must not repeat
-            if self.active_try.is_none() || tc.body_end <= pos {
+            // tail already emitted at the first fragment must not repeat.
+            // A region with a DIFFERENT handler is a genuinely NESTED try
+            // — it must open its own block even under a live active_try
+            // (_bootsubprocess 3.11 check_output: the with-try inside the
+            // outer try/finally never opened, its FileNotFoundError chain
+            // stayed unparsed and the with rendered bare)
+            let shadow_of_active = self.active_try.as_ref().map_or(false, |a| {
+                a.except_handler == tc.except_handler
+                    && a.finally_handler == tc.finally_handler
+            });
+            if self.active_try.is_none()
+                || tc.body_end <= pos
+                || !shadow_of_active
+            {
                 let mut blk = Block::new(BlockType::Try, pos, tc.body_end);
                 blk.finally_target = tc.except_handler.or(tc.finally_handler);
+                if let Some(prev) = self.active_try.take() {
+                    // a genuinely nested region displaced the enclosing
+                    // context — keep it so the outer block's close can
+                    // still fold its own tail
+                    self.active_try_stack.push(prev);
+                }
                 self.active_try = Some(tc);
                 self.blocks.push(blk);
             }
@@ -2555,7 +2663,20 @@ impl<'a> Ctx<'a> {
                                 }
                                 break;
                             }
-                            if matches!(f.op, Op::PUSH_EXC_INFO | Op::CACHE) {
+                            if matches!(
+                                f.op,
+                                Op::PUSH_EXC_INFO
+                                    | Op::CACHE
+                                    | Op::NOP
+                                    | Op::NOT_TAKEN
+                            ) {
+                                // 3.11 pads the finally copy head with a
+                                // NOP (its own source line) — the inline
+                                // span lacks it; skipping it here keeps
+                                // the mirror from diverging at sn=0 and
+                                // misreading an existing inline copy as
+                                // absent (_bootsubprocess 3.11
+                                // check_output re-walked the unlink copy)
                                 cn += 1;
                                 continue;
                             }
@@ -3008,6 +3129,8 @@ impl<'a> Ctx<'a> {
         let saved_skip = self.skip_until;
         let saved_try_tail = self.pending_try_tail.take();
         let saved_post_chain = self.pending_post_chain_stmt.take();
+        let saved_active_try = self.active_try.take();
+        let saved_active_stack = std::mem::take(&mut self.active_try_stack);
         let saved_cur = (self.cur_offset, self.cur_next);
         // an outer walk's skip range must not swallow this region's
         // instructions — the span walk starts with clean skip state
@@ -3127,6 +3250,8 @@ impl<'a> Ctx<'a> {
         self.skip_until = saved_skip;
         self.pending_try_tail = saved_try_tail;
         self.pending_post_chain_stmt = saved_post_chain;
+        self.active_try = saved_active_try;
+        self.active_try_stack = saved_active_stack;
         let (saved_cur_offset, saved_cur_next) = saved_cur;
         self.cur_offset = saved_cur_offset;
         self.cur_next = saved_cur_next;
@@ -6855,6 +6980,9 @@ impl<'a> Ctx<'a> {
                 // parsed out-of-line; else/finally emission happens when the
                 // protected region ends (or immediately without finally)
                 if let Some(tc) = self.active_try.take() {
+                    if self.active_try.is_none() {
+                        self.active_try = self.active_try_stack.pop();
+                    }
                     self.last_try_body_end = Some(tc.body_end);
                     self.pending_try_body.push(body.clone());
                     let cover = tc.region_end;

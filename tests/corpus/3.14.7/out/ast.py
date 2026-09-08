@@ -353,10 +353,13 @@ be padded with spaces to match its original position.
                 return
     except AttributeError:
         return
-    lineno = node.lineno - 1
-    end_lineno = node.end_lineno - 1
-    col_offset = node.col_offset
-    end_col_offset = node.end_col_offset
+    try:
+        lineno = node.lineno - 1
+        end_lineno = node.end_lineno - 1
+        col_offset = node.col_offset
+        end_col_offset = node.end_col_offset
+    except AttributeError:
+        return
     lines = _splitlines_no_ff(source, maxlines=end_lineno + 1)
     if end_lineno == lineno:
         return lines[lineno].encode()[col_offset:end_col_offset].decode()

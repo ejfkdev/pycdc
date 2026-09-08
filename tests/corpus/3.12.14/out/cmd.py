@@ -136,14 +136,17 @@ class Cmd:
                         import readline
                     except ImportError:
                         pass
-        self.postloop()
-        if self.use_rawinput:
-            if self.completekey:
-                try:
-                    import readline
-                    readline.set_completer(self.old_completer)
-                except ImportError:
-                    return
+        try:
+            self.postloop()
+        finally:
+            if self.use_rawinput:
+                if self.completekey:
+                    pass
+            try:
+                import readline
+                readline.set_completer(self.old_completer)
+            except ImportError:
+                return
 
     def precmd(self, line):
         '''Hook method executed just before the command line is
