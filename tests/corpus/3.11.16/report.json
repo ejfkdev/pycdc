@@ -118,9 +118,9 @@
   {
    "module": "bdb",
    "verdict": "INCOMPLETE",
-   "ndiff": 701,
+   "ndiff": 700,
    "ntotal": 2537,
-   "detail": "line 596: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 130') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 202')\nline 602: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 130') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 202')\nline 1795: orig ('LOAD_GLOBAL', 'NULL + eval') | got ('JUMP_FORWARD', 'to 162')"
+   "detail": "line 602: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 130') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 130')\nline 1795: orig ('LOAD_GLOBAL', 'NULL + eval') | got ('JUMP_FORWARD', 'to 162')\nline 1796: orig ('LOAD_FAST', 'expr') | got ('PUSH_EXC_INFO', '')"
   },
   {
    "module": "bisect",
@@ -172,11 +172,11 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1441: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 2464: orig  ctx=Load())) | dec  ctx=Load()))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 267,
+   "ndiff": 266,
    "ntotal": 2320,
-   "detail": "line 1345: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1060') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1126')\nline 2053: orig ('LOAD_FAST', 'srw') | got ('JUMP_FORWARD', 'to 232')\nline 2054: orig ('RETURN_VALUE', '') | got ('PUSH_EXC_INFO', '')"
+   "detail": "line 2053: orig ('LOAD_FAST', 'srw') | got ('JUMP_FORWARD', 'to 232')\nline 2054: orig ('RETURN_VALUE', '') | got ('PUSH_EXC_INFO', '')\nline 2055: orig ('PUSH_EXC_INFO', '') | got ('POP_TOP', '')"
   },
   {
    "module": "codeop",
@@ -192,11 +192,11 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 223: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Name(id='ddir'",
+   "ast_detail": "diff at token 315: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='workers'",
    "verdict": "SIG-DIFF",
-   "ndiff": 660,
+   "ndiff": 658,
    "ntotal": 1583,
-   "detail": "line 78: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 254') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 236')\nline 253: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 18') | got ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 48')\nline 333: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 520') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 588')"
+   "detail": "line 78: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 254') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 236')\nline 333: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 520') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 588')\nline 623: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 2918') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 2940')"
   },
   {
    "module": "configparser",

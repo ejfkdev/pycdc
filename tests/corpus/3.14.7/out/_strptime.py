@@ -142,18 +142,17 @@ since changing the timezone is worthless without that call.
         time_tuple = time.struct_time((1999, 3, 17, 22, 44, 55, 2, 76, 0))
         time_tuple2 = time.struct_time((1999, 1, 3, 1, 1, 1, 6, 3, 0))
         replacement_pairs = []
-        if not self.LC_alt_digits:
-            if self.LC_alt_digits is None:
-                for n, d in ((19, '%OC'), (99, '%Oy'), (22, '%OH'), (44, '%OM'), (55, '%OS'), (17, '%Od'), (3, '%Om'), (2, '%Ow'), (10, '%OI')):
-                    if self.LC_alt_digits is None:
-                        s = chr(1632 + n // 10) + chr(1632 + n % 10)
-                        replacement_pairs.append((s, d))
-                        if n < 10:
-                            replacement_pairs.append((s[1], d))
-                    elif len(self.LC_alt_digits) > n:
-                        replacement_pairs.append((self.LC_alt_digits[n], d))
-                    else:
-                        replacement_pairs.append((time.strftime(d, time_tuple), d))
+        if self.LC_alt_digits or self.LC_alt_digits is None:
+            for n, d in ((19, '%OC'), (99, '%Oy'), (22, '%OH'), (44, '%OM'), (55, '%OS'), (17, '%Od'), (3, '%Om'), (2, '%Ow'), (10, '%OI')):
+                if self.LC_alt_digits is None:
+                    s = chr(1632 + n // 10) + chr(1632 + n % 10)
+                    replacement_pairs.append((s, d))
+                    if n < 10:
+                        replacement_pairs.append((s[1], d))
+                elif len(self.LC_alt_digits) > n:
+                    replacement_pairs.append((self.LC_alt_digits[n], d))
+                else:
+                    replacement_pairs.append((time.strftime(d, time_tuple), d))
         replacement_pairs += [('1999', '%Y'), ('99', '%y'), ('22', '%H'), ('44', '%M'), ('55', '%S'), ('76', '%j'), ('17', '%d'), ('03', '%m'), ('3', '%m'), ('2', '%w'), ('10', '%I')]
         date_time = []
         for directive in ('%c', '%x', '%X', '%r'):
@@ -571,13 +570,11 @@ format string.'''
     if iso_year is not None:
         if julian is not None:
             raise ValueError("Day of the year directive '%j' is not compatible with ISO year directive '%G'. Use '%Y' instead.")
-        if iso_week is not None:
-            if weekday is None:
-                raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")
+        if iso_week is None or weekday is None:
+            raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")
     elif iso_week is not None:
-        if year is not None:
-            if weekday is None:
-                raise ValueError("ISO week directive '%V' must be used with the ISO year directive '%G' and a weekday directive ('%A', '%a', '%w', or '%u').")
+        if year is None or weekday is None:
+            raise ValueError("ISO week directive '%V' must be used with the ISO year directive '%G' and a weekday directive ('%A', '%a', '%w', or '%u').")
         raise ValueError("ISO week directive '%V' is incompatible with the year directive '%Y'. Use the ISO year '%G' instead.")
     leap_year_fix = False
     if year is None:

@@ -228,9 +228,8 @@ class _Stringifier:
             return other.__ast_node__, other.__extra_names__
         if type(other) is _Template:
             return _template_to_ast(other), None
-        if self.__stringifier_dict__.format != Format.STRING:
-            if other is None or type(other) in (str, int, float, bool, complex):
-                return ast.Constant(value=other), None
+        if self.__stringifier_dict__.format == Format.STRING or other is None or type(other) in (str, int, float, bool, complex):
+            return ast.Constant(value=other), None
         if type(other) is dict:
             extra_names = {}
             keys = []
@@ -686,49 +685,48 @@ default, contingent on type(obj):
         return {}
     if not eval_str:
         return dict(ann)
-    if globals is not None:
-        if locals is None:
-            if isinstance(obj, type):
-                obj_globals = None
-                module_name = getattr(obj, '__module__', None)
-                if module_name:
-                    module = sys.modules.get(module_name, None)
-                    if module:
-                        obj_globals = getattr(module, '__dict__', None)
-                obj_locals = dict(vars(obj))
-                unwrap = obj
-            elif isinstance(obj, types.ModuleType):
-                obj_globals = getattr(obj, '__dict__')
-                obj_locals = None
-                unwrap = None
-            elif callable(obj):
-                obj_globals = getattr(obj, '__globals__', None)
-                obj_locals = None
-                unwrap = obj
+    if globals is None or locals is None:
+        if isinstance(obj, type):
+            obj_globals = None
+            module_name = getattr(obj, '__module__', None)
+            if module_name:
+                module = sys.modules.get(module_name, None)
+                if module:
+                    obj_globals = getattr(module, '__dict__', None)
+            obj_locals = dict(vars(obj))
+            unwrap = obj
+        elif isinstance(obj, types.ModuleType):
+            obj_globals = getattr(obj, '__dict__')
+            obj_locals = None
+            unwrap = None
+        elif callable(obj):
+            obj_globals = getattr(obj, '__globals__', None)
+            obj_locals = None
+            unwrap = obj
+        else:
+            obj_locals = unwrap = (obj_globals := None)
+        if unwrap is not None:
+            _seen_ids = {id(unwrap)}
+            while hasattr(unwrap, '__wrapped__'):
+                candidate = unwrap.__wrapped__
+                if id(candidate) in _seen_ids:
+                    break
+                _seen_ids.add(id(candidate))
+                unwrap = candidate
             else:
-                obj_locals = unwrap = (obj_globals := None)
-            if unwrap is not None:
-                _seen_ids = {id(unwrap)}
-                while hasattr(unwrap, '__wrapped__'):
-                    candidate = unwrap.__wrapped__
+                if (functools := sys.modules.get('functools')) and isinstance(unwrap, functools.partial):
+                    candidate = unwrap.func
                     if id(candidate) in _seen_ids:
-                        break
-                    _seen_ids.add(id(candidate))
-                    unwrap = candidate
-                else:
-                    if (functools := sys.modules.get('functools')) and isinstance(unwrap, functools.partial):
-                        candidate = unwrap.func
-                        if id(candidate) in _seen_ids:
-                            pass
-                        else:
-                            _seen_ids.add(id(candidate))
-                            unwrap = candidate
-                if hasattr(unwrap, '__globals__'):
-                    obj_globals = unwrap.__globals__
-            if globals is None:
-                globals = obj_globals
-            if locals is None:
-                locals = obj_locals
+                        pass
+                    else:
+                        _seen_ids.add(id(candidate))
+                        unwrap = candidate
+            if hasattr(unwrap, '__globals__'):
+                obj_globals = unwrap.__globals__
+        if globals is None:
+            globals = obj_globals
+        if locals is None:
+            locals = obj_locals
     if (type_params := getattr(obj, '__type_params__', ())):
         if locals is None:
             locals = {}

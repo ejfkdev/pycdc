@@ -192,11 +192,10 @@ Return self.trace_dispatch to continue tracing in this scope.
 '''
 
         if self.stop_here(frame):
-            if frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] is StopIteration:
-                if arg[2] is not None:
-                    self.user_exception(frame, arg)
-                    if self.quitting:
-                        raise BdbQuit
+            if not frame.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS or not arg[0] is StopIteration or arg[2] is not None:
+                self.user_exception(frame, arg)
+                if self.quitting:
+                    raise BdbQuit
             return self.trace_dispatch
         if self.stopframe and frame is not self.stopframe and self.stopframe.f_code.co_flags & GENERATOR_AND_COROUTINE_FLAGS and arg[0] in (StopIteration, GeneratorExit):
             self.user_exception(frame, arg)

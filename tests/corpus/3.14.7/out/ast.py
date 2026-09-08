@@ -342,9 +342,8 @@ be padded with spaces to match its original position.
 '''
 
     try:
-        if node.end_lineno is not None:
-            if node.end_col_offset is None:
-                return
+        if node.end_lineno is None or node.end_col_offset is None:
+            return
     except AttributeError:
         return
     try:

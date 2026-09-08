@@ -91,9 +91,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 65: orig  body=[Break()]) | dec  body=[Return()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1234,
+   "ndiff": 1207,
    "ntotal": 2986,
-   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u4e5d', '\u5341', '\u5eff', '\u4e00'})\") | got ('LOAD_CONST', \"frozenset({'\u4e00', '\u5341', '\u4e03', '\u4e5d', '\u5eff'})\")\nline 635: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')\nline 638: orig ('POP_JUMP_IF_NOT_NONE', 'to L7') | got ('POP_JUMP_IF_NOT_NONE', 'to L6')"
+   "detail": "line 595: orig ('LOAD_CONST', \"frozenset({'\u4e5d', '\u4e00', '\u4e03', '\u5341', '\u5eff'})\") | got ('LOAD_CONST', \"frozenset({'\u4e5d', '\u4e00', '\u4e03', '\u5eff', '\u5341'})\")\nline 1631: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 1632: orig ('POP_JUMP_IF_TRUE', 'to L2') | got ('POP_JUMP_IF_FALSE', 'to L2')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -188,7 +188,7 @@
   {
    "module": "compileall",
    "verdict": "INCOMPLETE",
-   "ndiff": 1299,
+   "ndiff": 1298,
    "ntotal": 1579,
    "detail": "line 145: orig ('FOR_ITER', 'to L14') | got ('FOR_ITER', 'to L13')\nline 150: orig ('POP_JUMP_IF_FALSE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 151: orig ('JUMP_BACKWARD', 'to L4') | got ('JUMP_BACKWARD', 'to L3')"
   },

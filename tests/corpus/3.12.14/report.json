@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 20,
-  "SIG-DIFF": 14,
+  "PASS": 21,
+  "SIG-DIFF": 13,
   "INCOMPLETE": 5,
   "AST-PASS": 1
  },
@@ -168,11 +168,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1398: orig  value=Constant(value=None))] | dec  value=Constant(value=None))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 9,
-   "ntotal": 2125,
-   "detail": "line 1130: orig ('POP_JUMP_IF_FALSE', 'to 974') | got ('POP_JUMP_IF_FALSE', 'to 968')\nline 1136: orig ('POP_JUMP_IF_FALSE', 'to 786') | got ('POP_JUMP_IF_FALSE', 'to 784')\nline 1205: orig ('POP_JUMP_IF_FALSE', 'to 974') | got ('POP_JUMP_IF_FALSE', 'to 968')"
+   "verdict": "PASS"
   },
   {
    "module": "codeop",
@@ -197,9 +193,9 @@
    "module": "configparser",
    "ast_detail": "diff at token 110: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
    "verdict": "SIG-DIFF",
-   "ndiff": 1812,
+   "ndiff": 1811,
    "ntotal": 4216,
-   "detail": "line 2256: orig ('POP_JUMP_IF_TRUE', 'to 94') | got ('POP_JUMP_IF_TRUE', 'to 98')\nline 2336: orig ('LOAD_FAST', 'raw') | got ('BUILD_MAP', '')\nline 2337: orig ('LOAD_FAST', 'vars') | got ('LOAD_FAST', 'raw')"
+   "detail": "line 2336: orig ('LOAD_FAST', 'raw') | got ('BUILD_MAP', '')\nline 2337: orig ('LOAD_FAST', 'vars') | got ('LOAD_FAST', 'raw')\nline 2338: orig ('LOAD_CONST', \"('raw', 'vars')\") | got ('LOAD_FAST', 'vars')"
   },
   {
    "module": "contextlib",

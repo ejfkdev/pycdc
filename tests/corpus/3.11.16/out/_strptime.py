@@ -392,13 +392,11 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
     if iso_year is not None:
         if julian is not None:
             raise ValueError("Day of the year directive '%j' is not compatible with ISO year directive '%G'. Use '%Y' instead.")
-        if iso_week is not None:
-            if weekday is None:
-                raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")
+        if iso_week is None or weekday is None:
+            raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")
     elif iso_week is not None:
-        if year is not None:
-            if weekday is None:
-                raise ValueError("ISO week directive '%V' must be used with the ISO year directive '%G' and a weekday directive ('%A', '%a', '%w', or '%u').")
+        if year is None or weekday is None:
+            raise ValueError("ISO week directive '%V' must be used with the ISO year directive '%G' and a weekday directive ('%A', '%a', '%w', or '%u').")
         raise ValueError("ISO week directive '%V' is incompatible with the year directive '%Y'. Use the ISO year '%G' instead.")
     leap_year_fix = False
     if year is None:

@@ -477,22 +477,23 @@ class StreamReader(Codec):
                         self.charbuffer = lines[0] + self.charbuffer
                     if not keepends:
                         line = line.splitlines(keepends=False)[0]
-                    return line
+                    break
                 line0withend = lines[0]
                 line0withoutend = lines[0].splitlines(keepends=False)[0]
                 if line0withend != line0withoutend:
                     self.charbuffer = self._empty_charbuffer.join(lines[1:]) + self.charbuffer
                     if keepends:
                         line = line0withend
-                        return line
+                        break
                     line = line0withoutend
-                    return line
+                    break
             if not data or size is not None:
                 if line and not keepends:
                     line = line.splitlines(keepends=False)[0]
-                return line
+                break
             if readsize < 8000:
                 readsize *= 2
+        return line
 
     def readlines(self, sizehint=None, keepends=True):
         """ Read all lines available on the input stream

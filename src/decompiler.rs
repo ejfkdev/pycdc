@@ -436,6 +436,12 @@ struct Ctx<'a> {
     /// Break — the ForElse close must lift the else arm's trailing
     /// mirror Return out to function level (copy _deepcopy_tuple)
     sunk_loop_return_lift: bool,
+    /// batch-103: a `while True:` loop whose source-level post-loop
+    /// `return v` was sunk into EVERY break path ([NOP] loads RETURN
+    /// copies, no physical tail return past the back edge) — the first
+    /// folded copy records (loop top, value expr); the lift emits
+    /// `return v` after the loop closes (codecs readline family)
+    sunk_while_lift: Option<(usize, ExprRef)>,
     /// 3.12+ relocated chains: a nested region whose chain head lies
     /// past its enclosing merged region's body end defers its own
     /// emit_try_tail — the enclosing rebuild parses the nested chain
@@ -749,6 +755,7 @@ pub fn decompile_in_scope(
         chain_absorb_body: None,
         sunk_return_fold_at: None,
         sunk_loop_return_lift: false,
+        sunk_while_lift: None,
         nested_tail_defer: false,
         pending_try_handlers: Vec::new(),
         pending_loop: Vec::new(),
@@ -2100,11 +2107,42 @@ impl<'a> Ctx<'a> {
                 }
                 break;
             }
+            // batch-103: the while-True loop owning a sunk tail return
+            // just closed — lift `return v` to the post-loop level
+            if let Some((wtop, _)) = self.sunk_while_lift.as_ref() {
+                let gone = !self.blocks.iter().any(|b| {
+                    matches!(b.kind, BlockType::While | BlockType::For)
+                        && (b.start == *wtop || b.cond_end == *wtop)
+                });
+                if gone {
+                    if let Some((_, e)) = self.sunk_while_lift.take() {
+                        self.flush_pending_stores();
+                        self.push_stmt(Stmt::Return(Some(e)));
+                    }
+                }
+            }
             // keep prev_op meaningful across transparent ops
             if !matches!(inst.op, Op::NOT_TAKEN | Op::NOP | Op::CACHE) {
                 self.prev_op = Some(inst.op);
             }
             pc += 1;
+        }
+        // teardown lift: the loop never closed during the walk (3.14
+        // multi-back-edge while-True) — close it (and any inner blocks)
+        // first so the lifted return lands AFTER the loop, not inside it
+        if let Some((wtop, e)) = self.sunk_while_lift.take() {
+            if let Some(i) = self.blocks.iter().position(|b| {
+                matches!(b.kind, BlockType::While | BlockType::For)
+                    && (b.start == wtop || b.cond_end == wtop)
+            }) {
+                let pos = self.instrs.last().map(|x| x.end()).unwrap_or(0);
+                while self.blocks.len() > i + 1 {
+                    self.force_close_top(pos);
+                }
+                self.force_close_top(pos);
+            }
+            self.flush_pending_stores();
+            self.push_stmt(Stmt::Return(Some(e)));
         }
     }
 
@@ -10335,6 +10373,181 @@ impl<'a> Ctx<'a> {
                                 }
                             }
                         }
+                        // while-True fully-sunk tail return (codecs
+                        // readline family, 3.8+): every `break` of a
+                        // `while True:` carries a `[NOP] LOAD v; RETURN`
+                        // copy of the source's post-loop `return v` — no
+                        // physical tail return exists past the loop's
+                        // back edge. The NOP is the elided break jump's
+                        // target pad (a genuine in-loop return has no
+                        // NOP and no sibling mirrors). Render Break per
+                        // copy; the lifted post-loop return emits when
+                        // the loop closes.
+                        if std::env::var("PYCDC_SWL_DBG").is_ok() {
+                            eprintln!(
+                                "SWL ret@{} j={} jop={:?} ver={} lift={}",
+                                self.cur_offset,
+                                self.instrs.get(j).map(|x| x.offset).unwrap_or(999999),
+                                self.instrs.get(j).map(|x| x.op),
+                                self.version.at_least(3, 8),
+                                self.sunk_while_lift.is_some()
+                            );
+                        }
+                        if self.version.at_least(3, 8)
+                            && matches!(
+                                self.instrs.get(j).map(|x| x.op),
+                                Some(Op::NOP)
+                            )
+                        {
+                            let is_pad2 = |x: &crate::bytecode::Instruction| {
+                                matches!(
+                                    x.op,
+                                    Op::NOP
+                                        | Op::NOT_TAKEN
+                                        | Op::CACHE
+                                        | Op::EXTENDED_ARG
+                                )
+                            };
+                            let norm2 = |x: &crate::bytecode::Instruction| {
+                                (x.op as u8, x.arg)
+                            };
+                            let run: Vec<(u8, u32)> = self.instrs[j..=ri]
+                                .iter()
+                                .filter(|x| !is_pad2(x))
+                                .map(norm2)
+                                .collect();
+                            let loads_only = !run.is_empty()
+                                && self.instrs[j..ri]
+                                    .iter()
+                                    .filter(|x| !is_pad2(x))
+                                    .all(|x| {
+                                        matches!(
+                                            x.op,
+                                            Op::LOAD_FAST
+                                                | Op::LOAD_NAME
+                                                | Op::LOAD_GLOBAL
+                                                | Op::LOAD_DEREF
+                                                | Op::LOAD_CONST
+                                                | Op::LOAD_ATTR
+                                                | Op::LOAD_METHOD
+                                                | Op::LOAD_FAST_LOAD_FAST
+                                                | Op::LOAD_FAST_BORROW
+                                                | Op::LOAD_SMALL_INT
+                                        )
+                                    });
+                            if loads_only {
+                                let lb = self
+                                    .blocks
+                                    .iter()
+                                    .rev()
+                                    .find(|b| {
+                                        matches!(b.kind, BlockType::While)
+                                    });
+                                let span = lb.and_then(|b| {
+                                    self.while_true_loops
+                                        .iter()
+                                        .find(|(t, _)| *t == b.start)
+                                        .copied()
+                                });
+                                if std::env::var("PYCDC_SWL_DBG").is_ok() {
+                                    eprintln!("SWL lb={:?} span={:?}", lb.map(|b| (b.start, b.end)), span);
+                                }
+                                if let (Some(lb), Some((wtop, wend))) =
+                                    (lb, span)
+                                {
+                                    if lb.start < self.cur_offset
+                                        && self.cur_offset < wend
+                                    {
+                                        // every return in the loop span
+                                        // mirrors this run (>=2 copies)
+                                        let mut count = 0usize;
+                                        let mut all_ok = true;
+                                        for x in self.instrs.iter() {
+                                            if x.offset < wtop
+                                                || x.offset >= wend
+                                            {
+                                                continue;
+                                            }
+                                            if !matches!(
+                                                x.op,
+                                                Op::RETURN_VALUE
+                                                    | Op::RETURN_CONST
+                                            ) {
+                                                continue;
+                                            }
+                                            count += 1;
+                                            let Some(&xi) =
+                                                self.idx_of.get(&x.offset)
+                                            else {
+                                                all_ok = false;
+                                                break;
+                                            };
+                                            let mut b2 = xi;
+                                            let mut h2 = 0;
+                                            while b2 > 0 && h2 < 8 {
+                                                let p = &self.instrs[b2 - 1];
+                                                if is_pad2(p)
+                                                    || matches!(
+                                                        p.op,
+                                                        Op::LOAD_FAST
+                                                            | Op::LOAD_NAME
+                                                            | Op::LOAD_GLOBAL
+                                                            | Op::LOAD_DEREF
+                                                            | Op::LOAD_CONST
+                                                            | Op::LOAD_ATTR
+                                                            | Op::LOAD_METHOD
+                                                            | Op::LOAD_FAST_LOAD_FAST
+                                                            | Op::LOAD_FAST_BORROW
+                                                            | Op::LOAD_SMALL_INT
+                                                    )
+                                                {
+                                                    b2 -= 1;
+                                                    h2 += 1;
+                                                    continue;
+                                                }
+                                                break;
+                                            }
+                                            let r2: Vec<(u8, u32)> =
+                                                self.instrs[b2..=xi]
+                                                    .iter()
+                                                    .filter(|x2| !is_pad2(x2))
+                                                    .map(norm2)
+                                                    .collect();
+                                            if r2 != run {
+                                                all_ok = false;
+                                                break;
+                                            }
+                                        }
+                                        // past the loop: only pads (no
+                                        // physical tail return)
+                                        let tail_pad = self
+                                            .instrs
+                                            .iter()
+                                            .filter(|x| x.offset >= wend)
+                                            .all(is_pad2);
+                                        if std::env::var("PYCDC_SWL_DBG").is_ok() {
+                                            eprintln!("SWL span wtop={} wend={} count={} all_ok={} tail_pad={}", wtop, wend, count, all_ok, tail_pad);
+                                        }
+                                        if all_ok
+                                            && count >= 2
+                                            && tail_pad
+                                        {
+                                            if let Some(top) =
+                                                self.blocks.last_mut()
+                                            {
+                                                top.stmts.push(Stmt::Break);
+                                            }
+                                            if self.sunk_while_lift.is_none()
+                                            {
+                                                self.sunk_while_lift =
+                                                    Some((wtop, e.clone()));
+                                            }
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 // 3.9/3.10 computed `try: return expr finally:` — no
@@ -15218,6 +15431,12 @@ impl<'a> Ctx<'a> {
                     | Op::POP_JUMP_IF_TRUE
                     | Op::POP_JUMP_FORWARD_IF_FALSE
                     | Op::POP_JUMP_FORWARD_IF_TRUE
+                    | Op::POP_JUMP_IF_NONE
+                    | Op::POP_JUMP_IF_NOT_NONE
+                    | Op::POP_JUMP_FORWARD_IF_NONE
+                    | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                    | Op::POP_JUMP_BACKWARD_IF_NONE
+                    | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
             )
         };
         let jump_true =
@@ -15328,14 +15547,51 @@ impl<'a> Ctx<'a> {
                 .or_else(|| self.sim_value_region_ex(region_start, jk, true))?;
             let jins = &self.instrs[jk];
             let jt = jump_true(jins.op);
+            // the condition under which this operand's jump FIRES (the
+            // NONE family tests the operand value directly — `if size
+            // is None or ...` joins via PJIF_NONE, codecs 3.12
+            // readline `not data or size is not None`)
+            let jc: ExprRef = if matches!(
+                jins.op,
+                Op::POP_JUMP_IF_NONE
+                    | Op::POP_JUMP_FORWARD_IF_NONE
+                    | Op::POP_JUMP_BACKWARD_IF_NONE
+            ) {
+                Rc::new(Expr::Compare {
+                    operands: vec![
+                        operand.clone(),
+                        Rc::new(Expr::Const(Rc::new(PyObject::None))),
+                    ],
+                    ops: vec![CmpOp::Is],
+                })
+            } else if matches!(
+                jins.op,
+                Op::POP_JUMP_IF_NOT_NONE
+                    | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                    | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
+            ) {
+                Rc::new(Expr::Compare {
+                    operands: vec![
+                        operand.clone(),
+                        Rc::new(Expr::Const(Rc::new(PyObject::None))),
+                    ],
+                    ops: vec![CmpOp::IsNot],
+                })
+            } else if matches!(
+                jins.op,
+                Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+            ) {
+                operand.clone()
+            } else {
+                Rc::new(Expr::Unary {
+                    op: UnaryOp::Not,
+                    operand: operand.clone(),
+                })
+            };
             match jins.target {
                 Some(t) if t == target => {
                     // jumps to the body: operand joins when the jump fires
-                    parts.push(if jt {
-                        operand
-                    } else {
-                        Rc::new(Expr::Unary { op: UnaryOp::Not, operand })
-                    });
+                    parts.push(jc);
                     body_jumps += 1;
                     k = jk + 1;
                     if k >= ti {
@@ -15356,7 +15612,22 @@ impl<'a> Ctx<'a> {
                     if nj != ti {
                         return None;
                     }
-                    parts.push(if jt {
+                    // operand joins on FALL-THROUGH: the negation of the
+                    // jump-fires condition. NONE family folds Is<->IsNot;
+                    // the TRUE/FALSE families keep the explicit Not form
+                    // (negate_cond would flip `is`->`is not` and recompile
+                    // to inverted polarity — bdb 3.7 or-merge regression)
+                    parts.push(if matches!(
+                        jins.op,
+                        Op::POP_JUMP_IF_NONE
+                            | Op::POP_JUMP_FORWARD_IF_NONE
+                            | Op::POP_JUMP_BACKWARD_IF_NONE
+                            | Op::POP_JUMP_IF_NOT_NONE
+                            | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                            | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
+                    ) {
+                        negate_cond(jc)
+                    } else if jt {
                         Rc::new(Expr::Unary { op: UnaryOp::Not, operand })
                     } else {
                         operand

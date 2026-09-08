@@ -71,9 +71,8 @@ hardlink_dupes: hardlink duplicated pyc files
 
     ProcessPoolExecutor = None
     if ddir is not None:
-        if stripdir is None:
-            if prependdir is not None:
-                raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
+        if stripdir is not None or prependdir is not None:
+            raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
     if ddir is not None:
         stripdir = dir
         prependdir = ddir
@@ -135,9 +134,8 @@ hardlink_dupes: hardlink duplicated pyc files
 '''
 
     if ddir is not None:
-        if stripdir is None:
-            if prependdir is not None:
-                raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
+        if stripdir is not None or prependdir is not None:
+            raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
     success = True
     fullname = os.fspath(fullname)
     stripdir = os.fspath(stripdir) if stripdir is not None else None
@@ -301,9 +299,8 @@ def main():
     if len(args.opt_levels) == 1 and args.hardlink_dupes:
         parser.error('Hardlinking of duplicated bytecode makes sense only for more than one optimization level.')
     if args.ddir is not None:
-        if args.stripdir is None:
-            if args.prependdir is not None:
-                parser.error('-d cannot be used in combination with -s or -p')
+        if args.stripdir is not None or args.prependdir is not None:
+            parser.error('-d cannot be used in combination with -s or -p')
     if args.flist:
         try:
             with sys.stdin if args.flist == '-' else open(args.flist, encoding='utf-8') as f:

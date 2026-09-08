@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 20,
-  "SIG-DIFF": 16,
+  "PASS": 21,
+  "SIG-DIFF": 15,
   "INCOMPLETE": 4
  },
  "results": [
@@ -191,11 +191,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1334: orig  value=Constant(value=None))] | dec  value=Constant(value=None))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 9,
-   "ntotal": 2120,
-   "detail": "line 1180: orig ('POP_JUMP_IF_FALSE', 'to 396') | got ('POP_JUMP_IF_FALSE', 'to 390')\nline 1186: orig ('POP_JUMP_IF_FALSE', 'to 308') | got ('POP_JUMP_IF_FALSE', 'to 306')\nline 1253: orig ('POP_JUMP_IF_FALSE', 'to 396') | got ('POP_JUMP_IF_FALSE', 'to 390')"
+   "verdict": "PASS"
   },
   {
    "module": "codeop",
