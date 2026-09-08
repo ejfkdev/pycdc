@@ -18163,6 +18163,27 @@ impl<'a> Ctx<'a> {
                     // treat as the rotated duplicate and ignore
                     return;
                 }
+                // a rotated MULTI-operand cond re-evaluates every operand
+                // after the body: an opposite-polarity jump to the exit
+                // past the cond region is one of those re-eval tests, not
+                // an in-body guard (asynchat 3.11 find_prefix_at_end: the
+                // re-eval PJF(l) rendered `if not l: break`). Single-
+                // operand conds keep the guard/break reading.
+                let (boolop_cond, past_cond) = self
+                    .blocks
+                    .last()
+                    .map(|t| {
+                        (
+                            t.cond
+                                .as_ref()
+                                .map_or(false, |c| matches!(&**c, Expr::BoolOp { .. })),
+                            t.cond_end != usize::MAX && self.cur_offset > t.cond_end,
+                        )
+                    })
+                    .unwrap_or((false, false));
+                if boolop_cond && past_cond {
+                    return;
+                }
                 // opposite polarity without a pure-value operand region:
                 // a genuine in-body branch toward the loop exit — fall
                 // through to the guard/break handling below
