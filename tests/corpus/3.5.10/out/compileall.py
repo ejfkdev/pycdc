@@ -224,7 +224,8 @@ def main():
                 if not compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers):
                     success = False
             return success
-        return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)
+        else:
+            return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet)
     except KeyboardInterrupt:
         if args.quiet < 2:
             print('\n[interrupted]')

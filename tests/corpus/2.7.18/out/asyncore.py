@@ -308,7 +308,8 @@ class dispatcher:
             if not data:
                 self.handle_close()
                 return ''
-            return data
+            else:
+                return data
         except socket.error, why:
             if why.args[0] in _DISCONNECTED:
                 self.handle_close()

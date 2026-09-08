@@ -302,7 +302,8 @@ class dispatcher:
             if not data:
                 self.handle_close()
                 return ''
-            return data
+            else:
+                return data
         except socket.error, why:
             if why.args[0] in [ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED]:
                 self.handle_close()

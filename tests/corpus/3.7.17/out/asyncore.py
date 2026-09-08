@@ -297,7 +297,8 @@ class dispatcher:
             if not data:
                 self.handle_close()
                 return b''
-            return data
+            else:
+                return data
         except OSError as why:
             if why.args[0] in _DISCONNECTED:
                 self.handle_close()

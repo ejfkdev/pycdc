@@ -7198,6 +7198,82 @@ impl<'a> Ctx<'a> {
                         }
                     }
                 }
+                // pre-3.11 `try: if c: <terminating arms> else:
+                // return v` — the LAST statement of a legacy try body:
+                // both arms return, so the compiler omitted the else
+                // jump AND the assembler could not DCE the body-exit
+                // `POP_BLOCK; JUMP_FORWARD` (the explicit-else CFG keeps
+                // the merge block alive via the then arm's exit edge).
+                // The flat rendering recompiles WITHOUT that pair
+                // (unreachable after the flat return) and the sig loses
+                // two instructions (compileall 3.7 main: `else: return
+                // compile_path(...)` flattened). Rebuild the Else region
+                // [pos, POP_BLOCK) when the continuation is a single
+                // straight-line return arm ending exactly at the open
+                // Try block's closing POP_BLOCK.
+                if !self.version.at_least(3, 11)
+                    && b.else_end.is_none()
+                    && matches!(body.last(), Some(Stmt::Return(Some(_))))
+                {
+                    if let Some(try_pos) = self
+                        .blocks
+                        .iter()
+                        .rev()
+                        .find(|bl| bl.kind == BlockType::Try)
+                        .map(|bl| bl.start)
+                    {
+                        let pop_at = self
+                            .idx_of
+                            .get(&pos)
+                            .and_then(|&pi| {
+                                self.instrs[pi..]
+                                    .iter()
+                                    .position(|x| x.op == Op::POP_BLOCK)
+                                    .map(|k| self.instrs[pi + k].offset)
+                            });
+                        let ok = pop_at.map_or(false, |p| {
+                            p > pos
+                                && self
+                                    .instrs
+                                    .iter()
+                                    .all(|x| x.offset != p - 2 || {
+                                        matches!(
+                                            x.op,
+                                            Op::RETURN_VALUE | Op::RETURN_CONST
+                                        )
+                                    })
+                                && self.idx_of.get(&p).map_or(false, |&pj| {
+                                    self.instrs.get(pj + 1).map_or(false, |nx| {
+                                        matches!(
+                                            nx.op,
+                                            Op::JUMP_FORWARD | Op::JUMP | Op::DUP_TOP
+                                        ) && nx.target.map_or(true, |t| t > p)
+                                    })
+                                })
+                                && self.instrs.iter().all(|x| {
+                                    x.offset < pos
+                                        || x.offset >= p
+                                        || x.target.map_or(true, |t| {
+                                            t <= pos || t >= p
+                                        })
+                                })
+                                && self.blocks.iter().any(|bl| {
+                                    bl.kind == BlockType::Try
+                                        && bl.start == try_pos
+                                        && bl.end > p
+                                })
+                        });
+                        if ok {
+                            let p = pop_at.unwrap();
+                            let mut else_blk =
+                                Block::new(BlockType::Else, pos, p);
+                            else_blk.cond = Some(cond.clone());
+                            self.pending_then.push(body);
+                            self.blocks.push(else_blk);
+                            return;
+                        }
+                    }
+                }
                 if let Some(else_end) = b.else_end {
                     // value-merge block (COPY+cond jump) with a forward jump:
                     // both branches produce values — merge into chain compare

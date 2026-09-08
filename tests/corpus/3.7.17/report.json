@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 27,
-  "SIG-DIFF": 13
+  "PASS": 28,
+  "SIG-DIFF": 12
  },
  "results": [
   {
@@ -98,7 +98,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 441: orig  If(test=Compare(left=List(elts=[] | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1679,
+   "ndiff": 1691,
    "ntotal": 2207,
    "detail": "line 475: orig ('DUP_TOP', '') | got ('COMPARE_OP', '==')\nline 476: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 477: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'r')"
   },
@@ -188,11 +188,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 902: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Name(id='dir'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 41,
-   "ntotal": 1112,
-   "detail": "line 997: orig ('SETUP_EXCEPT', 'to 676') | got ('SETUP_EXCEPT', 'to 672')\nline 1071: orig ('POP_BLOCK', '') | got ('DUP_TOP', '')\nline 1072: orig ('JUMP_FORWARD', 'to 718') | got ('LOAD_GLOBAL', 'KeyboardInterrupt')"
+   "verdict": "PASS"
   },
   {
    "module": "configparser",
