@@ -1971,6 +1971,61 @@ impl<'a> Ctx<'a> {
             // loop matching) sees the real dispatch site
             self.cur_offset = pos;
             self.cur_next = inst.end();
+            // 3.10 inlines the with-exit protocol
+            // (`LOAD None; DUP_TOP; DUP_TOP; CALL_FUNCTION 3; POP_TOP`
+            // = __exit__(None, None, None)) into EVERY return path sunk
+            // inside the with body — the handler-path copies walk as a
+            // bogus `None(None, None, None)` expression statement
+            // (codeop 3.10 _maybe_compile). With a With block open the
+            // shape is unambiguous machinery: hop it
+            if !self.version.at_least(3, 11)
+                && inst.op == Op::LOAD_CONST
+                && self
+                    .code
+                    .consts
+                    .get(inst.arg as usize)
+                    .map_or(false, |o| matches!(&**o, PyObject::None))
+                && self.blocks.iter().any(|b| b.kind == BlockType::With)
+                && self
+                    .idx_of
+                    .get(&pos)
+                    .map_or(false, |&ci| {
+                        matches!(
+                            self.instrs.get(ci + 1).map(|x| x.op),
+                            Some(Op::DUP_TOP)
+                        ) && matches!(
+                            self.instrs.get(ci + 2).map(|x| x.op),
+                            Some(Op::DUP_TOP)
+                        ) && matches!(
+                            self.instrs.get(ci + 3).map(|x| (x.op, x.arg)),
+                            Some((Op::CALL_FUNCTION, 3))
+                        ) && matches!(
+                            self.instrs.get(ci + 4).map(|x| x.op),
+                            Some(Op::POP_TOP)
+                        ) &&
+                        // only the SUNK copies (a return follows within a
+                        // couple of instructions): the main-path protocol
+                        // is consumed by the With block's own close
+                        // machinery — skipping it there leaves the exit
+                        // function on the simulated stack, which leaks as
+                        // a stray `None` statement (_sitebuiltins 3.10)
+                        self.instrs[ci + 5..]
+                            .iter()
+                            .take(3)
+                            .any(|x| {
+                                matches!(
+                                    x.op,
+                                    Op::RETURN_VALUE | Op::RETURN_CONST
+                                )
+                            })
+                    })
+            {
+                if let Some(&ci) = self.idx_of.get(&pos) {
+                    if let Some(after) = self.instrs.get(ci + 5) {
+                        self.skip_until = Some(after.offset);
+                    }
+                }
+            }
             let prev = self.prev_op;
             self.prev_op_at_exec = prev;
             if !self.exec(&inst) {

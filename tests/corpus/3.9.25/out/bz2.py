@@ -107,7 +107,6 @@ class BZ2File(_compression.BaseStream):
                 self._closefp = False
                 self._mode = _MODE_CLOSED
                 self._buffer = None
-            None(None, None, None)
 
     @property
     def closed(self):
@@ -269,7 +268,6 @@ class BZ2File(_compression.BaseStream):
         with self._lock:
             self._check_not_closed()
             if self._mode == _MODE_READ:
-                self._buffer.tell()(None, None, None)
                 return
             return self._pos
 
@@ -345,4 +343,3 @@ def decompress(data):
         data = decomp.unused_data
     return b''.join(results)
 
-# WARNING: Decompyle incomplete

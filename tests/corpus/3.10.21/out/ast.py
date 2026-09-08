@@ -877,7 +877,6 @@ class _Unparser(NodeVisitor):
                 self.set_precedence(_Precedence.ATOM, node.value)
                 self.traverse(node.value)
                 return
-            None(None, None, None)
             return
         if not None:
             pass
@@ -890,7 +889,6 @@ class _Unparser(NodeVisitor):
                 self.set_precedence(_Precedence.ATOM, node.value)
                 self.traverse(node.value)
                 return
-            None(None, None, None)
             return
         if not None:
             pass
@@ -1416,7 +1414,6 @@ class _Unparser(NodeVisitor):
             else:
                 self.traverse(node.slice)
                 return
-            None(None, None, None)
             return
         if not None:
             pass
@@ -1576,7 +1573,6 @@ class _Unparser(NodeVisitor):
                     self.write(', ')
                 self.write(f'**{rest}')
                 return
-            None(None, None, None)
             return
         if not None:
             pass
@@ -1598,7 +1594,6 @@ class _Unparser(NodeVisitor):
                     self.write(', ')
                 self.interleave((lambda: self.write(', ')), write_attr_pattern, zip(attrs, node.kwd_patterns, strict=True))
                 return
-            None(None, None, None)
             return
         if not None:
             pass

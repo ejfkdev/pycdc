@@ -2,9 +2,9 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 12,
-  "SIG-DIFF": 17,
-  "INCOMPLETE": 11
+  "PASS": 13,
+  "SIG-DIFF": 18,
+  "INCOMPLETE": 9
  },
  "results": [
   {
@@ -98,16 +98,17 @@
   },
   {
    "module": "aifc",
-   "verdict": "INCOMPLETE",
-   "ndiff": 2597,
-   "ntotal": 3116,
-   "detail": "line 170: orig ('SETUP_WITH', 'to 602') | got ('SETUP_WITH', 'to 598')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to 586') | got ('POP_JUMP_IF_FALSE', 'to 572')\nline 286: orig ('POP_BLOCK', '') | got ('JUMP_FORWARD', 'to 584')"
+   "ast_detail": "diff at token 238: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
+   "verdict": "SIG-DIFF",
+   "ndiff": 2611,
+   "ntotal": 3109,
+   "detail": "line 143: orig ('POP_JUMP_IF_FALSE', 'to 624') | got ('POP_JUMP_IF_FALSE', 'to 610')\nline 170: orig ('SETUP_WITH', 'to 602') | got ('SETUP_WITH', 'to 584')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to 586') | got ('POP_JUMP_IF_FALSE', 'to 570')"
   },
   {
    "module": "ast",
    "verdict": "INCOMPLETE",
-   "ndiff": 7029,
-   "ntotal": 7989,
+   "ndiff": 6998,
+   "ntotal": 7959,
    "detail": "line 611: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 617: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 623: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')"
   },
   {
@@ -217,10 +218,7 @@
   },
   {
    "module": "codeop",
-   "verdict": "INCOMPLETE",
-   "ndiff": 197,
-   "ntotal": 357,
-   "detail": "line 104: orig ('SETUP_WITH', 'to 246') | got ('SETUP_WITH', 'to 270')\nline 122: orig ('JUMP_FORWARD', 'to 232') | got ('JUMP_FORWARD', 'to 244')\nline 125: orig ('JUMP_IF_NOT_EXC_MATCH', 'to 230') | got ('JUMP_IF_NOT_EXC_MATCH', 'to 242')"
+   "verdict": "PASS"
   },
   {
    "module": "colorsys",

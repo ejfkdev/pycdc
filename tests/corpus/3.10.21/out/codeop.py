@@ -58,9 +58,7 @@ def _maybe_compile(compiler, source, filename, symbol):
                 return
             except SyntaxError as e:
                 if 'incomplete input' in str(e):
-                    None(None, None, None)
                     return
-        None(None, None, None)
     return compiler(source, filename, symbol)
 
 def _is_syntax_error(err1, err2):
@@ -147,4 +145,3 @@ class CommandCompiler:
         return _maybe_compile(self.compiler, source, filename, symbol)
 
 
-# WARNING: Decompyle incomplete
