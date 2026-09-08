@@ -2,9 +2,9 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "PASS": 23,
+  "PASS": 24,
   "SIG-DIFF": 12,
-  "AST-PASS": 5
+  "AST-PASS": 4
  },
  "results": [
   {
@@ -197,7 +197,7 @@
   },
   {
    "module": "cProfile",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "calendar",

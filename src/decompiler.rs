@@ -9894,7 +9894,19 @@ impl<'a> Ctx<'a> {
                             | Op::JUMP
                     )
                 {
-                    if !self.targets.contains(&inst.offset) {
+                    // a loop-exit trampoline targeted ONLY by its
+                    // SETUP_LOOP (no `break` ever flies to it) is dead
+                    // too: reachable just by fall-through past the
+                    // previous back edge (copyreg 3.3 _slotnames: the
+                    // 237/240 JABS 68 pair — 240 is the inner loop's
+                    // SETUP_LOOP target; executing it pushed a spurious
+                    // Continue into the outer for body)
+                    if self
+                        .instrs
+                        .iter()
+                        .filter(|i| i.target == Some(inst.offset))
+                        .all(|i| i.op == Op::SETUP_LOOP)
+                    {
                     if let Some(&ci) = self.idx_of.get(&inst.offset) {
                         if ci > 0 {
                             let prev = &self.instrs[ci - 1];
@@ -21935,7 +21947,22 @@ impl<'a> Ctx<'a> {
                                                     | Op::JUMP
                                                     | Op::JUMP_BACKWARD
                                             )
-                                            && !self.targets.contains(&x.offset)
+                                            // a duplicate targeted only
+                                            // by its inner loop's
+                                            // SETUP_LOOP (no break ever
+                                            // lands on it) is dead too
+                                            // (copyreg 3.3 _slotnames:
+                                            // the trampoline 240 blocked
+                                            // the hop, misreading the
+                                            // real final back edge 237
+                                            // as a `continue`)
+                                            && self
+                                                .instrs
+                                                .iter()
+                                                .filter(|i| {
+                                                    i.target == Some(x.offset)
+                                                })
+                                                .all(|i| i.op == Op::SETUP_LOOP)
                                         {
                                             ni += 1;
                                             continue;

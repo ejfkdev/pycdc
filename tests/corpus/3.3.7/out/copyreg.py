@@ -102,7 +102,6 @@ def _slotnames(cls):
                         names.append('_%s%s' % (c.__name__, name))
                     else:
                         names.append(name)
-            continue
     try:
         cls.__slotnames__ = names
     except:

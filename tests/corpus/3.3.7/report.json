@@ -2,9 +2,9 @@
  "version": "3.3.7",
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
-  "PASS": 19,
-  "AST-PASS": 7,
-  "SIG-DIFF": 14
+  "PASS": 21,
+  "AST-PASS": 6,
+  "SIG-DIFF": 13
  },
  "results": [
   {
@@ -101,7 +101,7 @@
   },
   {
    "module": "cProfile",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "calendar",
@@ -185,11 +185,7 @@
   },
   {
    "module": "copyreg",
-   "ast_detail": "diff at token 771: orig  ctx=Del())]) | dec  ctx=Del())",
-   "verdict": "SIG-DIFF",
-   "ndiff": 150,
-   "ntotal": 528,
-   "detail": "line 311: orig ('JUMP_FORWARD', '#88') | got ('JUMP_FORWARD', '#89')\nline 312: orig ('SETUP_LOOP', '#88') | got ('SETUP_LOOP', '#89')\nline 316: orig ('FOR_ITER', '#87') | got ('FOR_ITER', '#88')"
+   "verdict": "PASS"
   },
   {
    "module": "crypt",
