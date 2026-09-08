@@ -528,9 +528,7 @@ Search for the earliest prefix at the beginning of the line or following a space
         return None[:].strip()
 
     def _strip_full(self):
-        if any(map(self.strip().startswith, self.prefixes.full)):
-            return ''
-        return True
+        return '' if any(map(self.strip().startswith, self.prefixes.full)) else True
 
 
 class RawConfigParser(MutableMapping):

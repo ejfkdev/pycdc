@@ -23334,6 +23334,54 @@ if split_cond {
         // opening the new one
         self.close_blocks_at(self.cur_offset);
 
+        // 3.12/3.13 return-position ternary with CONSTANT arms: the
+        // compiler expands `return A if C else B` into per-arm
+        // LOAD_CONST + RETURN_VALUE, while a plain if/else return uses
+        // RETURN_CONST arms — rendering the statement form recompiles
+        // to RETURN_CONST and breaks sig-exactness (bz2 3.13 mode
+        // property). Non-const arms are ambiguous (both forms compile
+        // identically) and stay with the statement rendering. 3.14
+        // compiles both forms identically — keep the statement there
+        if self.version.at_least(3, 12) && !self.version.at_least(3, 14) {
+            let arm = |start_off: usize| -> Option<(ExprRef, usize)> {
+                let mut k = *self.idx_of.get(&start_off)?;
+                self.match_skip_pad(&mut k);
+                let ins = self.instrs.get(k)?;
+                if ins.op != Op::LOAD_CONST {
+                    return None;
+                }
+                let v = Rc::new(Expr::Const(
+                    self.code.consts.get(ins.arg as usize)?.clone(),
+                ));
+                k += 1;
+                self.match_skip_pad(&mut k);
+                let r = self.instrs.get(k)?;
+                if r.op != Op::RETURN_VALUE {
+                    return None;
+                }
+                Some((v, r.end()))
+            };
+            if let (Some((t_val, t_end)), Some((e_val, e_end))) =
+                (arm(self.cur_next), arm(target))
+            {
+                if t_end == target && e_end > target {
+                    let (then_v, else_v) = if jump_if_true {
+                        (e_val, t_val)
+                    } else {
+                        (t_val, e_val)
+                    };
+                    self.push_stmt(Stmt::Return(Some(Rc::new(
+                        Expr::Ternary {
+                            cond,
+                            then_expr: then_v,
+                            else_expr: else_v,
+                        },
+                    ))));
+                    self.skip_until = Some(e_end);
+                    return;
+                }
+            }
+        }
         // 7) regular if statement: the fall-through region [next, target)
         // is the then-body. With POP_JUMP_IF_TRUE the fall-through runs when
         // the condition is false, so negate.

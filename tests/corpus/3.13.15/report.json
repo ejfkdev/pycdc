@@ -2,8 +2,8 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 27,
-  "SIG-DIFF": 7,
+  "PASS": 28,
+  "SIG-DIFF": 6,
   "INCOMPLETE": 5,
   "AST-PASS": 1
  },
@@ -129,11 +129,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 152: orig  args=[BinOp(left=Constant(value='Invalid mode: %r') | dec  args=[JoinedStr(values=[Constant(value='Invalid mode: ')",
-   "verdict": "SIG-DIFF",
-   "ndiff": 398,
-   "ntotal": 841,
-   "detail": "line 442: orig ('LOAD_CONST', \"'wb'\") | got ('RETURN_CONST', \"'wb'\")\nline 443: orig ('RETURN_VALUE', '') | got ('RETURN_CONST', \"'rb'\")\nline 444: orig ('LOAD_CONST', \"'rb'\") | got ('fileno', 1)"
+   "verdict": "PASS"
   },
   {
    "module": "cProfile",
@@ -180,8 +176,8 @@
   {
    "module": "configparser",
    "verdict": "INCOMPLETE",
-   "ndiff": 2988,
-   "ntotal": 4679,
+   "ndiff": 2102,
+   "ntotal": 4681,
    "detail": "line 1537: orig ('SETUP_ANNOTATIONS', '') | got ('LOAD_NAME', 'set')\nline 1538: orig ('LOAD_NAME', 'set') | got ('LOAD_NAME', 'str')\nline 1539: orig ('LOAD_NAME', 'str') | got ('BINARY_SUBSCR', '')"
   },
   {

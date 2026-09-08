@@ -117,9 +117,7 @@ closed, any other operation on it will raise a ValueError.
 
     @property
     def mode(self):
-        if self._mode == _MODE_WRITE:
-            return 'wb'
-        return 'rb'
+        return 'wb' if self._mode == _MODE_WRITE else 'rb'
 
     def fileno(self):
         self._check_not_closed()
