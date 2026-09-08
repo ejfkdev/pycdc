@@ -2,8 +2,8 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 20,
-  "SIG-DIFF": 13,
+  "PASS": 21,
+  "SIG-DIFF": 12,
   "INCOMPLETE": 6,
   "AST-PASS": 1
  },
@@ -22,11 +22,7 @@
   },
   {
    "module": "_android_support",
-   "ast_detail": "diff at token 186: orig  body=[While(test=Name(id='line' | dec  body=[If(test=UnaryOp(op=Not()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 5,
-   "ntotal": 634,
-   "detail": "line 232: orig ('FOR_ITER', 'to L5') | got ('FOR_ITER', 'to L6')\nline 255: orig ('POP_JUMP_IF_FALSE', 'to L4') | got ('POP_JUMP_IF_FALSE', 'to L5')\nline 257: orig ('JUMP_BACKWARD', 'to L2') | got ('JUMP_BACKWARD', 'to L4')"
+   "verdict": "PASS"
   },
   {
    "module": "_apple_support",
@@ -97,7 +93,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1235,
    "ntotal": 2986,
-   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 595: orig ('LOAD_CONST', \"frozenset({'\u5341', '\u4e03', '\u5eff', '\u4e00', '\u4e5d'})\") | got ('LOAD_CONST', \"frozenset({'\u4e03', '\u4e00', '\u5341', '\u4e5d', '\u5eff'})\")\nline 635: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')"
+   "detail": "line 104: orig ('STORE_GLOBAL', '_regex_cache') | got ('STORE_NAME', '_regex_cache')\nline 595: orig ('LOAD_CONST', \"frozenset({'\u4e03', '\u4e00', '\u5eff', '\u4e5d', '\u5341'})\") | got ('LOAD_CONST', \"frozenset({'\u5eff', '\u4e03', '\u4e5d', '\u5341', '\u4e00'})\")\nline 635: orig ('POP_JUMP_IF_TRUE', 'to L1') | got ('POP_JUMP_IF_TRUE', 'to L6')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

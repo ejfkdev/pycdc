@@ -20041,6 +20041,27 @@ return None;
                 // SETUP_LOOP-era exits land on the loop's POP_BLOCK, one
                 // instruction before the block end
                 && (top.end == target
+                    // the entry threading followed the unconditional
+                    // jump AT the loop end (the pre-checked rotated
+                    // while's exit edge onto the enclosing loop's back
+                    // edge — _android_support 3.13 write: PJIF re-eval
+                    // arrives with target threaded past the while's
+                    // JUMP_BACKWARD to the for top)
+                    || self
+                        .idx_of
+                        .get(&top.end)
+                        .and_then(|&ei| self.instrs.get(ei))
+                        .map_or(false, |x| {
+                            x.target == Some(target)
+                                && matches!(
+                                    x.op,
+                                    Op::JUMP_BACKWARD
+                                        | Op::JUMP_ABSOLUTE
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                        | Op::JUMP
+                                        | Op::JUMP_FORWARD
+                                )
+                        })
                     || self.is_pop_block_before(target, top.end)
                     // 3.11+ rotated while whose post-loop flow is sunk
                     // returns: the exit return lands right before the
@@ -21001,6 +21022,161 @@ if split_cond {
         }
         if let (Some(&ci), Some(&ti)) = (self.idx_of.get(&cur), self.idx_of.get(&target)) {
             if ti > ci {
+                // 3.13 pre-checked rotated while inside a loop
+                // (_android_support 3.13 write: `for line in ...:
+                // while line: <body>`): the pre-check PJIT jumps INTO
+                // the body top (target) and its fall-through is a
+                // backward jump onto the ENCLOSING loop's top (the
+                // cond-false path is the outer continue); the body ends
+                // with a re-eval of the same cond (forward cond jump +
+                // backward jump to the body top) followed by the exit
+                // edge. The regular admission below finds no back edge
+                // landing on this cond's top, and the while-True
+                // prescan then synthesizes a phantom `while True:` with
+                // the re-eval rendered as `if line: continue` (and no
+                // exit). Open the real While here instead.
+                let pre_rot: Option<(usize, usize)> = 'pre_rot: {
+                    // fall-through = backward jump onto an enclosing
+                    // loop top
+                    let mut f = ci + 1;
+                    while matches!(
+                        self.instrs.get(f).map(|x| x.op),
+                        Some(Op::NOP)
+                            | Some(Op::NOT_TAKEN)
+                            | Some(Op::CACHE)
+                            | Some(Op::EXTENDED_ARG)
+                    ) {
+                        f += 1;
+                    }
+                    let fall_ok = self.instrs.get(f).map_or(false, |x| {
+                        x.is_backward
+                            && matches!(
+                                x.op,
+                                Op::JUMP_BACKWARD
+                                    | Op::JUMP_ABSOLUTE
+                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    | Op::JUMP
+                            )
+                            && x.target.map_or(false, |ft| {
+                                self.blocks.iter().any(|b| {
+                                    matches!(
+                                        b.kind,
+                                        BlockType::While | BlockType::For
+                                    ) && (b.start == ft
+                                        || (b.cond_end != usize::MAX
+                                            && b.cond_end == ft))
+                                })
+                            })
+                    });
+                    if !fall_ok {
+                        break 'pre_rot None;
+                    }
+                    // body-tail re-eval: a forward cond jump followed
+                    // (after pads) by a backward jump onto the body top
+                    let mut rev: Option<(usize, usize)> = None;
+                    let mut k = ti;
+                    while k < self.instrs.len() {
+                        let x = &self.instrs[k];
+                        if x.offset.saturating_sub(target) > 4000 {
+                            break;
+                        }
+                        if matches!(
+                            x.op,
+                            Op::POP_JUMP_IF_FALSE
+                                | Op::POP_JUMP_IF_TRUE
+                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                        ) && !x.is_backward
+                        {
+                            let mut n = k + 1;
+                            while matches!(
+                                self.instrs.get(n).map(|y| y.op),
+                                Some(Op::NOP)
+                                    | Some(Op::NOT_TAKEN)
+                                    | Some(Op::CACHE)
+                            ) {
+                                n += 1;
+                            }
+                            if let Some(y) = self.instrs.get(n) {
+                                if y.is_backward
+                                    && y.target == Some(target)
+                                    && matches!(
+                                        y.op,
+                                        Op::JUMP_BACKWARD
+                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                            | Op::JUMP_ABSOLUTE
+                                            | Op::JUMP
+                                    )
+                                {
+                                    rev = x.target.map(|ex| (k, ex));
+                                    break;
+                                }
+                            }
+                        }
+                        if matches!(
+                            x.op,
+                            Op::RETURN_VALUE | Op::RETURN_CONST | Op::END_FOR
+                        ) {
+                            break;
+                        }
+                        k += 1;
+                    }
+                    let Some((rj, reval_exit)) = rev else {
+                        break 'pre_rot None;
+                    };
+                    // the re-eval's operand run must sim-equal this
+                    // jump's cond
+                    let mut s = rj;
+                    while s > ti {
+                        let p = self.instrs[s - 1].op;
+                        if is_pure_value_op(p)
+                            || matches!(
+                                p,
+                                Op::TO_BOOL
+                                    | Op::NOP
+                                    | Op::NOT_TAKEN
+                                    | Op::CACHE
+                            )
+                        {
+                            s -= 1;
+                        } else {
+                            break;
+                        }
+                    }
+                    let cond_fmt = format!("{:?}", simplify_not(cond.clone()));
+                    let ok = self.sim_value_region(s, rj).map_or(false, |v| {
+                        format!("{:?}", simplify_not(v)) == cond_fmt
+                    });
+                    if ok {
+                        Some((rj, reval_exit))
+                    } else {
+                        None
+                    }
+                };
+                if let Some((_rj, reval_exit)) = pre_rot {
+                    // cond_end = end of the PRE-CHECK jump: the dup_while
+                    // re-eval matcher requires cond_end < cur_offset when
+                    // the tail re-eval copy arrives (a later cond_end
+                    // fails the clause and the re-eval renders as a
+                    // degenerate `if line: continue` guard)
+                    let cond_end = self.instrs[ci].end();
+                    let mut blk = Block::new(BlockType::While, target, reval_exit);
+                    // the jump enters the BODY on true: a PJIT pre-check
+                    // means the source cond is the operand as-is
+                    let wcond = if jump_if_true {
+                        cond.clone()
+                    } else {
+                        negate_cond(cond.clone())
+                    };
+                    blk.cond = Some(wcond);
+                    blk.cond_set = true;
+                    blk.cond_end = cond_end;
+                    blk.jump_if_true = !jump_if_true;
+                    blk.stack_depth = self.stack.len();
+                    self.blocks.push(blk);
+                    self.skip_until = Some(target);
+                    return;
+                }
                 for inst in &self.instrs[ci..ti] {
                     if let Some(t) = inst.target {
                         // back edge to the cond jump itself or to the start
