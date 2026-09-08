@@ -1107,6 +1107,10 @@ impl Printer {
                     self.write(" in ");
                     self.expr(&g.iter, prec::OR);
                     for cond in &g.ifs {
+                        if g.if_line_break {
+                            self.newline();
+                            self.write("    ");
+                        }
                         self.write(" if ");
                         self.expr(cond, prec::OR);
                     }

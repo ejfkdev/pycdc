@@ -262,6 +262,7 @@ struct PartialGen {
     target: Option<ExprRef>,
     iter: ExprRef,
     ifs: Vec<ExprRef>,
+    if_break: bool,
 }
 
 /// Per-unpack-frame collected targets (inner Vec per open frame).
@@ -21395,6 +21396,34 @@ return None;
             }
         }
         // inline comprehension filter: `... if cond`
+        // 3.12-only line-break detection: a filter whose guard sits on a
+        // DIFFERENT source line than its FOR_ITER compiles to the
+        // PJIF->shared-backedge shape; same-line filters compile to
+        // PJIT+continue (_py_abc __new__ set-comp) — record the break so
+        // codegen reproduces the layout (3.13+ always uses the PJIT form)
+        let comp_if_break = self
+            .inline_comp
+            .as_ref()
+            .and_then(|comp| {
+                if !self.version.at_least(3, 12) || self.version.at_least(3, 13)
+                {
+                    return None;
+                }
+                let fl = comp
+                    .for_iter_offsets
+                    .last()
+                    .and_then(|fo| self.idx_of.get(fo))
+                    .and_then(|&fi| self.instrs[fi].line);
+                let cl = self
+                    .idx_of
+                    .get(&self.cur_offset)
+                    .and_then(|&ci2| self.instrs[ci2].line);
+                match (fl, cl) {
+                    (Some(a), Some(b)) => Some(a != b),
+                    _ => None,
+                }
+            })
+            .unwrap_or(false);
         if let Some(comp) = &mut self.inline_comp {
             if self.cur_offset < comp.end {
                 // NB: no negate_cond here — the push below cancels the
@@ -21402,6 +21431,9 @@ return None;
                 // comparison would invert the filter
                 let c = if jump_if_true { cond } else { simplify_not(cond) };
                 if let Some(cur) = &mut comp.cur {
+                    if comp_if_break {
+                        cur.if_break = true;
+                    }
                     cur.ifs.push(c);
                 }
                 return;
@@ -34768,6 +34800,7 @@ impl<'a> Ctx<'a> {
                 iter: p.iter,
                 ifs: p.ifs,
                 is_async: p.is_async,
+                if_line_break: false,
             })
             .collect();
         Some((elt, key, gens))
@@ -34998,6 +35031,7 @@ impl<'a> Ctx<'a> {
                 target: None,
                 iter,
                 ifs: Vec::new(),
+                if_break: false,
             }),
             elt: None,
             key: None,
@@ -35085,12 +35119,14 @@ impl<'a> Ctx<'a> {
                     iter: done.iter,
                     ifs: done.ifs,
                     is_async: false,
+                    if_line_break: done.if_break,
                 });
             }
             comp.cur = Some(PartialGen {
                 target: None,
                 iter,
                 ifs: Vec::new(),
+                if_break: false,
             });
             comp.target_seen = false;
         }
@@ -35114,6 +35150,7 @@ impl<'a> Ctx<'a> {
                 iter: done.iter,
                 ifs: done.ifs,
                 is_async: false,
+                if_line_break: done.if_break,
             });
         }
         let elt = comp

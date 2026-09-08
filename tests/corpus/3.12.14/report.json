@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 23,
-  "SIG-DIFF": 12,
+  "PASS": 24,
+  "SIG-DIFF": 11,
   "INCOMPLETE": 4,
   "AST-PASS": 1
  },
@@ -53,11 +53,7 @@
   },
   {
    "module": "_py_abc",
-   "ast_detail": "diff at token 571: orig  body=[If(test=Call(func=Name(id='issubclass' | dec  body=[If(test=UnaryOp(op=Not()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 402,
-   "ntotal": 504,
-   "detail": "line 90: orig ('FOR_ITER', 'to 128') | got ('FOR_ITER', 'to 130')\nline 99: orig ('POP_JUMP_IF_FALSE', 'to 126') | got ('POP_JUMP_IF_TRUE', 'to 124')\nline 100: orig ('LOAD_FAST', 'name') | got ('JUMP_BACKWARD', 'to 84')"
+   "verdict": "PASS"
   },
   {
    "module": "_pylong",
@@ -158,8 +154,8 @@
    "module": "cmd",
    "ast_detail": "diff at token 331: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1078,
-   "ntotal": 1370,
+   "ndiff": 1080,
+   "ntotal": 1369,
    "detail": "line 276: orig ('LOAD_ATTR', 'NULL|self + postloop') | got ('LOAD_ATTR', 'use_rawinput')\nline 277: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 1010')\nline 278: orig ('POP_TOP', '') | got ('LOAD_FAST', 'self')"
   },
   {

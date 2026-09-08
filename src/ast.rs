@@ -71,6 +71,11 @@ pub struct Comprehension {
     pub iter: ExprRef,
     pub ifs: Vec<ExprRef>,
     pub is_async: bool,
+    /// 3.12-only: the filter's `if` clause sat on its own source line —
+    /// the compiler emits the PJIF->shared-backedge filter shape there
+    /// (same-line filters compile to PJIT+continue), so the renderer
+    /// must reproduce the line break for sig-exactness
+    pub if_line_break: bool,
 }
 
 #[derive(Debug, Clone)]
