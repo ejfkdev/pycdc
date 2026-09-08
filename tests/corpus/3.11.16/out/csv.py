@@ -285,15 +285,12 @@ class Sniffer:
             total = float(min(chunkLength * iteration, len(data)))
             consistency = 1.0
             threshold = 0.9
-            if len(delims) == 0 and consistency >= threshold:
+            while len(delims) == 0 and consistency >= threshold:
                 for k, v in modeList:
                     if v[0] > 0 and v[1] > 0 and v[1] / total >= consistency:
                         if delimiters is None or k in delimiters:
                             delims[k] = v
                 consistency -= 0.01
-                if len(delims) == 0:
-                    if not consistency >= threshold:
-                        pass
             if len(delims) == 1:
                 delim = list(delims.keys())[0]
                 skipinitialspace = data[0].count(delim) == data[0].count('%c ' % delim)

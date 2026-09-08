@@ -234,11 +234,11 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1451: orig  While(test=BoolOp(op=And() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 1916: orig  value=Constant(value=1))])] | dec  value=Constant(value=1))",
    "verdict": "SIG-DIFF",
-   "ndiff": 38,
+   "ndiff": 27,
    "ntotal": 1714,
-   "detail": "line 1099: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1600') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1602')\nline 1265: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1304') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1306')\nline 1269: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1304') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1306')"
+   "detail": "line 1646: orig ('FOR_ITER', 'to 854') | got ('FOR_ITER', 'to 856')\nline 1687: orig ('LOAD_FAST', 'hasHeader') | got ('JUMP_FORWARD', 'to 844')\nline 1688: orig ('LOAD_CONST', '1') | got ('PUSH_EXC_INFO', '')"
   }
  ]
 }

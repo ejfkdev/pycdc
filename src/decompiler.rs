@@ -16448,12 +16448,29 @@ impl<'a> Ctx<'a> {
                 return false;
             };
             if ins.is_backward {
-                return fwd_jumps_in_body >= 1
-                    && ins.target == Some(body_top)
+                if ins.target == Some(body_top)
                     && matches!(
                         ins.op,
                         Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_BACKWARD_IF_TRUE
-                    );
+                    )
+                {
+                    return fwd_jumps_in_body >= 1;
+                }
+                // a nested loop's own back edge / an in-body `continue`
+                // lands INSIDE the body — keep scanning toward the
+                // rotated re-entry (csv 3.11 _guess_delimiter
+                // `while len(delims)==0 and consistency>=threshold:`
+                // holds an inner `for k, v in modeList:` whose back
+                // edge aborted the scan, and the while rendered as an
+                // if + tail guards)
+                if ins
+                    .target
+                    .map_or(false, |t| t >= body_top && t < ins.offset)
+                {
+                    k += 1;
+                    continue;
+                }
+                return false;
             }
             if matches!(
                 ins.op,
