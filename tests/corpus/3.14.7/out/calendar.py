@@ -602,7 +602,7 @@ Returns a single week in a string (no newline).
             reset = ansi.RESET
         else:
             highlight = reset = ''
-        return ' '.join((self.formatday(d, wd, width) for d, wd in theweek if d == highlight_day))
+        return ' '.join((f'{highlight}{self.formatday(d, wd, width)}{reset}' if d == highlight_day else self.formatday(d, wd, width) for d, wd in theweek))
 
     def formatmonth(self, theyear, themonth, w=0, l=0):
         """

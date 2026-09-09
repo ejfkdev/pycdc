@@ -35476,6 +35476,145 @@ impl<'a> Ctx<'a> {
     /// Decode a comprehension code object into (elt, key, generators).
     /// The implicit `.0` parameter holds the outermost iterator (replaced
     /// by the caller with the real iterable expression).
+/// Value-producing opcodes valid inside a comprehension ternary arm.
+fn comp_arm_value_op(o: Op) -> bool {
+    matches!(
+        o,
+        Op::LOAD_FAST
+            | Op::LOAD_FAST_CHECK
+            | Op::LOAD_FAST_BORROW
+            | Op::LOAD_FAST_AND_CLEAR
+            | Op::LOAD_FAST_LOAD_FAST
+            | Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW
+            | Op::LOAD_NAME
+            | Op::LOAD_GLOBAL
+            | Op::LOAD_CONST
+            | Op::LOAD_DEREF
+            | Op::LOAD_ATTR
+            | Op::LOAD_METHOD
+            | Op::LOAD_SMALL_INT
+            | Op::LOAD_COMMON_CONSTANT
+            | Op::PUSH_NULL
+            | Op::CALL
+            | Op::CALL_FUNCTION
+            | Op::CALL_METHOD
+            | Op::CALL_FUNCTION_KW
+            | Op::CALL_FUNCTION_EX
+            | Op::CALL_INTRINSIC_1
+            | Op::CALL_INTRINSIC_2
+            | Op::KW_NAMES
+            | Op::PRECALL
+            | Op::BINARY_OP
+            | Op::BINARY_SUBSCR
+            | Op::COMPARE_OP
+            | Op::IS_OP
+            | Op::CONTAINS_OP
+            | Op::UNARY_NOT
+            | Op::UNARY_NEGATIVE
+            | Op::UNARY_POSITIVE
+            | Op::UNARY_INVERT
+            | Op::BUILD_TUPLE
+            | Op::BUILD_LIST
+            | Op::BUILD_SET
+            | Op::BUILD_MAP
+            | Op::BUILD_STRING
+            | Op::BUILD_CONST_KEY_MAP
+            | Op::BUILD_SLICE
+            | Op::FORMAT_VALUE
+            | Op::FORMAT_SIMPLE
+            | Op::FORMAT_WITH_SPEC
+            | Op::CONVERT_VALUE
+            | Op::COPY
+            | Op::SWAP
+            | Op::TO_BOOL
+            | Op::NOP
+            | Op::NOT_TAKEN
+            | Op::CACHE
+            | Op::EXTENDED_ARG
+            | Op::RESUME
+    )
+}
+
+/// When the cond jump at `ii` in a comprehension code object is a
+/// ternary element's cond (`A if C else B` — the jump targets the ELSE
+/// arm and a forward JF skips it to the merge), validate the whole
+/// (possibly nested) ternary and return the merge offset.
+fn genexpr_ternary_merge(
+    instrs: &[crate::bytecode::Instruction],
+    ii: usize,
+) -> Option<usize> {
+    let inst = instrs.get(ii)?;
+    let t = inst.target?;
+    if t <= inst.offset {
+        return None;
+    }
+    // then arm: value ops — and, for an and/or-chain cond, further cond
+    // links whose jumps share the else-arm target t (base64 3.11
+    // b85decode `b'z' if foldnuls and not word else ...`: the chain's
+    // last link is followed by the then arm) — terminated by a forward
+    // JF skipping the else arm
+    let is_cj = |o: Op| {
+        matches!(
+            o,
+            Op::POP_JUMP_IF_FALSE
+                | Op::POP_JUMP_IF_TRUE
+                | Op::POP_JUMP_FORWARD_IF_FALSE
+                | Op::POP_JUMP_FORWARD_IF_TRUE
+        )
+    };
+    let mut jf_target = None;
+    for x in instrs.iter().skip(ii + 1) {
+        if x.offset >= t {
+            break;
+        }
+        if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+            && !x.is_backward
+            && x.target.map_or(false, |mt| mt > t)
+        {
+            jf_target = x.target;
+            break;
+        }
+        if is_cj(x.op) && x.target == Some(t) && !x.is_backward {
+            continue;
+        }
+        if !Self::comp_arm_value_op(x.op) {
+            return None;
+        }
+    }
+    let m = jf_target?;
+    let ti = instrs.iter().position(|x| x.offset == t)?;
+    let mi = instrs.iter().position(|x| x.offset == m)?;
+    if mi <= ti {
+        return None;
+    }
+    // else arm [t, m): value ops or nested ternaries ending before m
+    let mut j = ti;
+    while j < mi {
+        let x = instrs[j];
+        if Self::comp_arm_value_op(x.op) {
+            j += 1;
+            continue;
+        }
+        if matches!(
+            x.op,
+            Op::POP_JUMP_IF_FALSE
+                | Op::POP_JUMP_IF_TRUE
+                | Op::POP_JUMP_FORWARD_IF_FALSE
+                | Op::POP_JUMP_FORWARD_IF_TRUE
+        ) {
+            let nm = Self::genexpr_ternary_merge(instrs, j)?;
+            let nmi = instrs.iter().position(|x2| x2.offset == nm)?;
+            if nmi > mi {
+                return None;
+            }
+            j = nmi;
+            continue;
+        }
+        return None;
+    }
+    Some(m)
+}
+
     fn build_comprehension(
         &mut self,
         code: &CodeObject,
@@ -35516,6 +35655,14 @@ impl<'a> Ctx<'a> {
         };
 
         let mut prev_inst: Option<(Op, u32)> = None;
+        // ternary ELEMENT conds awaiting their arm values at the element
+        // producer (`(A if C else B) for x in it` — C's jump targets the
+        // else arm, NOT a filter skip). A stack: nested ternaries push
+        // outer-first and combine inner-first at the producer.
+        // tern_chain_t tracks the else-arm target of the and-chain whose
+        // links are being merged into the LAST pushed cond
+        let mut tern_conds: Vec<ExprRef> = Vec::new();
+        let mut tern_chain_t: Option<usize> = None;
         // first operand of a filter or-chain awaiting its partner (see
         // the cond-jump arm)
         let mut pending_or_filter: Option<ExprRef> = None;
@@ -35793,6 +35940,49 @@ impl<'a> Ctx<'a> {
                 | Op::JUMP_IF_FALSE_OR_POP
                 | Op::JUMP_IF_TRUE_OR_POP => {
                     if let Some(c) = stack.pop() {
+                        // ternary element: this jump's target is the ELSE
+                        // arm; a forward JF between the jump and the target
+                        // skips the else arm to the merge, and both arm
+                        // spans are pure value runs (possibly holding
+                        // nested ternaries) — calendar 3.14 formatweek
+                        // `(f"..." if d == highlight_day else
+                        // self.formatday(...)) for ...` rendered the cond
+                        // as a FILTER and dropped the then arm; base64
+                        // 3.11 b85decode nests two ternaries
+                        if let Some(m_off) = Self::genexpr_ternary_merge(&instrs, ii) {
+                            let t_off = inst.target.unwrap_or(usize::MAX);
+                            let jump_true_op = matches!(
+                                inst.op,
+                                Op::POP_JUMP_IF_TRUE
+                                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                                    | Op::POP_JUMP_BACKWARD_IF_TRUE
+                            );
+                            let cj = if jump_true_op {
+                                negate_cond(c.clone())
+                            } else {
+                                c.clone()
+                            };
+                            if tern_chain_t == Some(t_off) {
+                                // continuation link of the same and-chain
+                                if let Some(prev) = tern_conds.last().cloned() {
+                                    let mut vals = Vec::new();
+                                    flatten_boolop(prev, BoolOpKind::And, &mut vals);
+                                    flatten_boolop(cj, BoolOpKind::And, &mut vals);
+                                    if let Some(lastc) = tern_conds.last_mut() {
+                                        *lastc = Rc::new(Expr::BoolOp {
+                                            op: BoolOpKind::And,
+                                            values: vals,
+                                        });
+                                    }
+                                }
+                            } else {
+                                tern_conds.push(cj);
+                                tern_chain_t = Some(t_off);
+                            }
+                            let _ = m_off;
+                            continue;
+                        }
+                        tern_chain_t = None;
                         // `if A or B` filter: A's PJIT hops to the body
                         // merge (a forward label inside the gen, past
                         // the following operand); when the partner
@@ -35845,6 +36035,16 @@ impl<'a> Ctx<'a> {
                             last.ifs.push(p);
                         }
                     }
+                    while stack.len() >= 2 {
+                        let Some(tc) = tern_conds.pop() else { break };
+                        let else_v = stack.pop().unwrap();
+                        let then_v = stack.pop().unwrap();
+                        stack.push(Rc::new(Expr::Ternary {
+                            cond: tc,
+                            then_expr: then_v,
+                            else_expr: else_v,
+                        }));
+                    }
                     let item = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
                     elt.get_or_insert(item);
                 }
@@ -35867,6 +36067,16 @@ impl<'a> Ctx<'a> {
                         if let Some(last) = partials.last_mut() {
                             last.ifs.push(p);
                         }
+                    }
+                    while stack.len() >= 2 {
+                        let Some(tc) = tern_conds.pop() else { break };
+                        let else_v = stack.pop().unwrap();
+                        let then_v = stack.pop().unwrap();
+                        stack.push(Rc::new(Expr::Ternary {
+                            cond: tc,
+                            then_expr: then_v,
+                            else_expr: else_v,
+                        }));
                     }
                     let item = stack.pop().unwrap_or_else(|| Rc::new(Expr::Name("?".to_string())));
                     elt.get_or_insert(item);

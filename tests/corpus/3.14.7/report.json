@@ -2,8 +2,8 @@
  "version": "3.14.7",
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
-  "PASS": 21,
-  "SIG-DIFF": 12,
+  "PASS": 22,
+  "SIG-DIFF": 11,
   "INCOMPLETE": 6,
   "AST-PASS": 1
  },
@@ -171,11 +171,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 1344: orig  value=BinOp(left=Constant(value='%s %r') | dec  value=JoinedStr(values=[FormattedValue(value=Name(id='s'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1077,
-   "ntotal": 4353,
-   "detail": "line 3264: orig ('MAKE_CELL', 'highlight') | got ('RESUME', '')\nline 3265: orig ('MAKE_CELL', 'reset') | got ('LOAD_DEREF', 'highlight_day')\nline 3266: orig ('RESUME', '') | got ('TO_BOOL', '')"
+   "verdict": "PASS"
   },
   {
    "module": "cmd",
