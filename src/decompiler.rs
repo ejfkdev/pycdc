@@ -538,6 +538,8 @@ struct Ctx<'a> {
     /// sunk post-try continuation split out of a bare-try handler
     /// clause; emitted right after the Try statement
     handler_sunk_tail: Vec<Stmt>,
+    /// skip target set by a successful try_dup_tail_ternary fold
+    dup_tail_ternary_skip: Option<usize>,
     /// `except E as name` cleanup (`name = None; del name`) that follows a
     /// folded handler: the None-store is held until the matching delete
     /// confirms it (a real `x = None` statement must not be swallowed)
@@ -820,6 +822,7 @@ pub fn decompile_in_scope(
         or_rot_revals: Vec::new(),
         bare_try_parse: false,
         handler_sunk_tail: Vec::new(),
+        dup_tail_ternary_skip: None,
         pending_as_cleanup: None,
         star_tail: Vec::new(),
         star_tail_end: None,
@@ -20800,6 +20803,592 @@ return None;
     /// `if fields: pass` + `rv += ', ' or ' '`). Returns the merged value and
     /// the merge offset M to skip to; None when the shape doesn't hold or a
     /// region carries statements (the caller restores and falls through).
+    /// 3.12+ value-position ternary whose arms TERMINATE with duplicated
+    /// tails (no merge point): each arm runs [slot value; identical tail
+    /// ops; RETURN]. Simulate both arms over the shared preloaded base
+    /// stack; when the op traces share a prefix and suffix around exactly
+    /// one differing stack slot, rebuild the single expression with the
+    /// ternary folded into that slot. Returns the merged expression and
+    /// arms `dup_tail_ternary_skip` (walk resumes past the else arm).
+        /// 3.12+ value-position ternary whose arms TERMINATE with duplicated
+    /// tails (no merge point): each arm runs [slot value ops; identical
+    /// tail ops; RETURN]. Simulate both arms over the shared preloaded
+    /// base stack; when the op traces share a common prefix and suffix
+    /// around one differing middle (the slot), rebuild the single
+    /// expression with the ternary folded into that slot. Returns the
+    /// merged expression and arms `dup_tail_ternary_skip` (the walk
+    /// resumes past the else arm's RETURN).
+    fn try_dup_tail_ternary(
+        &mut self,
+        cond: ExprRef,
+        jump_if_true: bool,
+        target: usize,
+    ) -> Option<ExprRef> {
+        self.dup_tail_ternary_skip = None;
+        let ci = *self.idx_of.get(&self.cur_offset)?;
+        let ti = *self.idx_of.get(&target)?;
+        if ti <= ci + 1 {
+            return None;
+        }
+        let is_pad = |x: &crate::bytecode::Instruction| {
+            matches!(
+                x.op,
+                Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG
+            )
+        };
+        // then arm: [ci+1, ti) ending in its own RETURN, no inner jumps
+        let mut ret_t = None;
+        for k in ci + 1..ti {
+            let x = &self.instrs[k];
+            if x.target.is_some() {
+                return None;
+            }
+            if matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                ret_t = Some(k);
+                break;
+            }
+        }
+        let rt = ret_t?;
+        if self.instrs[rt].offset >= target {
+            return None;
+        }
+        // else arm: [ti, ret_e], no inner jumps, ends at the first RETURN
+        let mut ret_e = None;
+        let mut k = ti;
+        while k < self.instrs.len() {
+            let x = &self.instrs[k];
+            if x.target.is_some() {
+                return None;
+            }
+            if matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                ret_e = Some(k);
+                break;
+            }
+            k += 1;
+        }
+        let re = ret_e?;
+        // common preload region before the cond jump (the 3.13 value
+        // boolop idiom interposes TO_BOOL between the operand and the
+        // jump — walk through it)
+        let mut rs = ci;
+        while rs > 0 {
+            let p = &self.instrs[rs - 1];
+            if is_pad(p) || is_pure_value_op(p.op) || p.op == Op::TO_BOOL {
+                rs -= 1;
+            } else {
+                break;
+            }
+        }
+        // a non-empty preload is REQUIRED: an `if C: return A` + `return
+        // B` pair has the identical two-terminated-arms shape, and
+        // folding it to a ternary recompiles differently (cabc 3.12/3.13
+        // __subclasshook__ flipped from PASS). The dup-tail ternary is
+        // only forced when arms consume values preloaded BEFORE the cond
+        if rs == ci {
+            return None;
+        }
+        // op traces (pads filtered; RETURN excluded)
+        let trace = |a: usize, b: usize| -> Vec<(u8, u32)> {
+            self.instrs[a..b]
+                .iter()
+                .filter(|x| !is_pad(x))
+                .map(|x| (x.op as u8, x.arg))
+                .collect()
+        };
+        let tt = trace(ci + 1, rt);
+        let et = trace(ti, re);
+        if tt.is_empty() || et.is_empty() {
+            return None;
+        }
+        // common prefix
+        let minlen = tt.len().min(et.len());
+        let mut d = 0;
+        while d < minlen && tt[d] == et[d] {
+            d += 1;
+        }
+        // common suffix (not overlapping the prefix)
+        let mut sfx = 0;
+        while sfx < minlen - d
+            && tt[tt.len() - 1 - sfx] == et[et.len() - 1 - sfx]
+        {
+            sfx += 1;
+        }
+        let t_mid_end = tt.len() - sfx;
+        let e_mid_end = et.len() - sfx;
+        if d >= t_mid_end || d >= e_mid_end {
+            return None;
+        }
+        // physical index just PAST the middle's last op in each arm
+        let phys_past = |a: usize, b: usize, last_tpos: usize| -> Option<usize> {
+            let mut c = 0usize;
+            for k2 in a..b {
+                if !is_pad(&self.instrs[k2]) {
+                    if c == last_tpos {
+                        return Some(k2 + 1);
+                    }
+                    c += 1;
+                }
+            }
+            None
+        };
+        let mt = phys_past(ci + 1, rt, t_mid_end - 1)?;
+        let me = phys_past(ti, re, e_mid_end - 1)?;
+        // the middles must leave the same net stack depth
+        let depth = |a: usize, b: usize| -> Option<i32> {
+            let mut acc = self.sim_stack_region(a, b, Vec::new())?;
+            Some(acc.len() as i32)
+        };
+        let dt_d = depth(ci + 1, mt)?;
+        let de_d = depth(ti, me)?;
+        if dt_d != de_d || dt_d < 1 {
+            return None;
+        }
+        // simulate: base preload (minus the cond value the jump pops),
+        // then each arm up to its middle end
+        let mut base = self.sim_stack_region(rs, ci, Vec::new())?;
+        let popped = base.pop()?;
+        if !expr_eq(&popped, &cond)
+            && !expr_eq(&popped, &simplify_not(cond.clone()))
+        {
+            return None;
+        }
+        // the preload (values under the cond) must be NON-EMPTY: with an
+        // empty base this is the plain `if C: return A` + `return B`
+        // shape, whose ternary rendering recompiles differently (cabc
+        // 3.12/3.13 __subclasshook__ flipped from PASS). The dup-tail
+        // ternary is only forced when the arms consume preloaded values
+        if base.is_empty() {
+            return None;
+        }
+        let st_t = self.sim_stack_region(ci + 1, mt, base.clone())?;
+        let st_e = self.sim_stack_region(ti, me, base.clone())?;
+        if st_t.len() != st_e.len() || st_t.is_empty() {
+            return None;
+        }
+        let base_depth = st_t.len() - 1;
+        let slot_t = st_t.last()?.clone();
+        let slot_e = st_e.last()?.clone();
+        // compare the UNDER-stack only — the tops are the slot values
+        for (a2, b2) in st_t[..st_t.len() - 1]
+            .iter()
+            .zip(st_e[..st_e.len() - 1].iter())
+        {
+            if !expr_eq(a2, b2) {
+                return None;
+            }
+        }
+        // full-arm return expressions (continue the sim through the tails)
+        let full_t = self.sim_stack_region(mt, rt + 1, st_t)?;
+        let full_e = self.sim_stack_region(me, re + 1, st_e)?;
+        if full_t.len() != 1 || full_e.len() != 1 {
+            return None;
+        }
+        let expr_t = full_t[0].clone();
+        let expr_e = full_e[0].clone();
+        let tern: ExprRef = Rc::new(Expr::Ternary {
+            cond,
+            then_expr: slot_t,
+            else_expr: slot_e,
+        });
+        let merged = Self::ternary_merge_slot(&expr_t, &expr_e, &tern)?;
+        let _ = jump_if_true;
+        // the preloaded base operands were executed by the real walk and
+        // sit under the popped cond — the simulated arms consumed them
+        for _ in 0..base_depth {
+            self.stack.pop();
+        }
+        self.dup_tail_ternary_skip = Some(self.instrs[re].end());
+        Some(merged)
+    }
+
+/// Structural single-slot merge: a and b must be identical except for
+    /// exactly one leaf position, which becomes the ternary `t`.
+    fn ternary_merge_slot(a: &ExprRef, b: &ExprRef, t: &ExprRef) -> Option<ExprRef> {
+        if expr_eq(a, b) {
+            return None;
+        }
+        macro_rules! try_children {
+            ($mk:expr, $($child:expr),+ $(,)?) => {{
+                let children: Vec<(&ExprRef, &ExprRef)> = vec![$(($child.0, $child.1)),+];
+                let mut merged_idx: Option<usize> = None;
+                let mut merged_val: Option<ExprRef> = None;
+                for (i, (ca, cb)) in children.iter().enumerate() {
+                    if expr_eq(ca, cb) {
+                        continue;
+                    }
+                    if merged_idx.is_some() {
+                        return None;
+                    }
+                    match Self::ternary_merge_slot(ca, cb, t) {
+                        Some(m) => {
+                            merged_idx = Some(i);
+                            merged_val = Some(m);
+                        }
+                        None => {
+                            merged_idx = Some(i);
+                            merged_val = Some(t.clone());
+                        }
+                    }
+                }
+                if merged_idx.is_none() {
+                    return None;
+                }
+                let idx = merged_idx.unwrap();
+                let val = merged_val.unwrap();
+                let mut reps: Vec<ExprRef> = children.iter().map(|(ca, _)| (*ca).clone()).collect();
+                reps[idx] = val;
+                Some($mk(reps))
+            }};
+        }
+        match (&**a, &**b) {
+            (Expr::Attribute { value: va, attr: aa }, Expr::Attribute { value: vb, attr: ab }) if aa == ab => {
+                try_children!(|r: Vec<ExprRef>| Rc::new(Expr::Attribute { value: r[0].clone(), attr: aa.clone() }), (va, vb),)
+            }
+            (
+                Expr::Subscript { value: va, index: ia },
+                Expr::Subscript { value: vb, index: ib },
+            ) => {
+                try_children!(|r: Vec<ExprRef>| Rc::new(Expr::Subscript { value: r[0].clone(), index: r[1].clone() }), (va, vb), (ia, ib),)
+            }
+            (Expr::Slice(sa), Expr::Slice(sb)) => {
+                {
+                    {
+                        let kids_a: Vec<Option<ExprRef>> = vec![sa.start.clone(), sa.stop.clone(), sa.step.clone()];
+                        let kids_b: Vec<Option<ExprRef>> = vec![sb.start.clone(), sb.stop.clone(), sb.step.clone()];
+                        let mut merged_idx: Option<usize> = None;
+                        let mut merged_val: Option<ExprRef> = None;
+                        for i in 0..3 {
+                            match (&kids_a[i], &kids_b[i]) {
+                                (None, None) => continue,
+                                (Some(x), Some(y)) if expr_eq(x, y) => continue,
+                                (Some(x), Some(y)) => {
+                                    if merged_idx.is_some() { return None; }
+                                    merged_val = Self::ternary_merge_slot(x, y, t).or_else(|| Some(t.clone()));
+                                    merged_idx = Some(i);
+                                }
+                                (None, Some(_)) | (Some(_), None) => {
+                                    if merged_idx.is_some() { return None; }
+                                    merged_val = Some(t.clone());
+                                    merged_idx = Some(i);
+                                }
+                            }
+                        }
+                        let idx = merged_idx?;
+                        let val = merged_val?;
+                        let mut ka = kids_a.clone();
+                        ka[idx] = Some(val);
+                        Some(Rc::new(Expr::Slice(Box::new(SliceExpr {
+                            start: ka[0].clone(),
+                            stop: ka[1].clone(),
+                            step: ka[2].clone(),
+                        }))))
+                    }
+                }
+            }
+            (
+                Expr::Call { func: fa, args: aa, keywords: ka, star_args: sa, star_kwargs: ska },
+                Expr::Call { func: fb, args: ab, keywords: kb, star_args: sb, star_kwargs: skb },
+            ) if ka.is_empty() && kb.is_empty() && sa.is_none() && sb.is_none() && ska.is_none() && skb.is_none() && aa.len() == ab.len() => {
+                let mut slots: Vec<(&ExprRef, &ExprRef)> = vec![(fa, fb)];
+                for (x, y) in aa.iter().zip(ab.iter()) {
+                    slots.push((x, y));
+                }
+                let mut merged_idx: Option<usize> = None;
+                let mut merged_val: Option<ExprRef> = None;
+                for (i, (x, y)) in slots.iter().enumerate() {
+                    if expr_eq(x, y) {
+                        continue;
+                    }
+                    if merged_idx.is_some() {
+                        return None;
+                    }
+                    merged_val = Self::ternary_merge_slot(x, y, t).or_else(|| Some(t.clone()));
+                    merged_idx = Some(i);
+                }
+                let idx = merged_idx?;
+                let val = merged_val?;
+                let mut reps: Vec<ExprRef> = slots.iter().map(|(x, _)| (*x).clone()).collect();
+                reps[idx] = val;
+                Some(Rc::new(Expr::Call {
+                    func: reps[0].clone(),
+                    args: reps[1..].to_vec(),
+                    keywords: Vec::new(),
+                    star_args: None,
+                    star_kwargs: None,
+                }))
+            }
+            (Expr::Binary { op: o1, left: l1, right: r1 }, Expr::Binary { op: o2, left: l2, right: r2 }) if o1 == o2 => {
+                try_children!(|r: Vec<ExprRef>| Rc::new(Expr::Binary { op: *o1, left: r[0].clone(), right: r[1].clone() }), (l1, l2), (r1, r2),)
+            }
+            (Expr::Unary { op: o1, operand: x1 }, Expr::Unary { op: o2, operand: x2 }) if o1 == o2 => {
+                try_children!(|r: Vec<ExprRef>| Rc::new(Expr::Unary { op: *o1, operand: r[0].clone() }), (x1, x2),)
+            }
+            _ => Some(t.clone()),
+        }
+    }
+
+    /// Simulate [a, b) over an initial stack, returning the full final
+    /// stack. Restricted value-op set; bails (None) on anything else.
+    fn sim_stack_region(
+        &self,
+        a: usize,
+        b: usize,
+        init: Vec<ExprRef>,
+    ) -> Option<Vec<ExprRef>> {
+        let mut st: Vec<ExprRef> = init;
+        let is_pad = |x: &crate::bytecode::Instruction| {
+            matches!(
+                x.op,
+                Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG
+            )
+        };
+        let pop1 = |st: &mut Vec<ExprRef>| st.pop().unwrap_or_else(|| self.name_expr("???"));
+        for k in a..b.min(self.instrs.len()) {
+            let ins = &self.instrs[k];
+            if is_pad(ins) {
+                continue;
+            }
+            let arg = ins.arg as usize;
+            match ins.op {
+                Op::LOAD_FAST | Op::LOAD_FAST_CHECK | Op::LOAD_FAST_BORROW => {
+                    st.push(self.name_expr(self.local_name(arg)));
+                }
+                Op::LOAD_FAST_LOAD_FAST | Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW => {
+                    st.push(self.name_expr(self.local_name((arg >> 4) & 0xF)));
+                    st.push(self.name_expr(self.local_name(arg & 0xF)));
+                }
+                Op::LOAD_NAME => {
+                    st.push(self.name_expr(self.const_name(arg)));
+                }
+                Op::LOAD_GLOBAL => {
+                    let idx = if self.version.at_least(3, 11) { arg >> 1 } else { arg };
+                    st.push(self.name_expr(self.const_name(idx)));
+                }
+                Op::LOAD_DEREF => {
+                    st.push(self.name_expr(
+                        self.code.deref_name(arg).unwrap_or("???").to_string(),
+                    ));
+                }
+                Op::LOAD_SMALL_INT => {
+                    st.push(Rc::new(Expr::Const(Rc::new(PyObject::Int(ins.arg as i32)))));
+                }
+                Op::LOAD_CONST => {
+                    st.push(Rc::new(Expr::Const(
+                        self.code.consts.get(arg).cloned().unwrap_or_else(|| Rc::new(PyObject::None)),
+                    )));
+                }
+                Op::LOAD_COMMON_CONSTANT => {
+                    st.push(self.name_expr(format!("<const{}>", ins.arg)));
+                }
+                Op::PUSH_NULL => {
+                    st.push(self.name_expr("\u{0}null"));
+                }
+                Op::LOAD_ATTR | Op::LOAD_METHOD => {
+                    let v = pop1(&mut st);
+                    let idx = if ins.op == Op::LOAD_ATTR && self.version.at_least(3, 12) {
+                        (arg >> 1) & 0x3FFFFFFF
+                    } else {
+                        arg
+                    };
+                    let a2 = self.const_name(idx);
+                    st.push(Rc::new(Expr::Attribute { value: v, attr: a2 }));
+                    if ins.op == Op::LOAD_ATTR
+                        && self.version.at_least(3, 12)
+                        && arg & 1 != 0
+                    {
+                        st.push(self.name_expr("\u{0}null"));
+                    }
+                    if ins.op == Op::LOAD_METHOD {
+                        st.push(self.name_expr("\u{0}null"));
+                    }
+                }
+                Op::PRECALL | Op::TO_BOOL => {}
+                Op::KW_NAMES => {
+                    return None;
+                }
+                Op::CALL | Op::CALL_FUNCTION | Op::CALL_METHOD => {
+                    let n = if ins.op == Op::CALL_FUNCTION && !self.version.at_least(3, 6) {
+                        arg & 0xFF
+                    } else {
+                        arg
+                    };
+                    let mut args = Vec::new();
+                    for _ in 0..n {
+                        args.push(pop1(&mut st));
+                    }
+                    args.reverse();
+                    let mut callable = pop1(&mut st);
+                    let is_null = |e: &ExprRef| {
+                        matches!(&**e, Expr::Name(s) if s == "\u{0}null")
+                    };
+                    if st.last().map_or(false, is_null) {
+                        st.pop();
+                    }
+                    if is_null(&callable) {
+                        callable = pop1(&mut st);
+                    }
+                    // LOAD_METHOD-style: the null marker sits BELOW the
+                    // callable in 3.11-3.13 and above in 3.14
+                    if st.last().map_or(false, is_null) {
+                        st.pop();
+                    }
+                    st.push(Rc::new(Expr::Call {
+                        func: callable,
+                        args,
+                        keywords: Vec::new(),
+                        star_args: None,
+                        star_kwargs: None,
+                    }));
+                }
+                Op::BINARY_OP => {
+                    let r = pop1(&mut st);
+                    let l = pop1(&mut st);
+                    match binary_op_name(arg as u32, self.version) {
+                        Some(name) => {
+                            if name.ends_with('=') {
+                                return None;
+                            }
+                            let op = binop_from_text(name);
+                            st.push(Rc::new(Expr::Binary { op, left: l, right: r }));
+                        }
+                        None if self.version.at_least(3, 14) => {
+                            let idx = normalize_slice_call(r);
+                            st.push(Rc::new(Expr::Subscript { value: l, index: idx }));
+                        }
+                        None => return None,
+                    }
+                }
+                Op::BINARY_SUBSCR => {
+                    let r = pop1(&mut st);
+                    let l = pop1(&mut st);
+                    st.push(Rc::new(Expr::Subscript { value: l, index: r }));
+                }
+                Op::BINARY_SLICE => {
+                    let stop = pop1(&mut st);
+                    let start = pop1(&mut st);
+                    let obj = pop1(&mut st);
+                    st.push(Rc::new(Expr::Subscript {
+                        value: obj,
+                        index: Rc::new(Expr::Slice(Box::new(SliceExpr {
+                            start: none_if_const_none(start),
+                            stop: none_if_const_none(stop),
+                            step: None,
+                        }))),
+                    }));
+                }
+                Op::COMPARE_OP => {
+                    let r = pop1(&mut st);
+                    let l = pop1(&mut st);
+                    let op = cmp_from_index(compare_op_index(arg as u32, self.version));
+                    st.push(Rc::new(Expr::Compare {
+                        operands: vec![l, r],
+                        ops: vec![op],
+                    }));
+                }
+                Op::IS_OP => {
+                    let r = pop1(&mut st);
+                    let l = pop1(&mut st);
+                    let op = if ins.arg == 1 { CmpOp::IsNot } else { CmpOp::Is };
+                    st.push(Rc::new(Expr::Compare {
+                        operands: vec![l, r],
+                        ops: vec![op],
+                    }));
+                }
+                Op::CONTAINS_OP => {
+                    let r = pop1(&mut st);
+                    let l = pop1(&mut st);
+                    let op = if ins.arg == 1 { CmpOp::NotIn } else { CmpOp::In };
+                    st.push(Rc::new(Expr::Compare {
+                        operands: vec![l, r],
+                        ops: vec![op],
+                    }));
+                }
+                Op::UNARY_NOT => {
+                    let v = pop1(&mut st);
+                    st.push(Rc::new(Expr::Unary { op: UnaryOp::Not, operand: v }));
+                }
+                Op::UNARY_NEGATIVE => {
+                    let v = pop1(&mut st);
+                    st.push(Rc::new(Expr::Unary { op: UnaryOp::Neg, operand: v }));
+                }
+                Op::UNARY_INVERT => {
+                    let v = pop1(&mut st);
+                    st.push(Rc::new(Expr::Unary { op: UnaryOp::Invert, operand: v }));
+                }
+                Op::BUILD_TUPLE | Op::BUILD_LIST | Op::BUILD_SET => {
+                    let n = arg;
+                    if st.len() < n {
+                        return None;
+                    }
+                    let split = st.len() - n;
+                    let items: Vec<ExprRef> = st.split_off(split);
+                    let e = match ins.op {
+                        Op::BUILD_TUPLE => Expr::Tuple(items),
+                        Op::BUILD_LIST => Expr::List(items),
+                        _ => Expr::Set(items),
+                    };
+                    st.push(Rc::new(e));
+                }
+                Op::RETURN_CONST => {
+                    st.push(Rc::new(Expr::Const(
+                        self.code.consts.get(arg).cloned().unwrap_or_else(|| Rc::new(PyObject::None)),
+                    )));
+                }
+                Op::RETURN_VALUE => {}
+                _ => return None,
+            }
+        }
+        Some(st)
+    }
+
+    /// Rough stack effect of a value op (None when unknown).
+    fn stack_effect_est(&self, op: Op, arg: u32) -> Option<i32> {
+        let a = arg as usize;
+        let e = match op {
+            Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG | Op::PRECALL
+            | Op::TO_BOOL => 0,
+            Op::LOAD_FAST
+            | Op::LOAD_FAST_CHECK
+            | Op::LOAD_FAST_BORROW
+            | Op::LOAD_NAME
+            | Op::LOAD_GLOBAL
+            | Op::LOAD_DEREF
+            | Op::LOAD_CONST
+            | Op::LOAD_SMALL_INT
+            | Op::LOAD_COMMON_CONSTANT
+            | Op::PUSH_NULL
+            | Op::LOAD_ASSERTION_ERROR => 1,
+            Op::LOAD_FAST_LOAD_FAST | Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW => 2,
+            Op::LOAD_ATTR => {
+                if self.version.at_least(3, 12) && arg & 1 != 0 {
+                    1
+                } else {
+                    0
+                }
+            }
+            Op::LOAD_METHOD => 1,
+            Op::CALL | Op::CALL_METHOD => -(a as i32),
+            Op::CALL_FUNCTION => {
+                if self.version.at_least(3, 6) {
+                    -(a as i32)
+                } else {
+                    -((a & 0xFF) as i32)
+                }
+            }
+            Op::BINARY_OP
+            | Op::BINARY_SUBSCR
+            | Op::COMPARE_OP
+            | Op::IS_OP
+            | Op::CONTAINS_OP => -1,
+            Op::BINARY_SLICE => -2,
+            Op::UNARY_NOT | Op::UNARY_NEGATIVE | Op::UNARY_INVERT | Op::RETURN_CONST => 0,
+            Op::BUILD_TUPLE | Op::BUILD_LIST | Op::BUILD_SET => 1 - a as i32,
+            Op::RETURN_VALUE => 0,
+            _ => return None,
+        };
+        Some(e)
+    }
+
     fn try_and_or_value_chain(
         &mut self,
         cond: ExprRef,
@@ -21307,6 +21896,24 @@ return None;
             && self.try_pre_rot_or(&cond, target)
         {
             return;
+        }
+        // 3.12+ value-position ternary whose arms TERMINATE with
+        // duplicated tails: `return self[:A if C else B].strip()` — the
+        // compiler preloads the common slice operands, then each arm
+        // runs its own copy of [tail ops; RETURN] with no merge point
+        // (configparser 3.13 _strip_inline rendered a statement if/else
+        // whose arms lost/misassigned the preloaded stack operands:
+        // `return None[:].strip()`). Sim both arms; when they differ in
+        // exactly ONE value slot and the op sequences after it match,
+        // rebuild the single expression with a ternary at that slot.
+        if self.version.at_least(3, 12) {
+            if let Some(e) = self.try_dup_tail_ternary(cond.clone(), jump_if_true, target) {
+                self.push_stmt(Stmt::Return(Some(e)));
+                if let Some(sk) = self.dup_tail_ternary_skip.take() {
+                    self.skip_until = Some(sk);
+                }
+                return;
+            }
         }
         // value-form `A and B or C`: the `and`'s PJIF target is the `or`'s
         // second operand, so the chain merges into one BoolOp value instead

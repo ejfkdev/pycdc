@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
   "PASS": 29,
-  "SIG-DIFF": 5,
-  "INCOMPLETE": 5,
+  "SIG-DIFF": 6,
+  "INCOMPLETE": 4,
   "AST-PASS": 1
  },
  "results": [
@@ -171,8 +171,9 @@
   },
   {
    "module": "configparser",
-   "verdict": "INCOMPLETE",
-   "ndiff": 194,
+   "ast_detail": "diff at token 93: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
+   "verdict": "SIG-DIFF",
+   "ndiff": 3080,
    "ntotal": 4671,
    "detail": "line 1537: orig ('SETUP_ANNOTATIONS', '') | got ('LOAD_NAME', 'set')\nline 1538: orig ('LOAD_NAME', 'set') | got ('LOAD_NAME', 'str')\nline 1539: orig ('LOAD_NAME', 'str') | got ('BINARY_SUBSCR', '')"
   },

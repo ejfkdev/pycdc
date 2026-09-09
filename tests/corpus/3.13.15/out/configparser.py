@@ -523,9 +523,7 @@ Search for the earliest prefix at the beginning of the line or following a space
 
         matcher = re.compile('|'.join((f'{re.escape(prefix)})' for prefix in self.prefixes.inline)) or '(?!)')
         match = matcher.search(self)
-        if match:
-            return self[:match.start()].strip()
-        return None[:].strip()
+        return self[:match.start() if match else None].strip()
 
     def _strip_full(self):
         return '' if any(map(self.strip().startswith, self.prefixes.full)) else True
@@ -1233,4 +1231,3 @@ section proxies to find and use the implementation on the parser class.
         return len(self._data)
 
 
-# WARNING: Decompyle incomplete
