@@ -41,11 +41,11 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 144: orig  Return(value=None)] | dec  Continue()]",
+   "ast_detail": "diff at token 233: orig  Return(value=NameConstant(value=None))])] | dec  Return(value=None)])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 979,
+   "ndiff": 82,
    "ntotal": 1157,
-   "detail": "line 139: orig ('SETUP_LOOP', 'to 182') | got ('SETUP_LOOP', 'to 189')\nline 161: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 189')\nline 162: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')"
+   "detail": "line 260: orig ('SETUP_EXCEPT', 'to 37') | got ('SETUP_FINALLY', 'to 49')\nline 261: orig ('LOAD_GLOBAL', 'open') | got ('LOAD_GLOBAL', 're')\nline 262: orig ('LOAD_CONST', \"'/System/Library/CoreServices/SystemVersion.plist'\") | got ('LOAD_ATTR', 'search')"
   },
   {
    "module": "_sitebuiltins",

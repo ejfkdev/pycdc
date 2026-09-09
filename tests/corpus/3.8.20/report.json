@@ -42,9 +42,9 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1235,
+   "ndiff": 525,
    "ntotal": 1434,
-   "detail": "line 178: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 134')\nline 179: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'executable')\nline 180: orig ('LOAD_FAST', 'executable') | got ('RETURN_VALUE', '')"
+   "detail": "line 306: orig ('JUMP_FORWARD', 'to 116') | got ('JUMP_FORWARD', 'to 46')\nline 464: orig ('FOR_ITER', 'to 126') | got ('FOR_ITER', 'to 138')\nline 494: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 124')"
   },
   {
    "module": "_py_abc",

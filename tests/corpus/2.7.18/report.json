@@ -117,11 +117,11 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 161: orig  Return(value=None)] | dec  Continue()]",
+   "ast_detail": "diff at token 256: orig  Return(value=Name(id='None' | dec  Return(value=None)])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 986,
+   "ndiff": 60,
    "ntotal": 1160,
-   "detail": "line 129: orig ('POP_JUMP_IF_TRUE', '#73') | got ('POP_JUMP_IF_TRUE', '#72')\nline 130: orig ('SETUP_LOOP', '#71') | got ('SETUP_LOOP', '#74')\nline 152: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', '#74')"
+   "detail": "line 246: orig ('SETUP_EXCEPT', '#13') | got ('SETUP_FINALLY', '#17')\nline 247: orig ('LOAD_GLOBAL', 'open') | got ('LOAD_GLOBAL', 're')\nline 248: orig ('LOAD_CONST', \"'/System/Library/CoreServices/SystemVersion.plist'\") | got ('LOAD_ATTR', 'search')"
   },
   {
    "module": "_strptime",
@@ -207,8 +207,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 839: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2365,
-   "ntotal": 3035,
+   "ndiff": 2388,
+   "ntotal": 3037,
    "detail": "line 515: orig ('SETUP_LOOP', '#236') | got ('SETUP_LOOP', '#237')\nline 519: orig ('POP_JUMP_IF_FALSE', '#235') | got ('POP_JUMP_IF_FALSE', '#236')\nline 580: orig ('SETUP_LOOP', '#138') | got ('SETUP_LOOP', '#139')"
   }
  ]

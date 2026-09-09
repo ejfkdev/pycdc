@@ -235,8 +235,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 703: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2486,
-   "ntotal": 3219,
+   "ndiff": 2506,
+   "ntotal": 3227,
    "detail": "line 570: orig ('SETUP_LOOP', '#276') | got ('SETUP_LOOP', '#281')\nline 574: orig ('JUMP_IF_FALSE', '#274') | got ('JUMP_IF_FALSE', '#279')\nline 581: orig ('JUMP_IF_FALSE', '#114') | got ('JUMP_IF_FALSE', '#113')"
   },
   {

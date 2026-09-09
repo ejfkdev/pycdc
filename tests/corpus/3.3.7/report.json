@@ -29,11 +29,11 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 165: orig  Return(value=None)] | dec  Continue()]",
+   "ast_detail": "diff at token 272: orig  Return(value=Name(id='None' | dec  Return(value=None)])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 953,
+   "ndiff": 62,
    "ntotal": 1140,
-   "detail": "line 145: orig ('POP_JUMP_IF_TRUE', '#73') | got ('POP_JUMP_IF_TRUE', '#72')\nline 146: orig ('SETUP_LOOP', '#71') | got ('SETUP_LOOP', '#74')\nline 168: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', '#74')"
+   "detail": "line 266: orig ('SETUP_EXCEPT', '#13') | got ('SETUP_FINALLY', '#17')\nline 267: orig ('LOAD_GLOBAL', 'open') | got ('LOAD_GLOBAL', 're')\nline 268: orig ('LOAD_CONST', \"'/System/Library/CoreServices/SystemVersion.plist'\") | got ('LOAD_ATTR', 'search')"
   },
   {
    "module": "_strptime",

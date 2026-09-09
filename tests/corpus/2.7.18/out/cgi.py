@@ -810,15 +810,21 @@ class FormContent(FormContentDict):
     def values(self, key):
         if key in self.dict:
             return self.dict[key]
+        else:
+            return
 
     def indexed_value(self, key, location):
         if key in self.dict:
             if len(self.dict[key]) > location:
                 return self.dict[key][location]
+            else:
+                return
 
     def value(self, key):
         if key in self.dict:
             return self.dict[key][0]
+        else:
+            return
 
     def length(self, key):
         return len(self.dict[key])
@@ -826,6 +832,8 @@ class FormContent(FormContentDict):
     def stripped(self, key):
         if key in self.dict:
             return self.dict[key][0].strip()
+        else:
+            return
 
     def pars(self):
         return self.dict

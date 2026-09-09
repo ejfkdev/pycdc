@@ -36532,6 +36532,11 @@ fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
     // RETURN_CONST None per ending branch: `if c: try:.. finally:..`
     // leaks a spurious `return` after the try inside the then-arm)
     if code.name != "<module>" && code.name != "<lambda>" {
+        // does this statement list end in an explicit `return <value>`
+        // (a non-None return)?
+        fn ends_value_return(stmts: &[Stmt]) -> bool {
+            matches!(stmts.last(), Some(Stmt::Return(Some(_))))
+        }
         fn strip_tail_returns(stmts: &mut Vec<Stmt>) {
             loop {
                 match stmts.last_mut() {
@@ -36539,8 +36544,25 @@ fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
                         stmts.pop();
                     }
                     Some(Stmt::If { body, orelse, .. }) => {
-                        strip_tail_returns(body);
-                        strip_tail_returns(orelse);
+                        // A trailing `return None` in one arm is the
+                        // compiler's sunk copy of the function's implicit
+                        // tail ONLY when no arm returns a value. When a
+                        // sibling arm ends in `return <value>`, the if/else
+                        // is a genuine value-returning branch pair: each
+                        // arm's return is EXPLICIT source, so a `return
+                        // None` arm must be KEPT (stripping it drops the
+                        // arm's result and lets flow fall through to the
+                        // sibling/continuation - _osx_support
+                        // _find_executable returned `executable` instead of
+                        // None when the search loop found nothing; the
+                        // explicit return is the function's last statement
+                        // so it is NOT recoverable as an implicit tail).
+                        let keep = ends_value_return(body)
+                            || ends_value_return(orelse);
+                        if !keep {
+                            strip_tail_returns(body);
+                            strip_tail_returns(orelse);
+                        }
                         return;
                     }
                     _ => return,
