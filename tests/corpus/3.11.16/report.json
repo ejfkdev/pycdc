@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 28,
-  "SIG-DIFF": 10,
+  "PASS": 29,
+  "SIG-DIFF": 9,
   "INCOMPLETE": 2
  },
  "results": [
@@ -89,11 +89,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 973: orig  Continue()] | dec  Return()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2532,
-   "ntotal": 3688,
-   "detail": "line 1119: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 186') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 188')\nline 1133: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 184')\nline 1134: orig ('RETURN_VALUE', '') | got ('PUSH_EXC_INFO', '')"
+   "verdict": "PASS"
   },
   {
    "module": "asynchat",

@@ -11301,6 +11301,92 @@ impl<'a> Ctx<'a> {
 
             // ---------- returns / yields ----------
             Op::RETURN_VALUE => {
+                // 3.11+ sunk arm-tail copy: an inline `LOAD None;
+                // RETURN` whose next real instruction is the arm's own
+                // out-of-line handler (PUSH_EXC_INFO), AND whose handler
+                // chain ALWAYS re-raises (a bare `except: ...; raise` —
+                // its last non-machinery op is RERAISE 0). That shape is
+                // the implicit function tail duplicated into an arm that
+                // ends in an always-raising try: the source had NO
+                // `return` there, and the arm TERMINATES (it never falls
+                // through to the code past the handler). Rendering the
+                // spurious `return` left the arm flattened, so the
+                // recompile relocated the tail past the handler and
+                // shifted the arm's exit jump (aifc 3.11 Aifc.__init__).
+                //
+                // The always-raises gate is what separates this from an
+                // EXPLICIT `return` inside a try body whose handler does
+                // not always raise (b26_tailtry.skip `try: x+=1; return;
+                // except OSError: pass`): that return must be folded back
+                // into the try body, which the emit_return narrowed-tail
+                // recovery below already does — so we must NOT swallow it
+                // here. Both shapes are locally identical (LOAD None;
+                // RETURN; PUSH_EXC_INFO); only the chain's terminator
+                // differs.
+                if self.version.at_least(3, 11)
+                    && matches!(
+                        self.stack.last(),
+                        Some(Sv::E(e))
+                            if matches!(&**e, Expr::Const(o)
+                                if matches!(&**o, PyObject::None))
+                    )
+                {
+                    let next_real = self
+                        .idx_of
+                        .get(&self.cur_offset)
+                        .and_then(|&ri| {
+                            let mut k = ri + 1;
+                            while matches!(
+                                self.instrs.get(k).map(|x| x.op),
+                                Some(Op::NOP)
+                                    | Some(Op::NOT_TAKEN)
+                                    | Some(Op::CACHE)
+                            ) {
+                                k += 1;
+                            }
+                            self.instrs.get(k)
+                        });
+                    if matches!(
+                        next_real.map(|x| x.op),
+                        Some(Op::PUSH_EXC_INFO)
+                    ) {
+                        let h = next_real.map(|x| x.offset).unwrap_or(0);
+                        let ext = self.chain_extent(h);
+                        let chain_always_raises = self
+                            .instrs
+                            .iter()
+                            .rev()
+                            .find(|x| {
+                                x.offset >= h
+                                    && x.offset < ext
+                                    && !matches!(
+                                        x.op,
+                                        Op::NOP
+                                            | Op::NOT_TAKEN
+                                            | Op::CACHE
+                                            | Op::COPY
+                                            | Op::SWAP
+                                            | Op::POP_EXCEPT
+                                            | Op::RERAISE
+                                    )
+                            })
+                            .map_or(false, |x| {
+                                x.op == Op::RAISE_VARARGS && x.arg == 0
+                            });
+                        if chain_always_raises {
+                            self.pop();
+                            // record the terminated arm so the If close
+                            // rebuilds the else arm at the PJFF target
+                            // instead of flattening it into a sibling (a
+                            // flattened arm recompiles to an arm-end
+                            // JUMP_FORWARD over the continuation, not the
+                            // original's per-arm sunk tail return).
+                            self.sunk_return_fold_at =
+                                Some(self.cur_offset);
+                            return true;
+                        }
+                    }
+                }
                 // 3.9/3.10 exits without CALL_FINALLY: the compiler
                 // duplicates the finally body inline right before each
                 // `return` inside the try. The copy ran as real statements

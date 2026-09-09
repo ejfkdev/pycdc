@@ -313,8 +313,8 @@ class Aifc_read:
             except:
                 file_object.close()
                 raise
-            return
-        self.initfp(f)
+        else:
+            self.initfp(f)
 
     def __enter__(self):
         return self
