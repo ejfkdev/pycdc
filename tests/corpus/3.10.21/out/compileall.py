@@ -97,8 +97,6 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
             results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes), files)
             success = min(results, default=True)
         return success
-        if not None:
-            pass
         return success
     for file in files:
         if not compile_file(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes):
@@ -325,4 +323,3 @@ def main():
 if __name__ == '__main__':
     exit_status = int(not main())
     sys.exit(exit_status)
-# WARNING: Decompyle incomplete

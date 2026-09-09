@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
   "PASS": 27,
-  "SIG-DIFF": 10,
-  "INCOMPLETE": 3
+  "SIG-DIFF": 11,
+  "INCOMPLETE": 2
  },
  "results": [
   {
@@ -92,7 +92,8 @@
   },
   {
    "module": "ast",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 4371: orig  args=[JoinedStr(values=[Constant(value=\"Node can't use cause without an exception.\")])] | dec  args=[Constant(value=\"Node can't use cause without an exception.\")]",
+   "verdict": "SIG-DIFF",
    "ndiff": 2476,
    "ntotal": 7116,
    "detail": "line 4532: orig ('SETUP_WITH', 'to 178') | got ('SETUP_WITH', 'to 192')\nline 4547: orig ('WITH_EXCEPT_START', '') | got ('POP_BLOCK', '')\nline 4548: orig ('POP_JUMP_IF_TRUE', '') | got ('LOAD_CONST', 'None')"

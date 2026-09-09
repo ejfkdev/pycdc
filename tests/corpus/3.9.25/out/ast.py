@@ -993,8 +993,6 @@ class _Unparser(NodeVisitor):
             with self.block():
                 self.traverse(node.body)
                 continue
-            if not None:
-                pass
         if node.orelse:
             self.fill('else')
             with self.block():
@@ -1428,4 +1426,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-# WARNING: Decompyle incomplete

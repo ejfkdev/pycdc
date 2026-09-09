@@ -474,9 +474,6 @@ def main():
             with open(args[0], 'rb') as f:
                 func(f, sys.stdout.buffer)
             return
-            if not None:
-                pass
-            return
         func(sys.stdin.buffer, sys.stdout.buffer)
 
 def test():
@@ -490,4 +487,3 @@ def test():
 
 if __name__ == '__main__':
     main()
-# WARNING: Decompyle incomplete

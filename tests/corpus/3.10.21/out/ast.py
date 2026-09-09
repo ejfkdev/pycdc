@@ -874,7 +874,7 @@ class _Unparser(NodeVisitor):
                 self.write(' ')
                 self.set_precedence(_Precedence.ATOM, node.value)
                 self.traverse(node.value)
-                return
+            return
 
     def visit_Yield(self, node):
         with self.require_parens(_Precedence.YIELD, node):
@@ -883,7 +883,7 @@ class _Unparser(NodeVisitor):
                 self.write(' ')
                 self.set_precedence(_Precedence.ATOM, node.value)
                 self.traverse(node.value)
-                return
+            return
 
     def visit_YieldFrom(self, node):
         with self.require_parens(_Precedence.YIELD, node):
@@ -919,9 +919,6 @@ class _Unparser(NodeVisitor):
             self.fill('finally')
             with self.block():
                 self.traverse(node.finalbody)
-            return
-            if not None:
-                pass
 
     def visit_ExceptHandler(self, node):
         self.fill('except')
@@ -995,9 +992,6 @@ class _Unparser(NodeVisitor):
             self.fill('else')
             with self.block():
                 self.traverse(node.orelse)
-            return
-            if not None:
-                pass
 
     def visit_If(self, node):
         self.fill('if ')
@@ -1014,9 +1008,6 @@ class _Unparser(NodeVisitor):
             self.fill('else')
             with self.block():
                 self.traverse(node.orelse)
-            return
-            if not None:
-                pass
 
     def visit_While(self, node):
         self.fill('while ')
@@ -1027,9 +1018,6 @@ class _Unparser(NodeVisitor):
             self.fill('else')
             with self.block():
                 self.traverse(node.orelse)
-            return
-            if not None:
-                pass
 
     def visit_With(self, node):
         self.fill('with ')
@@ -1160,9 +1148,6 @@ class _Unparser(NodeVisitor):
             with self.delimit('(', ')'):
                 self.items_view(self._write_constant, value)
             return
-            if not None:
-                pass
-            return
         if value is ...:
             self.write('...')
             return
@@ -1228,9 +1213,6 @@ class _Unparser(NodeVisitor):
         if node.elts:
             with self.delimit('{', '}'):
                 self.interleave((lambda: self.write(', ')), self.traverse, node.elts)
-            return
-            if not None:
-                pass
             return
         self.write('{*()}')
 
@@ -1348,7 +1330,7 @@ class _Unparser(NodeVisitor):
                 self.items_view(self.traverse, node.slice.elts)
             else:
                 self.traverse(node.slice)
-                return
+            return
 
     def visit_Starred(self, node):
         self.write('*')
@@ -1492,7 +1474,7 @@ class _Unparser(NodeVisitor):
                 if keys:
                     self.write(', ')
                 self.write(f'**{rest}')
-                return
+            return
 
     def visit_MatchClass(self, node):
         self.set_precedence(_Precedence.ATOM, node.cls)
@@ -1510,7 +1492,7 @@ class _Unparser(NodeVisitor):
                 if patterns:
                     self.write(', ')
                 self.interleave((lambda: self.write(', ')), write_attr_pattern, zip(attrs, node.kwd_patterns, strict=True))
-                return
+            return
 
     def visit_MatchAs(self, node):
         name = node.name
@@ -1552,4 +1534,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-# WARNING: Decompyle incomplete

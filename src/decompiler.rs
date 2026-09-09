@@ -14820,6 +14820,22 @@ impl<'a> Ctx<'a> {
                 true
             }
             Op::WITH_EXCEPT_START => {
+                // pre-3.11: the linear walk FELL THROUGH into a
+                // registered exception-time with handler (every normal
+                // flow ends in a RETURN or a JF over it) — the region
+                // is exception-only; skip it whole (aifc 3.10
+                // __main__: the handler's PJIT-swallow rendered
+                // `if not None: pass` at module tail)
+                if !self.version.at_least(3, 11)
+                    && self.with_handler_starts.contains(&self.cur_offset)
+                {
+                    let end = self.with_handler_skip_end(self.cur_offset);
+                    if self.skip_until.map_or(true, |s| s < end) {
+                        self.skip_until = Some(end);
+                    }
+                    self.with_exits = self.with_exits.saturating_sub(1);
+                    return true;
+                }
                 // 3.11+: result of __exit__ call on top; then POP_EXCEPT etc.
                 self.pop();
                 self.with_exits = self.with_exits.saturating_sub(1);
@@ -29772,6 +29788,48 @@ if split_cond {
                 {
                     let at = self.cur_offset;
                     self.force_close_top_cascade(at);
+                    continue;
+                }
+                break;
+            }
+        }
+        // 3.8-3.10 `with` nested in an if arm: the per-path body-end
+        // POP_BLOCKs sit INSIDE the arm (its end is the sibling path's
+        // POP_BLOCK). Close the arm first so the With-own scan below
+        // can run — otherwise the else-path's protocol copy walks as a
+        // garbage else arm and the exception handler renders
+        // `if not None: pass` (aifc 3.10 __main__ tail). The span to
+        // the with handler must be pure exit-protocol material; the
+        // own-scan revalidates before actually closing the With.
+        if !self.version.at_least(3, 11) {
+            while let Some(top) = self.blocks.last() {
+                if matches!(top.kind, BlockType::If | BlockType::Else)
+                    && top.start < self.cur_offset
+                    && top.end > self.cur_offset
+                    && self
+                        .blocks
+                        .iter()
+                        .rev()
+                        .skip(1)
+                        .next()
+                        .map_or(false, |b| {
+                            b.kind == BlockType::With
+                                && b.start < self.cur_offset
+                                && self.cur_offset < b.end
+                        })
+                {
+                    let at = self.cur_offset;
+                    self.force_close_top_cascade(at);
+                    // re-run the With arm for THIS POP_BLOCK: closing
+                    // the arm exposed the With as top, but the generic
+                    // dispatch below would otherwise wait for the next
+                    // path's POP_BLOCK and leave this path's protocol
+                    // copy walking as statements
+                    if let Some(top2) = self.blocks.last() {
+                        if matches!(top2.kind, BlockType::With) {
+                            self.handle_pop_block();
+                        }
+                    }
                     continue;
                 }
                 break;

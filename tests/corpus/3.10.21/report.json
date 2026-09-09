@@ -2,9 +2,9 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 25,
-  "SIG-DIFF": 11,
-  "INCOMPLETE": 4
+  "PASS": 26,
+  "SIG-DIFF": 13,
+  "INCOMPLETE": 1
  },
  "results": [
   {
@@ -85,16 +85,13 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 939: orig  keywords=[]))] | dec  keywords=[]))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2687,
-   "ntotal": 3102,
-   "detail": "line 143: orig ('POP_JUMP_IF_FALSE', 'to 624') | got ('POP_JUMP_IF_FALSE', 'to 610')\nline 170: orig ('SETUP_WITH', 'to 602') | got ('SETUP_WITH', 'to 584')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to 586') | got ('POP_JUMP_IF_FALSE', 'to 570')"
+   "verdict": "PASS"
   },
   {
    "module": "ast",
-   "verdict": "INCOMPLETE",
-   "ndiff": 7049,
+   "ast_detail": "diff at token 376: orig  ops=[Eq() | dec  ops=[Eq()]",
+   "verdict": "SIG-DIFF",
+   "ndiff": 7012,
    "ntotal": 7851,
    "detail": "line 611: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 617: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 623: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')"
   },
@@ -116,7 +113,8 @@
   },
   {
    "module": "base64",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 808: orig  comparators=[Set(elts=[Constant(value=0) | dec  comparators=[Call(func=Name(id='frozenset'",
+   "verdict": "SIG-DIFF",
    "ndiff": 1089,
    "ntotal": 1931,
    "detail": "line 764: orig ('POP_JUMP_IF_TRUE', 'to 310') | got ('POP_JUMP_IF_TRUE', 'to 318')\nline 766: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 767: orig ('CONTAINS_OP', '') | got ('BUILD_SET', '')"
@@ -195,7 +193,8 @@
   },
   {
    "module": "compileall",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 1047: orig  keywords=[]))] | dec  keywords=[]))",
+   "verdict": "SIG-DIFF",
    "ndiff": 600,
    "ntotal": 1505,
    "detail": "line 82: orig ('POP_JUMP_IF_FALSE', 'to 208') | got ('POP_JUMP_IF_FALSE', 'to 190')\nline 595: orig ('POP_JUMP_IF_FALSE', 'to 1130') | got ('POP_JUMP_IF_FALSE', 'to 1134')\nline 662: orig ('POP_JUMP_IF_FALSE', 'to 1130') | got ('POP_JUMP_IF_FALSE', 'to 1134')"
