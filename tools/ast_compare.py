@@ -260,6 +260,10 @@ import re as _re
 # BinOp from AST-PASS to SIG-DIFF).
 _JOINED_STR = getattr(ast, 'JoinedStr', None)
 _FMT_VALUE = getattr(ast, 'FormattedValue', None)
+# ast.Set (set-display `{...}`) is py2.7+; py2.6 has only set([...]) calls,
+# so guard it - an unguarded `isinstance(x, ast.Set)` in visit_Call crashed
+# the comparison for every py2.6 module containing a `frozenset(...)` call.
+_SET = getattr(ast, 'Set', None)
 
 # simple positional %-specifiers (no width/precision/flags/mapping-key)
 _PCT_SIMPLE = _re.compile(r'%[sra]')
@@ -626,11 +630,12 @@ class Normalizer(ast.NodeTransformer):
         # `frozenset({...})` normalizes the same way, and the decompile
         # only emits `frozenset({literal})` from that constant fold, so
         # this never conflates a real frozenset VALUE with a set.
-        if (isinstance(node.func, ast.Name)
+        if (_SET is not None
+                and isinstance(node.func, ast.Name)
                 and node.func.id == 'frozenset'
                 and len(node.args) == 1
                 and not getattr(node, 'keywords', [])
-                and isinstance(node.args[0], ast.Set)):
+                and isinstance(node.args[0], _SET)):
             return node.args[0]
         # set(genexpr) == set comprehension, list(genexpr) == list comp
         # (decompiler renders pre-3.x style comprehension code this way)

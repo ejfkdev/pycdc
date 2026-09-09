@@ -129,7 +129,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "CRASH: de)\n  File \"/Users/e/Documents/project/pycdc/tools/ast_compare.py\", line 633, in visit_Call\n    and isinstance(node.args[0], ast.Set)):\nAttributeError: 'module' object has no attribute 'Set'",
+   "ast_detail": "diff at token 1858: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 1198,
    "ntotal": 1709,
@@ -141,7 +141,7 @@
   },
   {
    "module": "abc",
-   "ast_detail": "CRASH: de)\n  File \"/Users/e/Documents/project/pycdc/tools/ast_compare.py\", line 633, in visit_Call\n    and isinstance(node.args[0], ast.Set)):\nAttributeError: 'module' object has no attribute 'Set'",
+   "ast_detail": "diff at token 101: orig  ifs=[Call(func=Name(id='getattr' | dec  ifs=[])])]",
    "verdict": "SIG-DIFF",
    "ndiff": 374,
    "ntotal": 516,
@@ -177,7 +177,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "CRASH: de)\n  File \"/Users/e/Documents/project/pycdc/tools/ast_compare.py\", line 633, in visit_Call\n    and isinstance(node.args[0], ast.Set)):\nAttributeError: 'module' object has no attribute 'Set'",
+   "ast_detail": "diff at token 2384: orig  values=[UnaryOp(op=Not() | dec  values=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
    "ndiff": 1738,
    "ntotal": 2270,
