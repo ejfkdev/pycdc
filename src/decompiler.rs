@@ -1889,6 +1889,29 @@ impl<'a> Ctx<'a> {
             }
             // pre-3.11 handler-chain bookkeeping
             self.legacy_chain_step(&inst);
+            // a bare-except chain whose try body ended in a RETURN has no
+            // body-end POP_BLOCK: the Try block (and its LegacyTry chain)
+            // is created by the close triggered AT the handler's first
+            // POP_TOP — which the chain step above ran ahead of. Re-run
+            // the step now so the bare-entry check (pos == handler_start)
+            // sees the live chain (codecs 3.7 open: the handler was never
+            // opened, its `file.close(); raise` flattened to function
+            // level and the teardown DROPPED the whole try body).
+            if !self.version.at_least(3, 11)
+                && inst.op == Op::POP_TOP
+                && self.legacy_handler.is_none()
+                && self.legacy_nest.is_empty()
+                && self.legacy_try.is_none()
+            {
+                self.close_blocks_at(pos);
+                if self
+                    .legacy_try
+                    .as_ref()
+                    .map_or(false, |l| l.handler_start == pos)
+                {
+                    self.legacy_chain_step(&inst);
+                }
+            }
             // an if/else branch may have closed exactly at this offset
             // while the chain step ran (the fused or-continue chain skips
             // ahead into its body); close it before executing here

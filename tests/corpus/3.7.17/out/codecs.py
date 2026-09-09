@@ -763,8 +763,14 @@ def open(filename, mode='r', encoding=None, errors='strict', buffering=1):
     file = builtins.open(filename, mode, buffering)
     if encoding is None:
         return file
-    file.close()
-    raise
+    try:
+        info = lookup(encoding)
+        srw = StreamReaderWriter(file, info.streamreader, info.streamwriter, errors)
+        srw.encoding = encoding
+        return srw
+    except:
+        file.close()
+        raise
 
 def EncodedFile(file, data_encoding, file_encoding=None, errors='strict'):
     """ Return a wrapped version of file which provides transparent

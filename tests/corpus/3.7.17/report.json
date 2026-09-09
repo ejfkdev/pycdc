@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 30,
-  "SIG-DIFF": 10
+  "PASS": 31,
+  "SIG-DIFF": 9
  },
  "results": [
   {
@@ -164,11 +164,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1245: orig  Continue()] | dec  Raise(exc=None",
-   "verdict": "SIG-DIFF",
-   "ndiff": 246,
-   "ntotal": 2187,
-   "detail": "line 1938: orig ('SETUP_EXCEPT', 'to 88') | got ('LOAD_FAST', 'file')\nline 1939: orig ('LOAD_GLOBAL', 'lookup') | got ('LOAD_METHOD', 'close')\nline 1940: orig ('LOAD_FAST', 'encoding') | got ('CALL_METHOD', '')"
+   "verdict": "PASS"
   },
   {
    "module": "codeop",
