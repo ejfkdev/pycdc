@@ -108,9 +108,9 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 988: orig  value=ListComp(elt=IfExp(test=BoolOp(op=And() | dec  value=ListComp(elt=BinOp(left=BinOp(left=Subscript(value=Name(id='chars2'",
+   "ast_detail": "diff at token 1343: orig  values=[Compare(left=Name(id='x' | dec  values=[Compare(left=Constant(value=33)",
    "verdict": "SIG-DIFF",
-   "ndiff": 845,
+   "ndiff": 1131,
    "ntotal": 1868,
    "detail": "line 705: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 706: orig ('CONTAINS_OP', '') | got ('BUILD_SET', '')\nline 707: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})')"
   },

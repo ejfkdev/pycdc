@@ -57,6 +57,19 @@ def _mk_str(s):
     return _mk_const(s)
 
 
+def _mk_bytes(b):
+    """Bytes-literal node whose dump matches the PARSER's output on every
+    version (mirrors _mk_const: 3.8 sets kind=None; <=3.7 uses ast.Bytes;
+    3.9+ uses ast.Constant)."""
+    if hasattr(ast, 'Constant') and 'kind' in getattr(ast.Constant, '_fields', ()):
+        c = ast.Constant(value=b)
+        c.kind = None
+        return c
+    if hasattr(ast, 'Bytes'):
+        return ast.Bytes(s=b)
+    return ast.Constant(value=b)
+
+
 def const_key(node):
     """Canonical (kind, value) for constant-ish expression nodes."""
     if _is_num(node):
@@ -404,6 +417,16 @@ class Normalizer(ast.NodeTransformer):
             return node.value
         return None
 
+    def _bytesval(self, node):
+        # py2 has no distinct bytes type (b'x' parses as Str), so this only
+        # fires on py3 where the str fold above already declined
+        if hasattr(ast, 'Bytes') and isinstance(node, ast.Bytes):
+            return node.s
+        if hasattr(ast, 'Constant') and isinstance(node, ast.Constant) \
+                and isinstance(node.value, bytes):
+            return node.value
+        return None
+
     def visit_BinOp(self, node):
         self.generic_visit(node)
         # 3.12+ folds `template % operands` (simple positional %s/%r/%a)
@@ -420,6 +443,13 @@ class Normalizer(ast.NodeTransformer):
             if ls is not None and isinstance(rn, int) and 0 <= rn <= 1000 \
                     and len(ls) * rn <= 4096:
                 return _mk_str(ls * rn)
+            # ... and `b'x' * n` into a literal bytes (base64 3.6+
+            # `_85encode`/b32encode pad with `b'u' * 4` etc., which the
+            # compiler folds to the constant b'uuuu' the decompile renders)
+            lb = self._bytesval(node.left)
+            if lb is not None and isinstance(rn, int) and 0 <= rn <= 1000 \
+                    and len(lb) * rn <= 4096:
+                return _mk_bytes(lb * rn)
         l = self._numval(node.left)
         r = self._numval(node.right)
         if l is None or r is None:

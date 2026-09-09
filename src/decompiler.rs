@@ -38357,6 +38357,20 @@ fn comp_arm_value_op(o: Op) -> bool {
             | Op::KW_NAMES
             | Op::PRECALL
             | Op::BINARY_OP
+            | Op::BINARY_ADD
+            | Op::BINARY_SUBTRACT
+            | Op::BINARY_MULTIPLY
+            | Op::BINARY_TRUE_DIVIDE
+            | Op::BINARY_FLOOR_DIVIDE
+            | Op::BINARY_MODULO
+            | Op::BINARY_POWER
+            | Op::BINARY_LSHIFT
+            | Op::BINARY_RSHIFT
+            | Op::BINARY_AND
+            | Op::BINARY_OR
+            | Op::BINARY_XOR
+            | Op::BINARY_DIVIDE
+            | Op::BINARY_MATRIX_MULTIPLY
             | Op::BINARY_SUBSCR
             | Op::COMPARE_OP
             | Op::IS_OP
