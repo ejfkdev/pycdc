@@ -90,25 +90,21 @@ class BZ2File(_compression.BaseStream):
 
         if self._mode == _MODE_CLOSED:
             return
-        # WARNING: unrecovered try/except structure
-        if self._mode == _MODE_READ:
-            self._buffer.close()
-        elif self._mode == _MODE_WRITE:
-            self._fp.write(self._compressor.flush())
-            self._compressor = None
         try:
-            if self._closefp:
-                self._fp.close()
+            if self._mode == _MODE_READ:
+                self._buffer.close()
+            elif self._mode == _MODE_WRITE:
+                self._fp.write(self._compressor.flush())
+                self._compressor = None
+        finally:
+            try:
+                if self._closefp:
+                    self._fp.close()
+            finally:
                 self._fp = None
                 self._closefp = False
                 self._mode = _MODE_CLOSED
                 self._buffer = None
-                return
-        finally:
-            self._fp = None
-            self._closefp = False
-            self._mode = _MODE_CLOSED
-            self._buffer = None
 
     @property
     def closed(self):

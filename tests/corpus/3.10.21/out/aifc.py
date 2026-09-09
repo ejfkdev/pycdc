@@ -641,11 +641,6 @@ class Aifc_write:
             self._writemarkers()
             if self._nframeswritten != self._nframes or self._datalength != self._datawritten or self._marklength:
                 self._patchheader()
-                self._convert = None
-                f = self._file
-                self._file = None
-                f.close()
-                return
         finally:
             self._convert = None
             f = self._file

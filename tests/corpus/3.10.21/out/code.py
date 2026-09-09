@@ -134,7 +134,6 @@ class InteractiveInterpreter:
                 self.write(''.join(lines))
             else:
                 sys.excepthook(ei[0], ei[1], last_tb)
-                return
         finally:
             last_tb = ei = None
 

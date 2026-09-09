@@ -105,39 +105,40 @@ class Cmd:
                 readline.parse_and_bind(self.completekey + ': complete')
             except ImportError:
                 pass
-        if self.use_rawinput:
-            if self.completekey:
-                # WARNING: unrecovered try/except structure
-                if intro is not None:
-                    self.intro = intro
-                if self.intro:
-                    self.stdout.write(str(self.intro) + '\n')
-                stop = None
-                while not stop:
-                    if self.cmdqueue:
-                        line = self.cmdqueue.pop(0)
-                    elif self.use_rawinput:
-                        try:
-                            line = input(self.prompt)
-                        except EOFError:
-                            line = 'EOF'
+        try:
+            if intro is not None:
+                self.intro = intro
+            if self.intro:
+                self.stdout.write(str(self.intro) + '\n')
+            stop = None
+            while not stop:
+                if self.cmdqueue:
+                    line = self.cmdqueue.pop(0)
+                elif self.use_rawinput:
+                    try:
+                        line = input(self.prompt)
+                    except EOFError:
+                        line = 'EOF'
+                else:
+                    self.stdout.write(self.prompt)
+                    self.stdout.flush()
+                    line = self.stdin.readline()
+                    if not len(line):
+                        line = 'EOF'
                     else:
-                        self.stdout.write(self.prompt)
-                        self.stdout.flush()
-                        line = self.stdin.readline()
-                        if not len(line):
-                            line = 'EOF'
-                        else:
-                            line = line.rstrip('\r\n')
-                    line = self.precmd(line)
-                    stop = self.onecmd(line)
-                    stop = self.postcmd(stop, line)
-                self.postloop()
-                try:
-                    import readline
-                    readline.set_completer(self.old_completer)
-                except ImportError:
-                    pass
+                        line = line.rstrip('\r\n')
+                line = self.precmd(line)
+                stop = self.onecmd(line)
+                stop = self.postcmd(stop, line)
+            self.postloop()
+        finally:
+            if self.use_rawinput:
+                if self.completekey:
+                    try:
+                        import readline
+                        readline.set_completer(self.old_completer)
+                    except ImportError:
+                        pass
 
     def precmd(self, line):
         '''Hook method executed just before the command line is

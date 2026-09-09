@@ -80,7 +80,7 @@ def readwrite(obj, flags):
             obj.handle_expt_event()
         if flags & (select.POLLHUP | select.POLLERR | select.POLLNVAL):
             obj.handle_close()
-            return
+        return
     except OSError as e:
         if e.errno not in _DISCONNECTED:
             obj.handle_error()

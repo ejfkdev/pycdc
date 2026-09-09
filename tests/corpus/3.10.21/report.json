@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 24,
-  "SIG-DIFF": 12,
+  "PASS": 25,
+  "SIG-DIFF": 11,
   "INCOMPLETE": 4
  },
  "results": [
@@ -19,8 +19,8 @@
    "module": "_bootsubprocess",
    "ast_detail": "diff at token 48: orig  body=[Try(body=[If(test=Compare(left=Attribute(value=Name(id='self' | dec  body=[Expr(value=Call(func=Attribute(value=Name(id='os'",
    "verdict": "SIG-DIFF",
-   "ndiff": 294,
-   "ntotal": 364,
+   "ndiff": 310,
+   "ntotal": 381,
    "detail": "line 60: orig ('POP_JUMP_IF_FALSE', 'to 122') | got ('POP_JUMP_IF_FALSE', 'to 28')\nline 61: orig ('SETUP_FINALLY', 'to 110') | got ('LOAD_GLOBAL', 'os')\nline 62: orig ('LOAD_FAST', 'self') | got ('LOAD_METHOD', '_exit')"
   },
   {
@@ -87,8 +87,8 @@
    "module": "aifc",
    "ast_detail": "diff at token 939: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2705,
-   "ntotal": 3106,
+   "ndiff": 2687,
+   "ntotal": 3102,
    "detail": "line 143: orig ('POP_JUMP_IF_FALSE', 'to 624') | got ('POP_JUMP_IF_FALSE', 'to 610')\nline 170: orig ('SETUP_WITH', 'to 602') | got ('SETUP_WITH', 'to 584')\nline 226: orig ('POP_JUMP_IF_FALSE', 'to 586') | got ('POP_JUMP_IF_FALSE', 'to 570')"
   },
   {
@@ -108,11 +108,11 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 253: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 254: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1791,
+   "ndiff": 1760,
    "ntotal": 2191,
-   "detail": "line 309: orig ('SETUP_FINALLY', 'to 98') | got ('SETUP_FINALLY', 'to 96')\nline 356: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 176')\nline 357: orig ('RETURN_VALUE', '') | got ('DUP_TOP', '')"
+   "detail": "line 309: orig ('SETUP_FINALLY', 'to 98') | got ('SETUP_FINALLY', 'to 92')\nline 347: orig ('POP_JUMP_IF_FALSE', 'to 92') | got ('POP_JUMP_IF_FALSE', 'to 86')\nline 355: orig ('POP_BLOCK', '') | got ('DUP_TOP', '')"
   },
   {
    "module": "base64",
@@ -135,11 +135,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 274: orig  Continue()] | dec  Return()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 465,
-   "ntotal": 828,
-   "detail": "line 321: orig ('SETUP_FINALLY', 'to 178') | got ('LOAD_FAST', 'self')\nline 322: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', '_mode')\nline 323: orig ('LOAD_ATTR', '_mode') | got ('LOAD_GLOBAL', '_MODE_READ')"
+   "verdict": "PASS"
   },
   {
    "module": "cProfile",
@@ -175,11 +171,11 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 179: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 620: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1072,
+   "ndiff": 688,
    "ntotal": 1324,
-   "detail": "line 218: orig ('SETUP_FINALLY', 'to 378') | got ('LOAD_FAST', 'self')\nline 219: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 220: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', 'to 366')"
+   "detail": "line 560: orig ('POP_BLOCK', '') | got ('LOAD_FAST', 'func')\nline 561: orig ('LOAD_FAST', 'func') | got ('LOAD_FAST', 'arg')\nline 562: orig ('LOAD_FAST', 'arg') | got ('CALL_FUNCTION', '')"
   },
   {
    "module": "code",

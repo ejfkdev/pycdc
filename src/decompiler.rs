@@ -1353,6 +1353,7 @@ pub fn decompile_in_scope(
     // the walk can end (function-tail return inside the else region)
     // before the emission point — flush it now
     while !ctx.legacy_nest.is_empty() {
+        ctx.close_legacy_region_arms();
         // fold a nested handler still open at walk end (terminating return)
         if let Some(h) = ctx.legacy_handler.take() {
             if let Some(lt) = ctx.legacy_try.as_mut() {
@@ -1367,16 +1368,24 @@ pub fn decompile_in_scope(
         let nested = ctx.legacy_try.take();
         ctx.restore_legacy_nest();
         if let Some(l) = nested {
-            if !l.handlers.is_empty() {
+            // finally-only chains count too: a nested try/finally inside
+            // an outer finally body (bz2 3.10 close) ends the walk with
+            // the OUTER chain still stashed — dropping it lost the whole
+            // structure
+            if !l.handlers.is_empty() || l.has_finally {
                 let mut orelse = l.orelse;
                 if matches!(orelse.last(), Some(Stmt::Return(None))) {
                     orelse.pop();
+                }
+                let mut finalbody = l.finalbody;
+                if matches!(finalbody.last(), Some(Stmt::Return(None))) {
+                    finalbody.pop();
                 }
                 ctx.push_stmt(Stmt::Try {
                     body: l.body,
                     handlers: l.handlers,
                     orelse,
-                    finalbody: l.finalbody,
+                    finalbody,
                 });
             }
         }
@@ -1420,6 +1429,7 @@ pub fn decompile_in_scope(
             });
         }
     }
+    ctx.close_legacy_region_arms();
     if let Some(l) = ctx.legacy_try.take() {
         if !l.handlers.is_empty() || l.has_finally {
             let mut orelse = l.orelse;
@@ -7069,6 +7079,7 @@ impl<'a> Ctx<'a> {
                         let l = self.legacy_try.take().unwrap();
                         self.restore_legacy_nest();
                         self.push_legacy_try(l);
+                        self.flush_completed_restored_chain();
                     }
                 }
                 // the just-collected clause may BE the last one: a clause
@@ -7102,6 +7113,7 @@ impl<'a> Ctx<'a> {
                         let l = self.legacy_try.take().unwrap();
                         self.restore_legacy_nest();
                         self.push_legacy_try(l);
+                        self.flush_completed_restored_chain();
                     }
                 }
             }
@@ -7135,6 +7147,7 @@ impl<'a> Ctx<'a> {
                         orelse: l.orelse,
                         finalbody: l.finalbody,
                     });
+                    self.flush_completed_restored_chain();
                 }
                 if let Some(l) = self.legacy_try.as_mut() {
                     if l.has_finally {
@@ -7148,6 +7161,7 @@ impl<'a> Ctx<'a> {
                         let l = self.legacy_try.take().unwrap();
                         self.restore_legacy_nest();
                         self.push_legacy_try(l);
+                        self.flush_completed_restored_chain();
                     }
                 }
             }
@@ -7171,10 +7185,17 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 // 3.8-3.10 try/finally: the inline finally body ends with
-                // the forward jump over the handler copy — emit and skip
+                // the forward jump over the handler copy — emit and skip.
+                // The jump must sit INSIDE the chain's own inline region:
+                // a later jump (the with-exit protocol's tail JF past a
+                // nested-finally close) must not flush a chain whose
+                // region already ended — the emit would land outside the
+                // enclosing with/loop block (bz2 3.9 close)
                 if lt.has_finally
                     && self.legacy_handler.is_none()
-                    && lt.else_start.map_or(false, |es| pos >= es)
+                    && lt
+                        .else_start
+                        .map_or(false, |es| pos >= es && pos <= lt.else_stop)
                 {
                     if let Some(target) = inst.target {
                         if target > pos && target >= lt.handler_start {
@@ -7182,7 +7203,29 @@ impl<'a> Ctx<'a> {
                             let l = self.legacy_try.take().unwrap();
                             self.restore_legacy_nest();
                             self.push_legacy_try(l);
-                                                        self.skip_until = Some(target);
+                            self.flush_completed_restored_chain();
+                            {
+                            // a nested try/finally INSIDE the restored
+                            // chain's finally body shares this terminal
+                            // jump (bz2 3.9/3.10 close `finally: {try:
+                            // ... finally: ...}` — both inline copies
+                            // end here): the restored chain's region
+                            // also ends at this pos, so emit it too
+                            // while the enclosing block is still open
+                            while self.legacy_handler.is_none()
+                                && self.legacy_try.as_ref().map_or(false, |l2| {
+                                    l2.has_finally
+                                        && l2.else_start.map_or(false, |es2| {
+                                            pos >= es2 && pos <= l2.else_stop
+                                        })
+                                })
+                            {
+                                let l2 = self.legacy_try.take().unwrap();
+                                self.restore_legacy_nest();
+                                self.push_legacy_try(l2);
+                            }
+                            }
+                            self.skip_until = Some(target);
                             return;
                         }
                     }
@@ -7998,6 +8041,38 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    /// force_close_top with legacy-region cascade: when the closed
+    /// block's statement was ROUTED into a legacy chain's inline-finally
+    /// region (push_stmt redirect) instead of landing in the parent, an
+    /// if-arm chain over that region would close empty level by level
+    /// (`if A: pass` / `if B: pass` shells — cmd 3.10 cmdloop). Keep
+    /// closing empty If/Else parents whose region also ended at `pos`.
+    fn force_close_top_cascade(&mut self, pos: usize) {
+        loop {
+            let (parent_stmts, parent_is_arm, parent_end) = match self.blocks.last() {
+                Some(b) => (
+                    b.stmts.len(),
+                    matches!(b.kind, BlockType::If | BlockType::Else),
+                    b.end,
+                ),
+                None => return,
+            };
+            self.force_close_top(pos);
+            let routed_away = self
+                .blocks
+                .last()
+                .map_or(false, |b| b.stmts.len() == parent_stmts);
+            if !routed_away || !parent_is_arm || parent_end > pos {
+                return;
+            }
+            if !self.blocks.last().map_or(false, |b| {
+                matches!(b.kind, BlockType::If | BlockType::Else) && b.end <= pos
+            }) {
+                return;
+            }
+        }
+    }
+
     fn force_close_top(&mut self, pos: usize) {
 
         // stores that happened inside this block must land in it, not in
@@ -8040,6 +8115,27 @@ impl<'a> Ctx<'a> {
                 }
                 self.split_arm_prints(&mut b);
                 let body = std::mem::take(&mut b.stmts);
+                // an if-arm EMPTIED by the legacy finally-region
+                // redirect: its content was routed into the chain's
+                // finalbody when it flushed (push_legacy_try) — closing
+                // the shell here renders `if cond: pass` beside the
+                // flushed Try (cmd 3.10 cmdloop `finally: {if A: if B:
+                // try/except}`). A genuine `if cond: pass` has no
+                // bytecode branch at all, so an empty arm inside a live
+                // copy region is always a routed shell — drop it.
+                if body.is_empty() && b.else_end.is_none() {
+                    let routed_shell =
+                        self.legacy_try.as_ref().map_or(false, |l| {
+                            l.has_finally
+                                && !l.finalbody.is_empty()
+                                && l.else_start.map_or(false, |es| {
+                                    b.start >= es && b.end <= l.handler_start
+                                })
+                        });
+                    if routed_shell {
+                        return;
+                    }
+                }
                 // 3.14 `if c: break` shape: PJIT over a break block with a
                 // continue on the fall-through — normalize back
                 if body.len() == 1 && matches!(body[0], Stmt::Continue) {
@@ -8977,7 +9073,16 @@ impl<'a> Ctx<'a> {
                     let mut has_finally = false;
                     let mut inline_end = usize::MAX;
                     if self.version.at_least(3, 8) {
-                        if let Some(&hi) = self.idx_of.get(&pos) {
+                        // classify from the HANDLER head (the Try block's
+                        // end), not from this POP_BLOCK: when the finally
+                        // body itself holds a nested try/except, a linear
+                        // scan from the body end meets the NESTED chain's
+                        // match head first and misreads the outer finally
+                        // chain as an except chain (_bootsubprocess 3.10
+                        // check_output `finally: {try: os.unlink(...)
+                        // except OSError: pass}`)
+                        let scan_off = if b.end > pos { b.end } else { pos };
+                        if let Some(&hi) = self.idx_of.get(&scan_off) {
                             for k in hi..(hi + 64).min(self.instrs.len()) {
                                 let ins = &self.instrs[k];
                                 match ins.op {
@@ -9032,12 +9137,27 @@ impl<'a> Ctx<'a> {
                             // the POP_BLOCK to its RETURN (function-tail
                             // finally) or the forward jump over the handler
                             // copy — the block end is the handler start,
-                            // which lies PAST the inline region
+                            // which lies PAST the inline region. A NESTED
+                            // try inside the finally body opens its own
+                            // SETUP level: its POP_BLOCK/JF close the
+                            // nested level only — track the depth so the
+                            // outer region extends to ITS own matching
+                            // close (bz2 3.8 close: `finally: {try: ...
+                            // finally: ...}` — stopping at the nested
+                            // POP_BLOCK stranded the inner finally's
+                            // stores outside the outer chain)
+                            let mut setup_depth = 0i32;
                             for ins in self.instrs.iter() {
                                 if ins.offset < self.cur_next {
                                     continue;
                                 }
                                 match ins.op {
+                                    Op::SETUP_FINALLY
+                                    | Op::SETUP_EXCEPT
+                                    | Op::SETUP_CLEANUP
+                                    | Op::SETUP_LOOP => {
+                                        setup_depth += 1;
+                                    }
                                     Op::RETURN_VALUE | Op::RETURN_CONST => {
                                         inline_end = ins.offset;
                                         break;
@@ -9046,11 +9166,17 @@ impl<'a> Ctx<'a> {
                                     // enclosing level's POP_BLOCK right
                                     // after this level's inline body
                                     Op::POP_BLOCK => {
+                                        if setup_depth > 0 {
+                                            setup_depth -= 1;
+                                            continue;
+                                        }
                                         inline_end = ins.offset;
                                         break;
                                     }
                                     Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE => {
-                                        if ins.target.unwrap_or(0) > pos {
+                                        if setup_depth == 0
+                                            && ins.target.unwrap_or(0) > pos
+                                        {
                                             inline_end = ins.offset;
                                             break;
                                         }
@@ -9091,6 +9217,40 @@ impl<'a> Ctx<'a> {
                             // order (_osx_support 3.9 _get_system_version)
                             && (self.version.at_least(3, 8)
                                 || self.cur_offset >= prev.else_stop)
+                            // 3.8+ early-fold bypass guard: a nested
+                            // try level STILL OPEN inside the outer
+                            // finally region (its SETUP sits between
+                            // else_start and this POP_BLOCK unmatched)
+                            // means this POP_BLOCK closes the NESTED
+                            // level and the outer region still runs —
+                            // folding the outer chain here drops the
+                            // whole nested try/finally out of its
+                            // finalbody (bz2 3.8 close `finally: {try:
+                            // ... finally: ...}` rendered a bare body +
+                            // `unrecovered` warning)
+                            && !(prev.has_finally
+                                && self.version.at_least(3, 8)
+                                && {
+                                let mut d = 0i32;
+                                for ins in self.instrs.iter() {
+                                    if ins.offset
+                                        < prev.else_start.unwrap_or(usize::MAX)
+                                    {
+                                        continue;
+                                    }
+                                    if ins.offset >= self.cur_offset {
+                                        break;
+                                    }
+                                    match ins.op {
+                                        Op::SETUP_FINALLY
+                                        | Op::SETUP_EXCEPT
+                                        | Op::SETUP_CLEANUP => d += 1,
+                                        Op::POP_BLOCK => d -= 1,
+                                        _ => {}
+                                    }
+                                }
+                                d > 0
+                            })
                     });
                     let mut prev_done = if prev_complete {
                         self.legacy_try.take()
@@ -9498,7 +9658,19 @@ impl<'a> Ctx<'a> {
         if !else_region_block_open {
             if let Some(lt) = self.legacy_try.as_mut() {
                 if let Some(es) = lt.else_start {
-                    if self.cur_offset >= es && self.cur_offset <= lt.else_stop {
+                    // has_finally regions extend to the HANDLER start:
+                    // a branching finally body has multiple sunk tail
+                    // returns and the inline_end scan stops at the
+                    // first — if-arm wrappers over the copy close past
+                    // else_stop and still belong to the finally body
+                    // (cmd 3.10 cmdloop). orelse regions keep the
+                    // precise else_stop bound.
+                    let stop = if lt.has_finally {
+                        lt.else_stop.max(lt.handler_start)
+                    } else {
+                        lt.else_stop
+                    };
+                    if self.cur_offset >= es && self.cur_offset <= stop {
                         if lt.has_finally {
                             lt.finalbody.push(stmt);
                         } else {
@@ -16123,6 +16295,7 @@ impl<'a> Ctx<'a> {
     }
 
     fn push_legacy_try(&mut self, l: LegacyTry) {
+        let l_handler_start = l.handler_start;
         let mut try_stmt = Stmt::Try {
             body: l.body,
             handlers: l.handlers,
@@ -16181,6 +16354,78 @@ impl<'a> Ctx<'a> {
                     insert_before_returns(&mut ot.body, try_stmt);
                 }
                 return;
+            }
+        }
+        // an emitted nested Try landing inside the RESTORED outer
+        // chain's inline-finally region belongs to that chain's
+        // finalbody, not to the enclosing block (bz2 3.8 close:
+        // `finally: {try: ... finally: ...}` — the nested Try flushed
+        // at its own END_FINALLY must fold into the outer finally;
+        // sibling emission inverted the order and left the outer
+        // finalbody empty)
+        // a STASHED chain whose inline-finally region still contains
+        // this emission point wins over the active chain: a nested try
+        // inside a finally body flushes from within an if-arm of that
+        // body while the outer chain is stashed — routing into the
+        // stash keeps the wrapper cascade intact (cmd 3.10 cmdloop:
+        // the active-then-restored routing put the nested Try bare
+        // into finalbody and the arm wrappers closed as dropped
+        // empty shells, losing the `if use_rawinput:` guards)
+        {
+            let mut target_idx = None;
+            for (i, n) in self.legacy_nest.iter().enumerate().rev() {
+                if let Some(o) = &n.outer_try {
+                    if o.has_finally && o.handler_start != l_handler_start {
+                        if let Some(es) = o.else_start {
+                            if self.cur_offset >= es
+                                && self.cur_offset <= o.else_stop
+                            {
+                                target_idx = Some(i);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if let Some(i) = target_idx {
+                if let Some(o) = self.legacy_nest[i].outer_try.as_mut() {
+                    o.finalbody.push(try_stmt);
+                }
+                return;
+            }
+        }
+        if let Some(lt) = self.legacy_try.as_mut() {
+            if lt.has_finally && lt.handler_start != l_handler_start {
+                if let Some(es) = lt.else_start {
+                    // two window shapes: (a) handler BEFORE the inline
+                    // copy (3.8 END_FINALLY layout, bz2 3.8 close):
+                    // [es, else_stop]; (b) handler AFTER the copy (3.9+
+                    // inline layout) and the copy's if-arm wrappers all
+                    // closed already (top is Main/Try): the window
+                    // extends to the handler start — a nested chain
+                    // flushing from past the first sunk tail return
+                    // still belongs to the finally body
+                    // (_bootsubprocess 3.10 check_output). With arms
+                    // still open (cmd 3.10 cmdloop) keep the tight
+                    // bound so the Try lands in the arm and the
+                    // wrappers cascade into the finalbody.
+                    let arms_open = matches!(
+                        self.blocks.last().map(|b| b.kind),
+                        Some(BlockType::If) | Some(BlockType::Else)
+                    );
+                    let in_window = if lt.handler_start > lt.else_stop
+                        && !arms_open
+                    {
+                        self.cur_offset >= es
+                            && self.cur_offset < lt.handler_start
+                    } else {
+                        self.cur_offset >= es && self.cur_offset <= lt.else_stop
+                    };
+                    if in_window {
+                        lt.finalbody.push(try_stmt);
+                        return;
+                    }
+                }
             }
         }
         // a nested chain flushed inside a restored outer handler belongs to
@@ -29348,6 +29593,190 @@ if split_cond {
     }
 
     fn handle_pop_block(&mut self) {
+        // `with ...: if c: return expr` — the return sits inside an if
+        // arm still OPEN at this POP_BLOCK, and the inline with-exit
+        // protocol tail follows it. Fold the return into the innermost
+        // block (the if arm) and close only that block — the With stays
+        // open for a sibling arm's own POP_BLOCK fold (bz2 3.8
+        // BZ2File.tell: `if self._mode == _MODE_READ: return
+        // self._buffer.tell()` rendered a bare `return`, the CALL_METHOD
+        // value lost to the protocol walk).
+        if let Some(top) = self.blocks.last() {
+            if matches!(top.kind, BlockType::If | BlockType::Else)
+                && self
+                    .blocks
+                    .iter()
+                    .rev()
+                    .skip(1)
+                    .any(|b| b.kind == BlockType::With)
+            {
+                if let Some(&ni) = self.idx_of.get(&self.cur_next) {
+                    if let Some(after) = self.with_return_tail_end(ni) {
+                        if matches!(self.stack.last(), Some(Sv::E(_))) {
+                            let wend = self
+                                .blocks
+                                .iter()
+                                .rev()
+                                .find(|b| b.kind == BlockType::With)
+                                .map(|b| b.end)
+                                .unwrap_or(usize::MAX);
+                            self.fold_with_return(wend, after);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        // 3.8-3.10: this POP_BLOCK is a NESTED try's body-end but if/else
+        // arms opened inside that body are still open (their end is the
+        // post-try sunk-copy landing, past this POP_BLOCK — bz2 3.10
+        // close `finally: {try: {if closefp: fp.close()} finally: ...}`:
+        // the arm trapped the inline-finally stores and the epilogue
+        // flush emitted an empty Try). Close the arm blocks first so the
+        // Try close below runs.
+        if !self.version.at_least(3, 11) {
+            while let Some(top) = self.blocks.last() {
+                if matches!(top.kind, BlockType::If | BlockType::Else)
+                    && top.start < self.cur_offset
+                    && top.end > self.cur_offset
+                    && self
+                        .blocks
+                        .iter()
+                        .rev()
+                        .skip(1)
+                        .next()
+                        .map_or(false, |b| {
+                            b.kind == BlockType::Try
+                                && b.start < self.cur_offset
+                                && self.cur_offset < b.end
+                        })
+                    // this POP_BLOCK must be the try body's OWN end: a
+                    // RETURN/RAISE/BREAK escape inside an if arm carries
+                    // its own POP_BLOCK before the terminator
+                    // (_collections_abc 3.8 Sequence.index `if v is
+                    // value or v == value: return i` — closing the arm
+                    // at the return's POP_BLOCK left `if ...: pass` +
+                    // an unconditional `return i`)
+                    && !matches!(
+                        self
+                            .idx_of
+                            .get(&self.cur_offset)
+                            .and_then(|&pi| self.instrs.get(pi + 1))
+                            .map(|x| x.op),
+                        Some(Op::RETURN_VALUE)
+                            | Some(Op::RETURN_CONST)
+                            | Some(Op::RAISE_VARARGS)
+                            | Some(Op::BREAK_LOOP)
+                            // 3.8 return-in-try escape protocol:
+                            // POP_BLOCK; CALL_FINALLY; RETURN (codeop
+                            // 3.8 _maybe_compile `if code: return code`
+                            // — closing the arm here ejected the return)
+                            | Some(Op::CALL_FINALLY)
+                    )
+                    // a VALUE return escape out of the try (asyncore
+                    // 3.8 recv `if not data: ...; return b'' else:
+                    // return data`: POP_BLOCK; [loads]; RETURN_VALUE
+                    // with the value riding the stack) or a return
+                    // under an inline finally copy (codeop 3.9
+                    // _maybe_compile `if code: return code` — the copy
+                    // follows the POP_BLOCK and the value rides under
+                    // it) is the arm's own exit, not the body end.
+                    // Only a NONE-return sunk-copy tail ([stores/copy
+                    // ops;] LOAD None; RETURN — bz2 3.10 close) marks
+                    // the body end: check the first non-pad instruction
+                    // before the next RETURN_VALUE/RETURN_CONST.
+                    && !{
+                        let mut k2 = self
+                            .idx_of
+                            .get(&self.cur_offset)
+                            .map_or(usize::MAX, |pi| pi + 1);
+                        let mut steps = 0;
+                        let mut value_escape = false;
+                        'scan: while let Some(x) = self.instrs.get(k2) {
+                            steps += 1;
+                            if steps > 48 {
+                                break;
+                            }
+                            if x.target.is_some()
+                                || matches!(
+                                    x.op,
+                                    Op::POP_EXCEPT
+                                        | Op::END_FINALLY
+                                        | Op::RERAISE
+                                        | Op::BEGIN_FINALLY
+                                        | Op::POP_FINALLY
+                                        | Op::WITH_CLEANUP_START
+                                        | Op::WITH_CLEANUP_FINISH
+                                        | Op::SETUP_FINALLY
+                                        | Op::SETUP_EXCEPT
+                                        | Op::SETUP_CLEANUP
+                                        | Op::CALL_FINALLY
+                                )
+                            {
+                                // a jump or unwind-protocol instruction
+                                // before any return: this POP_BLOCK is
+                                // an arm's escape edge (3.8 `if doc:
+                                // ...; return` inside try/except
+                                // escapes via POP_BLOCK; POP_EXCEPT;
+                                // LOAD None; RETURN), not a body end
+                                // with a sunk tail
+                                value_escape = true;
+                                break 'scan;
+                            }
+                            if matches!(
+                                x.op,
+                                Op::RETURN_VALUE | Op::RETURN_CONST
+                            ) {
+                                // prev non-pad instruction decides
+                                let mut p = k2;
+                                let mut prev_is_none = false;
+                                while p > 0 {
+                                    p -= 1;
+                                    let pp = &self.instrs[p];
+                                    if matches!(
+                                        pp.op,
+                                        Op::NOP
+                                            | Op::NOT_TAKEN
+                                            | Op::CACHE
+                                            | Op::EXTENDED_ARG
+                                    ) {
+                                        continue;
+                                    }
+                                    prev_is_none = pp.op == Op::LOAD_CONST
+                                        && matches!(
+                                            self
+                                                .code
+                                                .consts
+                                                .get(pp.arg as usize)
+                                                .map(|o| &**o),
+                                            Some(PyObject::None)
+                                        );
+                                    break;
+                                }
+                                value_escape = !(prev_is_none
+                                    || x.op == Op::RETURN_CONST
+                                        && matches!(
+                                            self
+                                                .code
+                                                .consts
+                                                .get(x.arg as usize)
+                                                .map(|o| &**o),
+                                            Some(PyObject::None)
+                                        ));
+                                break 'scan;
+                            }
+                            k2 += 1;
+                        }
+                        value_escape
+                    }
+                {
+                    let at = self.cur_offset;
+                    self.force_close_top_cascade(at);
+                    continue;
+                }
+                break;
+            }
+        }
         // POP_BLOCK ends Try (no finally) or With or loop bodies (<=3.7).
         if let Some(top) = self.blocks.last() {
             match top.kind {
@@ -29833,6 +30262,89 @@ if split_cond {
         if self.skip_until.map_or(true, |s| s < skip_end) {
                         self.skip_until = Some(skip_end);
         }
+    }
+
+    /// Walk-end flush preparation: if/else arms opened over the
+    /// chain's inline-finally copy may still be open (the copy's sunk
+    /// tail returns never close them by position). Close them while the
+    /// chain is ACTIVE and the else-region redirect is temporarily
+    /// extended to the handler start, so their statements route into
+    /// finalbody ahead of the flushed Try — otherwise they land as
+    /// siblings and the Try loses its finally (cmd 3.10 cmdloop).
+    fn close_legacy_region_arms(&mut self) {
+        let (es, stop, hs) = match self.legacy_try.as_ref() {
+            Some(l) if l.has_finally => match l.else_start {
+                Some(es) => (es, l.else_stop, l.handler_start),
+                None => return,
+            },
+            _ => return,
+        };
+        if stop >= hs {
+            return;
+        }
+        let has_arm = self.blocks.iter().any(|b| {
+            matches!(b.kind, BlockType::If | BlockType::Else)
+                && b.start >= es
+                && b.end > stop
+                && b.end <= hs
+        });
+        if !has_arm {
+            return;
+        }
+        let saved_cur = self.cur_offset;
+        if let Some(l) = self.legacy_try.as_mut() {
+            l.else_stop = hs;
+        }
+        self.cur_offset = es;
+        loop {
+            let arm = match self.blocks.last() {
+                Some(b)
+                    if matches!(b.kind, BlockType::If | BlockType::Else)
+                        && b.start >= es
+                        && b.end <= hs =>
+                {
+                    (b.end, b.stmts.is_empty())
+                }
+                _ => break,
+            };
+            if arm.1 {
+                // emptied by the region redirect (its content already
+                // sits in finalbody): drop the shell without emitting
+                // an `if cond: pass` wrapper
+                self.blocks.pop();
+            } else {
+                self.force_close_top_cascade(arm.0);
+            }
+        }
+        self.cur_offset = saved_cur;
+    }
+
+    /// After a nested chain flushed and its stashed outer chain was
+    /// restored: when the restored chain's own inline-finally region
+    /// already ENDED (the walk is past its else_stop, inside the nested
+    /// chain's handler material), its finalbody is complete — flush it
+    /// here and end the walk. Waiting strands it: the exception-time
+    /// handler copy that follows would walk as real code (duplicate
+    /// statements) and the teardown flush would land the Try after all
+    /// of it (_bootsubprocess 3.10 check_output).
+    fn flush_completed_restored_chain(&mut self) {
+        let ready = self.legacy_try.as_ref().map_or(false, |l| {
+            l.has_finally
+                && l.else_start.is_some()
+                && self.cur_offset > l.else_stop
+                && self.cur_offset < l.handler_start
+        }) && !matches!(
+            self.blocks.last().map(|b| b.kind),
+            Some(BlockType::If) | Some(BlockType::Else)
+        );
+        if !ready {
+            return;
+        }
+        let l = self.legacy_try.take().unwrap();
+        self.flush_pending_stores();
+        self.restore_legacy_nest();
+        self.push_legacy_try(l);
+        self.skip_until = Some(usize::MAX);
     }
 
     fn close_finally(&mut self) {
@@ -32932,6 +33444,61 @@ impl<'a> Ctx<'a> {
             self.sunk_return_fold_at = Some(self.cur_offset);
             return;
         }
+        // 3.8-3.10 multi-exit inline finally copies: every path out of
+        // the copy region ends in a sunk `LOAD None; RETURN` (copies of
+        // the implicit function tail). Copies PAST the chain's recorded
+        // else_stop (the inline_end scan stopped at the FIRST sunk
+        // return) but before the handler are duplicates of exits of a
+        // branching finally body — rendering them emits stray `return`s
+        // ahead of the flushed Try (cmd 3.10 cmdloop `finally: {if A:
+        // if B: try/except}` — the if-false exits each carry their own
+        // tail copy)
+        if is_none_value
+            && self.legacy_handler.is_none()
+            && !self.version.at_least(3, 11)
+            && self.legacy_nest.is_empty()
+            && self
+                .legacy_try
+                .as_ref()
+                .map_or(false, |l| {
+                    l.has_finally
+                        && l.else_start.is_some()
+                        && self.cur_offset > l.else_stop
+                        && self.cur_offset < l.handler_start
+                })
+        {
+            // this is the inline copy's last sunk tail return before the
+            // exception-time handler copy: the handler region is pure
+            // duplication (3.8-3.10 finally copies) — never walk it (cmd
+            // 3.10 cmdloop rendered the handler copy as a duplicate
+            // `finally` body). The chain flushes at the walk-end
+            // teardown with its finalbody already collected.
+            let is_last_tail = self
+                .legacy_try
+                .as_ref()
+                .map_or(false, |l| {
+                    self.instrs
+                        .iter()
+                        .skip_while(|x| x.offset <= self.cur_offset)
+                        .take_while(|x| x.offset < l.handler_start)
+                        .all(|x| {
+                            matches!(
+                                x.op,
+                                Op::LOAD_CONST
+                                    | Op::RETURN_VALUE
+                                    | Op::RETURN_CONST
+                                    | Op::NOP
+                                    | Op::NOT_TAKEN
+                                    | Op::CACHE
+                                    | Op::EXTENDED_ARG
+                            )
+                        })
+                });
+            if is_last_tail {
+                self.skip_until = Some(usize::MAX);
+            }
+            return;
+        }
         // <=3.10: the function-tail `LOAD None; RETURN` epilogue reached
         // by a nested try's body-end jump that flew over the handler
         // chains (parse_skipped_nested_chain territory): a legacy
@@ -33406,7 +33973,25 @@ impl<'a> Ctx<'a> {
         // sits between the body's POP_BLOCK and the handler chain; it is
         // the try body's last statement (its value load was protected).
         // Route it into the collected body, not past the try.
+        // a nested try INSIDE a stashed outer chain's inline-finally
+        // region: this return-none is the finally copy's sunk function
+        // tail, not the nested body's `return v` — leave it to
+        // emit_return's sunk_tail_terminator swallow (cmd 3.10 cmdloop
+        // `finally: {if A: if B: try/except ImportError: pass}` — the
+        // fold rendered a spurious `return` inside the nested try and
+        // derailed the whole chain)
+        let in_stashed_finally_region = self.legacy_nest.iter().any(|n| {
+            n.outer_try
+                .as_ref()
+                .map_or(false, |o| {
+                    o.has_finally
+                        && o.else_start.map_or(false, |es| {
+                            self.cur_offset >= es && self.cur_offset <= o.else_stop
+                        })
+                })
+        });
         if self.legacy_handler.is_none()
+            && !in_stashed_finally_region
             && self.cur_offset
                 < self.legacy_try.as_ref().map(|l| l.handler_start).unwrap_or(0)
             && self.legacy_try.as_ref().map_or(false, |l| {

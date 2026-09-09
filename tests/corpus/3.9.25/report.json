@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 26,
-  "SIG-DIFF": 11,
+  "PASS": 27,
+  "SIG-DIFF": 10,
   "INCOMPLETE": 3
  },
  "results": [
@@ -127,11 +127,7 @@
   },
   {
    "module": "bz2",
-   "ast_detail": "diff at token 312: orig  Try(body=[If(test=Compare(left=Attribute(value=Name(id='self' | dec  If(test=Compare(left=Attribute(value=Name(id='self'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 699,
-   "ntotal": 1051,
-   "detail": "line 323: orig ('SETUP_WITH', 'to 256') | got ('SETUP_WITH', 'to 176')\nline 338: orig ('SETUP_FINALLY', 'to 168') | got ('LOAD_FAST', 'self')\nline 339: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', '_mode')"
+   "verdict": "PASS"
   },
   {
    "module": "cProfile",
