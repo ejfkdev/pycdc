@@ -2,8 +2,8 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 28,
-  "SIG-DIFF": 6,
+  "PASS": 29,
+  "SIG-DIFF": 5,
   "INCOMPLETE": 5,
   "AST-PASS": 1
  },
@@ -30,11 +30,7 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "diff at token 220: orig  body=Yield()))])) | dec  body=Yield(value=Constant(value=None))))]))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 509,
-   "ntotal": 3785,
-   "detail": "line 3272: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'default')\nline 3273: orig ('LOAD_FAST', 'default') | got ('SWAP', '')\nline 3274: orig ('RETURN_VALUE', '') | got ('POP_EXCEPT', '')"
+   "verdict": "PASS"
   },
   {
    "module": "_colorize",
@@ -183,8 +179,8 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1802,
-   "ntotal": 2251,
+   "ndiff": 1789,
+   "ntotal": 2237,
    "detail": "line 408: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 409: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'wraps + NULL')\nline 410: orig ('LOAD_GLOBAL', 'wraps + NULL') | got ('LOAD_FAST', 'func')"
   },
   {

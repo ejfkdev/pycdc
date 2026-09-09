@@ -528,6 +528,16 @@ struct Ctx<'a> {
     /// next region instead of the loop exit — the walk must drop them
     /// (the final back edge still closes the loop)
     or_rot_revals: Vec<(usize, usize)>,
+    /// the try being tail-emitted is a BARE try/except (no else span,
+    /// no finally, no except*): only then may a legacy-shape clause's
+    /// sunk post-try resume be split out of the handler body and
+    /// rendered after the Try (else/finally/star tails interleave the
+    /// resume with their own spans — splitting there tore b05/b15/
+    /// v311_exceptstar and codeop/crypt apart)
+    bare_try_parse: bool,
+    /// sunk post-try continuation split out of a bare-try handler
+    /// clause; emitted right after the Try statement
+    handler_sunk_tail: Vec<Stmt>,
     /// `except E as name` cleanup (`name = None; del name`) that follows a
     /// folded handler: the None-store is held until the matching delete
     /// confirms it (a real `x = None` statement must not be swallowed)
@@ -808,6 +818,8 @@ pub fn decompile_in_scope(
         closed_loop_tops: Vec::new(),
         while_true_loops: Vec::new(),
         or_rot_revals: Vec::new(),
+        bare_try_parse: false,
+        handler_sunk_tail: Vec::new(),
         pending_as_cleanup: None,
         star_tail: Vec::new(),
         star_tail_end: None,
@@ -2630,6 +2642,13 @@ impl<'a> Ctx<'a> {
                     .get(&h)
                     .map_or(false, |&hi| self.is_star_dispatch(hi))
             });
+        self.bare_try_parse = tc.finally_handler.is_none()
+            && tc.region_end == tc.body_end
+            && !tc.except_handler.map_or(false, |h| {
+                self.idx_of
+                    .get(&h)
+                    .map_or(false, |&hi| self.is_star_dispatch(hi))
+            });
         let body_jf = if star_inline && tc.region_end > tc.body_end {
             // the body's terminal JF sits at body_end, possibly followed
             // by padding before the chain head (region_end)
@@ -4060,6 +4079,10 @@ impl<'a> Ctx<'a> {
                 finalbody,
             });
         }
+        let sunk_tail = std::mem::take(&mut self.handler_sunk_tail);
+        if !sunk_tail.is_empty() {
+            self.push_stmt_all(sunk_tail);
+        }
         let star_tail = std::mem::take(&mut self.star_tail);
         if !star_tail.is_empty() {
             self.push_stmt_all(star_tail);
@@ -5294,6 +5317,7 @@ impl<'a> Ctx<'a> {
         // handler region (`try: raise X / except X: ... / return v` — the
         // body always raises, so the flow is only reachable through the
         // handler). Include it so the function's tail is not lost.
+        let mut sunk_resume: Option<(usize, usize)> = None;
         if k2 < self.instrs.len()
             && self.instrs[k2].offset < limit
             && !trail_exit_jump
@@ -5331,6 +5355,66 @@ impl<'a> Ctx<'a> {
                 m2 += 1;
             }
             if saw_term {
+                if self.bare_try_parse {
+                    // bare try/except only: split the sunk post-try
+                    // resume out of the clause (rendered after the Try;
+                    // inside the handler it recompiles to the SWAP-value
+                    // POP_EXCEPT exit form — _collections_abc setdefault).
+                    // The resume must start IMMEDIATELY after the clause
+                    // POP_EXCEPT (pads aside): a clause whose body ends
+                    // in `raise` has no normal-exit POP_EXCEPT before the
+                    // resume and its pi lies deep in the stubs — cutting
+                    // there tore crypt/codeop's handler bodies apart
+                    let mut q = pi + 1;
+                    while q < self.instrs.len()
+                        && matches!(
+                            self.instrs[q].op,
+                            Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                        )
+                    {
+                        q += 1;
+                    }
+                    if q < self.instrs.len()
+                        && self.instrs[q].offset == self.instrs[k2].offset
+                    {
+                        // the sunk span must be a PURE straight-line
+                        // value run ending in a single RETURN: an inner
+                        // POP_EXCEPT (nested try/with inside the clause)
+                        // makes pi cut mid-body and the "resume" span
+                        // holds real statements (bdb 3.12 bpby clause
+                        // rendered `pass` + a bare `return`, losing
+                        // `return b, False`)
+                        let pure_span = {
+                            let mut okp = true;
+                            let mut saw_ret = 0usize;
+                            for x in &self.instrs[k2..m2] {
+                                if matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST) {
+                                    saw_ret += 1;
+                                    continue;
+                                }
+                                if x.target.is_some()
+                                    || !(Self::comp_arm_value_op(x.op)
+                                        || matches!(
+                                            x.op,
+                                            Op::STORE_FAST
+                                                | Op::STORE_NAME
+                                                | Op::STORE_DEREF
+                                        ))
+                                {
+                                    okp = false;
+                                    break;
+                                }
+                            }
+                            okp && saw_ret == 1
+                        };
+                        if pure_span {
+                            sunk_resume = Some((
+                                self.instrs[k2].offset,
+                                self.instrs[pi].offset,
+                            ));
+                        }
+                    }
+                }
                 body_end = self.instrs[m2].offset;
                 k2 = m2;
             }
@@ -5377,7 +5461,19 @@ impl<'a> Ctx<'a> {
             }
         }
         *pc = k2;
-        let mut body = if body_end > body_start {
+        let mut body = if let Some((resume_off, pop_off)) = sunk_resume {
+            let sunk = if body_end > resume_off {
+                self.decompile_region(resume_off, body_end)
+            } else {
+                Vec::new()
+            };
+            self.handler_sunk_tail.extend(sunk);
+            if pop_off > body_start {
+                self.decompile_region(body_start, pop_off)
+            } else {
+                Vec::new()
+            }
+        } else if body_end > body_start {
             self.decompile_region(body_start, body_end)
         } else {
             Vec::new()

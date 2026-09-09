@@ -447,7 +447,7 @@ to the method instead of the object itself).
             exit_method = _cb_type.__exit__
         except AttributeError:
             self._push_exit_callback(exit)
-            return exit
+        return exit
         self._push_cm_exit(exit, exit_method)
         return exit
 
@@ -604,7 +604,7 @@ to the method instead of the object itself).
             exit_method = _cb_type.__aexit__
         except AttributeError:
             self._push_exit_callback(exit, False)
-            return exit
+        return exit
         self._push_async_cm_exit(exit, exit_method)
         return exit
 

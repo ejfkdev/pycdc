@@ -898,7 +898,7 @@ In either case, this is followed by:
             return self[key]
         except KeyError:
             self[key] = default
-            return default
+        return default
 
 
 MutableMapping.register(dict)

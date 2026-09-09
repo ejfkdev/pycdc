@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 28,
-  "SIG-DIFF": 7,
+  "PASS": 29,
+  "SIG-DIFF": 6,
   "INCOMPLETE": 4,
   "AST-PASS": 1
  },
@@ -22,11 +22,7 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "diff at token 277: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 498,
-   "ntotal": 3670,
-   "detail": "line 3163: orig ('POP_JUMP_IF_FALSE', 'to 48') | got ('POP_JUMP_IF_FALSE', 'to 50')\nline 3169: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'default')\nline 3170: orig ('LOAD_FAST', 'default') | got ('SWAP', '')"
+   "verdict": "PASS"
   },
   {
    "module": "_compat_pickle",
@@ -180,8 +176,8 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1751,
-   "ntotal": 2190,
+   "ndiff": 1733,
+   "ntotal": 2176,
    "detail": "line 400: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 401: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + wraps')\nline 402: orig ('LOAD_GLOBAL', 'NULL + wraps') | got ('LOAD_FAST', 'func')"
   },
   {

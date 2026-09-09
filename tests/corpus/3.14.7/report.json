@@ -40,7 +40,7 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 220: orig  body=Yield()))])) | dec  body=Yield(value=Constant(value=None))))]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1258,
+   "ndiff": 1257,
    "ntotal": 4046,
    "detail": "line 2761: orig ('LOAD_FAST', 'self') | got ('JUMP_BACKWARD', 'to L1')\nline 2762: orig ('LOAD_ATTR', 'pop + NULL|self') | got ('__ior__', 2)\nline 2763: orig ('CALL', '') | got ('RESUME', '')"
   },
@@ -218,8 +218,8 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1924,
-   "ntotal": 2442,
+   "ndiff": 1914,
+   "ntotal": 2428,
    "detail": "line 483: orig ('LOAD_DEREF', 'func') | got ('LOAD_CONST', 'None')\nline 484: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 485: orig ('LOAD_FAST', 'args') | got ('LOAD_CONST', 'None')"
   },
   {

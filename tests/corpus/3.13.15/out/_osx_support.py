@@ -91,6 +91,7 @@ two version numbers.
             except ValueError:
                 _SYSTEM_VERSION_TUPLE = ()
             return _SYSTEM_VERSION_TUPLE
+            return _SYSTEM_VERSION_TUPLE
     return _SYSTEM_VERSION_TUPLE
 
 def _remove_original_values(_config_vars):
