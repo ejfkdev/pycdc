@@ -21,7 +21,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 556: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 556: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Set(elts=[Str(s='element')",
    "verdict": "SIG-DIFF",
    "ndiff": 972,
    "ntotal": 1407,
@@ -101,7 +101,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 4025: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 4072: orig  kwargs=None))])])] | dec  kwargs=None))])",
    "verdict": "SIG-DIFF",
    "ndiff": 1968,
    "ntotal": 2902,
@@ -109,7 +109,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 958: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 956: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
    "ndiff": 2347,
    "ntotal": 3049,
@@ -129,7 +129,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 1028: orig  finalbody=[])] | dec  finalbody=[])",
+   "ast_detail": "diff at token 1020: orig  finalbody=[])])] | dec  finalbody=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 750,
    "ntotal": 1328,
@@ -141,7 +141,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1391: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 1392: orig  orelse=[Raise(exc=None | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 1123,
    "ntotal": 2180,
@@ -165,7 +165,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 4476: orig  ctx=Del())]) | dec  ctx=Del())",
+   "ast_detail": "diff at token 4466: orig  ctx=Del())]) | dec  ctx=Del())",
    "verdict": "SIG-DIFF",
    "ndiff": 825,
    "ntotal": 4129,
@@ -189,7 +189,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1739: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=BinOp(left=Subscript(value=Name(id='v'",
+   "ast_detail": "diff at token 1737: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=BinOp(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
    "ndiff": 726,
    "ntotal": 1653,
@@ -197,7 +197,7 @@
   },
   {
    "module": "dis",
-   "ast_detail": "diff at token 1331: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 1313: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
    "ndiff": 530,
    "ntotal": 1491,

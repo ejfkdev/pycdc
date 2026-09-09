@@ -21,7 +21,7 @@
   },
   {
    "module": "ConfigParser",
-   "ast_detail": "diff at token 2151: orig  ctx=Load()))] | dec  ctx=Load()))",
+   "ast_detail": "diff at token 2145: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
    "ndiff": 774,
    "ntotal": 2274,
@@ -41,7 +41,7 @@
   },
   {
    "module": "HTMLParser",
-   "ast_detail": "diff at token 752: orig  right=Num(n=1)))] | dec  right=Num(n=1)))",
+   "ast_detail": "diff at token 742: orig  right=Num(n=1)))] | dec  right=Num(n=1)))",
    "verdict": "SIG-DIFF",
    "ndiff": 1025,
    "ntotal": 1607,
@@ -161,7 +161,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 1847: orig  TryExcept(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self' | dec  If(test=Compare(left=Subscript(value=Attribute(value=Name(id='why'",
+   "ast_detail": "diff at token 1837: orig  TryExcept(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self' | dec  If(test=Compare(left=Subscript(value=Attribute(value=Name(id='why'",
    "verdict": "SIG-DIFF",
    "ndiff": 325,
    "ntotal": 2185,
@@ -205,7 +205,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 839: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 837: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
    "ndiff": 2388,
    "ntotal": 3037,

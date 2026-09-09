@@ -743,11 +743,13 @@ def split_tail_ternary_return(stmts):
 def _flatten_node(s):
     """Recurse into statement-holding fields (the walk-based passes in
     dump() never reach nested If bodies)."""
+    is_loop = isinstance(s, _LOOP_TYPES)
     for field in ('body', 'orelse', 'finalbody'):
         val = getattr(s, field, None)
         if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
             setattr(s, field,
-                    split_tail_ternary_return(flatten_terminating_else(val)))
+                    split_tail_ternary_return(flatten_terminating_else(
+                        val, loop_body=(is_loop and field == 'body'))))
     for h in getattr(s, 'handlers', None) or []:
         if getattr(h, 'body', None):
             h.body = split_tail_ternary_return(
@@ -755,7 +757,7 @@ def _flatten_node(s):
     return s
 
 
-def flatten_terminating_else(stmts):
+def flatten_terminating_else(stmts, loop_body=False):
     """3.14 tail sinking: `if c: A else: B` followed by a trailing
     terminator T compiles to `if c: A; T` with B laid out sequentially
     and T repeated after it. Canonicalize the source shape INTO the sunk
@@ -784,8 +786,14 @@ def flatten_terminating_else(stmts):
             stmts = out
     # loop-tail if/else: compilers render the then arm's exit as a
     # `continue` and lay the else out as fall-through (bisect's binary
-    # search loops) - canonicalize the source shape into it
-    if (isinstance(tail, ast.If) and tail.orelse and tail.body
+    # search loops) - canonicalize the source shape into it. ONLY for a
+    # LOOP body: a `continue` is meaningless at a function/module tail, and
+    # adding one there corrupts the comparison (cgi __init__'s trailing
+    # if/elif/else, not inside any loop, got a spurious `continue` sunk into
+    # its then arm so it mismatched a decompile that flattened the chain to
+    # `if c: call(); return` siblings with the function's implicit tail).
+    if (loop_body
+            and isinstance(tail, ast.If) and tail.orelse and tail.body
             and not isinstance(tail.body[-1], (ast.Return, ast.Raise,
                                                ast.Continue))):
         stmts = list(stmts[:-1])
@@ -1096,9 +1104,13 @@ def dump(src):
         for field in ('body', 'orelse', 'finalbody'):
             val = getattr(node, field, None)
             if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
+                # the loop-tail if/else -> continue canonicalization inside
+                # flatten_terminating_else is only valid for a LOOP body
+                is_loop_body = isinstance(node, _LOOP_TYPES) and field == 'body'
                 setattr(node, field,
                         split_tail_ternary_return(
-                            flatten_terminating_else(merge_nested_ifs(val))))
+                            flatten_terminating_else(merge_nested_ifs(val),
+                                                     loop_body=is_loop_body)))
         # a docstring-only body normalizes to empty; the source may have
         # carried a redundant `pass` after it (no bytecode) - canonicalize
         # an empty statement body to [Pass()] on both sides

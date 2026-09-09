@@ -62,7 +62,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 408: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
+   "ast_detail": "diff at token 406: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
    "verdict": "SIG-DIFF",
    "ndiff": 962,
    "ntotal": 1374,
@@ -92,7 +92,7 @@
   },
   {
    "module": "_pylong",
-   "ast_detail": "diff at token 820: orig  If(test=Constant(value=0) | dec  Assign(targets=[Tuple(elts=[Name(id='p256'",
+   "ast_detail": "diff at token 819: orig  If(test=Constant(value=0) | dec  Assign(targets=[Tuple(elts=[Name(id='p256'",
    "verdict": "SIG-DIFF",
    "ndiff": 517,
    "ntotal": 1551,
@@ -151,7 +151,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 493: orig  body=[Return(value=Attribute(value=Attribute(value=Name(id='sys' | dec  body=[Assign(targets=[Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 492: orig  body=[Return(value=Attribute(value=Attribute(value=Name(id='sys' | dec  body=[Assign(targets=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
    "ndiff": 3353,
    "ntotal": 3996,
@@ -175,7 +175,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 322: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()])",
+   "ast_detail": "diff at token 319: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
    "ndiff": 1047,
    "ntotal": 1406,
@@ -209,7 +209,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 1134: orig  ctx=Load())])) | dec  ctx=Load())]))]",
+   "ast_detail": "diff at token 1133: orig  ctx=Load())]))]) | dec  ctx=Load())]))])]",
    "verdict": "SIG-DIFF",
    "ndiff": 3272,
    "ntotal": 5081,

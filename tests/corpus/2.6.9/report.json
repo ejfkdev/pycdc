@@ -17,7 +17,7 @@
   },
   {
    "module": "CGIHTTPServer",
-   "ast_detail": "diff at token 796: orig  If(test=Compare(left=Call(func=Attribute(value=Subscript(value=Name(id='authorization' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 794: orig  If(test=Compare(left=Call(func=Attribute(value=Subscript(value=Name(id='authorization' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 937,
    "ntotal": 1241,
@@ -25,7 +25,7 @@
   },
   {
    "module": "ConfigParser",
-   "ast_detail": "diff at token 1984: orig  ctx=Load()))] | dec  ctx=Load()))",
+   "ast_detail": "diff at token 1879: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
    "ndiff": 985,
    "ntotal": 2162,
@@ -41,7 +41,7 @@
   },
   {
    "module": "DocXMLRPCServer",
-   "ast_detail": "diff at token 377: orig  body=[Assign(targets=[Name(id='anchor' | dec  body=[If(test=Name(id='cl'",
+   "ast_detail": "diff at token 369: orig  body=[Assign(targets=[Name(id='anchor' | dec  body=[If(test=Name(id='cl'",
    "verdict": "SIG-DIFF",
    "ndiff": 612,
    "ntotal": 906,
@@ -49,7 +49,7 @@
   },
   {
    "module": "HTMLParser",
-   "ast_detail": "diff at token 774: orig  kwargs=None)) | dec  kwargs=None))]",
+   "ast_detail": "diff at token 764: orig  kwargs=None)) | dec  kwargs=None))]",
    "verdict": "SIG-DIFF",
    "ndiff": 895,
    "ntotal": 1416,
@@ -129,7 +129,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1858: orig  orelse=[])] | dec  orelse=[])",
+   "ast_detail": "diff at token 1723: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
    "ndiff": 1198,
    "ntotal": 1709,
@@ -149,7 +149,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 2031: orig  values=[Str(s='Warning: MARK chunk contains only')] | dec  values=[Str(s='Warning: MARK chunk contains only')",
+   "ast_detail": "diff at token 2017: orig  values=[Str(s='Warning: MARK chunk contains only')] | dec  values=[Str(s='Warning: MARK chunk contains only')",
    "verdict": "SIG-DIFF",
    "ndiff": 2956,
    "ntotal": 3376,
@@ -169,7 +169,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 332: orig  ctx=Load()))) | dec  ctx=Load())))]",
+   "ast_detail": "diff at token 885: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
    "ndiff": 595,
    "ntotal": 853,
@@ -177,7 +177,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 2384: orig  values=[UnaryOp(op=Not() | dec  values=[Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 2366: orig  values=[UnaryOp(op=Not() | dec  values=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
    "ndiff": 1738,
    "ntotal": 2270,
@@ -233,7 +233,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 703: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 701: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
    "ndiff": 2506,
    "ntotal": 3227,
@@ -241,7 +241,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 299: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 297: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
    "ndiff": 1254,
    "ntotal": 1541,

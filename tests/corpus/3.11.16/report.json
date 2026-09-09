@@ -41,7 +41,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 463: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 463: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
    "verdict": "SIG-DIFF",
    "ndiff": 1018,
    "ntotal": 1454,
@@ -148,7 +148,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 348: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()]",
+   "ast_detail": "diff at token 344: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1043,
    "ntotal": 1443,

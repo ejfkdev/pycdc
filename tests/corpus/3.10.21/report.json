@@ -41,7 +41,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 463: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 464: orig  Constant(value='linktype') | dec  Constant(value='link')",
    "verdict": "SIG-DIFF",
    "ndiff": 931,
    "ntotal": 1359,
@@ -113,7 +113,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 1555: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 1553: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 1148,
    "ntotal": 1931,
@@ -145,7 +145,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 1522: orig  Continue()] | dec  Return()]",
+   "ast_detail": "diff at token 1515: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 617,
    "ntotal": 2910,
@@ -153,7 +153,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 149: orig  Continue()] | dec  Return(value=Tuple(elts=[Constant(value=None)",
+   "ast_detail": "diff at token 148: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 173,
    "ntotal": 1430,
@@ -165,7 +165,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 620: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 614: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 457,
    "ntotal": 1324,
@@ -189,7 +189,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 1047: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 1045: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 600,
    "ntotal": 1505,

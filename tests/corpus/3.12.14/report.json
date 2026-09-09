@@ -34,7 +34,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 471: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
+   "ast_detail": "diff at token 467: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
    "verdict": "SIG-DIFF",
    "ndiff": 908,
    "ntotal": 1299,
@@ -85,7 +85,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 987: orig  Continue()] | dec  Return()]",
+   "ast_detail": "diff at token 978: orig  finalbody=[])] | dec  finalbody=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 1664,
    "ntotal": 3362,
@@ -124,7 +124,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 1543: orig  Continue()] | dec  Return()]",
+   "ast_detail": "diff at token 1536: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 610,
    "ntotal": 2873,
@@ -140,7 +140,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 331: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 327: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 1069,
    "ntotal": 1366,
