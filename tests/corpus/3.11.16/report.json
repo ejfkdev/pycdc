@@ -89,11 +89,11 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 250: orig  ops=[Eq() | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 973: orig  Continue()] | dec  Return()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 580,
-   "ntotal": 3687,
-   "detail": "line 565: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 566: orig ('COPY', '') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 266')\nline 567: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
+   "ndiff": 2532,
+   "ntotal": 3688,
+   "detail": "line 1119: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 186') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 188')\nline 1133: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', 'to 184')\nline 1134: orig ('RETURN_VALUE', '') | got ('PUSH_EXC_INFO', '')"
   },
   {
    "module": "asynchat",
@@ -103,9 +103,9 @@
    "module": "asyncore",
    "ast_detail": "diff at token 259: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1774,
-   "ntotal": 2318,
-   "detail": "line 430: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 760') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 758')\nline 491: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 492: orig ('COPY', '') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 440')"
+   "ndiff": 1546,
+   "ntotal": 2319,
+   "detail": "line 711: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 140') | got ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 136')\nline 713: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 136') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 132')\nline 725: orig ('LOAD_CONST', 'None') | got ('LOAD_FAST', 'map')"
   },
   {
    "module": "base64",

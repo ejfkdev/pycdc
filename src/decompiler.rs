@@ -20015,10 +20015,19 @@ impl<'a> Ctx<'a> {
                     // not a statement (asyncore 3.8 poll
                     // `if [] == r == w == e:` — link 1's region bailed
                     // on DUP_TOP and the head link split off as an
-                    // outer if)
+                    // outer if). 3.11+ uses SWAP/COPY for the same
+                    // bookkeeping (aifc 3.11 _read_float
+                    // `if expon == himant == lomant == 0:` split at
+                    // the head link, dropping the elif chain out of
+                    // the guard and breaking semantics)
                     && !matches!(
                         ins.op,
-                        Op::DUP_TOP | Op::ROT_TWO | Op::ROT_THREE | Op::ROT_FOUR
+                        Op::DUP_TOP
+                            | Op::ROT_TWO
+                            | Op::ROT_THREE
+                            | Op::ROT_FOUR
+                            | Op::SWAP
+                            | Op::COPY
                     )
                 {
                     if scc_dbg { eprintln!("SCC: bail impure {:?} off={}", ins.op, ins.offset); }
@@ -20133,7 +20142,12 @@ impl<'a> Ctx<'a> {
             while sim_end > region_start
                 && matches!(
                     self.instrs[sim_end - 1].op,
-                    Op::DUP_TOP | Op::ROT_TWO | Op::ROT_THREE | Op::ROT_FOUR
+                    Op::DUP_TOP
+                        | Op::ROT_TWO
+                        | Op::ROT_THREE
+                        | Op::ROT_FOUR
+                        | Op::SWAP
+                        | Op::COPY
                 )
             {
                 sim_end -= 1;

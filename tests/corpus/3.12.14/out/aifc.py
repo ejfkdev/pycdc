@@ -189,10 +189,9 @@ def _read_float(f):
         expon = expon + 32768
     himant = _read_ulong(f)
     lomant = _read_ulong(f)
-    if expon == himant:
-        if himant == lomant == 0:
-            f = 0.0
-            return sign * f
+    if expon == himant == lomant == 0:
+        f = 0.0
+        return sign * f
     if expon == 32767:
         f = _HUGE_VAL
         return sign * f

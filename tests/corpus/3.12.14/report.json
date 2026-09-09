@@ -85,11 +85,11 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 254: orig  If(test=Compare(left=Name(id='expon' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 987: orig  Continue()] | dec  Return()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2719,
-   "ntotal": 3361,
-   "detail": "line 513: orig ('SWAP', '') | got ('COMPARE_OP', '==')\nline 514: orig ('COPY', '') | got ('POP_JUMP_IF_FALSE', 'to 148')\nline 515: orig ('COMPARE_OP', '==') | got ('LOAD_FAST', 'himant')"
+   "ndiff": 1664,
+   "ntotal": 3362,
+   "detail": "line 1173: orig ('COMPARE_OP', '==') | got ('COMPARE_OP', '!=')\nline 1174: orig ('POP_JUMP_IF_TRUE', 'to 50') | got ('POP_JUMP_IF_FALSE', 'to 50')\nline 1521: orig ('POP_JUMP_IF_FALSE', 'to 1046') | got ('POP_JUMP_IF_FALSE', 'to 1086')"
   },
   {
    "module": "base64",
