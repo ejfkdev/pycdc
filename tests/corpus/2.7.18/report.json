@@ -117,7 +117,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 256: orig  Return(value=Name(id='None' | dec  Return(value=None)])]",
+   "ast_detail": "diff at token 302: orig  TryExcept(body=[Assign(targets=[Name(id='f' | dec  TryFinally(body=[Assign(targets=[Name(id='m'",
    "verdict": "SIG-DIFF",
    "ndiff": 60,
    "ntotal": 1160,

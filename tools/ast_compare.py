@@ -705,6 +705,24 @@ def split_tail_ternary_return(stmts):
     """Tail `return A if c else B` lowers (3.13) to `if c: return A`
     followed by `return B` - split both sides to the statement form.
     Tail position only, so it is exactly meaning-preserving."""
+    def bare_none(v):
+        # the split builds fresh Return nodes AFTER visit_Return ran, so a
+        # None arm must be canonicalized to a bare `return` here or it
+        # stays Return(NameConstant(None))/Return(Constant(None)) and
+        # mismatches a decompile that rendered a bare `return` (_osx_support
+        # _read_output `return fp.read().strip() if not os.system(cmd) else
+        # None`).
+        if v is None:
+            return None
+        if hasattr(ast, 'NameConstant') and isinstance(v, ast.NameConstant) \
+                and v.value is None:
+            return None
+        if hasattr(ast, 'Constant') and isinstance(v, ast.Constant) \
+                and v.value is None:
+            return None
+        if isinstance(v, ast.Name) and v.id == 'None':
+            return None
+        return v
     changed = True
     while changed and stmts:
         changed = False
@@ -714,9 +732,10 @@ def split_tail_ternary_return(stmts):
             stmts = list(stmts[:-1])
             stmts.append(ast.If(
                 test=ie.test,
-                body=split_tail_ternary_return([ast.Return(value=ie.body)]),
+                body=split_tail_ternary_return(
+                    [ast.Return(value=bare_none(ie.body))]),
                 orelse=[]))
-            stmts.append(ast.Return(value=ie.orelse))
+            stmts.append(ast.Return(value=bare_none(ie.orelse)))
             changed = True
     return stmts
 

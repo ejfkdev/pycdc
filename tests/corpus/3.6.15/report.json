@@ -41,7 +41,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 234: orig  Return(value=NameConstant(value=None))])] | dec  Return(value=None)])]",
+   "ast_detail": "diff at token 280: orig  Try(body=[Assign(targets=[Name(id='f' | dec  Try(body=[Assign(targets=[Name(id='m'",
    "verdict": "SIG-DIFF",
    "ndiff": 32,
    "ntotal": 1168,
