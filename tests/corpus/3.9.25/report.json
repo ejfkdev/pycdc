@@ -2,9 +2,9 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 24,
+  "PASS": 25,
   "SIG-DIFF": 12,
-  "INCOMPLETE": 4
+  "INCOMPLETE": 3
  },
  "results": [
   {
@@ -151,10 +151,7 @@
   },
   {
    "module": "cgi",
-   "verdict": "INCOMPLETE",
-   "ndiff": 917,
-   "ntotal": 2888,
-   "detail": "line 1958: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1959: orig ('LOAD_FAST', 'self') | got ('EXTENDED_ARG', '')\nline 1960: orig ('LOAD_ATTR', 'bytes_read') | got ('JUMP_ABSOLUTE', '')"
+   "verdict": "PASS"
   },
   {
    "module": "cgitb",

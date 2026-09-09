@@ -17022,6 +17022,559 @@ impl<'a> Ctx<'a> {
         ))
     }
 
+
+    /// 3.8-3.11 loop-tail `if A or B: break` guard: A's PJIT flies
+    /// straight to the loop exit (the break landing); B's operand run
+    /// ends in PJFF links that land on the loop top (continue) — either
+    /// directly or through a POP_TOP cleanup trampoline dropping a
+    /// chained comparison's retained middle operand — and the
+    /// fall-through after the last link is the break jump (a JF/JABS to
+    /// the loop exit or to a stub jumping there). Per-jump rendering
+    /// split this into `if A: break` + `if B: pass` + an UNCONDITIONAL
+    /// break (cgi 3.8/3.9 read_multi `if part.done or self.bytes_read
+    /// >= self.length > 0: break`). Returns (merged Or cond, resume
+    /// offset = the loop's natural back edge after the break stub).
+    fn try_or_break_chain(&self, cond: &ExprRef, target: usize) -> Option<(ExprRef, usize)> {
+        let dbg = std::env::var("PYCDC_OBC_DBG").is_ok();
+        macro_rules! bail {
+            ($why:expr) => {{
+                if dbg {
+                    eprintln!(
+                        "OBC[{}] off={}: bail {}",
+                        self.code.name, self.cur_offset, $why
+                    );
+                }
+                return None;
+            }};
+        }
+        let ci = *self.idx_of.get(&self.cur_offset)?;
+        // A must break the innermost open loop on TRUE
+        let loop_blk = self
+            .blocks
+            .iter()
+            .rev()
+            .find(|b| matches!(b.kind, BlockType::While | BlockType::For))?;
+        let exit = self.loop_exit_offset(loop_blk)?;
+        if self.effective_offset(exit) != self.effective_offset(target) {
+            bail!("target-not-exit");
+        }
+        let loop_top = loop_blk.start;
+        // resolve a jump-target offset to its logical instruction index:
+        // the target may land on an EXTENDED_ARG prefix byte, which
+        // idx_of maps to the PREVIOUS instruction's end() (3.8 cgi
+        // read_multi's continue stub `572: EXTARG; 574: JABS` resolved
+        // to the break stub JABS@570 whose end is 572)
+        let idx_at = |off: usize| -> Option<usize> {
+            if let Some(&i) = self.idx_of.get(&off) {
+                if self.instrs[i].offset == off {
+                    return Some(i);
+                }
+            }
+            self.instrs.iter().position(|x| x.start == off)
+        };
+        // does `t` land on the loop top (a continue)? — directly, or via
+        // a chained-comparison cleanup trampoline ([POP_TOP;] JF -> stub)
+        // whose stub is [pads;] JABS -> loop top
+        let lands_on_top = |t: usize| -> bool {
+            if t == loop_top {
+                return true;
+            }
+            let Some(tk) = idx_at(t) else {
+                return false;
+            };
+            let is_pad = |k: usize| {
+                matches!(
+                    self.instrs.get(k).map(|x| x.op),
+                    Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE)
+                )
+            };
+            let mut k = tk;
+            let mut pops = 0;
+            while matches!(self.instrs.get(k).map(|x| x.op), Some(Op::POP_TOP)) {
+                k += 1;
+                pops += 1;
+            }
+            if pops == 0 || pops > 2 {
+                return false;
+            }
+            while is_pad(k) {
+                k += 1;
+            }
+            let Some(jf) = self.instrs.get(k) else {
+                return false;
+            };
+            if !matches!(jf.op, Op::JUMP_FORWARD | Op::JUMP) || jf.is_backward {
+                return false;
+            }
+            let Some(t2) = jf.target else {
+                return false;
+            };
+            let Some(t2k) = idx_at(t2) else {
+                return false;
+            };
+            let mut k2 = t2k;
+            while matches!(
+                self.instrs.get(k2).map(|x| x.op),
+                Some(Op::NOP)
+                    | Some(Op::NOT_TAKEN)
+                    | Some(Op::CACHE)
+                    | Some(Op::EXTENDED_ARG)
+            ) {
+                k2 += 1;
+            }
+            let Some(jb) = self.instrs.get(k2) else {
+                return false;
+            };
+            jb.is_backward
+                && jb.target == Some(loop_top)
+                && matches!(
+                    jb.op,
+                    Op::JUMP_ABSOLUTE
+                        | Op::JUMP_BACKWARD
+                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                )
+        };
+        // walk B's links
+        let mut acc: Option<ExprRef> = None;
+        let mut k = ci + 1;
+        let mut region_start = ci + 1;
+        let mut resume: Option<usize> = None;
+        loop {
+            // next PJFF link (or the break fall-through)
+            let mut jk = None;
+            while let Some(ins) = self.instrs.get(k) {
+                if matches!(
+                    ins.op,
+                    Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+                ) {
+                    jk = Some(k);
+                    break;
+                }
+                if matches!(
+                    ins.op,
+                    Op::JUMP_FORWARD
+                        | Op::JUMP
+                        | Op::JUMP_ABSOLUTE
+                        | Op::JUMP_BACKWARD
+                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                ) {
+                    // the chain's true fall-through: the break jump —
+                    // handled by the no-more-links arm below
+                    break;
+                }
+                if ins.offset >= target {
+                    bail!("ran-past-exit");
+                }
+                if !is_pure_value_op(ins.op)
+                    && !matches!(
+                        ins.op,
+                        Op::NOP
+                            | Op::NOT_TAKEN
+                            | Op::CACHE
+                            | Op::TO_BOOL
+                            | Op::EXTENDED_ARG
+                            | Op::COMPARE_OP
+                            | Op::IS_OP
+                            | Op::CONTAINS_OP
+                            | Op::DUP_TOP
+                            | Op::ROT_TWO
+                            | Op::ROT_THREE
+                            | Op::ROT_FOUR
+                            | Op::SWAP
+                            | Op::COPY
+                    )
+                {
+                    bail!(format!("scan-op {:?}", ins.op));
+                }
+                k += 1;
+            }
+            let Some(jk) = jk else {
+                // no more links: the fall-through must be the break jump
+                let ins = self.instrs.get(k)?;
+                let Some(bt) = ins.target else {
+                    bail!("fallthrough-no-target");
+                };
+                if !matches!(
+                    ins.op,
+                    Op::JUMP_FORWARD
+                        | Op::JUMP
+                        | Op::JUMP_ABSOLUTE
+                        | Op::JUMP_BACKWARD
+                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                ) {
+                    bail!(format!("fallthrough-op {:?}", ins.op));
+                }
+                // break landing: the exit itself, or a stub [pads;] JABS -> exit
+                let lands_on_exit = |t: usize| -> Option<usize> {
+                    if self.effective_offset(t) == self.effective_offset(target) {
+                        return Some(t);
+                    }
+                    let Some(tk) = idx_at(t) else {
+                        return None;
+                    };
+                    let mut k2 = tk;
+                    while matches!(
+                        self.instrs.get(k2).map(|x| x.op),
+                        Some(Op::NOP)
+                            | Some(Op::NOT_TAKEN)
+                            | Some(Op::CACHE)
+                            | Some(Op::EXTENDED_ARG)
+                    ) {
+                        k2 += 1;
+                    }
+                    let jb = self.instrs.get(k2)?;
+                    if matches!(
+                        jb.op,
+                        Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                            | Op::JUMP_FORWARD
+                            | Op::JUMP
+                    ) && jb
+                        .target
+                        .map_or(false, |t2| self.effective_offset(t2) == self.effective_offset(target))
+                    {
+                        // resume past the stub's jump
+                        let mut k3 = k2 + 1;
+                        while matches!(
+                            self.instrs.get(k3).map(|x| x.op),
+                            Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE)
+                        ) {
+                            k3 += 1;
+                        }
+                        return Some(self.instrs.get(k3).map(|x| x.offset).unwrap_or(jb.end()));
+                    }
+                    None
+                };
+                let Some(r) = lands_on_exit(bt) else {
+                    bail!("fallthrough-not-break")
+                };
+                resume = Some(r.max(ins.end()));
+                break;
+            };
+            let jins = &self.instrs[jk];
+            let Some(t) = jins.target else {
+                bail!("link-no-target");
+            };
+            if !lands_on_top(t) {
+                bail!(format!("link-target {} not-continue", t));
+            }
+            // reconstruct the comparison link ending at jk
+            let cmp_i = match self.match_prev_real(jk) {
+                Some(x) if x >= region_start => x,
+                _ => bail!("no-prev-cmp"),
+            };
+            match self.instrs[cmp_i].op {
+                Op::COMPARE_OP | Op::IS_OP | Op::CONTAINS_OP => {}
+                other => bail!(format!("link-cmp {:?}", other)),
+            }
+            let link_expr = if acc.is_none() {
+                // first link: the region INCLUDES the comparison (chain
+                // head setup DUP/ROT leaves the middle operand residual)
+                let e = self.sim_value_region_ex(region_start, jk, true);
+                let Some(e) = e else { bail!("head-sim") };
+                e
+            } else {
+                let rhs = self.sim_value_region(region_start, cmp_i);
+                let Some(rhs) = rhs else { bail!("rhs-sim") };
+                let op = if self.instrs[cmp_i].op == Op::COMPARE_OP {
+                    cmp_from_index(compare_op_index(
+                        self.instrs[cmp_i].arg as u32,
+                        self.version,
+                    ))
+                } else {
+                    bail!("non-cmp-link");
+                };
+                let prev = acc.clone().unwrap();
+                let last = match &*prev {
+                    Expr::Compare { operands, .. } => operands.last().cloned(),
+                    _ => None,
+                };
+                let Some(last) = last else { bail!("acc-not-compare") };
+                let link: ExprRef = Rc::new(Expr::Compare {
+                    operands: vec![last, rhs],
+                    ops: vec![op],
+                });
+                let m = merge_chain_compare(&prev, &link);
+                let Some(m) = m else { bail!("chain-merge") };
+                m
+            };
+            acc = Some(link_expr);
+            region_start = jk + 1;
+            k = jk + 1;
+        }
+        let Some(b_expr) = acc else { bail!("no-links") };
+        let resume = resume?;
+        let mut values = Vec::new();
+        flatten_boolop(cond.clone(), BoolOpKind::Or, &mut values);
+        flatten_boolop(b_expr, BoolOpKind::Or, &mut values);
+        let merged = Rc::new(Expr::BoolOp {
+            op: BoolOpKind::Or,
+            values,
+        });
+        if dbg {
+            eprintln!(
+                "OBC[{}] off={}: MERGED resume={}",
+                self.code.name, self.cur_offset, resume
+            );
+        }
+        Some((merged, resume))
+    }
+
+
+    /// 3.8-3.11 `if A and (b<c<d): break` guard: the first operand's
+    /// PJIF skips to the body; a statement-level chained comparison
+    /// follows whose mid links escape through a POP_TOP cleanup
+    /// trampoline dropping the retained middle operand (or straight to
+    /// the same skip) and whose true fall-through is a jump onto the
+    /// guard body — a break stub flying to the loop exit. Per-jump
+    /// rendering split this into `if A:` + nested `if chain: pass` + an
+    /// UNCONDITIONAL break (cgi 3.8/3.9 read_lines_to_outerboundary
+    /// `if self.limit is not None and 0 <= self.limit <= _read: break`
+    /// broke out whenever limit was set). Returns (merged And cond,
+    /// guard-body start, guard-body end = the shared skip).
+    fn try_and_chain_break_guard(
+        &self,
+        cond: &ExprRef,
+        target: usize,
+    ) -> Option<(ExprRef, usize, usize)> {
+        let dbg = std::env::var("PYCDC_ACB_DBG").is_ok();
+        macro_rules! bail {
+            ($why:expr) => {{
+                if dbg {
+                    eprintln!(
+                        "ACB[{}] off={}: bail {}",
+                        self.code.name, self.cur_offset, $why
+                    );
+                }
+                return None;
+            }};
+        }
+        let ci = *self.idx_of.get(&self.cur_offset)?;
+        let skip = target;
+        // resolve a jump-target offset to its logical instruction index
+        // (the target may land on an EXTENDED_ARG prefix byte that idx_of
+        // maps to the PREVIOUS instruction's end())
+        let idx_at = |off: usize| -> Option<usize> {
+            if let Some(&i) = self.idx_of.get(&off) {
+                if self.instrs[i].offset == off {
+                    return Some(i);
+                }
+            }
+            self.instrs.iter().position(|x| x.start == off)
+        };
+        let is_pad = |k: usize| {
+            matches!(
+                self.instrs.get(k).map(|x| x.op),
+                Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE)
+            )
+        };
+        // does the link target `t` reach the shared skip — directly or
+        // through the chain's POP_TOP cleanup trampoline?
+        let skip_or_tramp = |t: usize| -> bool {
+            if self.effective_offset(t) == self.effective_offset(skip) {
+                return true;
+            }
+            let Some(tk) = idx_at(t) else {
+                return false;
+            };
+            let mut k = tk;
+            let mut pops = 0;
+            while matches!(self.instrs.get(k).map(|x| x.op), Some(Op::POP_TOP)) {
+                k += 1;
+                pops += 1;
+            }
+            if pops == 0 || pops > 2 {
+                return false;
+            }
+            while is_pad(k) {
+                k += 1;
+            }
+            let Some(jf) = self.instrs.get(k) else {
+                return false;
+            };
+            if !matches!(jf.op, Op::JUMP_FORWARD | Op::JUMP) || jf.is_backward {
+                return false;
+            }
+            jf.target
+                .map_or(false, |t2| self.effective_offset(t2) == self.effective_offset(skip))
+        };
+        // walk the chain links
+        let mut acc: Option<ExprRef> = None;
+        let mut k = ci + 1;
+        let mut region_start = ci + 1;
+        let mut true_jump: Option<usize> = None;
+        loop {
+            let mut jk = None;
+            while let Some(ins) = self.instrs.get(k) {
+                if matches!(
+                    ins.op,
+                    Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+                ) {
+                    jk = Some(k);
+                    break;
+                }
+                if matches!(ins.op, Op::JUMP_FORWARD | Op::JUMP) && !ins.is_backward {
+                    // the chain's true fall-through: the guard-body jump
+                    true_jump = Some(k);
+                    break;
+                }
+                if ins.offset >= skip {
+                    bail!("ran-past-skip");
+                }
+                if !is_pure_value_op(ins.op)
+                    && !matches!(
+                        ins.op,
+                        Op::NOP
+                            | Op::NOT_TAKEN
+                            | Op::CACHE
+                            | Op::TO_BOOL
+                            | Op::EXTENDED_ARG
+                            | Op::COMPARE_OP
+                            | Op::IS_OP
+                            | Op::CONTAINS_OP
+                            | Op::DUP_TOP
+                            | Op::ROT_TWO
+                            | Op::ROT_THREE
+                            | Op::ROT_FOUR
+                            | Op::SWAP
+                            | Op::COPY
+                    )
+                {
+                    bail!(format!("scan-op {:?}", ins.op));
+                }
+                k += 1;
+            }
+            let Some(jk) = jk else {
+                break;
+            };
+            let jins = &self.instrs[jk];
+            let Some(t) = jins.target else {
+                bail!("link-no-target");
+            };
+            if !skip_or_tramp(t) {
+                bail!(format!("link-target {} not-skip", t));
+            }
+            let cmp_i = match self.match_prev_real(jk) {
+                Some(x) if x >= region_start => x,
+                _ => bail!("no-prev-cmp"),
+            };
+            match self.instrs[cmp_i].op {
+                Op::COMPARE_OP | Op::IS_OP | Op::CONTAINS_OP => {}
+                other => bail!(format!("link-cmp {:?}", other)),
+            }
+            let link_expr = if acc.is_none() {
+                let e = self.sim_value_region_ex(region_start, jk, true);
+                let Some(e) = e else { bail!("head-sim") };
+                e
+            } else {
+                let rhs = self.sim_value_region(region_start, cmp_i);
+                let Some(rhs) = rhs else { bail!("rhs-sim") };
+                let op = if self.instrs[cmp_i].op == Op::COMPARE_OP {
+                    cmp_from_index(compare_op_index(
+                        self.instrs[cmp_i].arg as u32,
+                        self.version,
+                    ))
+                } else {
+                    bail!("non-cmp-link");
+                };
+                let prev = acc.clone().unwrap();
+                let last = match &*prev {
+                    Expr::Compare { operands, .. } => operands.last().cloned(),
+                    _ => None,
+                };
+                let Some(last) = last else { bail!("acc-not-compare") };
+                let link: ExprRef = Rc::new(Expr::Compare {
+                    operands: vec![last, rhs],
+                    ops: vec![op],
+                });
+                let m = merge_chain_compare(&prev, &link);
+                let Some(m) = m else { bail!("chain-merge") };
+                m
+            };
+            acc = Some(link_expr);
+            region_start = jk + 1;
+            k = jk + 1;
+        }
+        let Some(b_expr) = acc else { bail!("no-links") };
+        let Some(tj) = true_jump else {
+            bail!("no-true-jump");
+        };
+        let tj_ins = &self.instrs[tj];
+        let Some(g) = tj_ins.target else {
+            bail!("true-jump-no-target");
+        };
+        let Some(gk) = idx_at(g) else {
+            bail!("no-idx-body");
+        };
+        if self.effective_offset(g) == self.effective_offset(skip) {
+            bail!("body-is-skip");
+        }
+        // the guard body [g, skip) must be a break stub: pads then a
+        // single jump onto the enclosing loop's exit
+        {
+            let mut k2 = gk;
+            while matches!(
+                self.instrs.get(k2).map(|x| x.op),
+                Some(Op::NOP)
+                    | Some(Op::NOT_TAKEN)
+                    | Some(Op::CACHE)
+                    | Some(Op::EXTENDED_ARG)
+            ) {
+                k2 += 1;
+            }
+            let Some(jb) = self.instrs.get(k2) else {
+                bail!("no-body-jump");
+            };
+            if !matches!(
+                jb.op,
+                Op::JUMP_ABSOLUTE
+                    | Op::JUMP_BACKWARD
+                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    | Op::JUMP_FORWARD
+                    | Op::JUMP
+            ) {
+                bail!(format!("body-op {:?}", jb.op));
+            }
+            let Some(bt) = jb.target else {
+                bail!("body-jump-no-target");
+            };
+            let is_exit = self.find_loop_exit(bt).is_some();
+            if !is_exit {
+                bail!("body-not-break");
+            }
+            // nothing but the jump between g and skip
+            let Some(&si) = self.idx_of.get(&skip) else {
+                bail!("no-skip-idx");
+            };
+            if k2 + 1 != si {
+                // padding between the break jump and the skip is fine
+                let mut k3 = k2 + 1;
+                while is_pad(k3) || matches!(self.instrs.get(k3).map(|x| x.op), Some(Op::EXTENDED_ARG))
+                {
+                    k3 += 1;
+                }
+                if k3 != si {
+                    bail!("body-extra");
+                }
+            }
+        }
+        let mut values = Vec::new();
+        flatten_boolop(cond.clone(), BoolOpKind::And, &mut values);
+        flatten_boolop(b_expr, BoolOpKind::And, &mut values);
+        let merged = Rc::new(Expr::BoolOp {
+            op: BoolOpKind::And,
+            values,
+        });
+        if dbg {
+            eprintln!(
+                "ACB[{}] off={}: MERGED body=[{},{})",
+                self.code.name, self.cur_offset, g, skip
+            );
+        }
+        Some((merged, g, skip))
+    }
+
     fn try_or_continue_chain(
         &self,
         loop_top: usize,
@@ -21964,6 +22517,20 @@ return None;
                 return;
             }
         }
+        // loop-tail `if A or B: break` with B a (chained) comparison whose
+        // false exits continue the loop: merge into ONE guard with a Break
+        // body (cgi 3.8/3.9 read_multi)
+        if jump_if_true {
+            if let Some((merged, resume)) = self.try_or_break_chain(&cond, target) {
+                self.push_stmt(Stmt::If {
+                    cond: merged,
+                    body: vec![Stmt::Break],
+                    orelse: Vec::new(),
+                });
+                self.skip_until = Some(resume);
+                return;
+            }
+        }
         // py2 value-form boolop consumed by an if: `if X or Y:` where the
         // operands are value-building chains (chained comparisons via
         // JUMP_IF_*_OR_POP) — the FINAL operand's cond jump arrives while
@@ -22203,6 +22770,23 @@ return None;
         // padding is mandatory: pre-3.14 `if c: continue` shapes have a
         // bare back jump after the operand jump and belong to the
         // historical machinery.
+        // 3.8-3.11: `if A and (chained cmp): break` guard — the chain's
+        // mid links hop through a POP_TOP cleanup trampoline, so neither
+        // the split-cond merge nor the SCC scan admits the shape
+        if !jump_if_true && self.version.major >= 3 && !self.version.at_least(3, 12) {
+            if let Some((merged, body_start, body_end)) =
+                self.try_and_chain_break_guard(&cond, target)
+            {
+                let mut blk = Block::new(BlockType::If, body_start, body_end);
+                blk.cond = Some(merged);
+                blk.cond_set = true;
+                blk.jump_if_true = false;
+                blk.stack_depth = self.stack.len();
+                self.blocks.push(blk);
+                self.skip_until = Some(body_start);
+                return;
+            }
+        }
         // 3.8-3.11: statement-level chained-comparison if condition
         if !jump_if_true && self.version.major >= 3 && !self.version.at_least(3, 12) {
             let scc = self.try_stmt_chain_compare(&cond, target);
@@ -23362,8 +23946,38 @@ return None;
         // else arm follows; with one (copyreg 3.8 _slotnames
         // `elif startswith and not endswith: ... else: append`) the
         // else arm flattened out of the chain
+        // 3.8+ `if A: while B:` shared-exit shape: this cond jump is a
+        // WHILE head, not an and-link, when a body back edge loops onto
+        // THIS operand's own run [top.start, cur_offset). A genuine
+        // `while A and B:` back edge re-runs the WHOLE chain and lands
+        // before top.start; a back edge landing inside the second
+        // operand's run means only that operand is re-evaluated
+        // (cgi 3.8/3.9 read_binary `if todo >= 0: while todo > 0:`
+        // fused into an and-chain and lost the loop).
+        let pending_inner_while_head = self
+            .blocks
+            .last()
+            .map_or(false, |top| {
+                matches!(top.kind, BlockType::If)
+                    && self.instrs.iter().any(|ins| {
+                        ins.offset >= self.cur_next
+                            && ins.offset < target
+                            && ins.is_backward
+                            && matches!(
+                                ins.op,
+                                Op::JUMP_ABSOLUTE
+                                    | Op::JUMP_BACKWARD
+                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    | Op::JUMP
+                            )
+                            && ins
+                                .target
+                                .map_or(false, |t| t >= top.start && t < self.cur_offset)
+                    })
+            });
         let split_cond = !rotated_while_follows
             && !rotated_back_edge_after
+            && !pending_inner_while_head
             && self.blocks.last().map_or(false, |top| {
                 matches!(top.kind, BlockType::If)
                     && top.end == target

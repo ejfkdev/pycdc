@@ -568,11 +568,8 @@ class FieldStorage:
                     raise ValueError('Max number of fields exceeded')
             self.bytes_read += part.bytes_read
             self.list.append(part)
-            if part.done:
+            if part.done or self.bytes_read >= self.length > 0:
                 break
-            if self.bytes_read >= self.length > 0:
-                pass
-            break
         self.skip_lines()
 
     def read_single(self):
@@ -591,14 +588,15 @@ class FieldStorage:
 
         self.file = self.make_file()
         todo = self.length
-        if todo >= 0 and todo > 0:
-            data = self.fp.read(min(todo, self.bufsize))
-            if not isinstance(data, bytes):
-                raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))
-            self.bytes_read += len(data)
-            if not data:
-                self.done = -1
-            else:
+        if todo >= 0:
+            while todo > 0:
+                data = self.fp.read(min(todo, self.bufsize))
+                if not isinstance(data, bytes):
+                    raise ValueError('%s should return bytes, got %s' % (self.fp, type(data).__name__))
+                self.bytes_read += len(data)
+                if not data:
+                    self.done = -1
+                    break
                 self.file.write(data)
                 todo = todo - len(data)
 
@@ -650,9 +648,7 @@ class FieldStorage:
         last_line_lfend = True
         _read = 0
         while True:
-            if self.limit is not None:
-                if 0 <= self.limit <= _read:
-                    pass
+            if self.limit is not None and 0 <= self.limit <= _read:
                 break
             line = self.fp.readline(65536)
             self.bytes_read += len(line)
@@ -852,4 +848,3 @@ def valid_boundary(s):
 
 if __name__ == '__main__':
     test()
-# WARNING: Decompyle incomplete
