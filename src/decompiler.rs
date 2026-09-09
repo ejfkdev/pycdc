@@ -4869,6 +4869,23 @@ impl<'a> Ctx<'a> {
     /// Decompile one except-clause body: instructions from the current pc
     /// until POP_EXCEPT; then skip the implicit `name = None; del name`
     /// cleanup and the closing jump. Advances `pc`.
+    /// The referenced name of a LOAD_GLOBAL/LOAD_NAME instruction
+    /// (mirrors the exec arm's resolution: 3.11+ LOAD_GLOBAL packs
+    /// (namei << 1) | null_flag).
+    fn store_like_name(&self, ins: &crate::bytecode::Instruction) -> String {
+        let idx = match ins.op {
+            Op::LOAD_GLOBAL => {
+                if self.version.at_least(3, 11) {
+                    (ins.arg >> 1) as usize
+                } else {
+                    ins.arg as usize
+                }
+            }
+            _ => ins.arg as usize,
+        };
+        self.const_name(idx)
+    }
+
     fn decompile_handler_body(
         &mut self,
         pc: &mut usize,
@@ -5098,6 +5115,82 @@ impl<'a> Ctx<'a> {
                 {
                     *pc = bi + 1;
                     return Vec::new();
+                }
+            }
+            // sunk break-raise fusion: `except E: break` where the loop
+            // exit flow is a matching `raise X` — the compiler fuses the
+            // break's landing into the handler as POP_EXCEPT; LOAD X;
+            // RAISE (_collections_abc 3.13 Sequence.index `except
+            // IndexError: break` + post-loop `raise ValueError`). The
+            // literal handler raise recompiles WITHOUT the POP_EXCEPT;
+            // only Break reproduces the fused bytes
+            if limit > body_from {
+                if let (Some(&bi3), Some(&li3)) =
+                    (self.idx_of.get(&body_from), self.idx_of.get(&limit))
+                {
+                    let mut lj = None;
+                    for j in bi3..li3 {
+                        if matches!(self.instrs[j].op, Op::LOAD_GLOBAL | Op::LOAD_NAME) {
+                            lj = Some(j);
+                            break;
+                        }
+                        if !matches!(
+                            self.instrs[j].op,
+                            Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::POP_TOP
+                        ) {
+                            break;
+                        }
+                    }
+                    if let Some(j) = lj {
+                        let raise_i = (j + 1..li3).find(|&r| {
+                            matches!(
+                                self.instrs[r].op,
+                                Op::CALL | Op::CALL_FUNCTION | Op::PRECALL
+                            ) || self.instrs[r].op == Op::RAISE_VARARGS
+                        });
+                        if let Some(ri) = raise_i {
+                            if self.instrs[ri].op == Op::RAISE_VARARGS
+                                && ri + 1 == li3
+                            {
+                                let hname = self.store_like_name(&self.instrs[j]);
+                                // the post-loop raise sits at the
+                                // enclosing loop's registered exit (the
+                                // out-of-line handler lies PAST it, so a
+                                // forward scan from the clause cannot
+                                // reach it)
+                                let loop_exit = self
+                                    .blocks
+                                    .iter()
+                                    .rev()
+                                    .find(|b| {
+                                        matches!(
+                                            b.kind,
+                                            BlockType::While | BlockType::For
+                                        )
+                                    })
+                                    .map(|b| b.end);
+                                let post_ok = loop_exit
+                                    .and_then(|le| self.idx_of.get(&le).copied())
+                                    .map_or(false, |xi| {
+                                        let x = &self.instrs[xi];
+                                        matches!(
+                                            x.op,
+                                            Op::LOAD_GLOBAL | Op::LOAD_NAME
+                                        ) && self.store_like_name(x) == hname
+                                            && self.instrs[xi + 1..]
+                                                .iter()
+                                                .take(6)
+                                                .any(|y| {
+                                                    y.op == Op::RAISE_VARARGS
+                                                })
+                                    });
+                                let in_loop = loop_exit.is_some();
+                                if post_ok && in_loop {
+                                    return vec![Stmt::Break];
+                                }
+                            }
+                        }
+                    }
                 }
             }
             return if limit > body_from {

@@ -32,8 +32,8 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 220: orig  body=Yield()))])) | dec  body=Yield(value=Constant(value=None))))]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 193,
-   "ntotal": 3784,
+   "ndiff": 509,
+   "ntotal": 3785,
    "detail": "line 3272: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'default')\nline 3273: orig ('LOAD_FAST', 'default') | got ('SWAP', '')\nline 3274: orig ('RETURN_VALUE', '') | got ('POP_EXCEPT', '')"
   },
   {

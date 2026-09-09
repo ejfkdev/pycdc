@@ -944,7 +944,7 @@ class Sequence(Reversible, Collection):
             try:
                 v = self[i]
             except IndexError:
-                raise ValueError
+                break
             if v is value or v == value:
                 return i
             i += 1
