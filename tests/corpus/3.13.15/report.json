@@ -50,7 +50,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 408: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
+   "ast_detail": "diff at token 408: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
    "verdict": "SIG-DIFF",
    "ndiff": 1033,
    "ntotal": 1344,
@@ -81,7 +81,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1834: orig  body=[Assign(targets=[Name(id='format_char' | dec  body=[Nonlocal(names=['day_of_month_in_format'",
+   "ast_detail": "diff at token 1830: orig  body=[Assign(targets=[Name(id='format_char' | dec  body=[Nonlocal(names=['day_of_month_in_format'",
    "verdict": "SIG-DIFF",
    "ndiff": 743,
    "ntotal": 2986,

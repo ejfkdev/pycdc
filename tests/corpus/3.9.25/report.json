@@ -41,7 +41,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 479: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
+   "ast_detail": "diff at token 479: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='linktype')",
    "verdict": "SIG-DIFF",
    "ndiff": 974,
    "ntotal": 1405,
@@ -64,7 +64,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1732: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 1726: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 721,
    "ntotal": 2142,
@@ -108,7 +108,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 773: orig  comparators=[Set(elts=[Constant(value=0) | dec  comparators=[Call(func=Name(id='frozenset'",
+   "ast_detail": "diff at token 988: orig  value=ListComp(elt=IfExp(test=BoolOp(op=And() | dec  value=ListComp(elt=BinOp(left=BinOp(left=Subscript(value=Name(id='chars2'",
    "verdict": "SIG-DIFF",
    "ndiff": 845,
    "ntotal": 1868,

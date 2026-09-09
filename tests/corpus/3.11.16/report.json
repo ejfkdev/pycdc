@@ -65,7 +65,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1444: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
+   "ast_detail": "diff at token 1438: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
    "verdict": "SIG-DIFF",
    "ndiff": 985,
    "ntotal": 2246,
@@ -97,7 +97,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 259: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 256: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 1546,
    "ntotal": 2319,

@@ -34,7 +34,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 471: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
+   "ast_detail": "diff at token 471: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
    "verdict": "SIG-DIFF",
    "ndiff": 908,
    "ntotal": 1299,
@@ -61,7 +61,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1643: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=Call(func=Name(id='isinstance'",
+   "ast_detail": "diff at token 1637: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=Call(func=Name(id='isinstance'",
    "verdict": "SIG-DIFF",
    "ndiff": 345,
    "ntotal": 2284,

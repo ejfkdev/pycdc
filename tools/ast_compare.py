@@ -564,6 +564,21 @@ class Normalizer(ast.NodeTransformer):
                 else:
                     new_args.append(a)
             node.args = new_args
+        # the compiler folds a constant set literal in a membership test
+        # (`x in {1,2,3}`) into a constant frozenset (LOAD_CONST
+        # frozenset(...)), which the decompile renders back as
+        # `frozenset({1,2,3})`. Unwrap it to the bare Set so it compares
+        # equal to the source's set literal (base64 3.6-3.11
+        # `padchars not in {0,1,3,4,6}`). Symmetric: an explicit source
+        # `frozenset({...})` normalizes the same way, and the decompile
+        # only emits `frozenset({literal})` from that constant fold, so
+        # this never conflates a real frozenset VALUE with a set.
+        if (isinstance(node.func, ast.Name)
+                and node.func.id == 'frozenset'
+                and len(node.args) == 1
+                and not getattr(node, 'keywords', [])
+                and isinstance(node.args[0], ast.Set)):
+            return node.args[0]
         # set(genexpr) == set comprehension, list(genexpr) == list comp
         # (decompiler renders pre-3.x style comprehension code this way)
         if (isinstance(node.func, ast.Name)
