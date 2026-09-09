@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 28,
-  "SIG-DIFF": 10,
+  "PASS": 29,
+  "SIG-DIFF": 9,
   "INCOMPLETE": 2
  },
  "results": [
@@ -64,7 +64,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1729: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 1732: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 721,
    "ntotal": 2142,
@@ -92,7 +92,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 4371: orig  args=[JoinedStr(values=[Constant(value=\"Node can't use cause without an exception.\")])] | dec  args=[Constant(value=\"Node can't use cause without an exception.\")]",
+   "ast_detail": "diff at token 4375: orig  args=[JoinedStr(values=[Constant(value=\"Node can't use cause without an exception.\")])] | dec  args=[Constant(value=\"Node can't use cause without an exception.\")]",
    "verdict": "SIG-DIFF",
    "ndiff": 2476,
    "ntotal": 7116,
@@ -110,7 +110,7 @@
    "module": "base64",
    "ast_detail": "diff at token 773: orig  comparators=[Set(elts=[Constant(value=0) | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1073,
+   "ndiff": 845,
    "ntotal": 1868,
    "detail": "line 705: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 706: orig ('CONTAINS_OP', '') | got ('BUILD_SET', '')\nline 707: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})')"
   },
@@ -136,11 +136,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 1054: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2004,
-   "ntotal": 3063,
-   "detail": "line 1021: orig ('STORE_DEREF', 'dates') | got ('STORE_FAST', 'dates')\nline 1022: orig ('LOAD_CLOSURE', 'dates') | got ('LOAD_CONST', '<code <listcomp>>')\nline 1023: orig ('BUILD_TUPLE', '') | got ('LOAD_CONST', \"'Calendar.monthdatescalendar.<locals>.<listcomp>'\")"
+   "verdict": "PASS"
   },
   {
    "module": "cgi",
@@ -158,13 +154,13 @@
    "module": "cmd",
    "ast_detail": "diff at token 178: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1092,
+   "ndiff": 1093,
    "ntotal": 1329,
    "detail": "line 218: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', 'None')\nline 219: orig ('SETUP_FINALLY', 'to 380') | got ('RETURN_VALUE', '')\nline 220: orig ('LOAD_FAST', 'intro') | got ('precmd', 2)"
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 513: orig  While(test=Name(id='True' | dec  Try(body=[Assign(targets=[Name(id='line'",
+   "ast_detail": "diff at token 519: orig  While(test=Name(id='True' | dec  Try(body=[Assign(targets=[Name(id='line'",
    "verdict": "SIG-DIFF",
    "ndiff": 253,
    "ntotal": 758,
@@ -192,7 +188,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 1707: orig  If(test=BoolOp(op=And() | dec  Assign(targets=[Name(id='replace'",
+   "ast_detail": "diff at token 1704: orig  If(test=BoolOp(op=And() | dec  Assign(targets=[Name(id='replace'",
    "verdict": "SIG-DIFF",
    "ndiff": 2811,
    "ntotal": 4333,

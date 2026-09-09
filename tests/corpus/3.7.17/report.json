@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 32,
-  "SIG-DIFF": 8
+  "PASS": 33,
+  "SIG-DIFF": 7
  },
  "results": [
   {
@@ -98,7 +98,7 @@
    "module": "base64",
    "ast_detail": "diff at token 823: orig  comparators=[Set(elts=[Num(n=0) | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1133,
+   "ndiff": 531,
    "ntotal": 1946,
    "detail": "line 736: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 737: orig ('COMPARE_OP', 'not in') | got ('LOAD_CONST', '0')\nline 738: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', '1')"
   },
@@ -124,11 +124,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 1167: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1965,
-   "ntotal": 3072,
-   "detail": "line 1068: orig ('STORE_DEREF', 'dates') | got ('STORE_FAST', 'dates')\nline 1069: orig ('LOAD_CLOSURE', 'dates') | got ('LOAD_CONST', '<code <listcomp>>')\nline 1070: orig ('BUILD_TUPLE', '') | got ('LOAD_CONST', \"'Calendar.monthdatescalendar.<locals>.<listcomp>'\")"
+   "verdict": "PASS"
   },
   {
    "module": "cgi",
@@ -148,11 +144,11 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 764: orig  Return(value=ListComp(elt=Subscript(value=Name(id='a' | dec  Return(value=ListComp(elt=Subscript(value=Num(n=3)",
+   "ast_detail": "diff at token 908: orig  finalbody=[])] | dec  finalbody=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 698,
+   "ndiff": 616,
    "ntotal": 1315,
-   "detail": "line 596: orig ('FOR_ITER', 'to 32') | got ('FOR_ITER', 'to 28')\nline 603: orig ('LOAD_FAST', 'a') | got ('LOAD_CONST', '3')\nline 604: orig ('LOAD_CONST', '3') | got ('LOAD_CONST', 'None')"
+   "detail": "line 667: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 164')\nline 677: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 158')\nline 689: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 158')"
   },
   {
    "module": "code",

@@ -104,7 +104,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1789: orig  Return(value=BinOp(left=Constant(value='(?P<%s>%s)') | dec  Return(value=JoinedStr(values=[Constant(value='(?P<')",
+   "ast_detail": "diff at token 1834: orig  body=[Assign(targets=[Name(id='format_char' | dec  body=[Nonlocal(names=['day_of_month_in_format'",
    "verdict": "SIG-DIFF",
    "ndiff": 845,
    "ntotal": 3207,
@@ -209,7 +209,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 94: orig  BinOp(left=Constant(value='No section: %r') | dec  JoinedStr(values=[Constant(value='No section: ')",
+   "ast_detail": "diff at token 1134: orig  ctx=Load())])) | dec  ctx=Load())]))]",
    "verdict": "SIG-DIFF",
    "ndiff": 3272,
    "ntotal": 5081,

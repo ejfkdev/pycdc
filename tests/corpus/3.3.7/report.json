@@ -101,10 +101,10 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 1003: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
+   "ast_detail": "diff at token 4025: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2056,
-   "ntotal": 2901,
+   "ndiff": 1968,
+   "ntotal": 2902,
    "detail": "line 761: orig ('SETUP_LOOP', '#67') | got ('SETUP_LOOP', '#68')\nline 798: orig ('LOAD_CONST', 'None') | got ('JUMP_ABSOLUTE', '#31')\nline 799: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', 'None')"
   },
   {
@@ -129,9 +129,9 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 863: orig  Return(value=ListComp(elt=Subscript(value=Name(id='a' | dec  Return(value=ListComp(elt=Subscript(value=Num(n=3)",
+   "ast_detail": "diff at token 1028: orig  finalbody=[])] | dec  finalbody=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 761,
+   "ndiff": 750,
    "ntotal": 1328,
    "detail": "line 556: orig ('LOAD_CONST', 'None') | got ('emptyline', 1)\nline 557: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'self')\nline 558: orig ('emptyline', 1) | got ('LOAD_ATTR', 'lastcmd')"
   },

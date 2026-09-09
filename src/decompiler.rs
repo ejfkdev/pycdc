@@ -39383,6 +39383,46 @@ fn genexpr_ternary_merge(
                     stack.push(Rc::new(e));
                 }
                 Op::TO_BOOL => {}
+                // slice construction inside a comprehension element:
+                // without this the operands stay on the stack and a
+                // following BINARY_SUBSCR pairs the wrong two (calendar
+                // 3.6-3.11 monthdatescalendar `[dates[i:i+7] for i in
+                // ...]` rendered `i[i+7]`, dropping the captured `dates`
+                // freevar - which also lost the STORE_DEREF closure and
+                // the whole following elif chain's nesting). Only
+                // BUILD_SLICE is handled here: py2 SLICE_0-3 / 3.12
+                // BINARY_SLICE inside comprehensions are left to the
+                // historic `_ => {}` fall-through (handling them shifted
+                // other py2/3.x comprehension elts and regressed
+                // bisect/cProfile/StringIO/ast/base64 AST matches).
+                Op::BUILD_SLICE => {
+                    let none_if = |e: ExprRef| -> Option<ExprRef> {
+                        match &*e {
+                            Expr::Const(o)
+                                if matches!(&**o, PyObject::None) =>
+                            {
+                                None
+                            }
+                            _ => Some(e),
+                        }
+                    };
+                    let under = || Rc::new(Expr::Name("?".to_string()));
+                    let (start, stop, step) = if inst.arg == 3 {
+                        let step = none_if(stack.pop().unwrap_or_else(under));
+                        let stop = none_if(stack.pop().unwrap_or_else(under));
+                        let start = none_if(stack.pop().unwrap_or_else(under));
+                        (start, stop, step)
+                    } else {
+                        let stop = none_if(stack.pop().unwrap_or_else(under));
+                        let start = none_if(stack.pop().unwrap_or_else(under));
+                        (start, stop, None)
+                    };
+                    stack.push(Rc::new(Expr::Slice(Box::new(SliceExpr {
+                        start,
+                        stop,
+                        step,
+                    }))));
+                }
                 // 3.11+ plain-call marker slot: a non-method callable is
                 // followed by PUSH_NULL, and CALL pops [callable, marker].
                 // Ignoring it lets CALL's method-receiver heuristic eat the

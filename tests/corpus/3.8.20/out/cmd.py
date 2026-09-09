@@ -210,7 +210,7 @@ class Cmd:
 
     def completenames(self, text, *ignored):
         dotext = 'do_' + text
-        return [3[None] for a in self.get_names() if a.startswith(dotext)]
+        return [a[3:] for a in self.get_names() if a.startswith(dotext)]
 
     def complete(self, text, state):
         """Return the next possible completion for 'text'.
@@ -247,7 +247,7 @@ class Cmd:
 
     def complete_help(self, *args):
         commands = set(self.completenames(*args))
-        topics = set((5[None] for a in self.get_names() if a.startswith('help_' + args[0])))
+        topics = set((a[5:] for a in self.get_names() if a.startswith('help_' + args[0])))
         return list(commands | topics)
 
     def do_help(self, arg):

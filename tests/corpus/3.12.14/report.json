@@ -61,7 +61,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1420: orig  value=BinOp(left=Constant(value='(?P<%s>%s') | dec  value=JoinedStr(values=[Constant(value='(?P<')",
+   "ast_detail": "diff at token 1643: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=Call(func=Name(id='isinstance'",
    "verdict": "SIG-DIFF",
    "ndiff": 345,
    "ntotal": 2284,
@@ -124,7 +124,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 925: orig  body=[Return(value=BinOp(left=Constant(value='MiniFieldStorage(%r | dec  body=[Return(value=JoinedStr(values=[Constant(value='MiniFieldStorage(')",
+   "ast_detail": "diff at token 1543: orig  Continue()] | dec  Return()]",
    "verdict": "SIG-DIFF",
    "ndiff": 610,
    "ntotal": 2873,

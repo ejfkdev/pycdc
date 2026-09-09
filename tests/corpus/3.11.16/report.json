@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 29,
-  "SIG-DIFF": 9,
+  "PASS": 30,
+  "SIG-DIFF": 8,
   "INCOMPLETE": 2
  },
  "results": [
@@ -49,7 +49,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 167: orig  args=[BinOp(left=Constant(value='/tmp/_osx_support.%s') | dec  args=[JoinedStr(values=[Constant(value='/tmp/_osx_support.')",
+   "ast_detail": "diff at token 334: orig  If(test=Compare(left=Name(id='m' | dec  Expr(value=Call(func=Attribute(value=Name(id='f'",
    "verdict": "SIG-DIFF",
    "ndiff": 1253,
    "ntotal": 1575,
@@ -65,7 +65,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 977: orig  value=BinOp(left=Constant(value='(?P<%s>%s') | dec  value=JoinedStr(values=[Constant(value='(?P<')",
+   "ast_detail": "diff at token 1444: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
    "verdict": "SIG-DIFF",
    "ndiff": 985,
    "ntotal": 2246,
@@ -107,7 +107,7 @@
    "module": "base64",
    "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1811,
+   "ndiff": 1810,
    "ntotal": 2107,
    "detail": "line 230: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 146') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 86')\nline 237: orig ('PUSH_EXC_INFO', '') | got ('LOAD_GLOBAL', 'NULL + isinstance')\nline 238: orig ('LOAD_GLOBAL', 'UnicodeEncodeError') | got ('LOAD_FAST', 's')"
   },
@@ -132,11 +132,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 1061: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2349,
-   "ntotal": 3519,
-   "detail": "line 1111: orig ('MAKE_CELL', 'dates') | got ('RESUME', '')\nline 1112: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + list')\nline 1113: orig ('LOAD_GLOBAL', 'NULL + list') | got ('LOAD_FAST', 'self')"
+   "verdict": "PASS"
   },
   {
    "module": "cgi",
@@ -154,7 +150,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 348: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1060,
+   "ndiff": 1043,
    "ntotal": 1443,
    "detail": "line 328: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1116') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1018')\nline 331: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1120') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1018')\nline 348: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1108') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1110')"
   },

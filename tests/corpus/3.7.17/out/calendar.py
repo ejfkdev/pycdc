@@ -208,7 +208,7 @@ class Calendar(object):
         """
 
         dates = list(self.itermonthdates(year, month))
-        return [i[i + 7] for i in range(0, len(dates), 7)]
+        return [dates[i:i + 7] for i in range(0, len(dates), 7)]
 
     def monthdays2calendar(self, year, month):
         """
@@ -219,7 +219,7 @@ class Calendar(object):
         """
 
         days = list(self.itermonthdays2(year, month))
-        return [i[i + 7] for i in range(0, len(days), 7)]
+        return [days[i:i + 7] for i in range(0, len(days), 7)]
 
     def monthdayscalendar(self, year, month):
         """
@@ -228,7 +228,7 @@ class Calendar(object):
         """
 
         days = list(self.itermonthdays(year, month))
-        return [i[i + 7] for i in range(0, len(days), 7)]
+        return [days[i:i + 7] for i in range(0, len(days), 7)]
 
     def yeardatescalendar(self, year, width=3):
         '''
@@ -239,7 +239,7 @@ class Calendar(object):
         '''
 
         months = [self.monthdatescalendar(year, i) for i in range(January, January + 12)]
-        return [i[i + width] for i in range(0, len(months), width)]
+        return [months[i:i + width] for i in range(0, len(months), width)]
 
     def yeardays2calendar(self, year, width=3):
         '''
@@ -250,7 +250,7 @@ class Calendar(object):
         '''
 
         months = [self.monthdays2calendar(year, i) for i in range(January, January + 12)]
-        return [i[i + width] for i in range(0, len(months), width)]
+        return [months[i:i + width] for i in range(0, len(months), width)]
 
     def yeardayscalendar(self, year, width=3):
         '''
@@ -260,7 +260,7 @@ class Calendar(object):
         '''
 
         months = [self.monthdayscalendar(year, i) for i in range(January, January + 12)]
-        return [i[i + width] for i in range(0, len(months), width)]
+        return [months[i:i + width] for i in range(0, len(months), width)]
 
 
 class TextCalendar(Calendar):

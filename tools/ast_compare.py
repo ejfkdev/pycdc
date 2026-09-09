@@ -239,6 +239,15 @@ def _canon_for_iter(it):
 
 import re as _re
 
+# JoinedStr/FormattedValue/Constant are py3.6+/3.8+ only - guard every
+# reference so ast_compare still runs under the py2.6/2.7/3.3/3.5
+# interpreters that verify_corpus invokes it with (an unguarded
+# `isinstance(node, ast.JoinedStr)` raised AttributeError there and
+# crashed the comparison, silently dropping every py2 module with a
+# BinOp from AST-PASS to SIG-DIFF).
+_JOINED_STR = getattr(ast, 'JoinedStr', None)
+_FMT_VALUE = getattr(ast, 'FormattedValue', None)
+
 # simple positional %-specifiers (no width/precision/flags/mapping-key)
 _PCT_SIMPLE = _re.compile(r'%[sra]')
 # any %-conversion (used to vet a template has no flags/width/mapping forms)
@@ -254,6 +263,11 @@ def _pct_template_to_joinedstr(node):
     canonicalizing the source BinOp to the same JoinedStr makes them
     compare equal (_strptime 3.12-3.14 '(?P<%s>%s)' % (directive, regex),
     cgi 3.12 'MiniFieldStorage(%r,...)', configparser 3.14 'No section:%r')."""
+    # py2 / py3.5-and-earlier have no JoinedStr (and no ast.Constant):
+    # this normalization is a no-op there
+    if _JOINED_STR is None or _FMT_VALUE is None \
+            or not hasattr(ast, 'Constant'):
+        return None
     if not (isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mod)
             and isinstance(node.left, ast.Constant)
             and isinstance(node.left.value, str)):
@@ -398,7 +412,7 @@ class Normalizer(ast.NodeTransformer):
         # the source form to the same JoinedStr (no-op for numeric %, and
         # for templates with flags/width/%(key)s which are not folded)
         node = _canon_percent_format(node)
-        if isinstance(node, ast.JoinedStr):
+        if _JOINED_STR is not None and isinstance(node, _JOINED_STR):
             return node
         # compilers fold ''x' * n' into a literal string
         if isinstance(node.op, ast.Mult):
