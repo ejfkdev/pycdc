@@ -11475,24 +11475,84 @@ impl<'a> Ctx<'a> {
                 // `try: return expr finally: ...` (cProfile 3.9/3.10
                 // runcall). A real `finally: ...; return v` would have
                 // non-empty body statements, so the gate is unambiguous.
+                // the copy's trailing stores may still sit in
+                // pending_stores (this RETURN is their flush trigger):
+                // land them while the else-region routing is live so
+                // they collect into finalbody, not Main (a STORE-tail
+                // copy `finally: self.q = True` otherwise leaked to
+                // top level and the flushed Try lost its finally)
                 if !self.version.at_least(3, 11)
                     && is_val_return
-                    && self.legacy_nest.is_empty()
+                    && !self.pending_stores.is_empty()
+                    && self.legacy_try.as_ref().map_or(false, |l| {
+                        l.has_finally
+                            && l.else_start
+                                .map_or(false, |es| self.cur_offset >= es)
+                    })
+                {
+                    self.flushing = true;
+                    self.flush_pending_stores();
+                    self.flushing = false;
+                }
+                // stashed inner except chain (3.9/3.10 double
+                // SETUP_FINALLY `try: return X / except E: ... /
+                // finally: F`): its handler region sits between this
+                // return and the outer finally handler and the linear
+                // walk never reaches it — parse and wrap it around the
+                // folded return (mirror of the 3.8 CALL_FINALLY fold
+                // fix; bdb 3.9/3.10 runeval lost `except BdbQuit`)
+                let stashed_exc = if self.legacy_nest.is_empty() {
+                    None
+                } else {
+                    let ni = self.legacy_nest.len() - 1;
+                    self.legacy_nest[ni]
+                        .outer_try
+                        .as_ref()
+                        .filter(|inner| {
+                            inner.handlers.is_empty()
+                                && !inner.chain_done
+                                && inner.handler_start > self.cur_offset
+                                && self
+                                    .legacy_try
+                                    .as_ref()
+                                    .map_or(false, |l| {
+                                        inner.handler_start < l.handler_start
+                                    })
+                                && self.chain_has_exc_dispatch(inner.handler_start)
+                        })
+                        .map(|_| ni)
+                };
+                if !self.version.at_least(3, 11)
+                    && is_val_return
+                    && (self.legacy_nest.is_empty() || stashed_exc.is_some())
                     // the value must have ridden the stack UNDER the
                     // inline finally copies (computed inside the
                     // protected body): the instruction right before this
-                    // RETURN is the copy's trailing POP_TOP. A value
-                    // LOADed right before the RETURN is the nested-try
-                    // shared tail (3.9 computes it after BOTH copies —
-                    // b15 ret_both_nested) and belongs to the existing
-                    // flat rendering
+                    // RETURN is the copy's trailing POP_TOP or a
+                    // statement-final STORE (a `self.q = True` copy —
+                    // bdb 3.9 runeval, t_tef39 g5). A value LOADed right
+                    // before the RETURN is the nested-try shared tail
+                    // (3.9 computes it after BOTH copies — b15
+                    // ret_both_nested) and belongs to the existing flat
+                    // rendering
                     && self
                         .idx_of
                         .get(&self.cur_offset)
                         .and_then(|&ri| {
                             (ri > 0).then(|| self.instrs[ri - 1].op)
                         })
-                        .map_or(false, |p| p == Op::POP_TOP)
+                        .map_or(false, |p| {
+                            p == Op::POP_TOP
+                                || matches!(
+                                    p,
+                                    Op::STORE_ATTR
+                                        | Op::STORE_FAST
+                                        | Op::STORE_NAME
+                                        | Op::STORE_DEREF
+                                        | Op::STORE_GLOBAL
+                                        | Op::STORE_SUBSCR
+                                )
+                        })
                     // OUTERMOST chain only: an enclosing Try/Finally
                     // block still open means this return belongs to a
                     // NESTED try/finally (b15 ret_both_nested: folding
@@ -11519,6 +11579,81 @@ impl<'a> Ctx<'a> {
                 {
                     if let Some(l) = self.legacy_try.as_mut() {
                         l.body.push(Stmt::Return(Some(e)));
+                    }
+                    if let Some(ni) = stashed_exc {
+                        let inner =
+                            self.legacy_nest[ni].outer_try.take().unwrap();
+                        let hs = inner.handler_start;
+                        let mut outer = self.legacy_try.take().unwrap();
+                        self.legacy_try = Some(inner);
+                        // clamp the sub-walk at the chain's own mismatch
+                        // terminator (RERAISE/END_FINALLY) before the
+                        // outer finally handler: past it lie the except
+                        // path's inline copy and bridge, which the
+                        // handler region [hs, outer_hs) covers
+                        let outer_hs = outer.handler_start;
+                        let chain_end = self
+                            .idx_of
+                            .get(&hs)
+                            .and_then(|&hi| {
+                                self.instrs[hi..]
+                                    .iter()
+                                    .take(200)
+                                    .take_while(|x| x.offset < outer_hs)
+                                    .find(|x| {
+                                        matches!(
+                                            x.op,
+                                            Op::END_FINALLY | Op::RERAISE
+                                        )
+                                    })
+                                    .map(|x| x.offset)
+                            })
+                            .unwrap_or(outer_hs);
+                        self.parse_skipped_nested_chain(chain_end);
+                        if let Some(mut inner) = self.legacy_try.take() {
+                            if !inner.handlers.is_empty() {
+                                // the folded return belongs to the INNER
+                                // body; the collected inline copy is the
+                                // OUTER finally; the chain's own else
+                                // span is dead (covered by the copy)
+                                inner.body.extend(std::mem::take(
+                                    &mut outer.body,
+                                ));
+                                outer.body = vec![Stmt::Try {
+                                    body: inner.body,
+                                    handlers: std::mem::take(
+                                        &mut inner.handlers,
+                                    ),
+                                    orelse: std::mem::take(
+                                        &mut inner.orelse,
+                                    ),
+                                    finalbody: Vec::new(),
+                                }];
+                                outer.orelse.clear();
+                                outer.else_start = None;
+                                self.legacy_try = Some(outer);
+                                // drop the consumed husk: the teardown
+                                // nest-loop would otherwise TAKE the
+                                // wrapped chain and drop it (a
+                                // finally-chain has no handlers of its
+                                // own to pass the push gate)
+                                if self
+                                    .legacy_nest
+                                    .get(ni)
+                                    .map_or(false, |n| n.outer_try.is_none())
+                                {
+                                    self.legacy_nest.remove(ni);
+                                }
+                            } else {
+                                // nothing parsed: restore both unchanged
+                                self.legacy_try = Some(outer);
+                                self.legacy_nest[ni].outer_try = Some(inner);
+                            }
+                        } else {
+                            self.legacy_try = Some(outer);
+                        }
+                        self.legacy_handler = None;
+                        self.legacy_handler_end = None;
                     }
                     // flow ends at this return; the run() teardown
                     // flushes the chain into its Try statement
@@ -15949,6 +16084,42 @@ impl<'a> Ctx<'a> {
             .map(norm)
             .collect();
         (run_h == run_a).then(|| self.instrs[hb].offset)
+    }
+
+
+    /// 3.10 double-sunk-tail try/except/finally: the inner except chain
+    /// (fully parsed before this outer finally chain flushes) sits
+    /// STASHED in legacy_nest — the end-of-walk nest teardown would emit
+    /// it as a SIBLING after the outer Try (bdb 3.10 run rendered
+    /// `try: pass finally: ...` + a separate `try: exec() except
+    /// BdbQuit: pass`). Fold it into the outer chain's body as a nested
+    /// Try. The nest husk stays for the caller's restore_legacy_nest.
+    fn fold_stashed_inner_chain(&mut self, l: &mut LegacyTry) {
+        if self.legacy_nest.is_empty() {
+            return;
+        }
+        let ni = self.legacy_nest.len() - 1;
+        let ok = self.legacy_nest[ni]
+            .outer_try
+            .as_ref()
+            .map_or(false, |inner| {
+                !inner.handlers.is_empty()
+                    && inner.chain_done
+                    && l.else_start
+                        .map_or(false, |es| inner.handler_start < es)
+                    && inner.finalbody.is_empty()
+            });
+        if !ok {
+            return;
+        }
+        let mut inner = self.legacy_nest[ni].outer_try.take().unwrap();
+        let inner_try = Stmt::Try {
+            body: std::mem::take(&mut inner.body),
+            handlers: std::mem::take(&mut inner.handlers),
+            orelse: std::mem::take(&mut inner.orelse),
+            finalbody: Vec::new(),
+        };
+        l.body.push(inner_try);
     }
 
     fn push_legacy_try(&mut self, l: LegacyTry) {
@@ -33218,8 +33389,9 @@ impl<'a> Ctx<'a> {
                         .map_or(false, |es| self.cur_offset >= es && self.cur_offset <= l.else_stop)
             })
         {
-            let l = self.legacy_try.take().unwrap();
+            let mut l = self.legacy_try.take().unwrap();
             self.flush_pending_stores();
+            self.fold_stashed_inner_chain(&mut l);
             self.restore_legacy_nest();
             self.push_legacy_try(l);
                         self.skip_until = Some(usize::MAX);
@@ -33311,8 +33483,9 @@ impl<'a> Ctx<'a> {
                         .map_or(false, |es| self.cur_offset >= es && self.cur_offset <= l.else_stop)
             })
         {
-            let l = self.legacy_try.take().unwrap();
+            let mut l = self.legacy_try.take().unwrap();
             self.flush_pending_stores();
+            self.fold_stashed_inner_chain(&mut l);
             self.restore_legacy_nest();
             self.push_legacy_try(l);
                         self.skip_until = Some(usize::MAX);

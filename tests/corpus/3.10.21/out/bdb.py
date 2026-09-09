@@ -553,14 +553,13 @@ class Bdb:
             cmd = compile(cmd, '<string>', 'exec')
         sys.settrace(self.trace_dispatch)
         try:
-            pass
+            try:
+                exec(cmd, globals, locals)
+            except BdbQuit:
+                pass
         finally:
             self.quitting = True
             sys.settrace(None)
-        try:
-            exec(cmd, globals, locals)
-        except BdbQuit:
-            pass
 
     def runeval(self, expr, globals=None, locals=None):
         '''Debug an expression executed via the eval() function.
@@ -576,11 +575,13 @@ class Bdb:
         self.reset()
         sys.settrace(self.trace_dispatch)
         try:
-            pass
+            try:
+                return eval(expr, globals, locals)
+            except BdbQuit:
+                pass
         finally:
             self.quitting = True
             sys.settrace(None)
-        return eval(expr, globals, locals)
 
     def runctx(self, cmd, globals, locals):
         self.run(cmd, globals, locals)
@@ -590,16 +591,14 @@ class Bdb:
         sys.settrace(self.trace_dispatch)
         res = None
         try:
-            pass
+            try:
+                res = func(*args, **kwds)
+            except BdbQuit:
+                pass
         finally:
             self.quitting = True
             sys.settrace(None)
-        try:
-            res = func(*args, **kwds)
-        except BdbQuit:
-            pass
-        else:
-            return res
+        return res
 
 
 def set_trace():

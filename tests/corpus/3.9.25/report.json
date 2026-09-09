@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 25,
-  "SIG-DIFF": 12,
+  "PASS": 26,
+  "SIG-DIFF": 11,
   "INCOMPLETE": 3
  },
  "results": [
@@ -115,11 +115,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 778: orig  orelse=[])] | dec  orelse=[])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 649,
-   "ntotal": 2340,
-   "detail": "line 1663: orig ('SETUP_FINALLY', 'to 128') | got ('SETUP_FINALLY', 'to 76')\nline 1664: orig ('SETUP_FINALLY', 'to 90') | got ('POP_BLOCK', '')\nline 1665: orig ('LOAD_GLOBAL', 'eval') | got ('LOAD_CONST', 'True')"
+   "verdict": "PASS"
   },
   {
    "module": "binhex",
@@ -157,7 +153,7 @@
    "module": "cgitb",
    "ast_detail": "diff at token 243: orig  body=[If(test=Compare(left=Name(id='lasttoken' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 809,
+   "ndiff": 814,
    "ntotal": 1456,
    "detail": "line 582: orig ('FOR_ITER', 'to 694') | got ('FOR_ITER', 'to 692')\nline 592: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 688')\nline 593: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_CONST', '1')"
   },

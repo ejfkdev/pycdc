@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 23,
-  "SIG-DIFF": 13,
+  "PASS": 24,
+  "SIG-DIFF": 12,
   "INCOMPLETE": 4
  },
  "results": [
@@ -123,11 +123,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 1060: orig  Continue()] | dec  Return()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 753,
-   "ntotal": 2439,
-   "detail": "line 1657: orig ('SETUP_FINALLY', 'to 158') | got ('SETUP_FINALLY', 'to 98')\nline 1658: orig ('SETUP_FINALLY', 'to 96') | got ('POP_BLOCK', '')\nline 1659: orig ('LOAD_GLOBAL', 'exec') | got ('LOAD_CONST', 'True')"
+   "verdict": "PASS"
   },
   {
    "module": "binhex",
@@ -169,9 +165,9 @@
    "module": "cgitb",
    "ast_detail": "diff at token 149: orig  Continue()] | dec  Return(value=Tuple(elts=[Constant(value=None)",
    "verdict": "SIG-DIFF",
-   "ndiff": 640,
+   "ndiff": 173,
    "ntotal": 1430,
-   "detail": "line 784: orig ('SETUP_FINALLY', 'to 48') | got ('SETUP_FINALLY', 'to 34')\nline 785: orig ('LOAD_GLOBAL', 'linecache') | got ('POP_BLOCK', '')\nline 786: orig ('LOAD_METHOD', 'getline') | got ('LOAD_FAST', 'lnum')"
+   "detail": "line 1255: orig ('SETUP_FINALLY', 'to 76') | got ('LOAD_FAST', 'self')\nline 1256: orig ('LOAD_FAST', 'formatter') | got ('LOAD_ATTR', 'display')\nline 1257: orig ('LOAD_FAST', 'info') | got ('POP_JUMP_IF_FALSE', 'to 120')"
   },
   {
    "module": "chunk",
