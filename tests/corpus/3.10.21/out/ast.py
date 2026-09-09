@@ -142,14 +142,14 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
                     keywords = True
                 else:
                     if value is None and getattr(cls, name, ...) is None:
+                        continue
                         keywords = True
+                    value, simple = _format(value, level)
+                    allsimple = allsimple and simple
+                    if keywords:
+                        args.append('%s=%s' % (name, value))
                     else:
-                        value, simple = _format(value, level)
-                        allsimple = allsimple and simple
-                        if keywords:
-                            args.append('%s=%s' % (name, value))
-                        else:
-                            args.append(value)
+                        args.append(value)
             if include_attributes and node._attributes:
                 for name in node._attributes:
                     try:
@@ -158,11 +158,10 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None):
                         pass
                     else:
                         if value is None and getattr(cls, name, ...) is None:
-                            pass
-                        else:
-                            value, simple = _format(value, level)
-                            allsimple = allsimple and simple
-                            args.append('%s=%s' % (name, value))
+                            continue
+                        value, simple = _format(value, level)
+                        allsimple = allsimple and simple
+                        args.append('%s=%s' % (name, value))
             if allsimple and len(args) <= 3:
                 return '%s(%s)' % (node.__class__.__name__, ', '.join(args)), not args
             return '%s(%s%s)' % (node.__class__.__name__, prefix, sep.join(args)), False

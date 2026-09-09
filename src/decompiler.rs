@@ -26546,13 +26546,29 @@ if split_cond {
         if from >= to {
             return false;
         }
-        let (Some(&a), Some(&b)) = (self.idx_of.get(&from), self.idx_of.get(&to)) else {
+        // `from`/`to` may land on an EXTENDED_ARG prefix byte, which
+        // idx_of does not key (it keys post-prefix offsets and ends,
+        // and the prefix start collides with the PREVIOUS instruction's
+        // end) — resolve to the instruction whose `start` covers the
+        // offset. EXTENDED_ARG is jump ENCODING, not a statement: count
+        // it as padding (cgitb 3.8/3.9 html `if name in done:
+        // continue` — the guard arm is `EXTARG; JABS` and starts at the
+        // EXTARG byte; the emptiness check failed, jfold read the
+        // explicit continue as a fused chain exit and wrapped the rest
+        // of the loop body into a folded Else[MAX] region).
+        let resolve = |off: usize| -> Option<usize> {
+            if let Some(i) = self.instrs.iter().position(|x| x.start == off) {
+                return Some(i);
+            }
+            self.idx_of.get(&off).copied()
+        };
+        let (Some(a), Some(b)) = (resolve(from), resolve(to)) else {
             return false;
         };
         (a..b).all(|k| {
             matches!(
                 self.instrs[k].op,
-                Op::NOT_TAKEN | Op::NOP | Op::CACHE
+                Op::NOT_TAKEN | Op::NOP | Op::CACHE | Op::EXTENDED_ARG
             )
         })
     }
@@ -29251,7 +29267,61 @@ if split_cond {
         true
     }
 
-    fn handle_jump_backward(&mut self, target: usize) {
+    fn handle_jump_backward(&mut self, raw_target: usize) {
+        // a backward target landing on an EXTENDED_ARG prefix byte (the
+        // decoder keys idx_of by post-prefix offset/end, so the prefix
+        // start collides with the PREVIOUS instruction's end — cgitb
+        // 3.8/3.9 html's outer-for back edge targeted 158 = GET_ITER's
+        // end = the EXTARG start of FOR_ITER@160) fails every loop
+        // match and leaks a stray `continue`. Remap ONLY when the raw
+        // target resolves to an EXTARG-prefixed instruction's start
+        // (3.12+ relative backward jumps already decode to logical
+        // offsets — a blanket remap broke configparser/_strptime
+        // 3.10-3.13 loop matching).
+        let target = {
+            let resolves_to_loop = |t: usize| {
+                self.blocks.iter().any(|b| {
+                    matches!(b.kind, BlockType::While | BlockType::For)
+                        && (b.start == t || b.cond_end == t)
+                })
+            };
+            let alt = self
+                .instrs
+                .iter()
+                .find(|x| x.start == raw_target && x.start != x.offset)
+                .map(|x| x.offset);
+            // 3.10+ rotated-while/JUMP_BACKWARD flows register and
+            // match back-edge targets in the RAW form and route the
+            // apparent mismatch through the dup_while/jfold machinery
+            // (configparser 3.13 _read_inner, _strptime 3.10+: remapping
+            // there diverted the edges into the plain loop-close path
+            // and tore the chains) — remap only in the pre-3.10
+            // non-rotated era
+            match alt {
+                Some(a)
+                    if !self.version.at_least(3, 10)
+                        && a != raw_target
+                        && !resolves_to_loop(raw_target)
+                        && resolves_to_loop(a)
+                        // remap ONLY the loop's NATURAL back edge (no
+                        // later backward jump to the same top): an
+                        // explicit `continue` in mid-body relies on the
+                        // raw-mismatch fallback to emit its Continue
+                        // (_strptime 3.8/3.9 TimeRE_cache.__getitem__'s
+                        // eight continues were swallowed by the matched
+                        // loop-close path under an unconditional remap)
+                        && !self.instrs.iter().any(|x| {
+                            x.offset > self.cur_offset
+                                && x.is_backward
+                                && (x.target == Some(raw_target)
+                                    || x.target == Some(a))
+                        }) =>
+                {
+                    a
+                }
+                _ => raw_target,
+            }
+        };
         // unreachable back-edge padding: unoptimized compilers (py2.6)
         // emit JUMP_ABSOLUTE to the loop top right after a RAISE/RETURN
         // ending a then-arm. Fall-through from a terminator is impossible
@@ -29563,6 +29633,27 @@ if split_cond {
                         }
                     }
                     if let Some(t_idx) = ti {
+                        // an arm EMPTY at this jump is an explicit
+                        // continue guard (`if c: continue` — the arm's
+                        // only content is this backward jump and the
+                        // region after is the fall-through loop body,
+                        // not an else arm): emit the Continue inside
+                        // the arm and keep the loop open. The else-wrap
+                        // below is for MULTI-statement then arms whose
+                        // arm-end the compiler fused onto the back edge
+                        // (compileall 3.7 compile_path); running it on
+                        // an empty arm rendered `if name in done: pass`
+                        // + else-wrapped body and leaked a stray
+                        // `continue` at the natural back edge (cgitb
+                        // 3.8/3.9 html). An empty then arm can never
+                        // produce the fused shape (a `pass` arm emits
+                        // no arm-end jump at all), so this is unambiguous.
+                        if self.blocks[t_idx].stmts.is_empty()
+                            && self.blocks[t_idx].start < self.cur_offset
+                        {
+                            self.blocks[t_idx].stmts.push(Stmt::Continue);
+                            return;
+                        }
                         // degenerate fusion: the back edge IS the whole
                         // then-region (`if c: break` with fall-through
                         // continue) — record the continue and close; the

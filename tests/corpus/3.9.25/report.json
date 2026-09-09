@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 27,
-  "SIG-DIFF": 11,
+  "PASS": 28,
+  "SIG-DIFF": 10,
   "INCOMPLETE": 2
  },
  "results": [
@@ -66,9 +66,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1729: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 722,
-   "ntotal": 2143,
-   "detail": "line 1250: orig ('FOR_ITER', 'to 1608') | got ('FOR_ITER', 'to 1610')\nline 1414: orig ('JUMP_FORWARD', 'to 846') | got ('EXTENDED_ARG', '')\nline 1415: orig ('LOAD_FAST', 'ampm') | got ('JUMP_ABSOLUTE', '')"
+   "ndiff": 721,
+   "ntotal": 2142,
+   "detail": "line 1250: orig ('FOR_ITER', 'to 1608') | got ('FOR_ITER', 'to 1606')\nline 1414: orig ('JUMP_FORWARD', 'to 846') | got ('EXTENDED_ARG', '')\nline 1415: orig ('LOAD_FAST', 'ampm') | got ('JUMP_ABSOLUTE', '')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -138,7 +138,7 @@
    "module": "calendar",
    "ast_detail": "diff at token 1054: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1965,
+   "ndiff": 2004,
    "ntotal": 3063,
    "detail": "line 1021: orig ('STORE_DEREF', 'dates') | got ('STORE_FAST', 'dates')\nline 1022: orig ('LOAD_CLOSURE', 'dates') | got ('LOAD_CONST', '<code <listcomp>>')\nline 1023: orig ('BUILD_TUPLE', '') | got ('LOAD_CONST', \"'Calendar.monthdatescalendar.<locals>.<listcomp>'\")"
   },
@@ -148,11 +148,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 243: orig  body=[If(test=Compare(left=Name(id='lasttoken' | dec  body=[If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 814,
-   "ntotal": 1456,
-   "detail": "line 582: orig ('FOR_ITER', 'to 694') | got ('FOR_ITER', 'to 692')\nline 592: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 688')\nline 593: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_CONST', '1')"
+   "verdict": "PASS"
   },
   {
    "module": "chunk",
@@ -198,7 +194,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1707: orig  If(test=BoolOp(op=And() | dec  Assign(targets=[Name(id='replace'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2814,
+   "ndiff": 2811,
    "ntotal": 4333,
    "detail": "line 1451: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')\nline 1452: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_ATTR', 'partial')\nline 1453: orig ('LOAD_CONST', \"'%('\") | got ('LOAD_FAST', 'self')"
   },

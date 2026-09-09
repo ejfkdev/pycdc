@@ -91,7 +91,7 @@
    "module": "ast",
    "ast_detail": "diff at token 376: orig  ops=[Eq() | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 7012,
+   "ndiff": 7002,
    "ntotal": 7851,
    "detail": "line 611: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 617: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 623: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')"
   },

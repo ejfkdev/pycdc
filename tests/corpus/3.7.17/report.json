@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 31,
-  "SIG-DIFF": 9
+  "PASS": 32,
+  "SIG-DIFF": 8
  },
  "results": [
   {
@@ -58,9 +58,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1843: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 727,
-   "ntotal": 2173,
-   "detail": "line 1273: orig ('SETUP_LOOP', 'to 1592') | got ('SETUP_LOOP', 'to 1598')\nline 1279: orig ('FOR_ITER', 'to 1590') | got ('FOR_ITER', 'to 1596')\nline 1443: orig ('JUMP_FORWARD', 'to 832') | got ('EXTENDED_ARG', '')"
+   "ndiff": 726,
+   "ntotal": 2171,
+   "detail": "line 1273: orig ('SETUP_LOOP', 'to 1592') | got ('SETUP_LOOP', 'to 1594')\nline 1279: orig ('FOR_ITER', 'to 1590') | got ('FOR_ITER', 'to 1592')\nline 1443: orig ('JUMP_FORWARD', 'to 832') | got ('EXTENDED_ARG', '')"
   },
   {
    "module": "_sysconfigdata_m_darwin_darwin",
@@ -126,7 +126,7 @@
    "module": "calendar",
    "ast_detail": "diff at token 1167: orig  Return(value=ListComp(elt=Subscript(value=Name(id='dates' | dec  Return(value=ListComp(elt=Subscript(value=Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1914,
+   "ndiff": 1965,
    "ntotal": 3072,
    "detail": "line 1068: orig ('STORE_DEREF', 'dates') | got ('STORE_FAST', 'dates')\nline 1069: orig ('LOAD_CLOSURE', 'dates') | got ('LOAD_CONST', '<code <listcomp>>')\nline 1070: orig ('BUILD_TUPLE', '') | got ('LOAD_CONST', \"'Calendar.monthdatescalendar.<locals>.<listcomp>'\")"
   },
@@ -140,11 +140,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 273: orig  body=[If(test=Compare(left=Name(id='lasttoken' | dec  body=[If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 795,
-   "ntotal": 1433,
-   "detail": "line 578: orig ('SETUP_LOOP', 'to 692') | got ('SETUP_LOOP', 'to 690')\nline 581: orig ('FOR_ITER', 'to 690') | got ('FOR_ITER', 'to 688')\nline 591: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 684')"
+   "verdict": "PASS"
   },
   {
    "module": "chunk",
@@ -182,7 +178,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 3172: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(arg=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 1111,
+   "ndiff": 1092,
    "ntotal": 4369,
    "detail": "line 2479: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')\nline 2514: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')\nline 2530: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')"
   },

@@ -337,7 +337,6 @@ class TextCalendar(Calendar):
                         weeks.append(self.formatweek(cal[j], w))
                 a(formatstring(weeks, colwidth, c).rstrip())
                 a('\n' * l)
-            continue
         return ''.join(v)
 
     def pryear(self, theyear, w=0, l=0, c=6, m=3):

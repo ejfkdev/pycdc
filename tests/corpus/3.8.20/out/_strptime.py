@@ -391,7 +391,6 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                             else:
                                 tz = value
                                 continue
-        continue
     if year is None and iso_year is not None:
         if iso_week is None or weekday is None:
             raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")

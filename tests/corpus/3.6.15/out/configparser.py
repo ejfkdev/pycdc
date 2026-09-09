@@ -958,7 +958,6 @@ class RawConfigParser(MutableMapping):
                     cursect[optname] = None
                 continue
             e = self._handle_error(e, fpname, lineno, line)
-            continue
         self._join_multiline_values()
         if e:
             raise e
