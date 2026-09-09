@@ -548,14 +548,16 @@ class Set(Collection):
             if not isinstance(other, Iterable):
                 return NotImplemented
             other = self._from_iterable(other)
-        return self._from_iterable((value for value in self if value not in other))
+        return self._from_iterable((value for value in self
+             if value not in other))
 
     def __rsub__(self, other):
         if not isinstance(other, Set):
             if not isinstance(other, Iterable):
                 return NotImplemented
             other = self._from_iterable(other)
-        return self._from_iterable((value for value in other if value not in self))
+        return self._from_iterable((value for value in other
+             if value not in self))
 
     def __xor__(self, other):
         if not isinstance(other, Set):

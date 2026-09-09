@@ -35722,6 +35722,12 @@ fn genexpr_ternary_merge(
             iter: ExprRef,
             ifs: Vec<ExprRef>,
             is_async: bool,
+            /// 3.12 genexpr filter line-break quirk: a PJIF filter whose
+            /// skip target is the shared back edge means the source had
+            /// the `if` clause on its own line (batch 114's inline-comp
+            /// quirk applies to code-object genexprs too — cabc 3.12
+            /// Set.__rsub__ recompiled to the PJIT+continue form)
+            if_break: bool,
         }
 
         let mut partials: Vec<PartialGen> = Vec::new();
@@ -35925,8 +35931,7 @@ fn genexpr_ternary_merge(
                         target: None,
                         iter: it,
                         ifs: Vec::new(),
-                        is_async: std::mem::take(&mut pending_async),
-                    });
+                        is_async: std::mem::take(&mut pending_async), if_break: false, });
                 }
                 Op::STORE_FAST_LOAD_FAST => {
                     let idx = ((inst.arg >> 4) & 0xF) as usize;
@@ -36115,6 +36120,22 @@ fn genexpr_ternary_merge(
                         }
                         if let Some(last) = partials.last_mut() {
                             last.ifs.push(f);
+                            if !jump_true {
+                                if let Some(ti2) =
+                                    instrs.iter().position(|x| x.offset == target)
+                                {
+                                    if instrs[ti2].is_backward
+                                        && matches!(
+                                            instrs[ti2].op,
+                                            Op::JUMP_BACKWARD
+                                                | Op::JUMP_ABSOLUTE
+                                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                        )
+                                    {
+                                        last.if_break = true;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -36612,7 +36633,7 @@ fn genexpr_ternary_merge(
                 iter: p.iter,
                 ifs: p.ifs,
                 is_async: p.is_async,
-                if_line_break: false,
+                if_line_break: p.if_break,
             })
             .collect();
         Some((elt, key, gens))

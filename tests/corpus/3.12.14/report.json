@@ -24,9 +24,9 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 277: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1447,
-   "ntotal": 3672,
-   "detail": "line 2202: orig ('FOR_ITER', 'to 34') | got ('FOR_ITER', 'to 36')\nline 2207: orig ('POP_JUMP_IF_FALSE', 'to 32') | got ('POP_JUMP_IF_TRUE', 'to 26')\nline 2208: orig ('LOAD_FAST', 'value') | got ('JUMP_BACKWARD', 'to 10')"
+   "ndiff": 498,
+   "ntotal": 3670,
+   "detail": "line 3163: orig ('POP_JUMP_IF_FALSE', 'to 48') | got ('POP_JUMP_IF_FALSE', 'to 50')\nline 3169: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'default')\nline 3170: orig ('LOAD_FAST', 'default') | got ('SWAP', '')"
   },
   {
    "module": "_compat_pickle",
@@ -146,8 +146,8 @@
    "module": "cmd",
    "ast_detail": "diff at token 331: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1076,
-   "ntotal": 1367,
+   "ndiff": 1069,
+   "ntotal": 1366,
    "detail": "line 276: orig ('LOAD_ATTR', 'NULL|self + postloop') | got ('LOAD_ATTR', 'use_rawinput')\nline 277: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 1010')\nline 278: orig ('POP_TOP', '') | got ('LOAD_FAST', 'self')"
   },
   {
