@@ -92,11 +92,11 @@
   },
   {
    "module": "_pylong",
-   "ast_detail": "diff at token 161: orig  Assert(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 820: orig  If(test=Constant(value=0) | dec  Assign(targets=[Tuple(elts=[Name(id='p256'",
    "verdict": "SIG-DIFF",
-   "ndiff": 518,
+   "ndiff": 517,
    "ntotal": 1551,
-   "detail": "line 256: orig ('LOAD_COMMON_CONSTANT', 'AssertionError') | got ('LOAD_GLOBAL', 'AssertionError')\nline 1016: orig ('LOAD_FAST', 'n') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'n, hi')\nline 1017: orig ('LOAD_FAST', 'hi') | got ('LOAD_FAST', 'p256')"
+   "detail": "line 1016: orig ('LOAD_FAST', 'n') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'n, hi')\nline 1017: orig ('LOAD_FAST', 'hi') | got ('LOAD_FAST', 'p256')\nline 1018: orig ('LOAD_FAST', 'p256') | got ('BINARY_OP', '*')"
   },
   {
    "module": "_sitebuiltins",

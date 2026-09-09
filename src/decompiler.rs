@@ -24869,6 +24869,21 @@ if split_cond {
                                 self.skip_until = Some(target);
                 return;
             }
+            // multi-operand or-assert (3.12+ TO_BOOL chains and all
+            // versions' or-forms): every operand success-jumps onto the
+            // continuation past a shared raise block
+            if let Some((extra, msg)) = self.try_or_assert(target) {
+                let mut values = Vec::new();
+                flatten_boolop(cond.clone(), BoolOpKind::Or, &mut values);
+                flatten_boolop(extra, BoolOpKind::Or, &mut values);
+                let test = Rc::new(Expr::BoolOp {
+                    op: BoolOpKind::Or,
+                    values,
+                });
+                self.push_stmt(Stmt::Assert { test, msg });
+                self.skip_until = Some(target);
+                return;
+            }
         }
         // `assert not c` mirrors it: PJIF whose FALSE path skips the
         // fall-through raise block (source `if c: raise AssertionError`
@@ -26125,6 +26140,200 @@ if split_cond {
 
 
     /// Detect the canonical `assert` raise block as the fall-through of a
+    /// Multi-operand or-assert: `assert A or B [or C]` compiles every
+    /// deciding operand to a success jump onto the continuation L which
+    /// sits right past a shared fall-through raise block:
+    ///   [A]; PJIT L; [pads]; [B]; PJFF L; [pads];
+    ///   LOAD AssertionError; [<msg>; CALL 1]; RAISE 1; L:
+    /// (each operand jumps on the polarity that DECIDES truth: PJIT
+    /// contributes the operand, PJFF contributes its negation).
+    /// Per-jump If rendering produced `if not A: if B: raise
+    /// AssertionError` which recompiles to LOAD_GLOBAL AssertionError
+    /// instead of the compiler's LOAD_COMMON_CONSTANT / assert shape
+    /// (_pylong 3.14 compute_powers `assert need_hi or not extra`).
+    /// Returns (merged test, msg) or None.
+    fn try_or_assert(&self, target: usize) -> Option<(ExprRef, Option<ExprRef>)> {
+        let &ci = self.idx_of.get(&self.cur_offset)?;
+        if target <= self.cur_offset {
+            return None;
+        }
+        let Some(&ti) = self.idx_of.get(&target) else {
+            return None;
+        };
+        let mut parts: Vec<ExprRef> = Vec::new();
+        let mut k = ci + 1;
+        let mut region_start = ci + 1;
+        let mut msg: Option<ExprRef> = None;
+        let mut raise_ok = false;
+        while k < ti {
+            let ins = &self.instrs[k];
+            match ins.op {
+                Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG => {
+                    k += 1;
+                }
+                Op::POP_JUMP_IF_FALSE
+                | Op::POP_JUMP_IF_TRUE
+                | Op::POP_JUMP_FORWARD_IF_FALSE
+                | Op::POP_JUMP_FORWARD_IF_TRUE
+                | Op::POP_JUMP_BACKWARD_IF_FALSE
+                | Op::POP_JUMP_BACKWARD_IF_TRUE => {
+                    if ins.target != Some(target) {
+                        return None;
+                    }
+                    if k <= region_start {
+                        return None;
+                    }
+                    let Some(operand) = self
+                        .sim_value_region(region_start, k)
+                        .or_else(|| self.sim_value_region_ex(region_start, k, true))
+                    else {
+                        return None;
+                    };
+                    let jt = matches!(
+                        ins.op,
+                        Op::POP_JUMP_IF_TRUE
+                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                            | Op::POP_JUMP_BACKWARD_IF_TRUE
+                    );
+                    parts.push(if jt {
+                        operand
+                    } else {
+                        Rc::new(Expr::Unary {
+                            op: UnaryOp::Not,
+                            operand,
+                        })
+                    });
+                    k += 1;
+                    region_start = k;
+                }
+                Op::LOAD_ASSERTION_ERROR => {
+                    // raise block: must run to `target` with nothing but
+                    // the msg expression left by this operand scan. An
+                    // EMPTY parts list is the single-operand assert —
+                    // leave it to is_assert_fallthrough.
+                    if parts.is_empty() {
+                        return None;
+                    }
+                    let (m, ok) = self.assert_raise_tail(k + 1, target)?;
+                    msg = m;
+                    raise_ok = ok;
+                    break;
+                }
+                Op::LOAD_COMMON_CONSTANT if ins.arg == 0 => {
+                    if parts.is_empty() {
+                        return None;
+                    }
+                    let (m, ok) = self.assert_raise_tail(k + 1, target)?;
+                    msg = m;
+                    raise_ok = ok;
+                    break;
+                }
+                Op::LOAD_GLOBAL | Op::LOAD_NAME
+                    if !self.version.at_least(3, 9) =>
+                {
+                    let idx = if ins.op == Op::LOAD_GLOBAL
+                        && self.version.at_least(3, 10)
+                    {
+                        (ins.arg as usize) >> 1
+                    } else {
+                        ins.arg as usize
+                    };
+                    if self.const_name(idx) != "AssertionError" {
+                        return None;
+                    }
+                    if parts.is_empty() {
+                        return None;
+                    }
+                    let (m, ok) = self.assert_raise_tail(k + 1, target)?;
+                    msg = m;
+                    raise_ok = ok;
+                    break;
+                }
+                _ => {
+                    if !is_pure_value_op(ins.op)
+                        && !matches!(ins.op, Op::TO_BOOL)
+                    {
+                        return None;
+                    }
+                    k += 1;
+                }
+            }
+        }
+        if !raise_ok || parts.is_empty() {
+            return None;
+        }
+        let mut values = Vec::new();
+        for p in parts {
+            flatten_boolop(p, BoolOpKind::Or, &mut values);
+        }
+        if values.is_empty() {
+            return None;
+        }
+        let test = if values.len() == 1 {
+            values.pop().unwrap()
+        } else {
+            Rc::new(Expr::BoolOp {
+                op: BoolOpKind::Or,
+                values,
+            })
+        };
+        Some((test, msg))
+    }
+
+    /// The raise tail of an assert block starting at index `k`: pads,
+    /// an optional msg expression + CALL 1, then RAISE_VARARGS 1
+    /// landing exactly on `target`. Returns (msg, ok).
+    fn assert_raise_tail(
+        &self,
+        k: usize,
+        target: usize,
+    ) -> Option<(Option<ExprRef>, bool)> {
+        let Some(&ti) = self.idx_of.get(&target) else {
+            return None;
+        };
+        let mut j = k;
+        let mut raise_idx = None;
+        let mut call_idx = None;
+        while j < ti {
+            let ins = &self.instrs[j];
+            if matches!(ins.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE) {
+                j += 1;
+                continue;
+            }
+            if ins.op == Op::RAISE_VARARGS && ins.arg == 1 {
+                raise_idx = Some(j);
+                break;
+            }
+            if matches!(ins.op, Op::CALL | Op::CALL_FUNCTION) && ins.arg <= 1 {
+                call_idx = Some(j);
+            }
+            if ins.target.is_some()
+                && !matches!(ins.op, Op::CALL | Op::CALL_FUNCTION)
+            {
+                return Some((None, false));
+            }
+            if !is_pure_value_op(ins.op)
+                && !matches!(ins.op, Op::TO_BOOL | Op::PUSH_NULL | Op::PRECALL)
+            {
+                return Some((None, false));
+            }
+            j += 1;
+        }
+        let Some(ri) = raise_idx else {
+            return Some((None, false));
+        };
+        if self.effective_offset(self.instrs[ri].end())
+            != self.effective_offset(target)
+        {
+            return Some((None, false));
+        }
+        let msg = match call_idx {
+            Some(cj) if cj > k => self.sim_value_region(k, cj),
+            _ => None,
+        };
+        Some((msg, true))
+    }
+
     /// cond jump: returns Some(msg_option) when [cur_next, target) is
     /// exactly `LOAD AssertionError; [<msg expr>; CALL 1]; RAISE_VARARGS 1`.
     fn is_assert_fallthrough(&self, target: usize) -> Option<Option<ExprRef>> {

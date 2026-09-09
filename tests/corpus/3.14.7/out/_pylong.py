@@ -44,9 +44,7 @@ def compute_powers(w, base, more_than, *, need_hi=False, show=False):
         if lo > more_than and w - 1 not in cands and lo not in cands:
             extra.add(lo)
             cands.add(lo)
-    if not need_hi:
-        if extra:
-            raise AssertionError
+    assert need_hi or not extra
     d = {}
     for n in sorted(need | extra):
         lo = n >> 1
