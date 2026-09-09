@@ -62,7 +62,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 352: orig  ctx=Load())))] | dec  ctx=Load())))",
+   "ast_detail": "diff at token 408: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Call(func=Name(id='frozenset'",
    "verdict": "SIG-DIFF",
    "ndiff": 962,
    "ntotal": 1374,
@@ -104,11 +104,11 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 65: orig  body=[Break()]) | dec  body=[Return()])",
+   "ast_detail": "diff at token 1789: orig  Return(value=BinOp(left=Constant(value='(?P<%s>%s)') | dec  Return(value=JoinedStr(values=[Constant(value='(?P<')",
    "verdict": "SIG-DIFF",
-   "ndiff": 850,
+   "ndiff": 845,
    "ntotal": 3207,
-   "detail": "line 2330: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'ampm')\nline 2331: orig ('JUMP_BACKWARD', 'to L13') | got ('LOAD_DEREF', 'locale_time')\nline 2332: orig ('LOAD_FAST', 'ampm') | got ('LOAD_ATTR', 'am_pm')"
+   "detail": "line 2145: orig ('FOR_ITER', 'to L52') | got ('FOR_ITER', 'to L53')\nline 2330: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'ampm')\nline 2331: orig ('JUMP_BACKWARD', 'to L13') | got ('LOAD_DEREF', 'locale_time')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

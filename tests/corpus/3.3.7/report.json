@@ -189,7 +189,7 @@
   },
   {
    "module": "csv",
-   "ast_detail": "diff at token 1740: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=BinOp(left=Subscript(value=Name(id='v'",
+   "ast_detail": "diff at token 1739: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=BinOp(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
    "ndiff": 726,
    "ntotal": 1653,

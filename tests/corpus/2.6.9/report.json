@@ -25,7 +25,7 @@
   },
   {
    "module": "ConfigParser",
-   "ast_detail": "diff at token 1988: orig  ctx=Load()))] | dec  ctx=Load()))",
+   "ast_detail": "diff at token 1984: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
    "ndiff": 985,
    "ntotal": 2162,
@@ -33,7 +33,7 @@
   },
   {
    "module": "Cookie",
-   "ast_detail": "diff at token 1838: orig  Return(value=None)] | dec  Continue()]",
+   "ast_detail": "diff at token 1244: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Compare(left=Name(id='V'",
    "verdict": "SIG-DIFF",
    "ndiff": 984,
    "ntotal": 1892,
@@ -177,7 +177,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 2388: orig  values=[UnaryOp(op=Not() | dec  values=[Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 2384: orig  values=[UnaryOp(op=Not() | dec  values=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
    "ndiff": 1738,
    "ntotal": 2270,

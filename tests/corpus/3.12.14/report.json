@@ -61,11 +61,11 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 77: orig  body=[Break()] | dec  body=[Return()]",
+   "ast_detail": "diff at token 1420: orig  value=BinOp(left=Constant(value='(?P<%s>%s') | dec  value=JoinedStr(values=[Constant(value='(?P<')",
    "verdict": "SIG-DIFF",
-   "ndiff": 347,
+   "ndiff": 345,
    "ntotal": 2284,
-   "detail": "line 1428: orig ('FOR_ITER', 'to 3018') | got ('FOR_ITER', 'to 3010')\nline 1568: orig ('COMPARE_OP', '==') | got ('COMPARE_OP', '!=')\nline 1569: orig ('POP_JUMP_IF_TRUE', 'to 1612') | got ('POP_JUMP_IF_FALSE', 'to 1612')"
+   "detail": "line 1428: orig ('FOR_ITER', 'to 3018') | got ('FOR_ITER', 'to 3014')\nline 1568: orig ('COMPARE_OP', '==') | got ('COMPARE_OP', '!=')\nline 1569: orig ('POP_JUMP_IF_TRUE', 'to 1612') | got ('POP_JUMP_IF_FALSE', 'to 1612')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

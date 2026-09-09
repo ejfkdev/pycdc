@@ -555,10 +555,10 @@ format string.'''
             if not found_zone in tz_values:
                 continue
             if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                continue
+                break
             tz = value
             None
-            continue
+            break
         continue
     if not iso_year is None:
         if not julian is None:

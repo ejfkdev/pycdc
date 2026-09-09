@@ -81,11 +81,11 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 65: orig  body=[Break()]) | dec  body=[Return()])",
+   "ast_detail": "diff at token 1789: orig  Return(value=BinOp(left=Constant(value='(?P<%s>%s)') | dec  Return(value=JoinedStr(values=[Constant(value='(?P<')",
    "verdict": "SIG-DIFF",
-   "ndiff": 740,
+   "ndiff": 743,
    "ntotal": 2986,
-   "detail": "line 2228: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'ampm')\nline 2229: orig ('JUMP_BACKWARD', 'to L13') | got ('LOAD_DEREF', 'locale_time')\nline 2230: orig ('LOAD_FAST', 'ampm') | got ('LOAD_ATTR', 'am_pm')"
+   "detail": "line 2058: orig ('FOR_ITER', 'to L52') | got ('FOR_ITER', 'to L53')\nline 2228: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'ampm')\nline 2229: orig ('JUMP_BACKWARD', 'to L13') | got ('LOAD_DEREF', 'locale_time')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

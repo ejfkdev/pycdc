@@ -223,6 +223,89 @@ def normalize_body(body):
     return head + out
 
 
+def _canon_for_iter(it):
+    """A for-loop iterable is evaluated once and iterated; a list literal
+    and a tuple literal of the same elements iterate identically. CPython
+    folds a constant list literal in iterable position into a constant
+    tuple (3.13 _strptime __calc_date_time: `for n, d in [(19,'%OC'),...]`
+    compiles to LOAD_CONST of a tuple), so the decompile renders a Tuple
+    where the source carried a List. Canonicalize List -> Tuple in the
+    iterable position on both sides (symmetric, so a genuine non-constant
+    list iterable still compares equal to itself)."""
+    if isinstance(it, ast.List):
+        return ast.Tuple(elts=it.elts, ctx=ast.Load())
+    return it
+
+
+import re as _re
+
+# simple positional %-specifiers (no width/precision/flags/mapping-key)
+_PCT_SIMPLE = _re.compile(r'%[sra]')
+# any %-conversion (used to vet a template has no flags/width/mapping forms)
+_PCT_ANY = _re.compile(r'%[(%]*[-+ #0-9.*hlL]*[sraifdoxXeEgGcu]')
+
+
+def _pct_template_to_joinedstr(node):
+    """Build the JoinedStr that `template % operands` is equivalent to, or
+    None if the template uses anything beyond simple positional %s/%r/%a
+    (flags, width, precision, %(key)s, or a lone %%). CPython 3.12+ folds
+    `'%s' % x` style formatting into BUILD_STRING/FORMAT_VALUE, so the
+    decompile renders a JoinedStr where the source carried a BinOp Mod;
+    canonicalizing the source BinOp to the same JoinedStr makes them
+    compare equal (_strptime 3.12-3.14 '(?P<%s>%s)' % (directive, regex),
+    cgi 3.12 'MiniFieldStorage(%r,...)', configparser 3.14 'No section:%r')."""
+    if not (isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mod)
+            and isinstance(node.left, ast.Constant)
+            and isinstance(node.left.value, str)):
+        return None
+    template = node.left.value
+    # vet: every % must start a simple %s/%r/%a (no %% / flags / width /
+    # mapping keys) so the reconstruction is unambiguous
+    for m in _PCT_ANY.finditer(template):
+        if not _PCT_SIMPLE.match(template, m.start()):
+            return None
+    if len(_PCT_SIMPLE.findall(template)) != len(_PCT_ANY.findall(template)):
+        return None
+    # operands: `t % (a, b)` -> [a, b]; `t % x` -> [x]
+    right = node.right
+    if isinstance(right, ast.Tuple):
+        operands = list(right.elts)
+    else:
+        operands = [right]
+    spec_conv = {'s': 115, 'r': 114, 'a': 97}  # ord('s'), ord('r'), ord('a')
+    # split the template on the simple specifiers, interleaving literals
+    parts = []
+    pos = 0
+    oi = 0
+    for m in _PCT_SIMPLE.finditer(template):
+        lit = template[pos:m.start()]
+        if lit:
+            parts.append(ast.Constant(value=lit))
+        if oi >= len(operands):
+            return None  # more specifiers than operands
+        conv = spec_conv[m.group(0)[1]]
+        parts.append(ast.FormattedValue(
+            value=operands[oi], conversion=conv, format_spec=None))
+        oi += 1
+        pos = m.end()
+    tail = template[pos:]
+    if tail:
+        parts.append(ast.Constant(value=tail))
+    if oi != len(operands):
+        return None  # operand count mismatch
+    if not parts:
+        return None
+    return ast.JoinedStr(values=parts)
+
+
+def _canon_percent_format(node):
+    """Canonicalize a `template % operands` BinOp (simple positional
+    specifiers only) into its equivalent JoinedStr; return node unchanged
+    when it is not a foldable percent-format."""
+    js = _pct_template_to_joinedstr(node)
+    return js if js is not None else node
+
+
 class Normalizer(ast.NodeTransformer):
     def generic_visit(self, node):
         # normalize every statement-list field (body/orelse/finalbody) on
@@ -254,6 +337,16 @@ class Normalizer(ast.NodeTransformer):
         k = const_key(node.test)
         if k == ('bool', True) or k == ('num', '1'):
             node.test = ast.Name(id='True', ctx=ast.Load())
+        return node
+
+    def visit_For(self, node):
+        self.generic_visit(node)
+        node.iter = _canon_for_iter(node.iter)
+        return node
+
+    def visit_AsyncFor(self, node):
+        self.generic_visit(node)
+        node.iter = _canon_for_iter(node.iter)
         return node
 
     # ---- constant folding: compilers fold arithmetic on number literals,
@@ -299,6 +392,14 @@ class Normalizer(ast.NodeTransformer):
 
     def visit_BinOp(self, node):
         self.generic_visit(node)
+        # 3.12+ folds `template % operands` (simple positional %s/%r/%a)
+        # into BUILD_STRING/FORMAT_VALUE, so the decompile renders a
+        # JoinedStr where the source carried a BinOp Mod - canonicalize
+        # the source form to the same JoinedStr (no-op for numeric %, and
+        # for templates with flags/width/%(key)s which are not folded)
+        node = _canon_percent_format(node)
+        if isinstance(node, ast.JoinedStr):
+            return node
         # compilers fold ''x' * n' into a literal string
         if isinstance(node.op, ast.Mult):
             ls, rn = self._strval(node.left), self._numval(node.right)
@@ -667,6 +768,93 @@ ELSE_PASS_TYPES = tuple(
                    getattr(ast, 'TryFinally', None)) if t is not None])
 
 
+_LOOP_TYPES = tuple(
+    [ast.While, ast.For]
+    + [t for t in (getattr(ast, 'AsyncFor', None),) if t is not None])
+
+_TRY_TYPES = tuple(
+    [t for t in (getattr(ast, 'Try', None), getattr(ast, 'TryStar', None),
+                 getattr(ast, 'TryExcept', None),
+                 getattr(ast, 'TryFinally', None)) if t is not None])
+
+
+def _bare_return_to_break(body):
+    """Convert a bare `return`/`return None` statement to `break` in a
+    statement list (in place), recursing through if/for/while/with/try
+    bodies but NOT through a nested function/class (its return belongs
+    to the nested scope). Used only for a loop that is the LAST statement
+    of a function body, where exiting the loop and returning None are the
+    same observable end (the 3.13+ compiler fuses a tail-loop `break`
+    into RETURN_CONST None, so the decompile renders `return` where the
+    source had `break` - _strptime 3.13 _findall)."""
+    for i, s in enumerate(body):
+        if isinstance(s, ast.Return) and s.value is None:
+            body[i] = ast.Break()
+        elif isinstance(s, (ast.If, ast.With,
+                            getattr(ast, 'AsyncWith', ast.With))):
+            _bare_return_to_break(s.body)
+            _bare_return_to_break(getattr(s, 'orelse', []) or [])
+        elif isinstance(s, _LOOP_TYPES):
+            _bare_return_to_break(s.body)
+            _bare_return_to_break(getattr(s, 'orelse', []) or [])
+        elif isinstance(s, _TRY_TYPES):
+            _bare_return_to_break(s.body)
+            for h in getattr(s, 'handlers', []) or []:
+                _bare_return_to_break(h.body)
+            _bare_return_to_break(getattr(s, 'orelse', []) or [])
+            _bare_return_to_break(getattr(s, 'finalbody', []) or [])
+
+
+def _normalize_func_tail_loop(node):
+    """If a function/method body's LAST statement is a loop, a bare
+    `return` inside that loop is observationally identical to a `break`
+    (both leave the function with None): canonicalize the return to a
+    break so a fused-tail break compares equal regardless of which form
+    each side carries."""
+    body = getattr(node, 'body', None)
+    if isinstance(body, list) and body:
+        last = body[-1]
+        if isinstance(last, _LOOP_TYPES):
+            _bare_return_to_break(last.body)
+            _bare_return_to_break(getattr(last, 'orelse', []) or [])
+
+
+def merge_guard_continues(stmts):
+    """Canonicalize a loop-tail guard-continue chain. CPython compiles
+    `if not c1 and not c2: S` at the tail of a loop body into a chain of
+    short-circuit guards `if c1: continue; if c2: continue; S` (3.13
+    _strptime __find_month_format: `if not full_indices and not
+    abbr_indices: return None, None`). The decompile renders the guard
+    form faithfully; merge it back so it compares equal to the source's
+    combined `if And(Not ci): S`. Valid only when S is the LAST statement
+    of the loop body (a guard `continue` and falling off the body both
+    proceed to the next iteration). canonical_bool then flattens/sorts the
+    And operands to match the source."""
+    n = len(stmts)
+    if n < 2:
+        return stmts
+
+    def is_cont_guard(s):
+        return (isinstance(s, ast.If) and not s.orelse
+                and len(s.body) == 1 and isinstance(s.body[0], ast.Continue))
+
+    tail = stmts[n - 1]
+    if is_cont_guard(tail):
+        return stmts
+    j = n - 1
+    while j > 0 and is_cont_guard(stmts[j - 1]):
+        j -= 1
+    guards = stmts[j:n - 1]
+    if not guards:
+        return stmts
+    conds = [ast.UnaryOp(op=ast.Not(), operand=g.test) for g in guards]
+    if len(conds) == 1:
+        test = conds[0]
+    else:
+        test = ast.BoolOp(op=ast.And(), values=conds)
+    return stmts[:j] + [ast.If(test=test, body=[tail], orelse=[])]
+
+
 def dump_stmts(stmts):
     """ast.dump refuses lists; compare statement bodies position-wise."""
     return '[' + ','.join(ast.dump(s) for s in stmts) + ']'
@@ -777,6 +965,27 @@ def dump(src):
     tree = prune_globals(tree)
     if isinstance(tree, ast.Module):
         tree.body = strip_noop_continues(tree.body, False)
+    # a bare `return` inside a function's LAST-statement loop is the same
+    # observable end as a `break` there (3.13+ fuses a tail-loop break
+    # into RETURN_CONST None) - canonicalize so the fused form compares
+    # equal. Runs after the Normalizer so `return None` is already bare.
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef,
+                             getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):
+            _normalize_func_tail_loop(node)
+    # merge loop-tail guard-continue chains back into the combined
+    # `if not c1 and not c2: S` the compiler short-circuited them from.
+    # Loop bodies get at_loop_tail=True (their tail falls through to the
+    # next iteration); a function body's tail loop also qualifies (its
+    # `continue` guards fall through to the function end).
+    for node in ast.walk(tree):
+        if isinstance(node, _LOOP_TYPES):
+            node.body = merge_guard_continues(node.body)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef,
+                             getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):
+            if node.body and isinstance(node.body[-1], _LOOP_TYPES):
+                node.body[-1].body = merge_guard_continues(node.body[-1].body)
     for node in ast.walk(tree):
         for field in ('body', 'orelse', 'finalbody'):
             val = getattr(node, field, None)

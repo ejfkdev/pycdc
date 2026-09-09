@@ -29945,6 +29945,68 @@ if split_cond {
                 }
             }
         }
+        // 3.10+ nested break to an EXTARG-prefixed outer-loop head:
+        // when the outer for-loop is large enough that its head carries
+        // an EXTENDED_ARG prefix, EVERY back edge targets the prefix's
+        // first byte (outer.start - prefix_len), not the FOR_ITER offset
+        // (outer.start), so the loop match above (keyed on b.start ==
+        // target) misses them. A back edge emitted from INSIDE an inner
+        // loop nested in that outer loop is a BREAK of the inner loop:
+        // the compiler fused "exit inner + iterate outer" into one
+        // JUMP_BACKWARD to the outer head, skipping the inner END_FOR
+        // (the inner loop is the outer body's last statement, so its
+        // exit merges with the outer iteration). The SAME jump at the
+        // loop-body top level (a sunk elif-arm back edge) is a natural
+        // outer iteration and must stay a flattened continue — the
+        // inner-loop guard separates the two. Remapping the prefix or
+        // registering the For block at the prefix instead flips
+        // is_continue_jump/the jfold `folded` test for the sunk elif-arm
+        // edges and mis-nests the whole chain (_strptime 3.13 'y' arm),
+        // so the break is recognized here, at the catch-all, where the
+        // elif arms never reach. _strptime 3.13 'Z' branch: the
+        // inner-for breaks at L699/L702 rendered as continues, letting
+        // the timezone loop run on instead of exiting.
+        if self.version.at_least(3, 10) {
+            let outer_start = self
+                .blocks
+                .iter()
+                .rev()
+                .find(|b| {
+                    matches!(b.kind, BlockType::While | BlockType::For)
+                        && self.instrs.iter().any(|x| {
+                            x.start == target
+                                && x.offset == b.start
+                                && x.start != x.offset
+                        })
+                })
+                .map(|b| b.start);
+            if let Some(outer_start) = outer_start {
+                let in_inner_loop = self.blocks.iter().any(|b| {
+                    matches!(b.kind, BlockType::While | BlockType::For)
+                        && b.start > outer_start
+                        && b.start <= self.cur_offset
+                });
+                if in_inner_loop {
+                    self.push_stmt(Stmt::Break);
+                    // the break sits in an if/else arm whose sibling arm
+                    // follows at the block's end: mark else_end so the
+                    // close opens the Else region instead of flattening
+                    // the sibling into the loop body (the guard's PJFF
+                    // already targeted b.end; a backward break never
+                    // set else_end the way a forward arm-exit does)
+                    if let Some(top) = self.blocks.last_mut() {
+                        if matches!(top.kind, BlockType::If)
+                            && top.else_end.is_none()
+                            && top.end > self.cur_offset
+                        {
+                            top.else_end = Some(top.end);
+                        }
+                    }
+                    self.close_inner_blocks_to_loop();
+                    return;
+                }
+            }
+        }
         // backward jump that matches no open loop: only emit `continue`
         // when one is actually on the block stack
         if self
