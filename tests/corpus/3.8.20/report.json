@@ -140,9 +140,9 @@
   {
    "module": "cgi",
    "verdict": "INCOMPLETE",
-   "ndiff": 990,
-   "ntotal": 2900,
-   "detail": "line 1860: orig ('EXTENDED_ARG', '') | got ('JUMP_FORWARD', 'to 566')\nline 1861: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'self')\nline 1862: orig ('LOAD_FAST', 'self') | got ('DUP_TOP', '')"
+   "ndiff": 917,
+   "ntotal": 2901,
+   "detail": "line 1972: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')\nline 1973: orig ('LOAD_FAST', 'self') | got ('EXTENDED_ARG', '')\nline 1974: orig ('LOAD_ATTR', 'bytes_read') | got ('JUMP_ABSOLUTE', '')"
   },
   {
    "module": "cgitb",

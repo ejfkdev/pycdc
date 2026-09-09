@@ -26531,7 +26531,16 @@ if split_cond {
             }
             for ins in &self.instrs[ci..ti] {
                 if let Some(bt) = ins.target {
-                    if ins.is_backward && bt <= cj.offset {
+                    // only UNCONDITIONAL back edges mark a rotated-while
+                    // cond head here: a backward COND jump to bt is a
+                    // `continue` fused onto an enclosing while-True's top
+                    // (cgi 3.8 read_multi: the chained-comparison link's
+                    // PJFF->258 claimed the outer `while True:` top as a
+                    // cond head and the whole outer loop was lost)
+                    if ins.is_backward
+                        && bt <= cj.offset
+                        && back_ops(ins.op)
+                    {
                         claimed.push(bt);
                     }
                 }

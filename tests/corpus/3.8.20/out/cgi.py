@@ -543,16 +543,16 @@ class FieldStorage:
         max_num_fields = self.max_num_fields
         if max_num_fields is not None:
             max_num_fields -= len(self.list)
-        parser = FeedParser()
-        hdr_text = b''
         while True:
-            data = self.fp.readline()
-            hdr_text += data
-            if not data.strip():
+            parser = FeedParser()
+            hdr_text = b''
+            while True:
+                data = self.fp.readline()
+                hdr_text += data
+                if not data.strip():
+                    break
+            if not hdr_text:
                 break
-        if not hdr_text:
-            pass
-        else:
             self.bytes_read += len(hdr_text)
             parser.feed(hdr_text.decode(self.encoding, self.errors))
             headers = parser.close()
@@ -568,9 +568,11 @@ class FieldStorage:
                     raise ValueError('Max number of fields exceeded')
             self.bytes_read += part.bytes_read
             self.list.append(part)
-            if not part.done:
-                if self.bytes_read >= self.length > 0:
-                    pass
+            if part.done:
+                break
+            if self.bytes_read >= self.length > 0:
+                pass
+            break
         self.skip_lines()
 
     def read_single(self):
