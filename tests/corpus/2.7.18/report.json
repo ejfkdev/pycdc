@@ -117,11 +117,11 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 302: orig  TryExcept(body=[Assign(targets=[Name(id='f' | dec  TryFinally(body=[Assign(targets=[Name(id='m'",
+   "ast_detail": "diff at token 1644: orig  tback=None)])])])])])])] | dec  tback=None)])",
    "verdict": "SIG-DIFF",
-   "ndiff": 60,
+   "ndiff": 30,
    "ntotal": 1160,
-   "detail": "line 246: orig ('SETUP_EXCEPT', '#13') | got ('SETUP_FINALLY', '#17')\nline 247: orig ('LOAD_GLOBAL', 'open') | got ('LOAD_GLOBAL', 're')\nline 248: orig ('LOAD_CONST', \"'/System/Library/CoreServices/SystemVersion.plist'\") | got ('LOAD_ATTR', 'search')"
+   "detail": "line 1037: orig ('POP_JUMP_IF_FALSE', '#146') | got ('POP_JUMP_IF_FALSE', '#175')\nline 1043: orig ('POP_JUMP_IF_FALSE', '#146') | got ('POP_JUMP_IF_FALSE', '#175')\nline 1105: orig ('JUMP_ABSOLUTE', '#174') | got ('JUMP_FORWARD', '#145')"
   },
   {
    "module": "_strptime",

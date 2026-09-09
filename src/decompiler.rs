@@ -9404,7 +9404,35 @@ impl<'a> Ctx<'a> {
             BlockType::Container => {
                 if !b.stmts.is_empty() {
                     let stmts = std::mem::take(&mut b.stmts);
-                    self.push_stmt_all(stmts);
+                    // A try/finally Container nested inside an OUTER
+                    // try/except's ELSE region: its completed statement is
+                    // the else region's content and must route into the
+                    // outer try's orelse, NOT the enclosing block. The
+                    // Container closes via push_stmt_all (which bypasses
+                    // push_stmt's else-region redirect), so without this the
+                    // inner try emitted as a SIBLING BEFORE the outer try -
+                    // scrambling the order and using values before they are
+                    // bound (_osx_support _get_system_version/_read_output:
+                    // `try: f=open() except OSError: pass else:
+                    // try: x=f.read() finally: f.close()` rendered the inner
+                    // read first, so f was read before open). The Container's
+                    // start lies inside [else_start, else_stop) of a live
+                    // outer try/except that has an else region.
+                    let b_start = b.start;
+                    let in_outer_else =
+                        self.legacy_try.as_ref().map_or(false, |l| {
+                            !l.has_finally
+                                && l.else_start.map_or(false, |es| {
+                                    b_start >= es && b_start < l.else_stop
+                                })
+                        });
+                    if in_outer_else {
+                        if let Some(l) = self.legacy_try.as_mut() {
+                            l.orelse.extend(stmts);
+                        }
+                    } else {
+                        self.push_stmt_all(stmts);
+                    }
                 }
             }
         }
