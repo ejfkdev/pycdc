@@ -14590,7 +14590,16 @@ impl<'a> Ctx<'a> {
                     b.kind == BlockType::Try
                         && (b.finally_target == Some(target) || b.end == target)
                 });
-                if self.legacy_try.is_some() && !as_cleanup_wrapper && !try_open {
+                // inside a nested-chain region sub-walk
+                // (parse_skipped_nested_chain), a CALL_FINALLY belongs to
+                // the HANDLER body's own return protocol — folding here
+                // would consume the chain being parsed (g3 `except E:
+                // return 2`)
+                if self.legacy_try.is_some()
+                    && !as_cleanup_wrapper
+                    && !try_open
+                    && self.legacy_nest_depth == 0
+                {
                     let fin_stop = self
                         .idx_of
                         .get(&target)
@@ -14641,6 +14650,68 @@ impl<'a> Ctx<'a> {
                         if let Some(Sv::E(v)) = self.stack.pop() {
                             body.push(Stmt::Return(Some(v)));
                             folded_return = true;
+                        }
+                    }
+                    // nested try/except INSIDE try/finally (3.8-3.10):
+                    // the second POP_BLOCK stashed the inner chain in
+                    // legacy_nest, and its handler region sits BETWEEN
+                    // the folded RETURN and this finally copy — the
+                    // linear walk never reaches it and the clauses were
+                    // silently dropped (bdb 3.8/3.9 runeval `try:
+                    // return eval() except BdbQuit: pass finally:` lost
+                    // the except). Parse the stashed chain now and wrap
+                    // the folded body in its Try.
+                    if folded_return && !self.legacy_nest.is_empty() {
+                        let ni = self.legacy_nest.len() - 1;
+                        let grab = self.legacy_nest[ni]
+                            .outer_try
+                            .as_ref()
+                            .map_or(false, |l| {
+                                l.handlers.is_empty()
+                                    && !l.chain_done
+                                    && l.handler_start > self.cur_offset
+                                    && l.handler_start < target
+                            });
+                        if grab {
+                            let inner =
+                                self.legacy_nest[ni].outer_try.take().unwrap();
+                            let hs = inner.handler_start;
+                            self.legacy_try = Some(inner);
+                            // clamp the sub-walk at the chain's own
+                            // END_FINALLY (the mismatch re-raise) when
+                            // it lies before the finally copy: past it
+                            // sit the outer chain's POP_BLOCK /
+                            // BEGIN_FINALLY bridge instructions
+                            let chain_end = self
+                                .idx_of
+                                .get(&hs)
+                                .and_then(|&hi| {
+                                    self.instrs[hi..]
+                                        .iter()
+                                        .take(200)
+                                        .take_while(|x| x.offset < target)
+                                        .find(|x| x.op == Op::END_FINALLY)
+                                        .map(|x| x.offset)
+                                })
+                                .unwrap_or(target);
+                            self.parse_skipped_nested_chain(chain_end);
+                            if let Some(mut inner) = self.legacy_try.take() {
+                                if !inner.handlers.is_empty() {
+                                    inner.body = body;
+                                    body = vec![Stmt::Try {
+                                        body: inner.body,
+                                        handlers: std::mem::take(
+                                            &mut inner.handlers,
+                                        ),
+                                        orelse: std::mem::take(
+                                            &mut inner.orelse,
+                                        ),
+                                        finalbody: Vec::new(),
+                                    }];
+                                }
+                            }
+                            self.legacy_handler = None;
+                            self.legacy_handler_end = None;
                         }
                     }
                     if !handlers.is_empty() || !fin.is_empty() {

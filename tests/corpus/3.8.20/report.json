@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 27,
-  "SIG-DIFF": 11,
+  "PASS": 28,
+  "SIG-DIFF": 10,
   "INCOMPLETE": 2
  },
  "results": [
@@ -104,11 +104,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 945: orig  orelse=[])] | dec  orelse=[])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 697,
-   "ntotal": 2369,
-   "detail": "line 1660: orig ('SETUP_FINALLY', 'to 100') | got ('SETUP_FINALLY', 'to 72')\nline 1661: orig ('SETUP_FINALLY', 'to 76') | got ('LOAD_GLOBAL', 'eval')\nline 1662: orig ('LOAD_GLOBAL', 'eval') | got ('LOAD_FAST', 'expr')"
+   "verdict": "PASS"
   },
   {
    "module": "binhex",

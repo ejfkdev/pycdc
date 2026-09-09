@@ -558,7 +558,10 @@ class Bdb:
         self.reset()
         sys.settrace(self.trace_dispatch)
         try:
-            return eval(expr, globals, locals)
+            try:
+                return eval(expr, globals, locals)
+            except BdbQuit:
+                pass
         finally:
             self.quitting = True
             sys.settrace(None)
