@@ -525,6 +525,29 @@ class Normalizer(ast.NodeTransformer):
                 return ast.BoolOp(op=ast.And(), values=parts)
         return node
 
+    def visit_Subscript(self, node):
+        self.generic_visit(node)
+        # the compiler folds a constant bytes/str subscript (`b'!'[0]` ->
+        # 33, `'ab'[1]` -> 'b') into the element constant, which the
+        # decompile renders directly; fold the source form the same way so
+        # they compare equal (base64 a85decode `b'!'[0] <= x <= b'u'[0]`,
+        # `x == b'z'[0]`). py3 bytes[i] is an int, py2 b'x' is a str so
+        # b'x'[i] is a 1-char str - _bytesval/_strval pick the right one
+        # per version (py2 has no ast.Bytes, so only the str branch fires).
+        idx = node.slice
+        if hasattr(ast, 'Index') and isinstance(idx, getattr(ast, 'Index')):
+            idx = idx.value
+        iv = self._numval(idx)
+        if not isinstance(iv, int) or isinstance(iv, bool):
+            return node
+        b = self._bytesval(node.value)
+        if b is not None and -len(b) <= iv < len(b):
+            return _mk_num(b[iv])
+        s = self._strval(node.value)
+        if s is not None and -len(s) <= iv < len(s):
+            return _mk_str(s[iv])
+        return node
+
     def _expand_with(self, node):
         self.generic_visit(node)
         # 'with a, b:' desugars to nested single-item withs - the
