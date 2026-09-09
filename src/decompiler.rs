@@ -34412,6 +34412,67 @@ fn bytecode_tail_return_pair(
 }
 
 fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {
+    // 3.6+ evaluates module/class-body annotations into the scope's
+    // `__annotations__` dict (`x: T = v` -> STORE x; T; LOAD
+    // __annotations__; LOAD 'x'; STORE_SUBSCR). The walk renders these
+    // as raw subscript assigns, which recompile WITHOUT the leading
+    // SETUP_ANNOTATIONS (3.7+ class / 3.10+ module scope) the original
+    // bytecode had. Fold each `__annotations__['x'] = T` back into an
+    // AnnAssign, merging an immediately preceding `x = v` into the
+    // value slot so the recompiler reproduces both stores and the
+    // SETUP_ANNOTATIONS prologue.
+    {
+        let mut i = 0;
+        while i < body.len() {
+            let key = match &body[i] {
+                Stmt::Assign { targets, value, .. } if targets.len() == 1 => {
+                    match &*targets[0] {
+                        Expr::Subscript { value: base, index } => {
+                            let is_ann_dict = matches!(&**base, Expr::Name(n) if n == "__annotations__");
+                            let key = match &**index {
+                                Expr::Const(o) => match &**o {
+                                    PyObject::Str(s) => Some(s.clone()),
+                                    _ => None,
+                                },
+                                _ => None,
+                            };
+                            if is_ann_dict { key.map(|k| (k, value.clone())) } else { None }
+                        }
+                        _ => None,
+                    }
+                }
+                _ => None,
+            };
+            let Some((name, ann)) = key else {
+                i += 1;
+                continue;
+            };
+            // merge an immediately preceding plain assign to the same name
+            let mut merged_value: Option<ExprRef> = None;
+            if i > 0 {
+                if let Stmt::Assign { targets, value, .. } = &body[i - 1] {
+                    if targets.len() == 1
+                        && matches!(&*targets[0], Expr::Name(n) if *n == name)
+                    {
+                        merged_value = Some(value.clone());
+                    }
+                }
+            }
+            let has_value = merged_value.is_some();
+            let ann_stmt = Stmt::AnnAssign {
+                target: Rc::new(Expr::Name(name)),
+                annotation: ann,
+                value: merged_value,
+            };
+            if has_value {
+                body.remove(i - 1);
+                body[i - 1] = ann_stmt;
+            } else {
+                body[i] = ann_stmt;
+            }
+            i += 1;
+        }
+    }
     // __module__ / __qualname__ / __doc__ handling for class bodies
     let mut idx = 0;
     while idx < body.len() {
@@ -37264,12 +37325,18 @@ fn genexpr_ternary_merge(
                     } else if self.version.at_least(3, 11) {
                         // [marker, callable, args]
                         let f = stack.pop().unwrap_or_else(underflow);
-                        if matches!(&*f, Expr::Attribute { .. }) {
+                        if is_null_marker(&f) {
+                            // PUSH_NULL sat above the callable (plain call)
+                            stack.pop().unwrap_or_else(underflow)
+                        } else if matches!(&*f, Expr::Attribute { .. }) {
                             stack.pop(); // method receiver slot
-                        } else if matches!(stack.last(), Some(m) if is_null_marker(m)) {
-                            stack.pop();
+                            f
+                        } else {
+                            if matches!(stack.last(), Some(m) if is_null_marker(m)) {
+                                stack.pop();
+                            }
+                            f
                         }
-                        f
                     } else {
                         // 3.7-3.10: CALL_METHOD has [callable, marker, args]
                         if inst.op == Op::CALL_METHOD {
@@ -37330,6 +37397,14 @@ fn genexpr_ternary_merge(
                     stack.push(Rc::new(e));
                 }
                 Op::TO_BOOL => {}
+                // 3.11+ plain-call marker slot: a non-method callable is
+                // followed by PUSH_NULL, and CALL pops [callable, marker].
+                // Ignoring it lets CALL's method-receiver heuristic eat the
+                // operand below (configparser 3.13 _strip_inline genexpr's
+                // `re.escape(prefix)` swallowed the leading f-string const).
+                Op::PUSH_NULL => {
+                    stack.push(Rc::new(Expr::Name("\u{0}null".to_string())));
+                }
                 _ => {}
             }
         }

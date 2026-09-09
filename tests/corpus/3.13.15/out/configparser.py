@@ -484,18 +484,13 @@ class ExtendedInterpolation(Interpolation):
 
 
 class _ReadState:
-    __annotations__['elements_added'] = set[str]
-    cursect = None
-    __annotations__['cursect'] = dict[str, str] | None
-    sectname = None
-    __annotations__['sectname'] = str | None
-    optname = None
-    __annotations__['optname'] = str | None
-    lineno = 0
-    __annotations__['lineno'] = int
-    indent_level = 0
-    __annotations__['indent_level'] = int
-    __annotations__['errors'] = list[ParsingError]
+    elements_added: set[str]
+    cursect: dict[str, str] | None = None
+    sectname: str | None = None
+    optname: str | None = None
+    lineno: int = 0
+    indent_level: int = 0
+    errors: list[ParsingError]
     def __init__(self):
         self.elements_added = set()
         self.errors = list()
@@ -521,7 +516,7 @@ class _Line(str):
 Search for the earliest prefix at the beginning of the line or following a space.
 '''
 
-        matcher = re.compile('|'.join((f'{re.escape(prefix)})' for prefix in self.prefixes.inline)) or '(?!)')
+        matcher = re.compile('|'.join((f'(^|\\s)({re.escape(prefix)})' for prefix in self.prefixes.inline)) or '(?!)')
         match = matcher.search(self)
         return self[:match.start() if match else None].strip()
 
