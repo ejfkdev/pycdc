@@ -238,6 +238,10 @@ class TextCalendar(Calendar):
     '''
 
     def prweek(self, theweek, width):
+        '''
+        Print a single week (no newline).
+        '''
+
         print(self.formatweek(theweek, width), end=' ')
 
     def formatday(self, day, weekday, width):
@@ -287,6 +291,10 @@ class TextCalendar(Calendar):
         return s.center(width)
 
     def prmonth(self, theyear, themonth, w=0, l=0):
+        """
+        Print a month's calendar.
+        """
+
         print(self.formatmonth(theyear, themonth, w, l), end=' ')
 
     def formatmonth(self, theyear, themonth, w=0, l=0):
@@ -342,6 +350,8 @@ class TextCalendar(Calendar):
         return ''.join(v)
 
     def pryear(self, theyear, w=0, l=0, c=6, m=3):
+        """Print a year's calendar."""
+
         print(self.formatyear(theyear, w, l, c, m))
 
 
@@ -552,6 +562,8 @@ _colwidth = 20
 _spacing = 6
 
 def format(cols, colwidth=_colwidth, spacing=_spacing):
+    '''Prints multi-column formatting for year calendars'''
+
     print(formatstring(cols, colwidth, spacing))
 
 def formatstring(cols, colwidth=_colwidth, spacing=_spacing):

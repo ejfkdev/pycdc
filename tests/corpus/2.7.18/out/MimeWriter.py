@@ -112,6 +112,14 @@ class MimeWriter:
             self._headers.append(line)
 
     def flushheaders(self):
+        """Writes out and forgets all headers accumulated so far.
+
+        This is useful if you don't need a body part at all; for example,
+        for a subpart of type message/rfc822 that's (mis)used to store some
+        header-like information.
+
+        """
+
         self._fp.writelines(self._headers)
         self._headers = []
 
@@ -151,10 +159,26 @@ class MimeWriter:
         return self.startbody('multipart/' + subtype, [('boundary', self._boundary)] + plist, prefix=prefix)
 
     def nextpart(self):
+        '''Returns a new instance of MimeWriter which represents an
+        individual part in a multipart message.
+
+        This may be used to write the part as well as used for creating
+        recursively complex multipart messages. The message must first be
+        initialized with the startmultipartbody() method before using the
+        nextpart() method.
+
+        '''
+
         self._fp.write('\n--' + self._boundary + '\n')
         return self.__class__(self._fp)
 
     def lastpart(self):
+        '''This is used to designate the last part of a multipart message.
+
+        It should always be used when writing multipart messages.
+
+        '''
+
         self._fp.write('\n--' + self._boundary + '--\n')
 
 

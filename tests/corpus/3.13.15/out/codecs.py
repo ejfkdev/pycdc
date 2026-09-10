@@ -316,6 +316,10 @@ register_error.
         self.stream.write(data)
 
     def writelines(self, list):
+        '''Writes the concatenated list of strings to the stream
+        using .write().
+        '''
+
         self.write(''.join(list))
 
     def reset(self):
@@ -530,6 +534,11 @@ register_error.
         self.linebuffer = None
 
     def seek(self, offset, whence=0):
+        """Set the input stream's current position.
+
+        Resets the codec buffers used for keeping state.
+        """
+
         self.stream.seek(offset, whence)
         self.reset()
 

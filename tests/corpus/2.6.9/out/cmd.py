@@ -99,6 +99,12 @@ class Cmd:
         self.completekey = completekey
 
     def cmdloop(self, intro=None):
+        '''Repeatedly issue a prompt, accept input, parse an initial prefix
+        off the received input, and dispatch to action methods, passing them
+        the remainder of the line as argument.
+
+        '''
+
         self.preloop()
         if self.use_rawinput and self.completekey:
             try:
@@ -224,6 +230,13 @@ class Cmd:
             return self.onecmd(self.lastcmd)
 
     def default(self, line):
+        '''Called on an input line when the command prefix is not recognized.
+
+        If this method is not overridden, it prints an error message and
+        returns.
+
+        '''
+
         self.stdout.write('*** Unknown syntax: %s\n' % line)
 
     def completedefault(self, *ignored):

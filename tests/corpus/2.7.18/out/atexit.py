@@ -32,6 +32,15 @@ def _run_exitfuncs():
         raise exc_info[0], exc_info[1], exc_info[2]
 
 def register(func, *targs, **kargs):
+    '''register a function to be executed upon normal program termination
+
+    func - function to be called at exit
+    targs - optional arguments to pass to func
+    kargs - optional keyword arguments to pass to func
+
+    func is returned to facilitate usage as a decorator.
+    '''
+
     _exithandlers.append((func, targs, kargs))
     return func
 

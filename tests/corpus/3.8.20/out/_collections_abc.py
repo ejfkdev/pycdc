@@ -870,6 +870,8 @@ class MutableSequence(Sequence):
         raise IndexError
 
     def append(self, value):
+        '''S.append(value) -- append value to the end of the sequence'''
+
         self.insert(len(self), value)
 
     def clear(self):

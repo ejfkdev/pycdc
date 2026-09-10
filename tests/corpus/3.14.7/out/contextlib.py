@@ -526,6 +526,8 @@ For example:
         return received_exc and suppressed_exc
 
     def close(self):
+        '''Immediately unwind the context stack.'''
+
         self.__exit__(None, None, None)
 
 
@@ -600,6 +602,8 @@ For example:
         return callback
 
     async def aclose(self):
+        '''Immediately unwind the context stack.'''
+
         await self.__aexit__(None, None, None)
 
     def _push_async_cm_exit(self, cm, cm_exit):

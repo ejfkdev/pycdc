@@ -144,15 +144,24 @@ class Bdb:
         self.stoplineno = stoplineno
 
     def set_until(self, frame):
+        '''Stop when the line with the line no greater than the current one is
+        reached or when returning from current frame'''
+
         self._set_stopinfo(frame, frame, frame.f_lineno + 1)
 
     def set_step(self):
+        '''Stop after one line of code.'''
+
         self._set_stopinfo(None, None)
 
     def set_next(self, frame):
+        '''Stop on the next line in or below the given frame.'''
+
         self._set_stopinfo(frame, None)
 
     def set_return(self, frame):
+        '''Stop when returning from the given frame.'''
+
         self._set_stopinfo(frame.f_back, frame)
 
     def set_trace(self, frame=None):

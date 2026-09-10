@@ -281,6 +281,8 @@ class Bdb:
         self._set_stopinfo(None, None)
 
     def set_next(self, frame):
+        '''Stop on the next line in or below the given frame.'''
+
         self._set_stopinfo(frame, None)
 
     def set_return(self, frame):
@@ -308,6 +310,11 @@ class Bdb:
         sys.settrace(self.trace_dispatch)
 
     def set_continue(self):
+        '''Stop only at breakpoints or when finished.
+
+        If there are no breakpoints, set the system trace function to None.
+        '''
+
         self._set_stopinfo(self.botframe, None, -1)
         if not self.breaks:
             sys.settrace(None)
@@ -567,6 +574,8 @@ class Bdb:
             sys.settrace(None)
 
     def runctx(self, cmd, globals, locals):
+        '''For backwards-compatibility.  Defers to run().'''
+
         self.run(cmd, globals, locals)
 
     def runcall(*args, **kwds):
@@ -602,6 +611,8 @@ class Bdb:
     runcall.__text_signature__ = '($self, func, /, *args, **kwds)'
 
 def set_trace():
+    """Start debugging with a Bdb instance from the caller's frame."""
+
     Bdb().set_trace()
 
 class Breakpoint:

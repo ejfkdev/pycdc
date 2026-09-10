@@ -312,6 +312,13 @@ def customize_config_vars(_config_vars):
     return _config_vars
 
 def customize_compiler(_config_vars):
+    '''Customize compiler path and configuration variables.
+
+    This customization is performed when the first
+    extension module build is requested
+    in distutils.sysconfig.customize_compiler.
+    '''
+
     _find_appropriate_compiler(_config_vars)
     _remove_unsupported_archs(_config_vars)
     _override_all_archs(_config_vars)

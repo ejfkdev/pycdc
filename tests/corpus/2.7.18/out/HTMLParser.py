@@ -56,6 +56,8 @@ class HTMLParser(markupbase.ParserBase):
 
     CDATA_CONTENT_ELEMENTS = ('script', 'style')
     def __init__(self):
+        '''Initialize and reset this instance.'''
+
         self.reset()
 
     def reset(self):
@@ -78,6 +80,8 @@ class HTMLParser(markupbase.ParserBase):
         self.goahead(0)
 
     def close(self):
+        '''Handle any buffered data.'''
+
         self.goahead(1)
 
     def error(self, message):

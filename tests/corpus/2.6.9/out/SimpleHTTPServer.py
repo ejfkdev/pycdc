@@ -153,6 +153,20 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return path
 
     def copyfile(self, source, outputfile):
+        '''Copy all data between two file objects.
+
+        The SOURCE argument is a file object open for reading
+        (or anything with a read() method) and the DESTINATION
+        argument is a file object open for writing (or
+        anything with a write() method).
+
+        The only reason for overriding this would be to change
+        the block size or perhaps to replace newlines by CRLF
+        -- note however that this the default server uses this
+        to copy binary data as well.
+
+        '''
+
         shutil.copyfileobj(source, outputfile)
 
     def guess_type(self, path):

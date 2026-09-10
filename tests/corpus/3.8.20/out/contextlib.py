@@ -453,6 +453,8 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
         return received_exc and suppressed_exc
 
     def close(self):
+        '''Immediately unwind the context stack.'''
+
         self.__exit__(None, None, None)
 
 
@@ -535,6 +537,8 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
 
     push_async_callback.__text_signature__ = '($self, callback, /, *args, **kwds)'
     async def aclose(self):
+        '''Immediately unwind the context stack.'''
+
         await self.__aexit__(None, None, None)
 
     def _push_async_cm_exit(self, cm, cm_exit):

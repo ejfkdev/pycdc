@@ -144,6 +144,8 @@ class async_chat(asyncore.dispatcher):
         return self.producer_fifo or not self.connected
 
     def close_when_done(self):
+        '''automatically close this channel once the outgoing queue is empty'''
+
         self.producer_fifo.append(None)
 
     def initiate_send(self):

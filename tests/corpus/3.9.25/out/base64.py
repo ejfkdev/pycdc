@@ -429,6 +429,9 @@ def _input_type_check(s):
         raise TypeError(msg)
 
 def encodebytes(s):
+    '''Encode a bytestring into a bytes object containing multiple lines
+    of base-64 data.'''
+
     _input_type_check(s)
     pieces = []
     for i in range(0, len(s), MAXBINSIZE):
@@ -437,6 +440,8 @@ def encodebytes(s):
     return b''.join(pieces)
 
 def decodebytes(s):
+    '''Decode a bytestring of base-64 data into a bytes object.'''
+
     _input_type_check(s)
     return binascii.a2b_base64(s)
 

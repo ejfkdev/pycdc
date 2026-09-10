@@ -188,6 +188,8 @@ class Bdb:
         self._set_stopinfo(None, None)
 
     def set_next(self, frame):
+        '''Stop on the next line in or below the given frame.'''
+
         self._set_stopinfo(frame, None)
 
     def set_return(self, frame):

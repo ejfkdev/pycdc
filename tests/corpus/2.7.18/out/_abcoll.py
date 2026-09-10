@@ -628,6 +628,8 @@ class MutableSequence(Sequence):
         raise IndexError
 
     def append(self, value):
+        '''S.append(object) -- append object to the end of the sequence'''
+
         self.insert(len(self), value)
 
     def reverse(self):

@@ -129,6 +129,8 @@ def _format_code_info(co):
     return '\n'.join(lines)
 
 def show_code(co):
+    '''Print details of methods, functions, or code to stdout.'''
+
     print(code_info(co))
 
 def disassemble(co, lasti=-1):
@@ -235,6 +237,8 @@ def _disassemble_bytes(code, lasti=-1, varnames=None, names=None, constants=None
         print()
 
 def _disassemble_str(source):
+    '''Compile the source string, then disassemble the code object.'''
+
     disassemble(_try_compile(source, '<dis>'))
 
 disco = disassemble

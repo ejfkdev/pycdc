@@ -57,6 +57,8 @@ class ABCMeta(type):
         return subclass
 
     def _dump_registry(cls, file=None):
+        '''Debug helper to print the ABC registry.'''
+
         print(f'Class: {cls.__module__}.{cls.__qualname__}', file=file)
         print(f'Inv. counter: {get_cache_token()}', file=file)
         for name in cls.__dict__:
@@ -67,9 +69,13 @@ class ABCMeta(type):
                 print(f'{name}: {value!r}', file=file)
 
     def _abc_registry_clear(cls):
+        '''Clear the registry (for debugging or testing).'''
+
         cls._abc_registry.clear()
 
     def _abc_caches_clear(cls):
+        '''Clear the caches (for debugging or testing).'''
+
         cls._abc_cache.clear()
         cls._abc_negative_cache.clear()
 

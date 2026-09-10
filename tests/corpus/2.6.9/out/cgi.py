@@ -64,6 +64,8 @@ def initlog(*allargs):
     log(*allargs)
 
 def dolog(fmt, *args):
+    '''Write a log message to the log file.  See initlog() for docs.'''
+
     logfp.write(fmt % args + '\n')
 
 def nolog(*allargs):
@@ -128,10 +130,14 @@ def parse(fp=None, environ=os.environ, keep_blank_values=0, strict_parsing=0):
     return urlparse.parse_qs(qs, keep_blank_values, strict_parsing)
 
 def parse_qs(qs, keep_blank_values=0, strict_parsing=0):
+    '''Parse a query given as a string argument.'''
+
     warn('cgi.parse_qs is deprecated, use urlparse.parse_qs             instead', PendingDeprecationWarning, 2)
     return urlparse.parse_qs(qs, keep_blank_values, strict_parsing)
 
 def parse_qsl(qs, keep_blank_values=0, strict_parsing=0):
+    '''Parse a query given as a string argument.'''
+
     warn('cgi.parse_qsl is deprecated, use urlparse.parse_qsl instead', PendingDeprecationWarning, 2)
     return urlparse.parse_qsl(qs, keep_blank_values, strict_parsing)
 

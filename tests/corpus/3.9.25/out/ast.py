@@ -671,10 +671,15 @@ class _Unparser(NodeVisitor):
             self.write('\n')
 
     def fill(self, text=''):
+        '''Indent a piece of text and append it, according to the current
+        indentation level'''
+
         self.maybe_newline()
         self.write('    ' * self._indent + text)
 
     def write(self, text):
+        '''Append a piece of text'''
+
         self._source.append(text)
 
     def buffer_writer(self, text):
@@ -688,6 +693,12 @@ class _Unparser(NodeVisitor):
 
     @contextmanager
     def block(self, *, extra=None):
+        """A context manager for preparing the source for blocks. It adds
+        the character':', increases the indentation on enter and decreases
+        the indentation on exit. If *extra* is given, it will be directly
+        appended after the colon character.
+        """
+
         self.write(':')
         if extra:
             self.write(extra)
@@ -697,6 +708,9 @@ class _Unparser(NodeVisitor):
 
     @contextmanager
     def delimit(self, start, end):
+        '''A context manager for preparing the source for expressions. It adds
+        *start* to the buffer and enters, after exit it adds *end*.'''
+
         self.write(start)
         yield None
         self.write(end)

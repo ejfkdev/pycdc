@@ -155,6 +155,13 @@ class InteractiveInterpreter:
         self.write(''.join(lines))
 
     def write(self, data):
+        '''Write a string.
+
+        The base implementation writes to sys.stderr; a subclass may
+        replace this with a different implementation.
+
+        '''
+
         sys.stderr.write(data)
 
 
@@ -167,6 +174,16 @@ class InteractiveConsole(InteractiveInterpreter):
     '''
 
     def __init__(self, locals=None, filename='<console>', *, local_exit=False):
+        '''Constructor.
+
+        The optional locals argument will be passed to the
+        InteractiveInterpreter base class.
+
+        The optional filename argument should specify the (file)name
+        of the input stream; it will show up in tracebacks.
+
+        '''
+
         InteractiveInterpreter.__init__(self, locals)
         self.filename = filename
         self.local_exit = local_exit
@@ -250,6 +267,20 @@ class InteractiveConsole(InteractiveInterpreter):
                 self.write('%s\n' % exitmsg)
 
     def push(self, line, filename=None, _symbol='single'):
+        """Push a line to the interpreter.
+
+        The line should not have a trailing newline; it may have
+        internal newlines.  The line is appended to a buffer and the
+        interpreter's runsource() method is called with the
+        concatenated contents of the buffer as source.  If this
+        indicates that the command was executed or invalid, the buffer
+        is reset; otherwise, the command is incomplete, and the buffer
+        is left as it was after the line was appended.  The return
+        value is 1 if more input is required, 0 if the line was dealt
+        with in some way (this is the same as runsource()).
+
+        """
+
         self.buffer.append(line)
         source = '\n'.join(self.buffer)
         if filename is None:

@@ -97,6 +97,8 @@ else:
             return _abc_subclasscheck(cls, subclass)
 
         def _dump_registry(cls, file=None):
+            '''Debug helper to print the ABC registry.'''
+
             print(f'Class: {cls.__module__}.{cls.__qualname__}', file=file)
             print(f'Inv. counter: {get_cache_token()}', file=file)
             (_abc_registry, _abc_cache, _abc_negative_cache,
@@ -107,9 +109,13 @@ else:
             print(f'_abc_negative_cache_version: {_abc_negative_cache_version!r}', file=file)
 
         def _abc_registry_clear(cls):
+            '''Clear the registry (for debugging or testing).'''
+
             _reset_registry(cls)
 
         def _abc_caches_clear(cls):
+            '''Clear the caches (for debugging or testing).'''
+
             _reset_caches(cls)
 
 

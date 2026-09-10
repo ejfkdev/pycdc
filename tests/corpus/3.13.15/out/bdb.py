@@ -324,12 +324,18 @@ The arg parameter depends on the previous event.
         self._set_stopinfo(frame, frame, lineno)
 
     def set_step(self):
+        '''Stop after one line of code.'''
+
         self._set_stopinfo(None, None, cmdframe=self.enterframe, cmdlineno=getattr(self.enterframe, 'f_lineno', None))
 
     def set_stepinstr(self):
+        '''Stop before the next instruction.'''
+
         self._set_stopinfo(None, None, opcode=True)
 
     def set_next(self, frame):
+        '''Stop on the next line in or below the given frame.'''
+
         self._set_stopinfo(frame, None, cmdframe=frame, cmdlineno=frame.f_lineno)
 
     def set_return(self, frame):
@@ -360,6 +366,11 @@ The arg parameter depends on the previous event.
         sys.settrace(self.trace_dispatch)
 
     def set_continue(self):
+        '''Stop only at breakpoints or when finished.
+
+        If there are no breakpoints, set the system trace function to None.
+        '''
+
         self._set_stopinfo(self.botframe, None, -1)
         if not self.breaks:
             sys.settrace(None)
@@ -643,9 +654,16 @@ The arg parameter depends on the previous event.
         return eval(expr, globals, locals)
 
     def runctx(self, cmd, globals, locals):
+        '''For backwards-compatibility.  Defers to run().'''
+
         self.run(cmd, globals, locals)
 
     def runcall(self, func, /, *args, **kwds):
+        '''Debug a single function call.
+
+        Return the result of the function call.
+        '''
+
         self.reset()
         sys.settrace(self.trace_dispatch)
         res = None
@@ -659,6 +677,8 @@ The arg parameter depends on the previous event.
 
 
 def set_trace():
+    """Start debugging with a Bdb instance from the caller's frame."""
+
     Bdb().set_trace()
 
 class Breakpoint:

@@ -610,6 +610,9 @@ def _strptime_time(data_string, format='%a %b %d %H:%M:%S %Y'):
     return time.struct_time(tt[:time._STRUCT_TM_ITEMS])
 
 def _strptime_datetime_date(cls, data_string, format='%a %b %d %Y'):
+    '''Return a date instance based on the input string and the
+    format string.'''
+
     _strptime(data_string, format)
     (tt, _,
     args) = _strptime(data_string, format)

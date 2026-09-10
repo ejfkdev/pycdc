@@ -37,6 +37,8 @@ def _quote_html(html):
 class HTTPServer(SocketServer.TCPServer):
     allow_reuse_address = 1
     def server_bind(self):
+        '''Override server_bind to store the server name.'''
+
         SocketServer.TCPServer.server_bind(self)
         host, port = self.socket.getsockname()[:2]
         self.server_name = socket.getfqdn(host)
@@ -283,6 +285,13 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
     error_message_format = DEFAULT_ERROR_MESSAGE
     error_content_type = DEFAULT_ERROR_CONTENT_TYPE
     def send_response(self, code, message=None):
+        '''Send the response header and log the response code.
+
+        Also send two standard headers with the server software
+        version and the current date.
+
+        '''
+
         self.log_request(code)
         if message is None:
             if code in self.responses:
@@ -312,12 +321,45 @@ class BaseHTTPRequestHandler(SocketServer.StreamRequestHandler):
             self.wfile.write('\r\n')
 
     def log_request(self, code='-', size='-'):
+        '''Log an accepted request.
+
+        This is called by send_response().
+
+        '''
+
         self.log_message('"%s" %s %s', self.requestline, str(code), str(size))
 
     def log_error(self, format, *args):
+        '''Log an error.
+
+        This is called when a request cannot be fulfilled.  By
+        default it passes the message on to log_message().
+
+        Arguments are the same as for log_message().
+
+        XXX This should go to the separate error log.
+
+        '''
+
         self.log_message(format, *args)
 
     def log_message(self, format, *args):
+        """Log an arbitrary message.
+
+        This is used by all other logging functions.  Override
+        it if you have specific logging wishes.
+
+        The first argument, FORMAT, is a format string for the
+        message to be logged.  If the format string contains
+        any % escapes requiring parameters, they should be
+        specified as subsequent arguments (it's just like
+        printf!).
+
+        The client ip address and current date/time are prefixed to every
+        message.
+
+        """
+
         sys.stderr.write('%s - - [%s] %s\n' % (self.client_address[0], self.log_date_time_string(), format % args))
 
     def version_string(self):

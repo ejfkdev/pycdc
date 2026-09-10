@@ -38714,7 +38714,20 @@ impl<'a> Ctx<'a> {
                     } else {
                         true
                     };
-                    if marked && !matches!(body.first(), Some(Stmt::Expr(_))) {
+                    // skip only when the walk ALREADY emitted the
+                    // docstring const as the first Expr — a body
+                    // starting with an ordinary expression statement
+                    // (a bare call like `self.mutex.acquire()`) must
+                    // still get its docstring injected (Queue 2.7
+                    // task_done/join/qsize/empty/full/put/get lost
+                    // theirs to the over-wide Expr guard)
+                    let already_doc = matches!(
+                        body.first(),
+                        Some(Stmt::Expr(e))
+                            if matches!(&**e, Expr::Const(c)
+                                if matches!(&**c, PyObject::Str(_) | PyObject::Bytes(_)))
+                    );
+                    if marked && !already_doc {
                         if let Some(c0) = code.consts.first() {
                             if matches!(&**c0, PyObject::Str(_) | PyObject::Bytes(_)) {
                                 body.insert(0, Stmt::Expr(Rc::new(Expr::Const(c0.clone()))));

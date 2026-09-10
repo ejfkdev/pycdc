@@ -204,6 +204,13 @@ class BaseServer:
         '''
 
     def serve_forever(self, poll_interval=0.5):
+        '''Handle one request at a time until shutdown.
+
+        Polls for shutdown every poll_interval seconds. Ignores
+        self.timeout. If you need to do periodic tasks, do them in
+        another thread.
+        '''
+
         self.__is_shut_down.clear()
         try:
             while not self.__shutdown_request:
@@ -281,6 +288,12 @@ class BaseServer:
         return True
 
     def process_request(self, request, client_address):
+        '''Call finish_request.
+
+        Overridden by ForkingMixIn and ThreadingMixIn.
+
+        '''
+
         self.finish_request(request, client_address)
         self.shutdown_request(request)
 
@@ -292,9 +305,13 @@ class BaseServer:
         '''
 
     def finish_request(self, request, client_address):
+        '''Finish one request by instantiating RequestHandlerClass.'''
+
         self.RequestHandlerClass(request, client_address, self)
 
     def shutdown_request(self, request):
+        '''Called to shutdown and close an individual request.'''
+
         self.close_request(request)
 
     def close_request(self, request):
@@ -365,6 +382,8 @@ class TCPServer(BaseServer):
     request_queue_size = 5
     allow_reuse_address = False
     def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True):
+        '''Constructor.  May be extended, do not override.'''
+
         BaseServer.__init__(self, server_address, RequestHandlerClass)
         self.socket = socket.socket(self.address_family, self.socket_type)
         if bind_and_activate:
@@ -388,9 +407,21 @@ class TCPServer(BaseServer):
         self.server_address = self.socket.getsockname()
 
     def server_activate(self):
+        '''Called by constructor to activate the server.
+
+        May be overridden.
+
+        '''
+
         self.socket.listen(self.request_queue_size)
 
     def server_close(self):
+        '''Called to clean-up the server.
+
+        May be overridden.
+
+        '''
+
         self.socket.close()
 
     def fileno(self):
@@ -421,6 +452,8 @@ class TCPServer(BaseServer):
         self.close_request(request)
 
     def close_request(self, request):
+        '''Called to clean up an individual request.'''
+
         request.close()
 
 
@@ -477,9 +510,16 @@ class ForkingMixIn:
                     continue
 
     def handle_timeout(self):
+        '''Wait for zombies after self.timeout seconds of inactivity.
+
+        May be extended, do not override.
+        '''
+
         self.collect_children()
 
     def process_request(self, request, client_address):
+        '''Fork a new subprocess to process the request.'''
+
         self.collect_children()
         pid = os.fork()
         if pid:

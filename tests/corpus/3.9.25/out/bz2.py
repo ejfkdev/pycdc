@@ -116,6 +116,8 @@ class BZ2File(_compression.BaseStream):
         return self._mode == _MODE_CLOSED
 
     def fileno(self):
+        '''Return the file descriptor for the underlying file.'''
+
         self._check_not_closed()
         return self._fp.fileno()
 
@@ -125,10 +127,14 @@ class BZ2File(_compression.BaseStream):
         return self.readable() and self._buffer.seekable()
 
     def readable(self):
+        '''Return whether the file was opened for reading.'''
+
         self._check_not_closed()
         return self._mode == _MODE_READ
 
     def writable(self):
+        '''Return whether the file was opened for writing.'''
+
         self._check_not_closed()
         return self._mode == _MODE_WRITE
 

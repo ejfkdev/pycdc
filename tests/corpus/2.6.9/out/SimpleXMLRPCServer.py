@@ -208,9 +208,20 @@ class SimpleXMLRPCDispatcher:
         self.funcs[name] = function
 
     def register_introspection_functions(self):
+        '''Registers the XML-RPC introspection methods in the system
+        namespace.
+
+        see http://xmlrpc.usefulinc.com/doc/reserved.html
+        '''
+
         self.funcs.update({'system.listMethods': self.system_listMethods, 'system.methodSignature': self.system_methodSignature, 'system.methodHelp': self.system_methodHelp})
 
     def register_multicall_functions(self):
+        '''Registers the XML-RPC multicall method in the system
+        namespace.
+
+        see http://www.xmlrpc.com/discuss/msgReader$1208'''
+
         self.funcs.update({'system.multicall': self.system_multicall})
 
     def _marshaled_dispatch(self, data, dispatch_method=None):

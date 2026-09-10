@@ -790,6 +790,8 @@ class RawConfigParser(MutableMapping):
             self._write_section(fp, section, self._sections[section].items(), d)
 
     def _write_section(self, fp, section_name, section_items, delimiter):
+        '''Write a single section to the specified `fp`.'''
+
         fp.write('[{}]\n'.format(section_name))
         for key, value in section_items:
             value = self._interpolation.before_write(self, section_name, key, value)
@@ -1038,10 +1040,17 @@ class ConfigParser(RawConfigParser):
 
     _DEFAULT_INTERPOLATION = BasicInterpolation()
     def set(self, section, option, value=None):
+        '''Set an option.  Extends RawConfigParser.set by validating type and
+        interpolation syntax on the value.'''
+
         self._validate_value_types(option=option, value=value)
         super().set(section, option, value)
 
     def add_section(self, section):
+        '''Create a new section in the configuration.  Extends
+        RawConfigParser.add_section by validating if the section name is
+        a string.'''
+
         self._validate_value_types(section=section)
         super().add_section(section)
 

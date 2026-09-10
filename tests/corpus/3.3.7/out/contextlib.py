@@ -208,6 +208,8 @@ class ExitStack(object):
         return result
 
     def close(self):
+        '''Immediately unwind the context stack'''
+
         self.__exit__(None, None, None)
 
     def __enter__(self):

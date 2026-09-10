@@ -120,6 +120,8 @@ class BZ2File(io.BufferedIOBase):
         return self._mode == _MODE_CLOSED
 
     def fileno(self):
+        '''Return the file descriptor for the underlying file.'''
+
         self._check_not_closed()
         return self._fp.fileno()
 
@@ -129,10 +131,14 @@ class BZ2File(io.BufferedIOBase):
         return self.readable() and self._fp.seekable()
 
     def readable(self):
+        '''Return whether the file was opened for reading.'''
+
         self._check_not_closed()
         return self._mode in (_MODE_READ, _MODE_READ_EOF)
 
     def writable(self):
+        '''Return whether the file was opened for writing.'''
+
         self._check_not_closed()
         return self._mode == _MODE_WRITE
 

@@ -126,6 +126,9 @@ def _validate_month(month):
         raise IllegalMonthError(month)
 
 def monthrange(year, month):
+    '''Return weekday of first day of month (0-6 ~ Mon-Sun)
+       and number of days (28-31) for year, month.'''
+
     _validate_month(month)
     day1 = weekday(year, month, 1)
     ndays = mdays[month] + (month == FEBRUARY and isleap(year))
@@ -298,6 +301,10 @@ class TextCalendar(Calendar):
     '''
 
     def prweek(self, theweek, width):
+        '''
+        Print a single week (no newline).
+        '''
+
         print(self.formatweek(theweek, width), end='')
 
     def formatday(self, day, weekday, width):
@@ -337,6 +344,10 @@ class TextCalendar(Calendar):
         return ' '.join((self.formatweekday(i, width) for i in self.iterweekdays()))
 
     def formatmonthname(self, theyear, themonth, width, withyear=True):
+        '''
+        Return a formatted month name.
+        '''
+
         _validate_month(themonth)
         s = month_name[themonth]
         if withyear:
@@ -344,6 +355,10 @@ class TextCalendar(Calendar):
         return s.center(width)
 
     def prmonth(self, theyear, themonth, w=0, l=0):
+        """
+        Print a month's calendar.
+        """
+
         print(self.formatmonth(theyear, themonth, w, l), end='')
 
     def formatmonth(self, theyear, themonth, w=0, l=0):
@@ -400,6 +415,8 @@ class TextCalendar(Calendar):
         return ''.join(v)
 
     def pryear(self, theyear, w=0, l=0, c=6, m=3):
+        """Print a year's calendar."""
+
         print(self.formatyear(theyear, w, l, c, m), end='')
 
 
@@ -448,6 +465,10 @@ class HTMLCalendar(Calendar):
         return '<tr>%s</tr>' % s
 
     def formatmonthname(self, theyear, themonth, withyear=True):
+        '''
+        Return a month name as a table row.
+        '''
+
         _validate_month(themonth)
         if withyear:
             s = f'{month_name[themonth]!s} {theyear!s}'
@@ -607,6 +628,8 @@ _colwidth = 20
 _spacing = 6
 
 def format(cols, colwidth=_colwidth, spacing=_spacing):
+    '''Prints multi-column formatting for year calendars'''
+
     print(formatstring(cols, colwidth, spacing))
 
 def formatstring(cols, colwidth=_colwidth, spacing=_spacing):
