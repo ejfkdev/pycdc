@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 34,
-  "SIG-DIFF": 6
+  "PASS": 35,
+  "SIG-DIFF": 5
  },
  "results": [
   {
@@ -156,11 +156,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 619: orig  type_comment=None) | dec  type_comment=None)]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 689,
-   "ntotal": 1099,
-   "detail": "line 399: orig ('LOAD_GLOBAL', 'os') | got ('SETUP_FINALLY', 'to 130')\nline 400: orig ('LOAD_ATTR', 'path') | got ('LOAD_GLOBAL', 'py_compile')\nline 401: orig ('LOAD_METHOD', 'isfile') | got ('LOAD_ATTR', 'compile')"
+   "verdict": "PASS"
   },
   {
    "module": "configparser",

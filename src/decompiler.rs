@@ -10150,6 +10150,49 @@ impl<'a> Ctx<'a> {
                             py2_tb: None,
                         }],
                     });
+                } else if self.stmt_escapes_else_region(b.start) {
+                    // this block ENCLOSES the active chain's else
+                    // region and the chain never flushed (an
+                    // unbounded else_stop — the region merges by
+                    // fall-through, no bounding jump ever ran):
+                    // flush it INTO this block's body now, or the
+                    // walk-end teardown lands the Try as a sibling
+                    // AFTER the guard (_osx_support 3.10
+                    // _get_system_version)
+                    let mut body = body;
+                    if self.legacy_handler.is_none()
+                        && self.legacy_try.as_ref().map_or(false, |l| {
+                            l.chain_done
+                                && !l.handlers.is_empty()
+                                && !l.has_finally
+                                && l.else_start.map_or(false, |es| {
+                                    es > b.start
+                                })
+                        })
+                    {
+                        let l = self.legacy_try.take().unwrap();
+                        self.flush_pending_stores();
+                        self.restore_legacy_nest();
+                        body.push(Stmt::Try {
+                            body: l.body,
+                            handlers: l.handlers,
+                            orelse: l.orelse,
+                            finalbody: l.finalbody,
+                        });
+                    }
+                    if let Some(top) = self.blocks.last_mut() {
+                        top.stmts.push(Stmt::If {
+                            cond,
+                            body,
+                            orelse: Vec::new(),
+                        });
+                    } else {
+                        self.push_stmt(Stmt::If {
+                            cond,
+                            body,
+                            orelse: Vec::new(),
+                        });
+                    }
                 } else {
                     self.push_stmt(Stmt::If {
                         cond,
@@ -11173,6 +11216,41 @@ impl<'a> Ctx<'a> {
         }
         if let Some(top) = self.blocks.last_mut() {
             top.stmts.push(stmt);
+        }
+    }
+
+    /// A block that ENCLOSES the active chain's else region (opened
+    /// before the region start, closing at/after the current offset
+    /// while the redirect is live) is the region's CONTAINER: its
+    /// statement belongs to the block's own parent, not inside the
+    /// orelse it wraps. Without this the container's close — which
+    /// shares the region-end offset with the region's own trailing
+    /// blocks — rode the redirect and the whole guard landed inside
+    /// the try's else arm (_osx_support 3.10 _get_system_version:
+    /// `if _SYSTEM_VERSION is None:` enclosing try/except/else).
+    fn stmt_escapes_else_region(&self, b_start: usize) -> bool {
+        match self.legacy_try.as_ref().and_then(|l| l.else_start) {
+            Some(es) => {
+                b_start < es
+                    && self.cur_offset >= es
+                    && self.legacy_try.as_ref().map_or(false, |l| {
+                        self.cur_offset <= l.else_stop
+                            // require a genuinely PROCESSED chain: the
+                            // flush this branch performs is only valid
+                            // for a done try/except/else with handlers
+                            // and no finally. A raw un-flushed finally
+                            // skeleton (chain_done=false, empty
+                            // handlers, unbounded else_stop) must fall
+                            // through to the normal If close — routing
+                            // it here leaked a duplicated teardown arm
+                            // (cmd 3.9 cmdloop's compiler-duplicated
+                            // `finally` body)
+                            && l.chain_done
+                            && !l.handlers.is_empty()
+                            && !l.has_finally
+                    })
+            }
+            None => false,
         }
     }
 
@@ -36986,8 +37064,59 @@ impl<'a> Ctx<'a> {
                 }
             }
             // this return + any body-end copy are the copies; a
-            // fall-through exit (no jump) with no copy disqualifies
-            if copies + exits != 2 {
+            // fall-through exit (no jump) with no copy disqualifies —
+            // UNLESS the clause is EMPTY (`pass`) and the chain carries
+            // an ELSE region: then the success path flows into the else
+            // (no body-end copy exists) and the clause-exit copy is the
+            // ONLY sunk tail (_osx_support 3.10 _get_system_version
+            // `try: open(...) except OSError: pass else: <body>` + tail
+            // `return _SYSTEM_VERSION`: copies=1, exits=0 — the empty
+            // pass clause's exit carried the sunk tail and the else arm
+            // flattened). A clause with a GENUINE statement (code 3.10
+            // runsource `except: self.showsyntaxerror(...); return
+            // False` — a CALL before the return) is a real source-level
+            // return that happens to mirror the tail; it must NOT drop.
+            let has_else_region = self
+                .legacy_try
+                .as_ref()
+                .map_or(false, |l| {
+                    l.else_start.map_or(false, |es| es > l.handler_start)
+                });
+            // clause-empty test: between the handler head and this
+            // return, only exception-matching / stack-cleanup / the sunk
+            // value-load may appear. Any CALL, STORE, BUILD (beyond the
+            // match tuple), or control flow marks a genuine clause body.
+            let clause_empty = self
+                .idx_of
+                .get(&l)
+                .zip(self.idx_of.get(&ret_offset))
+                .map_or(false, |(&hi2, &ri2)| {
+                    !self.instrs[hi2..ri2].iter().any(|x| {
+                        !matches!(
+                            x.op,
+                            Op::NOP
+                                | Op::NOT_TAKEN
+                                | Op::CACHE
+                                | Op::EXTENDED_ARG
+                                | Op::DUP_TOP
+                                | Op::POP_TOP
+                                | Op::POP_EXCEPT
+                                | Op::JUMP_IF_NOT_EXC_MATCH
+                                | Op::RERAISE
+                                | Op::BUILD_TUPLE
+                                | Op::LOAD_FAST
+                                | Op::LOAD_NAME
+                                | Op::LOAD_GLOBAL
+                                | Op::LOAD_DEREF
+                                | Op::LOAD_CONST
+                                | Op::LOAD_ATTR
+                                | Op::LOAD_METHOD
+                        )
+                    })
+                });
+            if copies + exits != 2
+                && !(has_else_region && clause_empty && copies + exits == 1)
+            {
                 return false;
             }
         }
@@ -37249,7 +37378,16 @@ impl<'a> Ctx<'a> {
         // (try body end / handler exit): drop it — the merge return
         // renders from the main flow (cProfile 3.10 main)
         if !is_none_value && self.sunk_value_return_mirror(self.cur_offset) {
-            self.sunk_return_fold_at = Some(self.cur_offset);
+            // record the fold marker ONLY when a legacy chain flush
+            // will consume it to rebuild the sibling else arm (the
+            // batch-187 wait() shape). With no chain record the drop
+            // stands alone and a dangling marker would misfire on the
+            // next unrelated If close — _osx_support 3.10
+            // _get_system_version's enclosing `if _SYSTEM_VERSION is
+            // None:` guard was rebuilt into a phantom else arm
+            if self.legacy_try.is_some() || !self.legacy_nest.is_empty() {
+                self.sunk_return_fold_at = Some(self.cur_offset);
+            }
             return;
         }
         // 3.10 fully-sunk tail: a nested chain parsed INSIDE the outer

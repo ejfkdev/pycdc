@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 34,
-  "SIG-DIFF": 6
+  "PASS": 35,
+  "SIG-DIFF": 5
  },
  "results": [
   {
@@ -164,11 +164,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 745: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  Try(body=[For(target=Tuple(elts=[Name(id='index'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 904,
-   "ntotal": 1517,
-   "detail": "line 587: orig ('LOAD_GLOBAL', 'os') | got ('SETUP_FINALLY', 'to 522')\nline 588: orig ('LOAD_ATTR', 'path') | got ('LOAD_GLOBAL', 'enumerate')\nline 589: orig ('LOAD_METHOD', 'isfile') | got ('LOAD_FAST', 'optimize')"
+   "verdict": "PASS"
   },
   {
    "module": "configparser",

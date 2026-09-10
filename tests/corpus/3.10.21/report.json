@@ -44,11 +44,11 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 311: orig  body=[Pass()])] | dec  body=[Return(value=Name(id='_SYSTEM_VERSION'",
+   "ast_detail": "diff at token 542: orig  value=Constant(value=True)) | dec  value=Constant(value=True))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 189,
+   "ndiff": 916,
    "ntotal": 1418,
-   "detail": "line 289: orig ('POP_JUMP_IF_FALSE', 'to 128') | got ('POP_JUMP_IF_FALSE', 'to 130')\nline 300: orig ('JUMP_FORWARD', 'to 50') | got ('JUMP_FORWARD', 'to 52')\nline 303: orig ('JUMP_IF_NOT_EXC_MATCH', 'to 48') | got ('JUMP_IF_NOT_EXC_MATCH', 'to 50')"
+   "detail": "line 473: orig ('FOR_ITER', 'to 126') | got ('FOR_ITER', 'to 124')\nline 482: orig ('JUMP_ABSOLUTE', 'to 40') | got ('JUMP_FORWARD', 'to 74')\nline 487: orig ('POP_JUMP_IF_FALSE', 'to 76') | got ('POP_JUMP_IF_FALSE', 'to 74')"
   },
   {
    "module": "_py_abc",
