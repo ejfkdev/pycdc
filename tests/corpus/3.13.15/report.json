@@ -3,9 +3,9 @@
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
   "PASS": 30,
-  "SIG-DIFF": 6,
+  "SIG-DIFF": 7,
   "AST-PASS": 2,
-  "INCOMPLETE": 2
+  "INCOMPLETE": 1
  },
  "results": [
   {
@@ -165,10 +165,11 @@
   },
   {
    "module": "compileall",
-   "verdict": "INCOMPLETE",
-   "ndiff": 1212,
-   "ntotal": 1571,
-   "detail": "line 145: orig ('FOR_ITER', 'to L14') | got ('FOR_ITER', 'to L13')\nline 150: orig ('POP_JUMP_IF_FALSE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 151: orig ('JUMP_BACKWARD', 'to L4') | got ('JUMP_BACKWARD', 'to L3')"
+   "ast_detail": "diff at token 115: orig  If(test=BoolOp(op=And() | dec  If(test=UnaryOp(op=Not()",
+   "verdict": "SIG-DIFF",
+   "ndiff": 761,
+   "ntotal": 1572,
+   "detail": "line 179: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 180: orig ('POP_JUMP_IF_TRUE', 'to L8') | got ('POP_JUMP_IF_FALSE', 'to L8')\nline 185: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')"
   },
   {
    "module": "configparser",

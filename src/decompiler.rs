@@ -3912,6 +3912,25 @@ impl<'a> Ctx<'a> {
                                             ) && !x.is_backward
                                                 && x.target == Some(t)
                                         })
+                                    // a resume hop off a CLEANUP_THROW
+                                    // trampoline re-enters a suspended
+                                    // await/yield-from in the MIDDLE of
+                                    // an enclosing loop body - it is
+                                    // protocol continuation, not an
+                                    // else merge (compileall 3.13
+                                    // _walk_dir: the generator's
+                                    // trampoline JBNI->734 claimed the
+                                    // whole for-loop span as a phantom
+                                    // try-else and the main walk
+                                    // skipped the loop)
+                                    && !self.idx_of.get(&x.offset).map_or(
+                                        false,
+                                        |&xi| {
+                                            xi > 0
+                                                && self.instrs[xi - 1].op
+                                                    == Op::CLEANUP_THROW
+                                        },
+                                    )
                                     // the try body ends ON a backward
                                     // jump out of the body's own start:
                                     // a loop's fused back edge - the

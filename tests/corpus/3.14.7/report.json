@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 23,
-  "SIG-DIFF": 11,
-  "INCOMPLETE": 4,
+  "SIG-DIFF": 12,
+  "INCOMPLETE": 3,
   "AST-PASS": 2
  },
  "results": [
@@ -199,10 +199,11 @@
   },
   {
    "module": "compileall",
-   "verdict": "INCOMPLETE",
-   "ndiff": 1298,
+   "ast_detail": "diff at token 837: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1251,
    "ntotal": 1675,
-   "detail": "line 157: orig ('FOR_ITER', 'to L14') | got ('FOR_ITER', 'to L13')\nline 162: orig ('POP_JUMP_IF_FALSE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 164: orig ('JUMP_BACKWARD', 'to L4') | got ('JUMP_BACKWARD', 'to L3')"
+   "detail": "line 399: orig ('LOAD_FAST', 'legacy') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'legacy, optimize')\nline 400: orig ('LOAD_FAST', 'optimize') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'invalidation_mode, stripdir')\nline 401: orig ('LOAD_FAST', 'invalidation_mode') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'prependdir, limit_sl_dest')"
   },
   {
    "module": "configparser",
