@@ -254,9 +254,8 @@ barf if multiple '-isysroot' arguments are present.
         for idx in reversed(range(len(compiler_so))):
             if compiler_so[idx] == '-arch' and compiler_so[idx + 1] == 'arm64':
                 del compiler_so[idx:idx + 2]
-    if 'ARCHFLAGS' in os.environ:
-        if not stripArch:
-            compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
+    if 'ARCHFLAGS' in os.environ and not stripArch:
+        compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
     if stripSysroot:
         while True:
             indices = [i for i, x in enumerate(compiler_so) if x.startswith('-isysroot')]
@@ -279,11 +278,10 @@ barf if multiple '-isysroot' arguments are present.
             break
         sysroot = argvar[idx][len('-isysroot'):]
         break
-    if sysroot:
-        if not os.path.isdir(sysroot):
-            sys.stderr.write(f"Compiling with an SDK that doesn't seem to exist: {sysroot}\n")
-            sys.stderr.write('Please check your Xcode installation\n')
-            sys.stderr.flush()
+    if sysroot and not os.path.isdir(sysroot):
+        sys.stderr.write(f"Compiling with an SDK that doesn't seem to exist: {sysroot}\n")
+        sys.stderr.write('Please check your Xcode installation\n')
+        sys.stderr.flush()
     return compiler_so
 
 def customize_config_vars(_config_vars):

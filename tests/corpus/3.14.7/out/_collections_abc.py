@@ -927,12 +927,10 @@ Supporting start and stop arguments is optional, but
 recommended.
 '''
 
-        if not start is None:
-            if start < 0:
-                start = max(len(self) + start, 0)
-        if not stop is None:
-            if stop < 0:
-                stop += len(self)
+        if not start is None and start < 0:
+            start = max(len(self) + start, 0)
+        if not stop is None and stop < 0:
+            stop += len(self)
         i = start
         while stop is None or i < stop:
             try:

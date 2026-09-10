@@ -348,10 +348,9 @@ regex syntax are escaped.
             return self[format_char]
 
         format = re_sub('%[-_0^#]*[0-9]*([OE]?\\\\?.?)', repl, format)
-        if day_of_month_in_format:
-            if not year_in_format:
-                import warnings
-                warnings.warn('Parsing dates involving a day of month without a year specified is ambiguious\nand fails to parse leap day. The default behavior will change in Python 3.15\nto either always raise an exception or to use a different default year (TBD).\nTo avoid trouble, add a specific year to the input & format.\nSee https://github.com/python/cpython/issues/70647.', DeprecationWarning, skip_file_prefixes=(os.path.dirname(__file__),))
+        if day_of_month_in_format and not year_in_format:
+            import warnings
+            warnings.warn('Parsing dates involving a day of month without a year specified is ambiguious\nand fails to parse leap day. The default behavior will change in Python 3.15\nto either always raise an exception or to use a different default year (TBD).\nTo avoid trouble, add a specific year to the input & format.\nSee https://github.com/python/cpython/issues/70647.', DeprecationWarning, skip_file_prefixes=(os.path.dirname(__file__),))
         return format
 
     def compile(self, format):
@@ -583,11 +582,10 @@ format string.'''
             year = datetime_result.year
             month = datetime_result.month
             day = datetime_result.day
-        if julian is not None:
-            if julian <= 0:
-                year -= 1
-                yday = 366 if calendar.isleap(year) else 365
-                julian += yday
+        if julian is not None and julian <= 0:
+            year -= 1
+            yday = 366 if calendar.isleap(year) else 365
+            julian += yday
     if julian is None:
         julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
     else:

@@ -643,10 +643,9 @@ def main(args=None):
     parser.add_argument('year', nargs='?', type=int, help='year number')
     parser.add_argument('month', nargs='?', type=int, help='month number (1-12, text only)')
     options = parser.parse_args(args)
-    if options.locale:
-        if not options.encoding:
-            parser.error('if --locale is specified --encoding is required')
-            sys.exit(1)
+    if options.locale and not options.encoding:
+        parser.error('if --locale is specified --encoding is required')
+        sys.exit(1)
     locale = options.locale, options.encoding
     if options.type == 'html':
         if options.month:

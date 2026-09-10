@@ -106,17 +106,16 @@ If the forward reference cannot be evaluated, raise an exception.
         if self.__extra_names__:
             locals.update(self.__extra_names__)
         arg = self.__forward_arg__
-        if arg.isidentifier():
-            if not keyword.iskeyword(arg):
-                if arg in locals:
-                    return locals[arg]
-                if arg in globals:
-                    return globals[arg]
-                if hasattr(builtins, arg):
-                    return getattr(builtins, arg)
-                if is_forwardref_format:
-                    return self
-                raise NameError(_NAME_ERROR_MSG.format(name=arg), name=arg)
+        if arg.isidentifier() and not keyword.iskeyword(arg):
+            if arg in locals:
+                return locals[arg]
+            if arg in globals:
+                return globals[arg]
+            if hasattr(builtins, arg):
+                return getattr(builtins, arg)
+            if is_forwardref_format:
+                return self
+            raise NameError(_NAME_ERROR_MSG.format(name=arg), name=arg)
         code = self.__forward_code__
         try:
             return eval(code, globals=globals, locals=locals)

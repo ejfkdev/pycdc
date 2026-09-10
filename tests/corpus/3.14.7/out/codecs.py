@@ -777,9 +777,8 @@ parameter.
 
     import warnings
     warnings.warn('codecs.open() is deprecated. Use open() instead.', DeprecationWarning, stacklevel=2)
-    if not encoding is None:
-        if 'b' not in mode:
-            mode = mode + 'b'
+    if not encoding is None and 'b' not in mode:
+        mode = mode + 'b'
     file = builtins.open(filename, mode, buffering)
     if not encoding is not None:
         return file

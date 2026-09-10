@@ -26381,22 +26381,30 @@ return None;
                             // `while texts: pass`), NOT a statement
                             // and-chain inside an established loop body
                             && !self.pending_while_back_edge(top.start, target)
-                        // statement-level and-chain whose second operand
-                        // is a NONE test: 3.10+ compiles `is None` /
-                        // `is not None` to the dedicated
-                        // POP_JUMP_*_IF_(NOT_)NONE ops with jump-on-TRUE
-                        // polarity, so the link is "mixed" against a
-                        // PJFF first link by construction (compileall
-                        // 3.11 compile_dir `if workers != 1 and
-                        // ProcessPoolExecutor is not None:` rendered
-                        // nested - the else arm attached to the inner
-                        // if and the workers==1 path lost the serial
-                        // loop). The rotated-while discriminator is
-                        // pending_while_back_edge: a while's
-                        // pre-check/re-eval span [top.start, target)
-                        // holds the backward edge to its not-yet-open
-                        // top (w310 columnize), a statement and-chain's
-                        // span does not
+                        // statement-level and-chain whose LAST link is
+                        // jump-on-TRUE against a PJFF first link: either a
+                        // NONE test (3.10+ compiles `is None` / `is not
+                        // None` to the dedicated POP_JUMP_*_IF_(NOT_)NONE
+                        // ops with jump-on-TRUE polarity — compileall 3.11
+                        // compile_dir `if workers != 1 and
+                        // ProcessPoolExecutor is not None:` rendered nested
+                        // - the else arm attached to the inner if and the
+                        // workers==1 path lost the serial loop), OR a plain
+                        // negated tail `A and B and not C` whose `not C`
+                        // compiles to a PJIT onto the SAME shared exit
+                        // (compileall 3.11 _walk_dir `... and not
+                        // os.path.islink(fullname)` rendered as a nested
+                        // `if not islink:`). The rotated-while
+                        // discriminator is pending_while_back_edge: a
+                        // while's pre-check/re-eval span [top.start,
+                        // target) holds the backward edge to its
+                        // not-yet-open top (w310 columnize, b16 while_and),
+                        // a statement and-chain's span does not. The
+                        // opposite polarity (PJIT link then PJIF link =
+                        // `if not A:` + `if B:` nested) stays rejected —
+                        // its fused form recompiles UNARY_NOT + PJIF while
+                        // the nested guards recompile PJIT + PJIF
+                        // byte-exact (asyncore 3.5 handle_write_event).
                         || (self.version.at_least(3, 10)
                             && !top.jump_if_true
                             && jump_if_true
@@ -26404,6 +26412,46 @@ return None;
                                 .idx_of
                                 .get(&self.cur_offset)
                                 .and_then(|&ci| self.instrs.get(ci))
+                                .map_or(false, |x| {
+                                    matches!(
+                                        x.op,
+                                        Op::POP_JUMP_IF_NONE
+                                            | Op::POP_JUMP_FORWARD_IF_NONE
+                                            | Op::POP_JUMP_BACKWARD_IF_NONE
+                                            | Op::POP_JUMP_IF_NOT_NONE
+                                            | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                                            | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
+                                            | Op::POP_JUMP_IF_TRUE
+                                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                                            | Op::POP_JUMP_BACKWARD_IF_TRUE
+                                    )
+                                })
+                            && self.find_loop_exit(target).is_none()
+                            && !self.is_loop_top_target(target)
+                            && !self
+                                .pending_while_back_edge(top.start, target))
+                        // mirror NONE case: the FIRST link is the NONE
+                        // test (`X is not None` compiles to PJF_NONE with
+                        // raw jump-on-TRUE polarity, normalized to `is not
+                        // None` at open) and the CURRENT link is a plain
+                        // PJIF: `X is not None and Y` (compileall 3.11
+                        // compile_file `limit_sl_dest is not None and
+                        // os.path.islink(fullname)` rendered nested). The
+                        // merged form is bytecode-identical to the nested
+                        // guard-last-stmt shape (both links share ONE
+                        // exit), so merging only matches source. The
+                        // genuine `if not A: if B:` exclusion does NOT
+                        // apply: there the top's opening jump is a PLAIN
+                        // PJIT, not a NONE op — check the opening
+                        // instruction (it ends exactly at top.start). Same
+                        // three loop guards as the forward NONE case.
+                        || (self.version.at_least(3, 10)
+                            && top.jump_if_true
+                            && !jump_if_true
+                            && self
+                                .instrs
+                                .iter()
+                                .find(|x| x.end() == top.start)
                                 .map_or(false, |x| {
                                     matches!(
                                         x.op,
@@ -28475,11 +28523,28 @@ if split_cond {
                     | Op::POP_JUMP_IF_TRUE
                     | Op::POP_JUMP_FORWARD_IF_TRUE
             ) && ins.target == Some(target)
-                && jump_if_true
+                && (jump_if_true
                     == matches!(
                         ins.op,
                         Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
-                    );
+                    )
+                    // mixed and-chain: a negated tail operand (`not X`)
+                    // compiles to a PJIT onto the shared exit while the
+                    // preceding and-links are PJIFs to that SAME exit —
+                    // admit them as chain links. Each operand's negation
+                    // is normalized at the split_cond merge site (c2 =
+                    // negate_cond for the PJIT tail), not here, so the
+                    // region scan only needs to confirm these are links
+                    // of one shared-exit chain, not nested guards (which
+                    // would target their own body/else end, != target)
+                    // (compileall 3.11 _walk_dir `... and not
+                    // os.path.islink(fullname)`)
+                    || (jump_if_true
+                        && matches!(
+                            ins.op,
+                            Op::POP_JUMP_IF_FALSE
+                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                        )));
             if !is_pure_value_op(ins.op) && !same_chain_cj {
                 return false;
             }

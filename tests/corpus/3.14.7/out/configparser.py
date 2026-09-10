@@ -609,9 +609,8 @@ already exists. Raise ValueError if name is DEFAULT.
 
         if section == self.default_section:
             raise ValueError('Invalid section name: %r' % section)
-        if section is UNNAMED_SECTION:
-            if not self._allow_unnamed_section:
-                raise UnnamedSectionDisabledError
+        if section is UNNAMED_SECTION and not self._allow_unnamed_section:
+            raise UnnamedSectionDisabledError
         if section in self._sections:
             raise DuplicateSectionError(section)
         self._sections[section] = self._dict()
@@ -907,9 +906,8 @@ preserved when writing the configuration back.
         return existed
 
     def __getitem__(self, key):
-        if key != self.default_section:
-            if not self.has_section(key):
-                raise KeyError(key)
+        if key != self.default_section and not self.has_section(key):
+            raise KeyError(key)
         return self._proxies[key]
 
     def __setitem__(self, key, value):

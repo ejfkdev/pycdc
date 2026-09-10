@@ -410,9 +410,8 @@ class _CallableGenericAlias(GenericAlias):
             raise TypeError(f'{self} is not a generic class')
         if not isinstance(item, tuple):
             item = (item,)
-        if param_len == 1 and _is_param_expr(self.__parameters__[0]) and item:
-            if not _is_param_expr(item[0]):
-                item = (list(item),)
+        if param_len == 1 and _is_param_expr(self.__parameters__[0]) and item and not _is_param_expr(item[0]):
+            item = (list(item),)
         item_len = len(item)
         if item_len != param_len:
             raise TypeError(f'Too {"many" if item_len > param_len else "few"} arguments for {self}; actual {item_len}, expected {param_len}')

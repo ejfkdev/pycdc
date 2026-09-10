@@ -437,9 +437,8 @@ might differ in whitespace or similar details.
         return False
     if not _compare_fields(a, b):
         return False
-    if compare_attributes:
-        if not _compare_attributes(a, b):
-            return False
+    if compare_attributes and not _compare_attributes(a, b):
+        return False
     return True
 
 class NodeVisitor(object):

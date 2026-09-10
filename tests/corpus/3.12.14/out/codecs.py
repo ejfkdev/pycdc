@@ -773,9 +773,8 @@ def open(filename, mode='r', encoding=None, errors='strict', buffering=-1):
 
     """
 
-    if encoding is not None:
-        if 'b' not in mode:
-            mode = mode + 'b'
+    if encoding is not None and 'b' not in mode:
+        mode = mode + 'b'
     file = builtins.open(filename, mode, buffering)
     if encoding is None:
         return file

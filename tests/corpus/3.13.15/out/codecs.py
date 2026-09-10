@@ -776,9 +776,8 @@ parameter.
 
 """
 
-    if encoding is not None:
-        if 'b' not in mode:
-            mode = mode + 'b'
+    if encoding is not None and 'b' not in mode:
+        mode = mode + 'b'
     file = builtins.open(filename, mode, buffering)
     if encoding is None:
         return file

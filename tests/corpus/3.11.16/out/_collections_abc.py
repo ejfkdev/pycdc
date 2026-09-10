@@ -395,9 +395,8 @@ class _CallableGenericAlias(GenericAlias):
     def __getitem__(self, item):
         if not isinstance(item, tuple):
             item = (item,)
-        if len(self.__parameters__) == 1 and _is_param_expr(self.__parameters__[0]) and item:
-            if not _is_param_expr(item[0]):
-                item = (item,)
+        if len(self.__parameters__) == 1 and _is_param_expr(self.__parameters__[0]) and item and not _is_param_expr(item[0]):
+            item = (item,)
         new_args = super().__getitem__(item).__args__
         if not isinstance(new_args[0], (tuple, list)):
             t_result = new_args[-1]
@@ -920,12 +919,10 @@ class Sequence(Reversible, Collection):
            recommended.
         '''
 
-        if start is not None:
-            if start < 0:
-                start = max(len(self) + start, 0)
-        if stop is not None:
-            if stop < 0:
-                stop += len(self)
+        if start is not None and start < 0:
+            start = max(len(self) + start, 0)
+        if stop is not None and stop < 0:
+            stop += len(self)
         i = start
         if stop is not None:
             while i < stop:

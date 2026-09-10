@@ -134,9 +134,8 @@ register_dialect('unix', unix_dialect)
 
 class DictReader:
     def __init__(self, f, fieldnames=None, restkey=None, restval=None, dialect='excel', *args, **kwds):
-        if fieldnames is not None:
-            if iter(fieldnames) is fieldnames:
-                fieldnames = list(fieldnames)
+        if fieldnames is not None and iter(fieldnames) is fieldnames:
+            fieldnames = list(fieldnames)
         self._fieldnames = fieldnames
         self.restkey = restkey
         self.restval = restval
@@ -183,9 +182,8 @@ class DictReader:
 
 class DictWriter:
     def __init__(self, f, fieldnames, restval='', extrasaction='raise', dialect='excel', *args, **kwds):
-        if fieldnames is not None:
-            if iter(fieldnames) is fieldnames:
-                fieldnames = list(fieldnames)
+        if fieldnames is not None and iter(fieldnames) is fieldnames:
+            fieldnames = list(fieldnames)
         self.fieldnames = fieldnames
         self.restval = restval
         extrasaction = extrasaction.lower()

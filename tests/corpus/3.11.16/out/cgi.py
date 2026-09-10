@@ -45,12 +45,11 @@ def initlog(*allargs):
 
     global logfp, log
     warnings.warn('cgi.log() is deprecated as of 3.10. Use logging instead', DeprecationWarning, stacklevel=2)
-    if logfile:
-        if not logfp:
-            try:
-                logfp = open(logfile, 'a', encoding='locale')
-            except OSError:
-                pass
+    if logfile and not logfp:
+        try:
+            logfp = open(logfile, 'a', encoding='locale')
+        except OSError:
+            pass
     if not logfp:
         log = nolog
     else:
@@ -390,9 +389,8 @@ class FieldStorage:
             if maxlen and clen > maxlen:
                 raise ValueError('Maximum content length exceeded')
         self.length = clen
-        if self.limit is None:
-            if clen >= 0:
-                self.limit = clen
+        if self.limit is None and clen >= 0:
+            self.limit = clen
         self.list = self.file = None
         self.done = 0
         if ctype == 'application/x-www-form-urlencoded':
@@ -612,12 +610,11 @@ class FieldStorage:
     def __write(self, line):
         '''line is always bytes, not string'''
 
-        if self.__file is not None:
-            if self.__file.tell() + len(line) > 1000:
-                self.file = self.make_file()
-                data = self.__file.getvalue()
-                self.file.write(data)
-                self.__file = None
+        if self.__file is not None and self.__file.tell() + len(line) > 1000:
+            self.file = self.make_file()
+            data = self.__file.getvalue()
+            self.file.write(data)
+            self.__file = None
         if self._binary_file:
             self.file.write(line)
             return

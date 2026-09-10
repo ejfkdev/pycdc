@@ -170,9 +170,8 @@ hardlink_dupes: hardlink duplicated pyc files
         mo = rx.search(fullname)
         if mo:
             return success
-    if limit_sl_dest is not None:
-        if os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
-            return success
+    if limit_sl_dest is not None and os.path.islink(fullname) and Path(limit_sl_dest).resolve() not in Path(fullname).resolve().parents:
+        return success
     opt_cfiles = {}
     if os.path.isfile(fullname):
         for opt_level in optimize:

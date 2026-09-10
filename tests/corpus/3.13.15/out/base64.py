@@ -230,11 +230,10 @@ def _85encode(b, chars, chars2, pad=False, foldnuls=False, foldspaces=False):
         b = b + b'\x00' * padding
     words = struct.Struct('!%dI' % (len(b) // 4)).unpack(b)
     chunks = words
-    if padding:
-        if not pad:
-            if chunks[-1] == b'z':
-                chunks[-1] = chars[0] * 5
-            chunks[-1] = chunks[-1][:-padding]
+    if padding and not pad:
+        if chunks[-1] == b'z':
+            chunks[-1] = chars[0] * 5
+        chunks[-1] = chunks[-1][:-padding]
     return b''.join(chunks)
 
 def a85encode(b, *, foldspaces=False, wrapcol=0, pad=False, adobe=False):

@@ -411,11 +411,10 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             julian = _calc_julian_from_U_or_W(year, week_of_year, weekday, week_starts_Mon)
         elif iso_year is not None and iso_week is not None:
             year, julian = _calc_julian_from_V(iso_year, iso_week, weekday + 1)
-        if julian is not None:
-            if julian <= 0:
-                year -= 1
-                yday = 366 if calendar.isleap(year) else 365
-                julian += yday
+        if julian is not None and julian <= 0:
+            year -= 1
+            yday = 366 if calendar.isleap(year) else 365
+            julian += yday
     if julian is None:
         julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
     else:

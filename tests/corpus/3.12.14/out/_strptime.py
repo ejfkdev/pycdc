@@ -503,11 +503,10 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             year = datetime_result.year
             month = datetime_result.month
             day = datetime_result.day
-        if julian is not None:
-            if julian <= 0:
-                year -= 1
-                yday = 366 if calendar.isleap(year) else 365
-                julian += yday
+        if julian is not None and julian <= 0:
+            year -= 1
+            yday = 366 if calendar.isleap(year) else 365
+            julian += yday
     if julian is None:
         julian = datetime_date(year, month, day).toordinal() - datetime_date(year, 1, 1).toordinal() + 1
     else:
