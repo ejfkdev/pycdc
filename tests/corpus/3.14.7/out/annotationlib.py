@@ -439,10 +439,7 @@ def _template_to_ast(template):
     if any((part.expression.strip() == '' for part in template.interpolations)):
         return _template_to_ast_constructor(template)
     try:
-        if tuple is tuple:
-            for _ in (('mode',).body for part in template.interpolations):
-                pass
-        parsed = (None,)((('mode',).body for part in template.interpolations))
+        parsed = tuple((('mode',).body for part in template.interpolations))
     except SyntaxError:
         return _template_to_ast_constructor(template)
     return _template_to_ast_literal(template, parsed)

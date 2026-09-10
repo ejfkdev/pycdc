@@ -10461,7 +10461,14 @@ impl<'a> Ctx<'a> {
                 //   CALL 0; CALL 1  — both paths merge with one value.
                 // Divert to the slow path: it renders the plain
                 // `all(<genexpr>)` call via the existing machinery.
-                if (arg == 3 || arg == 4) && self.version.at_least(3, 14) {
+                // arg 2 (tuple): the same guard fronts the inlined
+                // list-comp + LIST_TO_TUPLE fast path of `tuple(<genexpr>)`
+                // (_osx_support 3.14 _get_system_version_tuple: walking
+                // the fast path hit CALL_INTRINSIC_1 LIST_TO_TUPLE
+                // unclean; the slow path renders the plain call)
+                if (arg == 2 || arg == 3 || arg == 4)
+                    && self.version.at_least(3, 14)
+                {
                     if let Some(slow) = self.inline_all_any_slow_path(arg == 3) {
                         // drop the COPY 1 duplicate; the slow path expects
                         // just the callable

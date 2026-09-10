@@ -2,9 +2,9 @@
  "version": "3.14.7",
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
-  "PASS": 22,
+  "PASS": 23,
   "SIG-DIFF": 11,
-  "INCOMPLETE": 5,
+  "INCOMPLETE": 4,
   "AST-PASS": 2
  },
  "results": [
@@ -74,10 +74,7 @@
   },
   {
    "module": "_osx_support",
-   "verdict": "INCOMPLETE",
-   "ndiff": 1310,
-   "ntotal": 1742,
-   "detail": "line 384: orig ('POP_JUMP_IF_NOT_NONE', 'to L5') | got ('POP_JUMP_IF_NOT_NONE', 'to L4')\nline 391: orig ('POP_JUMP_IF_FALSE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 394: orig ('COPY', '') | got ('LOAD_GLOBAL', 'tuple')"
+   "verdict": "PASS"
   },
   {
    "module": "_py_abc",
@@ -129,7 +126,7 @@
   {
    "module": "annotationlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 4040,
+   "ndiff": 4039,
    "ntotal": 4144,
    "detail": "line 60: orig ('BUILD_TEMPLATE', '') | got ('CALL', '')\nline 61: orig ('CALL', '') | got ('STORE_NAME', '_Template')\nline 62: orig ('STORE_NAME', '_Template') | got ('LOAD_BUILD_CLASS', '')"
   },

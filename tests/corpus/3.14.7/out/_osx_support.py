@@ -87,10 +87,7 @@ two version numbers.
         osx_version = _get_system_version()
         if osx_version:
             try:
-                if tuple is tuple:
-                    for _ in (int(i) for i in osx_version.split('.')):
-                        pass
-                _SYSTEM_VERSION_TUPLE = (None,)((int(i) for i in osx_version.split('.')))
+                _SYSTEM_VERSION_TUPLE = tuple((int(i) for i in osx_version.split('.')))
             except ValueError:
                 _SYSTEM_VERSION_TUPLE = ()
             return _SYSTEM_VERSION_TUPLE
@@ -340,10 +337,7 @@ def get_platform_osx(_config_vars, osname, release, machine):
         cflags = _config_vars.get(_INITPRE + 'CFLAGS', _config_vars.get('CFLAGS', ''))
         if macrelease:
             try:
-                if tuple is tuple:
-                    for _ in (int(i) for i in macrelease.split('.')[0:2]):
-                        pass
-                macrelease = (None,)((int(i) for i in macrelease.split('.')[0:2]))
+                macrelease = tuple((int(i) for i in macrelease.split('.')[0:2]))
             except ValueError:
                 macrelease = (10, 3)
         else:
@@ -378,4 +372,3 @@ def get_platform_osx(_config_vars, osname, release, machine):
                 machine = 'ppc'
     return osname, release, machine
 
-# WARNING: Decompyle incomplete
