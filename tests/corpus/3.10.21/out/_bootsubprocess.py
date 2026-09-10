@@ -15,19 +15,16 @@ class Popen:
     def wait(self):
         pid = os.fork()
         if pid == 0:
-            os._exit(1)
+            try:
+                if self._env is not None:
+                    os.execve(self._cmd[0], self._cmd, self._env)
+                else:
+                    os.execv(self._cmd[0], self._cmd)
+            finally:
+                os._exit(1)
         else:
             _, status = os.waitpid(pid, 0)
             self.returncode = os.waitstatus_to_exitcode(status)
-        try:
-            if self._env is not None:
-                os.execve(self._cmd[0], self._cmd, self._env)
-            else:
-                os.execv(self._cmd[0], self._cmd)
-                os._exit(1)
-                return self.returncode
-        finally:
-            os._exit(1)
         return self.returncode
 
 

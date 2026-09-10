@@ -32484,12 +32484,26 @@ if split_cond {
                             .idx_of
                             .get(&self.cur_offset)
                             .map_or(usize::MAX, |pi| pi + 1);
+                        let k0 = k2;
                         let mut steps = 0;
                         let mut value_escape = false;
+                        let mut saw_call = false;
+                        // end index (exclusive) of a complete expression-
+                        // statement call (CALL + POP_TOP) right after the
+                        // POP_BLOCK: the inline finally copy's head
+                        let mut copy_end = None;
                         'scan: while let Some(x) = self.instrs.get(k2) {
                             steps += 1;
                             if steps > 48 {
                                 break;
+                            }
+                            if matches!(
+                                x.op,
+                                Op::CALL | Op::CALL_FUNCTION | Op::CALL_METHOD
+                            ) {
+                                saw_call = true;
+                            } else if saw_call && x.op == Op::POP_TOP {
+                                copy_end = Some(k2 + 1);
                             }
                             if x.target.is_some()
                                 || matches!(
@@ -32547,7 +32561,63 @@ if split_cond {
                                         );
                                     break;
                                 }
+                                // 3.10 per-arm duplication: the span
+                                // right after this POP_BLOCK is the
+                                // inline finally copy (opcode-mirrors
+                                // the enclosing Try's out-of-line
+                                // handler head) and the return past it
+                                // is the function-tail return sunk into
+                                // the arm — a body end with a sunk tail,
+                                // NOT the arm's own value escape
+                                // (_bootsubprocess 3.10 wait:
+                                // `POP_BLOCK; os._exit(1); return
+                                // self.returncode` — the value-escape
+                                // verdict kept Else[54,92] open and the
+                                // arm swallowed the copy and the sunk
+                                // return, hoisting the whole try out of
+                                // the `if pid == 0:` branch). A genuine
+                                // arm escape (`return f()` riding the
+                                // stack, codeop 3.9) carries its value
+                                // UNDER the copy: the span before its
+                                // RETURN does not mirror the handler.
+                                let fin_copy_mirror =
+                                    copy_end.map_or(false, |ce| {
+                                        let len = ce - k0;
+                                        self.blocks
+                                            .iter()
+                                            .rev()
+                                            .skip(1)
+                                            .next()
+                                            .filter(|b| {
+                                                b.kind == BlockType::Try
+                                            })
+                                            .and_then(|b| {
+                                                self.idx_of.get(&b.end)
+                                            })
+                                            .map_or(false, |&hi| {
+                                                hi + len
+                                                    <= self.instrs.len()
+                                                    && (k0..ce)
+                                                        .zip(hi..hi + len)
+                                                        .all(|(a, b)| {
+                                                            let ia =
+                                                                &self.instrs[a];
+                                                            let ib =
+                                                                &self.instrs[b];
+                                                            op_family_eq(
+                                                                ia.op,
+                                                                ib.op,
+                                                            ) && (!matches!(
+                                                                ia.op,
+                                                                Op::LOAD_CONST
+                                                                    | Op::LOAD_GLOBAL
+                                                            ) || ia.arg
+                                                                == ib.arg)
+                                                        })
+                                            })
+                                    });
                                 value_escape = !(prev_is_none
+                                    || fin_copy_mirror
                                     || x.op == Op::RETURN_CONST
                                         && matches!(
                                             self
@@ -37061,12 +37131,111 @@ impl<'a> Ctx<'a> {
                         .map_or(false, |es| self.cur_offset >= es && self.cur_offset <= l.else_stop)
             })
         {
+            // the chain's material end: first terminator at/after the
+            // out-of-line handler head (its inline copies and the sunk
+            // returns between this offset and the handler are pure
+            // duplication)
+            let resume = self
+                .legacy_try
+                .as_ref()
+                .and_then(|l| self.idx_of.get(&l.handler_start))
+                .and_then(|&hi| {
+                    self.instrs[hi..]
+                        .iter()
+                        .find(|x| {
+                            matches!(
+                                x.op,
+                                Op::RERAISE | Op::END_FINALLY | Op::JUMP_ABSOLUTE
+                            )
+                        })
+                        .map(|x| x.end())
+                });
+            // a chain nested INSIDE a branch arm whose sibling flow
+            // continues past the chain: skipping to the code end (the
+            // function-tail behavior) would drop the rest of the
+            // function (_bootsubprocess 3.10 wait: the child branch's
+            // try/finally sunk return ended the walk and the parent
+            // else arm + tail return vanished). Resume past the chain's
+            // terminator instead, and when this sunk return mirrors the
+            // function's real tail return (same value-load run), drop
+            // it — the arm falls through to the tail like the source
+            let past_flow = resume.map_or(false, |r| {
+                self.blocks.iter().any(|b| {
+                    b.kind != BlockType::Main && b.end >= r
+                })
+            });
+            let tail_mir = {
+                let is_pad = |x: &crate::bytecode::Instruction| {
+                    matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG)
+                };
+                let is_load = |o: Op| {
+                    matches!(
+                        o,
+                        Op::LOAD_FAST
+                            | Op::LOAD_NAME
+                            | Op::LOAD_GLOBAL
+                            | Op::LOAD_DEREF
+                            | Op::LOAD_CONST
+                            | Op::LOAD_ATTR
+                            | Op::LOAD_METHOD
+                    )
+                };
+                let run_of = |ri: usize| -> Option<Vec<(u8, u32)>> {
+                    let mut b = ri;
+                    let mut hops = 0;
+                    while b > 0 && hops < 8 {
+                        let p = &self.instrs[b - 1];
+                        if is_pad(p) || is_load(p.op) {
+                            b -= 1;
+                            hops += 1;
+                            continue;
+                        }
+                        break;
+                    }
+                    let run: Vec<(u8, u32)> = self.instrs[b..=ri]
+                        .iter()
+                        .filter(|x| !is_pad(x))
+                        .map(|x| (x.op as u8, x.arg))
+                        .collect();
+                    (run.len() >= 2
+                        && matches!(run.last().map(|t| t.0), Some(op) if op == Op::RETURN_VALUE as u8))
+                    .then_some(run)
+                };
+                resume
+                    .and_then(|r| {
+                        self.idx_of.get(&self.cur_offset).copied().and_then(|ci| {
+                            self.instrs
+                                .iter()
+                                .rposition(|x| {
+                                    matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST)
+                                        && x.offset >= r
+                                })
+                                .and_then(|ti| {
+                                    let a = run_of(ci)?;
+                                    let b = run_of(ti)?;
+                                    Some(a == b)
+                                })
+                        })
+                    })
+                    .unwrap_or(false)
+            };
             let mut l = self.legacy_try.take().unwrap();
             self.flush_pending_stores();
             self.fold_stashed_inner_chain(&mut l);
             self.restore_legacy_nest();
             self.push_legacy_try(l);
-                        self.skip_until = Some(usize::MAX);
+            if past_flow {
+                self.skip_until = resume;
+                if tail_mir {
+                    // record the suppressed sunk return: the If close at
+                    // the resume point rebuilds the sibling else arm from
+                    // it (3.10 sunk-copy else rebuild)
+                    self.sunk_return_fold_at = Some(self.cur_offset);
+                    return;
+                }
+            } else {
+                self.skip_until = Some(usize::MAX);
+            }
             let value = match e {
                 Some(v) => match &*v {
                     Expr::Const(o) if matches!(&**o, PyObject::None) => None,

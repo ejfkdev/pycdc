@@ -16,11 +16,11 @@
   },
   {
    "module": "_bootsubprocess",
-   "ast_detail": "diff at token 48: orig  body=[Try(body=[If(test=Compare(left=Attribute(value=Name(id='self' | dec  body=[Expr(value=Call(func=Attribute(value=Name(id='os'",
+   "ast_detail": "diff at token 391: orig  body=[Pass()])] | dec  body=[Return(value=Name(id='stdout'",
    "verdict": "SIG-DIFF",
-   "ndiff": 310,
-   "ntotal": 381,
-   "detail": "line 60: orig ('POP_JUMP_IF_FALSE', 'to 122') | got ('POP_JUMP_IF_FALSE', 'to 28')\nline 61: orig ('SETUP_FINALLY', 'to 110') | got ('LOAD_GLOBAL', 'os')\nline 62: orig ('LOAD_FAST', 'self') | got ('LOAD_METHOD', '_exit')"
+   "ndiff": 30,
+   "ntotal": 373,
+   "detail": "line 265: orig ('SETUP_FINALLY', 'to 240') | got ('SETUP_FINALLY', 'to 242')\nline 339: orig ('JUMP_IF_NOT_EXC_MATCH', 'to 238') | got ('JUMP_IF_NOT_EXC_MATCH', 'to 240')\nline 343: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'stdout')"
   },
   {
    "module": "_collections_abc",
