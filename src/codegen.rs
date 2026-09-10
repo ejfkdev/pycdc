@@ -1358,7 +1358,7 @@ impl Printer {
             PyObject::StopIteration => self.write("StopIteration"),
             PyObject::Int(i) => self.write(&i.to_string()),
             PyObject::Long(l) => {
-                if self.version.major == 2 && !l.is_zero() {
+                if self.version.major == 2 && !l.is_zero() && !l.from_int64 {
                     let text = if l.negative {
                         format!("-{}L", l.decimal)
                     } else {

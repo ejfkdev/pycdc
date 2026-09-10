@@ -44,6 +44,13 @@ pub struct PycLong {
     pub negative: bool,
     /// Decimal representation without sign, e.g. "12345678901234567890".
     pub decimal: String,
+    /// True when loaded from py2 TYPE_INT64 - a 64-bit *int* (not a
+    /// long) on the 64-bit builds that emit it. Renders WITHOUT the `L`
+    /// suffix so the source recompiles to the same int constant
+    /// (_osx_support 2.7 `sys.maxint >= 2**32`: the folded 4294967296
+    /// is a TYPE_INT64 int; rendering it `4294967296L` recompiled to a
+    /// long and broke sig-exactness).
+    pub from_int64: bool,
 }
 
 impl PycLong {
@@ -69,7 +76,14 @@ impl PycLong {
             acc.pop();
         }
         let decimal = acc.iter().rev().map(|d| (b'0' + d) as char).collect();
-        PycLong { negative: negative && decimal != "0", decimal }
+        PycLong { negative: negative && decimal != "0", decimal, from_int64: false }
+    }
+
+    /// Mark this value as a py2 TYPE_INT64 (a 64-bit int, rendered
+    /// without the `L` long suffix).
+    pub fn as_int64(mut self) -> PycLong {
+        self.from_int64 = true;
+        self
     }
 
     pub fn is_zero(&self) -> bool {

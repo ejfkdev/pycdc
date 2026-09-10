@@ -201,7 +201,9 @@ impl<'a> MarshalReader<'a> {
                 if self.version.at_least(3, 4) {
                     return Err(PycError::BadMarshalType(code, 'I', start));
                 }
-                Rc::new(PyObject::Long(PycLong::from_digits(false, &u64_to_digits(self.u64()?))))
+                Rc::new(PyObject::Long(
+                    PycLong::from_digits(false, &u64_to_digits(self.u64()?)).as_int64(),
+                ))
             }
             TYPE_LONG => self.load_long()?,
             TYPE_FLOAT => {

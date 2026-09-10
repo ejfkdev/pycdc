@@ -235,7 +235,7 @@ class Set(Sized, Iterable, Container):
         h &= MASK
         for x in self:
             hx = hash(x)
-            h ^= (hx ^ hx << 16 ^ 89869747) * 3644798167L
+            h ^= (hx ^ hx << 16 ^ 89869747) * 3644798167
             h &= MASK
         h = h * 69069 + 907133923
         h &= MASK

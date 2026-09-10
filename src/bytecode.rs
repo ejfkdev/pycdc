@@ -346,7 +346,7 @@ pub fn short_const_repr(obj: &crate::object::PyObject, version: PythonVersion) -
         PyObject::Ellipsis => "Ellipsis".into(),
         PyObject::Int(i) => i.to_string(),
         PyObject::Long(l) => {
-            if version.major == 2 {
+            if version.major == 2 && !l.from_int64 {
                 format!("{}L", l)
             } else {
                 l.decimal.clone()

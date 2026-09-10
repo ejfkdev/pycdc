@@ -2,8 +2,8 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "PASS": 26,
-  "SIG-DIFF": 11,
+  "PASS": 27,
+  "SIG-DIFF": 10,
   "AST-PASS": 3
  },
  "results": [
@@ -117,11 +117,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 1654: orig  comparators=[Num(n=4294967296)]) | dec  comparators=[Num(n=4294967296L)])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2,
-   "ntotal": 1160,
-   "detail": "line 1120: orig ('LOAD_CONST', '4294967296') | got ('LOAD_CONST', '4294967296L')\nline 1133: orig ('LOAD_CONST', '4294967296') | got ('LOAD_CONST', '4294967296L')"
+   "verdict": "PASS"
   },
   {
    "module": "_strptime",
