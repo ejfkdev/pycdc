@@ -124,7 +124,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 2791: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 2797: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 940,
    "ntotal": 3013,

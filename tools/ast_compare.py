@@ -14,6 +14,7 @@ stdout). Normalizations applied (both sides):
 Compatible with Python 2.6+ and 3.x (no argparse, no set literals).
 """
 import ast
+import copy
 import sys
 
 
@@ -962,18 +963,101 @@ def _bare_return_to_break(body):
             _bare_return_to_break(getattr(s, 'finalbody', []) or [])
 
 
+def _is_const_true(test):
+    if isinstance(test, ast.Name) and test.id == 'True':
+        return True
+    v = getattr(test, 'value', getattr(test, 'n', None))
+    return isinstance(test, getattr(ast, 'Constant', ())) and bool(v)
+
+
+def _break_to_tail_return(body, tail):
+    """Replace each Break with a copy of `tail` + a bare Return, in
+    place, recursing like _bare_return_to_break. Returns the count."""
+    n = 0
+    i = 0
+    while i < len(body):
+        s = body[i]
+        if isinstance(s, ast.Break):
+            repl = [copy.deepcopy(t) for t in tail] + [ast.Return(value=None)]
+            body[i:i + 1] = repl
+            n += 1
+            i += len(repl)
+            continue
+        if isinstance(s, (ast.If, ast.With,
+                          getattr(ast, 'AsyncWith', ast.With))):
+            n += _break_to_tail_return(s.body, tail)
+            n += _break_to_tail_return(getattr(s, 'orelse', []) or [], tail)
+        elif isinstance(s, _LOOP_TYPES):
+            # a Break in a NESTED loop belongs to that loop - do not
+            # recurse (matching _bare_return_to_break's scoping, which
+            # is sound there because return leaves ALL scopes)
+            pass
+        elif isinstance(s, _TRY_TYPES):
+            n += _break_to_tail_return(s.body, tail)
+            for h in getattr(s, 'handlers', []) or []:
+                n += _break_to_tail_return(h.body, tail)
+            n += _break_to_tail_return(getattr(s, 'orelse', []) or [], tail)
+            n += _break_to_tail_return(getattr(s, 'finalbody', []) or [], tail)
+        i += 1
+    return n
+
+
+def _count_breaks(body):
+    n = 0
+    for s in body:
+        if isinstance(s, ast.Break):
+            n += 1
+        elif isinstance(s, (ast.If, ast.With,
+                            getattr(ast, 'AsyncWith', ast.With))):
+            n += _count_breaks(s.body)
+            n += _count_breaks(getattr(s, 'orelse', []) or [])
+        elif isinstance(s, _TRY_TYPES):
+            n += _count_breaks(s.body)
+            for h in getattr(s, 'handlers', []) or []:
+                n += _count_breaks(h.body)
+            n += _count_breaks(getattr(s, 'orelse', []) or [])
+            n += _count_breaks(getattr(s, 'finalbody', []) or [])
+        # nested loops: their breaks are not ours - skip
+    return n
+
+
 def _normalize_func_tail_loop(node):
     """If a function/method body's LAST statement is a loop, a bare
     `return` inside that loop is observationally identical to a `break`
     (both leave the function with None): canonicalize the return to a
     break so a fused-tail break compares equal regardless of which form
-    each side carries."""
+    each side carries.
+
+    A loop FOLLOWED BY a tail T gets the reverse canonicalization when
+    it is a constant-true `while` (no exhaustion path): every `break`
+    becomes T + bare `return` and the now-dead post-loop T is dropped -
+    the decompiler sinks a function-final tail into the break arms
+    (contextlib 3.12 _fix_exception_context: `if exc_context is
+    frame_exc: break` + post-loop assign renders as the assign inside
+    the break arm followed by `return`)."""
     body = getattr(node, 'body', None)
-    if isinstance(body, list) and body:
-        last = body[-1]
-        if isinstance(last, _LOOP_TYPES):
-            _bare_return_to_break(last.body)
-            _bare_return_to_break(getattr(last, 'orelse', []) or [])
+    if not (isinstance(body, list) and body):
+        return
+    last = body[-1]
+    if isinstance(last, _LOOP_TYPES):
+        _bare_return_to_break(last.body)
+        _bare_return_to_break(getattr(last, 'orelse', []) or [])
+        return
+    for i, s in enumerate(body):
+        if (isinstance(s, ast.While) and _is_const_true(s.test)
+                and i + 1 < len(body)):
+            tail = body[i + 1:]
+            total = (_count_breaks(s.body)
+                     + _count_breaks(getattr(s, 'orelse', []) or []))
+            if total == 0:
+                continue
+            done = _break_to_tail_return(s.body, tail)
+            done += _break_to_tail_return(getattr(s, 'orelse', []) or [], tail)
+            if done == total:
+                del body[i + 1:]
+                _bare_return_to_break(s.body)
+                _bare_return_to_break(getattr(s, 'orelse', []) or [])
+            break
 
 
 def merge_guard_continues(stmts):

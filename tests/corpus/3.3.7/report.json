@@ -133,7 +133,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1392: orig  orelse=[Raise(exc=None | dec  orelse=[])",
+   "ast_detail": "diff at token 1524: orig  orelse=[Raise(exc=None | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 1123,
    "ntotal": 2180,

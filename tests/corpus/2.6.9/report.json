@@ -25,7 +25,7 @@
   },
   {
    "module": "ConfigParser",
-   "ast_detail": "diff at token 1879: orig  ctx=Load()))] | dec  ctx=Load()))",
+   "ast_detail": "diff at token 1886: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
    "ndiff": 985,
    "ntotal": 2162,

@@ -193,27 +193,8 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             return False
         try:
             raise RuntimeError("generator didn't stop after athrow()")
-        except StopAsyncIteration:
-            return False
         finally:
             await self.gen.aclose()
-        try:
-            pass
-        except StopAsyncIteration as exc:
-            return exc is not value
-        except RuntimeError as exc:
-            if exc is value:
-                exc.__traceback__ = traceback
-                return False
-            if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
-                value.__traceback__ = traceback
-                return False
-            raise
-        except BaseException as exc:
-            if exc is not value:
-                raise
-            exc.__traceback__ = traceback
-            return False
 
 
 def contextmanager(func):
@@ -444,8 +425,8 @@ class _BaseExitStack:
             exit_method = _cb_type.__exit__
         except AttributeError:
             self._push_exit_callback(exit)
-        return exit
-        self._push_cm_exit(exit, exit_method)
+        else:
+            self._push_cm_exit(exit, exit_method)
         return exit
 
     def enter_context(self, cm):
@@ -596,8 +577,8 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
             exit_method = _cb_type.__aexit__
         except AttributeError:
             self._push_exit_callback(exit, False)
-        return exit
-        self._push_async_cm_exit(exit, exit_method)
+        else:
+            self._push_async_cm_exit(exit, exit_method)
         return exit
 
     def push_async_callback(self, callback, /, *args, **kwds):

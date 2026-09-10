@@ -203,10 +203,6 @@ class AsyncGenerator(AsyncIterator):
         except (GeneratorExit, StopAsyncIteration):
             return
         raise RuntimeError('asynchronous generator ignored GeneratorExit')
-        try:
-            pass
-        except (GeneratorExit, StopAsyncIteration):
-            return
 
     @classmethod
     def __subclasshook__(cls, C):

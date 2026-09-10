@@ -36,8 +36,8 @@
   "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
   "counts": {
    "PASS": 29,
-   "SIG-DIFF": 8,
-   "AST-PASS": 1,
+   "SIG-DIFF": 7,
+   "AST-PASS": 2,
    "INCOMPLETE": 2
   }
  },
@@ -45,8 +45,8 @@
   "interp": "/opt/homebrew/bin/python3.13",
   "counts": {
    "PASS": 30,
-   "SIG-DIFF": 7,
-   "AST-PASS": 1,
+   "SIG-DIFF": 6,
+   "AST-PASS": 2,
    "INCOMPLETE": 2
   }
  },
@@ -54,9 +54,9 @@
   "interp": "/opt/homebrew/bin/python3.14",
   "counts": {
    "PASS": 22,
-   "SIG-DIFF": 12,
+   "SIG-DIFF": 11,
    "INCOMPLETE": 5,
-   "AST-PASS": 1
+   "AST-PASS": 2
   }
  },
  "3.3.7": {

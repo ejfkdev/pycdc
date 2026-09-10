@@ -893,6 +893,20 @@ pub fn decompile_in_scope(
                                 | Op::RERAISE
                                 | Op::NOP
                                 | Op::NOT_TAKEN
+                                // an await protocol resume trampoline:
+                                // CLEANUP_THROW + the backward resume
+                                // hop is continuation glue for the
+                                // statement that owns the await - its
+                                // entry must not donate a (reused)
+                                // handler to whatever region it abuts
+                                // (contextlib 3.12-3.14 __aexit__: the
+                                // tail try/finally's trampoline entry
+                                // mapped to the FIRST branch's
+                                // StopAsyncIteration clause and the
+                                // tail grew a phantom
+                                // `except StopAsyncIteration: return
+                                // False`)
+                                | Op::CLEANUP_THROW
                         )
                     })
                 }
@@ -4052,7 +4066,43 @@ impl<'a> Ctx<'a> {
                                 }
                                 pair
                             })
+                            .or_else(|| {
+                                // SUNK VALUE-RETURN MIRROR (3.12+): the
+                                // chain's last clause ends
+                                // POP_EXCEPT; <value ops>; RETURN_VALUE
+                                // with NO resume jump - the handler path
+                                // RETURNS through a sunk copy of the
+                                // function's tail return - and the
+                                // mainline carries the identical
+                                // instruction sequence: that sequence is
+                                // the tail, and the inline else arm is
+                                // the span between the try body and the
+                                // tail (contextlib 3.12-3.14
+                                // push_async_exit: try/except/else +
+                                // tail `return exit`; the sunk copy
+                                // rendered as a sibling return BEFORE
+                                // the else arm and the arm stranded at
+                                // top level)
+                                self.sunk_return_mirror_merge(
+                                    tc.body_end,
+                                    handler,
+                                    chain_end,
+                                )
+                            })
                     };
+                    // the mirror detector matched: the handler's sunk
+                    // copy of the tail return is redundant - the
+                    // mainline walk resumes AT the mirror and emits the
+                    // tail once. Drop the split-out sunk statements or
+                    // the tail renders twice (contextlib 3.13
+                    // push_async_exit: `return exit` emitted after the
+                    // try AND after the else arm)
+                    if self
+                        .sunk_return_mirror_merge(tc.body_end, handler, chain_end)
+                        .is_some()
+                    {
+                        self.handler_sunk_tail.clear();
+                    }
                     if let Some((else_end, merge)) = merge {
                         if else_end > tc.body_end && !is_with_region {
                             let has_with = self.instrs.iter().any(|x| {
@@ -33636,6 +33686,132 @@ impl<'a> Ctx<'a> {
     /// success-side copy at offset R is the boundary: else = [body_end, R).
     /// Returns (R, chain_end); the caller skips to chain_end so both the
     /// copy and the chain (already parsed as handlers) are not re-walked.
+    /// Sunk value-return mirror detection for a 3.11+ zero-cost
+    /// try/except/else: the handler chain's tail is
+    /// `POP_EXCEPT; <non-jump ops>; RETURN_VALUE` (the clause RETURNS
+    /// through a sunk copy of the function's tail statement) and the
+    /// mainline after the try body holds the identical (op, arg)
+    /// sequence. The mainline copy starts the function tail, so the
+    /// inline else arm is [body_end, mirror) and the walk resumes at the
+    /// mirror to emit the tail once. Returns (else_end, merge).
+    fn sunk_return_mirror_merge(
+        &self,
+        body_end: usize,
+        handler: usize,
+        chain_end: usize,
+    ) -> Option<(usize, usize)> {
+        if !self.version.at_least(3, 11) || chain_end <= handler {
+            return None;
+        }
+        let (&hi, &ci) = (self.idx_of.get(&handler)?, self.idx_of.get(&chain_end)?);
+        // the sunk tail: a POP_EXCEPT followed by a pure value build-up
+        // ending in RETURN_VALUE (the clause RETURNS through the sunk
+        // copy). The chain's closing COPY/POP_EXCEPT/RERAISE stubs also
+        // hold POP_EXCEPTs - pick the one whose forward span to a
+        // RETURN_VALUE carries no jump/exception material.
+        let mut found: Option<(usize, usize)> = None;
+        for k in hi..ci {
+            if self.instrs[k].op != Op::POP_EXCEPT {
+                continue;
+            }
+            for r in k + 1..ci {
+                let x = &self.instrs[r];
+                if x.op == Op::RETURN_VALUE {
+                    found = Some((k, r));
+                    break;
+                }
+                if x.is_jump()
+                    || matches!(
+                        x.op,
+                        Op::RERAISE
+                            | Op::CHECK_EXC_MATCH
+                            | Op::PUSH_EXC_INFO
+                            | Op::END_FINALLY
+                            | Op::POP_EXCEPT
+                    )
+                {
+                    break;
+                }
+            }
+        }
+        let (pi, ri) = found?;
+        // 3.14 mixes borrow/check LOAD variants between the sunk copy
+        // (plain LOAD_FAST) and the mainline (LOAD_FAST_BORROW): they
+        // load the SAME local - canonicalize for the mirror compare
+        let canon = |op: Op| -> Op {
+            match op {
+                Op::LOAD_FAST_BORROW | Op::LOAD_FAST_CHECK => Op::LOAD_FAST,
+                Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW => {
+                    Op::LOAD_FAST_LOAD_FAST
+                }
+                o => o,
+            }
+        };
+        let tail: Vec<(Op, u32)> = self.instrs[pi + 1..=ri]
+            .iter()
+            .map(|x| (canon(x.op), x.arg))
+            .collect();
+        // require a NON-DEGENERATE tail: at least one value op before
+        // the RETURN. A lone RETURN_VALUE (the clause's value was
+        // loaded+SWAPed UNDER the POP_EXCEPT, _collections_abc 3.12
+        // MutableMapping.pop `return default`) matches every return in
+        // the mainline and claimed the else arm's own return as the
+        // mirror, losing it. A bare `LOAD None; RETURN` tail is
+        // try_tail_sunk_pair's stricter domain - skip it here.
+        if tail.len() < 2 {
+            return None;
+        }
+        if tail.len() == 2
+            && tail[0].0 == Op::LOAD_CONST
+            && matches!(
+                self.code.consts.get(tail[0].1 as usize).map(|o| &**o),
+                Some(PyObject::None)
+            )
+        {
+            return None;
+        }
+        // the tail must START with a value build (a LOAD): stack-shuffle
+        // heads (SWAP/POP_TOP/COPY) are handler-exit machinery that also
+        // ends mainline tuple returns - matching them mid-sequence
+        // claimed the mainline return's own tail as the mirror and ate
+        // its value build (bdb 3.14 effective: `return b, True` lost
+        // its tuple and the walk hit RETURN underflow)
+        if matches!(
+            tail[0].0,
+            Op::SWAP
+                | Op::POP_TOP
+                | Op::POP_EXCEPT
+                | Op::COPY
+                | Op::ROT_TWO
+                | Op::ROT_THREE
+                | Op::ROT_FOUR
+                | Op::END_SEND
+                | Op::RESUME
+        ) {
+            return None;
+        }
+        // mainline mirror scan: find the identical sequence at/after
+        // body_end (the tail return the else arm falls through to)
+        let Some(&bi) = self.idx_of.get(&body_end) else {
+            return None;
+        };
+        for m in bi..self.instrs.len().saturating_sub(tail.len()) {
+            if self.instrs[m].offset < body_end || self.instrs[m].offset >= handler {
+                continue;
+            }
+            if (0..tail.len()).all(|j| {
+                (canon(self.instrs[m + j].op), self.instrs[m + j].arg) == tail[j]
+            }) {
+                let x = self.instrs[m].offset;
+                if x > body_end {
+                    return Some((x, x));
+                }
+                return None;
+            }
+        }
+        None
+    }
+
     fn try_tail_sunk_pair(
         &self,
         body_end: usize,

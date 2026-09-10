@@ -61,10 +61,10 @@ line.
             code = self.compile(source, filename, symbol)
         except (OverflowError, SyntaxError, ValueError):
             self.showsyntaxerror(filename, source=source)
-            return False
-        if not code is not None:
-            return True
-        self.runcode(code)
+        else:
+            if not code is not None:
+                return True
+            self.runcode(code)
         return False
 
     def runcode(self, code):

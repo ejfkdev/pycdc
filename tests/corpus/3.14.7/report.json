@@ -3,9 +3,9 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 22,
-  "SIG-DIFF": 12,
+  "SIG-DIFF": 11,
   "INCOMPLETE": 5,
-  "AST-PASS": 1
+  "AST-PASS": 2
  },
  "results": [
   {
@@ -75,9 +75,9 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1352,
-   "ntotal": 1743,
-   "detail": "line 360: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 361: orig ('LOAD_ATTR', 'close + NULL|self') | got ('CHECK_EXC_MATCH', '')\nline 362: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to L3')"
+   "ndiff": 1310,
+   "ntotal": 1742,
+   "detail": "line 384: orig ('POP_JUMP_IF_NOT_NONE', 'to L5') | got ('POP_JUMP_IF_NOT_NONE', 'to L4')\nline 391: orig ('POP_JUMP_IF_FALSE', 'to L5') | got ('POP_JUMP_IF_FALSE', 'to L4')\nline 394: orig ('COPY', '') | got ('LOAD_GLOBAL', 'tuple')"
   },
   {
    "module": "_py_abc",
@@ -217,11 +217,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 557: orig  finalbody=[Expr(value=Await(value=Call(func=Attribute(value=Attribute(value=Name(id='self | dec  handlers=[ExceptHandler(type=Name(id='StopAsyncIteration'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1390,
-   "ntotal": 2429,
-   "detail": "line 696: orig ('LOAD_FAST', 'self') | got ('LOAD_GLOBAL', 'StopIteration')\nline 697: orig ('LOAD_ATTR', 'gen') | got ('CHECK_EXC_MATCH', '')\nline 698: orig ('LOAD_ATTR', 'close + NULL|self') | got ('POP_JUMP_IF_FALSE', 'to L3')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "copy",

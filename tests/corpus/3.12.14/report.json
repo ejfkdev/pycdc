@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 29,
-  "SIG-DIFF": 8,
-  "AST-PASS": 1,
+  "SIG-DIFF": 7,
+  "AST-PASS": 2,
   "INCOMPLETE": 2
  },
  "results": [
@@ -44,9 +44,9 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 126: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1135,
+   "ndiff": 939,
    "ntotal": 1481,
-   "detail": "line 320: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 321: orig ('LOAD_ATTR', 'NULL|self + close') | got ('CHECK_EXC_MATCH', '')\nline 322: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 314')"
+   "detail": "line 529: orig ('LOAD_CONST', 'False') | got ('RETURN_CONST', 'False')\nline 530: orig ('RETURN_VALUE', '') | got ('_supports_arm64_builds', 0)\nline 531: orig ('_supports_arm64_builds', 0) | got ('RESUME', '')"
   },
   {
    "module": "_py_abc",
@@ -176,11 +176,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 741: orig  handlers=[] | dec  handlers=[ExceptHandler(type=Name(id='StopAsyncIteration'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1247,
-   "ntotal": 2180,
-   "detail": "line 624: orig ('LOAD_FAST', 'self') | got ('LOAD_GLOBAL', 'StopIteration')\nline 625: orig ('LOAD_ATTR', 'gen') | got ('CHECK_EXC_MATCH', '')\nline 626: orig ('LOAD_ATTR', 'NULL|self + close') | got ('POP_JUMP_IF_FALSE', 'to 194')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "copy",
