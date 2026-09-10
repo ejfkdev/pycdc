@@ -244,16 +244,6 @@ a default message is printed.
                 # WARNING: unrecovered try/except structure
                 continue
             finally:
-                if SystemExit:
-                    e = None
-                    if self.local_exit:
-                        self.write('\n')
-                        e = None
-                        del e
-                    else:
-                        raise e
-                        e = None
-                        del e
                 if not _exit is None:
                     builtins.exit = _exit
                 if not _quit is None:
@@ -342,4 +332,3 @@ if __name__ == '__main__':
     else:
         banner = None
     interact(banner)
-# WARNING: Decompyle incomplete

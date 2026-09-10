@@ -702,6 +702,11 @@ def canonical_bool(node):
     operands by their dump text."""
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
         inner = canonical_bool(node.operand)
+        # double negation in a boolean context folds away (merged
+        # guard-continue chains wrap already-negated guard tests:
+        # `if not A: continue` -> Not(Not(A)))
+        if isinstance(inner, ast.UnaryOp) and isinstance(inner.op, ast.Not):
+            return inner.operand
         if isinstance(inner, ast.BoolOp):
             neg = [canonical_bool(ast.UnaryOp(op=ast.Not(), operand=v))
                    for v in inner.values]
@@ -1219,14 +1224,30 @@ def dump(src):
     # Loop bodies get at_loop_tail=True (their tail falls through to the
     # next iteration); a function body's tail loop also qualifies (its
     # `continue` guards fall through to the function end).
+    def _merge_tail_arm_guards(stmts):
+        # the loop body's LAST statement may be an if/elif chain whose
+        # arms end in the guard-continue chain (compileall 3.12
+        # _walk_dir: `elif A and B and ...: yield from ...` decompiles
+        # to `else: if not A: continue; ...; yield from ...`). An arm at
+        # the loop-body tail also falls through to the next iteration,
+        # so the merge stays valid inside it - recurse through trailing
+        # arms and elif links.
+        merged = merge_guard_continues(stmts)
+        if merged and isinstance(merged[-1], ast.If):
+            last = merged[-1]
+            last.body = _merge_tail_arm_guards(last.body)
+            if last.orelse:
+                last.orelse = _merge_tail_arm_guards(last.orelse)
+        return merged
+
     for node in ast.walk(tree):
         if isinstance(node, _LOOP_TYPES):
-            node.body = merge_guard_continues(node.body)
+            node.body = _merge_tail_arm_guards(node.body)
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef,
                              getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):
             if node.body and isinstance(node.body[-1], _LOOP_TYPES):
-                node.body[-1].body = merge_guard_continues(node.body[-1].body)
+                node.body[-1].body = _merge_tail_arm_guards(node.body[-1].body)
     for node in ast.walk(tree):
         for field in ('body', 'orelse', 'finalbody'):
             val = getattr(node, field, None)

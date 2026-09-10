@@ -3,9 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
   "PASS": 30,
-  "SIG-DIFF": 7,
-  "AST-PASS": 2,
-  "INCOMPLETE": 1
+  "SIG-DIFF": 8,
+  "AST-PASS": 2
  },
  "results": [
   {
@@ -62,7 +61,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 117: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 293: orig  ctx=Load())]))])])]) | dec  ctx=Load())]))])])",
    "verdict": "SIG-DIFF",
    "ndiff": 994,
    "ntotal": 1567,
@@ -146,10 +145,11 @@
   },
   {
    "module": "code",
-   "verdict": "INCOMPLETE",
-   "ndiff": 431,
-   "ntotal": 1096,
-   "detail": "line 644: orig ('POP_JUMP_IF_FALSE', 'to L8') | got ('POP_JUMP_IF_FALSE', 'to L7')\nline 648: orig ('JUMP_FORWARD', 'to L9') | got ('JUMP_FORWARD', 'to L8')\nline 662: orig ('JUMP_BACKWARD', 'to L7') | got ('LOAD_GLOBAL', 'SystemExit')"
+   "ast_detail": "diff at token 99: orig  ctx=Load())]))] | dec  ctx=Load())]))",
+   "verdict": "SIG-DIFF",
+   "ndiff": 297,
+   "ntotal": 962,
+   "detail": "line 644: orig ('POP_JUMP_IF_FALSE', 'to L8') | got ('POP_JUMP_IF_FALSE', 'to L7')\nline 648: orig ('JUMP_FORWARD', 'to L9') | got ('JUMP_FORWARD', 'to L8')\nline 662: orig ('JUMP_BACKWARD', 'to L7') | got ('LOAD_FAST', '_exit')"
   },
   {
    "module": "codecs",
@@ -165,7 +165,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 115: orig  If(test=BoolOp(op=And() | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 246: orig  value=Constant(value=1))])] | dec  value=Constant(value=1))])])",
    "verdict": "SIG-DIFF",
    "ndiff": 761,
    "ntotal": 1572,

@@ -345,14 +345,7 @@ def main():
         if args.quiet < 2:
             print('\n[interrupted]')
         return False
-    try:
-        pass
-    except OSError:
-        if args.quiet < 2:
-            print('Error reading file list {}'.format(args.flist))
-        return False
 
 if __name__ == '__main__':
     exit_status = int(not main())
     sys.exit(exit_status)
-# WARNING: Decompyle incomplete

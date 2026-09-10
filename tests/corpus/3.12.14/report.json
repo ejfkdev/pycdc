@@ -3,9 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 29,
-  "SIG-DIFF": 7,
-  "AST-PASS": 2,
-  "INCOMPLETE": 2
+  "SIG-DIFF": 9,
+  "AST-PASS": 2
  },
  "results": [
   {
@@ -42,7 +41,7 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 126: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 360: orig  finalbody=[])] | dec  finalbody=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 939,
    "ntotal": 1481,
@@ -102,7 +101,8 @@
   },
   {
    "module": "bdb",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 229: orig  orelse=[]) | dec  orelse=[])])",
+   "verdict": "SIG-DIFF",
    "ndiff": 2086,
    "ntotal": 2518,
    "detail": "line 381: orig ('LOAD_FAST', 'event') | got ('LOAD_CONST', 'None')\nline 382: orig ('LOAD_CONST', \"'line'\") | got ('LOAD_CONST', 'None')\nline 383: orig ('COMPARE_OP', '==') | got ('LOAD_CONST', 'None')"
@@ -165,7 +165,8 @@
   },
   {
    "module": "compileall",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 283: orig  orelse=[ImportFrom(module='concurrent.futures' | dec  orelse=[]",
+   "verdict": "SIG-DIFF",
    "ndiff": 615,
    "ntotal": 1504,
    "detail": "line 78: orig ('POP_JUMP_IF_FALSE', 'to 242') | got ('POP_JUMP_IF_FALSE', 'to 224')\nline 167: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 168: orig ('POP_JUMP_IF_TRUE', 'to 452') | got ('POP_JUMP_IF_FALSE', 'to 452')"

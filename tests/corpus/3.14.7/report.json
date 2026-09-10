@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 23,
-  "SIG-DIFF": 12,
-  "INCOMPLETE": 3,
+  "SIG-DIFF": 13,
+  "INCOMPLETE": 2,
   "AST-PASS": 2
  },
  "results": [
@@ -180,10 +180,11 @@
   },
   {
    "module": "code",
-   "verdict": "INCOMPLETE",
-   "ndiff": 347,
+   "ast_detail": "diff at token 75: orig  ctx=Load()))])) | dec  ctx=Load()))]))])]",
+   "verdict": "SIG-DIFF",
+   "ndiff": 352,
    "ntotal": 1057,
-   "detail": "line 684: orig ('POP_JUMP_IF_FALSE', 'to L8') | got ('POP_JUMP_IF_FALSE', 'to L7')\nline 689: orig ('JUMP_FORWARD', 'to L9') | got ('JUMP_FORWARD', 'to L8')\nline 703: orig ('JUMP_BACKWARD', 'to L7') | got ('LOAD_GLOBAL', 'SystemExit')"
+   "detail": "line 684: orig ('POP_JUMP_IF_FALSE', 'to L8') | got ('POP_JUMP_IF_FALSE', 'to L7')\nline 689: orig ('JUMP_FORWARD', 'to L9') | got ('JUMP_FORWARD', 'to L8')\nline 703: orig ('JUMP_BACKWARD', 'to L7') | got ('LOAD_FAST', '_exit')"
   },
   {
    "module": "codecs",

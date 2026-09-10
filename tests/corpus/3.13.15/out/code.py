@@ -240,26 +240,6 @@ a default message is printed.
                 # WARNING: unrecovered try/except structure
                 continue
             finally:
-                if SystemExit:
-                    e = None
-                    if self.local_exit:
-                        self.write('\n')
-                        try:
-                            e = None
-                            del e
-                        finally:
-                            if _exit is not None:
-                                builtins.exit = _exit
-                            if _quit is not None:
-                                builtins.quit = _quit
-                            if exitmsg is None:
-                                self.write('now exiting %s...\n' % self.__class__.__name__)
-                            if exitmsg != '':
-                                self.write('%s\n' % exitmsg)
-                    else:
-                        raise e
-                        e = None
-                        del e
                 if _exit is not None:
                     builtins.exit = _exit
                 if _quit is not None:
@@ -344,4 +324,3 @@ if __name__ == '__main__':
     else:
         banner = None
     interact(banner)
-# WARNING: Decompyle incomplete

@@ -5888,9 +5888,25 @@ impl<'a> Ctx<'a> {
                                         | Op::DELETE_DEREF
                                         | Op::NOP
                                         | Op::NOT_TAKEN
+                                        | Op::CACHE
+                                        | Op::EXTENDED_ARG
                                         | Op::JUMP_FORWARD
                                         | Op::JUMP
                                         | Op::JUMP_NO_INTERRUPT
+                                        // clause-exit hops: a handler
+                                        // clause's `continue`/resume is
+                                        // a BACKWARD jump out of the
+                                        // chain (compileall 3.12 main:
+                                        // the with-handler resume tail
+                                        // POP_EXCEPT; POP_TOPs;
+                                        // EXTENDED_ARG; JB->mainline
+                                        // read as a real body stop and
+                                        // truncated chain_extent, so
+                                        // the resume jump fell through
+                                        // to unclean)
+                                        | Op::JUMP_BACKWARD
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                        | Op::JUMP_ABSOLUTE
                                 )
                             })
                     })
