@@ -10,7 +10,7 @@
 //! * 3.11+ inline CACHE entries skipped
 //! * instruction sizes include caches so block-end arithmetic stays in bytes
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::code::CodeObject;
 use crate::object::PyObject;
@@ -177,6 +177,25 @@ pub fn decode_instructions(
             });
             ext_arg = 0;
             ext_start = None;
+        }
+    }
+    // 3.8/3.9 wordcode: a backward `continue`-shaped jump can target a
+    // loop top's EXTENDED_ARG PREFIX byte (the FOR_ITER operand needs
+    // the extension bits and the compiler aims the jump at the prefix).
+    // The prefix is not an instruction start - remap such targets to
+    // the guarded instruction so block matching sees the real loop top
+    // (_strptime 3.8/3.9 _strptime: the final elif's PJFF->458 opened
+    // If[1480,458] with its end BEFORE its start; the Z arm folded
+    // empty and its body flattened out of the chain)
+    if version.major == 3 && (version.minor == 8 || version.minor == 9) {
+        let starts: HashSet<usize> = out.iter().map(|x| x.offset).collect();
+        for ins in out.iter_mut() {
+            if let Some(t) = ins.target {
+                if !starts.contains(&t) && starts.contains(&(t + 2)) {
+                    ins.target = Some(t + 2);
+                    ins.is_backward = t + 2 < ins.offset + 2;
+                }
+            }
         }
     }
     out

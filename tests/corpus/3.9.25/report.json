@@ -60,11 +60,11 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 2177: orig  body=[Assign(targets=[Name(id='found_zone' | dec  body=[Pass()]",
+   "ast_detail": "diff at token 1755: orig  If(test=Compare(left=Name(id='ampm' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 340,
+   "ndiff": 725,
    "ntotal": 2142,
-   "detail": "line 1250: orig ('FOR_ITER', 'to 1608') | got ('FOR_ITER', 'to 1604')\nline 1754: orig ('JUMP_FORWARD', 'to 1604') | got ('JUMP_FORWARD', 'to 1600')\nline 1771: orig ('FOR_ITER', 'to 1604') | got ('FOR_ITER', 'to 1600')"
+   "detail": "line 1250: orig ('FOR_ITER', 'to 1608') | got ('FOR_ITER', 'to 1606')\nline 1414: orig ('JUMP_FORWARD', 'to 846') | got ('LOAD_FAST', 'ampm')\nline 1415: orig ('LOAD_FAST', 'ampm') | got ('LOAD_FAST', 'locale_time')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -186,7 +186,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 1696: orig  If(test=BoolOp(op=And() | dec  Assign(targets=[Name(id='replace'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2811,
+   "ndiff": 2823,
    "ntotal": 4333,
    "detail": "line 1451: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')\nline 1452: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_ATTR', 'partial')\nline 1453: orig ('LOAD_CONST', \"'%('\") | got ('LOAD_FAST', 'self')"
   },
