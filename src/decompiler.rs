@@ -37668,17 +37668,125 @@ impl<'a> Ctx<'a> {
                     .unwrap_or(usize::MAX);
                 self.sunk_pair_drop = Some((ms, resume));
             } else {
-                let value = match e {
-                    Some(v) => match &*v {
-                        Expr::Const(o) if matches!(&**o, PyObject::None) => None,
-                        _ => Some(v),
-                    },
-                    None => None,
+                // the body-return routing requires the value to have
+                // RIDDEN the stack over the body's POP_BLOCK (`try:
+                // return v` computes v protected, then POP_BLOCK;
+                // RETURN). When real value/call instructions sit
+                // between that POP_BLOCK and this return, the
+                // expression was evaluated AFTER the body closed —
+                // the return is post-try code and must render AFTER
+                // the Try (cmd 3.10 onecmd `try: func = getattr(...)
+                // except AttributeError: return self.default(line)`
+                // followed by `return func(arg)`: routing pulled the
+                // call INSIDE the try, so an AttributeError raised by
+                // func(arg) would wrongly hit the clause, and the
+                // recompile moved the POP_BLOCK past the CALL)
+                // narrow detector: an expression-EVALUATION op (call /
+                // binary op) between the body's POP_BLOCK and this
+                // return means the value was computed AFTER the body
+                // closed. Protocol material that legitimately sits in
+                // that window (as-cleanup LOAD None; STORE; DELETE,
+                // CALL_FINALLY, finally-copy loads/stores, 3.11's
+                // narrowed-region JUMP_BACKWARD glue) contains no such
+                // op for a genuine `try: return v`.
+                let value_ran_past_pop_block = {
+                    // index of this return, for the protocol lookbehind
+                    let ri = self.idx_of.get(&self.cur_offset).copied();
+                    self.instrs
+                    .iter()
+                    .rev()
+                    .skip_while(|x| x.offset >= self.cur_offset)
+                    .take_while(|x| {
+                        !matches!(
+                            x.op,
+                            Op::POP_BLOCK
+                                | Op::RETURN_VALUE
+                                | Op::RETURN_CONST
+                                | Op::RERAISE
+                                | Op::DUP_TOP
+                                | Op::PUSH_EXC_INFO
+                                | Op::SETUP_FINALLY
+                                | Op::SETUP_EXCEPT
+                        )
+                    })
+                    .any(|x| {
+                        // the sync-with exit protocol (3.9/3.10:
+                        // POP_BLOCK; LOAD None; DUP; DUP; CALL 3;
+                        // POP_TOP; <value>; RETURN — codeop 3.10
+                        // _maybe_compile's `return None` rides over
+                        // it) is NOT value evaluation: a CALL whose
+                        // two predecessors are DUP_TOP is __exit__
+                        let is_with_exit_call = matches!(
+                            x.op,
+                            Op::CALL | Op::CALL_FUNCTION
+                        ) && ri.map_or(false, |r| {
+                            let xi = self.instrs.iter().position(|y| y.offset == x.offset);
+                            xi.map_or(false, |k| {
+                                k < r
+                                    && matches!(
+                                        self.instrs.get(k - 1).map(|y| y.op),
+                                        Some(Op::DUP_TOP)
+                                    )
+                                    && matches!(
+                                        self.instrs.get(k - 2).map(|y| y.op),
+                                        Some(Op::DUP_TOP)
+                                    )
+                            })
+                        });
+                        !is_with_exit_call
+                            && matches!(
+                            x.op,
+                            Op::CALL
+                                | Op::CALL_FUNCTION
+                                | Op::CALL_METHOD
+                                | Op::CALL_FUNCTION_KW
+                                | Op::CALL_FUNCTION_EX
+                                | Op::CALL_FUNCTION_VAR
+                                | Op::CALL_FUNCTION_VAR_KW
+                                | Op::CALL_KW
+                                | Op::BINARY_OP
+                                | Op::BINARY_SUBSCR
+                                | Op::BINARY_ADD
+                                | Op::BINARY_SUBTRACT
+                                | Op::BINARY_MULTIPLY
+                                | Op::BINARY_TRUE_DIVIDE
+                                | Op::BINARY_FLOOR_DIVIDE
+                                | Op::BINARY_MODULO
+                                | Op::BINARY_POWER
+                                | Op::COMPARE_OP
+                                | Op::BUILD_TUPLE
+                                | Op::BUILD_LIST
+                                | Op::BUILD_MAP
+                                | Op::BUILD_SET
+                                | Op::BUILD_STRING
+                                | Op::LIST_EXTEND
+                                | Op::SET_UPDATE
+                                | Op::DICT_UPDATE
+                                | Op::DICT_MERGE
+                                | Op::FORMAT_VALUE
+                                | Op::FORMAT_SIMPLE
+                                | Op::FORMAT_WITH_SPEC
+                            )
+                    })
                 };
-                if let Some(l) = self.legacy_try.as_mut() {
-                    l.body.push(Stmt::Return(value));
+                if !value_ran_past_pop_block {
+                    let value = match e {
+                        Some(v) => match &*v {
+                            Expr::Const(o) if matches!(&**o, PyObject::None) => None,
+                            _ => Some(v),
+                        },
+                        None => None,
+                    };
+                    if let Some(l) = self.legacy_try.as_mut() {
+                        l.body.push(Stmt::Return(value));
+                    }
+                    return;
                 }
-                return;
+                // post-try return: do NOT route it into the body and do
+                // NOT flush the unparsed chain here — push it now; the
+                // chain folds at its own end and push_legacy_try /
+                // the walk-end flush insert the Try BEFORE trailing
+                // returns, restoring source order
             }
         }
         if self.legacy_handler.is_none()

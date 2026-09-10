@@ -273,13 +273,13 @@ class dispatcher:
     def accept(self):
         try:
             conn, addr = self.socket.accept()
-            return conn, addr
         except TypeError:
             return
         except OSError as why:
             if why.errno in (EWOULDBLOCK, ECONNABORTED, EAGAIN):
                 return
             raise
+        return conn, addr
 
     def send(self, data):
         try:

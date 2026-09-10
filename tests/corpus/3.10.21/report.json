@@ -156,11 +156,11 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 614: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 862: orig  body=[Return()])] | dec  body=[Pass()])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 5,
+   "ndiff": 1,
    "ntotal": 1324,
-   "detail": "line 560: orig ('POP_BLOCK', '') | got ('LOAD_FAST', 'func')\nline 561: orig ('LOAD_FAST', 'func') | got ('LOAD_FAST', 'arg')\nline 562: orig ('LOAD_FAST', 'arg') | got ('CALL_FUNCTION', '')"
+   "detail": "line 929: orig ('POP_JUMP_IF_FALSE', 'to 338') | got ('POP_JUMP_IF_FALSE', 'to 260')"
   },
   {
    "module": "code",
