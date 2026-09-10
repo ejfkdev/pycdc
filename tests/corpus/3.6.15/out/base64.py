@@ -321,14 +321,14 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
                         raise ValueError('z inside Ascii85 5-tuple')
                     decoded_append(b'\x00\x00\x00\x00')
                     continue
-                if foldspaces and x == 121:
-                    if curr:
-                        raise ValueError('y inside Ascii85 5-tuple')
-                    decoded_append(b'    ')
-                    continue
-                if x in ignorechars:
-                    continue
-                raise ValueError('Non-Ascii85 digit found: %c' % x)
+        if foldspaces and x == 121:
+            if curr:
+                raise ValueError('y inside Ascii85 5-tuple')
+            decoded_append(b'    ')
+            continue
+        if x in ignorechars:
+            continue
+        raise ValueError('Non-Ascii85 digit found: %c' % x)
     result = b''.join(decoded)
     padding = 4 - len(curr)
     if padding:

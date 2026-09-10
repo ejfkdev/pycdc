@@ -54,9 +54,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 2094: orig  type_comment=None)] | dec  type_comment=None)",
    "verdict": "SIG-DIFF",
-   "ndiff": 721,
+   "ndiff": 341,
    "ntotal": 2133,
-   "detail": "line 1241: orig ('FOR_ITER', 'to 1586') | got ('FOR_ITER', 'to 1584')\nline 1405: orig ('JUMP_FORWARD', 'to 824') | got ('EXTENDED_ARG', '')\nline 1406: orig ('LOAD_FAST', 'ampm') | got ('JUMP_ABSOLUTE', '')"
+   "detail": "line 1241: orig ('FOR_ITER', 'to 1586') | got ('FOR_ITER', 'to 1582')\nline 1405: orig ('JUMP_FORWARD', 'to 824') | got ('JUMP_FORWARD', 'to 854')\nline 1745: orig ('JUMP_FORWARD', 'to 1582') | got ('JUMP_FORWARD', 'to 1578')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

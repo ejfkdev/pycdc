@@ -54,9 +54,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1761: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 726,
-   "ntotal": 2171,
-   "detail": "line 1273: orig ('SETUP_LOOP', 'to 1592') | got ('SETUP_LOOP', 'to 1594')\nline 1279: orig ('FOR_ITER', 'to 1590') | got ('FOR_ITER', 'to 1592')\nline 1443: orig ('JUMP_FORWARD', 'to 832') | got ('EXTENDED_ARG', '')"
+   "ndiff": 1,
+   "ntotal": 2170,
+   "detail": "line 1443: orig ('JUMP_FORWARD', 'to 832') | got ('JUMP_FORWARD', 'to 862')"
   },
   {
    "module": "_sysconfigdata_m_darwin_darwin",

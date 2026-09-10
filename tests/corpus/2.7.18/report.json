@@ -31,8 +31,8 @@
    "module": "Cookie",
    "ast_detail": "diff at token 693: orig  right=Num(n=2))) | dec  right=Num(n=2)))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 982,
-   "ntotal": 1876,
+   "ndiff": 981,
+   "ntotal": 1874,
    "detail": "line 787: orig ('SETUP_LOOP', '#157') | got ('SETUP_LOOP', '#158')\nline 799: orig ('POP_JUMP_IF_FALSE', '#156') | got ('POP_JUMP_IF_FALSE', '#157')\nline 848: orig ('POP_JUMP_IF_FALSE', '#126') | got ('POP_JUMP_IF_FALSE', '#127')"
   },
   {

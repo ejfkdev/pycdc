@@ -328,77 +328,77 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                 if group_key == 'M':
                     minute = int(found_dict['M'])
                     continue
-                if group_key == 'S':
-                    second = int(found_dict['S'])
-                    continue
-                if group_key == 'f':
-                    s = found_dict['f']
-                    s += '0' * (6 - len(s))
-                    fraction = int(s)
-                    continue
-                if group_key == 'A':
-                    weekday = locale_time.f_weekday.index(found_dict['A'].lower())
-                    continue
-                if group_key == 'a':
-                    weekday = locale_time.a_weekday.index(found_dict['a'].lower())
-                    continue
-                if group_key == 'w':
-                    weekday = int(found_dict['w'])
-                    if weekday == 0:
-                        weekday = 6
+        if group_key == 'S':
+            second = int(found_dict['S'])
+            continue
+        if group_key == 'f':
+            s = found_dict['f']
+            s += '0' * (6 - len(s))
+            fraction = int(s)
+            continue
+        if group_key == 'A':
+            weekday = locale_time.f_weekday.index(found_dict['A'].lower())
+            continue
+        if group_key == 'a':
+            weekday = locale_time.a_weekday.index(found_dict['a'].lower())
+            continue
+        if group_key == 'w':
+            weekday = int(found_dict['w'])
+            if weekday == 0:
+                weekday = 6
+            else:
+                weekday -= 1
+            continue
+        if group_key == 'u':
+            weekday = int(found_dict['u'])
+            weekday -= 1
+            continue
+        if group_key == 'j':
+            julian = int(found_dict['j'])
+            continue
+        if group_key in ('U', 'W'):
+            week_of_year = int(found_dict[group_key])
+            if group_key == 'U':
+                week_of_year_start = 6
+            else:
+                week_of_year_start = 0
+            continue
+        if group_key == 'V':
+            iso_week = int(found_dict['V'])
+            continue
+        if group_key == 'z':
+            z = found_dict['z']
+            if z == 'Z':
+                gmtoff = 0
+            else:
+                if z[3] == ':':
+                    z = z[:3] + z[4:]
+                    if len(z) > 5:
+                        if z[5] != ':':
+                            msg = f'Inconsistent use of : in {found_dict["z"]}'
+                            raise ValueError(msg)
+                        z = z[:5] + z[6:]
+                hours = int(z[1:3])
+                minutes = int(z[3:5])
+                seconds = int(z[5:7] or 0)
+                gmtoff = hours * 60 * 60 + minutes * 60 + seconds
+                gmtoff_remainder = z[8:]
+                gmtoff_remainder_padding = '0' * (6 - len(gmtoff_remainder))
+                gmtoff_fraction = int(gmtoff_remainder + gmtoff_remainder_padding)
+                if z.startswith('-'):
+                    gmtoff = -gmtoff
+                    gmtoff_fraction = -gmtoff_fraction
+        else:
+            if group_key == 'Z':
+                pass
+            found_zone = found_dict['Z'].lower()
+            for value, tz_values in enumerate(locale_time.timezone):
+                if found_zone in tz_values:
+                    if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
+                        break
                     else:
-                        weekday -= 1
-                    continue
-                if group_key == 'u':
-                    weekday = int(found_dict['u'])
-                    weekday -= 1
-                    continue
-                if group_key == 'j':
-                    julian = int(found_dict['j'])
-                    continue
-                if group_key in ('U', 'W'):
-                    week_of_year = int(found_dict[group_key])
-                    if group_key == 'U':
-                        week_of_year_start = 6
-                    else:
-                        week_of_year_start = 0
-                    continue
-                if group_key == 'V':
-                    iso_week = int(found_dict['V'])
-                    continue
-                if group_key == 'z':
-                    z = found_dict['z']
-                    if z == 'Z':
-                        gmtoff = 0
-                    else:
-                        if z[3] == ':':
-                            z = z[:3] + z[4:]
-                            if len(z) > 5:
-                                if z[5] != ':':
-                                    msg = f'Inconsistent use of : in {found_dict["z"]}'
-                                    raise ValueError(msg)
-                                z = z[:5] + z[6:]
-                        hours = int(z[1:3])
-                        minutes = int(z[3:5])
-                        seconds = int(z[5:7] or 0)
-                        gmtoff = hours * 60 * 60 + minutes * 60 + seconds
-                        gmtoff_remainder = z[8:]
-                        gmtoff_remainder_padding = '0' * (6 - len(gmtoff_remainder))
-                        gmtoff_fraction = int(gmtoff_remainder + gmtoff_remainder_padding)
-                        if z.startswith('-'):
-                            gmtoff = -gmtoff
-                            gmtoff_fraction = -gmtoff_fraction
-                else:
-                    if group_key == 'Z':
-                        pass
-                    found_zone = found_dict['Z'].lower()
-                    for value, tz_values in enumerate(locale_time.timezone):
-                        if found_zone in tz_values:
-                            if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                                break
-                            else:
-                                tz = value
-                                break
+                        tz = value
+                        break
     if year is None and iso_year is not None:
         if iso_week is None or weekday is None:
             raise ValueError("ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').")

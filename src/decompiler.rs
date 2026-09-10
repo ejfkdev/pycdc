@@ -8345,12 +8345,32 @@ impl<'a> Ctx<'a> {
                         .filter(|b| {
                             matches!(b.kind, BlockType::If | BlockType::Else)
                                 && b.end <= pos
-                                && self
-                                    .blocks
-                                    .last()
-                                    .map_or(false, |t| {
-                                        t.kind == BlockType::Else
-                                    })
+                                && self.blocks.last().map_or(false, |t| {
+                                    // an Else top folds at any crossed
+                                    // branch boundary
+                                    t.kind == BlockType::Else
+                                        // an IF top only when the
+                                        // ancestor's end is strictly
+                                        // behind the walk AND the If's
+                                        // own end lies FAR past it - a
+                                        // runaway guard target that
+                                        // swallows the rest of the
+                                        // function (_strptime 3.6-3.9
+                                        // __strptime: If[806,1582]
+                                        // trapped 700+ bytes of chain;
+                                        // the clamp cut it at the
+                                        // crossed Else boundary and nd
+                                        // fell 625->1). An If ending
+                                        // just past pos is mid-arm and
+                                        // must close at its own end
+                                        // (bdb 3.14 effective:
+                                        // If[222,324] at pos 312 -
+                                        // clamping hoisted `return b,
+                                        // True` out of `if not b.cond:`)
+                                        || (t.kind == BlockType::If
+                                            && b.end < pos
+                                            && t.end > pos + 32)
+                                })
                         })
                         .map(|b| b.end);
                     match clamp {

@@ -400,12 +400,10 @@ class BaseCookie(dict):
                             M[K] = True
                             continue
                             M[K] = _unquote(V)
-                    continue
-            if V is not None:
+            elif V is not None:
                 rval, cval = self.value_decode(V)
                 self.__set(K, rval, cval)
                 M = self[K]
-            continue
 
 
 class SimpleCookie(BaseCookie):
