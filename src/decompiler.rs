@@ -2629,6 +2629,104 @@ impl<'a> Ctx<'a> {
     /// When the span holds a nested try's inline body followed by an
     /// outward jump and `fh`'s chain follows, rebuild the nested Try and
     /// recurse on the remainder.
+    /// Canonicalize leaked double negations inside a rebuilt finally
+    /// span: a guard cond may arrive as a raw `not <single-op compare>`
+    /// when a polarity path wrapped instead of inverting (3.14 interact
+    /// rendered `if not exitmsg is not None:`). The fold is scoped to
+    /// these spans — a global codegen fold would rewrite FAITHFUL
+    /// `not X is None` renderings whose originals compile to
+    /// UNARY_NOT + IS_OP (codecs 3.14, cmd 3.7 regressed under the
+    /// global form).
+    fn canon_not_cmp(&self, stmts: &mut Vec<Stmt>) {
+        fn fold(e: &mut ExprRef) {
+            let inv;
+            let folded = match &**e {
+                Expr::Unary { op: UnaryOp::Not, operand } => {
+                    match &**operand {
+                        Expr::Compare { operands, ops } if ops.len() == 1 => {
+                            inv = match ops[0] {
+                                CmpOp::Is => Some(CmpOp::IsNot),
+                                CmpOp::IsNot => Some(CmpOp::Is),
+                                CmpOp::In => Some(CmpOp::NotIn),
+                                CmpOp::NotIn => Some(CmpOp::In),
+                                CmpOp::Eq => Some(CmpOp::NotEq),
+                                CmpOp::NotEq => Some(CmpOp::Eq),
+                                _ => None,
+                            };
+                            match inv {
+                                Some(op) => Some(Rc::new(Expr::Compare {
+                                    operands: operands.clone(),
+                                    ops: vec![op],
+                                }) as ExprRef),
+                                None => None,
+                            }
+                        }
+                        _ => None,
+                    }
+                }
+                _ => None,
+            };
+            if let Some(f) = folded {
+                *e = f;
+            }
+        }
+        fn walk_expr(e: &mut ExprRef) {
+            fold(e);
+            match &mut *Rc::make_mut(e) {
+                Expr::BoolOp { values, .. } => {
+                    for v in values.iter_mut() {
+                        walk_expr(v);
+                    }
+                }
+                Expr::Unary { operand, .. } => walk_expr(operand),
+                Expr::Binary { left, right, .. } => {
+                    walk_expr(left);
+                    walk_expr(right);
+                }
+                Expr::Compare { operands, .. } => {
+                    for o in operands.iter_mut() {
+                        walk_expr(o);
+                    }
+                }
+                _ => {}
+            }
+        }
+        fn walk(list: &mut Vec<Stmt>) {
+            for s in list.iter_mut() {
+                match s {
+                    Stmt::If { cond, body, orelse } => {
+                        fold(cond);
+                        walk_expr(cond);
+                        walk(body);
+                        walk(orelse);
+                    }
+                    Stmt::While { cond, body, orelse } => {
+                        fold(cond);
+                        walk_expr(cond);
+                        walk(body);
+                        walk(orelse);
+                    }
+                    Stmt::Try { body, handlers, orelse, finalbody } => {
+                        walk(body);
+                        for h in handlers.iter_mut() {
+                            walk(&mut h.body);
+                        }
+                        walk(orelse);
+                        walk(finalbody);
+                    }
+                    Stmt::For { target, iter, body, orelse, .. } => {
+                        walk_expr(target);
+                        walk_expr(iter);
+                        walk(body);
+                        walk(orelse);
+                    }
+                    _ => {}
+                }
+            }
+        }
+        walk(stmts);
+    }
+
     /// Rebuild the if/elif chain of a finally body whose arms end in
     /// sunk `return None` copies (3.12+): the region walk renders each
     /// arm's sunk return as a real Return inside its If arm and the
@@ -3640,6 +3738,12 @@ impl<'a> Ctx<'a> {
         // `elif exitmsg != '':` write dropped — a semantic loss).
         let mut sunk_arm_returns = false;
         let mut sunk_copy_start: Option<usize> = None;
+        // the extension's own validated stop: fin_span_stop can be
+        // clamped below the copy start by a back edge that belongs to
+        // an except clause's `continue` BEFORE the copy (3.14 interact:
+        // the KI clause's JUMP_BACKWARD at 1066 clamps the span while
+        // the copy runs 1190-1474)
+        let mut sunk_ext_stop: Option<usize> = None;
         if let Some(fh) = tc.finally_handler {
             if fh > stop {
                 let mut cur = stop;
@@ -3690,6 +3794,7 @@ impl<'a> Ctx<'a> {
                         stop = cur;
                         sunk_arm_returns = true;
                         sunk_copy_start = Some(s0);
+                        sunk_ext_stop = Some(cur);
                     }
                 }
             }
@@ -3941,6 +4046,7 @@ impl<'a> Ctx<'a> {
             };
             let mut span = self.decompose_finally_span(pos, fin_span_stop, head);
             if sunk_arm_returns {
+                self.canon_not_cmp(&mut span);
                 self.rebuild_sunk_elif(&mut span);
             }
             // the nested chain and its stubs are folded — never let the
@@ -3987,9 +4093,11 @@ impl<'a> Ctx<'a> {
                 // writes when exitmsg was None)
                 if sunk_arm_returns {
                     if let Some(s0) = sunk_copy_start {
-                        if fin_span_stop > s0 {
+                        let span_to = sunk_ext_stop.unwrap_or(fin_span_stop);
+                        if span_to > s0 {
                             let mut span2 =
-                                self.decompose_finally_span(s0, fin_span_stop, None);
+                                self.decompose_finally_span(s0, span_to, None);
+                            self.canon_not_cmp(&mut span2);
                             self.rebuild_sunk_elif(&mut span2);
                             if !span2.is_empty() {
                                 finalbody = span2;

@@ -244,17 +244,17 @@ class InteractiveConsole(InteractiveInterpreter):
                         self.write('\n')
                     break
         finally:
-            if not _exit is None:
+            if _exit is not None:
                 builtins.exit = _exit
-            if not _quit is None:
+            if _quit is not None:
                 builtins.quit = _quit
             if delete_ps1_after:
                 del sys.ps1
             if delete_ps2_after:
                 del sys.ps2
-            if not exitmsg is not None:
+            if exitmsg is None:
                 self.write('now exiting %s...\n' % self.__class__.__name__)
-            if exitmsg != '':
+            elif exitmsg != '':
                 self.write('%s\n' % exitmsg)
 
     def push(self, line, filename=None, _symbol='single'):
