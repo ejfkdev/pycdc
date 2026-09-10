@@ -144,7 +144,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 662: orig  While(test=Name(id='True' | dec  Try(body=[Assign(targets=[Name(id='line'",
+   "ast_detail": "diff at token 659: orig  While(test=Name(id='True' | dec  Try(body=[Assign(targets=[Name(id='line'",
    "verdict": "SIG-DIFF",
    "ndiff": 291,
    "ntotal": 800,

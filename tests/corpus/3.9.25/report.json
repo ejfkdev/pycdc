@@ -2,9 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 30,
-  "SIG-DIFF": 9,
-  "INCOMPLETE": 1
+  "PASS": 31,
+  "SIG-DIFF": 9
  },
  "results": [
   {
@@ -157,7 +156,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 515: orig  While(test=Name(id='True' | dec  Try(body=[Assign(targets=[Name(id='line'",
+   "ast_detail": "diff at token 513: orig  While(test=Name(id='True' | dec  Try(body=[Assign(targets=[Name(id='line'",
    "verdict": "SIG-DIFF",
    "ndiff": 253,
    "ntotal": 758,
@@ -193,10 +192,7 @@
   },
   {
    "module": "contextlib",
-   "verdict": "INCOMPLETE",
-   "ndiff": 1172,
-   "ntotal": 1750,
-   "detail": "line 480: orig ('JUMP_FORWARD', 'to 284') | got ('JUMP_FORWARD', 'to 240')\nline 498: orig ('JUMP_FORWARD', 'to 276') | got ('JUMP_FORWARD', 'to 226')\nline 561: orig ('JUMP_FORWARD', 'to 276') | got ('JUMP_FORWARD', 'to 226')"
+   "verdict": "PASS"
   },
   {
    "module": "copy",

@@ -171,6 +171,44 @@ def flatten_terminal_else(stmts):
     return out
 
 
+def _sunk_return_orelse(stmts):
+    """Re-attach a flattened else arm when the decompiler folded the
+    function's tail return into the LAST handler: shape
+    [Try(orelse=[], last handler ends Return(V)), S1..Sn, Return(V)]
+    becomes [Try(orelse=[S1..Sn], handler loses the Return), Return(V)].
+    Both forms run S* only on the success path and return V from either
+    exit (contextlib 3.10 ExitStack.push: the sunk `return exit` inside
+    `except AttributeError` + the sequential _push_cm_exit else arm).
+    Only the LAST handler may carry the mirror - earlier clauses
+    exiting elsewhere would skip the re-attached arm."""
+    if not (TRY_TYPES and stmts and isinstance(stmts[-1], ast.Return)):
+        return stmts
+    tail_ret = stmts[-1]
+    for i, s in enumerate(stmts[:-1]):
+        if not (TRY_TYPES and isinstance(s, TRY_TYPES)):
+            continue
+        handlers = getattr(s, 'handlers', []) or []
+        if not handlers or getattr(s, 'orelse', None) or getattr(s, 'finalbody', None):
+            continue
+        last = handlers[-1]
+        if not last.body or not isinstance(last.body[-1], ast.Return):
+            continue
+        if ast.dump(last.body[-1]) != ast.dump(tail_ret):
+            continue
+        mid = stmts[i + 1:-1]
+        if not mid:
+            continue
+        if any(isinstance(x, (ast.Return, ast.Raise, ast.Break, ast.Continue))
+               for x in mid):
+            continue
+        last.body.pop()
+        if not last.body:
+            last.body.append(ast.Pass())
+        s.orelse = list(mid)
+        return stmts[:i + 1] + [tail_ret]
+    return stmts
+
+
 def flatten_try_else(stmts):
     """When every handler ends terminally (return/raise/break/continue),
     'try: B else: O' followed by S is the same as 'try: B' with O and S
@@ -194,6 +232,7 @@ def normalize_body(body):
     from-imports, hoist global/nonlocal, flatten terminal elses."""
     body = flatten_terminal_else(body)
     body = flatten_try_else(body)
+    body = _sunk_return_orelse(body)
     out = []
     globs = []
     nonlocs = []

@@ -88,7 +88,10 @@ def readwrite(obj, flags):
             obj.handle_close()
             return
         return
-    obj.handle_error()
+    except _reraised_exceptions:
+        raise
+    except:
+        obj.handle_error()
 
 def poll(timeout=0.0, map=None):
     if map is None:

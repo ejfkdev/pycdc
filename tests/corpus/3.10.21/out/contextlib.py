@@ -130,7 +130,7 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
             self.gen.throw(typ, value, traceback)
         except StopIteration as exc:
             return exc is not value
-        try:
+        except RuntimeError as exc:
             if exc is value:
                 return False
             if isinstance(value, StopIteration) and exc.__cause__ is value:
@@ -166,7 +166,7 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
             await self.gen.athrow(typ, value, traceback)
         except StopAsyncIteration as exc:
             return exc is not value
-        try:
+        except RuntimeError as exc:
             if exc is value:
                 return False
             if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
@@ -637,4 +637,3 @@ class nullcontext(AbstractContextManager, AbstractAsyncContextManager):
         pass
 
 
-# WARNING: Decompyle incomplete

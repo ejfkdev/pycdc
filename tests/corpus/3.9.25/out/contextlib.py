@@ -118,10 +118,11 @@ class _GeneratorContextManager(_GeneratorContextManagerBase, AbstractContextMana
                 if isinstance(value, StopIteration) and exc.__cause__ is value:
                     return False
                 raise
-            # WARNING: unrecovered try/except structure
-            if exc is not value:
-                raise
-            return False
+            except BaseException as exc:
+                if exc is not value:
+                    raise
+                return False
+            raise RuntimeError("generator didn't stop after throw()")
 
 
 class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncContextManager):
@@ -154,10 +155,11 @@ class _AsyncGeneratorContextManager(_GeneratorContextManagerBase, AbstractAsyncC
                 if isinstance(value, (StopIteration, StopAsyncIteration)) and exc.__cause__ is value:
                     return False
                 raise
-            # WARNING: unrecovered try/except structure
-            if exc is not value:
-                raise
-            return False
+            except BaseException as exc:
+                if exc is not value:
+                    raise
+                return False
+            raise RuntimeError("generator didn't stop after athrow()")
 
 
 def contextmanager(func):
@@ -584,4 +586,3 @@ class nullcontext(AbstractContextManager):
         pass
 
 
-# WARNING: Decompyle incomplete

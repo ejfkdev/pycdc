@@ -3,8 +3,7 @@
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
   "PASS": 27,
-  "SIG-DIFF": 12,
-  "INCOMPLETE": 1
+  "SIG-DIFF": 13
  },
  "results": [
   {
@@ -107,7 +106,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 251: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1760,
+   "ndiff": 1771,
    "ntotal": 2191,
    "detail": "line 309: orig ('SETUP_FINALLY', 'to 98') | got ('SETUP_FINALLY', 'to 92')\nline 347: orig ('POP_JUMP_IF_FALSE', 'to 92') | got ('POP_JUMP_IF_FALSE', 'to 86')\nline 355: orig ('POP_BLOCK', '') | got ('DUP_TOP', '')"
   },
@@ -201,7 +200,8 @@
   },
   {
    "module": "contextlib",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 409: orig  body=[Try(body=[Expr(value=Call(func=Name(id='next' | dec  body=[Raise(exc=Call(func=Name(id='RuntimeError'",
+   "verdict": "SIG-DIFF",
    "ndiff": 1309,
    "ntotal": 1874,
    "detail": "line 551: orig ('POP_JUMP_IF_FALSE', 'to 50') | got ('POP_JUMP_IF_FALSE', 'to 16')\nline 552: orig ('SETUP_FINALLY', 'to 30') | got ('LOAD_GLOBAL', 'RuntimeError')\nline 553: orig ('LOAD_GLOBAL', 'next') | got ('LOAD_CONST', '\"generator didn\\'t stop\"')"

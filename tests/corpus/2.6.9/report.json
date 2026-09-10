@@ -169,7 +169,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 885: orig  ctx=Load()))] | dec  ctx=Load()))",
+   "ast_detail": "diff at token 883: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
    "ndiff": 595,
    "ntotal": 853,

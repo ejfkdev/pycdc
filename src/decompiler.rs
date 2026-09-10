@@ -7400,6 +7400,21 @@ impl<'a> Ctx<'a> {
                     .as_ref()
                     .map(|l| !l.handlers.is_empty())
                     .unwrap_or(false)
+                    // an UNPARSED clause head ahead means this RERAISE
+                    // is an as-cleanup wrapper's re-raise mid-chain,
+                    // not the chain-ending mismatch jump - emitting
+                    // here leaks the remaining clauses to the linear
+                    // walk (contextlib 3.10 __exit__: clause 1's
+                    // cleanup RERAISE folded the chain before the
+                    // RuntimeError/BaseException clauses)
+                    && !self
+                        .legacy_try
+                        .as_ref()
+                        .map_or(false, |l| {
+                            l.pending_mismatch.iter().any(|&t| {
+                                t > pos && self.pending_clause_head_at(t)
+                            })
+                        })
                 {
                     let has_else_after = self
                         .legacy_try
@@ -7460,6 +7475,23 @@ impl<'a> Ctx<'a> {
                     && self.legacy_handler.is_none()
                     && self.legacy_try.is_some()
                     && !self.as_cleanup_wrappers.iter().any(|(_, e)| *e > pos)
+                    // an UNPARSED clause head ahead (a mismatch target
+                    // still holding its DUP_TOP) means the chain
+                    // continues past this RERAISE - emitting now leaks
+                    // the remaining clauses to the linear walk
+                    // (contextlib 3.10 __exit__: the else arm sits
+                    // INLINE between POP_BLOCK and the chain, so no
+                    // body-exit JF ever set else_start and clause 1's
+                    // as-cleanup RERAISE folded the chain before the
+                    // RuntimeError/BaseException clauses)
+                    && !self
+                        .legacy_try
+                        .as_ref()
+                        .map_or(false, |l| {
+                            l.pending_mismatch.iter().any(|&t| {
+                                t > pos && self.pending_clause_head_at(t)
+                            })
+                        })
                 {
                     let has_else_after = self
                         .legacy_try
@@ -7538,7 +7570,12 @@ impl<'a> Ctx<'a> {
                 }
                 // py2 handler normal exits are forward jumps: one
                 // landing exactly on the body jump's target retracts the
-                // presumed else region (no-else chain)
+                // presumed else region (no-else chain). 3.8-3.10 share
+                // the shape when the clause exit flows into the post-try
+                // continuation (trailing-statement zone); the rare
+                // terminating-else case (contextlib 3.9 __exit__) is
+                // protected by the pending-clause guards at the chain
+                // decision sites instead of skipping the retraction
                 if lt.else_start == inst.target
                     && (self.legacy_handler.is_some() || !lt.handlers.is_empty())
                     && inst.target.map_or(false, |t| t > pos)
@@ -37507,6 +37544,7 @@ fn dedup_sunk_handler_tails(stmts: &mut Vec<Stmt>, scope_end_open: bool) {
                 }
             }
         }
+        let _ = hlen;
     }
 }
 

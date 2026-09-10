@@ -145,7 +145,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 99: orig  ctx=Load())]))] | dec  ctx=Load())]))",
+   "ast_detail": "diff at token 98: orig  ctx=Load())]))] | dec  ctx=Load())]))",
    "verdict": "SIG-DIFF",
    "ndiff": 297,
    "ntotal": 962,

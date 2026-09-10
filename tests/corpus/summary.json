@@ -19,8 +19,7 @@
   "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
   "counts": {
    "PASS": 27,
-   "SIG-DIFF": 12,
-   "INCOMPLETE": 1
+   "SIG-DIFF": 13
   }
  },
  "3.11.16": {
@@ -97,9 +96,8 @@
  "3.9.25": {
   "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
   "counts": {
-   "PASS": 30,
-   "SIG-DIFF": 9,
-   "INCOMPLETE": 1
+   "PASS": 31,
+   "SIG-DIFF": 9
   }
  }
 }

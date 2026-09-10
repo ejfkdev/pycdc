@@ -181,7 +181,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 75: orig  ctx=Load()))])) | dec  ctx=Load()))]))])]",
+   "ast_detail": "diff at token 235: orig  Compare(left=Call(func=Name(id='len' | dec  Compare(left=Name(id='typ'",
    "verdict": "SIG-DIFF",
    "ndiff": 352,
    "ntotal": 1057,
