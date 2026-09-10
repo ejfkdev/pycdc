@@ -73,7 +73,7 @@ class ABCMeta(type):
     _abc_invalidation_counter = 0
     def __new__(mcls, name, bases, namespace):
         cls = super(ABCMeta, mcls).__new__(mcls, name, bases, namespace)
-        abstracts = set((name for name, value in namespace.items()))
+        abstracts = set((name for name, value in namespace.items() if getattr(value, '__isabstractmethod__', False)))
         for base in bases:
             for name in getattr(base, '__abstractmethods__', set()):
                 value = getattr(cls, name, None)

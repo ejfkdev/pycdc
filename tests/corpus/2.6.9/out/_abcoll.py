@@ -169,7 +169,7 @@ class Set(Sized, Iterable, Container):
     def __and__(self, other):
         if not isinstance(other, Iterable):
             return NotImplemented
-        return self._from_iterable((value for value in other))
+        return self._from_iterable((value for value in other if value in self))
 
     def isdisjoint(self, other):
         for value in other:
@@ -188,7 +188,7 @@ class Set(Sized, Iterable, Container):
             if not isinstance(other, Iterable):
                 return NotImplemented
             other = self._from_iterable(other)
-        return self._from_iterable((value for value in self))
+        return self._from_iterable((value for value in self if value not in other))
 
     def __xor__(self, other):
         if not isinstance(other, Set):
@@ -493,7 +493,7 @@ class Sequence(Sized, Iterable, Container):
         raise ValueError
 
     def count(self, value):
-        return sum((1 for v in self))
+        return sum((1 for v in self if v == value))
 
 
 Sequence.register(tuple)

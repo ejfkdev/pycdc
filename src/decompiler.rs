@@ -41941,7 +41941,19 @@ fn genexpr_ternary_merge(
                 | Op::POP_JUMP_BACKWARD_IF_FALSE
                 | Op::POP_JUMP_BACKWARD_IF_TRUE
                 | Op::JUMP_IF_FALSE_OR_POP
-                | Op::JUMP_IF_TRUE_OR_POP => {
+                | Op::JUMP_IF_TRUE_OR_POP
+                // py2.6 value-preserving cond jumps: the comprehension
+                // `if` filter compiles to JUMP_IF_FALSE with POP_TOPs
+                // on both paths (the builder treats POP_TOP as a
+                // balance no-op, so popping the cond here is correct).
+                // Missing from this arm, py2.6 genexpr/listcomp
+                // filters were silently DROPPED (abc 2.6
+                // ABCMeta.__new__ `set(name for name, value in
+                // namespace.items() if getattr(value,
+                // '__isabstractmethod__', False))` lost its if — the
+                // abstracts set collected every name)
+                | Op::JUMP_IF_FALSE
+                | Op::JUMP_IF_TRUE => {
                     if let Some(c) = stack.pop() {
                         // ternary element: this jump's target is the ELSE
                         // arm; a forward JF between the jump and the target
@@ -41959,6 +41971,7 @@ fn genexpr_ternary_merge(
                                 Op::POP_JUMP_IF_TRUE
                                     | Op::POP_JUMP_FORWARD_IF_TRUE
                                     | Op::POP_JUMP_BACKWARD_IF_TRUE
+                                    | Op::JUMP_IF_TRUE
                             );
                             let cj = if jump_true_op {
                                 negate_cond(c.clone())
@@ -42003,6 +42016,7 @@ fn genexpr_ternary_merge(
                             Op::POP_JUMP_IF_TRUE
                                 | Op::POP_JUMP_FORWARD_IF_TRUE
                                 | Op::POP_JUMP_BACKWARD_IF_TRUE
+                                | Op::JUMP_IF_TRUE
                         );
                         let target = inst.target.unwrap_or(usize::MAX);
                         let gen_end = instrs.last().map(|x| x.end()).unwrap_or(0);

@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "PASS": 11,
-  "SIG-DIFF": 22,
-  "AST-PASS": 7
+  "SIG-DIFF": 21,
+  "AST-PASS": 8
  },
  "results": [
   {
@@ -121,11 +121,7 @@
   },
   {
    "module": "_abcoll",
-   "ast_detail": "diff at token 667: orig  ifs=[Compare(left=Name(id='value' | dec  ifs=[])])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1775,
-   "ntotal": 2125,
-   "detail": "line 285: orig ('JUMP_IF_FALSE', '#56') | got ('JUMP_IF_FALSE', '#57')\nline 287: orig ('SETUP_EXCEPT', '#34') | got ('SETUP_EXCEPT', '#35')\nline 288: orig ('SETUP_LOOP', '#32') | got ('SETUP_LOOP', '#33')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_strptime",
@@ -141,9 +137,9 @@
   },
   {
    "module": "abc",
-   "ast_detail": "diff at token 101: orig  ifs=[Call(func=Name(id='getattr' | dec  ifs=[])])]",
+   "ast_detail": "diff at token 531: orig  Return(value=Name(id='False' | dec  Return(value=Name(id='ok'",
    "verdict": "SIG-DIFF",
-   "ndiff": 374,
+   "ndiff": 381,
    "ntotal": 516,
    "detail": "line 103: orig ('SETUP_LOOP', '#60') | got ('SETUP_LOOP', '#61')\nline 106: orig ('FOR_ITER', '#59') | got ('FOR_ITER', '#60')\nline 108: orig ('SETUP_LOOP', '#58') | got ('SETUP_LOOP', '#59')"
   },
