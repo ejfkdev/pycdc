@@ -543,12 +543,11 @@ class ConfigParser(RawConfigParser):
         """
 
         sectiondict = {}
-        if section != DEFAULTSECT:
-            raise NoSectionError(section)
-            try:
-                sectiondict = self._sections[section]
-            except KeyError:
-                pass
+        try:
+            sectiondict = self._sections[section]
+        except KeyError:
+            if section != DEFAULTSECT:
+                raise NoSectionError(section)
         vardict = {}
         if vars:
             for key, value in vars.items():
@@ -578,12 +577,11 @@ class ConfigParser(RawConfigParser):
         """
 
         d = self._defaults.copy()
-        if section != DEFAULTSECT:
-            raise NoSectionError(section)
-            try:
-                d.update(self._sections[section])
-            except KeyError:
-                pass
+        try:
+            d.update(self._sections[section])
+        except KeyError:
+            if section != DEFAULTSECT:
+                raise NoSectionError(section)
         if vars:
             for key, value in vars.items():
                 d[self.optionxform(key)] = value

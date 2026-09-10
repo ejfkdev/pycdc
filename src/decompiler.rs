@@ -7284,6 +7284,34 @@ impl<'a> Ctx<'a> {
                 if let Some(d) = self.legacy_handler.as_ref().map(|h| h.block_depth) {
                     if self.blocks.len() > d && self.blocks.iter().skip(d).all(|b| b.end <= pos) {
                         self.close_handler_blocks();
+                    } else if self.blocks.len() > d {
+                        // a handler-internal guard If whose false-merge
+                        // lands PAST the handler end (the mismatch
+                        // END_FINALLY / merge sits between the guard's
+                        // raise arm and its merge): the block overshoots
+                        // `pos`, so the `end <= pos` gate above leaves it
+                        // open and the clause would fold with an EMPTY
+                        // body while the guard's `raise` stays trapped in
+                        // the still-open If — which then escapes to
+                        // function level ahead of the try and swallows it
+                        // (asyncore 2.7 close: `if why.args[0] not in
+                        // (ENOTCONN,EBADF): raise` rendered before the
+                        // try, the try nested inside it). Only fold
+                        // blocks that opened INSIDE this handler
+                        // (start > handler_start) AND strictly before
+                        // the fold point (start < pos), so their body
+                        // region has already been walked into b.stmts.
+                        // A block opening exactly AT pos (the handler
+                        // end / mismatch target) has an unwalked body —
+                        // force-closing it would emit an empty guard and
+                        // strand the real body at function level
+                        // (contextlib 3.8 __exit__: the next clause's
+                        // guard If[238,244] opens at the handler end).
+                        if self.blocks.iter().skip(d).all(|b| {
+                            b.start > lt.handler_start && b.start < pos
+                        }) {
+                            self.close_handler_blocks();
+                        }
                     }
                 }
                 if self.legacy_handler.is_some() {
@@ -10761,7 +10789,6 @@ impl<'a> Ctx<'a> {
     }
 
     fn push_stmt(&mut self, stmt: Stmt) {
-        // statement-level conditions render from the source-shaped AST:
         // re-fold De Morgan expansions (see refold_demorgan)
         let stmt = match stmt {
             Stmt::If { cond, body, orelse } => Stmt::If {

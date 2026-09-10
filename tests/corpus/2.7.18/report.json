@@ -109,11 +109,11 @@
   },
   {
    "module": "_abcoll",
-   "ast_detail": "diff at token 91: orig  body=[If(test=Compare(left=Name(id='cls' | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 2219: orig  orelse=[If(test=Call(func=Name(id='hasattr' | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1801,
+   "ndiff": 1725,
    "ntotal": 2188,
-   "detail": "line 308: orig ('POP_JUMP_IF_FALSE', '#47') | got ('POP_JUMP_IF_FALSE', '#48')\nline 309: orig ('SETUP_EXCEPT', '#29') | got ('LOAD_GLOBAL', 'getattr')\nline 310: orig ('SETUP_LOOP', '#27') | got ('LOAD_FAST', 'C')"
+   "detail": "line 386: orig ('POP_JUMP_IF_FALSE', '#12') | got ('POP_JUMP_IF_FALSE', '#11')\nline 391: orig ('POP_JUMP_IF_FALSE', '#12') | got ('POP_JUMP_IF_FALSE', '#11')\nline 394: orig ('JUMP_FORWARD', '#12') | got ('LOAD_GLOBAL', 'NotImplemented')"
   },
   {
    "module": "_osx_support",
@@ -157,11 +157,11 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 1837: orig  TryExcept(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self' | dec  If(test=Compare(left=Subscript(value=Attribute(value=Name(id='why'",
+   "ast_detail": "diff at token 2572: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
    "verdict": "SIG-DIFF",
-   "ndiff": 325,
+   "ndiff": 298,
    "ntotal": 2185,
-   "detail": "line 133: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 165: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 1430: orig ('SETUP_EXCEPT', '#21') | got ('LOAD_FAST', 'why')"
+   "detail": "line 133: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 165: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 1869: orig ('POP_JUMP_IF_TRUE', '#16') | got ('POP_JUMP_IF_TRUE', '#15')"
   },
   {
    "module": "atexit",

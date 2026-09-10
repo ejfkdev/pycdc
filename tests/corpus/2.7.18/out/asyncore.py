@@ -321,12 +321,11 @@ class dispatcher:
         self.accepting = False
         self.connecting = False
         self.del_channel()
-        if why.args[0] not in (ENOTCONN, EBADF):
-            raise
-            try:
-                self.socket.close()
-            except socket.error, why:
-                pass
+        try:
+            self.socket.close()
+        except socket.error, why:
+            if why.args[0] not in (ENOTCONN, EBADF):
+                raise
 
     def __getattr__(self, attr):
         try:
