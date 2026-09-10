@@ -34,9 +34,9 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 594: orig  Constant(value='linktype' | dec  Constant(value='link'",
    "verdict": "SIG-DIFF",
-   "ndiff": 959,
-   "ntotal": 1410,
-   "detail": "line 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 472')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 472')\nline 385: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 472')"
+   "ndiff": 691,
+   "ntotal": 1389,
+   "detail": "line 692: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'self')\nline 693: orig ('LOAD_FAST', 'self') | got ('LOAD_METHOD', '_scan_name')\nline 694: orig ('LOAD_METHOD', '_scan_name') | got ('LOAD_FAST', 'j')"
   },
   {
    "module": "_osx_support",
@@ -90,9 +90,9 @@
    "module": "base64",
    "ast_detail": "diff at token 1767: orig  type_comment=None) | dec  type_comment=None)]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1166,
-   "ntotal": 1920,
-   "detail": "line 732: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 733: orig ('COMPARE_OP', 'not in') | got ('LOAD_CONST', '0')\nline 734: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', '1')"
+   "ndiff": 696,
+   "ntotal": 1917,
+   "detail": "line 1153: orig ('FOR_ITER', 'to 356') | got ('FOR_ITER', 'to 256')\nline 1166: orig ('JUMP_FORWARD', 'to 254') | got ('JUMP_FORWARD', 'to 198')\nline 1192: orig ('SETUP_FINALLY', 'to 214') | got ('JUMP_FORWARD', 'to 248')"
   },
   {
    "module": "bdb",

@@ -1442,14 +1442,31 @@ impl Printer {
                 self.write("}");
             }
             PyObject::FrozenSet(items) => {
-                self.write("frozenset({");
-                for (i, it) in items.iter().enumerate() {
-                    if i > 0 {
-                        self.write(", ");
+                // A frozenset CONSTANT only ever arises from the
+                // compiler constant-folding a set literal `{...}` (a
+                // genuine `frozenset({...})` call is NEVER folded — it
+                // compiles to BUILD_SET; SET_UPDATE; CALL_FUNCTION). So
+                // render it back as the bare set literal: recompiling
+                // `{...}` re-folds to the IDENTICAL frozenset const,
+                // whereas `frozenset({...})` recompiles to a runtime
+                // call (7 instrs vs 3), shifting every later offset
+                // (_markupbase 3.3-3.14 parse_declaration `decltype in
+                // {"attlist","linktype","link","element"}` rendered as
+                // frozenset(...) → 8-byte shift → nd~950 across 8
+                // versions). The empty frozenset must stay `frozenset()`
+                // because `{}` is an empty DICT.
+                if items.is_empty() {
+                    self.write("frozenset()");
+                } else {
+                    self.write("{");
+                    for (i, it) in items.iter().enumerate() {
+                        if i > 0 {
+                            self.write(", ");
+                        }
+                        self.const_expr(it);
                     }
-                    self.const_expr(it);
+                    self.write("}");
                 }
-                self.write("})");
             }
             PyObject::Dict(entries) => {
                 self.write("{");

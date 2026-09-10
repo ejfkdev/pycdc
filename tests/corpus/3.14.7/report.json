@@ -64,9 +64,9 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 406: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
    "verdict": "SIG-DIFF",
-   "ndiff": 962,
-   "ntotal": 1374,
-   "detail": "line 396: orig ('LOAD_CONST', \"frozenset({'attlist', 'element', 'link', 'linktype'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 397: orig ('CONTAINS_OP', 'in') | got ('BUILD_SET', '')\nline 398: orig ('POP_JUMP_IF_FALSE', 'to L15') | got ('LOAD_CONST', \"frozenset({'attlist', 'element', 'link', 'linktype'})\")"
+   "ndiff": 623,
+   "ntotal": 1362,
+   "detail": "line 596: orig ('POP_JUMP_IF_FALSE', 'to L22') | got ('POP_JUMP_IF_FALSE', 'to L21')\nline 605: orig ('POP_JUMP_IF_FALSE', 'to L11') | got ('POP_JUMP_IF_FALSE', 'to L10')\nline 734: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'c')"
   },
   {
    "module": "_opcode_metadata",
@@ -84,9 +84,9 @@
    "module": "_py_warnings",
    "ast_detail": "diff at token 528: orig  Constant(value='\\n')]))])])] | dec  Constant(value='\\n')]))])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2290,
-   "ntotal": 3168,
-   "detail": "line 824: orig ('LOAD_CONST', \"frozenset({'all', 'always', 'default', 'error', 'ignore', 'module', 'once'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 825: orig ('CONTAINS_OP', 'not in') | got ('BUILD_SET', '')\nline 826: orig ('POP_JUMP_IF_FALSE', 'to L1') | got ('LOAD_CONST', \"frozenset({'all', 'always', 'default', 'error', 'ignore', 'module', 'once'})\")"
+   "ndiff": 1982,
+   "ntotal": 3156,
+   "detail": "line 1121: orig ('LOAD_CONST', 'slice(None, None, None)') | got ('LOAD_GLOBAL', 'slice + NULL')\nline 1122: orig ('DELETE_SUBSCR', '') | got ('LOAD_CONST', 'None')\nline 1123: orig ('LOAD_GLOBAL', '_wm') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "_pylong",
@@ -143,7 +143,7 @@
    "module": "base64",
    "ast_detail": "diff at token 42: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1822,
+   "ndiff": 1827,
    "ntotal": 2151,
    "detail": "line 286: orig ('LOAD_GLOBAL', 'UnicodeEncodeError') | got ('LOAD_GLOBAL', 'TypeError')\nline 291: orig ('LOAD_GLOBAL', 'ValueError + NULL') | got ('LOAD_GLOBAL', 'TypeError + NULL')\nline 292: orig ('LOAD_CONST', \"'string argument should contain only ASCII characters'\") | got ('LOAD_CONST', \"'argument should be a bytes-like object or ASCII string, not %r'\")"
   },

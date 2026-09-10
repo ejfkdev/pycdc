@@ -193,7 +193,7 @@ def filterwarnings(action, message='', category=Warning, module='', lineno=0, ap
 'append' -- if true, append to the list of filters
 '''
 
-    if action not in frozenset({'all', 'once', 'error', 'always', 'ignore', 'module', 'default'}):
+    if action not in {'all', 'once', 'error', 'always', 'ignore', 'module', 'default'}:
         raise ValueError(f'invalid action: {action!r}')
     if not isinstance(message, str):
         raise TypeError('message must be a string')
@@ -228,7 +228,7 @@ A simple filter matches all modules and messages.
 'append' -- if true, append to the list of filters
 '''
 
-    if action not in frozenset({'all', 'once', 'error', 'always', 'ignore', 'module', 'default'}):
+    if action not in {'all', 'once', 'error', 'always', 'ignore', 'module', 'default'}:
         raise ValueError(f'invalid action: {action!r}')
     if not isinstance(lineno, int):
         raise TypeError('lineno must be an int')
@@ -438,7 +438,7 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
         if _wm.onceregistry.get(oncekey):
             return
         _wm.onceregistry[oncekey] = 1
-    elif action in frozenset({'all', 'always'}):
+    elif action in {'all', 'always'}:
         pass
     elif action == 'module':
         registry[key] = 1

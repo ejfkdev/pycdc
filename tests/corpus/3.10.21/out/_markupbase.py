@@ -84,7 +84,7 @@ class ParserBase:
                 if decltype == 'doctype':
                     j = self._parse_doctype_subset(j + 1, i)
                 else:
-                    if decltype in frozenset({'attlist', 'link', 'linktype', 'element'}):
+                    if decltype in {'attlist', 'link', 'linktype', 'element'}:
                         raise AssertionError("unsupported '[' char in %s declaration" % decltype)
                     raise AssertionError("unexpected '[' char in declaration")
             else:
@@ -99,9 +99,9 @@ class ParserBase:
         sectName, j = self._scan_name(i + 3, i)
         if j < 0:
             return j
-        if sectName in frozenset({'cdata', 'ignore', 'temp', 'include', 'rcdata'}):
+        if sectName in {'cdata', 'ignore', 'temp', 'include', 'rcdata'}:
             match = _markedsectionclose.search(rawdata, i + 3)
-        elif sectName in frozenset({'else', 'if', 'endif'}):
+        elif sectName in {'else', 'if', 'endif'}:
             match = _msmarkedsectionclose.search(rawdata, i + 3)
         else:
             raise AssertionError('unknown status keyword %r in marked section' % rawdata[i + 3:j])
@@ -149,7 +149,7 @@ class ParserBase:
                 name, j = self._scan_name(j + 2, declstartpos)
                 if j == -1:
                     return -1
-                if name not in frozenset({'attlist', 'element', 'entity', 'notation'}):
+                if name not in {'attlist', 'element', 'entity', 'notation'}:
                     self.updatepos(declstartpos, j + 2)
                     raise AssertionError('unknown declaration %r in internal subset' % name)
                 meth = getattr(self, '_parse_doctype_' + name)

@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 30,
-  "SIG-DIFF": 10
+  "PASS": 31,
+  "SIG-DIFF": 9
  },
  "results": [
   {
@@ -36,11 +36,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 464: orig  Constant(value='linktype') | dec  Constant(value='link')",
-   "verdict": "SIG-DIFF",
-   "ndiff": 955,
-   "ntotal": 1367,
-   "detail": "line 292: orig ('POP_JUMP_IF_FALSE', 'to 456') | got ('POP_JUMP_IF_FALSE', 'to 464')\nline 348: orig ('JUMP_FORWARD', 'to 436') | got ('JUMP_FORWARD', 'to 444')\nline 361: orig ('JUMP_FORWARD', 'to 436') | got ('JUMP_FORWARD', 'to 444')"
+   "verdict": "PASS"
   },
   {
    "module": "_osx_support",
@@ -110,9 +106,9 @@
    "module": "base64",
    "ast_detail": "diff at token 1553: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1148,
+   "ndiff": 634,
    "ntotal": 1931,
-   "detail": "line 764: orig ('POP_JUMP_IF_TRUE', 'to 310') | got ('POP_JUMP_IF_TRUE', 'to 318')\nline 766: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 767: orig ('CONTAINS_OP', '') | got ('BUILD_SET', '')"
+   "detail": "line 1211: orig ('FOR_ITER', 'to 334') | got ('FOR_ITER', 'to 248')\nline 1221: orig ('POP_JUMP_IF_FALSE', 'to 248') | got ('POP_JUMP_IF_FALSE', 'to 246')\nline 1224: orig ('JUMP_FORWARD', 'to 248') | got ('JUMP_ABSOLUTE', 'to 118')"
   },
   {
    "module": "bdb",

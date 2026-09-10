@@ -35,9 +35,9 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 504: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Set(elts=[Str(s='linktype')",
    "verdict": "SIG-DIFF",
-   "ndiff": 984,
-   "ntotal": 1430,
-   "detail": "line 300: orig ('SETUP_LOOP', 'to 480') | got ('SETUP_LOOP', 'to 492')\nline 362: orig ('JUMP_FORWARD', 'to 464') | got ('JUMP_FORWARD', 'to 476')\nline 376: orig ('JUMP_FORWARD', 'to 464') | got ('JUMP_FORWARD', 'to 476')"
+   "ndiff": 708,
+   "ntotal": 1408,
+   "detail": "line 610: orig ('SETUP_LOOP', 'to 560') | got ('SETUP_LOOP', 'to 556')\nline 697: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'self')\nline 698: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', '_scan_name')"
   },
   {
    "module": "_osx_support",
@@ -87,9 +87,9 @@
    "module": "base64",
    "ast_detail": "diff at token 1494: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1173,
-   "ntotal": 1954,
-   "detail": "line 737: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 738: orig ('COMPARE_OP', 'not in') | got ('LOAD_CONST', '0')\nline 739: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', '1')"
+   "ndiff": 773,
+   "ntotal": 1949,
+   "detail": "line 1157: orig ('SETUP_LOOP', 'to 374') | got ('SETUP_LOOP', 'to 370')\nline 1162: orig ('EXTENDED_ARG', '') | got ('FOR_ITER', 'to 368')\nline 1163: orig ('FOR_ITER', 'to 372') | got ('STORE_FAST', 'x')"
   },
   {
    "module": "bdb",

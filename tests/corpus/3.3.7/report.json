@@ -23,9 +23,9 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 556: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Set(elts=[Str(s='element')",
    "verdict": "SIG-DIFF",
-   "ndiff": 976,
-   "ntotal": 1407,
-   "detail": "line 303: orig ('SETUP_LOOP', '#230') | got ('SETUP_LOOP', '#236')\nline 307: orig ('POP_JUMP_IF_FALSE', '#229') | got ('POP_JUMP_IF_FALSE', '#235')\nline 360: orig ('JUMP_FORWARD', '#222') | got ('JUMP_FORWARD', '#228')"
+   "ndiff": 686,
+   "ntotal": 1383,
+   "detail": "line 605: orig ('SETUP_LOOP', '#268') | got ('SETUP_LOOP', '#267')\nline 609: orig ('POP_JUMP_IF_FALSE', '#267') | got ('POP_JUMP_IF_FALSE', '#266')\nline 617: orig ('POP_JUMP_IF_FALSE', '#152') | got ('POP_JUMP_IF_FALSE', '#151')"
   },
   {
    "module": "_osx_support",

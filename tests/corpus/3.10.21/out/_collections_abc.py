@@ -446,7 +446,7 @@ class _CallableGenericAlias(GenericAlias):
 
 def _is_typevarlike(arg):
     obj = type(arg)
-    return obj.__module__ == 'typing' and obj.__name__ in frozenset({'ParamSpec', 'TypeVar'})
+    return obj.__module__ == 'typing' and obj.__name__ in {'ParamSpec', 'TypeVar'}
 
 def _is_param_expr(obj):
     '''Checks if obj matches either a list of types, ``...``, ``ParamSpec`` or
