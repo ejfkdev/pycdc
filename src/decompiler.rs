@@ -578,6 +578,15 @@ struct Ctx<'a> {
     inline_comp_stack: Vec<InlineComp>,
     /// variables whose post-comprehension restore store must be swallowed
     pending_restore_vars: Vec<String>,
+    /// ALL variables ever cleared by an inline comprehension (never
+    /// consumed). A 3.12+ inline comprehension duplicates its variable
+    /// restore on the normal exit (STORE; RETURN — consumed from
+    /// pending_restore_vars) AND the exception cleanup (STORE; RERAISE —
+    /// pending already empty). The exception copy pops from a drained
+    /// stack, so a store of one of these names with an empty stack is the
+    /// duplicate cleanup, not a genuine assignment (annotationlib 3.14
+    /// call_annotate_function dict comp leaked `val = key = None`).
+    comp_restore_vars: Vec<String>,
     cur_line: Option<u32>,
     pending_stores: Vec<(ExprRef, ExprRef)>,
     last_store_line: Option<u32>,
@@ -849,6 +858,7 @@ pub fn decompile_in_scope(
         inline_comp: None,
         inline_comp_stack: Vec::new(),
         pending_restore_vars: Vec::new(),
+        comp_restore_vars: Vec::new(),
         cur_line: None,
         pending_stores: Vec::new(),
         last_store_line: None,
@@ -11514,7 +11524,28 @@ impl<'a> Ctx<'a> {
                     }));
                     return true;
                 }
-                let val = self.pop_store_value();
+                let is_pending =
+                    self.pending_restore_vars.iter().any(|v| *v == n);
+                // a 3.12+ inline comprehension's restore is DUPLICATED:
+                // the normal exit (STORE; RETURN) consumes
+                // pending_restore_vars, then the exception cleanup (STORE;
+                // RERAISE) stores the same names with pending empty and a
+                // drained stack. Suppress that duplicate (quiet pop, no
+                // statement) — but ONLY on an empty stack, so a genuine
+                // later assignment of the same name (which pops a computed
+                // value) still renders.
+                if !is_pending
+                    && self.comp_restore_vars.iter().any(|v| *v == n)
+                    && self.stack.iter().all(|s| matches!(s, Sv::Null))
+                {
+                    let _ = self.pop_store_value_quiet();
+                    return true;
+                }
+                let val = if is_pending {
+                    self.pop_store_value_quiet()
+                } else {
+                    self.pop_store_value()
+                };
                 self.emit_store_sv(self.name_expr(n), val);
                 true
             }
@@ -35363,6 +35394,22 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    /// Like pop_store_value but NEVER marks unclean on underflow — for the
+    /// 3.12+ inline comprehension variable restore, whose exception-path
+    /// copy pops from an already-drained stack (the normal path RETURNed
+    /// first). The restore statement is suppressed by emit_store anyway.
+    fn pop_store_value_quiet(&mut self) -> Sv {
+        loop {
+            match self.stack.pop() {
+                Some(Sv::Null) => continue,
+                Some(other) => return other,
+                None => {
+                    return Sv::E(Rc::new(Expr::Const(Rc::new(PyObject::None))));
+                }
+            }
+        }
+    }
+
     /// Store routing that understands import markers.
     fn emit_store_sv(&mut self, target: ExprRef, sv: Sv) {
         if matches!(sv, Sv::ImportFrom { .. } | Sv::ImportModule { .. }) {
@@ -43866,6 +43913,11 @@ impl<'a> Ctx<'a> {
                 self.push(expr);
             }
         } else {
+            for v in comp.cleared_vars.iter() {
+                if !self.comp_restore_vars.contains(v) {
+                    self.comp_restore_vars.push(v.clone());
+                }
+            }
             for v in comp.cleared_vars.drain(..) {
                 if !self.pending_restore_vars.contains(&v) {
                     self.pending_restore_vars.push(v);

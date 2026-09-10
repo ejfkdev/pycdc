@@ -523,7 +523,6 @@ def call_annotate_function(annotate, format, *, owner=None, _is_evaluate=False):
         if _is_evaluate:
             return _stringify_single(annos)
         return {key: _stringify_single(val) for key, val in annos.items()}
-        val = key = None
     if format == Format.FORWARDREF:
         namespace = {**annotate.__builtins__, **annotate.__globals__}
         is_class = isinstance(owner, type)
@@ -548,7 +547,6 @@ def call_annotate_function(annotate, format, *, owner=None, _is_evaluate=False):
                 return result.evaluate(format=Format.FORWARDREF)
             return result
         return {val.evaluate(format=Format.FORWARDREF): val for key, val in result.items() if isinstance(val, ForwardRef)}
-        val = key = None
     if format == Format.VALUE:
         raise RuntimeError('annotate function does not support VALUE format')
     raise ValueError(f'Invalid format: {format!r}')
