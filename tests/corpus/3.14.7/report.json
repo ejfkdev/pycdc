@@ -40,9 +40,9 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 220: orig  body=Yield()))])) | dec  body=Yield(value=Constant(value=None))))]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1257,
-   "ntotal": 4046,
-   "detail": "line 2761: orig ('LOAD_FAST', 'self') | got ('JUMP_BACKWARD', 'to L1')\nline 2762: orig ('LOAD_ATTR', 'pop + NULL|self') | got ('__ior__', 2)\nline 2763: orig ('CALL', '') | got ('RESUME', '')"
+   "ndiff": 864,
+   "ntotal": 4049,
+   "detail": "line 3166: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'v, value') | got ('LOAD_FAST', 'v')\nline 3167: orig ('IS_OP', 'is') | got ('LOAD_FAST', 'value')\nline 3168: orig ('COPY', '') | got ('IS_OP', 'is')"
   },
   {
    "module": "_colorize",
@@ -183,9 +183,9 @@
    "module": "code",
    "ast_detail": "diff at token 235: orig  Compare(left=Call(func=Name(id='len' | dec  Compare(left=Name(id='typ'",
    "verdict": "SIG-DIFF",
-   "ndiff": 352,
-   "ntotal": 1057,
-   "detail": "line 684: orig ('POP_JUMP_IF_FALSE', 'to L8') | got ('POP_JUMP_IF_FALSE', 'to L7')\nline 689: orig ('JUMP_FORWARD', 'to L9') | got ('JUMP_FORWARD', 'to L8')\nline 703: orig ('JUMP_BACKWARD', 'to L7') | got ('LOAD_FAST', '_exit')"
+   "ndiff": 304,
+   "ntotal": 1103,
+   "detail": "line 796: orig ('LOAD_FAST', 'e') | got ('LOAD_CONST', 'None')\nline 797: orig ('RAISE_VARARGS', '') | got ('STORE_FAST', 'e')\nline 798: orig ('LOAD_CONST', 'None') | got ('DELETE_FAST', 'e')"
   },
   {
    "module": "codecs",

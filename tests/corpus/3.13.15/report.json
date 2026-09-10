@@ -147,9 +147,9 @@
    "module": "code",
    "ast_detail": "diff at token 98: orig  ctx=Load())]))] | dec  ctx=Load())]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 297,
-   "ntotal": 962,
-   "detail": "line 644: orig ('POP_JUMP_IF_FALSE', 'to L8') | got ('POP_JUMP_IF_FALSE', 'to L7')\nline 648: orig ('JUMP_FORWARD', 'to L9') | got ('JUMP_FORWARD', 'to L8')\nline 662: orig ('JUMP_BACKWARD', 'to L7') | got ('LOAD_FAST', '_exit')"
+   "ndiff": 244,
+   "ntotal": 992,
+   "detail": "line 745: orig ('LOAD_FAST', 'e') | got ('LOAD_CONST', 'None')\nline 746: orig ('RAISE_VARARGS', '') | got ('STORE_FAST', 'e')\nline 747: orig ('LOAD_CONST', 'None') | got ('DELETE_FAST', 'e')"
   },
   {
    "module": "codecs",

@@ -222,38 +222,55 @@ a default message is printed.
             if hasattr(builtins, 'quit'):
                 _quit = builtins.quit
                 builtins.quit = Quitter('quit')
-        while True:
-            try:
-                if more:
-                    prompt = sys.ps2
-                else:
-                    prompt = sys.ps1
+        try:
+            while True:
                 try:
-                    line = self.raw_input(prompt)
-                except EOFError:
-                    self.write('\n')
+                    if more:
+                        prompt = sys.ps2
+                    else:
+                        prompt = sys.ps1
+                    try:
+                        line = self.raw_input(prompt)
+                    except EOFError:
+                        self.write('\n')
+                        break
+                    else:
+                        more = self.push(line)
+                except KeyboardInterrupt:
+                    self.write('\nKeyboardInterrupt\n')
+                    self.resetbuffer()
+                    more = 0
+                    continue
+                except SystemExit as e:
+                    if self.local_exit:
+                        self.write('\n')
                     break
-                else:
-                    more = self.push(line)
-            except KeyboardInterrupt:
-                self.write('\nKeyboardInterrupt\n')
-                self.resetbuffer()
-                more = 0
-                continue
-            try:
-                # WARNING: unrecovered try/except structure
-                continue
-            finally:
-                if not _exit is None:
-                    builtins.exit = _exit
-                if not _quit is None:
-                    builtins.quit = _quit
-                if delete_ps1_after:
-                    del sys.ps1
-                if delete_ps2_after:
-                    del sys.ps2
-                if not exitmsg is not None:
-                    self.write('now exiting %s...\n' % self.__class__.__name__)
+        finally:
+            if not _exit is None:
+                builtins.exit = _exit
+            if not _quit is None:
+                builtins.quit = _quit
+            if delete_ps1_after:
+                del sys.ps1
+            if delete_ps2_after:
+                del sys.ps2
+            if not exitmsg is not None:
+                self.write('now exiting %s...\n' % self.__class__.__name__)
+            if exitmsg != '':
+                self.write('%s\n' % exitmsg)
+        if not _exit is None:
+            builtins.exit = _exit
+        if not _quit is None:
+            builtins.quit = _quit
+        if delete_ps1_after:
+            del sys.ps1
+        if delete_ps2_after:
+            del sys.ps2
+        if not exitmsg is not None:
+            self.write('now exiting %s...\n' % self.__class__.__name__)
+            return
+        if exitmsg != '':
+            self.write('%s\n' % exitmsg)
 
     def push(self, line, filename=None, _symbol='single'):
         self.buffer.append(line)

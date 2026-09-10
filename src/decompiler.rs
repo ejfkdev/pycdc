@@ -893,6 +893,48 @@ pub fn decompile_in_scope(
                     {
                         return false;
                     }
+                    // a lone-NOP range is droppable padding UNLESS it is
+                    // the HEAD marker of a split finally family wrapping
+                    // a loop: the same handler gets a later entry whose
+                    // span holds a backward jump landing at/below this
+                    // marker (the wrapped loop's back edge). Dropping the
+                    // head orphans the tail fragment into a phantom
+                    // region whose body is the bare back edge (code 3.13
+                    // interact: [594,596)->1340 head + [748,752)->1340
+                    // back edge sandwich the KI body region; the orphan
+                    // rendered `try: continue finally: <copy>` INSIDE
+                    // the loop and the loop escaped the try/finally)
+                    if span.len() == 1 && span[0].op == Op::NOP {
+                        let wraps_loop = exc_entries.iter().any(|e2| {
+                            e2.target == e.target
+                                && e2.start > e.end
+                                && ctx
+                                    .idx_of
+                                    .get(&e2.start)
+                                    .map_or(false, |&si2| {
+                                        ctx.instrs[si2..]
+                                            .iter()
+                                            .take_while(|x| x.offset < e2.end)
+                                            .any(|x| {
+                                                x.is_backward
+                                                    && matches!(
+                                                        x.op,
+                                                        Op::JUMP_BACKWARD
+                                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                            | Op::JUMP_ABSOLUTE
+                                                            | Op::JUMP
+                                                    )
+                                                    && x.target
+                                                        .map_or(false, |t| {
+                                                            t <= e.start + 2
+                                                        })
+                                            })
+                                    })
+                        });
+                        if wraps_loop {
+                            return false;
+                        }
+                    }
                     span.iter().all(|x| {
                         matches!(
                             x.op,
@@ -960,6 +1002,9 @@ pub fn decompile_in_scope(
         // compiler padding between protected fragments (the 3.11 NOP
         // line markers between statements) does not break a tiled span
         let is_pad_gap = |from: usize, to: usize| -> bool {
+            if from > to {
+                return false;
+            }
             match (ctx.idx_of.get(&from), ctx.idx_of.get(&to)) {
                 (Some(&fi), Some(&ti)) => ctx.instrs[fi..ti]
                     .iter()
@@ -976,6 +1021,9 @@ pub fn decompile_in_scope(
         // the unmerged else fragment grew a duplicate try with its own
         // KeyboardInterrupt clause)
         let is_term_gap = |from: usize, to: usize| -> bool {
+            if from > to {
+                return false;
+            }
             match (ctx.idx_of.get(&from), ctx.idx_of.get(&to)) {
                 (Some(&fi), Some(&ti)) => {
                     let span = &ctx.instrs[fi..ti];
@@ -1270,7 +1318,54 @@ pub fn decompile_in_scope(
                     }
                 }
             }
+            // same-handler forward extension, FINALLY variant: an
+            // outer try/finally wrapping a loop lays its protected
+            // range as fragments AROUND the loop body's own chain
+            // regions (code 3.13 interact: [594,596)->1340 loop-head
+            // marker + [748,752)->1340 back edge, sandwiching the
+            // KI/EOF body region [598,748)->930). Unmerged, the tail
+            // fragment becomes a phantom region whose "body" is the
+            // bare back edge - rendered inside the loop as
+            // `try: continue finally: <copy>` with the real loop body
+            // stranded outside any try. Same tiling discipline as the
+            // except variant: the gap must tile exactly with the
+            // intervening nested regions.
+            let mut deep_fin_idx: Option<usize> = None;
+            if !extends && !bridged && !is_exc {
+                if let Some(ri) = regions.iter().enumerate().rev().find(|(_, r)| {
+                    same_fin(r) && r.start < e.start && e.start >= r.region_end
+                }).map(|(ri, _)| ri) {
+                    let mut cur = regions[ri].region_end;
+                    let mut ok = cur < e.start;
+                    for r2 in &regions[ri + 1..] {
+                        if !ok {
+                            break;
+                        }
+                        if r2.start != cur && !is_pad_gap(cur, r2.start) {
+                            ok = false;
+                            break;
+                        }
+                        if r2.region_end > e.start {
+                            ok = false;
+                            break;
+                        }
+                        cur = r2.region_end;
+                    }
+                    if ok
+                        && (cur == e.start
+                            || (cur < e.start
+                                && (is_pad_gap(cur, e.start)
+                                    || is_term_gap(cur, e.start))))
+                    {
+                        deep_fin_idx = Some(ri);
+                    }
+                }
+            }
             if let Some(ri) = deep_exc_idx {
+                let e2 = e.end.max(e.start);
+                regions[ri].body_end = regions[ri].body_end.max(e2);
+                regions[ri].region_end = regions[ri].region_end.max(e2);
+            } else if let Some(ri) = deep_fin_idx {
                 let e2 = e.end.max(e.start);
                 regions[ri].body_end = regions[ri].body_end.max(e2);
                 regions[ri].region_end = regions[ri].region_end.max(e2);
@@ -2088,10 +2183,19 @@ impl<'a> Ctx<'a> {
             // stays open underneath and traps the loop in its arm)
             // match the walk position to a prescanned top: exact, or
             // the position is a NOP line marker immediately before the
-            // top (3.10 while-True heads)
+            // top (3.10 while-True heads). The NOP-marker early open is
+            // suppressed when a try region starts AT the top: opening
+            // the loop at the marker beats open_exception_blocks by one
+            // instruction and inverts the nesting ([While, Try] instead
+            // of [Try, While]) - the try/finally renders INSIDE the loop
+            // and its inline copy is walked twice (code 3.14 interact:
+            // loop top 620 == the merged finally region's start). The
+            // exact-match path at the top runs AFTER
+            // open_exception_blocks, giving the source order.
             let wtop = self.while_true_loops.iter().find(|(t, _)| {
                 *t == pos
                     || (*t > pos
+                        && !self.try_ctxs.contains_key(t)
                         && self.idx_of.get(t).map_or(false, |&i| {
                             i > 0 && self.instrs[i - 1].offset == pos
                                 && self.instrs[i - 1].op == Op::NOP
@@ -6398,6 +6502,14 @@ impl<'a> Ctx<'a> {
                         let mut window_ok =
                             self.instrs.get(ti).map(|x| x.op) == Some(Op::PUSH_EXC_INFO);
                         if window_ok {
+                            // a FINALLY/cleanup chain head also starts
+                            // with PUSH_EXC_INFO but holds no exc match
+                            // (code 3.13 interact: the KI clause's
+                            // POP_EXCEPT+resume fragment is protected by
+                            // the enclosing finally 1340; bounding the
+                            // KI dispatch there cut the chain at 1020
+                            // and dropped the chained SystemExit clause)
+                            let mut saw_match = false;
                             for x in self.instrs.iter().skip(ti).take(40) {
                                 if matches!(
                                     x.op,
@@ -6406,9 +6518,17 @@ impl<'a> Ctx<'a> {
                                     window_ok = false;
                                     break;
                                 }
+                                if x.op == Op::CHECK_EXC_MATCH
+                                    || x.op == Op::CHECK_EG_MATCH
+                                {
+                                    saw_match = true;
+                                }
                                 if x.op == Op::RERAISE {
                                     break;
                                 }
+                            }
+                            if !saw_match {
+                                window_ok = false;
                             }
                         }
                         window_ok.then_some(ti)
