@@ -57,13 +57,13 @@ class ContextDecorator(object):
     def _recreate_cm(self):
         '''Return a recreated instance of self.
 
-Allows an otherwise one-shot context manager like
-_GeneratorContextManager to support use as
-a decorator via implicit recreation.
+        Allows an otherwise one-shot context manager like
+        _GeneratorContextManager to support use as
+        a decorator via implicit recreation.
 
-This is a private interface just for _GeneratorContextManager.
-See issue #11647 for details.
-'''
+        This is a private interface just for _GeneratorContextManager.
+        See issue #11647 for details.
+        '''
 
         return self
 
@@ -417,10 +417,10 @@ class _BaseExitStack:
     def push(self, exit):
         '''Registers a callback with the standard __exit__ method signature.
 
-Can suppress exceptions the same way __exit__ method can.
-Also accepts any object with an __exit__ method (registering a call
-to the method instead of the object itself).
-'''
+        Can suppress exceptions the same way __exit__ method can.
+        Also accepts any object with an __exit__ method (registering a call
+        to the method instead of the object itself).
+        '''
 
         _cb_type = type(exit)
         try:
@@ -434,9 +434,9 @@ to the method instead of the object itself).
     def enter_context(self, cm):
         '''Enters the supplied context manager.
 
-If successful, also pushes its __exit__ method as a callback and
-returns the result of the __enter__ method.
-'''
+        If successful, also pushes its __exit__ method as a callback and
+        returns the result of the __enter__ method.
+        '''
 
         cls = type(cm)
         try:
@@ -451,8 +451,8 @@ returns the result of the __enter__ method.
     def callback(self, callback, /, *args, **kwds):
         '''Registers an arbitrary callback and arguments.
 
-Cannot suppress exceptions.
-'''
+        Cannot suppress exceptions.
+        '''
 
         _exit_wrapper = self._create_cb_wrapper(callback, *args, **kwds)
         _exit_wrapper.__wrapped__ = callback
@@ -555,9 +555,9 @@ For example:
     async def enter_async_context(self, cm):
         '''Enters the supplied async context manager.
 
-If successful, also pushes its __aexit__ method as a callback and
-returns the result of the __aenter__ method.
-'''
+        If successful, also pushes its __aexit__ method as a callback and
+        returns the result of the __aenter__ method.
+        '''
 
         cls = type(cm)
         try:
@@ -571,12 +571,12 @@ returns the result of the __aenter__ method.
 
     def push_async_exit(self, exit):
         '''Registers a coroutine function with the standard __aexit__ method
-signature.
+        signature.
 
-Can suppress exceptions the same way __aexit__ method can.
-Also accepts any object with an __aexit__ method (registering a call
-to the method instead of the object itself).
-'''
+        Can suppress exceptions the same way __aexit__ method can.
+        Also accepts any object with an __aexit__ method (registering a call
+        to the method instead of the object itself).
+        '''
 
         _cb_type = type(exit)
         try:
@@ -590,8 +590,8 @@ to the method instead of the object itself).
     def push_async_callback(self, callback, /, *args, **kwds):
         '''Registers an arbitrary coroutine function and arguments.
 
-Cannot suppress exceptions.
-'''
+        Cannot suppress exceptions.
+        '''
 
         _exit_wrapper = self._create_async_cb_wrapper(callback, *args, **kwds)
         _exit_wrapper.__wrapped__ = callback
@@ -603,7 +603,7 @@ Cannot suppress exceptions.
 
     def _push_async_cm_exit(self, cm, cm_exit):
         '''Helper to correctly register coroutine function to __aexit__
-method.'''
+        method.'''
 
         _exit_wrapper = self._create_async_exit_wrapper(cm, cm_exit)
         self._push_exit_callback(_exit_wrapper, False)

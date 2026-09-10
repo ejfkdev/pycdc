@@ -41,8 +41,8 @@ _ALL_QUOTES = *_SINGLE_QUOTES, *_MULTI_QUOTES
 
 class Unparser(NodeVisitor):
     '''Methods in this class recursively traverse an AST and
-output source code for the abstract syntax; original formatting
-is disregarded.'''
+    output source code for the abstract syntax; original formatting
+    is disregarded.'''
 
     def __init__(self):
         self._source = []
@@ -66,8 +66,8 @@ is disregarded.'''
 
     def items_view(self, traverser, items):
         '''Traverse and separate the given *items* with a comma and append it to
-the buffer. If *items* is a single item sequence, a trailing comma
-will be added.'''
+        the buffer. If *items* is a single item sequence, a trailing comma
+        will be added.'''
 
         if len(items) == 1:
             traverser(items[0])
@@ -89,7 +89,7 @@ will be added.'''
 
     def fill(self, text='', *, allow_semicolon=True):
         '''Indent a piece of text and append it, according to the current
-indentation level, or only delineate with semicolon if applicable'''
+        indentation level, or only delineate with semicolon if applicable'''
 
         if self._in_interactive and not self._indent:
             if allow_semicolon:
@@ -145,9 +145,9 @@ indentation level, or only delineate with semicolon if applicable'''
 
     def get_raw_docstring(self, node):
         '''If a docstring node is found in the body of the *node* parameter,
-return that docstring node, None otherwise.
+        return that docstring node, None otherwise.
 
-Logic mirrored from ``_PyAST_GetDocString``.'''
+        Logic mirrored from ``_PyAST_GetDocString``.'''
 
         if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)) or len(node.body) < 1:
             return
@@ -173,7 +173,7 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
 
     def visit(self, node):
         '''Outputs a source code string that, if converted back to an ast
-(using ast.parse) will generate an AST equivalent to *node*'''
+        (using ast.parse) will generate an AST equivalent to *node*'''
 
         self._source = []
         self.traverse(node)
@@ -509,8 +509,8 @@ Logic mirrored from ``_PyAST_GetDocString``.'''
 
     def _str_literal_helper(self, string, *, quote_types=_ALL_QUOTES, escape_special_whitespace=False):
         '''Helper for writing string literals, minimizing escapes.
-Returns the tuple (string literal to write, possible quote types).
-'''
+        Returns the tuple (string literal to write, possible quote types).
+        '''
 
         def escape_char(c):
             if not escape_special_whitespace:

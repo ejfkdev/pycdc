@@ -25,10 +25,10 @@ from _ast import *
 
 def parse(source, filename='<unknown>', mode='exec', *, type_comments=False, feature_version=None, optimize=-1):
     '''
-Parse the source into an AST node.
-Equivalent to compile(source, filename, mode, PyCF_ONLY_AST).
-Pass type_comments=True to get back type comments where the syntax allows.
-'''
+    Parse the source into an AST node.
+    Equivalent to compile(source, filename, mode, PyCF_ONLY_AST).
+    Pass type_comments=True to get back type comments where the syntax allows.
+    '''
 
     flags = PyCF_ONLY_AST
     if optimize > 0:
@@ -46,13 +46,13 @@ Pass type_comments=True to get back type comments where the syntax allows.
 
 def literal_eval(node_or_string):
     '''
-Evaluate an expression node or a string containing only a Python
-expression.  The string or node provided may only consist of the following
-Python literal structures: strings, bytes, numbers, tuples, lists, dicts,
-sets, booleans, and None.
+    Evaluate an expression node or a string containing only a Python
+    expression.  The string or node provided may only consist of the following
+    Python literal structures: strings, bytes, numbers, tuples, lists, dicts,
+    sets, booleans, and None.
 
-Caution: A complex expression can overflow the C stack and cause a crash.
-'''
+    Caution: A complex expression can overflow the C stack and cause a crash.
+    '''
 
     if isinstance(node_or_string, str):
         node_or_string = parse(node_or_string.lstrip(' \t'), mode='eval')
@@ -107,18 +107,18 @@ Caution: A complex expression can overflow the C stack and cause a crash.
 
 def dump(node, annotate_fields=True, include_attributes=False, *, indent=None, show_empty=False):
     '''
-Return a formatted dump of the tree in node.  This is mainly useful for
-debugging purposes.  If annotate_fields is true (by default),
-the returned string will show the names and the values for fields.
-If annotate_fields is false, the result string will be more compact by
-omitting unambiguous field names.  Attributes such as line
-numbers and column offsets are not dumped by default.  If this is wanted,
-include_attributes can be set to true.  If indent is a non-negative
-integer or string, then the tree will be pretty-printed with that indent
-level. None (the default) selects the single line representation.
-If show_empty is False, then empty lists and fields that are None
-will be omitted from the output for better readability.
-'''
+    Return a formatted dump of the tree in node.  This is mainly useful for
+    debugging purposes.  If annotate_fields is true (by default),
+    the returned string will show the names and the values for fields.
+    If annotate_fields is false, the result string will be more compact by
+    omitting unambiguous field names.  Attributes such as line
+    numbers and column offsets are not dumped by default.  If this is wanted,
+    include_attributes can be set to true.  If indent is a non-negative
+    integer or string, then the tree will be pretty-printed with that indent
+    level. None (the default) selects the single line representation.
+    If show_empty is False, then empty lists and fields that are None
+    will be omitted from the output for better readability.
+    '''
 
     def _format(node, level=0):
         if not indent is None:
@@ -186,9 +186,9 @@ will be omitted from the output for better readability.
 
 def copy_location(new_node, old_node):
     '''
-Copy source location (`lineno`, `col_offset`, `end_lineno`, and `end_col_offset`
-attributes) from *old_node* to *new_node* if possible, and return *new_node*.
-'''
+    Copy source location (`lineno`, `col_offset`, `end_lineno`, and `end_col_offset`
+    attributes) from *old_node* to *new_node* if possible, and return *new_node*.
+    '''
 
     for attr in ('lineno', 'col_offset', 'end_lineno', 'end_col_offset'):
         if attr in old_node._attributes and attr in new_node._attributes:
@@ -199,12 +199,12 @@ attributes) from *old_node* to *new_node* if possible, and return *new_node*.
 
 def fix_missing_locations(node):
     '''
-When you compile a node tree with compile(), the compiler expects lineno and
-col_offset attributes for every node that supports them.  This is rather
-tedious to fill in for generated nodes, so this helper adds these attributes
-recursively where not already set, by setting them to the values of the
-parent node.  It works recursively starting at *node*.
-'''
+    When you compile a node tree with compile(), the compiler expects lineno and
+    col_offset attributes for every node that supports them.  This is rather
+    tedious to fill in for generated nodes, so this helper adds these attributes
+    recursively where not already set, by setting them to the values of the
+    parent node.  It works recursively starting at *node*.
+    '''
 
     def _fix(node, lineno, col_offset, end_lineno, end_col_offset):
         if 'lineno' in node._attributes:
@@ -235,10 +235,10 @@ parent node.  It works recursively starting at *node*.
 
 def increment_lineno(node, n=1):
     '''
-Increment the line number and end line number of each node in the tree
-starting at *node* by *n*. This is useful to "move code" to a different
-location in a file.
-'''
+    Increment the line number and end line number of each node in the tree
+    starting at *node* by *n*. This is useful to "move code" to a different
+    location in a file.
+    '''
 
     for child in walk(node):
         if isinstance(child, TypeIgnore):
@@ -253,9 +253,9 @@ location in a file.
 
 def iter_fields(node):
     '''
-Yield a tuple of ``(fieldname, value)`` for each field in ``node._fields``
-that is present on *node*.
-'''
+    Yield a tuple of ``(fieldname, value)`` for each field in ``node._fields``
+    that is present on *node*.
+    '''
 
     for field in node._fields:
         try:
@@ -265,9 +265,9 @@ that is present on *node*.
 
 def iter_child_nodes(node):
     '''
-Yield all direct child nodes of *node*, that is, all fields that are nodes
-and all items of fields that are lists of nodes.
-'''
+    Yield all direct child nodes of *node*, that is, all fields that are nodes
+    and all items of fields that are lists of nodes.
+    '''
 
     for name, field in iter_fields(node):
         if isinstance(field, AST):
@@ -279,13 +279,13 @@ and all items of fields that are lists of nodes.
 
 def get_docstring(node, clean=True):
     '''
-Return the docstring for the given node or None if no docstring can
-be found.  If the node provided does not have docstrings a TypeError
-will be raised.
+    Return the docstring for the given node or None if no docstring can
+    be found.  If the node provided does not have docstrings a TypeError
+    will be raised.
 
-If *clean* is `True`, all tabs are expanded to spaces and any whitespace
-that can be uniformly removed from the second line onwards is removed.
-'''
+    If *clean* is `True`, all tabs are expanded to spaces and any whitespace
+    that can be uniformly removed from the second line onwards is removed.
+    '''
 
     if not isinstance(node, (AsyncFunctionDef, FunctionDef, ClassDef, Module)):
         raise TypeError("%r can't have docstrings" % node.__class__.__name__)
@@ -306,8 +306,8 @@ _line_pattern = None
 def _splitlines_no_ff(source, maxlines=None):
     '''Split a string into lines ignoring form feed and other chars.
 
-This mimics how the Python parser splits source code.
-'''
+    This mimics how the Python parser splits source code.
+    '''
 
     global _line_pattern
     if not _line_pattern is not None:
@@ -334,12 +334,12 @@ def _pad_whitespace(source):
 def get_source_segment(source, node, *, padded=False):
     '''Get source code segment of the *source* that generated *node*.
 
-If some location information (`lineno`, `end_lineno`, `col_offset`,
-or `end_col_offset`) is missing, return None.
+    If some location information (`lineno`, `end_lineno`, `col_offset`,
+    or `end_col_offset`) is missing, return None.
 
-If *padded* is `True`, the first line of a multi-line statement will
-be padded with spaces to match its original position.
-'''
+    If *padded* is `True`, the first line of a multi-line statement will
+    be padded with spaces to match its original position.
+    '''
 
     try:
         if node.end_lineno is None or node.end_col_offset is None:
@@ -369,10 +369,10 @@ be padded with spaces to match its original position.
 
 def walk(node):
     """
-Recursively yield all descendant nodes in the tree starting at *node*
-(including *node* itself), in no specified order.  This is useful if you
-only want to modify nodes in place and don't care about the context.
-"""
+    Recursively yield all descendant nodes in the tree starting at *node*
+    (including *node* itself), in no specified order.  This is useful if you
+    only want to modify nodes in place and don't care about the context.
+    """
 
     from collections import deque
     todo = deque([node])
@@ -384,12 +384,12 @@ only want to modify nodes in place and don't care about the context.
 def compare(a, b, /, *, compare_attributes=False):
     '''Recursively compares two ASTs.
 
-compare_attributes affects whether AST attributes are considered
-in the comparison. If compare_attributes is False (default), then
-attributes are ignored. Otherwise they must all be equal. This
-option is useful to check whether the ASTs are structurally equal but
-might differ in whitespace or similar details.
-'''
+    compare_attributes affects whether AST attributes are considered
+    in the comparison. If compare_attributes is False (default), then
+    attributes are ignored. Otherwise they must all be equal. This
+    option is useful to check whether the ASTs are structurally equal but
+    might differ in whitespace or similar details.
+    '''
 
     sentinel = object()
     def _compare(a, b):
@@ -443,23 +443,23 @@ might differ in whitespace or similar details.
 
 class NodeVisitor(object):
     """
-A node visitor base class that walks the abstract syntax tree and calls a
-visitor function for every node found.  This function may return a value
-which is forwarded by the `visit` method.
+    A node visitor base class that walks the abstract syntax tree and calls a
+    visitor function for every node found.  This function may return a value
+    which is forwarded by the `visit` method.
 
-This class is meant to be subclassed, with the subclass adding visitor
-methods.
+    This class is meant to be subclassed, with the subclass adding visitor
+    methods.
 
-Per default the visitor functions for the nodes are ``'visit_'`` +
-class name of the node.  So a `TryFinally` node visit function would
-be `visit_TryFinally`.  This behavior can be changed by overriding
-the `visit` method.  If no visitor function exists for a node
-(return value `None`) the `generic_visit` visitor is used instead.
+    Per default the visitor functions for the nodes are ``'visit_'`` +
+    class name of the node.  So a `TryFinally` node visit function would
+    be `visit_TryFinally`.  This behavior can be changed by overriding
+    the `visit` method.  If no visitor function exists for a node
+    (return value `None`) the `generic_visit` visitor is used instead.
 
-Don't use the `NodeVisitor` if you want to apply changes to nodes during
-traversing.  For this a special visitor exists (`NodeTransformer`) that
-allows modifications.
-"""
+    Don't use the `NodeVisitor` if you want to apply changes to nodes during
+    traversing.  For this a special visitor exists (`NodeTransformer`) that
+    allows modifications.
+    """
 
     def visit(self, node):
         '''Visit a node.'''

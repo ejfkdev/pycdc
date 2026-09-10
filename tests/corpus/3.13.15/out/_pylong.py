@@ -136,7 +136,7 @@ def _str_to_int_inner(s):
 
 def int_from_string(s):
     """Asymptotically fast version of PyLong_FromString(), conversion
-of a string of decimal digits into an 'int'."""
+    of a string of decimal digits into an 'int'."""
 
     s = s.rstrip().replace('_', '')
     return _str_to_int_inner(s)
@@ -229,8 +229,8 @@ Output:
 
 def _digits2int(digits, n):
     '''Combine base-2**n digits into an int. This function is the
-inverse of `_int2digits`. For more details, see _int2digits.
-'''
+    inverse of `_int2digits`. For more details, see _int2digits.
+    '''
 
     def inner(L, R):
         if L + 1 == R:
@@ -245,7 +245,7 @@ inverse of `_int2digits`. For more details, see _int2digits.
 
 def _divmod_pos(a, b):
     '''Divide a non-negative integer a by a positive integer b, giving
-quotient and remainder.'''
+    quotient and remainder.'''
 
     n = b.bit_length()
     a_digits = _int2digits(a, n)
@@ -260,8 +260,8 @@ quotient and remainder.'''
 
 def int_divmod(a, b):
     """Asymptotically fast replacement for divmod, for 'int'.
-Its time complexity is O(n**1.58), where n = #bits(a) + #bits(b).
-"""
+    Its time complexity is O(n**1.58), where n = #bits(a) + #bits(b).
+    """
 
     if b == 0:
         raise ZeroDivisionError

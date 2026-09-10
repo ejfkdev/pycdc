@@ -15,7 +15,7 @@ del re
 
 class ParserBase:
     '''Parser base class which provides some common support methods used
-by the SGML/HTML and XHTML parsers.'''
+    by the SGML/HTML and XHTML parsers.'''
 
     def __init__(self):
         if self.__class__ is ParserBase:

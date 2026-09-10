@@ -83,16 +83,16 @@ else:
     class ABCMeta(type):
         """Metaclass for defining Abstract Base Classes (ABCs).
 
-Use this metaclass to create an ABC.  An ABC can be subclassed
-directly, and then acts as a mix-in class.  You can also register
-unrelated concrete classes (even built-in classes) and unrelated
-ABCs as 'virtual subclasses' -- these and their descendants will
-be considered subclasses of the registering ABC by the built-in
-issubclass() function, but the registering ABC won't show up in
-their MRO (Method Resolution Order) nor will method
-implementations defined by the registering ABC be callable (not
-even via super()).
-"""
+        Use this metaclass to create an ABC.  An ABC can be subclassed
+        directly, and then acts as a mix-in class.  You can also register
+        unrelated concrete classes (even built-in classes) and unrelated
+        ABCs as 'virtual subclasses' -- these and their descendants will
+        be considered subclasses of the registering ABC by the built-in
+        issubclass() function, but the registering ABC won't show up in
+        their MRO (Method Resolution Order) nor will method
+        implementations defined by the registering ABC be callable (not
+        even via super()).
+        """
 
         def __new__(mcls, name, bases, namespace, /, **kwargs):
             cls = super().__new__(mcls, name, bases, namespace, **kwargs)
@@ -102,8 +102,8 @@ even via super()).
         def register(cls, subclass):
             '''Register a virtual subclass of an ABC.
 
-Returns the subclass, to allow usage as a class decorator.
-'''
+            Returns the subclass, to allow usage as a class decorator.
+            '''
 
             return _abc_register(cls, subclass)
 
@@ -137,19 +137,19 @@ Returns the subclass, to allow usage as a class decorator.
 def update_abstractmethods(cls):
     '''Recalculate the set of abstract methods of an abstract class.
 
-If a class has had one of its abstract methods implemented after the
-class was created, the method will not be considered implemented until
-this function is called. Alternatively, if a new abstract method has been
-added to the class, it will only be considered an abstract method of the
-class after this function is called.
+    If a class has had one of its abstract methods implemented after the
+    class was created, the method will not be considered implemented until
+    this function is called. Alternatively, if a new abstract method has been
+    added to the class, it will only be considered an abstract method of the
+    class after this function is called.
 
-This function should be called before any use is made of the class,
-usually in class decorators that add methods to the subject class.
+    This function should be called before any use is made of the class,
+    usually in class decorators that add methods to the subject class.
 
-Returns cls, to allow usage as a class decorator.
+    Returns cls, to allow usage as a class decorator.
 
-If cls is not an instance of ABCMeta, does nothing.
-'''
+    If cls is not an instance of ABCMeta, does nothing.
+    '''
 
     if not hasattr(cls, '__abstractmethods__'):
         return cls
@@ -167,8 +167,8 @@ If cls is not an instance of ABCMeta, does nothing.
 
 class ABC(metaclass=ABCMeta):
     '''Helper class that provides a standard way to create an ABC using
-inheritance.
-'''
+    inheritance.
+    '''
 
     __slots__ = ()
 

@@ -99,16 +99,16 @@ class Coroutine(Awaitable):
     @abstractmethod
     def send(self, value):
         '''Send a value into the coroutine.
-Return next yielded value or raise StopIteration.
-'''
+        Return next yielded value or raise StopIteration.
+        '''
 
         raise StopIteration
 
     @abstractmethod
     def throw(self, typ, val=None, tb=None):
         '''Raise an exception in the coroutine.
-Return next yielded value or raise StopIteration.
-'''
+        Return next yielded value or raise StopIteration.
+        '''
 
         if val is None:
             if tb is None:
@@ -173,24 +173,24 @@ class AsyncGenerator(AsyncIterator):
     __slots__ = ()
     async def __anext__(self):
         '''Return the next item from the asynchronous generator.
-When exhausted, raise StopAsyncIteration.
-'''
+        When exhausted, raise StopAsyncIteration.
+        '''
 
         return await self.asend(None)
 
     @abstractmethod
     async def asend(self, value):
         '''Send a value into the asynchronous generator.
-Return next yielded value or raise StopAsyncIteration.
-'''
+        Return next yielded value or raise StopAsyncIteration.
+        '''
 
         raise StopAsyncIteration
 
     @abstractmethod
     async def athrow(self, typ, val=None, tb=None):
         '''Raise an exception in the asynchronous generator.
-Return next yielded value or raise StopAsyncIteration.
-'''
+        Return next yielded value or raise StopAsyncIteration.
+        '''
 
         if val is None:
             if tb is None:
@@ -284,24 +284,24 @@ class Generator(Iterator):
     __slots__ = ()
     def __next__(self):
         '''Return the next item from the generator.
-When exhausted, raise StopIteration.
-'''
+        When exhausted, raise StopIteration.
+        '''
 
         return self.send(None)
 
     @abstractmethod
     def send(self, value):
         '''Send a value into the generator.
-Return next yielded value or raise StopIteration.
-'''
+        Return next yielded value or raise StopIteration.
+        '''
 
         raise StopIteration
 
     @abstractmethod
     def throw(self, typ, val=None, tb=None):
         '''Raise an exception in the generator.
-Return next yielded value or raise StopIteration.
-'''
+        Return next yielded value or raise StopIteration.
+        '''
 
         if val is None:
             if tb is None:
@@ -382,12 +382,12 @@ class Buffer(metaclass=ABCMeta):
 class _CallableGenericAlias(GenericAlias):
     '''Represent `Callable[argtypes, resulttype]`.
 
-This sets ``__args__`` to a tuple containing the flattened
-``argtypes`` followed by ``resulttype``.
+    This sets ``__args__`` to a tuple containing the flattened
+    ``argtypes`` followed by ``resulttype``.
 
-Example: ``Callable[[int, str], float]`` sets ``__args__`` to
-``(int, str, float)``.
-'''
+    Example: ``Callable[[int, str], float]`` sets ``__args__`` to
+    ``(int, str, float)``.
+    '''
 
     __slots__ = ()
     def __new__(cls, origin, args):
@@ -424,8 +424,8 @@ Example: ``Callable[[int, str], float]`` sets ``__args__`` to
 
 def _is_param_expr(obj):
     '''Checks if obj matches either a list of types, ``...``, ``ParamSpec`` or
-``_ConcatenateGenericAlias`` from typing.py
-'''
+    ``_ConcatenateGenericAlias`` from typing.py
+    '''
 
     if obj is Ellipsis:
         return True
@@ -438,10 +438,10 @@ def _is_param_expr(obj):
 def _type_repr(obj):
     """Return the repr() of an object, special-casing types (internal helper).
 
-Copied from :mod:`typing` since collections.abc
-shouldn't depend on that module.
-(Keep this roughly in sync with the typing version.)
-"""
+    Copied from :mod:`typing` since collections.abc
+    shouldn't depend on that module.
+    (Keep this roughly in sync with the typing version.)
+    """
 
     if isinstance(obj, type):
         if obj.__module__ == 'builtins':
@@ -470,13 +470,13 @@ class Callable(metaclass=ABCMeta):
 class Set(Collection):
     '''A set is a finite, iterable container.
 
-This class provides concrete generic implementations of all
-methods except for __contains__, __iter__ and __len__.
+    This class provides concrete generic implementations of all
+    methods except for __contains__, __iter__ and __len__.
 
-To override the comparisons (presumably for speed, as the
-semantics are fixed), redefine __le__ and __ge__,
-then the other operations will automatically follow suit.
-'''
+    To override the comparisons (presumably for speed, as the
+    semantics are fixed), redefine __le__ and __ge__,
+    then the other operations will automatically follow suit.
+    '''
 
     __slots__ = ()
     def __le__(self, other):
@@ -518,9 +518,9 @@ then the other operations will automatically follow suit.
     def _from_iterable(cls, it):
         '''Construct an instance of the class from any iterable input.
 
-Must override this method if the class constructor signature
-does not accept an iterable for an input.
-'''
+        Must override this method if the class constructor signature
+        does not accept an iterable for an input.
+        '''
 
         return cls(it)
 
@@ -570,18 +570,18 @@ does not accept an iterable for an input.
     def _hash(self):
         """Compute the hash value of a set.
 
-Note that we don't define __hash__: not all sets are hashable.
-But if you define a hashable set type, its __hash__ should
-call this function.
+        Note that we don't define __hash__: not all sets are hashable.
+        But if you define a hashable set type, its __hash__ should
+        call this function.
 
-This must be compatible __eq__.
+        This must be compatible __eq__.
 
-All sets ought to compare equal if they contain the same
-elements, regardless of how they are implemented, and
-regardless of the order of the elements; so there's not much
-freedom for __eq__ or __hash__.  We match the algorithm used
-by the built-in frozenset type.
-"""
+        All sets ought to compare equal if they contain the same
+        elements, regardless of how they are implemented, and
+        regardless of the order of the elements; so there's not much
+        freedom for __eq__ or __hash__.  We match the algorithm used
+        by the built-in frozenset type.
+        """
 
         MAX = sys.maxsize
         MASK = 2 * MAX + 1
@@ -607,14 +607,14 @@ Set.register(frozenset)
 class MutableSet(Set):
     '''A mutable set is a finite, iterable container.
 
-This class provides concrete generic implementations of all
-methods except for __contains__, __iter__, __len__,
-add(), and discard().
+    This class provides concrete generic implementations of all
+    methods except for __contains__, __iter__, __len__,
+    add(), and discard().
 
-To override the comparisons (presumably for speed, as the
-semantics are fixed), all you have to do is redefine __le__ and
-then the other operations will automatically follow suit.
-'''
+    To override the comparisons (presumably for speed, as the
+    semantics are fixed), all you have to do is redefine __le__ and
+    then the other operations will automatically follow suit.
+    '''
 
     __slots__ = ()
     @abstractmethod
@@ -692,11 +692,11 @@ MutableSet.register(set)
 
 class Mapping(Collection):
     '''A Mapping is a generic container for associating key/value
-pairs.
+    pairs.
 
-This class provides concrete generic implementations of all
-methods except for __getitem__, __iter__, and __len__.
-'''
+    This class provides concrete generic implementations of all
+    methods except for __getitem__, __iter__, and __len__.
+    '''
 
     __slots__ = ()
     __abc_tpflags__ = 64
@@ -811,12 +811,12 @@ ValuesView.register(dict_values)
 
 class MutableMapping(Mapping):
     '''A MutableMapping is a generic container for associating
-key/value pairs.
+    key/value pairs.
 
-This class provides concrete generic implementations of all
-methods except for __getitem__, __setitem__, __delitem__,
-__iter__, and __len__.
-'''
+    This class provides concrete generic implementations of all
+    methods except for __getitem__, __setitem__, __delitem__,
+    __iter__, and __len__.
+    '''
 
     __slots__ = ()
     @abstractmethod
@@ -830,9 +830,9 @@ __iter__, and __len__.
     __marker = object()
     def pop(self, key, default=__marker):
         '''D.pop(k[,d]) -> v, remove specified key and return the corresponding
-value.  If key is not found, d is returned if given, otherwise
-KeyError is raised.
-'''
+        value.  If key is not found, d is returned if given, otherwise
+        KeyError is raised.
+        '''
 
         try:
             value = self[key]
@@ -845,8 +845,8 @@ KeyError is raised.
 
     def popitem(self):
         '''D.popitem() -> (k, v), remove and return some (key, value) pair
-as a 2-tuple; but raise KeyError if D is empty.
-'''
+        as a 2-tuple; but raise KeyError if D is empty.
+        '''
 
         try:
             key = next(iter(self))
@@ -902,9 +902,9 @@ MutableMapping.register(dict)
 class Sequence(Reversible, Collection):
     '''All the operations on a read-only sequence.
 
-Concrete subclasses must override __new__ or __init__,
-__getitem__, and __len__.
-'''
+    Concrete subclasses must override __new__ or __init__,
+    __getitem__, and __len__.
+    '''
 
     __slots__ = ()
     __abc_tpflags__ = 32
@@ -934,11 +934,11 @@ __getitem__, and __len__.
 
     def index(self, value, start=0, stop=None):
         '''S.index(value, [start, [stop]]) -> integer -- return first index of
-value.  Raises ValueError if the value is not present.
+        value.  Raises ValueError if the value is not present.
 
-Supporting start and stop arguments is optional, but
-recommended.
-'''
+        Supporting start and stop arguments is optional, but
+        recommended.
+        '''
 
         if start is not None and start < 0:
             start = max(len(self) + start, 0)
@@ -982,12 +982,12 @@ class _DeprecateByteStringMeta(ABCMeta):
 class ByteString(Sequence, metaclass=_DeprecateByteStringMeta):
     '''Deprecated ABC serving as a common supertype of ``bytes`` and ``bytearray``.
 
-This ABC is scheduled for removal in Python 3.17.
-Use ``isinstance(obj, collections.abc.Buffer)`` to test if ``obj``
-implements the buffer protocol at runtime. For use in type annotations,
-either use ``Buffer`` or a union that explicitly specifies the types your
-code supports (e.g., ``bytes | bytearray | memoryview``).
-'''
+    This ABC is scheduled for removal in Python 3.17.
+    Use ``isinstance(obj, collections.abc.Buffer)`` to test if ``obj``
+    implements the buffer protocol at runtime. For use in type annotations,
+    either use ``Buffer`` or a union that explicitly specifies the types your
+    code supports (e.g., ``bytes | bytearray | memoryview``).
+    '''
 
     __slots__ = ()
 
@@ -997,9 +997,9 @@ ByteString.register(bytearray)
 class MutableSequence(Sequence):
     '''All the operations on a read-write sequence.
 
-Concrete subclasses must provide __new__ or __init__,
-__getitem__, __setitem__, __delitem__, __len__, and insert().
-'''
+    Concrete subclasses must provide __new__ or __init__,
+    __getitem__, __setitem__, __delitem__, __len__, and insert().
+    '''
 
     __slots__ = ()
     @abstractmethod
@@ -1037,7 +1037,7 @@ __getitem__, __setitem__, __delitem__, __len__, and insert().
 
     def extend(self, values):
         '''S.extend(iterable) -- extend sequence by appending elements from the
-iterable'''
+        iterable'''
 
         if values is self:
             values = list(values)
@@ -1046,8 +1046,8 @@ iterable'''
 
     def pop(self, index=-1):
         '''S.pop([index]) -> item -- remove and return item at index (default
-last).  Raise IndexError if list is empty or index is out of range.
-'''
+        last).  Raise IndexError if list is empty or index is out of range.
+        '''
 
         v = self[index]
         del self[index]
@@ -1055,8 +1055,8 @@ last).  Raise IndexError if list is empty or index is out of range.
 
     def remove(self, value):
         '''S.remove(value) -- remove first occurrence of value.
-Raise ValueError if the value is not present.
-'''
+        Raise ValueError if the value is not present.
+        '''
 
         del self[self.index(value)]
 

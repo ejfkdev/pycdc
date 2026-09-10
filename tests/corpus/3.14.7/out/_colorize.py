@@ -68,9 +68,9 @@ for attr, code in ANSIColors.__dict__.items():
 class ThemeSection(Mapping[str, str]):
     '''A mixin/base class for theme sections.
 
-It enables dictionary access to a section, as well as implements convenience
-methods.
-'''
+    It enables dictionary access to a section, as well as implements convenience
+    methods.
+    '''
 
     def __post_init__(self) -> None:
         name_to_value = {}
@@ -219,9 +219,9 @@ class Unittest(ThemeSection):
 class Theme:
     '''A suite of themes for all sections of Python.
 
-When adding a new one, remember to also modify `copy_with` and `no_colors`
-below.
-'''
+    When adding a new one, remember to also modify `copy_with` and `no_colors`
+    below.
+    '''
 
     argparse = field(default_factory=Argparse)
     syntax = field(default_factory=Syntax)
@@ -230,9 +230,9 @@ below.
     def copy_with(self, *, argparse: Argparse | None=None, syntax: Syntax | None=None, traceback: Traceback | None=None, unittest: Unittest | None=None) -> Self:
         '''Return a new Theme based on this instance with some sections replaced.
 
-Themes are immutable to protect against accidental modifications that
-could lead to invalid terminal states.
-'''
+        Themes are immutable to protect against accidental modifications that
+        could lead to invalid terminal states.
+        '''
 
         return type(self)(argparse=argparse or self.argparse, syntax=syntax or self.syntax, traceback=traceback or self.traceback, unittest=unittest or self.unittest)
 
@@ -240,10 +240,10 @@ could lead to invalid terminal states.
     def no_colors(cls) -> Self:
         '''Return a new Theme where colors in all sections are empty strings.
 
-This allows writing user code as if colors are always used. The color
-fields will be ANSI color code strings when colorization is desired
-and possible, and empty strings otherwise.
-'''
+        This allows writing user code as if colors are always used. The color
+        fields will be ANSI color code strings when colorization is desired
+        and possible, and empty strings otherwise.
+        '''
 
         return cls(argparse=Argparse.no_colors(), syntax=Syntax.no_colors(), traceback=Traceback.no_colors(), unittest=Unittest.no_colors())
 
@@ -313,16 +313,16 @@ theme_no_color = default_theme.no_colors()
 def get_theme(*, tty_file: IO[str] | IO[bytes] | None=None, force_color: bool=False, force_no_color: bool=False) -> Theme:
     '''Returns the currently set theme, potentially in a zero-color variant.
 
-In cases where colorizing is not possible (see `can_colorize`), the returned
-theme contains all empty strings in all color definitions.
-See `Theme.no_colors()` for more information.
+    In cases where colorizing is not possible (see `can_colorize`), the returned
+    theme contains all empty strings in all color definitions.
+    See `Theme.no_colors()` for more information.
 
-It is recommended not to cache the result of this function for extended
-periods of time because the user might influence theme selection by
-the interactive shell, a debugger, or application-specific code. The
-environment (including environment variable state and console configuration
-on Windows) can also change in the course of the application life cycle.
-'''
+    It is recommended not to cache the result of this function for extended
+    periods of time because the user might influence theme selection by
+    the interactive shell, a debugger, or application-specific code. The
+    environment (including environment variable state and console configuration
+    on Windows) can also change in the course of the application life cycle.
+    '''
 
     if not force_color:
         if not force_no_color:

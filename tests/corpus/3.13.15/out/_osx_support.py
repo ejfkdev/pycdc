@@ -11,9 +11,9 @@ _INITPRE = '_OSX_SUPPORT_INITIAL_'
 def _find_executable(executable, path=None):
     """Tries to find 'executable' in the directories listed in 'path'.
 
-A string listing directories separated by 'os.pathsep'; defaults to
-os.environ['PATH'].  Returns the complete filename or None if not found.
-"""
+    A string listing directories separated by 'os.pathsep'; defaults to
+    os.environ['PATH'].  Returns the complete filename or None if not found.
+    """
 
     if path is None:
         path = os.environ['PATH']
@@ -77,11 +77,11 @@ _SYSTEM_VERSION_TUPLE = None
 
 def _get_system_version_tuple():
     '''
-Return the macOS system version as a tuple
+    Return the macOS system version as a tuple
 
-The return value is safe to use to compare
-two version numbers.
-'''
+    The return value is safe to use to compare
+    two version numbers.
+    '''
 
     global _SYSTEM_VERSION_TUPLE
     if _SYSTEM_VERSION_TUPLE is None:
@@ -239,13 +239,13 @@ def _check_for_unavailable_sdk(_config_vars):
 
 def compiler_fixup(compiler_so, cc_args):
     """
-This function will strip '-isysroot PATH' and '-arch ARCH' from the
-compile flags if the user has specified one them in extra_compile_flags.
+    This function will strip '-isysroot PATH' and '-arch ARCH' from the
+    compile flags if the user has specified one them in extra_compile_flags.
 
-This is needed because '-arch ARCH' adds another architecture to the
-build, without a way to remove an architecture. Furthermore GCC will
-barf if multiple '-isysroot' arguments are present.
-"""
+    This is needed because '-arch ARCH' adds another architecture to the
+    build, without a way to remove an architecture. Furthermore GCC will
+    barf if multiple '-isysroot' arguments are present.
+    """
 
     stripArch = stripSysroot = False
     compiler_so = list(compiler_so)
@@ -300,27 +300,27 @@ barf if multiple '-isysroot' arguments are present.
 def customize_config_vars(_config_vars):
     '''Customize Python build configuration variables.
 
-Called internally from sysconfig with a mutable mapping
-containing name/value pairs parsed from the configured
-makefile used to build this interpreter.  Returns
-the mapping updated as needed to reflect the environment
-in which the interpreter is running; in the case of
-a Python from a binary installer, the installed
-environment may be very different from the build
-environment, i.e. different OS levels, different
-built tools, different available CPU architectures.
+    Called internally from sysconfig with a mutable mapping
+    containing name/value pairs parsed from the configured
+    makefile used to build this interpreter.  Returns
+    the mapping updated as needed to reflect the environment
+    in which the interpreter is running; in the case of
+    a Python from a binary installer, the installed
+    environment may be very different from the build
+    environment, i.e. different OS levels, different
+    built tools, different available CPU architectures.
 
-This customization is performed whenever
-distutils.sysconfig.get_config_vars() is first
-called.  It may be used in environments where no
-compilers are present, i.e. when installing pure
-Python dists.  Customization of compiler paths
-and detection of unavailable archs is deferred
-until the first extension module build is
-requested (in distutils.sysconfig.customize_compiler).
+    This customization is performed whenever
+    distutils.sysconfig.get_config_vars() is first
+    called.  It may be used in environments where no
+    compilers are present, i.e. when installing pure
+    Python dists.  Customization of compiler paths
+    and detection of unavailable archs is deferred
+    until the first extension module build is
+    requested (in distutils.sysconfig.customize_compiler).
 
-Currently called from distutils.sysconfig
-'''
+    Currently called from distutils.sysconfig
+    '''
 
     if not _supports_universal_builds():
         _remove_universal_flags(_config_vars)

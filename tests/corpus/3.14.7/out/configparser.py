@@ -181,10 +181,10 @@ class NoSectionError(Error):
 class DuplicateSectionError(Error):
     '''Raised when a section is repeated in an input source.
 
-Possible repetitions that raise this exception are: multiple creation
-using the API or in strict parsers when a section is found more than once
-in a single input file, string or dictionary.
-'''
+    Possible repetitions that raise this exception are: multiple creation
+    using the API or in strict parsers when a section is found more than once
+    in a single input file, string or dictionary.
+    '''
 
     def __init__(self, section, source=None, lineno=None):
         msg = [repr(section), ' already exists']
@@ -207,9 +207,9 @@ in a single input file, string or dictionary.
 class DuplicateOptionError(Error):
     '''Raised by strict parsers when an option is repeated in an input source.
 
-Current implementation raises this exception only when an option is found
-more than once in a single file, string or dictionary.
-'''
+    Current implementation raises this exception only when an option is found
+    more than once in a single file, string or dictionary.
+    '''
 
     def __init__(self, section, option, source=None, lineno=None):
         msg = [repr(option), ' in section ', repr(section), ' already exists']
@@ -263,9 +263,9 @@ class InterpolationMissingOptionError(InterpolationError):
 class InterpolationSyntaxError(InterpolationError):
     '''Raised when the source text contains invalid syntax.
 
-Current implementation raises this exception when the source text into
-which substitutions are made does not conform to the required syntax.
-'''
+    Current implementation raises this exception when the source text into
+    which substitutions are made does not conform to the required syntax.
+    '''
 
 class InterpolationDepthError(InterpolationError):
     '''Raised when substitutions are nested too deeply.'''
@@ -303,8 +303,8 @@ class ParsingError(Error):
     @staticmethod
     def _raise_all(exceptions: Iterable['ParsingError']):
         '''
-Combine any number of ParsingErrors into one and raise it.
-'''
+        Combine any number of ParsingErrors into one and raise it.
+        '''
 
         exceptions = iter(exceptions)
         with contextlib.suppress(StopIteration):
@@ -335,7 +335,7 @@ class MultilineContinuationError(ParsingError):
 
 class UnnamedSectionDisabledError(Error):
     '''Raised when an attempt to use UNNAMED_SECTION is made with the
-feature disabled.'''
+    feature disabled.'''
 
     def __init__(self):
         Error.__init__(self, 'Support for UNNAMED_SECTION is disabled.')
@@ -348,8 +348,8 @@ class _UnnamedSection:
 
 class InvalidWriteError(Error):
     '''Raised when attempting to write data that the parser would read back differently.
-ex: writing a key which begins with the section header pattern would read back as a
-new section '''
+    ex: writing a key which begins with the section header pattern would read back as a
+    new section '''
 
     def __init__(self, msg=''):
         Error.__init__(self, msg)
@@ -438,7 +438,7 @@ is considered a user error and raises `InterpolationSyntaxError`.'''
 
 class ExtendedInterpolation(Interpolation):
     '''Advanced variant of interpolation, supports the syntax used by
-`zc.buildout`. Enables interpolation between sections.'''
+    `zc.buildout`. Enables interpolation between sections.'''
 
     _KEYCRE = re.compile('\\$\\{([^}]+)\\}')
     def before_get(self, parser, section, option, value, defaults):
@@ -603,9 +603,9 @@ class RawConfigParser(MutableMapping):
     def add_section(self, section):
         '''Create a new section in the configuration.
 
-Raise DuplicateSectionError if a section by the specified name
-already exists. Raise ValueError if name is DEFAULT.
-'''
+        Raise DuplicateSectionError if a section by the specified name
+        already exists. Raise ValueError if name is DEFAULT.
+        '''
 
         if section == self.default_section:
             raise ValueError('Invalid section name: %r' % section)
@@ -619,8 +619,8 @@ already exists. Raise ValueError if name is DEFAULT.
     def has_section(self, section):
         '''Indicate whether the named section is present in the configuration.
 
-The DEFAULT section is not acknowledged.
-'''
+        The DEFAULT section is not acknowledged.
+        '''
 
         return section in self._sections
 
@@ -637,15 +637,15 @@ The DEFAULT section is not acknowledged.
     def read(self, filenames, encoding=None):
         """Read and parse a filename or an iterable of filenames.
 
-Files that cannot be opened are silently ignored; this is
-designed so that you can specify an iterable of potential
-configuration file locations (e.g. current directory, user's
-home directory, systemwide directory), and all existing
-configuration files in the iterable will be read.  A single
-filename may also be given.
+        Files that cannot be opened are silently ignored; this is
+        designed so that you can specify an iterable of potential
+        configuration file locations (e.g. current directory, user's
+        home directory, systemwide directory), and all existing
+        configuration files in the iterable will be read.  A single
+        filename may also be given.
 
-Return list of successfully read files.
-"""
+        Return list of successfully read files.
+        """
 
         if isinstance(filenames, (str, bytes, os.PathLike)):
             filenames = [filenames]
@@ -665,11 +665,11 @@ Return list of successfully read files.
     def read_file(self, f, source=None):
         '''Like read() but the argument must be a file-like object.
 
-The `f` argument must be iterable, returning one line at a time.
-Optional second argument is the `source` specifying the name of the
-file being read. If not given, it is taken from f.name. If `f` has no
-`name` attribute, `<???>` is used.
-'''
+        The `f` argument must be iterable, returning one line at a time.
+        Optional second argument is the `source` specifying the name of the
+        file being read. If not given, it is taken from f.name. If `f` has no
+        `name` attribute, `<???>` is used.
+        '''
 
         if not source is not None:
             try:
@@ -687,16 +687,16 @@ file being read. If not given, it is taken from f.name. If `f` has no
     def read_dict(self, dictionary, source='<dict>'):
         '''Read configuration from a dictionary.
 
-Keys are section names, values are dictionaries with keys and values
-that should be present in the section. If the used dictionary type
-preserves order, sections and their keys will be added in order.
+        Keys are section names, values are dictionaries with keys and values
+        that should be present in the section. If the used dictionary type
+        preserves order, sections and their keys will be added in order.
 
-All types held in the dictionary are converted to strings during
-reading, including section names, option names and keys.
+        All types held in the dictionary are converted to strings during
+        reading, including section names, option names and keys.
 
-Optional second argument is the `source` specifying the name of the
-dictionary being read.
-'''
+        Optional second argument is the `source` specifying the name of the
+        dictionary being read.
+        '''
 
         elements_added = set()
         for section, keys in dictionary.items():
@@ -720,18 +720,18 @@ dictionary being read.
     def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
         '''Get an option value for a given section.
 
-If `vars` is provided, it must be a dictionary. The option is looked up
-in `vars` (if provided), `section`, and in `DEFAULTSECT` in that order.
-If the key is not found and `fallback` is provided, it is used as
-a fallback value. `None` can be provided as a `fallback` value.
+        If `vars` is provided, it must be a dictionary. The option is looked up
+        in `vars` (if provided), `section`, and in `DEFAULTSECT` in that order.
+        If the key is not found and `fallback` is provided, it is used as
+        a fallback value. `None` can be provided as a `fallback` value.
 
-If interpolation is enabled and the optional argument `raw` is False,
-all interpolations are expanded in the return values.
+        If interpolation is enabled and the optional argument `raw` is False,
+        all interpolations are expanded in the return values.
 
-Arguments `raw`, `vars`, and `fallback` are keyword only.
+        Arguments `raw`, `vars`, and `fallback` are keyword only.
 
-The section DEFAULT is special.
-'''
+        The section DEFAULT is special.
+        '''
 
         try:
             d = self._unify_values(section, vars)
@@ -773,14 +773,14 @@ The section DEFAULT is special.
     def items(self, section=_UNSET, raw=False, vars=None):
         '''Return a list of (name, value) tuples for each option in a section.
 
-All % interpolations are expanded in the return values, based on the
-defaults passed into the constructor, unless the optional argument
-`raw` is true.  Additional substitutions may be provided using the
-`vars` argument, which must be a dictionary whose contents overrides
-any pre-existing defaults.
+        All % interpolations are expanded in the return values, based on the
+        defaults passed into the constructor, unless the optional argument
+        `raw` is true.  Additional substitutions may be provided using the
+        `vars` argument, which must be a dictionary whose contents overrides
+        any pre-existing defaults.
 
-The section DEFAULT is special.
-'''
+        The section DEFAULT is special.
+        '''
 
         if section is _UNSET:
             return super().items()
@@ -801,11 +801,11 @@ The section DEFAULT is special.
 
     def popitem(self):
         '''Remove a section from the parser and return it as
-a (section_name, section_proxy) tuple. If no section is present, raise
-KeyError.
+        a (section_name, section_proxy) tuple. If no section is present, raise
+        KeyError.
 
-The section DEFAULT is never returned because it cannot be removed.
-'''
+        The section DEFAULT is never returned because it cannot be removed.
+        '''
 
         for key in self.sections():
             value = self[key]
@@ -818,8 +818,8 @@ The section DEFAULT is never returned because it cannot be removed.
 
     def has_option(self, section, option):
         '''Check for the existence of a given option in a given section.
-If the specified `section` is None or an empty string, DEFAULT is
-assumed. If the specified `section` does not exist, returns False.'''
+        If the specified `section` is None or an empty string, DEFAULT is
+        assumed. If the specified `section` does not exist, returns False.'''
 
         if not section or section == self.default_section:
             option = self.optionxform(option)
@@ -846,12 +846,12 @@ assumed. If the specified `section` does not exist, returns False.'''
     def write(self, fp, space_around_delimiters=True):
         '''Write an .ini-format representation of the configuration state.
 
-If `space_around_delimiters` is True (the default), delimiters
-between keys and values are surrounded by spaces.
+        If `space_around_delimiters` is True (the default), delimiters
+        between keys and values are surrounded by spaces.
 
-Please note that comments in the original configuration file are not
-preserved when writing the configuration back.
-'''
+        Please note that comments in the original configuration file are not
+        preserved when writing the configuration back.
+        '''
 
         if space_around_delimiters:
             d = ' {} '.format(self._delimiters[0])
@@ -938,20 +938,20 @@ preserved when writing the configuration back.
     def _read(self, fp, fpname):
         """Parse a sectioned configuration file.
 
-Each section in a configuration file contains a header, indicated by
-a name in square brackets (`[]`), plus key/value options, indicated by
-`name` and `value` delimited with a specific substring (`=` or `:` by
-default).
+        Each section in a configuration file contains a header, indicated by
+        a name in square brackets (`[]`), plus key/value options, indicated by
+        `name` and `value` delimited with a specific substring (`=` or `:` by
+        default).
 
-Values can span multiple lines, as long as they are indented deeper
-than the first line of the value. Depending on the parser's mode, blank
-lines may be treated as parts of multiline values or ignored.
+        Values can span multiple lines, as long as they are indented deeper
+        than the first line of the value. Depending on the parser's mode, blank
+        lines may be treated as parts of multiline values or ignored.
 
-Configuration files may include comments, prefixed by specific
-characters (`#` and `;` by default). Comments may appear on their own
-in an otherwise empty line or may be entered in lines holding values or
-section names. Please note that comments get stripped off when reading configuration files.
-"""
+        Configuration files may include comments, prefixed by specific
+        characters (`#` and `;` by default). Comments may appear on their own
+        in an otherwise empty line or may be entered in lines holding values or
+        section names. Please note that comments get stripped off when reading configuration files.
+        """
 
         try:
             ParsingError._raise_all(self._read_inner(fp, fpname))
@@ -1043,16 +1043,16 @@ section names. Please note that comments get stripped off when reading configura
 
     def _read_defaults(self, defaults):
         '''Read the defaults passed in the initializer.
-Note: values can be non-string.'''
+        Note: values can be non-string.'''
 
         for key, value in defaults.items():
             self._defaults[self.optionxform(key)] = value
 
     def _unify_values(self, section, vars):
         """Create a sequence of lookups with 'vars' taking priority over
-the 'section' which takes priority over the DEFAULTSECT.
+        the 'section' which takes priority over the DEFAULTSECT.
 
-"""
+        """
 
         sectiondict = {}
         try:
@@ -1078,7 +1078,7 @@ the 'section' which takes priority over the DEFAULTSECT.
 
     def _validate_key_contents(self, key):
         '''Raises an InvalidWriteError for any keys containing
-delimiters or that begins with the section header pattern'''
+        delimiters or that begins with the section header pattern'''
 
         if re.match(self.SECTCRE, key):
             raise InvalidWriteError(f'Cannot write key {key}; begins with section pattern')
@@ -1090,13 +1090,13 @@ delimiters or that begins with the section header pattern'''
     def _validate_value_types(self, *, section='', option='', value=''):
         '''Raises a TypeError for illegal non-string values.
 
-Legal non-string values are UNNAMED_SECTION and falsey values if
-they are allowed.
+        Legal non-string values are UNNAMED_SECTION and falsey values if
+        they are allowed.
 
-For compatibility reasons this method is not used in classic set()
-for RawConfigParsers. It is invoked in every case for mapping protocol
-access and in ConfigParser.set().
-'''
+        For compatibility reasons this method is not used in classic set()
+        for RawConfigParsers. It is invoked in every case for mapping protocol
+        access and in ConfigParser.set().
+        '''
 
         if section is UNNAMED_SECTION:
             if not self._allow_unnamed_section:
@@ -1128,10 +1128,10 @@ class ConfigParser(RawConfigParser):
 
     def _read_defaults(self, defaults):
         '''Reads the defaults passed in the initializer, implicitly converting
-values to strings like the rest of the API.
+        values to strings like the rest of the API.
 
-Does not perform interpolation for backwards compatibility.
-'''
+        Does not perform interpolation for backwards compatibility.
+        '''
 
         try:
             hold_interpolation = self._interpolation
@@ -1195,10 +1195,10 @@ class SectionProxy(MutableMapping):
     def get(self, option, fallback=None, *, raw=False, vars=None, _impl=None, **kwargs):
         '''Get an option value.
 
-Unless `fallback` is provided, `None` will be returned if the option
-is not found.
+        Unless `fallback` is provided, `None` will be returned if the option
+        is not found.
 
-'''
+        '''
 
         if not _impl:
             _impl = self._parser.get
@@ -1208,10 +1208,10 @@ is not found.
 class ConverterMapping(MutableMapping):
     '''Enables reuse of get*() methods between the parser and section proxies.
 
-If a parser class implements a getter directly, the value for the given
-key will be ``None``. The presence of the converter name here enables
-section proxies to find and use the implementation on the parser class.
-'''
+    If a parser class implements a getter directly, the value for the given
+    key will be ``None``. The presence of the converter name here enables
+    section proxies to find and use the implementation on the parser class.
+    '''
 
     GETTERCRE = re.compile('^get(?P<name>.+)$')
     def __init__(self, parser):

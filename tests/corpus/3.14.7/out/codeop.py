@@ -92,9 +92,9 @@ Return value / exceptions raised:
 
 class Compile:
     '''Instances of this class behave much like the built-in compile
-function, but if one is used to compile text containing a future
-statement, it "remembers" and compiles all subsequent program texts
-with the statement in force.'''
+    function, but if one is used to compile text containing a future
+    statement, it "remembers" and compiles all subsequent program texts
+    with the statement in force.'''
 
     def __init__(self):
         self.flags = PyCF_DONT_IMPLY_DEDENT | PyCF_ALLOW_INCOMPLETE_INPUT
@@ -115,10 +115,10 @@ with the statement in force.'''
 
 class CommandCompiler:
     """Instances of this class have __call__ methods identical in
-signature to compile_command; the difference is that if the
-instance compiles program text containing a __future__ statement,
-the instance 'remembers' and compiles all subsequent program texts
-with the statement in force."""
+    signature to compile_command; the difference is that if the
+    instance compiles program text containing a __future__ statement,
+    the instance 'remembers' and compiles all subsequent program texts
+    with the statement in force."""
 
     def __init__(self):
         self.compiler = Compile()

@@ -73,11 +73,11 @@ __version__ = '1.0'
 class Dialect:
     '''Describe a CSV dialect.
 
-This must be subclassed (see csv.excel).  Valid attributes are:
-delimiter, quotechar, escapechar, doublequote, skipinitialspace,
-lineterminator, quoting.
+    This must be subclassed (see csv.excel).  Valid attributes are:
+    delimiter, quotechar, escapechar, doublequote, skipinitialspace,
+    lineterminator, quoting.
 
-'''
+    '''
 
     _name = ''
     _valid = False
@@ -213,21 +213,21 @@ class DictWriter:
 
 class Sniffer:
     '''
-"Sniffs" the format of a CSV file (i.e. delimiter, quotechar)
-Returns a Dialect object.
-'''
+    "Sniffs" the format of a CSV file (i.e. delimiter, quotechar)
+    Returns a Dialect object.
+    '''
 
     def __init__(self):
         self.preferred = [',', '\t', ';', ' ', ':']
 
     def sniff(self, sample, delimiters=None):
         '''
-Returns a dialect (or None) corresponding to the sample
+        Returns a dialect (or None) corresponding to the sample
 
-If several delimiters fit the sample equally well, the
-delimiters listed in the preferred attribute are preferred, in
-that order, no matter how many times each of them occurs.
-'''
+        If several delimiters fit the sample equally well, the
+        delimiters listed in the preferred attribute are preferred, in
+        that order, no matter how many times each of them occurs.
+        '''
 
         sample = sample.replace('\r\n', '\n').replace('\r', '\n')
         quotechar, doublequote, delimiter, skipinitialspace = self._guess_quote_and_delimiter(sample, delimiters)

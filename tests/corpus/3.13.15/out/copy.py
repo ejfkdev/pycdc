@@ -62,8 +62,8 @@ __all__ = ['Error', 'copy', 'deepcopy', 'replace']
 def copy(x):
     """Shallow copy operation on arbitrary Python objects.
 
-See the module's __doc__ string for more info.
-"""
+    See the module's __doc__ string for more info.
+    """
 
     cls = type(x)
     copier = _copy_dispatch.get(cls)
@@ -107,8 +107,8 @@ del d, t
 def deepcopy(x, memo=None, _nil=[]):
     """Deep copy operation on arbitrary Python objects.
 
-See the module's __doc__ string for more info.
-"""
+    See the module's __doc__ string for more info.
+    """
 
     d = id(x)
     if memo is None:
@@ -216,13 +216,13 @@ del d
 def _keep_alive(x, memo):
     '''Keeps a reference to the object x in the memo.
 
-Because we remember objects by their id, we have
-to assure that possibly temporary objects are kept
-alive by referencing them.
-We store a reference at the id of the memo, which should
-normally not be used unless someone tries to deepcopy
-the memo itself...
-'''
+    Because we remember objects by their id, we have
+    to assure that possibly temporary objects are kept
+    alive by referencing them.
+    We store a reference at the id of the memo, which should
+    normally not be used unless someone tries to deepcopy
+    the memo itself...
+    '''
 
     try:
         memo[id(memo)].append(x)
@@ -276,9 +276,9 @@ del types, weakref
 def replace(obj, /, **changes):
     '''Return a new object replacing specified fields with new values.
 
-This is especially useful for immutable objects, like named tuples or
-frozen dataclasses.
-'''
+    This is especially useful for immutable objects, like named tuples or
+    frozen dataclasses.
+    '''
 
     cls = obj.__class__
     func = getattr(cls, '__replace__', None)

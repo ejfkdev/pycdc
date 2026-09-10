@@ -20,7 +20,7 @@ class _localimpl:
 
     def get_dict(self):
         '''Return the dict for the current thread. Raises KeyError if none
-defined.'''
+        defined.'''
 
         thread = current_thread()
         return self.dicts[id(thread)][1]

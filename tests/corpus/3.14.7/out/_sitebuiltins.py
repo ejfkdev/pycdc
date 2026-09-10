@@ -22,7 +22,7 @@ class Quitter(object):
 
 class _Printer(object):
     '''interactive prompt objects for printing the license text, a list of
-contributors and the copyright notice.'''
+    contributors and the copyright notice.'''
 
     MAXLINES = 23
     def __init__(self, name, data, files=(), dirs=()):
@@ -65,12 +65,12 @@ contributors and the copyright notice.'''
 class _Helper(object):
     """Define the builtin 'help'.
 
-This is a wrapper around pydoc.help that provides a helpful message
-when 'help' is typed at the Python interactive prompt.
+    This is a wrapper around pydoc.help that provides a helpful message
+    when 'help' is typed at the Python interactive prompt.
 
-Calling help() at the Python prompt starts an interactive help session.
-Calling help(thing) prints help for the python object 'thing'.
-"""
+    Calling help() at the Python prompt starts an interactive help session.
+    Calling help(thing) prints help for the python object 'thing'.
+    """
 
     def __repr__(self):
         return 'Type help() for interactive help, or help(object) for help about object.'

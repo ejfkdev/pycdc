@@ -231,16 +231,16 @@ hardlink_dupes: hardlink duplicated pyc files
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
     '''Byte-compile all module on sys.path.
 
-Arguments (all optional):
+    Arguments (all optional):
 
-skip_curdir: if true, skip current directory (default True)
-maxlevels:   max recursion level (default 0)
-force: as for compile_dir() (default False)
-quiet: as for compile_dir() (default 0)
-legacy: as for compile_dir() (default False)
-optimize: as for compile_dir() (default -1)
-invalidation_mode: as for compiler_dir()
-'''
+    skip_curdir: if true, skip current directory (default True)
+    maxlevels:   max recursion level (default 0)
+    force: as for compile_dir() (default False)
+    quiet: as for compile_dir() (default 0)
+    legacy: as for compile_dir() (default False)
+    optimize: as for compile_dir() (default -1)
+    invalidation_mode: as for compiler_dir()
+    '''
 
     success = True
     for dir in sys.path:

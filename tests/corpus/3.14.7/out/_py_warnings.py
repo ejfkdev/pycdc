@@ -68,7 +68,7 @@ def _new_context():
 
 def _get_filters():
     '''Return the current list of filters.  This is a non-public API used by
-module functions and by the unit tests.'''
+    module functions and by the unit tests.'''
 
     return _wm._get_context()._filters
 
@@ -479,28 +479,28 @@ class WarningMessage(object):
 
 class catch_warnings(object):
     """A context manager that copies and restores the warnings filter upon
-exiting the context.
+    exiting the context.
 
-The 'record' argument specifies whether warnings should be captured by a
-custom implementation of warnings.showwarning() and be appended to a list
-returned by the context manager. Otherwise None is returned by the context
-manager. The objects appended to the list are arguments whose attributes
-mirror the arguments to showwarning().
+    The 'record' argument specifies whether warnings should be captured by a
+    custom implementation of warnings.showwarning() and be appended to a list
+    returned by the context manager. Otherwise None is returned by the context
+    manager. The objects appended to the list are arguments whose attributes
+    mirror the arguments to showwarning().
 
-The 'module' argument is to specify an alternative module to the module
-named 'warnings' and imported under that name. This argument is only useful
-when testing the warnings module itself.
+    The 'module' argument is to specify an alternative module to the module
+    named 'warnings' and imported under that name. This argument is only useful
+    when testing the warnings module itself.
 
-If the 'action' argument is not None, the remaining arguments are passed
-to warnings.simplefilter() as if it were called immediately on entering the
-context.
-"""
+    If the 'action' argument is not None, the remaining arguments are passed
+    to warnings.simplefilter() as if it were called immediately on entering the
+    context.
+    """
 
     def __init__(self, *, record=False, module=None, action=None, category=Warning, lineno=0, append=False):
         """Specify whether to record warnings and if an alternative module
-should be used other than sys.modules['warnings'].
+        should be used other than sys.modules['warnings'].
 
-"""
+        """
 
         self._record = record
         self._module = sys.modules['warnings'] if not module is not None else module
@@ -670,13 +670,13 @@ _DEPRECATED_MSG = '{name!r} is deprecated and slated for removal in Python {remo
 def _deprecated(name, message=_DEPRECATED_MSG, *, remove, _version=sys.version_info):
     '''Warn that *name* is deprecated or should be removed.
 
-RuntimeError is raised if *remove* specifies a major/minor tuple older than
-the current Python version or the same version but past the alpha.
+    RuntimeError is raised if *remove* specifies a major/minor tuple older than
+    the current Python version or the same version but past the alpha.
 
-The *message* argument is formatted with *name* and *remove* as a Python
-version tuple (e.g. (3, 11)).
+    The *message* argument is formatted with *name* and *remove* as a Python
+    version tuple (e.g. (3, 11)).
 
-'''
+    '''
 
     remove_formatted = f'{remove[0]}.{remove[1]}'
     if _version[:2] > remove or _version[:2] == remove and _version[3] != 'alpha':

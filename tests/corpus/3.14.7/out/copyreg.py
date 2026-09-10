@@ -87,21 +87,21 @@ def __newobj__(cls, *args):
 
 def __newobj_ex__(cls, args, kwargs):
     '''Used by pickle protocol 4, instead of __newobj__ to allow classes with
-keyword-only arguments to be pickled correctly.
-'''
+    keyword-only arguments to be pickled correctly.
+    '''
 
     return cls.__new__(cls, *args, **kwargs)
 
 def _slotnames(cls):
     """Return a list of slot names for a given class.
 
-This needs to find slots defined by the class and its bases, so we
-can't simply return the __slots__ attribute.  We must walk down
-the Method Resolution Order and concatenate the __slots__ of each
-class found there.  (This assumes classes don't modify their
-__slots__ attribute to misrepresent their slots after the class is
-defined.)
-"""
+    This needs to find slots defined by the class and its bases, so we
+    can't simply return the __slots__ attribute.  We must walk down
+    the Method Resolution Order and concatenate the __slots__ of each
+    class found there.  (This assumes classes don't modify their
+    __slots__ attribute to misrepresent their slots after the class is
+    defined.)
+    """
 
     names = cls.__dict__.get('__slotnames__')
     if not names is None:

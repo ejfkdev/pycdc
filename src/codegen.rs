@@ -1494,9 +1494,54 @@ impl Printer {
         }
         if docstring {
             let q3 = quote.to_string().repeat(3);
+            // 3.13+ compilers clean docstrings at COMPILE time (per-line
+            // leading margin stripped with tabs expanded to 8-column
+            // stops, whitespace-only lines clamped to the margin, first
+            // line untouched — gh-81283), so the pyc const has LOST the
+            // source indentation. Re-indent continuation lines at the
+            // body's level: recompiling with 3.13+ strips exactly this
+            // pad back off (margin == pad), giving a byte-identical
+            // const, while the rendered source matches the original
+            // text and the AST comparison sees equal docstrings
+            // (code.py 3.13/3.14 class/method docstrings rendered at
+            // column 0). Skip when any continuation line already starts
+            // with whitespace: that docstring carried a non-uniform
+            // deeper indent whose exact margin is unrecoverable —
+            // re-padding would corrupt the relative indentation.
+            let mut text;
+            let mut reindented = false;
+            let s: &str = if self.version.at_least(3, 13) {
+                let lines: Vec<&str> = s.split('\n').collect();
+                if lines.len() > 1
+                    && lines[1..]
+                        .iter()
+                        .all(|l| l.is_empty() || !l.starts_with([' ', '\t']))
+                {
+                    let pad0: String = "    ".repeat(self.indent);
+                    let mut t = lines[0].to_string();
+                    for l in &lines[1..] {
+                        t.push('\n');
+                        if !l.is_empty() {
+                            t.push_str(&pad0);
+                        }
+                        t.push_str(l);
+                    }
+                    text = t;
+                    reindented = true;
+                    &text
+                } else {
+                    s
+                }
+            } else {
+                s
+            };
+            let pad: String = "    ".repeat(self.indent);
             self.write(&q3);
             // escape backslashes so \uXXXX etc. in the original text survive;
-            // keep real newlines as-is
+            // keep real newlines as-is (re-indenting every rendered
+            // continuation line: write() only pads the first line, and a
+            // bare pad on a blank source line is stripped back to empty
+            // by the compiler's clamp — both keep the const identical)
             let mut body = String::new();
             for ch in s.chars() {
                 if ch == '\\' {
@@ -1516,6 +1561,19 @@ impl Printer {
                 }
             }
             self.write(&body);
+            if reindented && s.ends_with('\n') {
+                // the closing quotes ride the const's trailing newline:
+                // pad them to the body level so a 3.13+ recompile's
+                // margin computation sees a uniform-indent last line.
+                // ONLY when the re-indent applied (every non-blank
+                // continuation line starts with the pad, so the margin
+                // strips the pad-only closing line back to empty) —
+                // with deeper-indented content the margin is smaller
+                // than the pad and the padded closing line would leak
+                // trailing whitespace into the const (abc/codecs 3.13
+                // regressed under the unconditional pad)
+                self.write(&pad);
+            }
             self.write(&q3);
             return;
         }
