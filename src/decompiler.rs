@@ -4065,6 +4065,40 @@ impl<'a> Ctx<'a> {
                                             })
                                             && x.offset > tc.body_end
                                         {
+                                            // the span must be a real
+                                            // else arm FALLING THROUGH
+                                            // to the fused back edge: a
+                                            // RETURN inside it means the
+                                            // span is a value-return
+                                            // tail the protected range
+                                            // stopped short of (3.11
+                                            // narrows at the RETURN),
+                                            // not an else arm (bdb 3.11
+                                            // effective: the shared
+                                            // `return b, True` tail
+                                            // SWAP; POP_TOP; RETURN
+                                            // read as a phantom else
+                                            // and underflowed the
+                                            // value stack)
+                                            let has_ret = self
+                                                .instrs
+                                                .iter()
+                                                .skip_while(|y| {
+                                                    y.offset < tc.body_end
+                                                })
+                                                .take_while(|y| {
+                                                    y.offset < x.offset
+                                                })
+                                                .any(|y| {
+                                                    matches!(
+                                                        y.op,
+                                                        Op::RETURN_VALUE
+                                                            | Op::RETURN_CONST
+                                                    )
+                                                });
+                                            if has_ret {
+                                                break;
+                                            }
                                             pair = Some((x.offset, x.end()));
                                             break;
                                         }

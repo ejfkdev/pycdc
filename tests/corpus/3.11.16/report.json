@@ -3,8 +3,7 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
   "PASS": 30,
-  "SIG-DIFF": 8,
-  "INCOMPLETE": 1,
+  "SIG-DIFF": 9,
   "AST-PASS": 1
  },
  "results": [
@@ -114,8 +113,9 @@
   },
   {
    "module": "bdb",
-   "verdict": "INCOMPLETE",
-   "ndiff": 715,
+   "ast_detail": "diff at token 1059: orig  keywords=[]))] | dec  keywords=[]))",
+   "verdict": "SIG-DIFF",
+   "ndiff": 701,
    "ntotal": 2537,
    "detail": "line 602: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 130') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 130')\nline 1795: orig ('LOAD_GLOBAL', 'NULL + eval') | got ('JUMP_FORWARD', 'to 162')\nline 1796: orig ('LOAD_FAST', 'expr') | got ('PUSH_EXC_INFO', '')"
   },

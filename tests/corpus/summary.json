@@ -27,8 +27,7 @@
   "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
   "counts": {
    "PASS": 30,
-   "SIG-DIFF": 8,
-   "INCOMPLETE": 1,
+   "SIG-DIFF": 9,
    "AST-PASS": 1
   }
  },

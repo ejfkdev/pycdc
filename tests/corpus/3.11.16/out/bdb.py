@@ -773,8 +773,6 @@ def effective(file, line, frame):
                     return b, True
         except:
             return b, False
-        else:
-            return
     return (None, None)
 
 class Tdb(Bdb):
@@ -814,4 +812,3 @@ def test():
     t = Tdb()
     t.run('import bdb; bdb.foo(10)')
 
-# WARNING: Decompyle incomplete
