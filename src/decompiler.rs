@@ -24508,8 +24508,50 @@ return None;
             (Expr::Unary { op: o1, operand: x1 }, Expr::Unary { op: o2, operand: x2 }) if o1 == o2 => {
                 try_children!(|r: Vec<ExprRef>| Rc::new(Expr::Unary { op: *o1, operand: r[0].clone() }), (x1, x2),)
             }
+            // Tuple/List/Set: the differing slot may be ONE element of a
+            // container (annotationlib 3.14 __hash__ `return hash((a, b,
+            // id(c), tuple(sorted(..)) if .. else None))` — the ternary is
+            // the LAST tuple element; without this arm the catch-all
+            // replaced the WHOLE tuple with the ternary, dropping a/b/c).
+            // Recurse per element and merge at the single differing one.
+            (Expr::Tuple(ea), Expr::Tuple(eb)) if ea.len() == eb.len() => {
+                Self::merge_vec_slot(ea, eb, t).map(|v| Rc::new(Expr::Tuple(v)))
+            }
+            (Expr::List(ea), Expr::List(eb)) if ea.len() == eb.len() => {
+                Self::merge_vec_slot(ea, eb, t).map(|v| Rc::new(Expr::List(v)))
+            }
+            (Expr::Set(ea), Expr::Set(eb)) if ea.len() == eb.len() => {
+                Self::merge_vec_slot(ea, eb, t).map(|v| Rc::new(Expr::Set(v)))
+            }
             _ => Some(t.clone()),
         }
+    }
+
+    /// Merge two equal-length element vectors that differ in exactly ONE
+    /// position: recurse at that position (falling back to the bare
+    /// ternary `t` for a leaf difference) and return the rebuilt vector.
+    fn merge_vec_slot(
+        ea: &[ExprRef],
+        eb: &[ExprRef],
+        t: &ExprRef,
+    ) -> Option<Vec<ExprRef>> {
+        let mut merged_idx: Option<usize> = None;
+        let mut merged_val: Option<ExprRef> = None;
+        for (i, (x, y)) in ea.iter().zip(eb.iter()).enumerate() {
+            if expr_eq(x, y) {
+                continue;
+            }
+            if merged_idx.is_some() {
+                return None;
+            }
+            merged_val = Self::ternary_merge_slot(x, y, t).or_else(|| Some(t.clone()));
+            merged_idx = Some(i);
+        }
+        let idx = merged_idx?;
+        let val = merged_val?;
+        let mut reps: Vec<ExprRef> = ea.to_vec();
+        reps[idx] = val;
+        Some(reps)
     }
 
     /// Simulate [a, b) over an initial stack, returning the full final
