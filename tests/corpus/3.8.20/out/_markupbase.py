@@ -158,7 +158,7 @@ class ParserBase:
                 j = meth(j, declstartpos)
                 if j < 0:
                     return j
-            elif c == '%':
+            if c == '%':
                 if j + 1 == n:
                     return -1
                 s, j = self._scan_name(j + 1, declstartpos)
@@ -166,7 +166,8 @@ class ParserBase:
                     return j
                 if rawdata[j] == ';':
                     j = j + 1
-            elif c == ']':
+                    continue
+            if c == ']':
                 j = j + 1
                 while j < n and rawdata[j].isspace():
                     j = j + 1

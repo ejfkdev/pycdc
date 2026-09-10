@@ -334,9 +334,8 @@ register_error.
 
     def seek(self, offset, whence=0):
         self.stream.seek(offset, whence)
-        if whence == 0:
-            if offset == 0:
-                self.reset()
+        if whence == 0 and offset == 0:
+            self.reset()
 
     def __getattr__(self, name, getattr=getattr):
         '''Inherit all other methods from the underlying stream.
@@ -628,9 +627,8 @@ class StreamReaderWriter:
     def seek(self, offset, whence=0):
         self.stream.seek(offset, whence)
         self.reader.reset()
-        if whence == 0:
-            if offset == 0:
-                self.writer.reset()
+        if whence == 0 and offset == 0:
+            self.writer.reset()
 
     def __getattr__(self, name, getattr=getattr):
         '''Inherit all other methods from the underlying stream.

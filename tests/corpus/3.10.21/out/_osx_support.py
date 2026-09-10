@@ -120,7 +120,7 @@ def _default_sysroot(cc):
             in_incdirs = True
         elif line.startswith('End of search list'):
             in_incdirs = False
-        elif in_incdirs:
+        if in_incdirs:
             line = line.strip()
             if line == '/usr/include':
                 _cache_default_sysroot = '/'

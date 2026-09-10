@@ -38,8 +38,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 475: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='linktype')",
    "verdict": "SIG-DIFF",
-   "ndiff": 974,
-   "ntotal": 1405,
+   "ndiff": 962,
+   "ntotal": 1404,
    "detail": "line 360: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 374: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')\nline 385: orig ('JUMP_FORWARD', 'to 460') | got ('JUMP_FORWARD', 'to 468')"
   },
   {

@@ -109,9 +109,8 @@ class _MonitoringTracer:
             frame.f_trace(frame, 'return', None)
 
     def line_callback(self, frame, code, *args):
-        if frame.f_trace:
-            if frame.f_trace_lines:
-                frame.f_trace(frame, 'line', None)
+        if frame.f_trace and frame.f_trace_lines:
+            frame.f_trace(frame, 'line', None)
 
     def jump_callback(self, frame, code, inst_offset, dest_offset):
         if dest_offset > inst_offset:
@@ -120,9 +119,8 @@ class _MonitoringTracer:
         dest_lineno = self._get_lineno(code, dest_offset)
         if inst_lineno != dest_lineno:
             return sys.monitoring.DISABLE
-        if frame.f_trace:
-            if frame.f_trace_lines:
-                frame.f_trace(frame, 'line', None)
+        if frame.f_trace and frame.f_trace_lines:
+            frame.f_trace(frame, 'line', None)
 
     def exception_callback(self, frame, code, offset, exc):
         if frame.f_trace:
@@ -135,9 +133,8 @@ class _MonitoringTracer:
             frame.f_trace(frame, 'exception', (type(exc), exc, exc.__traceback__))
 
     def opcode_callback(self, frame, code, offset):
-        if frame.f_trace:
-            if frame.f_trace_opcodes:
-                frame.f_trace(frame, 'opcode', None)
+        if frame.f_trace and frame.f_trace_opcodes:
+            frame.f_trace(frame, 'opcode', None)
 
     def update_local_events(self, frame=None):
         if sys.monitoring.get_tool(self._tool_id) != self._name:
@@ -517,10 +514,9 @@ The arg parameter depends on the previous event.
 
     def _set_caller_tracefunc(self, current_frame):
         caller_frame = current_frame.f_back
-        if caller_frame:
-            if not caller_frame.f_trace:
-                if caller_frame is not self.botframe:
-                    caller_frame.f_trace = self.trace_dispatch
+        if caller_frame and not caller_frame.f_trace:
+            if caller_frame is not self.botframe:
+                caller_frame.f_trace = self.trace_dispatch
 
     def set_until(self, frame, lineno=None):
         '''Stop when the line with the lineno greater than the current one is

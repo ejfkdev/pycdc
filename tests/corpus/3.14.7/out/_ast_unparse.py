@@ -165,9 +165,8 @@ class Unparser(NodeVisitor):
         if not isinstance(node, Expr):
             return
         node = node.value
-        if isinstance(node, Constant):
-            if isinstance(node.value, str):
-                return node
+        if isinstance(node, Constant) and isinstance(node.value, str):
+            return node
 
     def get_type_comment(self, node):
         comment = self._type_ignores.get(node.lineno) or node.type_comment
@@ -427,10 +426,9 @@ class Unparser(NodeVisitor):
             self._write_docstring_and_traverse_body(node)
 
     def _type_params_helper(self, type_params):
-        if not type_params is None:
-            if len(type_params) > 0:
-                with self.delimit('[', ']'):
-                    self.interleave((lambda: self.write(', ')), self.traverse, type_params)
+        if not type_params is None and len(type_params) > 0:
+            with self.delimit('[', ']'):
+                self.interleave((lambda: self.write(', ')), self.traverse, type_params)
 
     def visit_TypeVar(self, node):
         self.write(node.name)

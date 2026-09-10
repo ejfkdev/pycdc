@@ -144,9 +144,8 @@ class Cmd:
                 stop = self.postcmd(stop, line)
             self.postloop()
         finally:
-            if self.use_rawinput:
-                if self.completekey:
-                    pass
+            if self.use_rawinput and self.completekey:
+                pass
             try:
                 import readline
                 readline.set_completer(self.old_completer)

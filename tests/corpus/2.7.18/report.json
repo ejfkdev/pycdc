@@ -199,8 +199,8 @@
    "module": "cgi",
    "ast_detail": "diff at token 837: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2388,
-   "ntotal": 3037,
+   "ndiff": 2386,
+   "ntotal": 3036,
    "detail": "line 515: orig ('SETUP_LOOP', '#236') | got ('SETUP_LOOP', '#237')\nline 519: orig ('POP_JUMP_IF_FALSE', '#235') | got ('POP_JUMP_IF_FALSE', '#236')\nline 580: orig ('SETUP_LOOP', '#138') | got ('SETUP_LOOP', '#139')"
   }
  ]

@@ -138,9 +138,8 @@ class Cmd:
                 stop = self.postcmd(stop, line)
             self.postloop()
         finally:
-            if self.use_rawinput:
-                if self.completekey:
-                    pass
+            if self.use_rawinput and self.completekey:
+                pass
             try:
                 import readline
                 readline.set_completer(self.old_completer)
@@ -322,8 +321,9 @@ class Cmd:
         names.sort()
         prevname = ''
         for name in names:
-            if not name[:3] == 'do_' or name == prevname:
-                continue
+            if name[:3] == 'do_':
+                if name == prevname:
+                    continue
             prevname = name
             cmd = name[3:]
             if cmd in topics:

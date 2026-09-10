@@ -820,11 +820,10 @@ class FormContent(FormContentDict):
             return
 
     def indexed_value(self, key, location):
-        if key in self.dict:
-            if len(self.dict[key]) > location:
-                return self.dict[key][location]
-            else:
-                return
+        if key in self.dict and len(self.dict[key]) > location:
+            return self.dict[key][location]
+        else:
+            return
 
     def value(self, key):
         if key in self.dict:

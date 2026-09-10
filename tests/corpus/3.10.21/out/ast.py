@@ -487,7 +487,7 @@ class NodeTransformer(NodeVisitor):
                             continue
                     new_values.append(value)
                 old_value[:] = new_values
-            elif isinstance(old_value, AST):
+            if isinstance(old_value, AST):
                 new_node = self.visit(old_value)
                 if new_node is None:
                     delattr(node, field)
@@ -752,9 +752,8 @@ class _Unparser(NodeVisitor):
         if not isinstance(node, Expr):
             return
         node = node.value
-        if isinstance(node, Constant):
-            if isinstance(node.value, str):
-                return node
+        if isinstance(node, Constant) and isinstance(node.value, str):
+            return node
 
     def get_type_comment(self, node):
         comment = self._type_ignores.get(node.lineno) or node.type_comment

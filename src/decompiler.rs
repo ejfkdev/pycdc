@@ -18015,6 +18015,75 @@ impl<'a> Ctx<'a> {
     /// region opens (after the bare-except prelude POPs) with a mirrored
     /// copy. Detect the pair: [POP_BLOCK] [success run] RETURN
     /// handler_start [POP_TOP*/POP_EXCEPT] [mirror run] RETURN.
+    /// True when `a` and `b` are both `LOAD [value-run]; RETURN`
+    /// sequences with identical normalized value runs — 3.10 duplicates
+    /// the function-tail return at EVERY exit of a finally-copy branch,
+    /// so an and-chain's links land on sibling copies of the same
+    /// source exit (cmd 3.10 cmdloop). Offsets may point at the run's
+    /// first load or at the return itself.
+    fn equivalent_sunk_exit(&self, a: usize, b: usize) -> bool {
+        if a == b {
+            return false;
+        }
+        let is_pad = |x: &crate::bytecode::Instruction| {
+            matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG)
+        };
+        let is_load = |o: Op| {
+            matches!(
+                o,
+                Op::LOAD_FAST
+                    | Op::LOAD_NAME
+                    | Op::LOAD_GLOBAL
+                    | Op::LOAD_DEREF
+                    | Op::LOAD_CONST
+                    | Op::LOAD_ATTR
+                    | Op::LOAD_METHOD
+            )
+        };
+        let run_at = |off: usize| -> Option<Vec<(u8, u32)>> {
+            let mut k = self.idx_of.get(&off).copied()?;
+            if matches!(self.instrs.get(k).map(|x| x.op), Some(Op::RETURN_VALUE)) {
+                // walk back over the value loads
+                let mut b0 = k;
+                let mut hops = 0;
+                while b0 > 0 && hops < 8 {
+                    let p = &self.instrs[b0 - 1];
+                    if is_pad(p) || is_load(p.op) {
+                        b0 -= 1;
+                        hops += 1;
+                        continue;
+                    }
+                    break;
+                }
+                k = b0;
+            }
+            let mut run = Vec::new();
+            let mut i = k;
+            while i < self.instrs.len() && run.len() <= 9 {
+                let x = &self.instrs[i];
+                if is_pad(x) {
+                    i += 1;
+                    continue;
+                }
+                if is_load(x.op) {
+                    run.push((x.op as u8, x.arg));
+                    i += 1;
+                    continue;
+                }
+                if x.op == Op::RETURN_VALUE {
+                    run.push((x.op as u8, 0));
+                    return Some(run);
+                }
+                return None;
+            }
+            None
+        };
+        match (run_at(a), run_at(b)) {
+            (Some(ra), Some(rb)) => ra.len() >= 2 && ra == rb,
+            _ => false,
+        }
+    }
+
     fn legacy_sunk_pair_return(&self, lt: &LegacyTry, ret_off: usize) -> Option<usize> {
         let hs = lt.handler_start;
         if ret_off >= hs || !self.version.at_least(3, 8) {
@@ -25049,7 +25118,118 @@ return None;
                                 t > self.instrs[ti].offset
                                     && self.jump_is_loop_exit_or_merge(t)
                             });
+                    // nested-guard arm end: the span holds real
+                    // statements AND the edge is the loop's tail back
+                    // edge (nothing but exit machinery between it and
+                    // the loop end) — this jump is the arm's skip to
+                    // the loop tail, not a continue threading (cmd
+                    // 3.10 do_help `if name[:3]=='do_': if
+                    // name==prevname: continue; <rest>` — threading
+                    // opened a degenerate If and the or-continue fuse
+                    // rendered the DeMorgan flat form whose recompile
+                    // moved the first PJIF off the tail)
+                    let nested_guard_tail = span_stmts
+                        // scope: the 3.8-3.10 JUMP_ABSOLUTE back-edge
+                        // idiom only — 3.11+ JUMP_BACKWARD chains
+                        // (elif spines, continue-guard chains ending on
+                        // the fused edge) rely on the threading to keep
+                        // their skip jumps aligned (contextlib 3.14
+                        // __exit__ and bdb 3.13/3.14 tore when the veto
+                        // applied there)
+                        && ins.op == Op::JUMP_ABSOLUTE
+                        // the span must hold the inner guard's CONTINUE
+                        // (a backward jump onto the loop top): a chain's
+                        // tail link whose shared exit IS the loop tail
+                        // (compileall 3.11 _walk_dir `... and not
+                        // islink: yield from`, elif spines ending on the
+                        // fused edge) has an arm-only span and must keep
+                        // threading
+                        && self
+                            .blocks
+                            .iter()
+                            .rev()
+                            .find(|b| {
+                                matches!(
+                                    b.kind,
+                                    BlockType::While | BlockType::For
+                                )
+                            })
+                            .map_or(false, |lb| {
+                                let lt = lb.start;
+                                let lc = lb.cond_end;
+                                let edge_off = self.instrs[ti].offset;
+                                self.idx_of
+                                    .get(&cj_end)
+                                    .map_or(false, |&si| {
+                                        self.instrs[si..]
+                                            .iter()
+                                            .take_while(|x| {
+                                                x.offset < edge_off
+                                            })
+                                            .any(
+                                            |x| {
+                                                x.is_backward
+                                                    && matches!(
+                                                        x.op,
+                                                        Op::JUMP_ABSOLUTE
+                                                            | Op::JUMP_BACKWARD
+                                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                    )
+                                                    && x.target
+                                                        .map_or(
+                                                            false,
+                                                            |t| {
+                                                                t == lt
+                                                                    || (lc
+                                                                        != usize::MAX
+                                                                        && lc
+                                                                            == t)
+                                                            },
+                                                        )
+                                            },
+                                        )
+                                    })
+                            })
+                        && self
+                            .blocks
+                            .iter()
+                            .rev()
+                            .find(|b| {
+                                matches!(
+                                    b.kind,
+                                    BlockType::While | BlockType::For
+                                )
+                            })
+                            .map_or(false, |lb| {
+                                let le = lb.end;
+                                self.instrs.get(ti).map_or(false, |edge| {
+                                    le > edge.offset
+                                        && !self.instrs[ti + 1..]
+                                            .iter()
+                                            .take_while(|x| x.offset < le)
+                                            .any(|x| {
+                                                !matches!(
+                                                    x.op,
+                                                    Op::NOP
+                                                        | Op::NOT_TAKEN
+                                                        | Op::CACHE
+                                                        | Op::EXTENDED_ARG
+                                                        | Op::JUMP_ABSOLUTE
+                                                        | Op::JUMP_BACKWARD
+                                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                        | Op::JUMP_FORWARD
+                                                        | Op::JUMP
+                                                        | Op::POP_BLOCK
+                                                        | Op::POP_TOP
+                                                        | Op::FOR_ITER
+                                                        | Op::END_FOR
+                                                        | Op::END_SEND
+                                                ) && !x.is_backward
+                                            })
+                                })
+                            });
                     let span_pure = !dedicated_tramp
+                        && !nested_guard_tail
                         && (ins.op != Op::JUMP_ABSOLUTE
                         || ins.target
                             .map_or(false, |bt| self.is_loop_top_target(bt))
@@ -26759,7 +26939,27 @@ return None;
             && !pending_inner_while_head
             && self.blocks.last().map_or(false, |top| {
                 matches!(top.kind, BlockType::If)
-                    && top.end == target
+                    && (top.end == target
+                        // 3.10 per-exit sunk tail duplication: inside a
+                        // finally copy every false exit carries its OWN
+                        // `LOAD v; RETURN` copy, so an and-chain's links
+                        // target sibling copies instead of one shared
+                        // exit (cmd 3.10 cmdloop finally `if
+                        // use_rawinput and completekey:` — A's PJIF
+                        // lands on return-copy 370, B's on 374).
+                        // Identical value runs = the same source exit;
+                        // merge and re-point the block at this link's
+                        // copy.
+                        || (self.equivalent_sunk_exit(top.end, target)
+                            // the second link must not be a loop's
+                            // cond: its exit can coincidentally be a
+                            // sibling sunk copy of the guard's exit
+                            // (cgi 3.11 read `if todo >= 0:` + `while
+                            // todo > 0:` — merging ate the loop). A
+                            // back edge inside the merged span onto a
+                            // not-yet-open top is the while pre-check
+                            // signature.
+                            && !self.pending_while_back_edge(top.start, target)))
                     && top.cond_set
                     && top.short_circuit.is_none()
                     // a chain-exit clamped guard's opening jump flew to
@@ -26911,6 +27111,11 @@ return None;
             });
 if split_cond {
             if let Some(top) = self.blocks.last_mut() {
+                if top.end != target {
+                    // sibling sunk-copy exit: the merged chain now
+                    // skips over on this link's target
+                    top.end = target;
+                }
                 let prev = top.cond.take().unwrap();
                 // two same-target cond jumps always AND: the body runs only
                 // when NEITHER jump is taken (`if a and b` = two PJIFs,
@@ -27364,13 +27569,82 @@ if split_cond {
                     if let Some((merged, body_start, body_end)) =
                         self.try_or_continue_chain(target, &cond)
                     {
-                        let mut blk = Block::new(BlockType::If, body_start, body_end);
-                        blk.cond = Some(merged);
-                        blk.cond_set = true;
-                        blk.stack_depth = self.stack.len();
-                        self.blocks.push(blk);
-                                                self.skip_until = Some(body_start);
-                        return;
+                        // nested-guard vs fused-or discriminator: the
+                        // first operand's jump target. A fused `if not A
+                        // or B: continue` sends it to the CONTINUE
+                        // trampoline — a backward jump with the rest of
+                        // the loop body still following it. A NESTED
+                        // `if A: if B: continue; rest` sends it to the
+                        // loop's TAIL back edge — nothing but pads and
+                        // the loop-exit machinery follow. The two forms
+                        // recompile to different targets for this very
+                        // jump (cmd 3.10 do_help: nested PJIF lands on
+                        // the tail 338, the fused rendering recompiled
+                        // to the rest-merge 260 — the module's only
+                        // residual sig line; configparser 3.12
+                        // RawConfigParser.__init__ is the genuine fused
+                        // shape and keeps its merge).
+                        // `target` arrives normalized to the loop top;
+                        // the RAW jump target tells the two shapes apart
+                        let raw_target = self
+                            .idx_of
+                            .get(&self.cur_offset)
+                            .and_then(|&ci| self.instrs[ci].target)
+                            .unwrap_or(target);
+                        let loop_end = self
+                            .blocks
+                            .iter()
+                            .rev()
+                            .find(|b| {
+                                matches!(
+                                    b.kind,
+                                    BlockType::While | BlockType::For
+                                )
+                            })
+                            .map(|b| b.end);
+                        let nested_tail_target = loop_end.map_or(false, |le| {
+                            self.idx_of.get(&raw_target).map_or(false, |&ti| {
+                                let t = &self.instrs[ti];
+                                t.is_backward
+                                    && matches!(
+                                        t.op,
+                                        Op::JUMP_ABSOLUTE
+                                            | Op::JUMP_BACKWARD
+                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    )
+                                    && !self.instrs[ti + 1..]
+                                        .iter()
+                                        .take_while(|x| x.offset < le)
+                                        .any(|x| {
+                                            !matches!(
+                                                x.op,
+                                                Op::NOP
+                                                    | Op::NOT_TAKEN
+                                                    | Op::CACHE
+                                                    | Op::EXTENDED_ARG
+                                                    | Op::JUMP_ABSOLUTE
+                                                    | Op::JUMP_BACKWARD
+                                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                    | Op::JUMP_FORWARD
+                                                    | Op::JUMP
+                                                    | Op::POP_BLOCK
+                                                    | Op::POP_TOP
+                                                    | Op::FOR_ITER
+                                                    | Op::END_FOR
+                                                    | Op::END_SEND
+                                            ) && !x.is_backward
+                                        })
+                            })
+                        });
+                        if !nested_tail_target {
+                            let mut blk = Block::new(BlockType::If, body_start, body_end);
+                            blk.cond = Some(merged);
+                            blk.cond_set = true;
+                            blk.stack_depth = self.stack.len();
+                            self.blocks.push(blk);
+                                                    self.skip_until = Some(body_start);
+                            return;
+                        }
                     }
                     if jump_if_true && self.blocks[i].cond_set {
                         // a GENUINE rotated-while back edge is the loop's
