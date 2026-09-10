@@ -91,11 +91,10 @@ class Unparser(NodeVisitor):
         '''Indent a piece of text and append it, according to the current
         indentation level, or only delineate with semicolon if applicable'''
 
-        if self._in_interactive and not self._indent:
-            if allow_semicolon:
-                self.maybe_semicolon()
-                self.write(text)
-                return
+        if self._in_interactive and not self._indent and allow_semicolon:
+            self.maybe_semicolon()
+            self.write(text)
+            return
         self.maybe_newline()
         self.write('    ' * self._indent + text)
 

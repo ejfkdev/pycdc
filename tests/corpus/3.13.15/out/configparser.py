@@ -938,9 +938,8 @@ class RawConfigParser(MutableMapping):
         for st.lineno, line in enumerate(map(Line, fp), start=1):
             if not line.clean:
                 if self._empty_lines_in_values:
-                    if not line.has_comments and st.cursect is not None:
-                        if st.optname and st.cursect[st.optname] is not None:
-                            st.cursect[st.optname].append('')
+                    if not line.has_comments and st.cursect is not None and st.optname and st.cursect[st.optname] is not None:
+                        st.cursect[st.optname].append('')
                 else:
                     st.indent_level = sys.maxsize
                 continue

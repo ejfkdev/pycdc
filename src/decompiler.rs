@@ -28504,7 +28504,7 @@ if split_cond {
         from: usize,
         to: usize,
         target: usize,
-        jump_if_true: bool,
+        _jump_if_true: bool,
     ) -> bool {
         let Some(&fi) = self.idx_of.get(&from) else {
             return false;
@@ -28522,29 +28522,32 @@ if split_cond {
                     | Op::POP_JUMP_FORWARD_IF_FALSE
                     | Op::POP_JUMP_IF_TRUE
                     | Op::POP_JUMP_FORWARD_IF_TRUE
-            ) && ins.target == Some(target)
-                && (jump_if_true
-                    == matches!(
-                        ins.op,
-                        Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
-                    )
-                    // mixed and-chain: a negated tail operand (`not X`)
-                    // compiles to a PJIT onto the shared exit while the
-                    // preceding and-links are PJIFs to that SAME exit —
-                    // admit them as chain links. Each operand's negation
-                    // is normalized at the split_cond merge site (c2 =
-                    // negate_cond for the PJIT tail), not here, so the
-                    // region scan only needs to confirm these are links
-                    // of one shared-exit chain, not nested guards (which
-                    // would target their own body/else end, != target)
-                    // (compileall 3.11 _walk_dir `... and not
-                    // os.path.islink(fullname)`)
-                    || (jump_if_true
-                        && matches!(
-                            ins.op,
-                            Op::POP_JUMP_IF_FALSE
-                                | Op::POP_JUMP_FORWARD_IF_FALSE
-                        )));
+                    // 3.10+ NONE tests are chain links too (`X is not
+                    // None` mid-chain compiles to POP_JUMP_*_IF_NONE
+                    // onto the shared exit — code 3.13/3.14
+                    // showsyntaxerror's 5-link chain split before the
+                    // tail link when the NONE op failed this scan)
+                    | Op::POP_JUMP_IF_NONE
+                    | Op::POP_JUMP_FORWARD_IF_NONE
+                    | Op::POP_JUMP_BACKWARD_IF_NONE
+                    | Op::POP_JUMP_IF_NOT_NONE
+                    | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                    | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
+            ) && ins.target == Some(target);
+            // polarity-free chain-link test: a cond jump onto the shared
+            // exit IS a link of the and-chain whatever its jump polarity
+            // — negated operands (`not X`) compile to PJITs onto the SAME
+            // exit and may sit mid-chain (`A and not B and C`: PJIF, PJIT,
+            // PJIF). Each operand's negation is normalized at its own
+            // split_cond merge (c2 = negate_cond for PJIT links), so the
+            // region scan only confirms these are links of ONE
+            // shared-exit chain, not nested guards (which target their
+            // own body/else end, != target) (compileall 3.11 _walk_dir
+            // `... and not os.path.islink`; code 3.13/3.14
+            // showsyntaxerror `source and typ is SyntaxError and not
+            // value.text and value.lineno is not None and len(lines) >=
+            // value.lineno` split before link 5 when the mid-chain PJIT
+            // was polarity-rejected against the PJIF tail link)
             if !is_pure_value_op(ins.op) && !same_chain_cj {
                 return false;
             }

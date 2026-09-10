@@ -129,9 +129,8 @@ class InteractiveInterpreter:
         sys.last_traceback = tb
         value = value.with_traceback(tb)
         lines = source.splitlines()
-        if source and typ is SyntaxError and not value.text and value.lineno is not None:
-            if len(lines) >= value.lineno:
-                value.text = lines[value.lineno - 1]
+        if source and typ is SyntaxError and not value.text and value.lineno is not None and len(lines) >= value.lineno:
+            value.text = lines[value.lineno - 1]
         sys.last_exc = sys.last_value = value
         if sys.excepthook is sys.__excepthook__:
             self._excepthook(typ, value, tb)
