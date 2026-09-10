@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 23,
-  "SIG-DIFF": 13,
-  "INCOMPLETE": 2,
+  "SIG-DIFF": 14,
+  "INCOMPLETE": 1,
   "AST-PASS": 2
  },
  "results": [
@@ -82,7 +82,8 @@
   },
   {
    "module": "_py_warnings",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 528: orig  Constant(value='\\n')]))])])] | dec  Constant(value='\\n')]))])])",
+   "verdict": "SIG-DIFF",
    "ndiff": 2290,
    "ntotal": 3168,
    "detail": "line 824: orig ('LOAD_CONST', \"frozenset({'all', 'always', 'default', 'error', 'ignore', 'module', 'once'})\") | got ('LOAD_GLOBAL', 'frozenset + NULL')\nline 825: orig ('CONTAINS_OP', 'not in') | got ('BUILD_SET', '')\nline 826: orig ('POP_JUMP_IF_FALSE', 'to L1') | got ('LOAD_CONST', \"frozenset({'all', 'always', 'default', 'error', 'ignore', 'module', 'once'})\")"

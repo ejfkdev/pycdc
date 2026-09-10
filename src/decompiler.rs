@@ -4215,8 +4215,100 @@ impl<'a> Ctx<'a> {
                                 if bare_tail_return {
                                     body.push(Stmt::Return(None));
                                 } else {
-                                    orelse =
-                                        self.decompile_region(tc.body_end, else_end);
+                                    // 3.14 narrows protected ranges at
+                                    // value-construction boundaries: the
+                                    // else region can START on a guard
+                                    // jump whose operand loads sit inside
+                                    // the protected range (_py_warnings
+                                    // warn: `if frame is None: raise`
+                                    // split between LOAD_FAST_BORROW and
+                                    // POP_JUMP_IF_NONE - the region
+                                    // sub-walk popped an empty stack).
+                                    // Extend the region start back over a
+                                    // bounded pure-value prologue when
+                                    // the first instruction consumes a
+                                    // value, and drop the main walk's
+                                    // duplicate pushes (the sub-walk
+                                    // re-materializes them).
+                                    let consumes = |off: usize| -> bool {
+                                        self.idx_of.get(&off).map_or(false, |&i| {
+                                            matches!(
+                                                self.instrs[i].op,
+                                                Op::POP_JUMP_IF_NONE
+                                                    | Op::POP_JUMP_IF_NOT_NONE
+                                                    | Op::POP_JUMP_FORWARD_IF_NONE
+                                                    | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                                                    | Op::POP_JUMP_BACKWARD_IF_NONE
+                                                    | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
+                                                    | Op::POP_JUMP_IF_TRUE
+                                                    | Op::POP_JUMP_IF_FALSE
+                                                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                    | Op::JUMP_IF_TRUE
+                                                    | Op::JUMP_IF_FALSE
+                                                    | Op::POP_TOP
+                                                    | Op::TO_BOOL
+                                                    | Op::IS_OP
+                                                    | Op::CONTAINS_OP
+                                            )
+                                        })
+                                    };
+                                    let mut region_from = tc.body_end;
+                                    let mut net_push = 0usize;
+                                    if else_end > tc.body_end
+                                        && consumes(tc.body_end)
+                                    {
+                                        if let Some(&bi) =
+                                            self.idx_of.get(&tc.body_end)
+                                        {
+                                            let mut k = bi;
+                                            let mut steps = 0;
+                                            while k > 0 && steps < 8 {
+                                                let p = &self.instrs[k - 1];
+                                                if p.offset < tc.start
+                                                    || !is_pure_value_op(p.op)
+                                                {
+                                                    break;
+                                                }
+                                                k -= 1;
+                                                steps += 1;
+                                                net_push += matches!(
+                                                    p.op,
+                                                    Op::LOAD_FAST
+                                                        | Op::LOAD_FAST_CHECK
+                                                        | Op::LOAD_FAST_BORROW
+                                                        | Op::LOAD_FAST_LOAD_FAST
+                                                        | Op::LOAD_FAST_BORROW_LOAD_FAST_BORROW
+                                                        | Op::LOAD_SMALL_INT
+                                                        | Op::LOAD_COMMON_CONSTANT
+                                                        | Op::LOAD_NAME
+                                                        | Op::LOAD_GLOBAL
+                                                        | Op::LOAD_CONST
+                                                        | Op::LOAD_DEREF
+                                                        | Op::LOAD_CLASSDEREF
+                                                        | Op::PUSH_NULL
+                                                ) as usize;
+                                                net_push = net_push.saturating_sub(
+                                                    matches!(p.op, Op::POP_TOP)
+                                                        as usize,
+                                                );
+                                            }
+                                            if steps > 0
+                                                && self.instrs[k].offset
+                                                    < tc.body_end
+                                            {
+                                                region_from =
+                                                    self.instrs[k].offset;
+                                            }
+                                        }
+                                    }
+                                    if region_from < tc.body_end {
+                                        for _ in 0..net_push {
+                                            self.stack.pop();
+                                        }
+                                    }
+                                    orelse = self
+                                        .decompile_region(region_from, else_end);
                                 }
                                 if self.skip_until.map_or(true, |s| s < merge) {
                                                                         self.skip_until = Some(merge);
@@ -30945,6 +31037,28 @@ if split_cond {
             })
         {
             // 3.11+ handler-exit resume jump — silently consumed
+        } else if self
+            .blocks
+            .first()
+            .map_or(false, |b| b.kind == BlockType::Main && b.start > 0)
+            && self
+                .idx_of
+                .get(&target)
+                .zip(self.blocks.first().map(|b| b.start))
+                .map_or(false, |(&ti, region_start)| {
+                    self.instrs[ti].offset < region_start
+                })
+        {
+            // region sub-walk (block stack headed by a Main with a
+            // nonzero start = decompile_region): the loop owning this
+            // back edge was opened by the MAIN walk (the loop encloses
+            // the try whose region is being collected), so it is not
+            // on the sub-walk's stack. A backward jump onto an
+            // instruction that DOMINATES the region start is that
+            // loop's natural tail back edge - the region's statements
+            // are already collected; consume it silently
+            // (_py_warnings 3.14 warn: the for-in-range tail edge
+            // sits inside the split protected range)
         } else {
             self.mark_unclean();
         }

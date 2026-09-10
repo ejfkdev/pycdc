@@ -376,7 +376,7 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
         filename = '<sys>'
         lineno = 0
     else:
-        if not None is None:
+        if not frame is None:
             pass
         try:
             raise ValueError
@@ -709,4 +709,3 @@ def _setup_defaults():
     _wm.simplefilter('ignore', category=ImportWarning, append=1)
     _wm.simplefilter('ignore', category=ResourceWarning, append=1)
 
-# WARNING: Decompyle incomplete
