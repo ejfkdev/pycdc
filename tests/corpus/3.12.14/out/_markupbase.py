@@ -156,30 +156,30 @@ class ParserBase:
                 j = meth(j, declstartpos)
                 if j < 0:
                     return j
-                    if c == '%':
-                        if j + 1 == n:
-                            return -1
-                        s, j = self._scan_name(j + 1, declstartpos)
-                        if j < 0:
+            if c == '%':
+                if j + 1 == n:
+                    return -1
+                s, j = self._scan_name(j + 1, declstartpos)
+                if j < 0:
+                    return j
+                if rawdata[j] == ';':
+                    j = j + 1
+            else:
+                if c == ']':
+                    j = j + 1
+                    while j < n and rawdata[j].isspace():
+                        j = j + 1
+                    if j < n:
+                        if rawdata[j] == '>':
                             return j
-                        if rawdata[j] == ';':
-                            j = j + 1
-                    else:
-                        if c == ']':
-                            j = j + 1
-                            while j < n and rawdata[j].isspace():
-                                j = j + 1
-                            if j < n:
-                                if rawdata[j] == '>':
-                                    return j
-                                self.updatepos(declstartpos, j)
-                                raise AssertionError('unexpected char after internal subset')
-                            return -1
-                        if c.isspace():
-                            j = j + 1
-                        else:
-                            self.updatepos(declstartpos, j)
-                            raise AssertionError('unexpected char %r in internal subset' % c)
+                        self.updatepos(declstartpos, j)
+                        raise AssertionError('unexpected char after internal subset')
+                    return -1
+                if c.isspace():
+                    j = j + 1
+                else:
+                    self.updatepos(declstartpos, j)
+                    raise AssertionError('unexpected char %r in internal subset' % c)
         return -1
 
     def _parse_doctype_element(self, i, declstartpos):
@@ -215,7 +215,7 @@ class ParserBase:
                     j = j + 1
                 if not rawdata[j:]:
                     return -1
-                    name, j = self._scan_name(j, declstartpos)
+            name, j = self._scan_name(j, declstartpos)
             c = rawdata[j:j + 1]
             if not c:
                 return -1

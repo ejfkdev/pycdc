@@ -87,7 +87,8 @@ class ParserBase:
                     if decltype in frozenset({'link', 'attlist', 'element', 'linktype'}):
                         raise AssertionError("unsupported '[' char in %s declaration" % decltype)
                     raise AssertionError("unexpected '[' char in declaration")
-                    raise AssertionError('unexpected %r char in declaration' % rawdata[j])
+            else:
+                raise AssertionError('unexpected %r char in declaration' % rawdata[j])
             if j < 0:
                 return j
         return -1

@@ -623,17 +623,16 @@ def main(args):
         optdict = dict(encoding=encoding, css=options.css)
         if len(args) == 1:
             print cal.formatyearpage(datetime.date.today().year, **optdict)
+        elif len(args) == 2:
+            print cal.formatyearpage(int(args[1]), **optdict)
         else:
-            if len(args) == 2:
-                print cal.formatyearpage(int(args[1]), **optdict)
-            else:
-                parser.error('incorrect number of arguments')
-                sys.exit(1)
-            if options.locale:
-                cal = LocaleTextCalendar(locale=locale)
-            else:
-                cal = TextCalendar()
+            parser.error('incorrect number of arguments')
+            sys.exit(1)
     else:
+        if options.locale:
+            cal = LocaleTextCalendar(locale=locale)
+        else:
+            cal = TextCalendar()
         optdict = dict(w=options.width, l=options.lines)
         if len(args) != 3:
             optdict['c'] = options.spacing

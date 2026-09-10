@@ -8234,7 +8234,10 @@ impl<'a> Ctx<'a> {
             if matches!(top.kind, BlockType::While) && top.start == top.end {
                 return;
             }
-            if top.kind == BlockType::Main || top.end > pos {
+            if top.kind == BlockType::Main {
+                return;
+            }
+            if top.end > pos && self.overhang_clamp_end(pos).is_none() {
                 return;
             }
         }
@@ -8250,136 +8253,13 @@ impl<'a> Ctx<'a> {
                     break;
                 }
                 if top.end > pos {
-                    // an inner BRANCH region whose recorded end OUTLIVES
-                    // an enclosing block that ends at/below pos
-                    // overhangs its parent region: its real extent was
-                    // set from an arm exit flying to the outer merge (an
-                    // elif-chain arm's JUMP_FORWARD past the chain), and
-                    // it can never legitimately hold statements past the
-                    // parent boundary. Clamp it to the parent's end so
-                    // the parent can close here and open its own else
-                    // (_osx_support 3.12 get_platform_osx: the archs
-                    // chain Elses ran to the return at 706, trapping the
-                    // outer `elif machine == 'i386':` arms inside the
-                    // chain's last Else and leaving the walk-end flush
-                    // to emit an incomplete marker).
-                    //
-                    // LOOPS are never clamped here: a loop's end is its
-                    // own exit bound, and collapsing it at some
-                    // ancestor's mid-body end tears the whole nest down
-                    // while the body walk is still inside it
-                    // (configparser 3.12 _read: the main For was closed
-                    // at an exception-table Try's end and the loop-tail
-                    // `continue` fell out of scope)
-                    if matches!(top.kind, BlockType::While | BlockType::For) {
-                        break;
-                    }
-                    let n = self.blocks.len();
-                    let clamp = self.blocks[..n - 1]
-                        .iter()
-                        .rev()
-                        .find(|b| {
-                            !matches!(b.kind, BlockType::Main) && b.end <= pos
-                        })
-                        // only a branch (If/Else) ancestor is a real
-                        // container bound: infrastructure blocks (Try,
-                        // With, Container) carry exception-table spans
-                        // that can end mid-child without containing
-                        // semantics (configparser 3.12 _read: an
-                        // inverted Try[48,346]-under-For[76,1848]
-                        // nesting collapsed the main loop at the try's
-                        // end). And the ancestor must END STRICTLY
-                        // BEFORE pos: at end == pos the parent closes
-                        // in this same call right after the child, the
-                        // normal in-order cascade - clamping there
-                        // folds the child early and skips its else-arm
-                        // open at its own end (_markupbase 3.6
-                        // parse_declaration: `else: self.error(...)`
-                        // flattened out of the elif chain)
-                        // ONLY Else regions are clamped, and only at a
-                        // branch (If/Else) ancestor's end:
-                        // - an Else region never opens an else of its
-                        //   own, so folding it at the parent boundary
-                        //   cannot skip an arm open (_osx_support 3.12
-                        //   get_platform_osx: chain Elses ran to the
-                        //   function merge and trapped the parent's
-                        //   elif arms; the equality form fires exactly
-                        //   at the parent's close point),
-                        // - an IF top must stay for lazy resolution: it
-                        //   closes at its own end where its else arm
-                        //   opens, and the parent folds in the child's
-                        //   wake (_markupbase 3.6 parse_declaration:
-                        //   clamping the inner If flattened `else:
-                        //   self.error(...)` out of the chain),
-                        // - a non-branch ancestor (Try/With/Container)
-                        //   carries infrastructure spans, not container
-                        //   bounds (configparser 3.12 _read: an
-                        //   inverted Try-under-For nesting collapsed
-                        //   the main loop at the try's end).
-                        // ONLY Else region tops are clamped, at a
-                        // branch (If/Else) ancestor whose end the walk
-                        // has reached:
-                        // - an Else region never opens an else of its
-                        //   own, so folding it at the parent boundary
-                        //   cannot skip an arm open, and at end <= pos
-                        //   the parent closes in this same call - the
-                        //   child must be bounded first or the parent's
-                        //   close (and its else-arm open) is blocked
-                        //   forever (_osx_support 3.12
-                        //   get_platform_osx: chain Elses ran to the
-                        //   function merge and trapped the parent's
-                        //   elif arms),
-                        // - an IF top must stay for lazy resolution: it
-                        //   closes at its own end where its else arm
-                        //   opens, and the parent folds in the child's
-                        //   wake (_markupbase 3.6 parse_declaration:
-                        //   clamping the inner If flattened `else:
-                        //   self.error(...)` out of the chain; bdb 3.14
-                        //   effective: `return b, True` hoisted out of
-                        //   `if not b.cond:`),
-                        // - a non-branch ancestor (Try/With/Container)
-                        //   carries infrastructure spans, not container
-                        //   bounds (configparser 3.12 _read: an
-                        //   inverted Try-under-For nesting collapsed
-                        //   the main loop at the try's end).
-                        .filter(|b| {
-                            matches!(b.kind, BlockType::If | BlockType::Else)
-                                && b.end <= pos
-                                && self.blocks.last().map_or(false, |t| {
-                                    // an Else top folds at any crossed
-                                    // branch boundary
-                                    t.kind == BlockType::Else
-                                        // an IF top only when the
-                                        // ancestor's end is strictly
-                                        // behind the walk AND the If's
-                                        // own end lies FAR past it - a
-                                        // runaway guard target that
-                                        // swallows the rest of the
-                                        // function (_strptime 3.6-3.9
-                                        // __strptime: If[806,1582]
-                                        // trapped 700+ bytes of chain;
-                                        // the clamp cut it at the
-                                        // crossed Else boundary and nd
-                                        // fell 625->1). An If ending
-                                        // just past pos is mid-arm and
-                                        // must close at its own end
-                                        // (bdb 3.14 effective:
-                                        // If[222,324] at pos 312 -
-                                        // clamping hoisted `return b,
-                                        // True` out of `if not b.cond:`)
-                                        || (t.kind == BlockType::If
-                                            && b.end < pos
-                                            && t.end > pos + 32)
-                                })
-                        })
-                        .map(|b| b.end);
-                    match clamp {
-                        Some(e) if e > top.start => {
+                    match self.overhang_clamp_end(pos) {
+                        Some(e) => {
                             let last = self.blocks.last_mut().unwrap();
                             last.end = e;
                             e
                         }
-                        _ => break,
+                        None => break,
                     }
                 } else {
                     top.end
@@ -8387,6 +8267,64 @@ impl<'a> Ctx<'a> {
             };
             self.force_close_top(end);
         }
+    }
+
+    /// Overhang clamp: an inner BRANCH region whose recorded end
+    /// OUTLIVES an enclosing branch that ended at/below the walk
+    /// position overhangs its parent - its real extent was set from an
+    /// arm exit flying to the outer merge (an elif-chain arm's
+    /// JUMP_FORWARD past the chain), and it can never legitimately hold
+    /// statements past the parent boundary. Returns the parent's end so
+    /// the caller can fold the child there (_osx_support 3.12
+    /// get_platform_osx: chain Elses ran to the function merge and
+    /// trapped the parent's elif arms).
+    ///
+    /// Restrictions proven by regression:
+    /// - LOOPS are never clamped: a loop's end is its own exit bound;
+    ///   collapsing it mid-body tears the nest down (configparser 3.12
+    ///   _read: the main For closed at an exception-table Try's end).
+    /// - only a BRANCH (If/Else) ancestor is a container bound;
+    ///   Try/With/Container carry infrastructure spans.
+    /// - an ELSE top folds at any reached boundary (end <= pos): it
+    ///   never opens an else of its own.
+    /// - an IF top only folds for a STRICTLY-crossed ancestor (end <
+    ///   pos) AND when its own end is a runaway guard target far past
+    ///   the walk (>32 bytes) - the runaway swallowed the following
+    ///   chain arms as nested content (_strptime 3.6-3.9: If[812,1364]
+    ///   trapped the M arm; clamping at the crossed Else boundary puts
+    ///   nd at 1). An If ending just past pos is mid-arm and must close
+    ///   at its own end where its else arm opens (_markupbase 3.6
+    ///   parse_declaration; equality-form folds skip that open), and
+    ///   clamping it at a strictly-crossed ancestor yanks enclosing
+    ///   arms down mid-flow (bdb 3.14 effective: `return b, True`
+    ///   hoisted out of `if not b.cond:`).
+    fn overhang_clamp_end(&self, pos: usize) -> Option<usize> {
+        let n = self.blocks.len();
+        if n < 2 {
+            return None;
+        }
+        let top = &self.blocks[n - 1];
+        if matches!(top.kind, BlockType::Main | BlockType::While | BlockType::For)
+        {
+            return None;
+        }
+        if top.end <= pos {
+            return None;
+        }
+        let is_else_top = top.kind == BlockType::Else;
+        let top_runaway = top.end > pos + 32;
+        self.blocks[..n - 1]
+            .iter()
+            .rev()
+            .find(|b| {
+                !matches!(b.kind, BlockType::Main) && b.end <= pos
+            })
+            .filter(|b| {
+                matches!(b.kind, BlockType::If | BlockType::Else)
+                    && (is_else_top || (b.end < pos && top_runaway))
+            })
+            .map(|b| b.end)
+            .filter(|e| *e > top.start)
     }
 
     /// Close the topmost block, converting it to statement(s).

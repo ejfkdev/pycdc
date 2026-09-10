@@ -43,9 +43,9 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 463: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
    "verdict": "SIG-DIFF",
-   "ndiff": 1018,
-   "ntotal": 1454,
-   "detail": "line 304: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1000') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 982')\nline 361: orig ('JUMP_FORWARD', 'to 970') | got ('JUMP_FORWARD', 'to 952')\nline 375: orig ('JUMP_FORWARD', 'to 970') | got ('JUMP_FORWARD', 'to 952')"
+   "ndiff": 1033,
+   "ntotal": 1463,
+   "detail": "line 304: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1000') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1030')\nline 361: orig ('JUMP_FORWARD', 'to 970') | got ('JUMP_FORWARD', 'to 1000')\nline 375: orig ('JUMP_FORWARD', 'to 970') | got ('JUMP_FORWARD', 'to 1000')"
   },
   {
    "module": "_osx_support",

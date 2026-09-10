@@ -2,9 +2,9 @@
  "version": "3.5.10",
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
-  "PASS": 32,
+  "PASS": 33,
   "AST-PASS": 2,
-  "SIG-DIFF": 6
+  "SIG-DIFF": 5
  },
  "results": [
   {
@@ -49,11 +49,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1754: orig  If(test=Compare(left=Name(id='ampm' | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 470,
-   "ntotal": 1848,
-   "detail": "line 1240: orig ('SETUP_LOOP', 'to 1607') | got ('SETUP_LOOP', 'to 1604')\nline 1245: orig ('FOR_ITER', 'to 1606') | got ('FOR_ITER', 'to 1603')\nline 1378: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'ampm')"
+   "verdict": "PASS"
   },
   {
    "module": "_sysconfigdata",
@@ -133,9 +129,9 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 899: orig  finalbody=[])])] | dec  finalbody=[])",
+   "ast_detail": "diff at token 1160: orig  body=[If(test=Compare(left=Subscript(value=Name(id='name' | dec  body=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
-   "ndiff": 745,
+   "ndiff": 749,
    "ntotal": 1310,
    "detail": "line 548: orig ('LOAD_CONST', 'None') | got ('emptyline', 1)\nline 549: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'self')\nline 550: orig ('emptyline', 1) | got ('LOAD_ATTR', 'lastcmd')"
   },

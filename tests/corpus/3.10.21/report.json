@@ -42,9 +42,9 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 464: orig  Constant(value='linktype') | dec  Constant(value='link')",
    "verdict": "SIG-DIFF",
-   "ndiff": 931,
-   "ntotal": 1359,
-   "detail": "line 292: orig ('POP_JUMP_IF_FALSE', 'to 456') | got ('POP_JUMP_IF_FALSE', 'to 448')\nline 348: orig ('JUMP_FORWARD', 'to 436') | got ('JUMP_FORWARD', 'to 428')\nline 361: orig ('JUMP_FORWARD', 'to 436') | got ('JUMP_FORWARD', 'to 428')"
+   "ndiff": 955,
+   "ntotal": 1367,
+   "detail": "line 292: orig ('POP_JUMP_IF_FALSE', 'to 456') | got ('POP_JUMP_IF_FALSE', 'to 464')\nline 348: orig ('JUMP_FORWARD', 'to 436') | got ('JUMP_FORWARD', 'to 444')\nline 361: orig ('JUMP_FORWARD', 'to 436') | got ('JUMP_FORWARD', 'to 444')"
   },
   {
    "module": "_osx_support",
@@ -166,7 +166,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 614: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 457,
+   "ndiff": 454,
    "ntotal": 1324,
    "detail": "line 560: orig ('POP_BLOCK', '') | got ('LOAD_FAST', 'func')\nline 561: orig ('LOAD_FAST', 'func') | got ('LOAD_FAST', 'arg')\nline 562: orig ('LOAD_FAST', 'arg') | got ('CALL_FUNCTION', '')"
   },

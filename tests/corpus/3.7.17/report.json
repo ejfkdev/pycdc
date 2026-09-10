@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 34,
-  "SIG-DIFF": 6
+  "PASS": 35,
+  "SIG-DIFF": 5
  },
  "results": [
   {
@@ -34,8 +34,8 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 504: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Set(elts=[Str(s='link')",
    "verdict": "SIG-DIFF",
-   "ndiff": 975,
-   "ntotal": 1413,
+   "ndiff": 984,
+   "ntotal": 1430,
    "detail": "line 300: orig ('SETUP_LOOP', 'to 480') | got ('SETUP_LOOP', 'to 492')\nline 362: orig ('JUMP_FORWARD', 'to 464') | got ('JUMP_FORWARD', 'to 476')\nline 376: orig ('JUMP_FORWARD', 'to 464') | got ('JUMP_FORWARD', 'to 476')"
   },
   {
@@ -52,11 +52,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1902: orig  value=Num(n=12))] | dec  value=Num(n=12))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1,
-   "ntotal": 2170,
-   "detail": "line 1443: orig ('JUMP_FORWARD', 'to 832') | got ('JUMP_FORWARD', 'to 862')"
+   "verdict": "PASS"
   },
   {
    "module": "_sysconfigdata_m_darwin_darwin",
@@ -92,10 +88,10 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 1494: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 1470: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1190,
-   "ntotal": 1950,
+   "ndiff": 1189,
+   "ntotal": 1949,
    "detail": "line 736: orig ('LOAD_CONST', 'frozenset({0, 1, 3, 4, 6})') | got ('LOAD_GLOBAL', 'frozenset')\nline 737: orig ('COMPARE_OP', 'not in') | got ('LOAD_CONST', '0')\nline 738: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', '1')"
   },
   {
@@ -140,11 +136,11 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 900: orig  finalbody=[])])] | dec  finalbody=[])",
+   "ast_detail": "diff at token 1162: orig  body=[If(test=Compare(left=Subscript(value=Name(id='name' | dec  body=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
-   "ndiff": 616,
+   "ndiff": 1,
    "ntotal": 1315,
-   "detail": "line 667: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 164')\nline 677: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 158')\nline 689: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 158')"
+   "detail": "line 1310: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')"
   },
   {
    "module": "code",

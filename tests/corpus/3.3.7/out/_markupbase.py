@@ -158,30 +158,30 @@ class ParserBase:
                 j = meth(j, declstartpos)
                 if j < 0:
                     return j
-                    if c == '%':
-                        if j + 1 == n:
-                            return -1
-                        s, j = self._scan_name(j + 1, declstartpos)
-                        if j < 0:
-                            return j
-                        if rawdata[j] == ';':
-                            j = j + 1
-                    elif c == ']':
-                        j = j + 1
-                        while j < n and rawdata[j].isspace():
-                            j = j + 1
-                        if j < n:
-                            if rawdata[j] == '>':
-                                return j
-                            self.updatepos(declstartpos, j)
-                            self.error('unexpected char after internal subset')
-                        else:
-                            return -1
-                    elif c.isspace():
-                        j = j + 1
-                    else:
-                        self.updatepos(declstartpos, j)
-                        self.error('unexpected char %r in internal subset' % c)
+            if c == '%':
+                if j + 1 == n:
+                    return -1
+                s, j = self._scan_name(j + 1, declstartpos)
+                if j < 0:
+                    return j
+                if rawdata[j] == ';':
+                    j = j + 1
+            elif c == ']':
+                j = j + 1
+                while j < n and rawdata[j].isspace():
+                    j = j + 1
+                if j < n:
+                    if rawdata[j] == '>':
+                        return j
+                    self.updatepos(declstartpos, j)
+                    self.error('unexpected char after internal subset')
+                else:
+                    return -1
+            elif c.isspace():
+                j = j + 1
+            else:
+                self.updatepos(declstartpos, j)
+                self.error('unexpected char %r in internal subset' % c)
         return -1
 
     def _parse_doctype_element(self, i, declstartpos):

@@ -203,8 +203,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 837: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1251,
-   "ntotal": 1675,
+   "ndiff": 1250,
+   "ntotal": 1674,
    "detail": "line 399: orig ('LOAD_FAST', 'legacy') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'legacy, optimize')\nline 400: orig ('LOAD_FAST', 'optimize') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'invalidation_mode, stripdir')\nline 401: orig ('LOAD_FAST', 'invalidation_mode') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'prependdir, limit_sl_dest')"
   },
   {

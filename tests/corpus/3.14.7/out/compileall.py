@@ -249,11 +249,13 @@ invalidation_mode: as for compiler_dir()
     success = True
     for dir in sys.path:
         if dir:
-            if dir == os.curdir and skip_curdir:
-                if quiet < 2:
-                    print('Skipping current directory')
-            else:
-                success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
+            if dir == os.curdir:
+                pass
+        if skip_curdir:
+            if quiet < 2:
+                print('Skipping current directory')
+        else:
+            success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
     return success
 
 def main():

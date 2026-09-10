@@ -324,10 +324,10 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                     hour = 0
             elif ampm == locale_time.am_pm[1] and hour != 12:
                 hour += 12
-                continue
-                if group_key == 'M':
-                    minute = int(found_dict['M'])
-                    continue
+            continue
+        if group_key == 'M':
+            minute = int(found_dict['M'])
+            continue
         if group_key == 'S':
             second = int(found_dict['S'])
             continue
