@@ -3,9 +3,9 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 29,
-  "SIG-DIFF": 6,
-  "INCOMPLETE": 4,
-  "AST-PASS": 1
+  "SIG-DIFF": 7,
+  "AST-PASS": 1,
+  "INCOMPLETE": 3
  },
  "results": [
   {
@@ -42,8 +42,9 @@
   },
   {
    "module": "_osx_support",
-   "verdict": "INCOMPLETE",
-   "ndiff": 1137,
+   "ast_detail": "diff at token 126: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=UnaryOp(op=Not()",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1135,
    "ntotal": 1481,
    "detail": "line 320: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 321: orig ('LOAD_ATTR', 'NULL|self + close') | got ('CHECK_EXC_MATCH', '')\nline 322: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 314')"
   },

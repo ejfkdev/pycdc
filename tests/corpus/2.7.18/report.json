@@ -117,11 +117,11 @@
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 1644: orig  tback=None)])])])])])])] | dec  tback=None)])",
+   "ast_detail": "diff at token 1654: orig  comparators=[Num(n=4294967296)]) | dec  comparators=[Num(n=4294967296L)])",
    "verdict": "SIG-DIFF",
-   "ndiff": 30,
+   "ndiff": 2,
    "ntotal": 1160,
-   "detail": "line 1037: orig ('POP_JUMP_IF_FALSE', '#146') | got ('POP_JUMP_IF_FALSE', '#175')\nline 1043: orig ('POP_JUMP_IF_FALSE', '#146') | got ('POP_JUMP_IF_FALSE', '#175')\nline 1105: orig ('JUMP_ABSOLUTE', '#174') | got ('JUMP_FORWARD', '#145')"
+   "detail": "line 1120: orig ('LOAD_CONST', '4294967296') | got ('LOAD_CONST', '4294967296L')\nline 1133: orig ('LOAD_CONST', '4294967296') | got ('LOAD_CONST', '4294967296L')"
   },
   {
    "module": "_strptime",

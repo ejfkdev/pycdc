@@ -633,22 +633,23 @@ def main(args):
                 cal = LocaleTextCalendar(locale=locale)
             else:
                 cal = TextCalendar()
-            optdict = dict(w=options.width, l=options.lines)
-            if len(args) != 3:
-                optdict['c'] = options.spacing
-                optdict['m'] = options.months
-            if len(args) == 1:
-                result = cal.formatyear(datetime.date.today().year, **optdict)
-            elif len(args) == 2:
-                result = cal.formatyear(int(args[1]), **optdict)
-            elif len(args) == 3:
-                result = cal.formatmonth(int(args[1]), int(args[2]), **optdict)
-            else:
-                parser.error('incorrect number of arguments')
-                sys.exit(1)
-            if options.encoding:
-                result = result.encode(options.encoding)
-            print result
+    else:
+        optdict = dict(w=options.width, l=options.lines)
+        if len(args) != 3:
+            optdict['c'] = options.spacing
+            optdict['m'] = options.months
+        if len(args) == 1:
+            result = cal.formatyear(datetime.date.today().year, **optdict)
+        elif len(args) == 2:
+            result = cal.formatyear(int(args[1]), **optdict)
+        elif len(args) == 3:
+            result = cal.formatmonth(int(args[1]), int(args[2]), **optdict)
+        else:
+            parser.error('incorrect number of arguments')
+            sys.exit(1)
+        if options.encoding:
+            result = result.encode(options.encoding)
+        print result
 
 if __name__ == '__main__':
     main(sys.argv)

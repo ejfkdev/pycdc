@@ -75,8 +75,8 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1329,
-   "ntotal": 1744,
+   "ndiff": 1352,
+   "ntotal": 1743,
    "detail": "line 360: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 361: orig ('LOAD_ATTR', 'close + NULL|self') | got ('CHECK_EXC_MATCH', '')\nline 362: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to L3')"
   },
   {

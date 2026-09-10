@@ -354,18 +354,17 @@ def get_platform_osx(_config_vars, osname, release, machine):
                 machine = 'fat3'
             elif archs == ('ppc64', 'x86_64'):
                 machine = 'fat64'
+            elif archs == ('i386', 'ppc', 'ppc64', 'x86_64'):
+                machine = 'universal'
             else:
-                if archs == ('i386', 'ppc', 'ppc64', 'x86_64'):
-                    machine = 'universal'
-                else:
-                    raise ValueError(f'Don\'t know machine value for archs={archs!r}')
-                if machine == 'i386':
-                    if sys.maxsize >= 4294967296:
-                        machine = 'x86_64'
-                elif machine in ('PowerPC', 'Power_Macintosh'):
-                    if sys.maxsize >= 4294967296:
-                        machine = 'ppc64'
-                    else:
-                        machine = 'ppc'
+                raise ValueError(f'Don\'t know machine value for archs={archs!r}')
+        elif machine == 'i386':
+            if sys.maxsize >= 4294967296:
+                machine = 'x86_64'
+        elif machine in ('PowerPC', 'Power_Macintosh'):
+            if sys.maxsize >= 4294967296:
+                machine = 'ppc64'
+            else:
+                machine = 'ppc'
     return osname, release, machine
 

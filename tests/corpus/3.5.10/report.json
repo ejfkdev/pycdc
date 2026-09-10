@@ -2,9 +2,9 @@
  "version": "3.5.10",
  "interp": "/Users/e/.pyenv/versions/3.5.10/bin/python3",
  "counts": {
-  "PASS": 30,
+  "PASS": 32,
   "AST-PASS": 2,
-  "SIG-DIFF": 8
+  "SIG-DIFF": 6
  },
  "results": [
   {
@@ -35,17 +35,13 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 506: orig  Str(s='link') | dec  Str(s='element')",
    "verdict": "SIG-DIFF",
-   "ndiff": 953,
-   "ntotal": 1393,
-   "detail": "line 299: orig ('SETUP_LOOP', 'to 621') | got ('SETUP_LOOP', 'to 636')\nline 356: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 616')\nline 369: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 616')"
+   "ndiff": 963,
+   "ntotal": 1394,
+   "detail": "line 299: orig ('SETUP_LOOP', 'to 621') | got ('SETUP_LOOP', 'to 639')\nline 356: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 619')\nline 369: orig ('JUMP_FORWARD', 'to 601') | got ('JUMP_FORWARD', 'to 619')"
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 1511: orig  cause=None)])])])])])])] | dec  cause=None)])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 50,
-   "ntotal": 1157,
-   "detail": "line 1070: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 498')\nline 1077: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 498')\nline 1084: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 498')"
+   "verdict": "PASS"
   },
   {
    "module": "_sitebuiltins",
@@ -55,9 +51,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 1746: orig  If(test=Compare(left=Name(id='ampm' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 471,
-   "ntotal": 1849,
-   "detail": "line 1240: orig ('SETUP_LOOP', 'to 1607') | got ('SETUP_LOOP', 'to 2048')\nline 1245: orig ('FOR_ITER', 'to 1606') | got ('FOR_ITER', 'to 2047')\nline 1378: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'ampm')"
+   "ndiff": 470,
+   "ntotal": 1848,
+   "detail": "line 1240: orig ('SETUP_LOOP', 'to 1607') | got ('SETUP_LOOP', 'to 1604')\nline 1245: orig ('FOR_ITER', 'to 1606') | got ('FOR_ITER', 'to 1603')\nline 1378: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'ampm')"
   },
   {
    "module": "_sysconfigdata",
@@ -121,11 +117,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 3508: orig  keywords=[]))])])] | dec  keywords=[]))])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 130,
-   "ntotal": 2894,
-   "detail": "line 2736: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 1032')\nline 2755: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 673')\nline 2766: orig ('JUMP_FORWARD', 'to 1035') | got ('LOAD_FAST', 'options')"
+   "verdict": "PASS"
   },
   {
    "module": "cgi",

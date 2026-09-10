@@ -51,7 +51,7 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 334: orig  If(test=Compare(left=Name(id='m' | dec  Expr(value=Call(func=Attribute(value=Name(id='f'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1253,
+   "ndiff": 1252,
    "ntotal": 1575,
    "detail": "line 293: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 400') | got ('EXTENDED_ARG', '')\nline 294: orig ('LOAD_CONST', \"''\") | got ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 580')\nline 295: orig ('STORE_GLOBAL', '_SYSTEM_VERSION') | got ('LOAD_CONST', \"''\")"
   },

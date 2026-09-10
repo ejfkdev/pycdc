@@ -251,12 +251,11 @@ barf if multiple '-isysroot' arguments are present.
                 index = compiler_so.index('-arch')
                 del compiler_so[index:index + 2]
             except ValueError:
-                pass
-            else:
-                if not _supports_arm64_builds():
-                    for idx in reversed(range(len(compiler_so))):
-                        if compiler_so[idx] == '-arch' and compiler_so[idx + 1] == 'arm64':
-                            del compiler_so[idx:idx + 2]
+                break
+    elif not _supports_arm64_builds():
+        for idx in reversed(range(len(compiler_so))):
+            if compiler_so[idx] == '-arch' and compiler_so[idx + 1] == 'arm64':
+                del compiler_so[idx:idx + 2]
     if 'ARCHFLAGS' in os.environ:
         if not stripArch:
             compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
@@ -364,19 +363,18 @@ def get_platform_osx(_config_vars, osname, release, machine):
                 machine = 'fat3'
             elif archs == ('ppc64', 'x86_64'):
                 machine = 'fat64'
+            elif archs == ('i386', 'ppc', 'ppc64', 'x86_64'):
+                machine = 'universal'
             else:
-                if archs == ('i386', 'ppc', 'ppc64', 'x86_64'):
-                    machine = 'universal'
-                else:
-                    raise ValueError(f"Don't know machine value for archs={archs!r}")
-                if machine == 'i386':
-                    if sys.maxsize >= 4294967296:
-                        machine = 'x86_64'
-                elif machine in ('PowerPC', 'Power_Macintosh'):
-                    if sys.maxsize >= 4294967296:
-                        machine = 'ppc64'
-                    else:
-                        machine = 'ppc'
+                raise ValueError(f"Don't know machine value for archs={archs!r}")
+        elif machine == 'i386':
+            if sys.maxsize >= 4294967296:
+                machine = 'x86_64'
+        elif machine in ('PowerPC', 'Power_Macintosh'):
+            if sys.maxsize >= 4294967296:
+                machine = 'ppc64'
+            else:
+                machine = 'ppc'
     return osname, release, machine
 
 # WARNING: Decompyle incomplete

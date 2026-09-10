@@ -3,9 +3,9 @@
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
   "PASS": 30,
-  "SIG-DIFF": 5,
-  "INCOMPLETE": 4,
-  "AST-PASS": 1
+  "SIG-DIFF": 6,
+  "AST-PASS": 1,
+  "INCOMPLETE": 3
  },
  "results": [
   {
@@ -62,8 +62,9 @@
   },
   {
    "module": "_osx_support",
-   "verdict": "INCOMPLETE",
-   "ndiff": 1203,
+   "ast_detail": "diff at token 117: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=UnaryOp(op=Not()",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1201,
    "ntotal": 1567,
    "detail": "line 339: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 340: orig ('LOAD_ATTR', 'close + NULL|self') | got ('CHECK_EXC_MATCH', '')\nline 341: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to L3')"
   },

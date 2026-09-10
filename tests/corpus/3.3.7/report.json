@@ -2,9 +2,9 @@
  "version": "3.3.7",
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
-  "PASS": 23,
-  "AST-PASS": 5,
-  "SIG-DIFF": 12
+  "PASS": 24,
+  "AST-PASS": 6,
+  "SIG-DIFF": 10
  },
  "results": [
   {
@@ -23,17 +23,13 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 556: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Set(elts=[Str(s='element')",
    "verdict": "SIG-DIFF",
-   "ndiff": 974,
+   "ndiff": 975,
    "ntotal": 1408,
    "detail": "line 303: orig ('SETUP_LOOP', '#230') | got ('SETUP_LOOP', '#236')\nline 307: orig ('POP_JUMP_IF_FALSE', '#229') | got ('POP_JUMP_IF_FALSE', '#235')\nline 360: orig ('JUMP_FORWARD', '#222') | got ('JUMP_FORWARD', '#228')"
   },
   {
    "module": "_osx_support",
-   "ast_detail": "diff at token 1690: orig  cause=None)])])])])])])] | dec  cause=None)])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 30,
-   "ntotal": 1140,
-   "detail": "line 1029: orig ('POP_JUMP_IF_FALSE', '#115') | got ('POP_JUMP_IF_FALSE', '#144')\nline 1035: orig ('POP_JUMP_IF_FALSE', '#115') | got ('POP_JUMP_IF_FALSE', '#144')\nline 1097: orig ('JUMP_ABSOLUTE', '#143') | got ('JUMP_FORWARD', '#114')"
+   "verdict": "PASS"
   },
   {
    "module": "_strptime",
@@ -101,11 +97,7 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 4072: orig  kwargs=None))])])] | dec  kwargs=None))])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1968,
-   "ntotal": 2902,
-   "detail": "line 761: orig ('SETUP_LOOP', '#67') | got ('SETUP_LOOP', '#68')\nline 798: orig ('LOAD_CONST', 'None') | got ('JUMP_ABSOLUTE', '#31')\nline 799: orig ('RETURN_VALUE', '') | got ('LOAD_CONST', 'None')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "cgi",

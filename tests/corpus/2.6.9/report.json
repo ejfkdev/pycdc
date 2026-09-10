@@ -227,7 +227,7 @@
    "module": "calendar",
    "ast_detail": "diff at token 1020: orig  body=[Assign(targets=[Name(id='months' | dec  body=[For(target=Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2100,
+   "ndiff": 2099,
    "ntotal": 2868,
    "detail": "line 704: orig ('SETUP_LOOP', '#61') | got ('SETUP_LOOP', '#62')\nline 706: orig ('JUMP_IF_FALSE', '#59') | got ('JUMP_IF_FALSE', '#60')\nline 719: orig ('JUMP_IF_FALSE', '#57') | got ('JUMP_IF_FALSE', '#58')"
   },

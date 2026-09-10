@@ -3898,6 +3898,42 @@ impl<'a> Ctx<'a> {
                                             ) && !x.is_backward
                                                 && x.target == Some(t)
                                         })
+                                    // the try body ends ON a backward
+                                    // jump out of the body's own start:
+                                    // a loop's fused back edge - the
+                                    // success path ITERATES, it cannot
+                                    // also run an else arm, and the
+                                    // span [body_end, t) is the loop
+                                    // tail plus sibling code, not an
+                                    // else region (_osx_support 3.12
+                                    // compiler_fixup: `except
+                                    // ValueError: break` exits to the
+                                    // enclosing if/elif merge and the
+                                    // whole `elif _supports_arm64_
+                                    // builds():` branch was swallowed
+                                    // into a phantom try-else inside
+                                    // the while loop). Await-resume
+                                    // JBNIs land INSIDE the body
+                                    // (target >= the try's start), so
+                                    // the body-start bound keeps them.
+                                    && !self
+                                        .idx_of
+                                        .get(&tc.body_end)
+                                        .map_or(false, |&bj| {
+                                            let x = &self.instrs[bj];
+                                            x.is_backward
+                                                && matches!(
+                                                    x.op,
+                                                    Op::JUMP_BACKWARD
+                                                        | Op::JUMP_ABSOLUTE
+                                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                )
+                                                && x.target
+                                                    .map_or(false, |bt| {
+                                                        bt < tc.body_end
+                                                            && self.is_loop_top_target(bt)
+                                                    })
+                                        })
                             })
                         })
                         .filter_map(|x| x.target)
@@ -5114,6 +5150,68 @@ impl<'a> Ctx<'a> {
                         Vec::new()
                     };
                     body.push(Stmt::Break);
+                    // the break hops PAST the loop's own exit when the
+                    // loop sits inside an if-branch with a sibling
+                    // elif: the span between is that branch's else arm
+                    // - register it on the innermost enclosing If whose
+                    // end the break flew over, so its close assembles
+                    // the elif instead of leaving the arm unclaimed at
+                    // top level (_osx_support 3.12 compiler_fixup:
+                    // `elif not _supports_arm64_builds():` rendered as
+                    // a standalone if, running the arm even after the
+                    // while-True branch executed)
+                    if let Some(t) = self.instrs[j].target {
+                        let cand = self
+                            .blocks
+                            .iter()
+                            .rev()
+                            .position(|b| {
+                                b.kind == BlockType::If
+                                    && b.else_end.is_none()
+                                    && b.end < t
+                                    && b.start < joff
+                            });
+                        if let Some(k) = cand {
+                            let n = self.blocks.len();
+                            let b = &self.blocks[n - 1 - k];
+                            let (si, ei) = (
+                                self.idx_of.get(&b.end).copied(),
+                                self.idx_of.get(&t).copied(),
+                            );
+                            if let (Some(si), Some(ei)) = (si, ei) {
+                                if si < ei {
+                                    let mut sees_guard = false;
+                                    let ok = self.instrs[si..ei].iter().all(|x| {
+                                        if x.is_backward {
+                                            return true;
+                                        }
+                                        match x.target {
+                                            Some(tt) if tt > t => false,
+                                            Some(tt) if tt == t => {
+                                                if matches!(
+                                                    x.op,
+                                                    Op::POP_JUMP_IF_TRUE
+                                                        | Op::POP_JUMP_IF_FALSE
+                                                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                        | Op::JUMP_IF_TRUE
+                                                        | Op::JUMP_IF_FALSE
+                                                ) {
+                                                    sees_guard = true;
+                                                }
+                                                true
+                                            }
+                                            _ => true,
+                                        }
+                                    });
+                                    if ok && sees_guard {
+                                        let n = self.blocks.len();
+                                        self.blocks[n - 1 - k].else_end = Some(t);
+                                    }
+                                }
+                            }
+                        }
+                    }
                     return body;
                 }
                 // `except E: continue` — a backward body jump onto an
@@ -7897,13 +7995,127 @@ impl<'a> Ctx<'a> {
         while self.blocks.len() > 1 {
             let end = {
                 let top = self.blocks.last().unwrap();
-                if top.kind == BlockType::Main || top.end > pos {
+                if top.kind == BlockType::Main {
                     break;
                 }
                 if matches!(top.kind, BlockType::While) && top.start == top.end {
                     break;
                 }
-                top.end
+                if top.end > pos {
+                    // an inner BRANCH region whose recorded end OUTLIVES
+                    // an enclosing block that ends at/below pos
+                    // overhangs its parent region: its real extent was
+                    // set from an arm exit flying to the outer merge (an
+                    // elif-chain arm's JUMP_FORWARD past the chain), and
+                    // it can never legitimately hold statements past the
+                    // parent boundary. Clamp it to the parent's end so
+                    // the parent can close here and open its own else
+                    // (_osx_support 3.12 get_platform_osx: the archs
+                    // chain Elses ran to the return at 706, trapping the
+                    // outer `elif machine == 'i386':` arms inside the
+                    // chain's last Else and leaving the walk-end flush
+                    // to emit an incomplete marker).
+                    //
+                    // LOOPS are never clamped here: a loop's end is its
+                    // own exit bound, and collapsing it at some
+                    // ancestor's mid-body end tears the whole nest down
+                    // while the body walk is still inside it
+                    // (configparser 3.12 _read: the main For was closed
+                    // at an exception-table Try's end and the loop-tail
+                    // `continue` fell out of scope)
+                    if matches!(top.kind, BlockType::While | BlockType::For) {
+                        break;
+                    }
+                    let n = self.blocks.len();
+                    let clamp = self.blocks[..n - 1]
+                        .iter()
+                        .rev()
+                        .find(|b| {
+                            !matches!(b.kind, BlockType::Main) && b.end <= pos
+                        })
+                        // only a branch (If/Else) ancestor is a real
+                        // container bound: infrastructure blocks (Try,
+                        // With, Container) carry exception-table spans
+                        // that can end mid-child without containing
+                        // semantics (configparser 3.12 _read: an
+                        // inverted Try[48,346]-under-For[76,1848]
+                        // nesting collapsed the main loop at the try's
+                        // end). And the ancestor must END STRICTLY
+                        // BEFORE pos: at end == pos the parent closes
+                        // in this same call right after the child, the
+                        // normal in-order cascade - clamping there
+                        // folds the child early and skips its else-arm
+                        // open at its own end (_markupbase 3.6
+                        // parse_declaration: `else: self.error(...)`
+                        // flattened out of the elif chain)
+                        // ONLY Else regions are clamped, and only at a
+                        // branch (If/Else) ancestor's end:
+                        // - an Else region never opens an else of its
+                        //   own, so folding it at the parent boundary
+                        //   cannot skip an arm open (_osx_support 3.12
+                        //   get_platform_osx: chain Elses ran to the
+                        //   function merge and trapped the parent's
+                        //   elif arms; the equality form fires exactly
+                        //   at the parent's close point),
+                        // - an IF top must stay for lazy resolution: it
+                        //   closes at its own end where its else arm
+                        //   opens, and the parent folds in the child's
+                        //   wake (_markupbase 3.6 parse_declaration:
+                        //   clamping the inner If flattened `else:
+                        //   self.error(...)` out of the chain),
+                        // - a non-branch ancestor (Try/With/Container)
+                        //   carries infrastructure spans, not container
+                        //   bounds (configparser 3.12 _read: an
+                        //   inverted Try-under-For nesting collapsed
+                        //   the main loop at the try's end).
+                        // ONLY Else region tops are clamped, at a
+                        // branch (If/Else) ancestor whose end the walk
+                        // has reached:
+                        // - an Else region never opens an else of its
+                        //   own, so folding it at the parent boundary
+                        //   cannot skip an arm open, and at end <= pos
+                        //   the parent closes in this same call - the
+                        //   child must be bounded first or the parent's
+                        //   close (and its else-arm open) is blocked
+                        //   forever (_osx_support 3.12
+                        //   get_platform_osx: chain Elses ran to the
+                        //   function merge and trapped the parent's
+                        //   elif arms),
+                        // - an IF top must stay for lazy resolution: it
+                        //   closes at its own end where its else arm
+                        //   opens, and the parent folds in the child's
+                        //   wake (_markupbase 3.6 parse_declaration:
+                        //   clamping the inner If flattened `else:
+                        //   self.error(...)` out of the chain; bdb 3.14
+                        //   effective: `return b, True` hoisted out of
+                        //   `if not b.cond:`),
+                        // - a non-branch ancestor (Try/With/Container)
+                        //   carries infrastructure spans, not container
+                        //   bounds (configparser 3.12 _read: an
+                        //   inverted Try-under-For nesting collapsed
+                        //   the main loop at the try's end).
+                        .filter(|b| {
+                            matches!(b.kind, BlockType::If | BlockType::Else)
+                                && b.end <= pos
+                                && self
+                                    .blocks
+                                    .last()
+                                    .map_or(false, |t| {
+                                        t.kind == BlockType::Else
+                                    })
+                        })
+                        .map(|b| b.end);
+                    match clamp {
+                        Some(e) if e > top.start => {
+                            let last = self.blocks.last_mut().unwrap();
+                            last.end = e;
+                            e
+                        }
+                        _ => break,
+                    }
+                } else {
+                    top.end
+                }
             };
             self.force_close_top(end);
         }
@@ -28162,6 +28374,49 @@ if split_cond {
                 // instruction no jump targets (post-else continuation)
                 if target > b.end && !self.targets.contains(&target) {
                     return Some(i);
+                }
+                // a break flying over the enclosing if's SIBLING elif
+                // branch: the loop exit flows into a guard chain whose
+                // guards all short-circuit to the branch merge, and a
+                // break taken inside the if-branch must skip the elif
+                // entirely, landing on that merge (_osx_support 3.12
+                // compiler_fixup: `except ValueError: break` hops to the
+                // post-elif merge past `_supports_arm64_builds`)
+                if target > b.end {
+                    if let (Some(&si), Some(&ei)) =
+                        (self.idx_of.get(&b.end), self.idx_of.get(&target))
+                    {
+                        if si < ei {
+                            let mut sees_guard = false;
+                            let ok = self.instrs[si..ei].iter().all(|x| {
+                                if x.is_backward {
+                                    return true;
+                                }
+                                match x.target {
+                                    Some(t) if t > target => false,
+                                    Some(t) if t == target => {
+                                        if matches!(
+                                            x.op,
+                                            Op::POP_JUMP_IF_TRUE
+                                                | Op::POP_JUMP_IF_FALSE
+                                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                | Op::JUMP_IF_TRUE
+                                                | Op::JUMP_IF_FALSE
+                                                | Op::JUMP_IF_NOT_EXC_MATCH
+                                        ) {
+                                            sees_guard = true;
+                                        }
+                                        true
+                                    }
+                                    _ => true,
+                                }
+                            });
+                            if ok && sees_guard {
+                                return Some(i);
+                            }
+                        }
+                    }
                 }
                 // 3.12+ relocated handler zone: the loop's end was capped
                 // at the first out-of-line chain, so the block end is not
