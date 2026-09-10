@@ -147,8 +147,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 232: orig  ctx=Load())]) | dec  ctx=Load())])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 641,
-   "ntotal": 862,
+   "ndiff": 644,
+   "ntotal": 861,
    "detail": "line 130: orig ('SETUP_LOOP', '#142') | got ('SETUP_LOOP', '#143')\nline 133: orig ('FOR_ITER', '#141') | got ('FOR_ITER', '#142')\nline 177: orig ('POP_JUMP_IF_TRUE', '#140') | got ('POP_JUMP_IF_TRUE', '#141')"
   },
   {
@@ -179,9 +179,9 @@
    "module": "csv",
    "ast_detail": "diff at token 1737: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=BinOp(left=Subscript(value=Name(id='v'",
    "verdict": "SIG-DIFF",
-   "ndiff": 726,
-   "ntotal": 1653,
-   "detail": "line 847: orig ('SETUP_LOOP', '#145') | got ('SETUP_LOOP', '#146')\nline 850: orig ('FOR_ITER', '#144') | got ('FOR_ITER', '#145')\nline 902: orig ('POP_JUMP_IF_FALSE', '#113') | got ('POP_JUMP_IF_FALSE', '#114')"
+   "ndiff": 382,
+   "ntotal": 1652,
+   "detail": "line 1067: orig ('SETUP_LOOP', '#300') | got ('SETUP_LOOP', '#301')\nline 1073: orig ('POP_JUMP_IF_FALSE', '#299') | got ('POP_JUMP_IF_FALSE', '#300')\nline 1221: orig ('SETUP_LOOP', '#258') | got ('SETUP_LOOP', '#259')"
   },
   {
    "module": "dis",

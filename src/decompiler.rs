@@ -25651,6 +25651,73 @@ return None;
                 if std::env::var("PYCDC_ORC_DBG").is_ok() {
                     eprintln!("ORC off={} merged={:?} body=[{},{}) chain={}", self.cur_offset, merged_cond, body_start, exit, chain_blocks);
                 }
+                // a body-targeting or-group merged directly UNDER an open
+                // and-link: `if a and (b or c):` — the first operand's
+                // PJIF opened an If ending at the shared exit, and the
+                // or-group's merged exit IS that end. Pushing a second If
+                // nests the group (`if a: if b or c:` — compileall 3.11
+                // compile_dir/compile_file `ddir is not None and (stripdir
+                // is not None or prependdir is not None)`, the near-pass
+                // sig diff). Fold into the open cond instead: the same And
+                // merge split_cond does for same-exit links, extended to a
+                // body-targeting group. The span between the open link and
+                // the group body must be operand material only (value ops /
+                // cond jumps / padding — no statements), else the open If
+                // is a genuine enclosing guard whose body already started.
+                let mut and_fold = false;
+                if let Some(top) = self.blocks.last() {
+                    if top.kind == BlockType::If
+                        && top.cond_set
+                        && top.end == exit
+                        && top.stmts.is_empty()
+                        && top.short_circuit.is_none()
+                        && top.clamp_from.is_none()
+                        && top.start < body_start
+                    {
+                        if let (Some(&si), Some(&bi)) =
+                            (self.idx_of.get(&top.start), self.idx_of.get(&body_start))
+                        {
+                            and_fold = bi > si
+                                && self.instrs[si..bi].iter().all(|x| {
+                                    is_pure_value_op(x.op)
+                                        || matches!(
+                                            x.op,
+                                            Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                                        )
+                                        || matches!(
+                                            x.op,
+                                            Op::POP_JUMP_IF_FALSE
+                                                | Op::POP_JUMP_IF_TRUE
+                                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                | Op::POP_JUMP_IF_NONE
+                                                | Op::POP_JUMP_IF_NOT_NONE
+                                                | Op::POP_JUMP_FORWARD_IF_NONE
+                                                | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                                                | Op::POP_JUMP_BACKWARD_IF_NONE
+                                                | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
+                                                | Op::JUMP_IF_TRUE_OR_POP
+                                                | Op::JUMP_IF_FALSE_OR_POP
+                                        )
+                                });
+                        }
+                    }
+                }
+                if and_fold {
+                    if let Some(top) = self.blocks.last_mut() {
+                        if let Some(prev) = top.cond.take() {
+                            let mut values = Vec::new();
+                            flatten_boolop(prev, BoolOpKind::And, &mut values);
+                            flatten_boolop(merged_cond.clone(), BoolOpKind::And, &mut values);
+                            top.cond = Some(Rc::new(Expr::BoolOp {
+                                op: BoolOpKind::And,
+                                values,
+                            }));
+                            self.skip_until = Some(body_start);
+                            return;
+                        }
+                    }
+                }
                 let mut blk = Block::new(BlockType::If, body_start, exit);
                 blk.cond = Some(merged_cond);
                 blk.cond_set = true;

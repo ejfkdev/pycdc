@@ -211,9 +211,8 @@ class Sniffer:
                 key = m[n]
             except KeyError:
                 continue
-            if key:
-                if delimiters is None or key in delimiters:
-                    delims[key] = delims.get(key, 0) + 1
+            if key and (delimiters is None or key in delimiters):
+                delims[key] = delims.get(key, 0) + 1
             try:
                 n = regexp.groupindex['space'] - 1
             except KeyError:

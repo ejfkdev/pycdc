@@ -296,13 +296,12 @@ self.user_line(). Raise BdbQuit if self.quitting is set.
 Return self.trace_dispatch to continue tracing in this scope.
 '''
 
-        if self.stop_here(frame) or self.break_here(frame):
-            if not (self.cmdframe == frame and self.cmdlineno == frame.f_lineno):
-                self.user_line(frame)
-                self.restart_events()
-                if self.quitting:
-                    raise BdbQuit
-                return self.trace_dispatch
+        if (self.stop_here(frame) or self.break_here(frame)) and (not self.cmdframe == frame or not self.cmdlineno == frame.f_lineno):
+            self.user_line(frame)
+            self.restart_events()
+            if self.quitting:
+                raise BdbQuit
+            return self.trace_dispatch
         if not self.get_break(frame.f_code.co_filename, frame.f_lineno):
             self.disable_current_event()
         return self.trace_dispatch

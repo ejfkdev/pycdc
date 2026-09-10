@@ -69,9 +69,8 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
     '''
 
     ProcessPoolExecutor = None
-    if ddir is not None:
-        if stripdir is not None or prependdir is not None:
-            raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
+    if ddir is not None and (stripdir is not None or prependdir is not None):
+        raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
     if ddir is not None:
         stripdir = dir
         prependdir = ddir
@@ -122,9 +121,8 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
     hardlink_dupes: hardlink duplicated pyc files
     '''
 
-    if ddir is not None:
-        if stripdir is not None or prependdir is not None:
-            raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
+    if ddir is not None and (stripdir is not None or prependdir is not None):
+        raise ValueError('Destination dir (ddir) cannot be used in combination with stripdir or prependdir')
     success = True
     if quiet < 2 and isinstance(fullname, os.PathLike):
         fullname = os.fspath(fullname)
@@ -279,9 +277,8 @@ def main():
         args.opt_levels = [-1]
     if len(args.opt_levels) == 1 and args.hardlink_dupes:
         parser.error('Hardlinking of duplicated bytecode makes sense only for more than one optimization level.')
-    if args.ddir is not None:
-        if args.stripdir is not None or args.prependdir is not None:
-            parser.error('-d cannot be used in combination with -s or -p')
+    if args.ddir is not None and (args.stripdir is not None or args.prependdir is not None):
+        parser.error('-d cannot be used in combination with -s or -p')
     if args.flist:
         try:
             with sys.stdin if args.flist == '-' else open(args.flist) as f:

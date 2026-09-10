@@ -167,9 +167,8 @@ def main():
     parser.add_argument('compile_dest', metavar='FILE|DIR', nargs='*', help='zero or more file and directory names to compile; if no arguments given, defaults to the equivalent of -l sys.path')
     args = parser.parse_args()
     compile_dests = args.compile_dest
-    if args.ddir:
-        if len(compile_dests) != 1 or not os.path.isdir(compile_dests[0]):
-            parser.exit('-d destdir requires exactly one directory argument')
+    if args.ddir and (len(compile_dests) != 1 or not os.path.isdir(compile_dests[0])):
+        parser.exit('-d destdir requires exactly one directory argument')
     if args.rx:
         import re
         args.rx = re.compile(args.rx)
