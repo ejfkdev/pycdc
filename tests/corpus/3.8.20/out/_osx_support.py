@@ -63,10 +63,11 @@ def _get_system_version():
             f = open('/System/Library/CoreServices/SystemVersion.plist')
         except OSError:
             pass
-        try:
-            m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
-        finally:
-            f.close()
+        else:
+            try:
+                m = re.search('<key>ProductUserVisibleVersion</key>\\s*<string>(.*?)</string>', f.read())
+            finally:
+                f.close()
         if m is not None:
             _SYSTEM_VERSION = '.'.join(m.group(1).split('.')[:2])
     return _SYSTEM_VERSION

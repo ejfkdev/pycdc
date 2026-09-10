@@ -50,9 +50,9 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 521,
+   "ndiff": 520,
    "ntotal": 1437,
-   "detail": "line 308: orig ('JUMP_FORWARD', 'to 122') | got ('JUMP_FORWARD', 'to 44')\nline 469: orig ('FOR_ITER', 'to 126') | got ('FOR_ITER', 'to 138')\nline 499: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 124')"
+   "detail": "line 469: orig ('FOR_ITER', 'to 126') | got ('FOR_ITER', 'to 138')\nline 499: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 124')\nline 511: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_GLOBAL', '_cache_default_sysroot')"
   },
   {
    "module": "_py_abc",

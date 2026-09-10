@@ -9238,42 +9238,50 @@ impl<'a> Ctx<'a> {
                             // the new chain puts the Try in its body):
                             // stashing there scrambles the emission
                             // order (_osx_support 3.9 _get_system_version)
-                            && (self.version.at_least(3, 8)
-                                || self.cur_offset >= prev.else_stop)
-                            // 3.8+ early-fold bypass guard: a nested
-                            // try level STILL OPEN inside the outer
-                            // finally region (its SETUP sits between
-                            // else_start and this POP_BLOCK unmatched)
-                            // means this POP_BLOCK closes the NESTED
-                            // level and the outer region still runs —
-                            // folding the outer chain here drops the
-                            // whole nested try/finally out of its
-                            // finalbody (bz2 3.8 close `finally: {try:
-                            // ... finally: ...}` rendered a bare body +
-                            // `unrecovered` warning)
-                            && !(prev.has_finally
-                                && self.version.at_least(3, 8)
-                                && {
-                                let mut d = 0i32;
-                                for ins in self.instrs.iter() {
-                                    if ins.offset
-                                        < prev.else_start.unwrap_or(usize::MAX)
-                                    {
-                                        continue;
+                            && (self.cur_offset >= prev.else_stop
+                                // 3.8+ inline-finally layouts rely on the
+                                // early fold (folding on top of the new
+                                // chain puts the Try in its body -
+                                // bz2/cmd), but ONLY while no nested try
+                                // level is still open inside the region:
+                                // an unmatched SETUP between else_start
+                                // and this POP_BLOCK means the POP_BLOCK
+                                // closes the NESTED level and the outer
+                                // region runs on - folding here emits the
+                                // outer chain before the inner chain
+                                // parses, dropping the nested try out of
+                                // its finalbody (bz2 3.8 close) or out of
+                                // the else region (_osx_support 3.8/3.9
+                                // _get_system_version: `else: {try:
+                                // re.search finally: f.close()}` rendered
+                                // as a sibling AFTER the outer try, so
+                                // f.read() ran before f=open() and the
+                                // inner try ran even when open() raised,
+                                // which the else forbids). Stash via
+                                // legacy_nest in that case instead.
+                                || (self.version.at_least(3, 8) && {
+                                    let mut d = 0i32;
+                                    for ins in self.instrs.iter() {
+                                        if ins.offset
+                                            < prev
+                                                .else_start
+                                                .unwrap_or(usize::MAX)
+                                        {
+                                            continue;
+                                        }
+                                        if ins.offset >= self.cur_offset {
+                                            break;
+                                        }
+                                        match ins.op {
+                                            Op::SETUP_FINALLY
+                                            | Op::SETUP_EXCEPT
+                                            | Op::SETUP_CLEANUP => d += 1,
+                                            Op::POP_BLOCK => d -= 1,
+                                            _ => {}
+                                        }
                                     }
-                                    if ins.offset >= self.cur_offset {
-                                        break;
-                                    }
-                                    match ins.op {
-                                        Op::SETUP_FINALLY
-                                        | Op::SETUP_EXCEPT
-                                        | Op::SETUP_CLEANUP => d += 1,
-                                        Op::POP_BLOCK => d -= 1,
-                                        _ => {}
-                                    }
-                                }
-                                d > 0
-                            })
+                                    d == 0
+                                }))
                     });
                     let mut prev_done = if prev_complete {
                         self.legacy_try.take()
@@ -16543,6 +16551,109 @@ impl<'a> Ctx<'a> {
             if let Some(i) = target_idx {
                 if let Some(o) = self.legacy_nest[i].outer_try.as_mut() {
                     o.finalbody.push(try_stmt);
+                }
+                return;
+            }
+        }
+        // a nested chain flushed while the ACTIVE outer chain is a
+        // try/except/ELSE whose else REGION contains this emission point:
+        // the nested Try is the else region's content and belongs in the
+        // outer's orelse - the mirror of push_stmt's else-region redirect,
+        // which push_legacy_try bypasses. The 3.8/3.9 inline-finally inner
+        // chain flushes at its terminal JF right AFTER legacy_chain_step
+        // restored the stashed outer (restore-before-push at the 7227 call
+        // site), so the outer is active here, not stashed. Without this the
+        // inner try emitted as a Main-level SIBLING before the outer and
+        // the outer's orelse wrongly collected the post-else tail
+        // (_osx_support 3.8/3.9 _get_system_version: f.read() before
+        // f=open(), inner try ran even when open() raised, and
+        // `else: return _SYSTEM_VERSION` swallowed the function tail).
+        if let Some(lt) = self.legacy_try.as_ref() {
+            if !lt.has_finally
+                && lt.handler_start != l_handler_start
+                && lt.else_start.map_or(false, |es| {
+                    self.cur_offset >= es && self.cur_offset <= lt.else_stop
+                })
+            {
+                // the nested chain's terminal jump flies to the else
+                // region's true end (the merge the except-exit also
+                // targets): bound the region there NOW. 3.8+ leaves
+                // else_stop unbounded (the except-exit bounder is gated
+                // pre-3.8 for asynchat's sunk copies), and an unbounded
+                // region keeps redirecting every later statement - the
+                // enclosing guard If's close and the function tail - into
+                // the orelse (_osx_support 3.9: the outer
+                // `if _SYSTEM_VERSION is None:` wrapper and
+                // `return _SYSTEM_VERSION` were swallowed into the else).
+                // Gated on the chain being DONE (its terminal jump is the
+                // region's last flow) and the target not being a jump
+                // target itself (a mid-region merge would cut the region
+                // short).
+                let chain_done = lt.chain_done;
+                let o_hs = lt.handler_start;
+                let o_es = lt.else_start.unwrap_or(usize::MAX);
+                // the region's true end is the OUTER chain's handler-exit
+                // jump target (where the except path merges with the
+                // else's fall-through). Validate via this chain's terminal
+                // forward jump: it must stay INSIDE the candidate region
+                // (the flush site may BE that jump - legacy_chain_step's
+                // JUMP_FORWARD arm - or sit right before it, an
+                // END_FINALLY / POP_EXCEPT fold). A terminal jump past the
+                // candidate means the layout is a sunk-copy variant
+                // (asynchat 3.9/3.10) - leave else_stop untouched there.
+                let fwd_jump_at = |i: usize| {
+                    self.instrs.get(i).and_then(|x| {
+                        (matches!(
+                            x.op,
+                            Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+                        ) && !x.is_backward)
+                            .then_some(x.target)
+                            .flatten()
+                    })
+                };
+                let terminal_jf = self
+                    .idx_of
+                    .get(&self.cur_offset)
+                    .copied()
+                    .and_then(|ci| {
+                        let mut k = ci + 1;
+                        while matches!(
+                            self.instrs.get(k).map(|x| x.op),
+                            Some(Op::NOP) | Some(Op::NOT_TAKEN) | Some(Op::CACHE)
+                        ) {
+                            k += 1;
+                        }
+                        fwd_jump_at(ci).or_else(|| fwd_jump_at(k))
+                    });
+                let bound = if chain_done {
+                    self.instrs
+                        .iter()
+                        .filter(|x| {
+                            x.offset >= o_hs
+                                && x.offset < o_es
+                                && !x.is_backward
+                                && matches!(
+                                    x.op,
+                                    Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+                                )
+                        })
+                        .filter_map(|x| x.target)
+                        .filter(|&t| {
+                            t > self.cur_offset
+                                && self.idx_of.contains_key(&t)
+                                && terminal_jf.map_or(false, |jt| jt <= t)
+                        })
+                        .min()
+                } else {
+                    None
+                };
+                if let Some(lt) = self.legacy_try.as_mut() {
+                    if let Some(t) = bound {
+                        if t < lt.else_stop {
+                            lt.else_stop = t;
+                        }
+                    }
+                    lt.orelse.push(try_stmt);
                 }
                 return;
             }
