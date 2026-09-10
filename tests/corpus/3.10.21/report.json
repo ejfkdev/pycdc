@@ -202,9 +202,9 @@
   {
    "module": "contextlib",
    "verdict": "INCOMPLETE",
-   "ndiff": 1454,
+   "ndiff": 1309,
    "ntotal": 1874,
-   "detail": "line 401: orig ('SETUP_ASYNC_WITH', 'to 60') | got ('SETUP_ASYNC_WITH', 'to 40')\nline 403: orig ('LOAD_DEREF', 'func') | got ('POP_BLOCK', '')\nline 404: orig ('LOAD_FAST', 'args') | got ('LOAD_CONST', 'None')"
+   "detail": "line 551: orig ('POP_JUMP_IF_FALSE', 'to 50') | got ('POP_JUMP_IF_FALSE', 'to 16')\nline 552: orig ('SETUP_FINALLY', 'to 30') | got ('LOAD_GLOBAL', 'RuntimeError')\nline 553: orig ('LOAD_GLOBAL', 'next') | got ('LOAD_CONST', '\"generator didn\\'t stop\"')"
   },
   {
    "module": "copy",

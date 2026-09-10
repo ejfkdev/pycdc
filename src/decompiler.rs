@@ -10065,6 +10065,14 @@ impl<'a> Ctx<'a> {
     fn mark_unclean(&mut self) {
         if std::env::var("PYCDC_UNCLEAN").is_ok() {
             eprintln!("UNCLEAN @{} fn={}", self.cur_offset, self.code.name);
+            if std::env::var("PYCDC_UNCLEAN_BT").is_ok() {
+                let bt = std::backtrace::Backtrace::force_capture();
+                for l in bt.to_string().lines().take(40) {
+                    if l.contains("decompiler.rs") {
+                        eprintln!("   {}", l.trim());
+                    }
+                }
+            }
         }
         self.clean = false;
     }
@@ -31496,6 +31504,7 @@ if split_cond {
                 | Op::SEND
                 | Op::END_SEND
                 | Op::YIELD_VALUE
+                | Op::YIELD_FROM
                 | Op::RESUME
                 | Op::RESUME_CHECK
                 | Op::JUMP_BACKWARD_NO_INTERRUPT
@@ -31567,6 +31576,18 @@ if split_cond {
                 | Op::POP_JUMP_FORWARD_IF_TRUE
                 | Op::POP_JUMP_BACKWARD_IF_TRUE
                 | Op::JUMP_IF_TRUE_OR_POP
+                // an ASYNC with's handler awaits the __aexit__ result:
+                // the suspension protocol sits between
+                // WITH_EXCEPT_START and the POP_JUMP/RERAISE (3.10
+                // contextlib inner: the scan broke at GET_AWAITABLE
+                // and the handler glue rendered `if not None: pass`)
+                | Op::GET_AWAITABLE
+                | Op::YIELD_FROM
+                | Op::YIELD_VALUE
+                | Op::SEND
+                | Op::END_SEND
+                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                | Op::CLEANUP_THROW
                 | Op::EXTENDED_ARG => k += 1,
                 Op::LOAD_CONST
                     if matches!(
