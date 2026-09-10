@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 33,
-  "SIG-DIFF": 7
+  "PASS": 34,
+  "SIG-DIFF": 6
  },
  "results": [
   {
@@ -148,11 +148,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 513: orig  While(test=Name(id='True' | dec  Try(body=[Assign(targets=[Name(id='line'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 253,
-   "ntotal": 758,
-   "detail": "line 501: orig ('SETUP_FINALLY', 'to 228') | got ('SETUP_FINALLY', 'to 160')\nline 502: orig ('LOAD_FAST', 'more') | got ('LOAD_FAST', 'self')\nline 503: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_METHOD', 'raw_input')"
+   "verdict": "PASS"
   },
   {
    "module": "codecs",

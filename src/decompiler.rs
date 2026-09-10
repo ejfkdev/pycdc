@@ -7223,11 +7223,14 @@ impl<'a> Ctx<'a> {
                 } else {
                     // 3.8-3.10 `except E: break`: the break body IS the
                     // exit jump (POP_EXCEPT; JABS loop-exit) — a forward
-                    // JABS to a loop exit with an empty collected body is
-                    // the clause's break, not the normal-exit cleanup
-                    // (_compression read 3.9: the late close rendered
-                    // `except: pass` and leaked the Break into the
-                    // enclosing then-arm). Push it and skip the jump; the
+                    // JABS to a loop exit after the clause's collected
+                    // statements is the clause's break, not the normal-
+                    // exit cleanup (_compression read 3.9: the late close
+                    // rendered `except: pass` and leaked the Break into
+                    // the enclosing then-arm; code 3.8/3.9 interact: the
+                    // KI clause's `write(...); break` folded WITHOUT the
+                    // break, which then ejected to loop level ahead of
+                    // the chain's Try). Push it and skip the jump; the
                     // dead second cleanup pair stays in the linear walk's
                     // path and is consumed by the chain machinery.
                     let handler_break = self
@@ -7237,9 +7240,27 @@ impl<'a> Ctx<'a> {
                         // If/loop still open (bz2 3.9 decompress `except
                         // OSError: if results: break else: raise`) the
                         // POP_EXCEPT;JABS is the inner arm's break path —
-                        // normal dispatch routes it into the open arm
+                        // normal dispatch routes it into the open arm.
+                        // a body already ending in a terminator means the
+                        // exit jump is dead padding after it, not a
+                        // source-level break (mirrors the add_cont guard);
+                        // a body ending in an If/else-escape arm whose
+                        // region is still AHEAD (the bz2 `else: raise`
+                        // lies past this jump) also keeps the historic
+                        // path — folding here renders the escape flat and
+                        // loses the sig-exact else. The admitted shape is
+                        // a run of plain statements (code 3.8/3.9
+                        // interact `except EOFError: write('\n'); break`)
                         .map_or(false, |h| {
-                            h.body.is_empty() && self.blocks.len() <= h.block_depth
+                            self.blocks.len() <= h.block_depth
+                                && !h.body.iter().any(|s| {
+                                    ends_scope(s)
+                                        || matches!(
+                                            s,
+                                            Stmt::If { orelse, .. }
+                                                if !orelse.is_empty()
+                                        )
+                                })
                         })
                         && self
                             .instrs
@@ -13557,6 +13578,53 @@ impl<'a> Ctx<'a> {
                     // record the else end so the loop close can build it
                     self.register_break_over_else(target);
                     if self.find_loop_exit(target).is_some() {
+                        // a break inside an OPEN legacy handler (code
+                        // 3.8/3.9 interact `except EOFError:
+                        // self.write("\n"); break` in a nested try):
+                        // the Break routes into the handler clause's
+                        // body; a full close_inner_blocks_to_loop would
+                        // force-close the enclosing Try blocks AT THEIR
+                        // STARTS - the deferred pre-3.11 chain creation
+                        // records handler_start = the block START
+                        // (garbage: the real handler lies at the block's
+                        // END), the keep-open back-edge machinery loses
+                        // the chain and the loop closes before its
+                        // handler region (the KI clause leaked to
+                        // function level, the loop body duplicated).
+                        // Close only down to the handler depth; the
+                        // chain machinery owns the rest. Mirrors the
+                        // JUMP_FORWARD arm's over_handlers guard.
+                        // Scoped to a break that IS the handler's own
+                        // escape: with an inner If/Else arm still open
+                        // above the handler depth (bz2 3.8/3.9
+                        // decompress `except OSError: if results:
+                        // break else: raise`) the normal dispatch owns
+                        // the arm - closing it here strands its
+                        // not-yet-walked else region and flattens
+                        // `else: raise` to a bare `raise`.
+                        if self
+                            .legacy_handler
+                            .as_ref()
+                            .map_or(false, |h| {
+                                self.blocks.len() <= h.block_depth
+                            })
+                        {
+                            self.push_stmt(Stmt::Break);
+                            let depth = self
+                                .legacy_handler
+                                .as_ref()
+                                .map(|h| h.block_depth)
+                                .unwrap_or(1);
+                            while self.blocks.len() > depth.max(1) {
+                                let p = self
+                                    .blocks
+                                    .last()
+                                    .map(|b| b.start)
+                                    .unwrap_or(target);
+                                self.force_close_top(p);
+                            }
+                            return true;
+                        }
                         // degenerate `if c: break`: close ONLY the
                         // just-opened break block; enclosing branches
                         // continue past it (mirrors the JUMP_FORWARD arm)

@@ -190,67 +190,23 @@ class InteractiveConsole(InteractiveInterpreter):
         elif banner:
             self.write('%s\n' % str(banner))
         more = 0
-        try:
-            line = self.raw_input(prompt)
-        except EOFError:
-            self.write('\n')
-            # WARNING: break outside loop (unrecovered structure)
-            more = self.push(line)
-            while True:
-                pass
-            prompt = sys.ps2
-            prompt = sys.ps1
-            if more:
-                pass
-            line = self.raw_input(prompt)
-            try:
-                pass
-            except EOFError:
-                pass
-            prompt = sys.ps2
-            prompt = sys.ps1
-            if more:
-                pass
-            line = self.raw_input(prompt)
-            try:
-                pass
-            except EOFError:
-                pass
-            else:
-                more = self.push(line)
-            prompt = sys.ps2
-            prompt = sys.ps1
-            if more:
-                pass
-            line = self.raw_input(prompt)
-            try:
-                pass
-            except EOFError:
-                pass
-            else:
-                more = self.push(line)
-            prompt = sys.ps2
-            prompt = sys.ps1
-            if more:
-                pass
-            line = self.raw_input(prompt)
-            try:
-                pass
-            except EOFError:
-                pass
-            else:
-                more = self.push(line)
+        while True:
             try:
                 if more:
                     prompt = sys.ps2
                 else:
                     prompt = sys.ps1
+                try:
+                    line = self.raw_input(prompt)
+                except EOFError:
+                    self.write('\n')
+                    break
+                else:
+                    more = self.push(line)
             except KeyboardInterrupt:
                 self.write('\nKeyboardInterrupt\n')
                 self.resetbuffer()
                 more = 0
-        else:
-            more = self.push(line)
         if exitmsg is None:
             self.write('now exiting %s...\n' % self.__class__.__name__)
         elif exitmsg != '':
