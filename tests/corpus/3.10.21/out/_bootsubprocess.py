@@ -74,6 +74,6 @@ def check_output(cmd, **kwargs):
         try:
             os.unlink(tmp_filename)
         except OSError:
-            return stdout
+            pass
     return stdout
 

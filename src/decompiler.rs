@@ -36507,6 +36507,92 @@ impl<'a> Ctx<'a> {
             self.sunk_return_fold_at = Some(self.cur_offset);
             return;
         }
+        // 3.10 fully-sunk tail: a nested chain parsed INSIDE the outer
+        // chain's inline-finally copy region carries the function-tail
+        // return sunk onto its clause-exit path
+        // (`POP_EXCEPT; LOAD v; RETURN` where the source clause is
+        // `pass`). The real tail return renders from the success-path
+        // copy; this duplicate must drop. Discriminator: the mirrored
+        // nested clause in the OUTER out-of-line handler copy carries
+        // NO matching return (it re-raises instead) — a source-level
+        // `return v` inside a finally body would appear in BOTH copies
+        // (_bootsubprocess 3.10 check_output `except OSError: pass`
+        // rendered `return stdout`).
+        if !is_none_value
+            && self.version.at_least(3, 10)
+            && !self.version.at_least(3, 11)
+            && self.legacy_handler.is_some()
+        {
+            let outer = self.legacy_nest.iter().find_map(|n| {
+                n.outer_try.as_ref().filter(|o| {
+                    o.has_finally
+                        && o.else_start.map_or(false, |es| {
+                            self.cur_offset >= es
+                                && self.cur_offset < o.handler_start
+                        })
+                })
+            });
+            if let Some(o) = outer {
+                let is_pad = |x: &crate::bytecode::Instruction| {
+                    matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG)
+                };
+                let is_load = |op: Op| {
+                    matches!(
+                        op,
+                        Op::LOAD_FAST
+                            | Op::LOAD_NAME
+                            | Op::LOAD_GLOBAL
+                            | Op::LOAD_DEREF
+                            | Op::LOAD_CONST
+                            | Op::LOAD_ATTR
+                            | Op::LOAD_METHOD
+                    )
+                };
+                let run_of = |ri: usize| -> Option<Vec<(u8, u32)>> {
+                    let mut b = ri;
+                    let mut hops = 0;
+                    while b > 0 && hops < 8 {
+                        let p = &self.instrs[b - 1];
+                        if is_pad(p) || is_load(p.op) {
+                            b -= 1;
+                            hops += 1;
+                            continue;
+                        }
+                        break;
+                    }
+                    let run: Vec<(u8, u32)> = self.instrs[b..=ri]
+                        .iter()
+                        .filter(|x| !is_pad(x))
+                        .map(|x| (x.op as u8, x.arg))
+                        .collect();
+                    (run.len() >= 2
+                        && matches!(run.last().map(|t| t.0), Some(op) if op == Op::RETURN_VALUE as u8))
+                    .then_some(run)
+                };
+                let mirrored_in_handler = self
+                    .idx_of
+                    .get(&self.cur_offset)
+                    .zip(self.idx_of.get(&o.handler_start))
+                    .map_or(false, |(&ri, &hi)| {
+                        let run_a = match run_of(ri) {
+                            Some(r) => r,
+                            None => return false,
+                        };
+                        let hend = self.chain_extent(o.handler_start);
+                        (hi..self.instrs.len())
+                            .take_while(|&k| self.instrs[k].offset < hend)
+                            .any(|k| {
+                                matches!(
+                                    self.instrs[k].op,
+                                    Op::RETURN_VALUE | Op::RETURN_CONST
+                                ) && run_of(k).as_ref() == Some(&run_a)
+                            })
+                    });
+                if !mirrored_in_handler {
+                    return;
+                }
+            }
+        }
         // 3.8-3.10 multi-exit inline finally copies: every path out of
         // the copy region ends in a sunk `LOAD None; RETURN` (copies of
         // the implicit function tail). Copies PAST the chain's recorded
