@@ -89,8 +89,7 @@ class AsyncContextDecorator(object):
         @wraps(func)
         async def inner(*args, **kwds):
             async with self._recreate_cm():
-                pass
-            await None(None, None)
+                return await func(*args, **kwds)
 
         return inner
 
@@ -718,4 +717,3 @@ class chdir(AbstractContextManager):
         os.chdir(self._old_cwd.pop())
 
 
-# WARNING: Decompyle incomplete

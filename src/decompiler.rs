@@ -10013,6 +10013,9 @@ impl<'a> Ctx<'a> {
     }
 
     fn mark_unclean(&mut self) {
+        if std::env::var("PYCDC_UNCLEAN").is_ok() {
+            eprintln!("UNCLEAN @{} fn={}", self.cur_offset, self.code.name);
+        }
         self.clean = false;
     }
 
@@ -31430,6 +31433,24 @@ if split_cond {
                         return None;
                     }
                     call = true;
+                    k += 1;
+                }
+                // async with: the __aexit__ CALL's result is awaited
+                // before the POP_TOP - the SEND/YIELD_VALUE suspension
+                // protocol sits between them (contextlib 3.12
+                // AsyncContextDecorator.__call__.inner: `async with
+                // self._recreate_cm(): return await func(*args,
+                // **kwds)`; without this the fold aborted and the
+                // exit machinery rendered `await None(None, None)`)
+                Op::GET_AWAITABLE
+                | Op::SEND
+                | Op::END_SEND
+                | Op::YIELD_VALUE
+                | Op::RESUME
+                | Op::RESUME_CHECK
+                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    if call =>
+                {
                     k += 1;
                 }
                 Op::POP_TOP if call => {

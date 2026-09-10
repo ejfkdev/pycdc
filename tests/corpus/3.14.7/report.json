@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 22,
-  "SIG-DIFF": 11,
-  "INCOMPLETE": 6,
+  "SIG-DIFF": 12,
+  "INCOMPLETE": 5,
   "AST-PASS": 1
  },
  "results": [
@@ -217,10 +217,11 @@
   },
   {
    "module": "contextlib",
-   "verdict": "INCOMPLETE",
-   "ndiff": 1914,
-   "ntotal": 2428,
-   "detail": "line 483: orig ('LOAD_DEREF', 'func') | got ('LOAD_CONST', 'None')\nline 484: orig ('PUSH_NULL', '') | got ('LOAD_CONST', 'None')\nline 485: orig ('LOAD_FAST', 'args') | got ('LOAD_CONST', 'None')"
+   "ast_detail": "diff at token 557: orig  finalbody=[Expr(value=Await(value=Call(func=Attribute(value=Attribute(value=Name(id='self | dec  handlers=[ExceptHandler(type=Name(id='StopAsyncIteration'",
+   "verdict": "SIG-DIFF",
+   "ndiff": 1390,
+   "ntotal": 2429,
+   "detail": "line 696: orig ('LOAD_FAST', 'self') | got ('LOAD_GLOBAL', 'StopIteration')\nline 697: orig ('LOAD_ATTR', 'gen') | got ('CHECK_EXC_MATCH', '')\nline 698: orig ('LOAD_ATTR', 'close + NULL|self') | got ('POP_JUMP_IF_FALSE', 'to L3')"
   },
   {
    "module": "copy",

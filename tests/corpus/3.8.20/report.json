@@ -180,7 +180,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 86: orig  body=[Return(value=None)] | dec  body=[Pass()]",
+   "ast_detail": "diff at token 522: orig  Try(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self' | dec  If(test=Compare(left=Subscript(value=Call(func=Attribute(value=Name(id='sys'",
    "verdict": "SIG-DIFF",
    "ndiff": 938,
    "ntotal": 1828,

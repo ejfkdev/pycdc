@@ -4,7 +4,8 @@
  "counts": {
   "PASS": 30,
   "SIG-DIFF": 8,
-  "INCOMPLETE": 2
+  "INCOMPLETE": 1,
+  "AST-PASS": 1
  },
  "results": [
   {
@@ -184,10 +185,7 @@
   },
   {
    "module": "contextlib",
-   "verdict": "INCOMPLETE",
-   "ndiff": 1815,
-   "ntotal": 2263,
-   "detail": "line 434: orig ('MAKE_CELL', 'func') | got ('RESUME', '')\nline 435: orig ('RESUME', '') | got ('LOAD_GLOBAL', 'NULL + wraps')\nline 436: orig ('LOAD_GLOBAL', 'NULL + wraps') | got ('LOAD_FAST', 'func')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "copy",

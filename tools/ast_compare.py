@@ -117,12 +117,41 @@ def is_docstring_expr(stmt):
     return k is not None and k[0] == 'str'
 
 
+TRY_TYPES = tuple(
+    c for c in (getattr(ast, 'Try', None), getattr(ast, 'TryExcept', None)) if c
+)
+
+
 def ends_terminal(body):
     """True when the statement list cannot fall through."""
     if not body:
         return False
     last = body[-1]
-    return isinstance(last, (ast.Return, ast.Raise, ast.Continue, ast.Break))
+    if isinstance(last, (ast.Return, ast.Raise, ast.Continue, ast.Break)):
+        return True
+    # an if whose arms BOTH terminate cannot fall through
+    if isinstance(last, ast.If):
+        return ends_terminal(last.body) and ends_terminal(last.orelse)
+    # a try whose every exit path terminates cannot fall through:
+    # handler exits must all terminate, then either the else arm (the
+    # only normal exit when present) or the body itself terminates
+    # (contextlib __exit__: then arm `try: next(self.gen) except
+    # StopIteration: return False else: try-raise-finally` legitimately
+    # flattens the outer `else:`)
+    if TRY_TYPES and isinstance(last, TRY_TYPES):
+        handlers = getattr(last, 'handlers', [])
+        if not all(ends_terminal(h.body) for h in handlers):
+            return False
+        orelse = getattr(last, 'orelse', [])
+        if orelse:
+            return ends_terminal(orelse)
+        return ends_terminal(getattr(last, 'finalbody', [])) or ends_terminal(
+            last.body
+        )
+    # py2 try/finally: terminates when either part does
+    if hasattr(ast, 'TryFinally') and isinstance(last, ast.TryFinally):
+        return ends_terminal(last.body) or ends_terminal(last.finalbody)
+    return False
 
 
 def flatten_terminal_else(stmts):
@@ -139,11 +168,6 @@ def flatten_terminal_else(stmts):
         else:
             out.append(s)
     return out
-
-
-TRY_TYPES = tuple(
-    c for c in (getattr(ast, 'Try', None), getattr(ast, 'TryExcept', None)) if c
-)
 
 
 def flatten_try_else(stmts):
@@ -584,6 +608,25 @@ class Normalizer(ast.NodeTransformer):
             node = ast.Assign(targets=[node.value.target] + list(node.targets),
                               value=node.value.value)
         return node
+
+    def _strip_fn_trailing_return(self, node):
+        self.generic_visit(node)
+        body = node.body
+        if body and isinstance(body[-1], ast.Return) and body[-1].value is None:
+            # a trailing `return None` / bare `return` at a function's
+            # very end is equivalent to falling off the end (both
+            # produce None / StopIteration(None)); the renderer drops
+            # it as implicit, so the comparator must too
+            body.pop()
+        if not body:
+            node.body = [ast.Pass()]
+        return node
+
+    def visit_FunctionDef(self, node):
+        return self._strip_fn_trailing_return(node)
+
+    def visit_AsyncFunctionDef(self, node):
+        return self._strip_fn_trailing_return(node)
 
     def visit_Return(self, node):
         self.generic_visit(node)
