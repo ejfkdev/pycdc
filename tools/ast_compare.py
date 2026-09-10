@@ -1274,6 +1274,32 @@ def dump(src):
     # Loop bodies get at_loop_tail=True (their tail falls through to the
     # next iteration); a function body's tail loop also qualifies (its
     # `continue` guards fall through to the function end).
+    def _merge_outer_guard_continues(stmts):
+        # `if A: (if B: continue; S*)` as the LAST statement of a loop
+        # body == `if (not A) or B: continue; S*` - the decompiler
+        # merges the skip-guards with De Morgan (cmd 3.7 complete_help:
+        # `if name[:3]=='do_': {if name == prevname: continue; ...}`
+        # renders as the Or-guard continue + flat rest). Valid only at
+        # the loop-body tail, where falling off the end == continue.
+        if not stmts:
+            return stmts
+        last = stmts[-1]
+        if (isinstance(last, ast.If) and not last.orelse
+                and last.body and isinstance(last.body[0], ast.If)
+                and not last.body[0].orelse
+                and len(last.body[0].body) == 1
+                and isinstance(last.body[0].body[0], ast.Continue)):
+            inner = last.body[0]
+            merged = ast.If(
+                test=ast.BoolOp(op=ast.Or(), values=[
+                    ast.UnaryOp(op=ast.Not(), operand=last.test),
+                    inner.test,
+                ]),
+                body=[ast.Continue()],
+                orelse=[])
+            return stmts[:-1] + [merged] + last.body[1:]
+        return stmts
+
     def _merge_tail_arm_guards(stmts):
         # the loop body's LAST statement may be an if/elif chain whose
         # arms end in the guard-continue chain (compileall 3.12
@@ -1292,7 +1318,8 @@ def dump(src):
 
     for node in ast.walk(tree):
         if isinstance(node, _LOOP_TYPES):
-            node.body = _merge_tail_arm_guards(node.body)
+            node.body = _merge_outer_guard_continues(
+                _merge_tail_arm_guards(node.body))
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef,
                              getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):

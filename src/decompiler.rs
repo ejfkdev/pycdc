@@ -40068,8 +40068,24 @@ fn genexpr_ternary_merge(
                         );
                         let target = inst.target.unwrap_or(usize::MAX);
                         let gen_end = instrs.last().map(|x| x.end()).unwrap_or(0);
-                        let mut f = c.clone();
-                        if jump_true && target < gen_end {
+                        // a true-jump onto the generator's own loop top
+                        // (or any backward target) is the `if not C:
+                        // continue` filter form, NOT an or-chain hop
+                        // (those target the append merge forward):
+                        // negate it (cmd 3.7 complete_help: `if not
+                        // isinstance(list[i], str)` rendered without
+                        // the Not, inverting the filter)
+                        let to_loop_top = jump_true
+                            && (target <= inst.offset
+                                || instrs
+                                    .iter()
+                                    .any(|x| x.offset == target && x.op == Op::FOR_ITER));
+                        let mut f = if to_loop_top {
+                            negate_cond(c.clone())
+                        } else {
+                            c.clone()
+                        };
+                        if jump_true && !to_loop_top && target < gen_end {
                             if let Some(p) = pending_or_filter.take() {
                                 f = Rc::new(Expr::BoolOp {
                                     op: BoolOpKind::Or,

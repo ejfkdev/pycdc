@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 35,
-  "SIG-DIFF": 5
+  "PASS": 36,
+  "SIG-DIFF": 4
  },
  "results": [
   {
@@ -136,11 +136,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 1162: orig  body=[If(test=Compare(left=Subscript(value=Name(id='name' | dec  body=[If(test=BoolOp(op=Or()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1,
-   "ntotal": 1315,
-   "detail": "line 1310: orig ('POP_JUMP_IF_TRUE', '') | got ('POP_JUMP_IF_FALSE', '')"
+   "verdict": "PASS"
   },
   {
    "module": "code",

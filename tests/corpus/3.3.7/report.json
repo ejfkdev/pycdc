@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
   "PASS": 24,
-  "AST-PASS": 6,
-  "SIG-DIFF": 10
+  "AST-PASS": 7,
+  "SIG-DIFF": 9
  },
  "results": [
   {
@@ -121,11 +121,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 1317: orig  body=[If(test=Compare(left=Subscript(value=Name(id='name' | dec  body=[If(test=BoolOp(op=Or()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 750,
-   "ntotal": 1328,
-   "detail": "line 556: orig ('LOAD_CONST', 'None') | got ('emptyline', 1)\nline 557: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'self')\nline 558: orig ('emptyline', 1) | got ('LOAD_ATTR', 'lastcmd')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "code",
