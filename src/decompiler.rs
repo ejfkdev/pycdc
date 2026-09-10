@@ -109,6 +109,16 @@ struct Block {
     /// idiom contributes the operand as-is): close-time must NOT run the
     /// statement-guard simplify_not polarity restore on it
     merge_pos: bool,
+    /// chain-exit clamp: the guard's cond jump originally targeted this
+    /// offset (the chain-tail trampoline) but the block end was clamped
+    /// to the arm's local merge. A split-condition `if a and b:` merge
+    /// requires both cond jumps to share ONE target - a clamped guard's
+    /// opening jump flies elsewhere, so a second jump landing on the
+    /// clamped end is an independent nested guard, not an and-link
+    /// (_strptime 3.3 ampm chain: `elif ampm == pm:` + `if hour != 12:`
+    /// merged to `and`, recompiling the second PJIF to the chain tail
+    /// instead of the local merge)
+    clamp_from: Option<usize>,
 }
 
 impl Block {
@@ -140,6 +150,7 @@ impl Block {
             chain_link: false,
             no_fold: false,
             merge_pos: false,
+            clamp_from: None,
         }
     }
 }
@@ -8254,8 +8265,11 @@ impl<'a> Ctx<'a> {
                 }
                 if top.end > pos {
                     match self.overhang_clamp_end(pos) {
-                        Some(e) => {
+                        Some((e, clear_else)) => {
                             let last = self.blocks.last_mut().unwrap();
+                            if clear_else {
+                                last.else_end = None;
+                            }
                             last.end = e;
                             e
                         }
@@ -8298,7 +8312,24 @@ impl<'a> Ctx<'a> {
     ///   clamping it at a strictly-crossed ancestor yanks enclosing
     ///   arms down mid-flow (bdb 3.14 effective: `return b, True`
     ///   hoisted out of `if not b.cond:`).
-    fn overhang_clamp_end(&self, pos: usize) -> Option<usize> {
+    /// - ELSE-TRANSITION equality form: an If top opened INSIDE an
+    ///   ancestor If's then arm folds at the ancestor's end when that
+    ///   end == pos AND the ancestor's else region is pending
+    ///   (else_end set): the then arm terminated on an unconditional
+    ///   jump (which marked BOTH else_ends - it flies over the top's
+    ///   end too), so the top's own end is only a fall-through merge
+    ///   reachable through the ancestor's else arm. Left open, the top
+    ///   blocks the ancestor's else transition and swallows the whole
+    ///   else arm as nested then-content (_strptime 3.7-3.9 ampm
+    ///   chain: `elif ampm == pm:` rendered inside `if hour == 12:`
+    ///   merged as `and hour != 12`). The second tuple element says
+    ///   the caller must CLEAR the top's else_end before folding: its
+    ///   "else" is phantom (the false path merges into the ancestor's
+    ///   else flow), and opening it would stall the cascade at an
+    ///   empty Else whose region starts with the arm-tail continue.
+    ///
+    /// Returns (fold_end, clear_top_else_end).
+    fn overhang_clamp_end(&self, pos: usize) -> Option<(usize, bool)> {
         let n = self.blocks.len();
         if n < 2 {
             return None;
@@ -8313,7 +8344,7 @@ impl<'a> Ctx<'a> {
         }
         let is_else_top = top.kind == BlockType::Else;
         let top_runaway = top.end > pos + 32;
-        self.blocks[..n - 1]
+        let anc = self.blocks[..n - 1]
             .iter()
             .rev()
             .find(|b| {
@@ -8321,10 +8352,21 @@ impl<'a> Ctx<'a> {
             })
             .filter(|b| {
                 matches!(b.kind, BlockType::If | BlockType::Else)
-                    && (is_else_top || (b.end < pos && top_runaway))
-            })
-            .map(|b| b.end)
-            .filter(|e| *e > top.start)
+                    && (is_else_top
+                        || (b.end < pos && top_runaway)
+                        || (b.end == pos
+                            && b.kind == BlockType::If
+                            && b.else_end.is_some()
+                            && top.kind == BlockType::If
+                            && top.else_end.is_some()))
+            })?;
+        let e = anc.end;
+        let clear_else = !is_else_top && e == pos && anc.else_end.is_some();
+        if e > top.start {
+            Some((e, clear_else))
+        } else {
+            None
+        }
     }
 
     /// Close the topmost block, converting it to statement(s).
@@ -13540,6 +13582,62 @@ impl<'a> Ctx<'a> {
                     && !self.targets.contains(&self.cur_offset);
                 if dead_break_glue {
                     return true;
+                }
+                // dead duplicate trampoline: an untargeted forward jump
+                // to the chain-tail trampoline right after an arm-end
+                // forward jump onto the chain's LOCAL merge trampoline
+                // (pre-3.8 compilers emit the pair at elif-arm ends;
+                // nothing targets the duplicate). Running it drives the
+                // chain-fold machinery to close the enclosing arm HERE
+                // and re-arm a phantom Else that starts past the local
+                // merge, flattening the sibling arms under a spurious
+                // `continue` (_strptime 3.3/2.7 ampm chain: the 1001
+                // dup re-armed Else[1007,1599] and the M..Z arms sank
+                // under `else: continue`). Consume it as glue only when
+                // the local merge lies between this jump and the tail.
+                if !inst.is_backward
+                    && !self.targets.contains(&self.cur_offset)
+                {
+                    if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
+                        if ci > 0 {
+                            let prev = &self.instrs[ci - 1];
+                            let prev_fwd = !prev.is_backward
+                                && matches!(
+                                    prev.op,
+                                    Op::JUMP_ABSOLUTE | Op::JUMP_FORWARD | Op::JUMP
+                                );
+                            let tramp_at = |o: usize| {
+                                self.idx_of
+                                    .get(&o)
+                                    .and_then(|&ti| self.instrs.get(ti))
+                                    .map_or(false, |x| {
+                                        x.is_backward
+                                            && matches!(
+                                                x.op,
+                                                Op::JUMP_ABSOLUTE
+                                                    | Op::JUMP_BACKWARD
+                                                    | Op::JUMP
+                                            )
+                                            && self.is_loop_top_target(
+                                                x.target.unwrap_or(0),
+                                            )
+                                    })
+                            };
+                            // prev hops OVER this duplicate onto the
+                            // local merge trampoline; this duplicate
+                            // hops further, to the chain-tail trampoline
+                            let prev_fwd_tramp = prev_fwd
+                                && prev.target.map_or(false, |m| {
+                                    m > self.cur_offset && tramp_at(m)
+                                });
+                            let tail_tramp = target > self.cur_offset
+                                && tramp_at(target)
+                                && prev.target.map_or(true, |m| target > m);
+                            if prev_fwd_tramp && tail_tramp {
+                                return true;
+                            }
+                        }
+                    }
                 }
                 if std::env::var("PYCDC_EG_DBG").is_ok() {
                     eprintln!(
@@ -25315,6 +25413,12 @@ return None;
                     && top.end == target
                     && top.cond_set
                     && top.short_circuit.is_none()
+                    // a chain-exit clamped guard's opening jump flew to
+                    // the chain tail, not to this shared target - the
+                    // links of a split condition always share ONE
+                    // target, so this is an independent nested guard
+                    // (_strptime 3.3 ampm chain)
+                    && top.clamp_from.is_none()
                     // 3.10+ rotated-while cond re-evaluation arrives as
                     // links whose merge is handled by the dup_while
                     // machinery; admitting mixed polarity there folds
@@ -26790,6 +26894,106 @@ if split_cond {
         // target): the arm is entered only by the outer cond jump, which
         // has already been consumed
         let mut if_end = target;
+        // Some(original target) when the chain-exit clamp below lowers
+        // if_end: the guard's opening jump flies to the chain tail, not
+        // to the clamped end (see Block::clamp_from)
+        let mut chain_exit_clamp: Option<usize> = None;
+        // chain-exit guard: a cond jump inside an OPEN ELSE ARM whose
+        // target ESCAPES the arm by landing on the chain-tail trampoline
+        // (a back edge to the enclosing loop top past the arm's end) is
+        // an elif-chain guard - its false exit flies to the loop
+        // continue, but its fall-through body must terminate at the
+        // arm's own merge edge. An If spanning past the arm end keeps
+        // the arm open across the merge trampoline, and the arm-tail
+        // back edge grows a spurious in-guard `continue` instead of
+        // folding as the chain exit (_strptime 3.5/3.6 ampm chain:
+        // If[88,152] straddled Else[76,110]; the arm rendered
+        // `hour += 12; continue`). Nested guards of the same arm are
+        // clamped too (`elif a == z: if h != 12:` - both false exits
+        // fly to the chain tail). If-only arms are NEVER clamped on
+        // their own: an escaping merge there is the shared if/else
+        // confluence (the arm's else region falls through to the same
+        // trampoline) and clamping fuses the If with its own else_start
+        // (repro: the inner `if h == 12` merge 110 past Else[76,110]
+        // clamped to 76, the arm folded as a chain exit and the elif
+        // nested one level too deep).
+        if if_end > self.cur_next {
+            let is_tramp = |o: usize| {
+                self.idx_of
+                    .get(&o)
+                    .and_then(|&ti| self.instrs.get(ti))
+                    .map_or(false, |x| {
+                        x.is_backward
+                            && matches!(
+                                x.op,
+                                Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP
+                            )
+                            && self.is_loop_top_target(x.target.unwrap_or(0))
+                    })
+            };
+            let arm = self
+                .blocks
+                .iter()
+                .rev()
+                .find(|b| {
+                    matches!(b.kind, BlockType::If | BlockType::Else)
+                        && b.end != usize::MAX
+                        && b.start <= self.cur_next
+                        && b.end > self.cur_next
+                });
+            let escapes = arm
+                .map(|b| (b.kind, b.start, b.end))
+                .map_or(false, |(kind, astart, aend)| {
+                    if_end > aend
+                        && (kind == BlockType::Else
+                            || self.blocks.iter().any(|e| {
+                                e.kind == BlockType::Else
+                                    && e.end != usize::MAX
+                                    && e.start <= astart
+                                    && aend <= e.end
+                                    && if_end > e.end
+                            }))
+                });
+            if escapes && is_tramp(if_end) {
+                if let Some(b) = arm {
+                    // LOCAL merge trampoline: the first targeted backward
+                    // edge to the loop top within (cur_next, arm.end] is
+                    // the chain's own continue merge - the guard body
+                    // falls through into it. Clamping there (instead of
+                    // blindly at the arm end) keeps a dead duplicate
+                    // trampoline pair (arm-end JABS->merge; JABS->chain
+                    // tail, pre-3.8 compilers) inside the arm region
+                    // where the dup is inert glue; ending the guard
+                    // BEFORE the pair lets the dup fire the chain fold
+                    // with an empty spine and re-arm a phantom Else that
+                    // flattens the remaining chain arms (_strptime 3.3
+                    // ampm chain: the 1001 dup re-armed Else[1007,1599]
+                    // and the M..Z arms sank under `else: continue`).
+                    // No local trampoline: clamp at the arm end (the
+                    // merge IS the arm boundary, _strptime 3.5/3.6).
+                    let merge = self
+                        .instrs
+                        .iter()
+                        .find(|x| {
+                            x.offset > self.cur_next
+                                && x.offset <= b.end
+                                && x.is_backward
+                                && matches!(
+                                    x.op,
+                                    Op::JUMP_ABSOLUTE
+                                        | Op::JUMP_BACKWARD
+                                        | Op::JUMP
+                                )
+                                && self
+                                    .is_loop_top_target(x.target.unwrap_or(0))
+                                && self.targets.contains(&x.offset)
+                        })
+                        .map(|x| x.offset);
+                    chain_exit_clamp = Some(if_end);
+                    if_end = merge.unwrap_or(b.end);
+                }
+            }
+        }
         if !self.version.at_least(3, 11) {
             if let Some((outer_end, outer_else)) = self
                 .blocks
@@ -26956,6 +27160,7 @@ if split_cond {
         };
         let blk_end = chain_merge.unwrap_or(if_end);
         let mut blk = Block::new(BlockType::If, self.cur_next, blk_end);
+        blk.clamp_from = chain_exit_clamp.filter(|_| blk_end == if_end);
         blk.merge_pos = value_merge.is_some();
         blk.value_merge = value_merge;
         blk.chain_link = matches!(&value_merge, Some(BoolOpKind::And))
@@ -28372,6 +28577,52 @@ if split_cond {
         let (Some(&si), Some(&ei)) = (self.idx_of.get(&pos), self.idx_of.get(&real_end)) else {
             return real_end;
         };
+        // merge-trampoline bound: a backward edge to the innermost loop
+        // top inside the region that a THEN-arm cond jump (sitting
+        // BEFORE the region start) also targets is the if/else's local
+        // fall-through merge - the enclosing chain's next arm starts
+        // right past it. The arm-end forward jump flew to the chain-tail
+        // trampoline (else_end), stretching the region over the merge
+        // and the following sibling arms; walking the edge as in-region
+        // content grows a spurious `continue` and traps the siblings
+        // (_strptime 3.5/3.6 ampm chain: Else[976,1603] swallowed the
+        // M..Z arms; the same shape on 3.8+ threads guard ends past the
+        // trampoline and mis-nests the arm).
+        let loop_top = self
+            .blocks
+            .iter()
+            .rev()
+            .find(|b| matches!(b.kind, BlockType::While | BlockType::For))
+            .map(|b| b.start);
+        if let Some(lt) = loop_top {
+            for k in si..ei {
+                let x = &self.instrs[k];
+                if !(x.is_backward
+                    && x.target == Some(lt)
+                    && matches!(
+                        x.op,
+                        Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD | Op::JUMP
+                    ))
+                {
+                    continue;
+                }
+                let cond_targeted = self.instrs[..si].iter().rev().any(|pj| {
+                    pj.target == Some(x.offset)
+                        && matches!(
+                            pj.op,
+                            Op::POP_JUMP_IF_FALSE
+                                | Op::POP_JUMP_IF_TRUE
+                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                                | Op::JUMP_IF_FALSE
+                                | Op::JUMP_IF_TRUE
+                        )
+                });
+                if cond_targeted {
+                    return x.offset;
+                }
+            }
+        }
         for k in si..ei {
             let x = self.instrs[k];
             let is_arm_end = !x.is_backward

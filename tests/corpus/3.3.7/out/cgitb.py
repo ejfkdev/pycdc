@@ -70,8 +70,8 @@ def lookup(name, frame, locals):
         if type(builtins) is type({}):
             if name in builtins:
                 return 'builtin', builtins[name]
-                if hasattr(builtins, name):
-                    return 'builtin', getattr(builtins, name)
+        elif hasattr(builtins, name):
+            return 'builtin', getattr(builtins, name)
     return None, __UNDEF__
 
 def scanvars(reader, frame, locals):

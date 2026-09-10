@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 31,
-  "SIG-DIFF": 9
+  "PASS": 32,
+  "SIG-DIFF": 8
  },
  "results": [
   {
@@ -60,11 +60,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1755: orig  If(test=Compare(left=Name(id='ampm' | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 725,
-   "ntotal": 2142,
-   "detail": "line 1250: orig ('FOR_ITER', 'to 1608') | got ('FOR_ITER', 'to 1606')\nline 1414: orig ('JUMP_FORWARD', 'to 846') | got ('LOAD_FAST', 'ampm')\nline 1415: orig ('LOAD_FAST', 'ampm') | got ('LOAD_FAST', 'locale_time')"
+   "verdict": "PASS"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

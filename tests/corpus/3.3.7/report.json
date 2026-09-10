@@ -109,11 +109,11 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 160: orig  If(test=Compare(left=Call(func=Name(id='type' | dec  If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 296: orig  body=[If(test=Compare(left=Name(id='lasttoken' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1234,
-   "ntotal": 1438,
-   "detail": "line 169: orig ('POP_JUMP_IF_FALSE', '#64') | got ('POP_JUMP_IF_FALSE', '#65')\nline 182: orig ('POP_JUMP_IF_FALSE', '#51') | got ('POP_JUMP_IF_FALSE', '#65')\nline 186: orig ('POP_JUMP_IF_FALSE', '#63') | got ('POP_JUMP_IF_FALSE', '#64')"
+   "ndiff": 1144,
+   "ntotal": 1437,
+   "detail": "line 224: orig ('SETUP_LOOP', '#106') | got ('SETUP_LOOP', '#108')\nline 230: orig ('FOR_ITER', '#105') | got ('FOR_ITER', '#107')\nline 248: orig ('POP_JUMP_IF_FALSE', '#85') | got ('POP_JUMP_IF_FALSE', '#87')"
   },
   {
    "module": "chunk",
