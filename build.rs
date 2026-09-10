@@ -72,8 +72,6 @@ fn is_excluded(name: &str) -> bool {
         "GET_ITER_VIRTUAL",
         "JUMP_BACKWARD_NO_JIT",
         "POP_JUMP_IF_ALWAYS_TRUE",
-        "BUILD_INTERPOLATION",
-        "BUILD_TEMPLATE",
     ];
     // Keep real opcodes that would otherwise be caught by the prefix rules.
     const KEEP: &[&str] = &[

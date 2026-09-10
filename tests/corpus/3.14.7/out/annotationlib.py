@@ -199,9 +199,7 @@ Constructor arguments:
         return f'ForwardRef({self.__resolved_str__!r}{''.join(extra)})'
 
 
-# UNIMPLEMENTED: unknown opcode: BUILD_TEMPLATE  @154
-pass
-_Template = type(('',), ())
+_Template = type(t'')
 
 class _Stringifier:
     __slots__ = _SLOTS

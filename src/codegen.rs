@@ -1170,6 +1170,7 @@ impl Printer {
                 self.expr(v, prec::ATOM);
             }
             Expr::FString(fs) => self.fstring(fs),
+            Expr::TString(fs) => self.tstring(fs),
             Expr::Backquote(inner) => {
                 if self.version.major >= 3 {
                     self.write("repr(");
@@ -1185,6 +1186,18 @@ impl Printer {
     }
 
     fn fstring(&mut self, fs: &FString) {
+        self.fstring_prefix(fs, 'f')
+    }
+
+    /// 3.14+ t-string (PEP 750): same part model as an f-string but a
+    /// `t` prefix. Only the empty/literal form needs the quote-picking
+    /// fallback guard (an unrenderable t-string cannot fall back to
+    /// concatenation — `t"a" "t"b"` is not a Template).
+    fn tstring(&mut self, fs: &FString) {
+        self.fstring_prefix(fs, 't')
+    }
+
+    fn fstring_prefix(&mut self, fs: &FString, prefix: char) {
         // pick a quote that appears in NO literal of the whole f-string tree
         // (pre-3.12 forbids reusing the outer quote anywhere inside) and
         // differs from every enclosing f-string's quote
@@ -1222,8 +1235,12 @@ impl Printer {
             }
             if impossible || (!ok_single && !ok_double) {
                 // unrenderable as an f-string: fall back to concatenation
-                self.fstring_concat(fs);
-                return;
+                // (t-strings have no concatenation fallback — a Template
+                // is a single literal; render with the forced quote)
+                if prefix == 'f' {
+                    self.fstring_concat(fs);
+                    return;
+                }
             }
             match (ok_single, ok_double) {
                 (true, _) => '\'',
@@ -1232,7 +1249,7 @@ impl Printer {
             }
         };
         self.fstring_quotes.push(quote);
-        self.write(&format!("f{quote}"));
+        self.write(&format!("{prefix}{quote}"));
         for part in &fs.parts {
             match part {
                 FStringPart::Literal(s) => {

@@ -216,6 +216,10 @@ pub enum Expr {
     Yield(Option<ExprRef>),
     YieldFrom(ExprRef),
     FString(Box<FString>),
+    /// 3.14+ template string (PEP 750 t-string): `t"..."`. Reuses the
+    /// FString part model (Literal text + Value interpolations); the
+    /// `t` prefix and Template semantics distinguish it from FString.
+    TString(Box<FString>),
     /// py2 backquote repr: `x`
     Backquote(ExprRef),
 }

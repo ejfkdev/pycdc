@@ -17457,8 +17457,98 @@ impl<'a> Ctx<'a> {
                 }))));
                 true
             }
-
-            // ---------- annotations ----------
+            // 3.14+ t-string (PEP 750) interpolation builder: pops
+            // [value, expr_str?, format_spec?] per the flag bits
+            // (arg = conversion<<2 | has_expr<<1 | has_spec; conversion
+            // 0=none 1='s' 2='r' 3='a') and pushes one Interpolation.
+            // Model it as a single-part FString Value so BUILD_TEMPLATE
+            // can interleave it with the literal strings.
+            Op::BUILD_INTERPOLATION => {
+                let has_spec = arg & 1 != 0;
+                let has_expr = (arg >> 1) & 1 != 0;
+                let conv_code = (arg >> 2) & 3;
+                let format_spec = if has_spec {
+                    Some(self.pop_expr())
+                } else {
+                    None
+                };
+                // the expr source text (e.g. 'x' for `{x}`) is dropped:
+                // rendering the value expression reproduces it for the
+                // common cases
+                if has_expr {
+                    self.pop_expr();
+                }
+                let value = self.pop_expr();
+                let conversion = match conv_code {
+                    1 => Some('s'),
+                    2 => Some('r'),
+                    3 => Some('a'),
+                    _ => None,
+                };
+                let part = FStringPart::Value {
+                    value,
+                    conversion,
+                    format_spec: format_spec
+                        .map(|s| Box::new(expr_to_fstring(s))),
+                };
+                self.push(Rc::new(Expr::FString(Box::new(FString {
+                    parts: vec![part],
+                }))));
+                true
+            }
+            // 3.14+ t-string (PEP 750) builder: pops the interpolations
+            // tuple (TOS) and the strings tuple (TOS-1), pushes a
+            // Template. strings has one more element than interpolations;
+            // the literal parts interleave with the `{...}` fields
+            // (annotationlib 3.14 `_Template = type(t"")` — the empty
+            // template rendered nothing and marked the module INCOMPLETE).
+            Op::BUILD_TEMPLATE => {
+                let interps = self.pop_expr();
+                let strings = self.pop_expr();
+                // string literals from the strings tuple const
+                let lits: Vec<String> = match &*strings {
+                    Expr::Const(o) => match &**o {
+                        PyObject::Tuple(items) => items
+                            .iter()
+                            .map(|it| match &**it {
+                                PyObject::Str(s) => s.clone(),
+                                _ => String::new(),
+                            })
+                            .collect(),
+                        PyObject::Str(s) => vec![s.clone()],
+                        _ => Vec::new(),
+                    },
+                    _ => Vec::new(),
+                };
+                // interpolation Value parts from the interpolations tuple
+                let mut vals: Vec<FStringPart> = Vec::new();
+                match &*interps {
+                    Expr::Const(o) => match &**o {
+                        PyObject::Tuple(items) if items.is_empty() => {}
+                        _ => {}
+                    },
+                    Expr::Tuple(items) => {
+                        for it in items {
+                            if let Expr::FString(f) = &**it {
+                                vals.extend(f.parts.iter().cloned());
+                            }
+                        }
+                    }
+                    Expr::FString(f) => vals.extend(f.parts.iter().cloned()),
+                    _ => {}
+                }
+                let mut parts: Vec<FStringPart> = Vec::new();
+                for (i, lit) in lits.iter().enumerate() {
+                    parts.push(FStringPart::Literal(lit.clone()));
+                    if let Some(v) = vals.get(i) {
+                        parts.push(v.clone());
+                    }
+                }
+                self.push(Rc::new(Expr::TString(Box::new(FString {
+                    parts,
+                }))));
+                true
+            }
             Op::STORE_ANNOTATION => {
                 // 3.6.0 only: [value?, annotation] — CPython: TOS=ann, TOS1=name
                 let ann = self.pop_expr();
