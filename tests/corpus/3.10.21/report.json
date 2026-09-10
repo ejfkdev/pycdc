@@ -2,8 +2,8 @@
  "version": "3.10.21",
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
-  "PASS": 27,
-  "SIG-DIFF": 13
+  "PASS": 28,
+  "SIG-DIFF": 12
  },
  "results": [
   {
@@ -106,7 +106,7 @@
    "module": "asyncore",
    "ast_detail": "diff at token 251: orig  orelse=[])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1771,
+   "ndiff": 1770,
    "ntotal": 2191,
    "detail": "line 309: orig ('SETUP_FINALLY', 'to 98') | got ('SETUP_FINALLY', 'to 92')\nline 347: orig ('POP_JUMP_IF_FALSE', 'to 92') | got ('POP_JUMP_IF_FALSE', 'to 86')\nline 355: orig ('POP_BLOCK', '') | got ('DUP_TOP', '')"
   },
@@ -146,17 +146,13 @@
    "module": "cgi",
    "ast_detail": "diff at token 1515: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 617,
+   "ndiff": 619,
    "ntotal": 2910,
    "detail": "line 2277: orig ('POP_JUMP_IF_FALSE', 'to 68') | got ('POP_JUMP_IF_FALSE', 'to 66')\nline 2281: orig ('DUP_TOP', '') | got ('COMPARE_OP', '<=')\nline 2282: orig ('ROT_THREE', '') | got ('POP_JUMP_IF_FALSE', 'to 66')"
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 148: orig  orelse=[])] | dec  orelse=[])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 173,
-   "ntotal": 1430,
-   "detail": "line 1255: orig ('SETUP_FINALLY', 'to 76') | got ('LOAD_FAST', 'self')\nline 1256: orig ('LOAD_FAST', 'formatter') | got ('LOAD_ATTR', 'display')\nline 1257: orig ('LOAD_FAST', 'info') | got ('POP_JUMP_IF_FALSE', 'to 120')"
+   "verdict": "PASS"
   },
   {
    "module": "chunk",
@@ -202,7 +198,7 @@
    "module": "contextlib",
    "ast_detail": "diff at token 409: orig  body=[Try(body=[Expr(value=Call(func=Name(id='next' | dec  body=[Raise(exc=Call(func=Name(id='RuntimeError'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1309,
+   "ndiff": 1308,
    "ntotal": 1874,
    "detail": "line 551: orig ('POP_JUMP_IF_FALSE', 'to 50') | got ('POP_JUMP_IF_FALSE', 'to 16')\nline 552: orig ('SETUP_FINALLY', 'to 30') | got ('LOAD_GLOBAL', 'RuntimeError')\nline 553: orig ('LOAD_GLOBAL', 'next') | got ('LOAD_CONST', '\"generator didn\\'t stop\"')"
   },

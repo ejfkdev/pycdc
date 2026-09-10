@@ -467,13 +467,6 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
             assert is_sync
-        if pending_raise:
-            try:
-                fixed_ctx = exc_details[1].__context__
-                raise exc_details[1]
-            except BaseException:
-                exc_details[1].__context__ = fixed_ctx
-                raise
             try:
                 if cb(*exc_details):
                     suppressed_exc = True
@@ -484,6 +477,13 @@ class ExitStack(_BaseExitStack, AbstractContextManager):
                 _fix_exception_context(new_exc_details[1], exc_details[1])
                 pending_raise = True
                 exc_details = new_exc_details
+        if pending_raise:
+            try:
+                fixed_ctx = exc_details[1].__context__
+                raise exc_details[1]
+            except BaseException:
+                exc_details[1].__context__ = fixed_ctx
+                raise
         return received_exc and suppressed_exc
 
     def close(self):
@@ -586,13 +586,6 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
         pending_raise = False
         while self._exit_callbacks:
             is_sync, cb = self._exit_callbacks.pop()
-        if pending_raise:
-            try:
-                fixed_ctx = exc_details[1].__context__
-                raise exc_details[1]
-            except BaseException:
-                exc_details[1].__context__ = fixed_ctx
-                raise
             try:
                 if is_sync:
                     cb_suppress = cb(*exc_details)
@@ -607,6 +600,13 @@ class AsyncExitStack(_BaseExitStack, AbstractAsyncContextManager):
                 _fix_exception_context(new_exc_details[1], exc_details[1])
                 pending_raise = True
                 exc_details = new_exc_details
+        if pending_raise:
+            try:
+                fixed_ctx = exc_details[1].__context__
+                raise exc_details[1]
+            except BaseException:
+                exc_details[1].__context__ = fixed_ctx
+                raise
         return received_exc and suppressed_exc
 
 

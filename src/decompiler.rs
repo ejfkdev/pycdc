@@ -6875,6 +6875,76 @@ impl<'a> Ctx<'a> {
                 if let Some(fresh) = self.legacy_try.clone() {
                     lt = fresh;
                 }
+                // 3.10 fall-through chain end: the clause just folded
+                // AT the merge (its POP_EXCEPT falls directly into
+                // mainline code - the compiler dropped the exit
+                // JUMP_FORWARD + dead RERAISE pair that <=3.9 emit).
+                // No later instruction ever runs the chain-end
+                // decision: the chain stays open, following statements
+                // collect as post-chain content and the Try emission
+                // defers to the end-of-walk flush, sinking every try
+                // in the function past a phantom tail `return` (cgitb
+                // 3.10 handle). Run the decision now - but only when
+                // this instruction IS the mainline merge (not chain
+                // machinery: <=3.9 folds at the POP_EXCEPT and its
+                // JUMP_FORWARD/RERAISE decision sites must keep
+                // running; a clause head ahead means more excepts
+                // follow; a finally chain emits through its own path).
+                if self.version.at_least(3, 10)
+                    && !self.version.at_least(3, 11)
+                    && !lt.chain_done
+                    && !lt.has_finally
+                    && !lt.handlers.is_empty()
+                    // the fold ran AT the clause's POP_EXCEPT: <=3.9
+                    // keeps an exit JUMP_FORWARD + dead RERAISE after
+                    // it whose own decision sites must run instead;
+                    // 3.10 drops the pair when the merge is the very
+                    // next instruction - check that successor is
+                    // mainline code, not chain machinery
+                    && inst.op == Op::POP_EXCEPT
+                    && !lt
+                        .pending_mismatch
+                        .iter()
+                        .any(|&t| t > pos && self.pending_clause_head_at(t))
+                    && !self.as_cleanup_wrappers.iter().any(|(_, e)| *e > pos)
+                    && self
+                        .idx_of
+                        .get(&pos)
+                        .and_then(|&pi| self.instrs.get(pi + 1))
+                        .map_or(false, |nx| {
+                            !matches!(
+                                nx.op,
+                                Op::RERAISE
+                                    | Op::END_FINALLY
+                                    | Op::JUMP_FORWARD
+                                    | Op::JUMP
+                                    | Op::JUMP_ABSOLUTE
+                                    | Op::JUMP_BACKWARD
+                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    | Op::POP_BLOCK
+                                    | Op::POP_EXCEPT
+                                    | Op::POP_TOP
+                                    | Op::DUP_TOP
+                            ) && !self.pending_clause_head_at(nx.offset)
+                        })
+                {
+                    let has_else_after =
+                        lt.else_start.map_or(true, |es| pos >= es) == false;
+                    if has_else_after {
+                        // an else region follows the chain: defer
+                        // emission until the region is consumed
+                        if let Some(l) = self.legacy_try.as_mut() {
+                            l.chain_done = true;
+                        }
+                        self.retract_escaping_else(pos);
+                    } else {
+                        let l = self.legacy_try.take().unwrap();
+                        self.restore_legacy_nest();
+                        self.push_legacy_try(l);
+                        self.flush_completed_restored_chain();
+                        return;
+                    }
+                }
             }
         }
 
