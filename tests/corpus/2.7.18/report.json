@@ -2,8 +2,8 @@
  "version": "2.7.18",
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
-  "PASS": 27,
-  "SIG-DIFF": 10,
+  "PASS": 28,
+  "SIG-DIFF": 9,
   "AST-PASS": 3
  },
  "results": [
@@ -53,11 +53,7 @@
   },
   {
    "module": "Queue",
-   "ast_detail": "diff at token 385: orig  TryFinally(body=[If(test=Compare(left=Attribute(value=Name(id='self' | dec  TryFinally(body=[If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 325,
-   "ntotal": 679,
-   "detail": "line 337: orig ('SETUP_FINALLY', '#106') | got ('SETUP_FINALLY', '#61')\nline 342: orig ('POP_JUMP_IF_FALSE', '#87') | got ('POP_JUMP_IF_FALSE', '#42')\nline 344: orig ('POP_JUMP_IF_TRUE', '#24') | got ('POP_JUMP_IF_TRUE', '#20')"
+   "verdict": "PASS"
   },
   {
    "module": "SimpleHTTPServer",

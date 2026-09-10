@@ -112,10 +112,21 @@ class Queue:
         self.not_full.acquire()
         try:
             if self.maxsize > 0:
-                if block or self._qsize() == self.maxsize:
-                    if timeout is None:
-                        while self._qsize() == self.maxsize:
-                            self.not_full.wait()
+                if not block:
+                    if self._qsize() == self.maxsize:
+                        raise Full
+                elif timeout is None:
+                    while self._qsize() == self.maxsize:
+                        self.not_full.wait()
+                elif timeout < 0:
+                    raise ValueError("'timeout' must be a non-negative number")
+                else:
+                    endtime = _time() + timeout
+                    while self._qsize() == self.maxsize:
+                        remaining = endtime - _time()
+                        if remaining <= 0.0:
+                            raise Full
+                        self.not_full.wait(remaining)
             self._put(item)
             self.unfinished_tasks += 1
             self.not_empty.notify()

@@ -18983,6 +18983,57 @@ impl<'a> Ctx<'a> {
                 k += 1;
             }
             let jk = jidx?;
+            // the operand's exit jump must lead DIRECTLY to the merged
+            // if's exit on its false path: a real statement (raise /
+            // store / return / print ...) between this jump and the
+            // body start means the jump is a nested GUARD's skip and
+            // its fall-through is an arm body, not operand material —
+            // folding it as an or-operand swallows that arm and inverts
+            // the flow (py2.7 Queue put/get: `if not block: if
+            // _qsize()==maxsize: raise Full` merged as `if block or
+            // _qsize()==maxsize:`, losing raise Full, the timeout<0
+            // ValueError and the whole timed-wait else arm)
+            if self.instrs[jk + 1..]
+                .iter()
+                .take_while(|x| x.offset < target)
+                // stop at the next cond jump: material past it is the
+                // NEXT operand link's region (a chain-or-chain's second
+                // comparison + shared body live there — b23
+                // or_chain_chain), not this operand's fall-through
+                .take_while(|x| {
+                    !is_cond_jump(x.op)
+                })
+                .any(|x| {
+                    matches!(
+                        x.op,
+                        Op::RAISE_VARARGS
+                            | Op::RETURN_VALUE
+                            | Op::RETURN_CONST
+                            | Op::STORE_FAST
+                            | Op::STORE_NAME
+                            | Op::STORE_GLOBAL
+                            | Op::STORE_ATTR
+                            | Op::STORE_SUBSCR
+                            | Op::STORE_DEREF
+                            | Op::STORE_MAP
+                            | Op::DELETE_FAST
+                            | Op::DELETE_NAME
+                            | Op::DELETE_GLOBAL
+                            | Op::DELETE_ATTR
+                            | Op::DELETE_DEREF
+                            | Op::PRINT_ITEM
+                            | Op::PRINT_NEWLINE
+                            | Op::YIELD_VALUE
+                            | Op::YIELD_FROM
+                            | Op::IMPORT_STAR
+                            | Op::EXEC_STMT
+                            | Op::BREAK_LOOP
+                            | Op::RERAISE
+                    )
+                })
+            {
+                return None;
+            }
             // chain-head operand regions (DUP/ROT or SWAP/COPY + CMP) leave
             // the retained middle operand under the comparison — tolerate
             // that one residual, prefer the strict single-value sim
@@ -25145,10 +25196,55 @@ return None;
                                 )
                             })
                     });
+                // the skipped span must also hold no STATEMENT material:
+                // a raise/store/return there is a nested guard's ARM BODY
+                // (`if not block: if qsize==maxsize: raise Full` — the
+                // raise sits between this jump and the presumed body
+                // start); merging would swallow the arm and invert the
+                // flow (py2.7 Queue put/get lost `raise Full`, the
+                // timeout<0 ValueError arm and the timed-wait else arm
+                // to exactly this)
+                let gap_has_stmt = self
+                    .idx_of
+                    .get(&self.cur_offset)
+                    .map_or(false, |&ci| {
+                        self.instrs[ci + 1..]
+                            .iter()
+                            .take_while(|x| x.offset < body_start)
+                            .any(|x| {
+                                matches!(
+                                    x.op,
+                                    Op::RAISE_VARARGS
+                                        | Op::RETURN_VALUE
+                                        | Op::RETURN_CONST
+                                        | Op::STORE_FAST
+                                        | Op::STORE_NAME
+                                        | Op::STORE_GLOBAL
+                                        | Op::STORE_ATTR
+                                        | Op::STORE_SUBSCR
+                                        | Op::STORE_DEREF
+                                        | Op::STORE_MAP
+                                        | Op::DELETE_FAST
+                                        | Op::DELETE_NAME
+                                        | Op::DELETE_GLOBAL
+                                        | Op::DELETE_ATTR
+                                        | Op::DELETE_DEREF
+                                        | Op::PRINT_ITEM
+                                        | Op::PRINT_NEWLINE
+                                        | Op::YIELD_VALUE
+                                        | Op::YIELD_FROM
+                                        | Op::IMPORT_STAR
+                                        | Op::EXEC_STMT
+                                        | Op::BREAK_LOOP
+                                        | Op::RERAISE
+                                )
+                            })
+                    });
                 if !jump_if_true
                     && ((target > body_start && !self.version.at_least(3, 8))
                         || fused_continue)
                     && !gap_has_cond_jump
+                    && !gap_has_stmt
                     && body_start > self.cur_offset
                     && self.stack.len() == depth
                 {
@@ -26805,6 +26901,14 @@ if split_cond {
             .blocks
             .last()
             .map_or(false, |b| self.is_pop_block_before(target, b.end));
+        // ends of open If/Else blocks (collected before the mutable
+        // borrow below): an arm-end skip may fly to any of them
+        let open_chain_ends: Vec<usize> = self
+            .blocks
+            .iter()
+            .filter(|b| matches!(b.kind, BlockType::If | BlockType::Else))
+            .map(|b| b.end)
+            .collect();
         if let Some(top) = self.blocks.last_mut() {
             if matches!(top.kind, BlockType::While) && !top.cond_set && cond_like {
                 let c = if jump_if_true {
@@ -26842,9 +26946,30 @@ if split_cond {
                                 !j.is_backward
                                     && matches!(
                                         j.op,
-                                        Op::JUMP_FORWARD | Op::JUMP
+                                        Op::JUMP_FORWARD
+                                            | Op::JUMP
+                                            | Op::JUMP_ABSOLUTE
                                     )
-                                    && j.target == Some(top.end)
+                                    && (j.target == Some(top.end)
+                                        // the arm-end skip of an
+                                        // enclosing if/elif chain: the
+                                        // loop is an arm's LAST
+                                        // statement and its exit jump
+                                        // flies over the remaining elif
+                                        // arms to the chain end (an
+                                        // open If/Else block's end).
+                                        // py2.7 Queue put/get: the
+                                        // SETUP_LOOP exit pointed at
+                                        // the chain's merge trampoline
+                                        // and [POP_BLOCK+1,
+                                        // setup_target) misread as a
+                                        // while-ELSE arm swallowed the
+                                        // `elif timeout < 0:` and
+                                        // timed-wait `else:` arms
+                                        || j.target
+                                            .map_or(false, |t| {
+                                                open_chain_ends.contains(&t)
+                                            }))
                             });
                         if !arm_end_skip {
                             top.loop_else_end = Some(top.end);

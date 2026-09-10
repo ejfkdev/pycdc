@@ -63,9 +63,9 @@
    "module": "Queue",
    "ast_detail": "diff at token 391: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=Or()",
    "verdict": "SIG-DIFF",
-   "ndiff": 343,
+   "ndiff": 349,
    "ntotal": 718,
-   "detail": "line 346: orig ('SETUP_FINALLY', '#122') | got ('SETUP_FINALLY', '#72')\nline 351: orig ('JUMP_IF_FALSE', '#102') | got ('JUMP_IF_FALSE', '#52')\nline 354: orig ('JUMP_IF_TRUE', '#28') | got ('JUMP_IF_TRUE', '#22')"
+   "detail": "line 346: orig ('SETUP_FINALLY', '#122') | got ('SETUP_FINALLY', '#120')\nline 351: orig ('JUMP_IF_FALSE', '#102') | got ('JUMP_IF_FALSE', '#100')\nline 354: orig ('JUMP_IF_TRUE', '#28') | got ('JUMP_IF_TRUE', '#22')"
   },
   {
    "module": "SimpleHTTPServer",
