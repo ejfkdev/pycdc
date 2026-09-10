@@ -53,9 +53,9 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1763: orig  value=Num(n=0))] | dec  value=Num(n=0))",
+   "ast_detail": "diff at token 1746: orig  If(test=Compare(left=Name(id='ampm' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 268,
+   "ndiff": 471,
    "ntotal": 1849,
    "detail": "line 1240: orig ('SETUP_LOOP', 'to 1607') | got ('SETUP_LOOP', 'to 2048')\nline 1245: orig ('FOR_ITER', 'to 1606') | got ('FOR_ITER', 'to 2047')\nline 1378: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'ampm')"
   },

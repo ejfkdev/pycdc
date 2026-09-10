@@ -324,19 +324,17 @@ The result is returned as a bytes object.
             if curr:
                 raise ValueError('z inside Ascii85 5-tuple')
             decoded_append(b'\x00\x00\x00\x00')
-        else:
-            if foldspaces and x == 121:
-                if curr:
-                    raise ValueError('y inside Ascii85 5-tuple')
-                decoded_append(b'    ')
-            else:
-                if x in ignorechars:
-                    continue
-                raise ValueError('Non-Ascii85 digit found: %c' % x)
-            result = b''.join(decoded)
-            padding = 4 - len(curr)
-            if padding:
-                result = result[:-padding]
+        elif foldspaces and x == 121:
+            if curr:
+                raise ValueError('y inside Ascii85 5-tuple')
+            decoded_append(b'    ')
+        elif x in ignorechars:
+            continue
+        raise ValueError('Non-Ascii85 digit found: %c' % x)
+    result = b''.join(decoded)
+    padding = 4 - len(curr)
+    if padding:
+        result = result[:-padding]
     return result
 
 _b85alphabet = b'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~'

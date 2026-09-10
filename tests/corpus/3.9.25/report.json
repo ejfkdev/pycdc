@@ -2,9 +2,9 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 29,
+  "PASS": 30,
   "SIG-DIFF": 9,
-  "INCOMPLETE": 2
+  "INCOMPLETE": 1
  },
  "results": [
   {
@@ -49,10 +49,7 @@
   },
   {
    "module": "_osx_support",
-   "verdict": "INCOMPLETE",
-   "ndiff": 520,
-   "ntotal": 1437,
-   "detail": "line 469: orig ('FOR_ITER', 'to 126') | got ('FOR_ITER', 'to 138')\nline 499: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 124')\nline 511: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_GLOBAL', '_cache_default_sysroot')"
+   "verdict": "PASS"
   },
   {
    "module": "_py_abc",

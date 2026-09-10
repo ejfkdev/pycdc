@@ -43,7 +43,7 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1118,
+   "ndiff": 1137,
    "ntotal": 1481,
    "detail": "line 320: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 321: orig ('LOAD_ATTR', 'NULL|self + close') | got ('CHECK_EXC_MATCH', '')\nline 322: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 314')"
   },

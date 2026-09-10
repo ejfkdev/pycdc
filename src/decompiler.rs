@@ -6214,7 +6214,31 @@ impl<'a> Ctx<'a> {
                             })
                         });
                     if let Some(sp) = stop {
-                        lt.else_stop = sp;
+                        // the handler's normal-exit jump target is the
+                        // AUTHORITATIVE else merge: the END_FINALLY-based
+                        // stop is only the nested chain's merge, and
+                        // trailing statements of the else arm live between
+                        // it and the real merge (_osx_support 3.8
+                        // _get_system_version: `if m is not None:` after
+                        // the nested try/finally was hoisted out of the
+                        // else arm, running it on the except path where
+                        // `m` is unbound). When no handler-exit jump is
+                        // found the nested merge stands (3.3 fileinput
+                        // readline).
+                        let handler_exit = self
+                            .instrs
+                            .iter()
+                            .find(|x| {
+                                x.offset >= lt.handler_start
+                                    && x.offset < lt.else_start.unwrap_or(usize::MAX)
+                                    && matches!(
+                                        x.op,
+                                        Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE | Op::JUMP
+                                    )
+                                    && x.target.map_or(false, |t| t > sp)
+                            })
+                            .and_then(|x| x.target);
+                        lt.else_stop = handler_exit.unwrap_or(sp);
                     }
                 }
             }
@@ -6794,6 +6818,13 @@ impl<'a> Ctx<'a> {
                         self.flush_pending_stores();
                         if let Some(h) = self.legacy_handler.as_mut() {
                             h.body.push(Stmt::Break);
+                        }
+                        if let Some(&pi2) = self.idx_of.get(&pos) {
+                            if let Some(t) = self.instrs.get(pi2 + 1)
+                                .and_then(|nx| nx.target)
+                            {
+                                self.mark_guard_else_over_break(t);
+                            }
                         }
                         if let Some(&pi) = self.idx_of.get(&pos) {
                             if let Some(nx) = self.instrs.get(pi + 1) {
@@ -8731,6 +8762,7 @@ impl<'a> Ctx<'a> {
                     } else {
                         self.next_boundary(pos, else_end)
                     };
+                    let real_end = self.cap_else_at_loop(pos, real_end);
                     let mut else_blk = Block::new(BlockType::Else, pos, real_end);
                     else_blk.cond = Some(cond);
                     else_blk.is_elif = is_elif;
@@ -8740,7 +8772,11 @@ impl<'a> Ctx<'a> {
                     // folded chain exit: an elif/else region starts right
                     // here and runs until the next folded exit (or the
                     // enclosing structure closes it)
-                    let mut else_blk = Block::new(BlockType::Else, pos, usize::MAX);
+                    let mut else_blk = Block::new(
+                        BlockType::Else,
+                        pos,
+                        self.cap_else_at_loop(pos, usize::MAX),
+                    );
                     else_blk.cond = Some(cond);
                     else_blk.folded_exit = true;
                     self.pending_then.push(body);
@@ -8871,7 +8907,11 @@ impl<'a> Ctx<'a> {
                         // link — re-arm so a following final-else region
                         // receives the whole accumulated chain
                         self.pending_then.push(t2);
-                        let mut next_else = Block::new(BlockType::Else, pos, usize::MAX);
+                        let mut next_else = Block::new(
+                            BlockType::Else,
+                            pos,
+                            self.cap_else_at_loop(pos, usize::MAX),
+                        );
                         next_else.cond = Some(c2);
                         next_else.folded_exit = true;
                         next_else.is_elif = true;
@@ -12855,7 +12895,69 @@ impl<'a> Ctx<'a> {
                                             x.is_backward && x.target == Some(lt)
                                         })
                                     });
-                                    if rejoins {
+                                    // OR the region is a genuine else arm
+                                    // that MERGES at the break's target:
+                                    // its last flow is an unconditional
+                                    // forward jump landing exactly on
+                                    // `target`, with no terminator in
+                                    // between (_osx_support 3.9
+                                    // compiler_fixup: `if stripArch:
+                                    // while True: try/except-break
+                                    // elif not arm64: for...` - the elif
+                                    // arm's end jumps to the same merge
+                                    // the handler break flies to; it has
+                                    // no back edge to the while-True top
+                                    // so `rejoins` missed it and the elif
+                                    // flattened into a sibling that ALSO
+                                    // ran after the break)
+                                    let merges_at_target = match (
+                                        self.idx_of.get(&b.end),
+                                        self.idx_of.get(&target),
+                                    ) {
+                                        (Some(&si), Some(&ei)) if si < ei => {
+                                            let span = &self.instrs[si..ei];
+                                            !span.iter().any(|x| {
+                                                matches!(
+                                                    x.op,
+                                                    Op::RETURN_VALUE
+                                                        | Op::RETURN_CONST
+                                                        | Op::RAISE_VARARGS
+                                                        | Op::RERAISE
+                                                )
+                                            }) && span.iter().rev().any(|x| {
+                                                !x.is_backward
+                                                    && x.target == Some(target)
+                                                    && matches!(
+                                                        x.op,
+                                                        Op::JUMP_FORWARD
+                                                            | Op::JUMP
+                                                            | Op::JUMP_ABSOLUTE
+                                                            // the else
+                                                            // arm's own
+                                                            // exit edges:
+                                                            // an arm-end
+                                                            // cond jump
+                                                            // over the
+                                                            // rest of the
+                                                            // chain, or a
+                                                            // nested for's
+                                                            // exhaustion
+                                                            // exit - both
+                                                            // merge the
+                                                            // arm at the
+                                                            // break target
+                                                            | Op::POP_JUMP_IF_FALSE
+                                                            | Op::POP_JUMP_IF_TRUE
+                                                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                            | Op::FOR_ITER
+                                                            | Op::FOR_LOOP
+                                                    )
+                                            })
+                                        }
+                                        _ => false,
+                                    };
+                                    if rejoins || merges_at_target {
                                         b.else_end = Some(target);
                                     }
                                 }
@@ -16720,7 +16822,34 @@ impl<'a> Ctx<'a> {
                 });
                 if let Some(li) = idx {
                     let close_at = self.cur_offset;
-                    while self.blocks.len() > li {
+                    // a block below the loop whose span has NOT been
+                    // reached yet (its end lies ahead - an enclosing
+                    // if-guard whose else region starts there) must
+                    // survive the chain-fold close: force-closing it at
+                    // the fold offset opens its Else region inside the
+                    // dead handler glue (next_boundary lands on the
+                    // RERAISE) and the real else arm - the elif chain
+                    // ahead - walks at parent level, flattened into a
+                    // sibling that also runs after the break
+                    // (_osx_support 3.9 compiler_fixup). The linear walk
+                    // closes it at its own end where the Else region
+                    // opens correctly.
+                    let unreached = self
+                        .blocks
+                        .get(li)
+                        .map(|b| b.start)
+                        .and_then(|ls| {
+                            (0..li).rev().find(|&i| {
+                                matches!(self.blocks[i].kind, BlockType::If)
+                                    && self.blocks[i].end > ls
+                                    && self.blocks[i].end > close_at
+                            })
+                        });
+                    let stop_len = match unreached {
+                        Some(i) => i + 1,
+                        None => li,
+                    };
+                    while self.blocks.len() > stop_len {
                         self.force_close_top(close_at);
                         // the loop's own close may have opened its
                         // for-else region (SETUP_LOOP-era for/else):
@@ -16745,7 +16874,9 @@ impl<'a> Ctx<'a> {
                             return;
                         }
                     }
-                    self.force_close_top(close_at);
+                    if self.blocks.len() > stop_len {
+                        self.force_close_top(close_at);
+                    }
                     // the loop closed HERE, not through the back-edge
                     // handler: register its top so the chain-end back
                     // edge that flows into handle_jump_backward next (and
@@ -25647,11 +25778,34 @@ if split_cond {
                                 false
                             })
                         };
+                        // a back edge landing on the cond jump's
+                        // fall-through (the body top) never re-evaluates
+                        // the cond: when that top is a SETUP_* (a try
+                        // block re-entered each iteration) this is
+                        // `if cond: while True: try: ...`, a one-shot
+                        // guard around a while-True loop - registering a
+                        // rotated While here fuses the guard into the loop
+                        // cond (`while cond:`) and strands the loop's
+                        // handler-break / following elif arms (_osx_support
+                        // 3.9 compiler_fixup). The prescan while-True
+                        // synthesis owns that top; this cond jump stays a
+                        // plain If.
+                        let setup_body_top = |off: usize| {
+                            self.idx_of.get(&off).map_or(false, |&k| {
+                                matches!(
+                                    self.instrs[k].op,
+                                    Op::SETUP_FINALLY
+                                        | Op::SETUP_EXCEPT
+                                        | Op::SETUP_CLEANUP
+                                )
+                            })
+                        };
                         if inst.is_backward
                             && t < target
                             && (t == cur
                                 || (t == self.cur_next
-                                    && !inner_cond_exit(t))
+                                    && !inner_cond_exit(t)
+                                    && !setup_body_top(t))
                                 || (t < cur
                                     && self.is_cond_expr_top(t, cur)
                                     && !inner_cond_exit(t)))
@@ -27270,6 +27424,84 @@ if split_cond {
         })
     }
 
+    /// A `break` flying to `target` over the else region of open If
+    /// guards below it: mark those guards' else_end so the region stays
+    /// an elif/else arm instead of flattening into a post-guard sibling
+    /// that would wrongly EXECUTE after the break (_osx_support 3.9
+    /// compiler_fixup: `if stripArch: while True: try/except-break
+    /// elif not arm64: for...` - flattened, the arm64 check also ran on
+    /// the break path). Validation mirrors the inline break-over-else
+    /// marking in the JUMP_ABSOLUTE arm: the region either rejoins the
+    /// loop iteration (back edge to the loop top) or merges at the break
+    /// target (its last forward jump - arm-end cond jump or nested-for
+    /// exhaustion - lands exactly on target, with no terminator between).
+    fn mark_guard_else_over_break(&mut self, target: usize) {
+        let loop_top = self
+            .blocks
+            .iter()
+            .rev()
+            .find(|b| matches!(b.kind, BlockType::While | BlockType::For))
+            .map(|b| b.start);
+        let mut to_mark: Vec<usize> = Vec::new();
+        for (i, b) in self.blocks.iter().enumerate() {
+            if matches!(b.kind, BlockType::If)
+                && b.else_end.is_none()
+                && b.short_circuit.is_none()
+                && b.end != usize::MAX
+                && b.end > self.cur_offset
+                && target > b.end
+            {
+                let (Some(&si), Some(&ei)) =
+                    (self.idx_of.get(&b.end), self.idx_of.get(&target))
+                else {
+                    continue;
+                };
+                if si >= ei {
+                    continue;
+                }
+                let span = &self.instrs[si..ei];
+                let rejoins = loop_top.map_or(false, |lt| {
+                    span.iter().any(|x| x.is_backward && x.target == Some(lt))
+                });
+                let merges = !span.iter().any(|x| {
+                    matches!(
+                        x.op,
+                        Op::RETURN_VALUE
+                            | Op::RETURN_CONST
+                            | Op::RAISE_VARARGS
+                            | Op::RERAISE
+                    )
+                }) && span
+                    .iter()
+                    .rev()
+                    .any(|x| {
+                        !x.is_backward
+                            && x.target == Some(target)
+                            && matches!(
+                                x.op,
+                                Op::JUMP_FORWARD
+                                    | Op::JUMP
+                                    | Op::JUMP_ABSOLUTE
+                                    | Op::POP_JUMP_IF_FALSE
+                                    | Op::POP_JUMP_IF_TRUE
+                                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                                    | Op::POP_JUMP_FORWARD_IF_TRUE
+                                    | Op::FOR_ITER
+                                    | Op::FOR_LOOP
+                            )
+                    });
+                if rejoins || merges {
+                    to_mark.push(i);
+                }
+            }
+        }
+        for i in to_mark {
+            if let Some(b) = self.blocks.get_mut(i) {
+                b.else_end = Some(target);
+            }
+        }
+    }
+
     fn register_break_over_else(&mut self, target: usize) {
         for b in self.blocks.iter_mut().rev() {
             if matches!(b.kind, BlockType::While | BlockType::For) {
@@ -27615,6 +27847,91 @@ if split_cond {
     /// region's own terminal jump then marks the enclosing branch's else
     /// on close. A fall-through continuation inside the region is never
     /// jump-targeted, so genuine trailing statements keep the old bound.
+    /// Bound an unbounded (`usize::MAX`) else/elif region at the
+    /// innermost enclosing loop's end when one exists: the arm is part
+    /// of the loop body and must close with the loop, or post-loop
+    /// statements are trapped in the arm (_osx_support 3.9
+    /// _default_sysroot: the `if cache is None:` after the for landed
+    /// inside the elif chain's last arm because the folded Else ran to
+    /// MAX and outlived the For's close).
+    ///
+    /// Only fire when NO If/Else block is open above the loop: with an
+    /// open guarded branch the chain machinery still owns the region's
+    /// extent and bounds it at the branch merge - capping at the loop
+    /// end there swallows the branch's own else arm into the chain
+    /// (filecmp 3.3 phase2: the outer `else: funny.append` of `if ok:`
+    /// landed inside the inner elif chain, growing a spurious
+    /// `continue`).
+    fn cap_else_at_loop(&self, pos: usize, end: usize) -> usize {
+        if end != usize::MAX {
+            return end;
+        }
+        let mut loop_end = None;
+        for bl in self.blocks.iter().rev() {
+            match bl.kind {
+                BlockType::While | BlockType::For => {
+                    loop_end = Some(bl.end);
+                    break;
+                }
+                // folded chain siblings: every arm of the chain gets its
+                // own region and the LAST one must still close with the
+                // loop (_osx_support 3.9 _default_sysroot: the `elif
+                // in_incdirs:` arm region swallowed the post-loop `if
+                // _cache_default_sysroot is None:` when left at MAX)
+                BlockType::Else => continue,
+                // an open guarded If above the loop: the chain machinery
+                // still owns this region's extent and bounds it at the
+                // branch merge - capping at the loop end swallows the
+                // branch's own else arm into the chain (filecmp 3.3
+                // phase2: the outer `else: funny.append` of `if ok:`
+                // landed inside the inner elif chain, growing a spurious
+                // `continue`)
+                BlockType::If => return end,
+                _ => {}
+            }
+        }
+        match loop_end.filter(|e| *e != usize::MAX && *e > pos) {
+            Some(e) => {
+                // stop BEFORE the loop's natural back edge: the region
+                // must close with the loop body, but if it still covers
+                // the back-edge jump, that jump reads as an explicit
+                // `continue` inside the arm (asynchat 3.7 handle_read:
+                // a no-op trailing `continue` broke sig-exactness)
+                let mut cap = e;
+                if let Some(bl) = self
+                    .blocks
+                    .iter()
+                    .rev()
+                    .find(|bl| matches!(bl.kind, BlockType::While | BlockType::For))
+                {
+                    let top = self.effective_offset(bl.start);
+                    if let Some(&ei) = self.idx_of.get(&e) {
+                        if let Some(&si) = self.idx_of.get(&bl.start) {
+                            // the LAST backward edge onto the loop top
+                            // before the exit is the natural iteration
+                            // end (several arms may back-edge: each
+                            // `continue`-shaped exit of the chain)
+                            if let Some(x) = self.instrs[si..ei]
+                                .iter()
+                                .rev()
+                                .find(|x| {
+                                    x.is_backward
+                                        && x.target.map_or(false, |t| {
+                                            self.effective_offset(t) == top
+                                        })
+                                })
+                            {
+                                cap = x.offset;
+                            }
+                        }
+                    }
+                }
+                if cap > pos { cap } else { end }
+            }
+            None => end,
+        }
+    }
+
     fn clamp_elif_real_end(&self, pos: usize, real_end: usize) -> usize {
         let (Some(&si), Some(&ei)) = (self.idx_of.get(&pos), self.idx_of.get(&real_end)) else {
             return real_end;
@@ -28990,6 +29307,47 @@ if split_cond {
                             }))
                     {
                         true
+                    } else if matches!(
+                        ins.op,
+                        Op::SETUP_FINALLY
+                            | Op::SETUP_EXCEPT
+                            | Op::SETUP_CLEANUP
+                            | Op::SETUP_LOOP
+                            | Op::SETUP_WITH
+                            | Op::SETUP_ASYNC_WITH
+                    ) {
+                        // a SETUP's target is its exception-time handler /
+                        // exit protocol, not a source-level jump: neither
+                        // an in-region flow target nor a `break`
+                        // (_osx_support 3.9 compiler_fixup `while True:
+                        // try: ... except ValueError: break` - the handler
+                        // target 34 past the back edge was miscounted as a
+                        // uniform break exit, and the loop top being a
+                        // SETUP made section-6's rotated-while arm claim
+                        // the one-shot `if stripArch` guard as the loop
+                        // cond, merging `if c: while True:` into `while c:`
+                        // and turning the handler's break into `pass` -
+                        // an infinite loop at runtime). When the SETUP is
+                        // the loop TOP itself (`while True: try:`), its
+                        // handler-target forward jump past the chain is
+                        // the handler-break's loop exit - record it (the
+                        // break flies over any guard-else arms to the
+                        // merge, so the span must reach it or the loop
+                        // closes before its own break and the break
+                        // degrades to `pass` with the following elif arms
+                        // skipped)
+                        if self.instrs[ti].offset == t
+                            && !ins.is_backward
+                            && it > bj.offset
+                        {
+                            let ext = self.chain_extent(it);
+                            if it < ext {
+                                breaks.push(ext);
+                            } else {
+                                breaks.push(it);
+                            }
+                        }
+                        true
                     } else if !ins.is_backward && it > bj.offset {
                         // a `break` flying to the loop exit
                         breaks.push(it);
@@ -29639,7 +29997,23 @@ if split_cond {
                 matches!(b.kind, BlockType::While | BlockType::For)
                     && (b.start == target || b.cond_end == target)
             }) {
-                b.end = usize::MAX;
+                // a prescan-synthesized while-True with a recorded exit
+                // (a `while True: try: ... except: break` whose handler
+                // break flies to it): cap the keep-open extension AT that
+                // exit instead of MAX, so the handler break still matches
+                // the loop exit while the chain walks - MAX made
+                // find_loop_exit miss and the break degrade to `pass`
+                // with the following guard-else arms skipped (_osx_support
+                // 3.9 compiler_fixup)
+                let recorded = self
+                    .while_true_loops
+                    .iter()
+                    .find(|(t, _)| *t == b.start)
+                    .map(|(_, e)| *e);
+                b.end = match recorded {
+                    Some(e) if e > self.cur_offset => e,
+                    _ => usize::MAX,
+                };
             }
             return;
         }

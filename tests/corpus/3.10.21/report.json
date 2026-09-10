@@ -51,7 +51,7 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 311: orig  body=[Pass()])] | dec  body=[Return(value=Name(id='_SYSTEM_VERSION'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1091,
+   "ndiff": 1096,
    "ntotal": 1419,
    "detail": "line 289: orig ('POP_JUMP_IF_FALSE', 'to 128') | got ('POP_JUMP_IF_FALSE', 'to 130')\nline 300: orig ('JUMP_FORWARD', 'to 50') | got ('JUMP_FORWARD', 'to 52')\nline 303: orig ('JUMP_IF_NOT_EXC_MATCH', 'to 48') | got ('JUMP_IF_NOT_EXC_MATCH', 'to 50')"
   },

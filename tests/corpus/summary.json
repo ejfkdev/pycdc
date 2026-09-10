@@ -92,17 +92,16 @@
  "3.8.20": {
   "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
   "counts": {
-   "PASS": 31,
-   "SIG-DIFF": 8,
-   "INCOMPLETE": 1
+   "PASS": 32,
+   "SIG-DIFF": 8
   }
  },
  "3.9.25": {
   "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
   "counts": {
-   "PASS": 29,
+   "PASS": 30,
    "SIG-DIFF": 9,
-   "INCOMPLETE": 2
+   "INCOMPLETE": 1
   }
  }
 }

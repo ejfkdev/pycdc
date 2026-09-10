@@ -398,6 +398,7 @@ class SimpleXMLRPCRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     self.send_header('Content-Encoding', 'gzip')
                 except NotImplementedError:
                     pass
+            else:
                 try:
                     max_chunk_size = 10485760
                     size_remaining = int(self.headers['content-length'])

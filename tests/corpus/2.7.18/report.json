@@ -67,7 +67,7 @@
    "module": "SimpleXMLRPCServer",
    "ast_detail": "diff at token 115: orig  ifs=[BoolOp(op=And() | dec  ifs=[Call(func=Attribute(value=Name(id='member'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1399,
+   "ndiff": 1400,
    "ntotal": 1550,
    "detail": "line 66: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 110: orig ('POP_JUMP_IF_FALSE', '#140') | got ('POP_JUMP_IF_FALSE', '#138')\nline 115: orig ('LOAD_CONST', \"'localhost'\") | got ('LOAD_CONST', \"('localhost', 8000)\")"
   },

@@ -2,9 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 31,
-  "SIG-DIFF": 8,
-  "INCOMPLETE": 1
+  "PASS": 32,
+  "SIG-DIFF": 8
  },
  "results": [
   {
@@ -41,10 +40,7 @@
   },
   {
    "module": "_osx_support",
-   "verdict": "INCOMPLETE",
-   "ndiff": 525,
-   "ntotal": 1434,
-   "detail": "line 306: orig ('JUMP_FORWARD', 'to 116') | got ('JUMP_FORWARD', 'to 78')\nline 464: orig ('FOR_ITER', 'to 126') | got ('FOR_ITER', 'to 138')\nline 494: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 124')"
+   "verdict": "PASS"
   },
   {
    "module": "_py_abc",

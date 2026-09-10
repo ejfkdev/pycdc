@@ -63,7 +63,7 @@
   {
    "module": "_osx_support",
    "verdict": "INCOMPLETE",
-   "ndiff": 1183,
+   "ndiff": 1203,
    "ntotal": 1567,
    "detail": "line 339: orig ('LOAD_FAST', 'f') | got ('LOAD_GLOBAL', 'OSError')\nline 340: orig ('LOAD_ATTR', 'close + NULL|self') | got ('CHECK_EXC_MATCH', '')\nline 341: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to L3')"
   },
@@ -107,7 +107,7 @@
    "module": "base64",
    "ast_detail": "diff at token 43: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1812,
+   "ndiff": 1806,
    "ntotal": 2125,
    "detail": "line 280: orig ('LOAD_GLOBAL', 'UnicodeEncodeError') | got ('LOAD_GLOBAL', 'TypeError')\nline 284: orig ('LOAD_GLOBAL', 'ValueError + NULL') | got ('LOAD_GLOBAL', 'TypeError + NULL')\nline 285: orig ('LOAD_CONST', \"'string argument should contain only ASCII characters'\") | got ('LOAD_CONST', \"'argument should be a bytes-like object or ASCII string, not %r'\")"
   },
