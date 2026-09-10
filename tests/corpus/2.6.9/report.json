@@ -129,7 +129,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1723: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 2135: orig  comparators=[Num(n=-1)]) | dec  comparators=[Num(n=-1)])])",
    "verdict": "SIG-DIFF",
    "ndiff": 1198,
    "ntotal": 1709,

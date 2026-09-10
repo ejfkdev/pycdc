@@ -880,15 +880,26 @@ def flatten_terminating_else(stmts, loop_body=False):
     # if/elif/else, not inside any loop, got a spurious `continue` sunk into
     # its then arm so it mismatched a decompile that flattened the chain to
     # `if c: call(); return` siblings with the function's implicit tail).
-    if (loop_body
-            and isinstance(tail, ast.If) and tail.orelse and tail.body
-            and not isinstance(tail.body[-1], (ast.Return, ast.Raise,
-                                               ast.Continue))):
-        stmts = list(stmts[:-1])
-        body = list(tail.body) + [ast.Continue()]
-        orelse = list(tail.orelse)
-        stmts.append(ast.If(test=tail.test, body=body, orelse=[]))
-        stmts.extend(orelse)
+    if loop_body:
+        # iterate: flattening one elif level exposes the next as the
+        # tail - a full chain must flatten completely to match the
+        # decompiler's sibling form (_strptime 3.6-3.9 _strptime: the
+        # group_key dispatch chain flattened only one level and
+        # mismatched the fully-flat decompile)
+        changed = True
+        while changed:
+            changed = False
+            tail = stmts[-1] if stmts else None
+            if (isinstance(tail, ast.If) and tail.orelse and tail.body
+                    and not isinstance(tail.body[-1], (ast.Return,
+                                                       ast.Raise,
+                                                       ast.Continue))):
+                stmts = list(stmts[:-1])
+                body = list(tail.body) + [ast.Continue()]
+                orelse = list(tail.orelse)
+                stmts.append(ast.If(test=tail.test, body=body, orelse=[]))
+                stmts.extend(orelse)
+                changed = True
     return [_flatten_node(s) for s in stmts]
 
 

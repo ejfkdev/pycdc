@@ -49,7 +49,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1766: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 1907: orig  value=Num(n=12))] | dec  value=Num(n=12))",
    "verdict": "SIG-DIFF",
    "ndiff": 1,
    "ntotal": 2090,
