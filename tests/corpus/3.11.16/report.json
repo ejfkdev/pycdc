@@ -173,11 +173,11 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 1135: orig  orelse=[If(test=Compare(left=Name(id='ok' | dec  orelse=[]",
+   "ast_detail": "diff at token 1528: orig  ctx=Load())) | dec  ctx=Load()))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 222,
-   "ntotal": 1571,
-   "detail": "line 78: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 254') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 236')\nline 623: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 2918') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 2916')\nline 691: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 2918') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 2916')"
+   "ndiff": 1,
+   "ntotal": 1548,
+   "detail": "line 78: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 254') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 236')"
   },
   {
    "module": "configparser",

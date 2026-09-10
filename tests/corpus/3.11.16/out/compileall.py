@@ -219,8 +219,9 @@ def compile_file(fullname, ddir=None, force=False, rx=None, quiet=0, legacy=Fals
                 else:
                     print('*** ', end='')
                 print(e.__class__.__name__ + ':', e)
-            if ok == 0:
-                success = False
+            else:
+                if ok == 0:
+                    success = False
     return success
 
 def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False, optimize=-1, invalidation_mode=None):
@@ -239,12 +240,11 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
 
     success = True
     for dir in sys.path:
-        if dir:
-            if dir == os.curdir and skip_curdir:
-                if quiet < 2:
-                    print('Skipping current directory')
-            else:
-                success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
+        if (not dir or dir == os.curdir) and skip_curdir:
+            if quiet < 2:
+                print('Skipping current directory')
+        else:
+            success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
     return success
 
 def main():
@@ -311,11 +311,6 @@ def main():
                 elif not compile_dir(dest, maxlevels, args.ddir, args.force, args.rx, args.quiet, args.legacy, workers=args.workers, invalidation_mode=invalidation_mode, stripdir=args.stripdir, prependdir=args.prependdir, optimize=args.opt_levels, limit_sl_dest=args.limit_sl_dest, hardlink_dupes=args.hardlink_dupes):
                     success = False
             return success
-    except KeyboardInterrupt:
-        if args.quiet < 2:
-            print('\n[interrupted]')
-        return False
-    try:
         return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
     except KeyboardInterrupt:
         if args.quiet < 2:

@@ -167,8 +167,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 283: orig  orelse=[ImportFrom(module='concurrent.futures' | dec  orelse=[]",
    "verdict": "SIG-DIFF",
-   "ndiff": 615,
-   "ntotal": 1504,
+   "ndiff": 595,
+   "ntotal": 1484,
    "detail": "line 78: orig ('POP_JUMP_IF_FALSE', 'to 242') | got ('POP_JUMP_IF_FALSE', 'to 224')\nline 167: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 168: orig ('POP_JUMP_IF_TRUE', 'to 452') | got ('POP_JUMP_IF_FALSE', 'to 452')"
   },
   {

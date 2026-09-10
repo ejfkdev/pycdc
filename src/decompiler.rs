@@ -967,6 +967,33 @@ pub fn decompile_in_scope(
                 _ => false,
             }
         };
+        // terminating-arm gap: 3.11+ excludes a trailing bare RETURN
+        // from the protected range, splitting one source-level try into
+        // same-handler fragments around it (`try: if A: ...; return x
+        // else: return y except KI:` - the if arm's `return success`
+        // sits unprotected between the fragments). Pads + bare returns
+        // only: the fragments are still ONE try (compileall 3.11 main:
+        // the unmerged else fragment grew a duplicate try with its own
+        // KeyboardInterrupt clause)
+        let is_term_gap = |from: usize, to: usize| -> bool {
+            match (ctx.idx_of.get(&from), ctx.idx_of.get(&to)) {
+                (Some(&fi), Some(&ti)) => {
+                    let span = &ctx.instrs[fi..ti];
+                    span.iter().any(|x| {
+                        matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST)
+                    }) && span.iter().all(|x| {
+                        matches!(
+                            x.op,
+                            Op::NOP | Op::NOT_TAKEN
+                                | Op::CACHE
+                                | Op::RETURN_VALUE
+                                | Op::RETURN_CONST
+                        )
+                    })
+                }
+                _ => false,
+            }
+        };
         // with-in-try: a `with` inside the try body splits the protected
         // range around BEFORE_WITH / the with body (protected by the
         // with's OWN handler, excluded from main_entries) / the __exit__
@@ -1233,7 +1260,12 @@ pub fn decompile_in_scope(
                         }
                         cur = r2.region_end;
                     }
-                    if ok && (cur == e.start || (cur < e.start && is_pad_gap(cur, e.start))) {
+                    if ok
+                        && (cur == e.start
+                            || (cur < e.start
+                                && (is_pad_gap(cur, e.start)
+                                    || is_term_gap(cur, e.start))))
+                    {
                         deep_exc_idx = Some(ri);
                     }
                 }
@@ -3789,6 +3821,13 @@ impl<'a> Ctx<'a> {
                     // and misreads as THIS try's else merge (code 3.12
                     // interact: the ps1 try swallowed the ps2 try as a
                     // phantom else via the ps2 chain's JB 544->70)
+                    // stub_tail_end: the vetted end of the chain's own
+                    // exit/stub material — the else-end jump may fly
+                    // over the trailing cleanup stub to the true merge
+                    // right past chain_extent's stop (compileall 3.11
+                    // compile_file: else JF 2266->2918, stub COPY;
+                    // POP_EXCEPT; RERAISE at 2912-2916)
+                    let mut stub_tail_end = chain_end;
                     if let Some(&hi) = self.idx_of.get(&handler) {
                         let mut tail_end = chain_end;
                         for x in &self.instrs[hi..] {
@@ -3816,6 +3855,7 @@ impl<'a> Ctx<'a> {
                                 break;
                             }
                         }
+                        stub_tail_end = tail_end;
                         scan_end = scan_end.min(tail_end);
                     }
                     // the chain's own resume jump can sit exactly AT the
@@ -4010,17 +4050,37 @@ impl<'a> Ctx<'a> {
                                 break;
                             }
                             if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                                && !x.is_backward
                                 && (x.target == Some(chain_end)
                                     || resume_hop.is_some()
                                         && x.target == resume_hop)
                             {
-                                found = Some(x.offset);
+                                found = Some((x.offset, chain_end));
+                                break;
+                            }
+                            // the else-end jump may fly over the chain's
+                            // trailing cleanup stub (COPY; POP_EXCEPT;
+                            // RERAISE) to the true merge right past it -
+                            // the stub-tail walk already vetted
+                            // (chain_end, scan_end] as chain material, so
+                            // a forward jump landing there delimits the
+                            // else span and its target is the walk's
+                            // resume (compileall 3.11 compile_file: the
+                            // else JF 2266->2918 missed chain_extent's
+                            // stub-head stop 2912, the `else: if ok == 0:`
+                            // clause flattened past the try and ran on
+                            // the exception paths with ok unbound)
+                            if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP)
+                                && x.target.map_or(false, |t| {
+                                    t > chain_end && t <= stub_tail_end
+                                })
+                            {
+                                found = Some((x.offset, x.target.unwrap()));
                                 break;
                             }
                             j += 1;
                         }
                         found
-                            .map(|jf_off| (jf_off, chain_end))
                             .or_else(|| {
                                 // function-tail try with the implicit
                                 // `return None` SUNK into both exits
@@ -23788,6 +23848,116 @@ return None;
         Some(body_start)
     }
 
+    /// PJFF-headed `(P or Q...) and R` statement chain (3.11-era layout):
+    /// the negative first or-operand compiles to a PJFF whose target is
+    /// the AND continuation (R's operand run), NOT the else arm - the
+    /// or-group's last operand and R share the else label E. Read
+    /// naively, the head link opens an `if P:` guard over the rest and
+    /// the else arm attaches to the INNER if - the P-true path loses the
+    /// else entirely (compileall 3.11 compile_path `if (not dir or
+    /// dir == os.curdir) and skip_curdir:` rendered `if dir: if ...
+    /// else: ...`; a falsy dir silently skipped what the source sends
+    /// to the else arm). Merge into ONE If spanning R's fall-through
+    /// and ending at E; the linear walk re-runs R's own PJFF harmlessly
+    /// (top.end == E → dead-skip close), exactly like the `A or (B and
+    /// C)` fold. Returns the merged If's body start.
+    fn try_or_group_and_chain(&mut self, cond: &ExprRef, target: usize) -> Option<usize> {
+        if target <= self.cur_next {
+            return None;
+        }
+        let bi = *self.idx_of.get(&self.cur_next)?;
+        let ti = *self.idx_of.get(&target)?;
+        if ti <= bi {
+            return None;
+        }
+        // the and continuation at `target`: a pure-value run ending in a
+        // PJFF-family link (R's false exit) jumping forward to the
+        // shared else label E
+        let mut k = ti;
+        while matches!(self.instrs.get(k).map(|x| x.op), Some(op) if is_pure_value_op(op)
+            || matches!(op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::TO_BOOL))
+        {
+            k += 1;
+        }
+        if k == ti {
+            // no operand run at the landing - not R's eval site
+            return None;
+        }
+        let jr = self.instrs.get(k)?;
+        if !matches!(
+            jr.op,
+            Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+        ) {
+            return None;
+        }
+        let e = jr.target?;
+        if e <= jr.offset {
+            return None;
+        }
+        let r_val = self.sim_value_region(ti, k)?;
+        // the or-group's remaining operands: the gap [cur_next, target)
+        // is pure-value runs separated by PJFF-family links ALL exiting
+        // to E, with at least one link (a plain `P and R` head would
+        // jump straight to E, never landing mid-chain)
+        let mut q_vals: Vec<ExprRef> = Vec::new();
+        let mut region_start = bi;
+        let mut m = bi;
+        while m < ti {
+            let x = self.instrs[m];
+            if matches!(
+                x.op,
+                Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE
+            ) {
+                if x.target != Some(e) {
+                    return None;
+                }
+                q_vals.push(self.sim_value_region(region_start, m)?);
+                m += 1;
+                region_start = m;
+                continue;
+            }
+            if !(is_pure_value_op(x.op)
+                || matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::TO_BOOL))
+            {
+                return None;
+            }
+            m += 1;
+        }
+        if q_vals.is_empty() || region_start != ti {
+            return None;
+        }
+        // merge: Or(!P, Q...) And R
+        let mut or_vals = Vec::new();
+        flatten_boolop(negate_cond(cond.clone()), BoolOpKind::Or, &mut or_vals);
+        for q in q_vals {
+            flatten_boolop(q, BoolOpKind::Or, &mut or_vals);
+        }
+        let or_expr: ExprRef = Rc::new(Expr::BoolOp {
+            op: BoolOpKind::Or,
+            values: or_vals,
+        });
+        let mut and_vals = Vec::new();
+        flatten_boolop(or_expr, BoolOpKind::And, &mut and_vals);
+        flatten_boolop(r_val, BoolOpKind::And, &mut and_vals);
+        let merged: ExprRef = Rc::new(Expr::BoolOp {
+            op: BoolOpKind::And,
+            values: and_vals,
+        });
+        // open the merged If at R's fall-through (the body head); E is
+        // the else start - the walk's normal else machinery takes over
+        let body_start = self.instrs.get(k + 1).map(|x| x.offset)?;
+        if body_start >= e {
+            return None;
+        }
+        let mut blk = Block::new(BlockType::If, body_start, e);
+        blk.cond = Some(merged);
+        blk.cond_set = true;
+        blk.jump_if_true = false;
+        blk.stack_depth = self.stack.len();
+        self.blocks.push(blk);
+        Some(body_start)
+    }
+
     fn handle_cond_jump(&mut self, cond: ExprRef, jump_if_true: bool, target: usize) {
         // tail-duplicated body copy: aim the jump at the original body
         let target = self.dup_copy_redirect.get(&target).copied().unwrap_or(target);
@@ -23978,6 +24148,24 @@ return None;
                 }
                 self.push(merged);
                                 self.skip_until = Some(m);
+                return;
+            }
+        }
+        // PJFF-headed `(P or Q...) and R`: the head's false-jump lands on
+        // the AND continuation's operand run instead of the else arm —
+        // the or-group's last link and R's link share the else label
+        // (3.11-era layout, compileall 3.11 compile_path `if (not dir or
+        // dir == os.curdir) and skip_curdir:`). Must run before the
+        // generic block-open treats the head as an `if P:` guard, which
+        // attaches the else arm to the inner if and loses it on the
+        // P-true path.
+        if !jump_if_true
+            && target > self.cur_next
+            && self.find_loop_exit(target).is_none()
+            && !self.is_loop_top_target(target)
+        {
+            if let Some(body_start) = self.try_or_group_and_chain(&cond, target) {
+                self.skip_until = Some(body_start);
                 return;
             }
         }

@@ -258,11 +258,10 @@ def compile_path(skip_curdir=1, maxlevels=0, force=False, quiet=0, legacy=False,
 
     success = True
     for dir in sys.path:
-        if dir:
-            if dir == os.curdir and skip_curdir:
-                if quiet < 2:
-                    print('Skipping current directory')
-                    continue
+        if (not dir or dir == os.curdir) and skip_curdir:
+            if quiet < 2:
+                print('Skipping current directory')
+                continue
         success = success and compile_dir(dir, maxlevels, None, force, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode)
     return success
 
@@ -338,12 +337,7 @@ def main():
         if args.quiet < 2:
             print('\n[interrupted]')
         return False
-    try:
-        return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
-    except KeyboardInterrupt:
-        if args.quiet < 2:
-            print('\n[interrupted]')
-        return False
+    return compile_path(legacy=args.legacy, force=args.force, quiet=args.quiet, invalidation_mode=invalidation_mode)
 
 if __name__ == '__main__':
     exit_status = int(not main())

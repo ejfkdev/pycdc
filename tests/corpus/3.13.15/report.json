@@ -167,8 +167,8 @@
    "module": "compileall",
    "ast_detail": "diff at token 246: orig  value=Constant(value=1))])] | dec  value=Constant(value=1))])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 761,
-   "ntotal": 1572,
+   "ndiff": 636,
+   "ntotal": 1551,
    "detail": "line 179: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 180: orig ('POP_JUMP_IF_TRUE', 'to L8') | got ('POP_JUMP_IF_FALSE', 'to L8')\nline 185: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')"
   },
   {
