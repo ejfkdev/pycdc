@@ -147,7 +147,7 @@
    "module": "code",
    "ast_detail": "diff at token 98: orig  ctx=Load())]))] | dec  ctx=Load())]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 206,
+   "ndiff": 212,
    "ntotal": 962,
    "detail": "line 745: orig ('LOAD_FAST', 'e') | got ('LOAD_CONST', 'None')\nline 746: orig ('RAISE_VARARGS', '') | got ('STORE_FAST', 'e')\nline 747: orig ('LOAD_CONST', 'None') | got ('DELETE_FAST', 'e')"
   },

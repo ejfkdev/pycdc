@@ -246,7 +246,7 @@ class InteractiveConsole(InteractiveInterpreter):
                 builtins.quit = _quit
             if exitmsg is None:
                 self.write('now exiting %s...\n' % self.__class__.__name__)
-            if exitmsg != '':
+            elif exitmsg != '':
                 self.write('%s\n' % exitmsg)
 
     def push(self, line, filename=None, _symbol='single'):

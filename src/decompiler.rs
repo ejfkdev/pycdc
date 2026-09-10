@@ -2629,6 +2629,58 @@ impl<'a> Ctx<'a> {
     /// When the span holds a nested try's inline body followed by an
     /// outward jump and `fh`'s chain follows, rebuild the nested Try and
     /// recurse on the remainder.
+    /// Rebuild the if/elif chain of a finally body whose arms end in
+    /// sunk `return None` copies (3.12+): the region walk renders each
+    /// arm's sunk return as a real Return inside its If arm and the
+    /// following arm as a SIBLING if. Neither rendering is correct in a
+    /// finally body: the return would SWALLOW the in-flight exception,
+    /// and the sibling form loses the arm exclusivity (both tests would
+    /// run). The sunk return is the arm terminator replacing the classic
+    /// else-jump (the mirrored handler-side arms RERAISE at the same
+    /// slots — validated before this runs) — drop the arm's Return and
+    /// fold the following sibling statements into its orelse.
+    fn rebuild_sunk_elif(&self, list: &mut Vec<Stmt>) {
+        fn arm_ends_sunk_return(s: &Stmt) -> bool {
+            match s {
+                Stmt::If { body, orelse, .. } => {
+                    orelse.is_empty()
+                        && matches!(body.last(), Some(Stmt::Return(None)))
+                }
+                _ => false,
+            }
+        }
+        fn rebuild(list: &mut Vec<Stmt>) {
+            let mut i = 0;
+            while i < list.len() {
+                if i + 1 < list.len() && arm_ends_sunk_return(&list[i]) {
+                    let mut rest: Vec<Stmt> = list.drain(i + 1..).collect();
+                    if let Stmt::If { body, .. } = &mut list[i] {
+                        body.pop();
+                    }
+                    rebuild(&mut rest);
+                    if let Stmt::If { orelse, .. } = &mut list[i] {
+                        *orelse = rest;
+                    }
+                    return;
+                }
+                i += 1;
+            }
+            // tail of the chain: drop the flat tail-run returns and the
+            // LAST arm's own sunk terminator
+            while matches!(list.last(), Some(Stmt::Return(None))) {
+                list.pop();
+            }
+            if let Some(Stmt::If { body, orelse, .. }) = list.last_mut() {
+                if orelse.is_empty()
+                    && matches!(body.last(), Some(Stmt::Return(None)))
+                {
+                    body.pop();
+                }
+            }
+        }
+        rebuild(list);
+    }
+
     fn decompose_finally_span(
         &mut self,
         from: usize,
@@ -3572,6 +3624,76 @@ impl<'a> Ctx<'a> {
                 stop = fh;
             }
         }
+        // a finally body ending in an if/elif chain: 3.12+ sinks a
+        // `return None` into EVERY arm (RETURN_CONST arm terminators),
+        // so the first return found above is an ARM end, not the flow
+        // end — the inline copy actually runs to the LAST sunk return
+        // before the chain head. Walk the return chain forward while a
+        // test region with real code separates consecutive returns (an
+        // elif arm); validate the extended span opcode-mirrors the
+        // out-of-line chain (finally_copy_mirror pairs each sunk return
+        // with the chain's RERAISE — a GENUINE `return` inside a
+        // finally body appears in BOTH copies and fails the mirror,
+        // keeping the old truncation). Without this the span cut at the
+        // first arm and the remaining elif arms vanished from the
+        // finalbody (code 3.13/3.14 interact exitmsg chain: the
+        // `elif exitmsg != '':` write dropped — a semantic loss).
+        let mut sunk_arm_returns = false;
+        let mut sunk_copy_start: Option<usize> = None;
+        if let Some(fh) = tc.finally_handler {
+            if fh > stop {
+                let mut cur = stop;
+                loop {
+                    let next_ret = self
+                        .instrs
+                        .iter()
+                        .skip_while(|i| i.offset <= cur)
+                        .take_while(|i| i.offset < fh)
+                        .find(|i| {
+                            matches!(i.op, Op::RETURN_VALUE | Op::RETURN_CONST)
+                        })
+                        .map(|i| i.offset);
+                    let Some(nr) = next_ret else { break };
+                    // advance across both arm separators (real test
+                    // code) and the tail return run; the full-span
+                    // finally_copy_mirror below is the validator — a
+                    // region that is not pure arm material fails the
+                    // pairing and aborts the extension
+                    cur = nr;
+                }
+                if cur > stop {
+                    // validate through the copy-start candidates (the
+                    // span at `pos` may hold except chains before the
+                    // copy proper — code 3.13 interact: pos=752 but
+                    // the copy starts at the KI chain's extent 1140 —
+                    // so `pos` itself can fail the mirror while a
+                    // later candidate succeeds)
+                    let mut starts = vec![self
+                        .skip_until
+                        .filter(|&sk| sk > pos && sk < fh)
+                        .unwrap_or(pos)];
+                    for x in self.instrs.iter() {
+                        if x.offset <= pos || x.offset >= fh {
+                            continue;
+                        }
+                        if x.op == Op::PUSH_EXC_INFO {
+                            let ext = self.chain_extent(x.offset);
+                            if ext > pos && ext < fh && !starts.contains(&ext) {
+                                starts.push(ext);
+                            }
+                        }
+                    }
+                    if let Some(&s0) = starts
+                        .iter()
+                        .find(|&&s| self.finally_copy_mirror(s, fh))
+                    {
+                        stop = cur;
+                        sunk_arm_returns = true;
+                        sunk_copy_start = Some(s0);
+                    }
+                }
+            }
+        }
         // nested finally levels are laid out consecutively: when the
         // walk already collected the first level's inline copy (an
         // early_fin is pending), the span for the deeper copy ends at
@@ -3744,7 +3866,17 @@ impl<'a> Ctx<'a> {
                         mirror_ok = ok || sn > 1;
                         if ok {
                             if let Some(t) = trim {
-                                fin_span_stop = t;
+                                // the trim stops at the chain's FIRST
+                                // RERAISE = the span's first sunk
+                                // return — correct for a straight-line
+                                // finally body, but a BRANCHING body
+                                // (if/elif arms each ending in a sunk
+                                // return) continues past it; the
+                                // extension above already validated
+                                // and applied the full span
+                                if !sunk_arm_returns {
+                                    fin_span_stop = t;
+                                }
                             }
                         }
                     }
@@ -3807,7 +3939,10 @@ impl<'a> Ctx<'a> {
                 }
                 None => tc.finally_handler,
             };
-            let span = self.decompose_finally_span(pos, fin_span_stop, head);
+            let mut span = self.decompose_finally_span(pos, fin_span_stop, head);
+            if sunk_arm_returns {
+                self.rebuild_sunk_elif(&mut span);
+            }
             // the nested chain and its stubs are folded — never let the
             // main walk re-enter them
             if let Some(nh) = nested_head {
@@ -3842,6 +3977,26 @@ impl<'a> Ctx<'a> {
             if let Some(fh) = tc.finally_handler {
                 let body = self.decompile_region(fh, self.handler_region_end(fh));
                 finalbody = body;
+                // the chain-side render cannot see the arm terminators
+                // (its RERAISEs emit no statement, so the if/elif arms
+                // arrive as plain siblings). When the extension walk
+                // validated an inline copy with sunk arm returns,
+                // re-render the finally body from the INLINE copy and
+                // rebuild the elif chain from those returns (code
+                // 3.13/3.14 interact exitmsg: sibling ifs ran BOTH
+                // writes when exitmsg was None)
+                if sunk_arm_returns {
+                    if let Some(s0) = sunk_copy_start {
+                        if fin_span_stop > s0 {
+                            let mut span2 =
+                                self.decompose_finally_span(s0, fin_span_stop, None);
+                            self.rebuild_sunk_elif(&mut span2);
+                            if !span2.is_empty() {
+                                finalbody = span2;
+                            }
+                        }
+                    }
+                }
                 // the finally body's INLINE copy may sit between the
                 // (already-consumed) except chain and fh when the region
                 // emit folded before the walk got there (a loop-carried
