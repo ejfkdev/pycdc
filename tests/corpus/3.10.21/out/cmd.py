@@ -306,9 +306,9 @@ class Cmd:
                 except AttributeError:
                     pass
                 self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
-            else:
-                func()
                 return
+            func()
+            return
         names = self.get_names()
         cmds_doc = []
         cmds_undoc = []

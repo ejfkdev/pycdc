@@ -13438,6 +13438,86 @@ impl<'a> Ctx<'a> {
                     && matches!(&*e, Expr::Const(o) if matches!(&**o, PyObject::None))
                     && (self.version.at_least(3, 10)
                         || self.has_pre_handler_return_mirror())
+                    // a handler-side sunk copy of the tail return only
+                    // EXISTS when the try is tail-positioned (past the
+                    // chain terminus lies nothing but the implicit tail
+                    // return) — or when an enclosing loop is open (the
+                    // sunk-BREAK landing conversion below, which runs
+                    // its own tail_only validation). Otherwise this is
+                    // a GENUINE source-level `except: return`: dropping
+                    // it emptied asynchat 3.10 handle_read's clauses to
+                    // `pass`, which also disabled retract_escaping_else
+                    // (no clause ended in a Return anymore) and wrapped
+                    // the whole post-try flow into a phantom else arm
+                    && {
+                        let loop_open = self
+                            .blocks
+                            .iter()
+                            .any(|b| {
+                                matches!(
+                                    b.kind,
+                                    BlockType::While | BlockType::For
+                                )
+                            });
+                        // tail position: past the chain's extent lies
+                        // nothing but chain-cleanup vocabulary, pads
+                        // and the implicit tail return (complete()'s
+                        // extent lands PAST its final RERAISE, at the
+                        // code end — idx_of resolves that to the
+                        // RERAISE index, so the stub ops must be
+                        // admitted here; do_help's chain is followed
+                        // by the enclosing body's POP_BLOCK)
+                        let tail_pos = match self.legacy_try.as_ref() {
+                            Some(l) => {
+                                let ext = self.chain_extent(l.handler_start);
+                                self.idx_of.get(&ext).map_or(true, |&ei| {
+                                    self.instrs[ei..].iter().all(|x| {
+                                        matches!(
+                                            x.op,
+                                            Op::NOP
+                                                | Op::NOT_TAKEN
+                                                | Op::CACHE
+                                                | Op::EXTENDED_ARG
+                                                | Op::LOAD_CONST
+                                                | Op::RETURN_VALUE
+                                                | Op::RETURN_CONST
+                                                | Op::RERAISE
+                                                | Op::END_FINALLY
+                                                | Op::POP_BLOCK
+                                                | Op::POP_EXCEPT
+                                                | Op::POP_TOP
+                                                | Op::COPY
+                                                | Op::SWAP
+                                        )
+                                    })
+                                })
+                            }
+                            None => true,
+                        };
+                        // the chain sits inside an outer finally's
+                        // inline-copy region (a stashed outer
+                        // has_finally chain, or the active chain's own
+                        // copy region): the "post-chain flow" is the
+                        // copy's next branch, not mainline code — the
+                        // clause None-return there is the branch's sunk
+                        // tail copy (cmd 3.10 cmdloop `finally: {if A:
+                        // if B: try/except ImportError: pass}`)
+                        let in_finally_copy = self
+                            .legacy_nest
+                            .iter()
+                            .any(|n| {
+                                n.outer_try
+                                    .as_ref()
+                                    .map_or(false, |o| o.has_finally)
+                            })
+                            || self.legacy_try.as_ref().map_or(false, |l| {
+                                l.has_finally
+                                    && l.else_start.map_or(false, |es| {
+                                        self.cur_offset >= es
+                                    })
+                            });
+                        loop_open || tail_pos || in_finally_copy
+                    }
                     && {
                         let mut m = match self.idx_of.get(&self.cur_offset) {
                             Some(&i) => i + 1,

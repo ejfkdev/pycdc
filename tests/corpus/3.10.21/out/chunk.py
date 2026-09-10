@@ -72,8 +72,8 @@ class Chunk:
             self.offset = self.file.tell()
         except (AttributeError, OSError):
             self.seekable = False
-        else:
-            self.seekable = True
+            return
+        self.seekable = True
 
     def getname(self):
         '''Return the name (ID) of the current chunk.'''

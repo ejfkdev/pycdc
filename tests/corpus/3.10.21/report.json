@@ -92,11 +92,11 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 223: orig  body=[Return()]) | dec  body=[Pass()])",
+   "ast_detail": "diff at token 696: orig  body=[While(test=BoolOp(op=And() | dec  body=[Try(body=[Assign(targets=[Name(id='data'",
    "verdict": "SIG-DIFF",
-   "ndiff": 352,
+   "ndiff": 244,
    "ntotal": 808,
-   "detail": "line 282: orig ('POP_JUMP_IF_FALSE', 'to 440') | got ('POP_JUMP_IF_FALSE', 'to 436')\nline 448: orig ('LOAD_CONST', 'None') | got ('handle_write', 1)\nline 449: orig ('RETURN_VALUE', '') | got ('LOAD_FAST', 'self')"
+   "detail": "line 559: orig ('LOAD_FAST', 'self') | got ('SETUP_FINALLY', 'to 18')\nline 560: orig ('LOAD_ATTR', 'producer_fifo') | got ('LOAD_FAST', 'first')\nline 561: orig ('POP_JUMP_IF_FALSE', 'to 264') | got ('LOAD_CONST', 'None')"
   },
   {
    "module": "asyncore",
@@ -158,7 +158,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 614: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 454,
+   "ndiff": 5,
    "ntotal": 1324,
    "detail": "line 560: orig ('POP_BLOCK', '') | got ('LOAD_FAST', 'func')\nline 561: orig ('LOAD_FAST', 'func') | got ('LOAD_FAST', 'arg')\nline 562: orig ('LOAD_FAST', 'arg') | got ('CALL_FUNCTION', '')"
   },
