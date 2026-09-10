@@ -42086,6 +42086,14 @@ impl<'a> Ctx<'a> {
         bound: Option<usize>,
     ) -> Option<(Vec<Stmt>, usize)> {
         let mut j = from_idx;
+        // forward conditional-jump targets seen inside the body (if/else
+        // and ternary else arms). A RETURN/RAISE that still has a pending
+        // else-arm target AHEAD of it is an ARM end, not the body end —
+        // stopping there orphans the else arm past the case body
+        // (annotationlib 3.14 _template_to_ast_literal `case _: y = a if
+        // c else b; return y` — the compiler sank `return y` into both
+        // ternary arms, so the first RETURN closes only the if-true arm).
+        let mut pending_else: Vec<usize> = Vec::new();
         while j < self.instrs.len() {
             let ins = self.instrs[j];
             // fall-through body bound: stop AT the fail target (exclusive)
@@ -42099,7 +42107,33 @@ impl<'a> Ctx<'a> {
                 }
             }
             match ins.op {
+                Op::POP_JUMP_IF_FALSE
+                | Op::POP_JUMP_IF_TRUE
+                | Op::POP_JUMP_FORWARD_IF_FALSE
+                | Op::POP_JUMP_FORWARD_IF_TRUE
+                | Op::POP_JUMP_IF_NONE
+                | Op::POP_JUMP_IF_NOT_NONE
+                | Op::JUMP_IF_FALSE_OR_POP
+                | Op::JUMP_IF_TRUE_OR_POP => {
+                    if !ins.is_backward {
+                        if let Some(t) = ins.target {
+                            if t > ins.offset {
+                                pending_else.push(t);
+                            }
+                        }
+                    }
+                    j += 1;
+                }
                 Op::RETURN_VALUE | Op::RETURN_CONST | Op::RAISE_VARARGS => {
+                    let off = ins.offset;
+                    let else_ahead = pending_else.iter().any(|&t| t > off);
+                    if else_ahead {
+                        // an if/else (or ternary) else arm still lies
+                        // ahead — this RETURN only ends the current arm
+                        pending_else.retain(|&t| t <= off);
+                        j += 1;
+                        continue;
+                    }
                     let to = ins.end();
                     let stmts = self.decompile_region(self.instrs[from_idx].offset, to);
                     return Some((stmts, j + 1));
@@ -42107,6 +42141,24 @@ impl<'a> Ctx<'a> {
                 Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE => {
                     if let Some(t) = ins.target {
                         if t > ins.offset {
+                            // an if/else or ternary arm-end jump with a
+                            // pending else arm still AHEAD (the jump
+                            // skips over it to the merge) is NOT the body
+                            // end — jump to the merge and keep scanning
+                            // (nested ternary kwargs in a CALL_KW:
+                            // annotationlib 3.14 ast.Interpolation(
+                            // conversion=.. if .. else .., format_spec=..
+                            // if .. else ..)).
+                            let else_ahead =
+                                pending_else.iter().any(|&x| x > ins.offset);
+                            if else_ahead {
+                                pending_else.retain(|&x| x > t);
+                                let Some(&ti) = self.idx_of.get(&t) else {
+                                    return None;
+                                };
+                                j = ti;
+                                continue;
+                            }
                             let to = ins.end();
                             let stmts =
                                 self.decompile_region(self.instrs[from_idx].offset, to);

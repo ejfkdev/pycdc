@@ -424,10 +424,9 @@ def _template_to_ast_literal(template, parsed):
             case str():
                 values.append(ast.Constant(value=part))
             case _:
-                pass
-        interp = None(str=None, value=None, conversion=None, format_spec=ast.Constant(value=part.format_spec) if part.format_spec else None)
-        values.append(interp)
-        interp_count += 1
+                interp = ast.Interpolation(str=part.expression, value=parsed[interp_count], conversion=ord(part.conversion) if part.conversion else -1, format_spec=ast.Constant(value=part.format_spec) if part.format_spec else None)
+                values.append(interp)
+                interp_count += 1
     return ast.TemplateStr(values=values)
 
 def _template_to_ast(template):
@@ -664,10 +663,16 @@ default, contingent on type(obj):
             else:
                 if not ann is None:
                     return dict(ann)
+            ann = _get_and_call_annotate(obj, format)
+            if not ann is not None:
+                ann = _get_dunder_annotations(obj)
         case Format.STRING:
             ann = _get_and_call_annotate(obj, format)
             if not ann is None:
                 return dict(ann)
+            ann = _get_dunder_annotations(obj)
+            if not ann is None:
+                return annotations_to_string(ann)
         case Format.VALUE_WITH_FAKE_GLOBALS:
             raise ValueError('The VALUE_WITH_FAKE_GLOBALS format is for internal use only')
     raise ValueError(f'Unsupported format {format!r}')
