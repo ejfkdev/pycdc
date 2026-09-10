@@ -6522,6 +6522,42 @@ impl<'a> Ctx<'a> {
                 .get(jidx + 1)
                 .map(|x| x.offset)
                 .unwrap_or(limit);
+            // `if <guard>: <body1>; break else: raise e` — the else arm
+            // is a bare `raise <as-name>` (LOAD name; RAISE_VARARGS 1).
+            // Detect it up front (immutable) so the guard-If rebuild
+            // below can attach it without a reentrant region walk.
+            let else_raise_name: Option<String> = if else_off < limit {
+                self.idx_of.get(&else_off).and_then(|&ei2| {
+                    let load = &self.instrs[ei2];
+                    let raised = self.instrs.get(ei2 + 1).map(|x| x.op)
+                        == Some(Op::RAISE_VARARGS);
+                    if raised {
+                        // LOAD_FAST indexes locals (co_varnames), not
+                        // co_names — store_like_name's const_name lookup
+                        // is wrong there (resolved `raise e` to `raise
+                        // str`). Use the op-appropriate table.
+                        match load.op {
+                            Op::LOAD_FAST => {
+                                Some(self.local_name(load.arg as usize))
+                            }
+                            Op::LOAD_DEREF => Some(
+                                self.code
+                                    .deref_name(load.arg as usize)
+                                    .unwrap_or("?")
+                                    .to_string(),
+                            ),
+                            Op::LOAD_NAME | Op::LOAD_GLOBAL => {
+                                Some(self.store_like_name(load))
+                            }
+                            _ => None,
+                        }
+                    } else {
+                        None
+                    }
+                })
+            } else {
+                None
+            };
             let mut attached = false;
             if let Some(Stmt::If { body: ib, orelse, .. }) = body.last_mut() {
                 if ib.is_empty() || ib.iter().all(|s| matches!(s, Stmt::Pass)) {
@@ -6542,6 +6578,26 @@ impl<'a> Ctx<'a> {
                             }
                         }
                     }
+                    attached = true;
+                } else if orelse.is_empty() && else_raise_name.is_some() {
+                    // the guard body holds real statements and the break
+                    // sat on the trail. A guard with NO else cannot
+                    // legitimately hoist its break to the clause level
+                    // (that would run the break even when the guard is
+                    // false), so the trailing flow is the break's arm and
+                    // the else span is its `raise e`. Push the break INTO
+                    // the guard body and attach the else (code 3.13/3.14
+                    // interact `except SystemExit as e: if self.local_exit:
+                    // self.write('\n'); break else: raise e` — the dropped
+                    // else silently swallowed SystemExit instead of
+                    // re-raising, and the hoisted break ran unconditionally)
+                    ib.push(Stmt::Break);
+                    *orelse = vec![Stmt::Raise {
+                        exc: Some(self.name_expr(else_raise_name.clone().unwrap())),
+                        cause: None,
+                        py2_inst: None,
+                        py2_tb: None,
+                    }];
                     attached = true;
                 }
             }

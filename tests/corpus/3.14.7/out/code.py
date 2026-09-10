@@ -259,7 +259,9 @@ class InteractiveConsole(InteractiveInterpreter):
                 except SystemExit as e:
                     if self.local_exit:
                         self.write('\n')
-                    break
+                        break
+                    else:
+                        raise e
         finally:
             if _exit is not None:
                 builtins.exit = _exit

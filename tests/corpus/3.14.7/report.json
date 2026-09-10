@@ -2,8 +2,8 @@
  "version": "3.14.7",
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
-  "PASS": 23,
-  "SIG-DIFF": 14,
+  "PASS": 24,
+  "SIG-DIFF": 13,
   "INCOMPLETE": 1,
   "AST-PASS": 2
  },
@@ -181,11 +181,7 @@
   },
   {
    "module": "code",
-   "ast_detail": "diff at token 297: orig  ctx=Load())]))] | dec  ctx=Load())]))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 259,
-   "ntotal": 1057,
-   "detail": "line 796: orig ('LOAD_FAST', 'e') | got ('LOAD_CONST', 'None')\nline 797: orig ('RAISE_VARARGS', '') | got ('STORE_FAST', 'e')\nline 798: orig ('LOAD_CONST', 'None') | got ('DELETE_FAST', 'e')"
+   "verdict": "PASS"
   },
   {
    "module": "codecs",
