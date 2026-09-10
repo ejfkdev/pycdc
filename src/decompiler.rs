@@ -402,6 +402,11 @@ struct Ctx<'a> {
     tail_pair_at: Option<usize>,
     /// try context awaiting else/finally emission
     pending_try_ctx: Option<TryCtx>,
+    /// (copy start, out-of-line handler head) of an inline finally copy
+    /// a mirror probe confirmed and armed into skip_until - the zone-hop
+    /// re-validates against it before lowering the skip (pending_try_ctx
+    /// is already consumed by then)
+    fin_copy_guard: Option<(usize, usize)>,
     /// finally body of the enclosing try in a nested-chain wrap, consumed
     /// by the next emit_try_tail
     pending_nested_finally: Option<Vec<Stmt>>,
@@ -782,6 +787,7 @@ pub fn decompile_in_scope(
         pending_post_chain_stmt: None,
         tail_pair_at: None,
         pending_try_ctx: None,
+        fin_copy_guard: None,
         pending_nested_finally: None,
         nested_inner_handlers: Vec::new(),
         legacy_try: None,
@@ -1879,7 +1885,41 @@ impl<'a> Ctx<'a> {
                 } else {
                     self.close_blocks_at(pos);
                 }
-                                self.skip_until = Some(after);
+                // an emit that already folded the region may have armed
+                // a LONGER skip (past the chain AND the inline finally
+                // copy that follows it) - lowering to the chain extent
+                // re-walks the copy at function level (code 3.13
+                // interact: the finally emit armed 1340 = the out-of-line
+                // handler head, the zone hop lowered it to the KI chain's
+                // extent 1140 and the restore/exitmsg copy rendered
+                // twice). Keep it ONLY for a mirror-validated copy span:
+                // the hop lands before the recorded copy start
+                // (intermediate chain extents keep transitively) or at/
+                // inside it with the span mirroring the out-of-line
+                // chain. Any other longer skip lowers as before - a
+                // blanket keep stranded real mainline flow (cmd 3.11
+                // do_help lost the nohelp write). A shorter or absent
+                // skip always raises to the resume point (b05_exceptions
+                // / v33_yieldfrom need the raise when an earlier emit
+                // left a stale lower skip).
+                match self.skip_until {
+                    Some(sk) if sk > after => {
+                        let copy_span = self
+                            .fin_copy_guard
+                            .map_or(false, |(cs, fh)| {
+                                fh == sk
+                                    && (after < cs
+                                        || (after >= cs
+                                            && self.finally_copy_mirror(
+                                                after, fh,
+                                            )))
+                            });
+                        if !copy_span {
+                            self.skip_until = Some(after);
+                        }
+                    }
+                    _ => self.skip_until = Some(after),
+                }
                 past_chains = true;
             } else if let Some(zone) = self.handler_zone {
                 // a protected body may legitimately START inside the zone
@@ -2828,6 +2868,173 @@ impl<'a> Ctx<'a> {
         self.pending_try_tail = Some((tail_start, tail_end));
     }
 
+    /// Opcode mirror check: does the span [s, fh) hold an INLINE copy of
+    /// the finally chain whose out-of-line head sits at fh? The copy
+    /// mirrors the chain instruction-for-instruction except for: the
+    /// chain's PUSH_EXC_INFO head (the copy lacks it), each branch's
+    /// terminator (the copy's sunk `return None` - RETURN_CONST or the
+    /// LOAD_CONST None + RETURN_VALUE pair - where the chain RERAISEs),
+    /// and the chain's cleanup stub tail (COPY; POP_EXCEPT; RERAISE - no
+    /// copy counterpart). The span must be consumed exactly when the
+    /// mirror ends (a partial match is a coincidental prefix).
+    fn finally_copy_mirror(&self, s: usize, fh: usize) -> bool {
+        let (Some(&si), Some(&fhi)) =
+            (self.idx_of.get(&s), self.idx_of.get(&fh))
+        else {
+            return false;
+        };
+        let Some(&si) = self.idx_of.get(&s) else {
+            return false;
+        };
+        // separate cursors: the chain head carries a
+        // PUSH_EXC_INFO the inline copy lacks
+        let mut cn = 0usize;
+        while matches!(
+            self.instrs.get(fhi + cn).map(|x| x.op),
+            Some(Op::PUSH_EXC_INFO)
+                | Some(Op::NOP)
+                | Some(Op::NOT_TAKEN)
+                | Some(Op::CACHE)
+        ) {
+            cn += 1;
+        }
+        let mut sn = 0usize;
+        let mut matched = 0usize;
+        // the copy's sunk `return None` at a branch end
+        // (RETURN_CONST, or the 3.11/3.14-style
+        // LOAD_CONST None; RETURN_VALUE pair) - consumed
+        // when it aligns with the chain's RERAISE or when
+        // a direct comparison fails
+        let sunk_ret = |k: usize| -> usize {
+            match self.instrs.get(si + k) {
+                Some(sp)
+                    if sp.offset < fh
+                        && matches!(
+                            sp.op,
+                            Op::RETURN_CONST
+                                | Op::RETURN_VALUE
+                        ) =>
+                {
+                    1
+                }
+                Some(sp)
+                    if sp.offset < fh
+                        && sp.op == Op::LOAD_CONST
+                        && matches!(
+                            self.code
+                                .consts
+                                .get(sp.arg as usize)
+                                .map(|o| &**o),
+                            Some(PyObject::None)
+                        )
+                        && self
+                            .instrs
+                            .get(si + k + 1)
+                            .map_or(false, |n2| {
+                                n2.offset < fh
+                                    && n2.op
+                                        == Op::RETURN_VALUE
+                            }) =>
+                {
+                    2
+                }
+                _ => 0,
+            }
+        };
+        while let Some(f) = self.instrs.get(fhi + cn) {
+            if matches!(f.op, Op::RERAISE | Op::END_FINALLY) {
+                // branch terminators correspond: the
+                // copy ends each finally-body branch
+                // with a sunk `return None` where the
+                // chain re-raises - skip the aligned
+                // pair(s) and keep mirroring the rest
+                // (code 3.13 interact: copy
+                // RETURN_CONSTs at 1282/1336/1338 vs
+                // chain RERAISEs at 1484/1538/1540)
+                let mut paired = false;
+                while matches!(
+                    self.instrs.get(fhi + cn).map(|x| x.op),
+                    Some(Op::RERAISE) | Some(Op::END_FINALLY)
+                ) {
+                    let k = sunk_ret(sn);
+                    if k == 0 {
+                        break;
+                    }
+                    cn += 1;
+                    sn += k;
+                    paired = true;
+                }
+                if paired {
+                    continue;
+                }
+                break;
+            }
+            let Some(sp) = self.instrs.get(si + sn) else {
+                return false;
+            };
+            if sp.offset >= fh {
+                // the copy span is fully consumed; the
+                // chain's remainder must be its cleanup
+                // stub tail (COPY; POP_EXCEPT; RERAISE),
+                // which has no copy counterpart - the
+                // mirror succeeded
+                let hre = self.handler_region_end(fh);
+                let rest_ok = self.instrs[fhi + cn..]
+                    .iter()
+                    .take_while(|x| x.offset < hre)
+                    .all(|x| {
+                        matches!(
+                            x.op,
+                            Op::COPY
+                                | Op::SWAP
+                                | Op::POP_EXCEPT
+                                | Op::POP_TOP
+                                | Op::RERAISE
+                                | Op::END_FINALLY
+                                | Op::NOP
+                                | Op::NOT_TAKEN
+                                | Op::CACHE
+                        )
+                    });
+                if rest_ok {
+                    break;
+                }
+                return false;
+            }
+            if !op_family_eq(sp.op, f.op)
+                || (matches!(
+                    f.op,
+                    Op::LOAD_CONST | Op::LOAD_GLOBAL
+                ) && sp.arg != f.arg)
+            {
+                // misalignment: the copy carries a sunk
+                // return the chain lacks at this slot -
+                // hop it and retry the same chain slot
+                let k = sunk_ret(sn);
+                if k > 0 {
+                    sn += k;
+                    continue;
+                }
+                return false;
+            }
+            cn += 1;
+            sn += 1;
+            matched += 1;
+        }
+        // the span must run to the chain head: a
+        // partial match is a coincidental prefix
+        let tail_ok = matched >= 4
+            && self
+                .instrs
+                .get(si + sn)
+                .map_or(true, |x| x.offset >= fh);
+        if std::env::var("PYCDC_EG_DBG").is_ok() && !tail_ok {
+            eprintln!("EG mirfail [{}] s={} tail matched={} next={:?}", self.code.name, s, matched,
+                self.instrs.get(si + sn).map(|x| (x.offset, x.op)));
+        }
+        tail_ok
+    }
+
     fn emit_try_tail(&mut self, tc: TryCtx, pos: usize) {
         // 3.11 except* + else + finally: the chain is laid out INLINE
         // between the body's terminal JUMP_FORWARD and the else region,
@@ -3635,6 +3842,60 @@ impl<'a> Ctx<'a> {
             if let Some(fh) = tc.finally_handler {
                 let body = self.decompile_region(fh, self.handler_region_end(fh));
                 finalbody = body;
+                // the finally body's INLINE copy may sit between the
+                // (already-consumed) except chain and fh when the region
+                // emit folded before the walk got there (a loop-carried
+                // try/finally closing at its back edge): the mirror probe
+                // at `pos` above saw the chain heads, not the copy, and
+                // left no skip - the main walk then re-runs the copy and
+                // the whole finally body renders AGAIN at function level
+                // (code 3.13 interact: duplicated restore/exitmsg blocks
+                // after the try). Probe from the current skip point: when
+                // [s, fh) opcode-mirrors the chain at fh it IS the copy -
+                // hop over it. Without a mirror the flow ahead is genuine
+                // mainline (contextlib 3.12 __exit__'s always-raising body
+                // has no copy and the next statement must keep walking).
+                if fh > pos {
+                    if self.idx_of.contains_key(&fh) {
+                        // candidate copy starts: the current skip point
+                        // (or pos), and the ends of any except chains
+                        // wedged between pos and fh - a loop-carried
+                        // try/finally folds its region at the loop's
+                        // back edge BEFORE the chain-extent skip is
+                        // armed, so the copy start must be discovered
+                        // from the inner chain's extent (code 3.13
+                        // interact: copy at chain_extent(930)=1140)
+                        let mut starts = vec![self
+                            .skip_until
+                            .filter(|&sk| sk > pos && sk < fh)
+                            .unwrap_or(pos)];
+                        // the inner regions were already emitted (and
+                        // removed from try_ctxs) by the time a loop-
+                        // carried finally folds - enumerate the chain
+                        // heads lexically instead: every PUSH_EXC_INFO
+                        // in (pos, fh) whose extent lands inside the gap
+                        for x in self.instrs.iter() {
+                            if x.offset <= pos || x.offset >= fh {
+                                continue;
+                            }
+                            if x.op == Op::PUSH_EXC_INFO {
+                                let ext = self.chain_extent(x.offset);
+                                if ext > pos && ext < fh && !starts.contains(&ext) {
+                                    starts.push(ext);
+                                }
+                            }
+                        }
+                        if let Some(&s0) = starts
+                            .iter()
+                            .find(|&&s0| self.finally_copy_mirror(s0, fh))
+                        {
+                            if self.skip_until.map_or(true, |sk| sk < fh) {
+                                self.skip_until = Some(fh);
+                                self.fin_copy_guard = Some((s0, fh));
+                            }
+                        }
+                    }
+                }
             }
         }
         // 3.11+ `try: return <expr> finally: <cleanup>`: the protected

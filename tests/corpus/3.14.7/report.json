@@ -183,8 +183,8 @@
    "module": "code",
    "ast_detail": "diff at token 235: orig  Compare(left=Call(func=Name(id='len' | dec  Compare(left=Name(id='typ'",
    "verdict": "SIG-DIFF",
-   "ndiff": 304,
-   "ntotal": 1103,
+   "ndiff": 257,
+   "ntotal": 1057,
    "detail": "line 796: orig ('LOAD_FAST', 'e') | got ('LOAD_CONST', 'None')\nline 797: orig ('RAISE_VARARGS', '') | got ('STORE_FAST', 'e')\nline 798: orig ('LOAD_CONST', 'None') | got ('DELETE_FAST', 'e')"
   },
   {

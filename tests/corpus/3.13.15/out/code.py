@@ -250,15 +250,6 @@ a default message is printed.
                 self.write('now exiting %s...\n' % self.__class__.__name__)
             if exitmsg != '':
                 self.write('%s\n' % exitmsg)
-        if _exit is not None:
-            builtins.exit = _exit
-        if _quit is not None:
-            builtins.quit = _quit
-        if exitmsg is None:
-            self.write('now exiting %s...\n' % self.__class__.__name__)
-            return
-        if exitmsg != '':
-            self.write('%s\n' % exitmsg)
 
     def push(self, line, filename=None, _symbol='single'):
         self.buffer.append(line)
