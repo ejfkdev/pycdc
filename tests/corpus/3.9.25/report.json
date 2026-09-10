@@ -2,8 +2,8 @@
  "version": "3.9.25",
  "interp": "/Users/e/.pyenv/versions/3.9.25/bin/python3",
  "counts": {
-  "PASS": 32,
-  "SIG-DIFF": 8
+  "PASS": 33,
+  "SIG-DIFF": 7
  },
  "results": [
   {
@@ -20,11 +20,7 @@
   },
   {
    "module": "_bootsubprocess",
-   "ast_detail": "diff at token 95: orig  keywords=[]))]) | dec  keywords=[]))])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 251,
-   "ntotal": 357,
-   "detail": "line 96: orig ('JUMP_ABSOLUTE', '') | got ('JUMP_FORWARD', 'to 100')\nline 103: orig ('JUMP_FORWARD', 'to 130') | got ('LOAD_FAST', 'self')\nline 104: orig ('LOAD_GLOBAL', 'os') | got ('LOAD_ATTR', 'returncode')"
+   "verdict": "PASS"
   },
   {
    "module": "_collections_abc",

@@ -22,6 +22,9 @@ class Popen:
                     os.execv(self._cmd[0], self._cmd)
             finally:
                 os._exit(1)
+        else:
+            _, status = os.waitpid(pid, 0)
+            self.returncode = os.waitstatus_to_exitcode(status)
         return self.returncode
 
 
@@ -58,11 +61,19 @@ def check_output(cmd, **kwargs):
         cmd = ' '.join(cmd)
     cmd = f'{cmd} >{tmp_filename}'
     try:
-        os.unlink(tmp_filename)
-    except OSError:
-        pass
-    try:
-        os.unlink(tmp_filename)
-    except OSError:
-        pass
+        status = os.system(cmd)
+        exitcode = os.waitstatus_to_exitcode(status)
+        if exitcode:
+            raise ValueError(f'Command {cmd!r} returned non-zero exit status {exitcode!r}')
+        try:
+            with open(tmp_filename, 'rb') as fp:
+                stdout = fp.read()
+        except FileNotFoundError:
+            stdout = b''
+    finally:
+        try:
+            os.unlink(tmp_filename)
+        except OSError:
+            pass
+    return stdout
 

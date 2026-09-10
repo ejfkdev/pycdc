@@ -7740,6 +7740,40 @@ impl<'a> Ctx<'a> {
                 {
                     if let Some(target) = inst.target {
                         if target > pos && target >= lt.handler_start {
+                            // crossed pending else arm: an open If/Else
+                            // that started BEFORE the handler copy and
+                            // ends strictly between the copy head and
+                            // this terminal jump's target is overflown
+                            // by the jump - skipping to the target
+                            // swallows its else region (_bootsubprocess
+                            // 3.9 wait: the finally copy's JABS 86->130
+                            // flew over the parent-process else arm at
+                            // 102 and `waitpid/returncode` vanished).
+                            // Mark the If's else region (the generic
+                            // forward-jump marking is short-circuited
+                            // by this emit) and resume the walk AT the
+                            // arm head; the handler copy itself stays
+                            // skipped.
+                            let mut resume = target;
+                            let handler_start = lt.handler_start;
+                            for b in self.blocks.iter_mut() {
+                                if matches!(
+                                    b.kind,
+                                    BlockType::If | BlockType::Else
+                                ) && b.start < handler_start
+                                    && b.end > handler_start
+                                    && b.end < target
+                                    && b.end > pos
+                                {
+                                    if b.kind == BlockType::If
+                                        && b.else_end.is_none()
+                                    {
+                                        b.else_end = Some(target);
+                                    }
+                                    resume = b.end;
+                                    break;
+                                }
+                            }
                             self.flush_pending_stores();
                             let l = self.legacy_try.take().unwrap();
                             self.restore_legacy_nest();
@@ -7766,7 +7800,7 @@ impl<'a> Ctx<'a> {
                                 self.push_legacy_try(l2);
                             }
                             }
-                            self.skip_until = Some(target);
+                            self.skip_until = Some(resume);
                             return;
                         }
                     }
@@ -9736,11 +9770,62 @@ impl<'a> Ctx<'a> {
                         // except OSError: pass}`)
                         let scan_off = if b.end > pos { b.end } else { pos };
                         if let Some(&hi) = self.idx_of.get(&scan_off) {
-                            for k in hi..(hi + 64).min(self.instrs.len()) {
+                            // a handler region whose HEAD is a SETUP op is
+                            // a FINALLY copy whose body starts with a
+                            // nested try - the nested chain's except-match
+                            // head must NOT end the classification
+                            // (_bootsubprocess 3.9 check_output: the scan
+                            // broke at the nested OSError JUMP_IF_NOT_EXC_
+                            // MATCH, misread the outer finally chain as an
+                            // except chain, and the inline copy rendered
+                            // as an orphan try/except with the whole outer
+                            // body lost). The copy's marker is its own
+                            // terminating RERAISE/END_FINALLY at depth 0
+                            // (depth counted from the leading SETUP; the
+                            // nested chain's mismatch RERAISE at depth 0
+                            // also serves - the classification only needs
+                            // SOME depth-0 terminator). A plain except
+                            // chain (any other head) still ends the scan
+                            // at its first match head, exactly as before.
+                            let head_setup = matches!(
+                                self.instrs[hi].op,
+                                Op::SETUP_FINALLY
+                                    | Op::SETUP_EXCEPT
+                                    | Op::SETUP_CLEANUP
+                                    | Op::SETUP_LOOP
+                            );
+                            let mut setup_depth = 0i32;
+                            let mut first_break: Option<usize> = None;
+                            for k in hi..(hi + 160).min(self.instrs.len()) {
                                 let ins = &self.instrs[k];
                                 match ins.op {
+                                    Op::SETUP_FINALLY
+                                    | Op::SETUP_EXCEPT
+                                    | Op::SETUP_CLEANUP
+                                    | Op::SETUP_LOOP => {
+                                        setup_depth += 1;
+                                    }
+                                    Op::POP_BLOCK => {
+                                        if setup_depth > 0 {
+                                            setup_depth -= 1;
+                                        } else if !head_setup {
+                                            if first_break.is_none() {
+                                                first_break =
+                                                    Some(ins.offset);
+                                            }
+                                            break;
+                                        }
+                                    }
                                     Op::JUMP_IF_NOT_EXC_MATCH
-                                    | Op::POP_EXCEPT => break,
+                                    | Op::POP_EXCEPT => {
+                                        if !head_setup {
+                                            if first_break.is_none() {
+                                                first_break =
+                                                    Some(ins.offset);
+                                            }
+                                            break;
+                                        }
+                                    }
                                     // a DUP_TOP only ends the scan when it
                                     // heads an except match (pattern loads
                                     // then COMPARE_OP(exc)/JUMP_IF_NOT_EXC_
@@ -9765,7 +9850,11 @@ impl<'a> Ctx<'a> {
                                                             ),
                                                         ) == CmpOp::ExceptionMatch)
                                             });
-                                        if match_head {
+                                        if match_head && !head_setup {
+                                            if first_break.is_none() {
+                                                first_break =
+                                                    Some(ins.offset);
+                                            }
                                             break;
                                         }
                                     }
@@ -9775,13 +9864,33 @@ impl<'a> Ctx<'a> {
                                             self.version,
                                         )) == CmpOp::ExceptionMatch =>
                                     {
-                                        break;
+                                        if !head_setup {
+                                            if first_break.is_none() {
+                                                first_break =
+                                                    Some(ins.offset);
+                                            }
+                                            break;
+                                        }
                                     }
                                     Op::RERAISE | Op::END_FINALLY => {
-                                        has_finally = true;
-                                        break;
+                                        if setup_depth == 0 {
+                                            has_finally = true;
+                                            break;
+                                        }
                                     }
                                     _ => {}
+                                }
+                            }
+                            if !has_finally {
+                                if let Some(fb) = first_break {
+                                    // except chain: bound the inline_end
+                                    // scan at the first match head (a
+                                    // clause's normal-exit JUMP_FORWARD
+                                    // before the mismatch RERAISE would
+                                    // otherwise misread as an inline-
+                                    // finally end and mark the chain
+                                    // has_finally by accident)
+                                    inline_end = fb;
                                 }
                             }
                         }
