@@ -25540,7 +25540,45 @@ return None;
                             // into the If left a phantom
                             // `while texts: pass`), NOT a statement
                             // and-chain inside an established loop body
-                            && !self.pending_while_back_edge(top.start, target))
+                            && !self.pending_while_back_edge(top.start, target)
+                        // statement-level and-chain whose second operand
+                        // is a NONE test: 3.10+ compiles `is None` /
+                        // `is not None` to the dedicated
+                        // POP_JUMP_*_IF_(NOT_)NONE ops with jump-on-TRUE
+                        // polarity, so the link is "mixed" against a
+                        // PJFF first link by construction (compileall
+                        // 3.11 compile_dir `if workers != 1 and
+                        // ProcessPoolExecutor is not None:` rendered
+                        // nested - the else arm attached to the inner
+                        // if and the workers==1 path lost the serial
+                        // loop). The rotated-while discriminator is
+                        // pending_while_back_edge: a while's
+                        // pre-check/re-eval span [top.start, target)
+                        // holds the backward edge to its not-yet-open
+                        // top (w310 columnize), a statement and-chain's
+                        // span does not
+                        || (self.version.at_least(3, 10)
+                            && !top.jump_if_true
+                            && jump_if_true
+                            && self
+                                .idx_of
+                                .get(&self.cur_offset)
+                                .and_then(|&ci| self.instrs.get(ci))
+                                .map_or(false, |x| {
+                                    matches!(
+                                        x.op,
+                                        Op::POP_JUMP_IF_NONE
+                                            | Op::POP_JUMP_FORWARD_IF_NONE
+                                            | Op::POP_JUMP_BACKWARD_IF_NONE
+                                            | Op::POP_JUMP_IF_NOT_NONE
+                                            | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                                            | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
+                                    )
+                                })
+                            && self.find_loop_exit(target).is_none()
+                            && !self.is_loop_top_target(target)
+                            && !self
+                                .pending_while_back_edge(top.start, target)))
                     && top.stmts.is_empty()
                     && self.is_split_cond_region(top.start, self.cur_offset, target, jump_if_true)
             });
@@ -28125,6 +28163,21 @@ if split_cond {
                         | Op::POP_JUMP_IF_TRUE
                         | Op::POP_JUMP_FORWARD_IF_FALSE
                         | Op::POP_JUMP_FORWARD_IF_TRUE
+                        // 3.11+ rotated-while re-eval links loop back via
+                        // the BACKWARD cond variants - including the NONE
+                        // family (`while A and B is not None:` re-eval's
+                        // last link is POP_JUMP_BACKWARD_IF_NOT_NONE onto
+                        // the body top; missing it let the pre-check NONE
+                        // link merge into a statement guard and the loop
+                        // ran once - b16 while_and 3.11)
+                        | Op::POP_JUMP_BACKWARD_IF_FALSE
+                        | Op::POP_JUMP_BACKWARD_IF_TRUE
+                        | Op::POP_JUMP_IF_NONE
+                        | Op::POP_JUMP_FORWARD_IF_NONE
+                        | Op::POP_JUMP_BACKWARD_IF_NONE
+                        | Op::POP_JUMP_IF_NOT_NONE
+                        | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                        | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
                 ))
                 && ins.target.map_or(false, |t| {
                     !self.blocks.iter().any(|b| {

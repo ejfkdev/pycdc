@@ -99,18 +99,17 @@ def compile_dir(dir, maxlevels=None, ddir=None, force=False, rx=None, quiet=0, l
         maxlevels = sys.getrecursionlimit()
     files = _walk_dir(dir, quiet=quiet, maxlevels=maxlevels)
     success = True
-    if workers != 1:
-        if ProcessPoolExecutor is not None:
-            import multiprocessing
-            if multiprocessing.get_start_method() == 'fork':
-                mp_context = multiprocessing.get_context('forkserver')
-            else:
-                mp_context = None
-            workers = workers or None
-            with ProcessPoolExecutor(max_workers=workers, mp_context=mp_context) as executor:
-                results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes), files)
-                success = min(results, default=True)
-            return success
+    if workers != 1 and ProcessPoolExecutor is not None:
+        import multiprocessing
+        if multiprocessing.get_start_method() == 'fork':
+            mp_context = multiprocessing.get_context('forkserver')
+        else:
+            mp_context = None
+        workers = workers or None
+        with ProcessPoolExecutor(max_workers=workers, mp_context=mp_context) as executor:
+            results = executor.map(partial(compile_file, ddir=ddir, force=force, rx=rx, quiet=quiet, legacy=legacy, optimize=optimize, invalidation_mode=invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes), files)
+            success = min(results, default=True)
+        return success
     for file in files:
         if compile_file(file, ddir, force, rx, quiet, legacy, optimize, invalidation_mode, stripdir=stripdir, prependdir=prependdir, limit_sl_dest=limit_sl_dest, hardlink_dupes=hardlink_dupes):
             continue

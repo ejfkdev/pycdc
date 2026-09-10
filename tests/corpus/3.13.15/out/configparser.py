@@ -962,9 +962,8 @@ section names. Please note that comments get stripped off when reading configura
         return is_continue
 
     def _handle_rest(self, st, line, fpname):
-        if self._allow_unnamed_section:
-            if st.cursect is None:
-                self._handle_header(st, UNNAMED_SECTION, fpname)
+        if self._allow_unnamed_section and st.cursect is None:
+            self._handle_header(st, UNNAMED_SECTION, fpname)
         st.indent_level = st.cur_indent_level
         mo = self.SECTCRE.match(line.clean)
         if not mo and st.cursect is None:

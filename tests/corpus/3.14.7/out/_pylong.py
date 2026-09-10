@@ -112,9 +112,8 @@ def int_to_decimal_string(n):
     """Asymptotically fast conversion of an 'int' to a decimal string."""
 
     w = n.bit_length()
-    if w > 450000:
-        if not _decimal is None:
-            return str(int_to_decimal(n))
+    if w > 450000 and _decimal is not None:
+        return str(int_to_decimal(n))
     DIGLIM = 1000
     def inner(n, w):
         if w <= DIGLIM:
@@ -213,9 +212,8 @@ of a string of decimal digits into an 'int'."""
 
     s = s.rstrip().replace('_', '')
     func = _str_to_int_inner
-    if len(s) >= 2000000:
-        if not _decimal is None:
-            func = _dec_str_to_int_inner
+    if len(s) >= 2000000 and _decimal is not None:
+        func = _dec_str_to_int_inner
     return func(s)
 
 def str_to_int(s):
