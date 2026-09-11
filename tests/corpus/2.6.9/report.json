@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "PASS": 16,
-  "SIG-DIFF": 15,
-  "AST-PASS": 9
+  "AST-PASS": 12,
+  "SIG-DIFF": 12
  },
  "results": [
   {
@@ -21,19 +21,11 @@
   },
   {
    "module": "ConfigParser",
-   "ast_detail": "diff at token 1883: orig  ctx=Load()))] | dec  ctx=Load()))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 990,
-   "ntotal": 2161,
-   "detail": "line 1114: orig ('SETUP_LOOP', '#101') | got ('SETUP_LOOP', '#102')\nline 1118: orig ('FOR_ITER', '#100') | got ('FOR_ITER', '#101')\nline 1127: orig ('SETUP_LOOP', '#94') | got ('SETUP_LOOP', '#95')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "Cookie",
-   "ast_detail": "diff at token 1244: orig  body=[If(test=BoolOp(op=And() | dec  body=[If(test=Compare(left=Name(id='V'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 613,
-   "ntotal": 1890,
-   "detail": "line 1212: orig ('SETUP_LOOP', '#157') | got ('SETUP_LOOP', '#160')\nline 1215: orig ('FOR_ITER', '#156') | got ('FOR_ITER', '#159')\nline 1238: orig ('JUMP_IF_FALSE', '#84') | got ('JUMP_IF_FALSE', '#85')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "DocXMLRPCServer",
@@ -45,7 +37,7 @@
   },
   {
    "module": "HTMLParser",
-   "ast_detail": "diff at token 764: orig  kwargs=None)) | dec  kwargs=None))]",
+   "ast_detail": "diff at token 765: orig  orelse=[If(test=Compare(left=Str(s=';') | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 895,
    "ntotal": 1416,
@@ -141,7 +133,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 883: orig  ctx=Load()))] | dec  ctx=Load()))",
+   "ast_detail": "diff at token 723: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
    "ndiff": 587,
    "ntotal": 852,
@@ -177,11 +169,7 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "diff at token 2165: orig  kwargs=None))] | dec  kwargs=None))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 931,
-   "ntotal": 2021,
-   "detail": "line 1021: orig ('SETUP_LOOP', '#32') | got ('SETUP_LOOP', '#33')\nline 1039: orig ('LOAD_FAST', 'ofp') | got ('JUMP_ABSOLUTE', '#15')\nline 1040: orig ('LOAD_ATTR', 'close_data') | got ('LOAD_FAST', 'ofp')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "bisect",
@@ -201,7 +189,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 659: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 660: orig  orelse=[Assign(targets=[Name(id='data' | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 2467,
    "ntotal": 3221,
@@ -221,7 +209,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 1208: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 1168: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 452,
    "ntotal": 1351,

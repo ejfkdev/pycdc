@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
   "PASS": 28,
-  "SIG-DIFF": 8,
-  "AST-PASS": 4
+  "AST-PASS": 5,
+  "SIG-DIFF": 7
  },
  "results": [
   {
@@ -21,11 +21,7 @@
   },
   {
    "module": "ConfigParser",
-   "ast_detail": "diff at token 2142: orig  ctx=Load()))] | dec  ctx=Load()))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 774,
-   "ntotal": 2274,
-   "detail": "line 1305: orig ('SETUP_LOOP', '#242') | got ('SETUP_LOOP', '#243')\nline 1307: orig ('POP_JUMP_IF_FALSE', '#241') | got ('POP_JUMP_IF_FALSE', '#242')\nline 1371: orig ('POP_JUMP_IF_FALSE', '#240') | got ('POP_JUMP_IF_FALSE', '#241')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "Cookie",
@@ -41,7 +37,7 @@
   },
   {
    "module": "HTMLParser",
-   "ast_detail": "diff at token 742: orig  right=Num(n=1)))] | dec  right=Num(n=1)))",
+   "ast_detail": "diff at token 1008: orig  Assert(test=Num(n=0) | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 1025,
    "ntotal": 1607,
@@ -193,7 +189,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 795: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 794: orig  orelse=[]) | dec  orelse=[Assign(targets=[Name(id='line'",
    "verdict": "SIG-DIFF",
    "ndiff": 2127,
    "ntotal": 3035,

@@ -405,6 +405,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                 format_regex = _TimeRE_cache.compile(format)
             except KeyError as err:
                 bad_directive = err.args[0]
+                del err
                 bad_directive = bad_directive.replace('\\s', '')
                 if not bad_directive:
                     raise ValueError("stray %% in format '%s'" % format) from None

@@ -1222,39 +1222,150 @@ def _normalize_func_tail_loop(node):
 
 
 def merge_guard_continues(stmts):
-    """Canonicalize a loop-tail guard-continue chain. CPython compiles
-    `if not c1 and not c2: S` at the tail of a loop body into a chain of
-    short-circuit guards `if c1: continue; if c2: continue; S` (3.13
-    _strptime __find_month_format: `if not full_indices and not
-    abbr_indices: return None, None`). The decompile renders the guard
-    form faithfully; merge it back so it compares equal to the source's
-    combined `if And(Not ci): S`. Valid only when S is the LAST statement
-    of the loop body (a guard `continue` and falling off the body both
-    proceed to the next iteration). canonical_bool then flattens/sorts the
-    And operands to match the source."""
+    """Canonicalize loop-tail guard-continue chains back to the source
+    if/elif form. At the TAIL of a loop body, falling off the end ==
+    continue, so `if c: continue` + rest T == `if not c: T`, and a
+    trailing if/else whose arms end in (redundant) continues equals
+    the same chain. The decompiler renders loop-tail dispatch as
+    guard-continue chains; the source uses if/elif. Canonical form:
+    the source shape - guards merge back into combined conditions and
+    arm-tail continues drop (_strptime 3.12 group_key dispatch / 'I'
+    ampm arm, 3.13 __find_month_format `if not full_indices and not
+    abbr_indices: return None, None`, cmd 3.7 complete_help)."""
     n = len(stmts)
     if n < 2:
         return stmts
 
     def is_cont_guard(s):
         return (isinstance(s, ast.If) and not s.orelse
-                and len(s.body) == 1 and isinstance(s.body[0], ast.Continue))
+                and len(s.body) == 1 and isinstance(s.body[0],
+                                                    ast.Continue))
 
-    tail = stmts[n - 1]
-    if is_cont_guard(tail):
-        return stmts
-    j = n - 1
-    while j > 0 and is_cont_guard(stmts[j - 1]):
-        j -= 1
-    guards = stmts[j:n - 1]
-    if not guards:
-        return stmts
-    conds = [ast.UnaryOp(op=ast.Not(), operand=g.test) for g in guards]
-    if len(conds) == 1:
-        test = conds[0]
-    else:
-        test = ast.BoolOp(op=ast.And(), values=conds)
-    return stmts[:j] + [ast.If(test=test, body=[tail], orelse=[])]
+    def ends_cont(seq):
+        return bool(seq) and isinstance(seq[-1], ast.Continue)
+
+    def strip_tail_cont(seq):
+        seq = list(seq)
+        if len(seq) > 1 and ends_cont(seq):
+            seq = seq[:-1]
+        return seq
+
+    def canon_arm(seq):
+        # canonicalize an arm body that sits at a loop tail
+        seq = list(seq)
+        if not seq:
+            return [ast.Pass()]
+        out = []
+        i = 0
+        m = len(seq)
+        while i < m:
+            if is_cont_guard(seq[i]):
+                k = i
+                while k < m and is_cont_guard(seq[k]):
+                    k += 1
+                if k < m:
+                    conds = [ast.UnaryOp(op=ast.Not(),
+                                         operand=g.test)
+                             for g in seq[i:k]]
+                    test = conds[0] if len(conds) == 1 else \
+                        ast.BoolOp(op=ast.And(), values=conds)
+                    out.append(ast.If(test=test,
+                                      body=canon_arm(seq[k:]),
+                                      orelse=[]))
+                    return out
+                # trailing lone guards: keep as-is
+                out.extend(seq[i:k])
+                return out
+            s = seq[i]
+            # an arm-end continue followed by sibling statements is
+            # the guard shape of an if/ELSE at the arm tail: fold the
+            # remainder into the else (the continue is a no-op there)
+            if (isinstance(s, ast.If) and not s.orelse and s.body
+                    and isinstance(s.body[-1], ast.Continue)
+                    and i < m - 1):
+                out.append(ast.If(test=s.test,
+                                  body=canon_arm(s.body[:-1]),
+                                  orelse=canon_arm(seq[i + 1:])))
+                return out
+            if isinstance(s, ast.If) and i == m - 1:
+                out.extend(canon_tail_if(s))
+            else:
+                if isinstance(s, ast.If):
+                    s = ast.If(test=s.test, body=canon_arm(s.body),
+                               orelse=(canon_arm(s.orelse)
+                                       if s.orelse else []))
+                out.append(s)
+            i += 1
+        out = strip_tail_cont(out)
+        return out or [ast.Pass()]
+
+    def canon_tail_if(node):
+        # the LAST statement of a loop-tail body
+        if not node.orelse:
+            if is_cont_guard(node):
+                return [node]
+            body = strip_tail_cont(node.body)
+            if not body:
+                # `if c: continue` alone at the tail is a no-op
+                return [ast.Pass()]
+            return [ast.If(test=node.test, body=canon_arm(body),
+                           orelse=[])]
+        out = []
+        body = strip_tail_cont(node.body)
+        out.append(ast.If(test=node.test,
+                          body=canon_arm(body) if body else [ast.Pass()],
+                          orelse=[]))
+        rest = strip_tail_cont(node.orelse)
+        if (len(rest) == 1 and isinstance(rest[0], ast.If)
+                and rest[0].orelse):
+            out.extend(canon_tail_if(rest[0]))
+        else:
+            out.extend(canon_arm(rest) if rest else [ast.Pass()])
+        # rebuild as a proper if/elif chain (the last element may be a
+        # plain statement run - wrap it as the final else arm)
+        if len(out) == 1:
+            return out
+        chain = out[-1]
+        for g in reversed(out[:-1]):
+            g.orelse = [chain] if isinstance(chain, ast.stmt) else chain
+            chain = g
+        return [chain]
+
+    # canonicalize the whole body as a loop-tail arm: this folds the
+    # decompiler's FLAT guard chains (each dispatch If ends in continue
+    # with the next arm as a sibling) into the source's nested if/elif
+    # shape, and canonicalizes nested arm tails recursively
+    stmts = canon_arm(list(stmts))
+    n = len(stmts)
+    last = stmts[n - 1]
+    if isinstance(last, ast.If):
+        head = stmts[:n - 1]
+        merged = canon_tail_if(last)
+        stmts = head + merged
+        n = len(stmts)
+    # mid/leading guard runs merge into the remainder (only when a
+    # non-empty remainder follows: the run may sit anywhere)
+    out = []
+    i = 0
+    while i < n:
+        if is_cont_guard(stmts[i]):
+            k = i
+            while k < n and is_cont_guard(stmts[k]):
+                k += 1
+            if k < n:
+                conds = [ast.UnaryOp(op=ast.Not(), operand=g.test)
+                         for g in stmts[i:k]]
+                test = conds[0] if len(conds) == 1 else \
+                    ast.BoolOp(op=ast.And(), values=conds)
+                out.append(ast.If(test=test,
+                                  body=canon_arm(stmts[k:]),
+                                  orelse=[]))
+                return out
+            out.extend(stmts[i:k])
+            return out
+        out.append(stmts[i])
+        i += 1
+    return out
 
 
 def dump_stmts(stmts):

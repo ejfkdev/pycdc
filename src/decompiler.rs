@@ -37722,14 +37722,18 @@ impl<'a> Ctx<'a> {
                 // into EVERY exit arm of the clause body (codeop
                 // _maybe_compile: then-arm return, else-arm
                 // fall-through, exception-path stub) — keep the marker
-                // armed so the later pairs swallow too. A LONE del
-                // disarms as before (_strptime explicit-del semantics)
+                // armed so the later pairs swallow too.
                 let had_held = self.held_cleanup_store.is_some();
                 self.held_cleanup_store = None;
-                if !had_held {
-                    self.pending_as_cleanup = None;
+                if had_held {
+                    return;
                 }
-                return;
+                // a LONE del (no held `name = None` store behind it)
+                // is an EXPLICIT source `del err`, not cleanup -
+                // disarm and emit it (_strptime 3.12 _strptime:
+                // `except KeyError as err: ...; del err; raise ...`
+                // lost the del, dropping a statement the source has)
+                self.pending_as_cleanup = None;
             }
         }
         // drop stale exhausted frames (stores rerouted elsewhere)

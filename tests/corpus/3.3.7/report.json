@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
   "PASS": 24,
-  "AST-PASS": 10,
-  "SIG-DIFF": 6
+  "AST-PASS": 12,
+  "SIG-DIFF": 4
  },
  "results": [
   {
@@ -97,7 +97,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 884: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 883: orig  orelse=[]) | dec  orelse=[Assign(targets=[Name(id='line'",
    "verdict": "SIG-DIFF",
    "ndiff": 2355,
    "ntotal": 3046,
@@ -125,11 +125,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1770: orig  kwargs=None))] | dec  kwargs=None))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1110,
-   "ntotal": 2177,
-   "detail": "line 990: orig ('SETUP_LOOP', '#149') | got ('SETUP_LOOP', '#150')\nline 1001: orig ('POP_JUMP_IF_FALSE', '#44') | got ('POP_JUMP_IF_FALSE', '#43')\nline 1003: orig ('JUMP_ABSOLUTE', '#44') | got ('JUMP_ABSOLUTE', '#43')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "codeop",
@@ -173,11 +169,7 @@
   },
   {
    "module": "dis",
-   "ast_detail": "diff at token 1313: orig  kwargs=None))] | dec  kwargs=None))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 530,
-   "ntotal": 1491,
-   "detail": "line 678: orig ('SETUP_LOOP', '#314') | got ('SETUP_LOOP', '#315')\nline 682: orig ('POP_JUMP_IF_FALSE', '#313') | got ('POP_JUMP_IF_FALSE', '#314')\nline 779: orig ('POP_JUMP_IF_FALSE', '#309') | got ('POP_JUMP_IF_FALSE', '#310')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "dummy_threading",

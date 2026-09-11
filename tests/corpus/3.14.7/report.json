@@ -37,7 +37,7 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "diff at token 274: orig  ops=[In()] | dec  ops=[NotIn()]",
+   "ast_detail": "diff at token 421: orig  body=[Pass()])] | dec  body=[Return()])])",
    "verdict": "SIG-DIFF",
    "ndiff": 864,
    "ntotal": 4049,
@@ -101,9 +101,9 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 2006: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=Call(func=Name(id='isinstance'",
+   "ast_detail": "diff at token 2464: orig  body=[Assign(targets=[Name(id='hour' | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 845,
+   "ndiff": 846,
    "ntotal": 3207,
    "detail": "line 2145: orig ('FOR_ITER', 'to L52') | got ('FOR_ITER', 'to L53')\nline 2330: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'ampm')\nline 2331: orig ('JUMP_BACKWARD', 'to L13') | got ('LOAD_DEREF', 'locale_time')"
   },
@@ -173,7 +173,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 852: orig  Constant(value='\\n')])])) | dec  Constant(value='\\n')])]))])]",
+   "ast_detail": "diff at token 823: orig  Constant(value='\\n')])])) | dec  Constant(value='\\n')])]))])]",
    "verdict": "SIG-DIFF",
    "ndiff": 48,
    "ntotal": 1407,
@@ -197,7 +197,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 835: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 833: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1236,
    "ntotal": 1660,

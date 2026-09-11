@@ -61,11 +61,11 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1438: orig  Delete(targets=[Name(id='err' | dec  Raise(exc=Call(func=Name(id='ValueError'",
+   "ast_detail": "diff at token 2104: orig  For(target=Tuple(elts=[Name(id='value' | dec  Continue()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 985,
+   "ndiff": 1,
    "ntotal": 2246,
-   "detail": "line 1235: orig ('POP_JUMP_FORWARD_IF_TRUE', 'to 884') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 882')\nline 1242: orig ('JUMP_FORWARD', 'to 864') | got ('JUMP_FORWARD', 'to 862')\nline 1246: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 800') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 798')"
+   "detail": "line 1910: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 3836') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 3656')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

@@ -85,7 +85,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 774: orig  ctx=Del())])]) | dec  ctx=Del())])])])]",
+   "ast_detail": "diff at token 638: orig  ctx=Del())])]) | dec  ctx=Del())])])])]",
    "verdict": "SIG-DIFF",
    "ndiff": 125,
    "ntotal": 818,
@@ -169,7 +169,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 1087: orig  keywords=[]))]) | dec  keywords=[]))",
+   "ast_detail": "diff at token 1084: orig  keywords=[]))]) | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 600,
    "ntotal": 1505,
