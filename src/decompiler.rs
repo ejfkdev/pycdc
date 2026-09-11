@@ -13252,13 +13252,42 @@ impl<'a> Ctx<'a> {
                     Op::BUILD_LIST_UNPACK => Expr::List(out),
                     Op::BUILD_SET_UNPACK => Expr::Set(out),
                     // 3.5-3.8 `{**a, **b}` / call kwargs: a dict display
-                    // with starred merge entries
+                    // with starred merge entries. WITH_CALL: an item
+                    // that is a const-string-keyed dict is the
+                    // BUILD_CONST_KEY_MAP part of `f(kw=v, ..., **x)` -
+                    // splice it into NAMED entries so the call renders
+                    // named keywords and recompiles to the same
+                    // BUILD_CONST_KEY_MAP + UNPACK_WITH_CALL pair
+                    // (configparser 3.6 _get_conv rendered
+                    // `f(**{'raw': raw, 'vars': vars, **kwargs})`).
+                    // Plain dict displays keep the whole-dict form.
                     Op::BUILD_MAP_UNPACK | Op::BUILD_MAP_UNPACK_WITH_CALL => {
-                        Expr::Dict(
-                            out.iter()
-                                .map(|s| (s.clone(), self.name_expr("")))
-                                .collect(),
-                        )
+                        let mut entries: Vec<(ExprRef, ExprRef)> = Vec::new();
+                        for s in &out {
+                            let mut spliced = false;
+                            if inst.op == Op::BUILD_MAP_UNPACK_WITH_CALL {
+                                if let Expr::Starred(inner) = &**s {
+                                    if let Expr::Dict(ies) = &**inner {
+                                        if !ies.is_empty()
+                                            && ies.iter().all(|(k, _)| {
+                                                matches!(&**k,
+                                                    Expr::Const(o)
+                                                        if matches!(&**o, PyObject::Str(_)))
+                                            })
+                                        {
+                                            for (k, v) in ies {
+                                                entries.push((k.clone(), v.clone()));
+                                            }
+                                            spliced = true;
+                                        }
+                                    }
+                                }
+                            }
+                            if !spliced {
+                                entries.push((s.clone(), self.name_expr("")));
+                            }
+                        }
+                        Expr::Dict(entries)
                     }
                     _ => Expr::Tuple(out),
                 };
@@ -37234,6 +37263,36 @@ fn flatten_ex_kwargs(e: ExprRef) -> (Vec<(Option<String>, ExprRef)>, Option<Expr
                 if let Expr::Starred(inner) = &*entries[0].0 {
                     return (Vec::new(), Some(inner.clone()));
                 }
+            }
+            if starred == 1
+                && matches!(&*entries.last().map(|(k, _)| k.clone()).unwrap(), Expr::Starred(_))
+                && entries[..entries.len() - 1].iter().all(|(k, _)| {
+                    matches!(&**k, Expr::Const(o) if matches!(&**o, PyObject::Str(_)))
+                })
+            {
+                // named const-string keywords followed by exactly ONE
+                // trailing star: the compiler's layout for
+                // `f(kw=v, ..., **x)` (BUILD_CONST_KEY_MAP +
+                // BUILD_MAP_UNPACK_WITH_CALL on 3.5-3.8, DICT_MERGE on
+                // 3.9+) - split it back into named kwargs + the star
+                // (configparser 3.6 _get_conv `raw=raw, vars=vars,
+                // **kwargs`)
+                let star = match &*entries[entries.len() - 1].0 {
+                    Expr::Starred(inner) => inner.clone(),
+                    _ => unreachable!(),
+                };
+                let mut kws = Vec::new();
+                for (k, v) in &entries[..entries.len() - 1] {
+                    let name = match &**k {
+                        Expr::Const(o2) => match &**o2 {
+                            PyObject::Str(s2) => Some(s2.clone()),
+                            _ => None,
+                        },
+                        _ => None,
+                    };
+                    kws.push((name, v.clone()));
+                }
+                return (kws, Some(star));
             }
             if starred > 0 {
                 // mixed or multiple stars: keep the merged dict whole so

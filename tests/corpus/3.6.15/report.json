@@ -149,11 +149,11 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 2806: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(arg=None",
+   "ast_detail": "diff at token 4071: orig  body=[If(test=Attribute(value=Name(id='self' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1061,
+   "ndiff": 1057,
    "ntotal": 4337,
-   "detail": "line 2490: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')\nline 2525: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')\nline 2541: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')"
+   "detail": "line 3131: orig ('SETUP_LOOP', '#398') | got ('SETUP_LOOP', '#392')\nline 3139: orig ('FOR_ITER', '#397') | got ('FOR_ITER', '#391')\nline 3253: orig ('POP_JUMP_IF_TRUE', '#175') | got ('POP_JUMP_IF_TRUE', '#170')"
   },
   {
    "module": "contextlib",

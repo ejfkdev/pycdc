@@ -296,12 +296,40 @@ def flatten_try_else(stmts, at_loop_tail=False, _chg=None):
     return out
 
 
+def _merge_py2_prints(stmts):
+    """py2: `print a,` + `print b` compiles IDENTICALLY to `print a, b`
+    (PRINT_ITEM a; PRINT_ITEM b; PRINT_NEWLINE carry no statement
+    boundary), so the decompiler legitimately merges adjacent prints
+    (SocketServer 2.6 handle_error). Canonicalize the split source
+    form into the merged form; `print a` + `print b` (both nl=True)
+    stays split - that emits two newlines."""
+    Print = getattr(ast, 'Print', None)
+    if Print is None:
+        return stmts
+    out = []
+    for s in stmts:
+        if (out and isinstance(s, Print)
+                and isinstance(out[-1], Print)
+                and not out[-1].nl
+                and ((out[-1].dest is None and s.dest is None)
+                     or (out[-1].dest is not None and s.dest is not None
+                         and ast.dump(out[-1].dest) == ast.dump(s.dest)))):
+            prev = out[-1]
+            out[-1] = Print(dest=prev.dest,
+                            values=list(prev.values) + list(s.values),
+                            nl=s.nl)
+            continue
+        out.append(s)
+    return out
+
+
 def normalize_body(body):
     """Normalize a statement list: drop docstrings, merge adjacent
     from-imports, hoist global/nonlocal, flatten terminal elses."""
     body = flatten_terminal_else(body)
     body = flatten_try_else(body)
     body = _sunk_return_orelse(body)
+    body = _merge_py2_prints(body)
     out = []
     globs = []
     nonlocs = []

@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "PASS": 16,
-  "AST-PASS": 17,
-  "SIG-DIFF": 7
+  "AST-PASS": 18,
+  "SIG-DIFF": 6
  },
  "results": [
   {
@@ -53,7 +53,7 @@
   },
   {
    "module": "SocketServer",
-   "ast_detail": "diff at token 483: orig  values=[Str(s='Exception happened during processing of request from')] | dec  values=[Str(s='Exception happened during processing of request from')",
+   "ast_detail": "diff at token 1046: orig  TryExcept(body=[Expr(value=Call(func=Attribute(value=Name(id='self' | dec  TryFinally(body=[Expr(value=Call(func=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
    "ndiff": 931,
    "ntotal": 1270,
@@ -105,11 +105,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 2019: orig  values=[Str(s='Warning: MARK chunk contains only')] | dec  values=[Str(s='Warning: MARK chunk contains only')",
-   "verdict": "SIG-DIFF",
-   "ndiff": 3044,
-   "ntotal": 3380,
-   "detail": "line 84: orig ('JUMP_IF_FALSE', '#222') | got ('JUMP_IF_FALSE', '#223')\nline 166: orig ('JUMP_IF_FALSE', '#220') | got ('JUMP_IF_FALSE', '#221')\nline 190: orig ('SETUP_LOOP', '#208') | got ('SETUP_LOOP', '#209')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "anydbm",
