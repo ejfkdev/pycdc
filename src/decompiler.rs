@@ -9874,6 +9874,7 @@ impl<'a> Ctx<'a> {
         // stores that happened inside this block must land in it, not in
         // whatever block is open after closing
         self.flush_pending_stores();
+        let close_pos = pos;
         let mut b = self.blocks.pop().unwrap();
         match b.kind {
             BlockType::Main => {
@@ -9910,6 +9911,131 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 self.split_arm_prints(&mut b);
+                // close-time else recovery: this If was force-closed by
+                // an arm-end jump flying PAST its end (the compiler
+                // merged the skip with a later cleanup point), so the
+                // jump's own else-marking — which runs after the close
+                // — can never attach the arm [b.end, target) that
+                // begins exactly here. Recover it when the span is a
+                // clean terminator region entered only by this If's
+                // cond jump (codecs 3.3 StreamReader.read:
+                // `if firstline: ...; if len<=1: raise ... else:
+                // raise` — the else `raise` rendered as an
+                // unconditional clause sibling, so firstline decodes
+                // with len>1 wrongly raised).
+                if std::env::var("PYCDC_CER_DBG").is_ok() && matches!(b.kind, BlockType::If) {
+                    eprintln!("CER: fn={} pos={} b=[{},{}) else_end={:?} vm={} sc={} fe={}", self.code.name, pos, b.start, b.end, b.else_end, b.value_merge.is_some(), b.short_circuit.is_some(), b.folded_exit);
+                }
+                let mut attach_pos: Option<usize> = None;
+                if b.else_end.is_none()
+                    && b.value_merge.is_none()
+                    && b.short_circuit.is_none()
+                    && !b.folded_exit
+                {
+                    // the arm-end skip: the LAST forward unconditional
+                    // jump inside this body flying past b.end (the
+                    // close may be invoked with pos = b.start, not the
+                    // jump's offset)
+                    let cand = self
+                        .idx_of
+                        .get(&b.start)
+                        .zip(self.idx_of.get(&b.end))
+                        .and_then(|(&si, &ei)| {
+                            (si < ei).then(|| ())?;
+                            self.instrs[si..ei]
+                                .iter()
+                                .rev()
+                                .find(|x| {
+                                    !x.is_backward
+                                        && matches!(
+                                            x.op,
+                                            Op::JUMP_FORWARD
+                                                | Op::JUMP
+                                                | Op::JUMP_ABSOLUTE
+                                        )
+                                        && x.target
+                                            .map_or(false, |t| t > b.end)
+                                })
+                                .and_then(|x| {
+                                    x.target.map(|t| (x.offset, t))
+                                })
+                        });
+                    let recovery_pos = if pos >= b.start && pos < b.end {
+                        b.end
+                    } else {
+                        pos
+                    };
+                    if let Some((j_off, t)) = cand {
+                        let arm_clean = match (
+                            self.idx_of.get(&b.end),
+                            self.idx_of.get(&t),
+                        ) {
+                            (Some(&ai), Some(&ti)) => {
+                                ti > ai
+                                    && ti - ai <= 4
+                                    && self.instrs[ai..ti].iter().all(|x| {
+                                        x.target.is_none()
+                                            && !x.is_backward
+                                            && matches!(
+                                                x.op,
+                                                Op::RAISE_VARARGS
+                                                    | Op::RERAISE
+                                                    | Op::RETURN_VALUE
+                                                    | Op::RETURN_CONST
+                                                    | Op::POP_TOP
+                                                    | Op::NOP
+                                                    | Op::LOAD_CONST
+                                                    | Op::LOAD_FAST
+                                                    | Op::LOAD_NAME
+                                                    | Op::LOAD_GLOBAL
+                                            )
+                                    })
+                            }
+                            _ => false,
+                        };
+                        // this If's own cond jump (the last cond jump
+                        // before b.start whose target reaches the arm
+                        // head — NOT necessarily == b.end: a clamp may
+                        // have shortened the block below the original
+                        // jump target, codecs 3.3 inner guard PJIF->125
+                        // clamped to end 122) is the arm's legitimate
+                        // entry
+                        let own_cj = self
+                            .instrs
+                            .iter()
+                            .rev()
+                            .skip_while(|x| x.offset >= b.start)
+                            .find(|x| {
+                                x.target.map_or(false, |t| t >= b.end)
+                                    && matches!(
+                                        x.op,
+                                        Op::POP_JUMP_IF_FALSE
+                                            | Op::POP_JUMP_IF_TRUE
+                                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                                            | Op::JUMP_IF_FALSE
+                                            | Op::JUMP_IF_TRUE
+                                            | Op::JUMP_IF_FALSE_OR_POP
+                                            | Op::JUMP_IF_TRUE_OR_POP
+                                    )
+                            })
+                            .map(|x| x.offset);
+                        let no_entry = arm_clean
+                            && self.instrs.iter().all(|x| {
+                                let in_arm = x.offset >= b.end && x.offset < t;
+                                in_arm
+                                    || x.offset == j_off
+                                    || Some(x.offset) == own_cj
+                                    || !x.target.map_or(false, |tt| {
+                                        tt >= b.end && tt < t
+                                    })
+                            });
+                        if no_entry {
+                            b.else_end = Some(t);
+                            attach_pos = Some(recovery_pos);
+                        }
+                    }
+                }
                 let body = std::mem::take(&mut b.stmts);
                 // an if-arm EMPTIED by the legacy finally-region
                 // redirect: its content was routed into the chain's
@@ -10425,6 +10551,11 @@ impl<'a> Ctx<'a> {
                     }
                 }
                 if let Some(else_end) = b.else_end {
+                    // the arm region starts at b.end even when the
+                    // close was invoked with a synthetic pos (the
+                    // legacy clause machinery force-closes open Ifs at
+                    // their start)
+                    let pos = attach_pos.unwrap_or(pos);
                     // value-merge block (COPY+cond jump) with a forward jump:
                     // both branches produce values — merge into chain compare
                     // or ternary and skip the false-path instructions
