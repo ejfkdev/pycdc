@@ -37,7 +37,7 @@
   },
   {
    "module": "HTMLParser",
-   "ast_detail": "diff at token 1008: orig  Assert(test=Num(n=0) | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 1020: orig  Assert(test=Num(n=0) | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 1025,
    "ntotal": 1607,
@@ -145,7 +145,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 2550: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
+   "ast_detail": "diff at token 2566: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
    "verdict": "SIG-DIFF",
    "ndiff": 298,
    "ntotal": 2185,
@@ -189,7 +189,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 794: orig  orelse=[]) | dec  orelse=[Assign(targets=[Name(id='line'",
+   "ast_detail": "diff at token 795: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
    "ndiff": 2127,
    "ntotal": 3035,

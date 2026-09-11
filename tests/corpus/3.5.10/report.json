@@ -33,7 +33,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 506: orig  Str(s='link') | dec  Str(s='element')",
+   "ast_detail": "diff at token 512: orig  Str(s='link') | dec  Str(s='element')",
    "verdict": "SIG-DIFF",
    "ndiff": 679,
    "ntotal": 1372,
@@ -149,7 +149,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 3997: orig  ctx=Del())]) | dec  ctx=Del())",
+   "ast_detail": "diff at token 4003: orig  ctx=Del())]) | dec  ctx=Del())",
    "verdict": "SIG-DIFF",
    "ndiff": 430,
    "ntotal": 4295,

@@ -29,7 +29,7 @@
   },
   {
    "module": "DocXMLRPCServer",
-   "ast_detail": "diff at token 368: orig  body=[Assign(targets=[Name(id='anchor' | dec  body=[If(test=Name(id='cl'",
+   "ast_detail": "diff at token 376: orig  body=[Assign(targets=[Name(id='anchor' | dec  body=[If(test=Name(id='cl'",
    "verdict": "SIG-DIFF",
    "ndiff": 612,
    "ntotal": 906,
@@ -37,7 +37,7 @@
   },
   {
    "module": "HTMLParser",
-   "ast_detail": "diff at token 765: orig  orelse=[If(test=Compare(left=Str(s=';') | dec  orelse=[])]",
+   "ast_detail": "diff at token 775: orig  orelse=[If(test=Compare(left=Str(s=';') | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 895,
    "ntotal": 1416,
@@ -113,7 +113,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 2017: orig  values=[Str(s='Warning: MARK chunk contains only')] | dec  values=[Str(s='Warning: MARK chunk contains only')",
+   "ast_detail": "diff at token 2031: orig  values=[Str(s='Warning: MARK chunk contains only')] | dec  values=[Str(s='Warning: MARK chunk contains only')",
    "verdict": "SIG-DIFF",
    "ndiff": 3044,
    "ntotal": 3380,
@@ -133,7 +133,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 723: orig  ctx=Load()))] | dec  ctx=Load()))",
+   "ast_detail": "diff at token 724: orig  Return(value=None)] | dec  Continue()]",
    "verdict": "SIG-DIFF",
    "ndiff": 587,
    "ntotal": 852,
@@ -141,7 +141,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 2345: orig  values=[UnaryOp(op=Not() | dec  values=[Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 2363: orig  values=[UnaryOp(op=Not() | dec  values=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
    "ndiff": 1738,
    "ntotal": 2270,
@@ -189,7 +189,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 660: orig  orelse=[Assign(targets=[Name(id='data' | dec  orelse=[])]",
+   "ast_detail": "diff at token 659: orig  kwargs=None)) | dec  kwargs=None))]",
    "verdict": "SIG-DIFF",
    "ndiff": 2467,
    "ntotal": 3221,
@@ -197,7 +197,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 245: orig  values=[Compare(left=Name(id='token' | dec  values=[Compare(left=Name(id='lasttoken'",
+   "ast_detail": "diff at token 247: orig  values=[Compare(left=Name(id='token' | dec  values=[Compare(left=Name(id='lasttoken'",
    "verdict": "SIG-DIFF",
    "ndiff": 1258,
    "ntotal": 1541,
@@ -209,7 +209,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 1168: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 1174: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 452,
    "ntotal": 1351,

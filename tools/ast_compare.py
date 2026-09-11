@@ -1221,6 +1221,62 @@ def _normalize_func_tail_loop(node):
             break
 
 
+def fold_while_head_guard(node):
+    """A while whose body STARTS with a lone exit guard canonicalizes:
+    - `if c: break` folds INTO THE TEST: `while T and not c: S` (both
+      forms leave the loop, skipping any else, when c turns true -
+      cmd 3.14 columnize: source `while texts and not texts[-1]:
+      del texts[-1]` vs the decompiler's `while texts:
+      if texts[-1]: break; del ...`);
+    - `if c: continue` wraps the rest: `while T: if not c: S` (a
+      continue re-runs the TEST, so folding it into the test would
+      wrongly exit the loop).
+    While only: a for-loop's continue advances the iterator."""
+    if not isinstance(node, ast.While) or not node.body:
+        return None
+    first = node.body[0]
+    if not (isinstance(first, ast.If) and not first.orelse
+            and len(first.body) == 1
+            and isinstance(first.body[0], (ast.Break, ast.Continue))):
+        return None
+    rest = node.body[1:]
+    if not rest:
+        return None
+    if isinstance(first.body[0], ast.Break):
+        return ast.While(
+            test=ast.BoolOp(op=ast.And(),
+                            values=[node.test,
+                                    ast.UnaryOp(op=ast.Not(),
+                                                operand=first.test)]),
+            body=rest, orelse=node.orelse)
+    return ast.While(
+        test=node.test,
+        body=[ast.If(test=ast.UnaryOp(op=ast.Not(), operand=first.test),
+                     body=rest, orelse=[])],
+        orelse=node.orelse)
+
+
+def flatten_tail_if_else(stmts):
+    """A function-tail `if c: A else: B` (the If is the LAST
+    statement of the body) is observationally identical to the
+    decompiler's flattened render `if c: A; return` + flat B: arm A
+    falls off the function end (== return None) and the explicit
+    Return(None) only skips B, which the else already gates. Flatten
+    both sides to the explicit form (cmd 3.14 do_help: source
+    if/else vs dec's arm-tail return + flat rest)."""
+    if len(stmts) < 1:
+        return stmts
+    last = stmts[-1]
+    if (isinstance(last, ast.If) and last.orelse and last.body
+            and not isinstance(last.body[-1], (ast.Return, ast.Raise,
+                                               ast.Break, ast.Continue))):
+        flat = ast.If(test=last.test,
+                      body=list(last.body) + [ast.Return(value=None)],
+                      orelse=[])
+        return list(stmts[:-1]) + [flat] + list(last.orelse)
+    return stmts
+
+
 def merge_guard_continues(stmts):
     """Canonicalize loop-tail guard-continue chains back to the source
     if/elif form. At the TAIL of a loop body, falling off the end ==
@@ -1548,6 +1604,20 @@ def _fold_try_body_tail_return(stmts):
                     and i + 2 == len(stmts) \
                     and isinstance(stmts[i + 1], ast.Return):
                 del stmts[i + 1]
+            # rule 4: when EVERY handler terminates (return/raise/
+            # break), the else arm's statements run exactly when the
+            # try falls through - hoist them to siblings right after
+            # the try. The decompiler renders loop-tail try/except
+            # bodies as try/except/ELSE while the source has flat
+            # followers (cmd 3.14 do_help, asynchat 3.10
+            # initiate_send); both sides converge on the flat form.
+            if try_types and isinstance(s, try_types) \
+                    and getattr(s, 'orelse', None) \
+                    and not getattr(s, 'finalbody', None) \
+                    and (getattr(s, 'handlers', None) or []) \
+                    and all(_terms(h.body) for h in s.handlers):
+                stmts[i + 1:i + 1] = s.orelse
+                s.orelse = []
         i += 1
     return stmts
 
@@ -1705,6 +1775,20 @@ def dump(src):
         if isinstance(node, _LOOP_TYPES):
             node.body = _merge_outer_guard_continues(
                 _merge_tail_arm_guards(node.body))
+    for _pass in range(4):
+        _changed = False
+        for node in ast.walk(tree):
+            for field, value in ast.iter_fields(node):
+                if not isinstance(value, list):
+                    continue
+                for vi, v in enumerate(value):
+                    if isinstance(v, ast.While):
+                        folded = fold_while_head_guard(v)
+                        if folded is not None:
+                            value[vi] = folded
+                            _changed = True
+        if not _changed:
+            break
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef,
                              getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):
@@ -1727,6 +1811,7 @@ def dump(src):
                     is_loop_body = isinstance(node, _LOOP_TYPES) and field == 'body'
                     val = _fold_try_body_tail_return(val)
                     val = _normalize_handler_break_raise(val)
+                    val = _sunk_return_orelse(flatten_tail_if_else(val))
                     setattr(node, field,
                             split_tail_ternary_return(
                                 flatten_terminating_else(merge_nested_ifs(val),

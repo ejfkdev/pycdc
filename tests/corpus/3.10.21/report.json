@@ -85,7 +85,7 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 638: orig  ctx=Del())])]) | dec  ctx=Del())])])])]",
+   "ast_detail": "diff at token 632: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 125,
    "ntotal": 818,
@@ -101,7 +101,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 1555: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 1557: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 634,
    "ntotal": 1931,
@@ -133,7 +133,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 1439: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 2673: orig  Break()] | dec  Return()]",
    "verdict": "SIG-DIFF",
    "ndiff": 619,
    "ntotal": 2910,
@@ -169,7 +169,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 1084: orig  keywords=[]))]) | dec  keywords=[]))",
+   "ast_detail": "diff at token 1088: orig  keywords=[]))]) | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 600,
    "ntotal": 1505,

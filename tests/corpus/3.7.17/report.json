@@ -32,7 +32,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 504: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Set(elts=[Str(s='link')",
+   "ast_detail": "diff at token 510: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Set(elts=[Str(s='link')",
    "verdict": "SIG-DIFF",
    "ndiff": 701,
    "ntotal": 1408,
@@ -88,7 +88,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 1472: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 1474: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 781,
    "ntotal": 1946,
@@ -156,7 +156,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 3179: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(arg=None",
+   "ast_detail": "diff at token 3185: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(arg=None",
    "verdict": "SIG-DIFF",
    "ndiff": 1092,
    "ntotal": 4369,
