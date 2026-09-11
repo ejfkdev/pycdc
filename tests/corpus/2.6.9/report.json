@@ -27,8 +27,8 @@
    "module": "ConfigParser",
    "ast_detail": "diff at token 1886: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
-   "ndiff": 985,
-   "ntotal": 2162,
+   "ndiff": 990,
+   "ntotal": 2161,
    "detail": "line 1114: orig ('SETUP_LOOP', '#101') | got ('SETUP_LOOP', '#102')\nline 1118: orig ('FOR_ITER', '#100') | got ('FOR_ITER', '#101')\nline 1127: orig ('SETUP_LOOP', '#94') | got ('SETUP_LOOP', '#95')"
   },
   {

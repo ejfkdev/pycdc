@@ -16615,6 +16615,66 @@ impl<'a> Ctx<'a> {
                                         && b.start < target
                                         && target < b.cond_end))
                         });
+                    // A backward loop-top edge that terminates the
+                    // then arm of an open If chain whose ELSE arm also
+                    // ends with the very same edge is the compiler's
+                    // FUSED arm-end jump: after the then arm the
+                    // control flow rejoins the loop back edge with
+                    // nothing in between, so a source-level Continue
+                    // is redundant AND sig-breaking (compileall
+                    // 3.5-3.9 compile_path: `if quiet < 2:
+                    // print('Skipping')` rendered with an extra
+                    // continue, which recompiles to a doubled
+                    // JUMP_ABSOLUTE). Only suppress when both arms
+                    // converge on this edge; an else arm exiting
+                    // elsewhere keeps the real then-arm Continue.
+                    let fused_arm_end = self
+                        .blocks
+                        .iter()
+                        .rev()
+                        .take_while(|b| {
+                            !matches!(
+                                b.kind,
+                                BlockType::While | BlockType::For
+                            )
+                        })
+                        .any(|b| {
+                            matches!(
+                                b.kind,
+                                BlockType::If | BlockType::Else
+                            ) && b.start <= self.cur_offset
+                                && b.end > self.cur_offset
+                                && b.else_end.map_or(false, |ee| {
+                                    // the else arm either ends with
+                                    // its own back edge at ee-2 or
+                                    // falls through into the loop's
+                                    // back edge AT ee (the fused
+                                    // shape: the arm is the loop
+                                    // body's last statement)
+                                    ee > b.end
+                                        && [ee, ee.saturating_sub(2)]
+                                            .iter()
+                                            .any(|&o| {
+                                                self.idx_of
+                                                    .get(&o)
+                                                    .map_or(false, |&ei| {
+                                                        let e =
+                                                            &self.instrs[ei];
+                                                        e.offset == o
+                                                            && e.is_backward
+                                                            && matches!(
+                                                                e.op,
+                                                                Op::JUMP_ABSOLUTE
+                                                                    | Op::JUMP_BACKWARD
+                                                                    | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                                                    | Op::JUMP
+                                                            )
+                                                            && e.target
+                                                                == Some(target)
+                                                    })
+                                            })
+                                })
+                        });
                     if !lands_on_back_edge
                         && !chain_body_hop
                         && !chain_collect_edge
@@ -16623,8 +16683,12 @@ impl<'a> Ctx<'a> {
                         && self.is_continue_jump(target)
                     {
                         // continue of an outer loop: emit first, then close
-                        // the inner blocks it jumps out of
-                        self.push_stmt(Stmt::Continue);
+                        // the inner blocks it jumps out of (a fused
+                        // arm-end edge keeps the close but drops the
+                        // redundant Continue)
+                        if !fused_arm_end {
+                            self.push_stmt(Stmt::Continue);
+                        }
                         // A branch block whose region still lies ahead
                         // (end > cur_next) has an unparsed else arm — the
                         // then arm's terminating jump comes right after
@@ -29654,6 +29718,49 @@ if split_cond {
         // when the region between holds no other jump into [arm_end,
         // target): the arm is entered only by the outer cond jump, which
         // has already been consumed
+        // fused-continue else marking: a forward cond jump landing on
+        // the enclosing loop's back edge (or exit) is a `continue` the
+        // compiler fused with the guard's false path. When it flies
+        // over an OPEN If's end (the If started before this jump), the
+        // span [if.end, target) is that If's else arm — the generic
+        // forward-jump else marking only runs for unconditional jumps,
+        // so without this the arm detaches into an unconditional
+        // sibling that ALSO runs on the continue path (compileall 3.5
+        // compile_path: `if (not dir or dir == os.curdir) and
+        // skip_curdir: if quiet < 2: print(...)` + `else: success =
+        // ... and compile_dir(...)` rendered the else flat — a skipped
+        // current directory still ran compile_dir when quiet >= 2).
+        if target > self.cur_offset
+            && self
+                .idx_of
+                .get(&target)
+                .map_or(false, |&ti| {
+                    let x = &self.instrs[ti];
+                    (x.is_backward
+                        && matches!(
+                            x.op,
+                            Op::JUMP_ABSOLUTE
+                                | Op::JUMP_BACKWARD
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                | Op::JUMP
+                        )
+                        && x.target
+                            .map_or(false, |t| self.is_loop_top_target(t)))
+                        || self.find_loop_exit(target).is_some()
+                })
+        {
+            if let Some(b) = self.blocks.iter_mut().rev().find(|b| {
+                matches!(b.kind, BlockType::If)
+                    && b.else_end.is_none()
+                    && b.short_circuit.is_none()
+                    && b.value_merge.is_none()
+                    && b.start < self.cur_offset
+                    && b.end > self.cur_offset
+                    && b.end < target
+            }) {
+                b.else_end = Some(target);
+            }
+        }
         let mut if_end = target;
         // Some(original target) when the chain-exit clamp below lowers
         // if_end: the guard's opening jump flies to the chain tail, not

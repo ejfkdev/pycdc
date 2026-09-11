@@ -329,22 +329,20 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                 week_of_year_start = 6
             else:
                 week_of_year_start = 0
-        else:
-            if group_key == 'z':
-                z = found_dict['z']
-                tzoffset = int(z[1:3]) * 60 + int(z[3:5])
-                if z.startswith('-'):
-                    tzoffset = -tzoffset
-                    continue
-            if group_key == 'Z':
-                found_zone = found_dict['Z'].lower()
-                for value, tz_values in enumerate(locale_time.timezone):
-                    if found_zone in tz_values:
-                        if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
-                            break
-                        else:
-                            tz = value
-                            break
+        elif group_key == 'z':
+            z = found_dict['z']
+            tzoffset = int(z[1:3]) * 60 + int(z[3:5])
+            if z.startswith('-'):
+                tzoffset = -tzoffset
+        elif group_key == 'Z':
+            found_zone = found_dict['Z'].lower()
+            for value, tz_values in enumerate(locale_time.timezone):
+                if found_zone in tz_values:
+                    if time.tzname[0] == time.tzname[1] and time.daylight and found_zone not in ('utc', 'gmt'):
+                        break
+                    else:
+                        tz = value
+                        break
     leap_year_fix = False
     if year is None and month == 2 and day == 29:
         year = 1904

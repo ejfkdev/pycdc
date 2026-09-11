@@ -321,8 +321,7 @@ def a85decode(b, *, foldspaces=False, adobe=False, ignorechars=b' \t\n\r\x0b'):
                 except struct.error:
                     raise ValueError('Ascii85 overflow') from None
                 curr_clear()
-                continue
-        if x == 122:
+        elif x == 122:
             if curr:
                 raise ValueError('z inside Ascii85 5-tuple')
             decoded_append(b'\x00\x00\x00\x00')
