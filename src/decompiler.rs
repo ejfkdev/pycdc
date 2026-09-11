@@ -18703,12 +18703,27 @@ impl<'a> Ctx<'a> {
                 | Op::STORE_SLICE_2
                 | Op::STORE_SLICE_3
         );
+        // the pending target need NOT itself be a container: a chained
+        // assign `a = b.c = v` stores the NAME first, then LOADs the
+        // owner for the second (container) store - requiring a
+        // container among the pending targets flushed the group at the
+        // owner LOAD and duplicated the value into two statements
+        // (HTMLParser 2.6 unescape `entitydefs = HTMLParser.entitydefs
+        // = {'apos': u"'"}` split, re-evaluating the dict). The
+        // liveness + same-line-container-ahead checks below are the
+        // real discriminators.
         let building_container_target = !self.pending_stores.is_empty()
-            && self.pending_stores.iter().any(|(t, _)| {
-                matches!(&**t, Expr::Subscript { .. } | Expr::Attribute { .. })
-            })
             && is_pure_value_op(inst.op)
             && self.same_line_container_store_ahead(inst.offset)
+            // the container store ahead must NOT be an ANNOTATION store:
+            // a 3.13+ annotated class/module assign stores the VALUE
+            // first (STORE_NAME x) then builds and stores the annotation
+            // (__annotations__['x'] = ann / STORE_ANNOTATION) - deferring
+            // the flush groups the two stores into a bogus tuple assign
+            // (configparser 3.13 _ReadState `cursect: dict[str, str] |
+            // None = None` rendered `__annotations__['cursect'], cursect
+            // = <ann>, None`, losing the AnnAssign)
+            && !self.annotation_store_ahead(inst.offset)
             // separate same-line statements (`self.list = None;
             // self.file = None`, and the 3.12+ coalesced line entries
             // for consecutive attr stores) reload their values or
@@ -18842,6 +18857,56 @@ impl<'a> Ctx<'a> {
     /// material on the pending store group's line, ending at another
     /// container store — the target-construction window between the
     /// two stores of a simultaneous assignment.
+    /// True when the first container store ahead (within the same-line
+    /// lookahead window) is an annotation store: 3.14 STORE_ANNOTATION,
+    /// or a STORE_SUBSCR whose owner is `__annotations__` (3.13 and
+    /// earlier). Used to keep value stores out of the pending group so
+    /// the AnnAssign recombination sees clean separate statements.
+    fn annotation_store_ahead(&self, off: usize) -> bool {
+        let Some(&ci) = self.idx_of.get(&off) else {
+            return false;
+        };
+        let line = self.last_store_line;
+        let mut steps = 0usize;
+        for (k, x) in self.instrs.iter().enumerate().skip(ci + 1) {
+            steps += 1;
+            if steps > 16 {
+                return false;
+            }
+            if x.op == Op::STORE_ANNOTATION {
+                return true;
+            }
+            if matches!(
+                x.op,
+                Op::STORE_SUBSCR
+                    | Op::STORE_ATTR
+                    | Op::STORE_SLICE
+                    | Op::STORE_SLICE_0
+                    | Op::STORE_SLICE_1
+                    | Op::STORE_SLICE_2
+                    | Op::STORE_SLICE_3
+            ) {
+                // owner-load immediately before the key-load: `LOAD
+                // __annotations__; LOAD_CONST 'name'; STORE_SUBSCR`
+                let owner_is_ann = k >= 2
+                    && matches!(
+                        self.instrs[k - 2].op,
+                        Op::LOAD_NAME | Op::LOAD_FAST | Op::LOAD_GLOBAL
+                    )
+                    && self.const_name(self.instrs[k - 2].arg as usize)
+                        == "__annotations__";
+                return owner_is_ann;
+            }
+            if !is_pure_value_op(x.op) && !is_stack_plumbing(x.op) {
+                return false;
+            }
+            if x.line.is_some() && line.is_some() && x.line != line {
+                return false;
+            }
+        }
+        false
+    }
+
     fn same_line_container_store_ahead(&self, off: usize) -> bool {
         let Some(&ci) = self.idx_of.get(&off) else {
             return false;

@@ -3,8 +3,8 @@
   "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
   "counts": {
    "PASS": 16,
-   "AST-PASS": 16,
-   "SIG-DIFF": 8
+   "AST-PASS": 17,
+   "SIG-DIFF": 7
   }
  },
  "2.7.18": {

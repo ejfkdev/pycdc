@@ -315,8 +315,7 @@ class HTMLParser(markupbase.ParserBase):
                 return unichr(c)
             import htmlentitydefs
             if HTMLParser.entitydefs is None:
-                entitydefs = {'apos': u"'"}
-                HTMLParser.entitydefs = {'apos': u"'"}
+                entitydefs = HTMLParser.entitydefs = {'apos': u"'"}
                 for k, v in htmlentitydefs.name2codepoint.iteritems():
                     entitydefs[k] = unichr(v)
             try:

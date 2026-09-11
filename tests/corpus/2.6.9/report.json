@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "PASS": 16,
-  "AST-PASS": 16,
-  "SIG-DIFF": 8
+  "AST-PASS": 17,
+  "SIG-DIFF": 7
  },
  "results": [
   {
@@ -33,11 +33,7 @@
   },
   {
    "module": "HTMLParser",
-   "ast_detail": "diff at token 1959: orig  ctx=Store()) | dec  ctx=Store())]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 906,
-   "ntotal": 1420,
-   "detail": "line 339: orig ('SETUP_LOOP', '#380') | got ('SETUP_LOOP', '#381')\nline 343: orig ('JUMP_IF_FALSE', '#378') | got ('JUMP_IF_FALSE', '#379')\nline 399: orig ('JUMP_IF_FALSE', '#181') | got ('JUMP_IF_FALSE', '#182')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "MimeWriter",
