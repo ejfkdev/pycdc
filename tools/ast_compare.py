@@ -495,7 +495,16 @@ class Normalizer(ast.NodeTransformer):
         for field in ('body', 'orelse', 'finalbody'):
             val = getattr(node, field, None)
             if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
-                val = [self.visit(st) for st in val]
+                # visit methods may return a LIST (one-to-many
+                # rewrites like visit_Delete's split) or None (drop)
+                newval = []
+                for st in val:
+                    r = self.visit(st)
+                    if isinstance(r, list):
+                        newval.extend(r)
+                    elif r is not None:
+                        newval.append(r)
+                val = newval
                 setattr(node, field, normalize_body(val))
         if getattr(node, 'handlers', None):
             node.handlers = [self.visit(h) for h in node.handlers]
@@ -669,6 +678,15 @@ class Normalizer(ast.NodeTransformer):
         elif hasattr(ast, 'Constant') and isinstance(node.value, ast.Constant) \
                 and node.value.value is None:
             node.value = ast.Name(id='None', ctx=ast.Load())
+        return node
+
+    def visit_Delete(self, node):
+        self.generic_visit(node)
+        # `del a, b` == `del a; del b` (left to right); pycdc's
+        # emit_delete merges consecutive single dels into one
+        # multi-target Delete (configparser 3.5 remove_section)
+        if len(node.targets) > 1:
+            return [ast.Delete(targets=[t]) for t in node.targets]
         return node
 
     def visit_Set(self, node):

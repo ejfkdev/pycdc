@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
   "PASS": 24,
-  "AST-PASS": 12,
-  "SIG-DIFF": 4
+  "AST-PASS": 13,
+  "SIG-DIFF": 3
  },
  "results": [
   {
@@ -141,11 +141,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 4008: orig  ctx=Del())]) | dec  ctx=Del())",
-   "verdict": "SIG-DIFF",
-   "ndiff": 825,
-   "ntotal": 4129,
-   "detail": "line 3142: orig ('SETUP_LOOP', '#383') | got ('SETUP_LOOP', '#382')\nline 3149: orig ('FOR_ITER', '#382') | got ('FOR_ITER', '#381')\nline 3265: orig ('POP_JUMP_IF_TRUE', '#172') | got ('POP_JUMP_IF_TRUE', '#171')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "contextlib",

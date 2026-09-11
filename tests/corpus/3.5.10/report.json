@@ -149,7 +149,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 3607: orig  ctx=Del())]) | dec  ctx=Del())",
+   "ast_detail": "diff at token 4042: orig  body=[If(test=Attribute(value=Name(id='self' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 430,
    "ntotal": 4295,
