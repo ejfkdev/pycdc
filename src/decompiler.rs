@@ -2128,6 +2128,57 @@ impl<'a> Ctx<'a> {
                     self.legacy_chain_step(&inst);
                 }
             }
+            // py2 shared merge trampoline: the enclosing guard's end
+            // offset is a forward JUMP that both the guard's false
+            // path (through POP glue) and the try's else-region arm
+            // ends converge on. The close below would seal the guard
+            // and open a glue Else arm over the trampoline, and the
+            // due walk-flush after it would push the Try INTO that
+            // glue arm - rendering the guard's else as the try and
+            // its then arm as `pass` (CGIHTTPServer 2.6 run_cgi:
+            // `if basic:` flipped). Flush the due chain NOW, while
+            // the guard is still open, so the Try lands as the then
+            // arm's last statement.
+            if matches!(
+                inst.op,
+                Op::JUMP_ABSOLUTE | Op::JUMP_FORWARD | Op::JUMP
+            ) && !inst.is_backward
+                && self.legacy_handler.is_none()
+                && self
+                    .legacy_try
+                    .as_ref()
+                    .map_or(false, |l| {
+                        l.chain_done
+                            && !l.handlers.is_empty()
+                            && !l.has_finally
+                            && pos >= l.else_stop
+                            && l.else_start.map_or(false, |es| {
+                                self.blocks.iter().any(|b| {
+                                    matches!(
+                                        b.kind,
+                                        BlockType::If | BlockType::Else
+                                    ) && b.end == pos
+                                        && b.start < es
+                                })
+                            })
+                    })
+            {
+                self.flush_pending_stores();
+                let l = self.legacy_try.take().unwrap();
+                if let Some(depth) = self.finish_legacy_nest() {
+                    while self.blocks.len() > depth.max(1) {
+                        let p =
+                            self.blocks.last().map(|b| b.start).unwrap_or(pos);
+                        self.force_close_top(p);
+                    }
+                }
+                self.push_stmt(Stmt::Try {
+                    body: l.body,
+                    handlers: l.handlers,
+                    orelse: l.orelse,
+                    finalbody: l.finalbody,
+                });
+            }
             // an if/else branch may have closed exactly at this offset
             // while the chain step ran (the fused or-continue chain skips
             // ahead into its body); close it before executing here
@@ -2179,6 +2230,37 @@ impl<'a> Ctx<'a> {
                             inst.offset >= l.else_stop
                         })
                 })
+                // the flush offset must not be a shared merge
+                // trampoline: a FORWARD jump instruction whose target
+                // is also targeted from BEFORE the else region is the
+                // enclosing guard's merge glue (py2 pads it with
+                // POP/JABS hops). Flushing there pushes the Try into
+                // the guard one instruction before the guard's own
+                // end-jump, and the jump handling then reads the Try
+                // as the guard's ELSE arm (CGIHTTPServer 2.6 run_cgi:
+                // `if basic:` rendered `pass` with the whole try in
+                // its else). Defer to the trampoline's target, where
+                // the guard has closed and the Try lands as its
+                // sibling.
+                && !self
+                    .legacy_try
+                    .as_ref()
+                    .map_or(false, |l| {
+                        l.else_start.map_or(false, |es| {
+                            inst.is_jump()
+                                && !inst.is_backward
+                                && inst.target.map_or(false, |t| {
+                                    t > inst.offset
+                                })
+                                && self.blocks.iter().any(|b| {
+                                    matches!(
+                                        b.kind,
+                                        BlockType::If | BlockType::Else
+                                    ) && b.end == inst.offset
+                                        && b.start < es
+                                })
+                        })
+                    })
             {
                 // Flush the else region's pending stores BEFORE taking the
                 // legacy try, so push_stmt still routes them into lt.orelse
@@ -9352,7 +9434,46 @@ impl<'a> Ctx<'a> {
                                                 // emitted the Try INSIDE
                                                 // the guard at its arm-end
                                                 // JABS)
-                                                || inst.target == Some(t.end))
+                                                || inst.target == Some(t.end)
+                                                // py2's non-popping cond
+                                                // jumps leave a POP_TOP at
+                                                // each arm head: the gap
+                                                // between this edge and the
+                                                // arm block's end is pure
+                                                // POP glue (CGIHTTPServer
+                                                // 2.6 run_cgi: the guard's
+                                                // then-arm end JABS flies
+                                                // to a trampoline PAST the
+                                                // arm end and cur_next sits
+                                                // on the false-path POP)
+                                                || (t.end > self.cur_next
+                                                    && self
+                                                        .idx_of
+                                                        .get(&self.cur_next)
+                                                        .zip(
+                                                            self.idx_of
+                                                                .get(&t.end),
+                                                        )
+                                                        .map_or(
+                                                            false,
+                                                            |(a, b)| {
+                                                                let a = *a;
+                                                                let b = *b;
+                                                                b > a
+                                                                    && self
+                                                                        .instrs
+                                                                        [a..b]
+                                                                        .iter()
+                                                                        .all(
+                                                                            |x| {
+                                                                                matches!(
+                                                                                    x.op,
+                                                                                    Op::POP_TOP
+                                                                                )
+                                                                            },
+                                                                        )
+                                                            },
+                                                )))
                                     })
                                 },
                             );
@@ -9366,8 +9487,61 @@ impl<'a> Ctx<'a> {
                             // initiate_send: the tail Try hoisted above
                             // the while loop and swallowed it into the
                             // orelse)
+                            // py2 arm-tail glue: the region block has
+                            // ENDED at this edge (t.end == pos) and the
+                            // span from here to the edge's target is
+                            // pure dead POP/jump trampoline. Emitting
+                            // now lets the main loop's jump handling
+                            // open an Else region over the glue, which
+                            // swallows the deferred Try (CGIHTTPServer
+                            // 2.6 run_cgi: the guard `if len(...)==2:`
+                            // end JABS->merge opened Else[996,1004)
+                            // over POP/JABS glue and the Try rendered
+                            // as the guard's else arm). Defer to the
+                            // merge edge, where the Try lands after the
+                            // closed guard.
+                            let glue_ahead = self
+                                .blocks
+                                .last()
+                                .map_or(false, |t| {
+                                    matches!(
+                                        t.kind,
+                                        BlockType::If | BlockType::Else
+                                    ) && t.end == pos
+                                        && lt
+                                            .else_start
+                                            .map_or(false, |es| {
+                                                t.start >= es
+                                            })
+                                })
+                                && inst.target.map_or(false, |tgt| {
+                                    tgt > pos
+                                        && self
+                                            .idx_of
+                                            .get(&pos)
+                                            .zip(self.idx_of.get(&tgt))
+                                            .map_or(false, |(a, b)| {
+                                                let (a, b) = (*a, *b);
+                                                b >= a + 2
+                                                    && self.instrs[a + 1..b]
+                                                        .iter()
+                                                        .all(|x| {
+                                                            matches!(
+                                                                x.op,
+                                                                Op::POP_TOP
+                                                            ) || (x.is_jump()
+                                                                && x.target
+                                                                    .map_or(
+                                                                        false,
+                                                                        |t2| {
+                                                                            t2 >= tgt
+                                                                        },
+                                                                    ))
+                                                        })
+                                            })
+                                });
                             if in_else
-                                && region_mid_parse
+                                && (region_mid_parse || glue_ahead)
                                 && self
                                     .blocks
                                     .last()
