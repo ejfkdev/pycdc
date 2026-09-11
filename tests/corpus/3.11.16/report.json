@@ -101,11 +101,11 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
+   "ast_detail": "diff at token 1532: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1808,
+   "ndiff": 729,
    "ntotal": 2107,
-   "detail": "line 230: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 146') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 86')\nline 237: orig ('PUSH_EXC_INFO', '') | got ('LOAD_GLOBAL', 'NULL + isinstance')\nline 238: orig ('LOAD_GLOBAL', 'UnicodeEncodeError') | got ('LOAD_FAST', 's')"
+   "detail": "line 1292: orig ('FOR_ITER', 'to 828') | got ('FOR_ITER', 'to 826')\nline 1302: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 638') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 636')\nline 1305: orig ('JUMP_FORWARD', 'to 638') | got ('JUMP_FORWARD', 'to 636')"
   },
   {
    "module": "bdb",

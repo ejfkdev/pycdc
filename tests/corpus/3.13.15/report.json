@@ -105,11 +105,11 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 43: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
+   "ast_detail": "diff at token 921: orig  value=ListComp(elt=IfExp(test=BoolOp(op=And() | dec  value=Name(id='words'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1808,
+   "ndiff": 1141,
    "ntotal": 2125,
-   "detail": "line 280: orig ('LOAD_GLOBAL', 'UnicodeEncodeError') | got ('LOAD_GLOBAL', 'TypeError')\nline 284: orig ('LOAD_GLOBAL', 'ValueError + NULL') | got ('LOAD_GLOBAL', 'TypeError + NULL')\nline 285: orig ('LOAD_CONST', \"'string argument should contain only ASCII characters'\") | got ('LOAD_CONST', \"'argument should be a bytes-like object or ASCII string, not %r'\")"
+   "detail": "line 971: orig ('GET_ITER', '') | got ('STORE_FAST', 'chunks')\nline 972: orig ('LOAD_FAST_AND_CLEAR', 'word') | got ('LOAD_FAST', 'padding')\nline 973: orig ('SWAP', '') | got ('TO_BOOL', '')"
   },
   {
    "module": "bdb",

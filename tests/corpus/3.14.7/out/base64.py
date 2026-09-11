@@ -7,7 +7,10 @@ bytes_types = bytes, bytearray
 
 def _bytes_from_decode_data(s):
     if isinstance(s, str):
-        return s.encode('ascii')
+        try:
+            return s.encode('ascii')
+        except UnicodeEncodeError:
+            raise ValueError('string argument should contain only ASCII characters')
     if isinstance(s, bytes_types):
         return s
     try:

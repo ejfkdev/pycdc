@@ -38181,16 +38181,24 @@ impl<'a> Ctx<'a> {
             ok
         };
         // main-only is the original (always-fire) shape; the nested-guard
-        // relaxation must veto a TERMINATING handler (`except E: raise ..`
-        // / `except E: return ..`): there the if-branch always terminates
-        // and the post-if continuation is a sibling reached via the guard's
-        // false edge, so the skip-to-chain-extent below would swallow it
-        // (base64 3.12 _bytes_from_decode_data `if isinstance(s,str): try:
-        // return s.encode(..) except UnicodeEncodeError: raise ValueError(..)`
-        // lost the sibling `if isinstance(s,bytes_types)` + memoryview try).
-        // A fall-through handler (pass / non-terminating body) flows to the
-        // continuation, so the relaxation is safe there (t_b self.log(),
-        // min_trypass / annotationlib evaluate `except ValueError: pass`).
+        // relaxation also fires for an if-nested `try: return X except E:
+        // ..`. For a TERMINATING handler (`except E: raise ..` / return) the
+        // if-branch always terminates and the post-if continuation is an
+        // INLINE SIBLING reached via the guard's false edge, sitting
+        // BETWEEN the body return and the out-of-line chain — so the
+        // skip-to-chain-extent below must NOT run (it would swallow the
+        // sibling); the walk processes the sibling and the chain-head
+        // skipper eats the already-parsed out-of-line chain (base64 3.12
+        // _bytes_from_decode_data `if isinstance(s,str): try: return
+        // s.encode(..) except UnicodeEncodeError: raise ValueError(..)` +
+        // sibling `if isinstance(s,bytes_types)` + memoryview try). A
+        // fall-through handler (pass / non-terminating body) flows to the
+        // continuation through the chain, so the skip is right there
+        // (t_b self.log(), min_trypass / annotationlib evaluate `except
+        // ValueError: pass`). A RETURN in the span is the fall-through
+        // continuation inlined after a non-terminating clause, and the
+        // chain's trailing RERAISE is no-match cleanup — only a clause-level
+        // `raise <expr>` (RAISE_VARARGS arg>0) marks termination.
         let main_only = self.blocks.len() == 1
             && matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main));
         let nested_handler_terminates = self
@@ -38199,13 +38207,6 @@ impl<'a> Ctx<'a> {
             .and_then(|tc| tc.except_handler)
             .map_or(false, |h| {
                 let ext = self.chain_extent(h);
-                // ONLY a clause-level `raise <expr>` (RAISE_VARARGS arg>0)
-                // marks a terminating handler. A RETURN in the span is the
-                // fall-through continuation inlined after a non-terminating
-                // clause (t_b `except ValueError: self.log()` then the
-                // function's `return self.owner` sits inside chain_extent),
-                // and the chain's trailing RERAISE is the no-match cleanup
-                // (arg-less) — neither means the clause terminates.
                 self.instrs.iter().any(|x| {
                     x.offset >= h
                         && x.offset < ext
@@ -38216,7 +38217,6 @@ impl<'a> Ctx<'a> {
         if self.version.at_least(3, 11)
             && self.legacy_handler.is_none()
             && main_or_guards
-            && (main_only || !nested_handler_terminates)
         {
             let at_region_edge = self
                 .pending_try_ctx
@@ -38257,7 +38257,15 @@ impl<'a> Ctx<'a> {
                     // whole chain region to its mainline resume — what
                     // the chain-head skipper would compute once the
                     // walk reaches the head.
-                    if self.skip_until.is_none() {
+                    // for a nested terminating handler the continuation is
+                    // an INLINE sibling between the body return and the
+                    // out-of-line chain — do NOT skip to the chain extent
+                    // (that swallows the sibling); let the walk run the
+                    // sibling and the chain-head skipper eat the parsed
+                    // chain when reached.
+                    if self.skip_until.is_none()
+                        && !(nested_handler_terminates && !main_only)
+                    {
                         if let Some(h) = exc_h {
                             if h > self.cur_offset {
                                 let ext = self.chain_extent(h);

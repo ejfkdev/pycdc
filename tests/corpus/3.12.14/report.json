@@ -93,11 +93,11 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 46: orig  body=[Try(body=[Return(value=Call(func=Attribute(value=Name(id='s' | dec  body=[Return(value=Call(func=Attribute(value=Name(id='s'",
+   "ast_detail": "diff at token 1132: orig  value=ListComp(elt=IfExp(test=BoolOp(op=And() | dec  value=Name(id='words'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1633,
+   "ndiff": 1007,
    "ntotal": 1926,
-   "detail": "line 217: orig ('POP_JUMP_IF_FALSE', 'to 70') | got ('POP_JUMP_IF_FALSE', 'to 68')\nline 227: orig ('POP_JUMP_IF_FALSE', 'to 106') | got ('POP_JUMP_IF_FALSE', 'to 104')\nline 237: orig ('LOAD_GLOBAL', 'UnicodeEncodeError') | got ('LOAD_GLOBAL', 'TypeError')"
+   "detail": "line 905: orig ('GET_ITER', '') | got ('STORE_FAST', 'chunks')\nline 906: orig ('LOAD_FAST_AND_CLEAR', 'word') | got ('LOAD_FAST', 'padding')\nline 907: orig ('SWAP', '') | got ('POP_JUMP_IF_FALSE', 'to 310')"
   },
   {
    "module": "bdb",
