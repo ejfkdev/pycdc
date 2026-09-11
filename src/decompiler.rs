@@ -2148,7 +2148,15 @@ impl<'a> Ctx<'a> {
             {
                 self.parse_skipped_nested_chain(pos);
             }
-            if self.legacy_handler.is_none()
+            // cascade: a nested chain's flush restores the stashed outer
+            // chain, which may ALSO be due at this very offset (two tries
+            // in a loop body, both else-regions capped at the loop exit —
+            // asynchat 3.10 initiate_send / t3: flushing only the inner
+            // here lets the loop's close at this offset fold the While
+            // INTO the outer's orelse redirect before the outer's own
+            // flush at the next instruction, stranding both at function
+            // level). Keep flushing while the active chain is due.
+            while self.legacy_handler.is_none()
                 && self.legacy_try.as_ref().map_or(false, |l| {
                     l.chain_done
                         && !l.handlers.is_empty()
@@ -8839,7 +8847,38 @@ impl<'a> Ctx<'a> {
                             // are parsed inline as execution continues; else
                             // statements are redirected into orelse by
                             // push_stmt until the region ends.
-                            let stop = self.next_boundary(target, usize::MAX);
+                            let mut stop = self.next_boundary(target, usize::MAX);
+                            // unbounded region INSIDE a loop: a nested
+                            // try's SETUP_FINALLY/handler glue makes every
+                            // later target look like an internal merge, so
+                            // next_boundary finds no region end — the
+                            // chain flush defers to walk end, by which
+                            // time the loop folded INTO the orelse
+                            // redirect and the Try stranded at function
+                            // level (asynchat 3.10 initiate_send: try1
+                            // emitted at Main with the `while` sunk into
+                            // its else arm and the handler's continue
+                            // outside the loop). The else arm is part of
+                            // the loop body: cap at the innermost
+                            // enclosing loop's exit so the walk-loop
+                            // flush fires there while the loop is open.
+                            // NOT the compiler's duplicated exit
+                            // epilogues past it: the flush window is the
+                            // pre-dispatch check at the loop end itself —
+                            // capping past it lets the loop close first
+                            // and its fold ride the redirect (t3 dual
+                            // exit 150/154).
+                            if let Some(b) = self.blocks.iter().rev().find(|b| {
+                                matches!(
+                                    b.kind,
+                                    BlockType::While | BlockType::For
+                                ) && b.start < target
+                                    && b.end > target
+                            }) {
+                                if stop > b.end {
+                                    stop = b.end;
+                                }
+                            }
                             if let Some(l) = self.legacy_try.as_mut() {
                                 l.else_start = Some(target);
                                 l.else_stop = stop;

@@ -150,38 +150,37 @@ class async_chat(asyncore.dispatcher):
         self.producer_fifo.append(None)
 
     def initiate_send(self):
-        try:
-            data = first[:obs]
-        except TypeError:
-            data = first.more()
-            if data:
-                self.producer_fifo.appendleft(data)
-            else:
+        while self.producer_fifo and self.connected:
+            first = self.producer_fifo[0]
+            if not first:
                 del self.producer_fifo[0]
-        else:
-            if isinstance(data, str) and self.use_encoding:
-                data = bytes(data, self.encoding)
+                if first is None:
+                    self.handle_close()
+                    return
+            obs = self.ac_out_buffer_size
             try:
-                num_sent = self.send(data)
-            except OSError:
-                self.handle_error()
-                # WARNING: break outside loop (unrecovered structure)
-            else:
-                if num_sent:
-                    if num_sent < len(data) or obs < len(first):
-                        self.producer_fifo[0] = first[num_sent:]
-                        return
+                data = first[:obs]
+            except TypeError:
+                data = first.more()
+                if data:
+                    self.producer_fifo.appendleft(data)
+                else:
                     del self.producer_fifo[0]
-                return
-                while self.producer_fifo and self.connected:
-                    first = self.producer_fifo[0]
-                    if not first:
-                        del self.producer_fifo[0]
-                        if first is None:
-                            self.handle_close()
+            else:
+                if isinstance(data, str) and self.use_encoding:
+                    data = bytes(data, self.encoding)
+                try:
+                    num_sent = self.send(data)
+                except OSError:
+                    self.handle_error()
+                    break
+                else:
+                    if num_sent:
+                        if num_sent < len(data) or obs < len(first):
+                            self.producer_fifo[0] = first[num_sent:]
                             return
-                    obs = self.ac_out_buffer_size
-                return
+                        del self.producer_fifo[0]
+                    return
 
     def discard_buffers(self):
         self.ac_in_buffer = b''

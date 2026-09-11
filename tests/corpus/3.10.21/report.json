@@ -88,11 +88,11 @@
   },
   {
    "module": "asynchat",
-   "ast_detail": "diff at token 696: orig  body=[While(test=BoolOp(op=And() | dec  body=[Try(body=[Assign(targets=[Name(id='data'",
+   "ast_detail": "diff at token 774: orig  ctx=Del())])]) | dec  ctx=Del())])])])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 244,
-   "ntotal": 808,
-   "detail": "line 559: orig ('LOAD_FAST', 'self') | got ('SETUP_FINALLY', 'to 18')\nline 560: orig ('LOAD_ATTR', 'producer_fifo') | got ('LOAD_FAST', 'first')\nline 561: orig ('POP_JUMP_IF_FALSE', 'to 264') | got ('LOAD_CONST', 'None')"
+   "ndiff": 125,
+   "ntotal": 818,
+   "detail": "line 561: orig ('POP_JUMP_IF_FALSE', 'to 264') | got ('POP_JUMP_IF_FALSE', 'to 280')\nline 564: orig ('POP_JUMP_IF_FALSE', 'to 268') | got ('POP_JUMP_IF_FALSE', 'to 284')\nline 622: orig ('JUMP_ABSOLUTE', 'to 0') | got ('JUMP_FORWARD', 'to 264')"
   },
   {
    "module": "asyncore",
