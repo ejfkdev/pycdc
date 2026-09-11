@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
   "PASS": 28,
-  "SIG-DIFF": 9,
-  "AST-PASS": 3
+  "SIG-DIFF": 8,
+  "AST-PASS": 4
  },
  "results": [
   {
@@ -105,11 +105,7 @@
   },
   {
    "module": "_abcoll",
-   "ast_detail": "diff at token 2219: orig  orelse=[If(test=Call(func=Name(id='hasattr' | dec  orelse=[])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1725,
-   "ntotal": 2188,
-   "detail": "line 386: orig ('POP_JUMP_IF_FALSE', '#12') | got ('POP_JUMP_IF_FALSE', '#11')\nline 391: orig ('POP_JUMP_IF_FALSE', '#12') | got ('POP_JUMP_IF_FALSE', '#11')\nline 394: orig ('JUMP_FORWARD', '#12') | got ('LOAD_GLOBAL', 'NotImplemented')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_osx_support",

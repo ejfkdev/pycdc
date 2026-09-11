@@ -32048,11 +32048,19 @@ if split_cond {
             k += 1;
         }
         if let Some(ins) = self.instrs.get(k) {
+            // a forward unconditional jump AT the exhaustion exit whose
+            // target is the loop end OR BEYOND is an if-arm-end
+            // trampoline, not the start of a for-else body (py2.7
+            // _abcoll MutableMapping.update: the first arm's
+            // `POP_BLOCK; JABS->165` flies past the SETUP_LOOP end 162
+            // to the chain merge; claiming [65,162) as a for-else
+            // swallowed the whole `elif hasattr(other,'keys'):` /
+            // `else:` chain and both arms vanished)
             if matches!(
                 ins.op,
                 Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
             ) && !ins.is_backward
-                && ins.target == Some(setup_end)
+                && ins.target.map_or(false, |t| t >= setup_end)
             {
                 return false;
             }
