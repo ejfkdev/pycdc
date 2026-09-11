@@ -37034,6 +37034,41 @@ impl<'a> Ctx<'a> {
                 return None;
             }
         }
+        // the success-side copy is the FUNCTION TAIL: only pads may
+        // follow it before the chain head. Without this the detector
+        // grabs a source-level bare `return None` living in the gap —
+        // an enclosing if/else arm's early return — and pops the
+        // handler clause's GENUINE `return None` as a "sunk copy"
+        // (annotationlib 3.14 _get_dunder_annotations / hr2: `except
+        // AttributeError: return None` rendered `pass`, leaving `ann`
+        // unbound at the isinstance check; the false pair anchored on
+        // the outer else arm's `return None` with the whole function
+        // tail after it)
+        // MAINLINE code may not follow the copy before the chain head.
+        // Other out-of-line handler chains DO sit in that window (3.12
+        // lays chains in order: chunk 3.12 __init__'s seekable-try copy
+        // at 396 is followed by the struct.error chain at 398 before
+        // its own handler at 450) — an offset is chain material when
+        // it lies at/after some exception-table entry's target.
+        let re = self.idx_of.get(&r).copied()?;
+        for x in &self.instrs[re + 1..] {
+            if x.offset >= handler {
+                break;
+            }
+            if matches!(
+                x.op,
+                Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::EXTENDED_ARG | Op::RESUME
+            ) {
+                continue;
+            }
+            let in_chain = self
+                .raw_exc_entries
+                .iter()
+                .any(|e| e.target <= x.offset);
+            if !in_chain {
+                return None;
+            }
+        }
         Some((r, chain_end))
     }
 
@@ -38074,6 +38109,7 @@ impl<'a> Ctx<'a> {
     }
 
     fn emit_return(&mut self, e: Option<ExprRef>) {
+
         // 3.10 sunk tail terminator: drop both implicit copies (this
         // arm) and let the chain fold at its RERAISE
         let is_none_value = match &e {

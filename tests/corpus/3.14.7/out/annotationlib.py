@@ -796,7 +796,7 @@ def _get_dunder_annotations(obj):
         try:
             ann = _BASE_GET_ANNOTATIONS(obj)
         except AttributeError:
-            pass
+            return
     else:
         ann = getattr(obj, '__annotations__', None)
         if not ann is not None:
