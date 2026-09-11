@@ -535,7 +535,7 @@ class Unparser(NodeVisitor):
         possible_quotes = [q for q in possible_quotes if q not in escaped_string]
         if not possible_quotes:
             string = repr(string)
-            quote = next((q for q in quote_types if string + 0 in q), string[0])
+            quote = next((q for q in quote_types if string[0] in q), string[0])
             return string[1:-1], [quote]
         if escaped_string:
             possible_quotes.sort(key=(lambda q: q[0] == escaped_string[-1]))

@@ -45005,14 +45005,41 @@ fn genexpr_ternary_merge(
                     let rhs = stack.pop();
                     let lhs = stack.pop();
                     if let (Some(l), Some(r)) = (lhs, rhs) {
-                        let name = crate::bytecode::binary_op_name(inst.arg, self.version)
-                            .unwrap_or("+");
-                        let op = binop_from_text(name);
-                        stack.push(Rc::new(Expr::Binary {
-                            op,
-                            left: l,
-                            right: r,
-                        }));
+                        match crate::bytecode::binary_op_name(
+                            inst.arg,
+                            self.version,
+                        ) {
+                            Some(name) => {
+                                let op = binop_from_text(name);
+                                stack.push(Rc::new(Expr::Binary {
+                                    op,
+                                    left: l,
+                                    right: r,
+                                }));
+                            }
+                            // 3.14 folded BINARY_SUBSCR into BINARY_OP
+                            // 26 (`[]`), with constant slices as
+                            // LOAD_CONST slice(...) - mirror the main
+                            // handler instead of defaulting to `+`
+                            // (cmd 3.14 complete_help genexpr:
+                            // `a[5:]` rendered `a + slice(5, None,
+                            // None)` and `args[0]` rendered `args + 0`)
+                            None if self.version.at_least(3, 14) => {
+                                let idx = normalize_slice_call(r);
+                                stack.push(Rc::new(Expr::Subscript {
+                                    value: l,
+                                    index: idx,
+                                }));
+                            }
+                            None => {
+                                let op = binop_from_text("+");
+                                stack.push(Rc::new(Expr::Binary {
+                                    op,
+                                    left: l,
+                                    right: r,
+                                }));
+                            }
+                        }
                     }
                 }
                 Op::BINARY_ADD

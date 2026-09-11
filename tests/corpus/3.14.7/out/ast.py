@@ -175,7 +175,7 @@ def dump(node, annotate_fields=True, include_attributes=False, *, indent=None, s
         if isinstance(node, list):
             if not node:
                 return ('[]', True)
-            return f'[{prefix!s}{sep.join((_format(x, level) + 0 for x in node))!s}]', False
+            return f'[{prefix!s}{sep.join((_format(x, level)[0] for x in node))!s}]', False
         return repr(node), True
 
     if not isinstance(node, AST):
