@@ -11410,6 +11410,129 @@ impl<'a> Ctx<'a> {
                         pending_mismatch: Vec::new(),
                         else_stmt_mark: mark,
                     });
+                    // else arm WITHOUT a body-end JF: a terminating
+                    // else (raise/return) needs no skip jump, so its
+                    // statements sit between the POP_BLOCK and the
+                    // handler head with no registration — they leak
+                    // into the enclosing block and render BEFORE the
+                    // flushed Try (contextlib 3.10
+                    // _GeneratorContextManager.__exit__: `else: raise
+                    // RuntimeError("generator didn't stop")` rendered
+                    // above a dead try, so every CLEAN with-exit
+                    // raised). Register the arm unless the span is a
+                    // known sunk copy shape: a pure value run ending
+                    // in a RETURN (`try: return v` success-path copy,
+                    // routed into the body by emit_return — the
+                    // comment there notes 3.11 LOAD None; RETURN is
+                    // indistinguishable from a genuine sunk
+                    // continuation) or a RAISE mirrored inside the
+                    // chain (the 3.8-3.10 sunk tail-raise pair,
+                    // _sitebuiltins Quitter.__call__).
+                    if !has_finally && pos > self.cur_next {
+                        let next_is_fwd_jump = self
+                            .idx_of
+                            .get(&self.cur_next)
+                            .map_or(false, |&ni| {
+                                let x = &self.instrs[ni];
+                                !x.is_backward
+                                    && matches!(
+                                        x.op,
+                                        Op::JUMP_FORWARD
+                                            | Op::JUMP
+                                            | Op::JUMP_ABSOLUTE
+                                    )
+                            });
+                        if !next_is_fwd_jump {
+                            let span = self
+                                .idx_of
+                                .get(&self.cur_next)
+                                .zip(self.idx_of.get(&pos))
+                                .map(|(&a, &b)| (a, b));
+                            if let Some((a, b)) = span {
+                                if b > a {
+                                    let mut last_meaningful = None;
+                                    let mut all_value = true;
+                                    for x in &self.instrs[a..b] {
+                                        if matches!(
+                                            x.op,
+                                            Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                                        ) {
+                                            continue;
+                                        }
+                                        last_meaningful = Some(x);
+                                        if x.target.is_some()
+                                            || x.is_backward
+                                            || !matches!(
+                                                x.op,
+                                                Op::LOAD_GLOBAL
+                                                    | Op::LOAD_FAST
+                                                    | Op::LOAD_NAME
+                                                    | Op::LOAD_CONST
+                                                    | Op::LOAD_ATTR
+                                                    | Op::LOAD_METHOD
+                                                    | Op::LOAD_DEREF
+                                                    | Op::LOAD_CLOSURE
+                                                    | Op::CALL_FUNCTION
+                                                    | Op::CALL_METHOD
+                                                    | Op::CALL_FUNCTION_KW
+                                                    | Op::PRECALL
+                                                    | Op::CALL
+                                                    | Op::KW_NAMES
+                                                    | Op::BINARY_OP
+                                                    | Op::BINARY_SUBSCR
+                                                    | Op::BUILD_TUPLE
+                                                    | Op::BUILD_LIST
+                                                    | Op::BUILD_MAP
+                                                    | Op::BUILD_SET
+                                                    | Op::BUILD_STRING
+                                                    | Op::FORMAT_VALUE
+                                                    | Op::COMPARE_OP
+                                                    | Op::CONTAINS_OP
+                                                    | Op::IS_OP
+                                                    | Op::UNARY_NOT
+                                                    | Op::RETURN_VALUE
+                                                    | Op::RETURN_CONST
+                                                    | Op::RAISE_VARARGS
+                                                    | Op::POP_TOP
+                                                    | Op::STORE_FAST
+                                                    | Op::STORE_NAME
+                                                    | Op::STORE_ATTR
+                                                    | Op::STORE_SUBSCR
+                                            )
+                                        {
+                                            all_value = false;
+                                        }
+                                    }
+                                    let ends_return = matches!(
+                                        last_meaningful.map(|x| x.op),
+                                        Some(Op::RETURN_VALUE)
+                                            | Some(Op::RETURN_CONST)
+                                    );
+                                    let sunk_raise = last_meaningful
+                                        .filter(|x| x.op == Op::RAISE_VARARGS)
+                                        .map_or(false, |x| {
+                                            self.sunk_raise_pair_side(
+                                                x.offset,
+                                                x.arg,
+                                            ) == Some(true)
+                                        });
+                                    if all_value
+                                        && last_meaningful.is_some()
+                                        && !(all_value && ends_return)
+                                        && !sunk_raise
+                                    {
+                                        if let Some(l) =
+                                            self.legacy_try.as_mut()
+                                        {
+                                            l.else_start =
+                                                Some(self.cur_next);
+                                            l.else_stop = pos;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                 }
             }

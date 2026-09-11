@@ -116,11 +116,12 @@ class Coroutine(Awaitable):
         '''Raise GeneratorExit inside coroutine.
         '''
 
-        raise RuntimeError('coroutine ignored GeneratorExit')
         try:
             self.throw(GeneratorExit)
         except (GeneratorExit, StopIteration):
             pass
+        else:
+            raise RuntimeError('coroutine ignored GeneratorExit')
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -198,11 +199,12 @@ class AsyncGenerator(AsyncIterator):
         '''Raise GeneratorExit inside coroutine.
         '''
 
-        raise RuntimeError('asynchronous generator ignored GeneratorExit')
         try:
             await self.athrow(GeneratorExit)
         except (GeneratorExit, StopAsyncIteration):
             pass
+        else:
+            raise RuntimeError('asynchronous generator ignored GeneratorExit')
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -309,11 +311,12 @@ class Generator(Iterator):
         '''Raise GeneratorExit inside generator.
         '''
 
-        raise RuntimeError('generator ignored GeneratorExit')
         try:
             self.throw(GeneratorExit)
         except (GeneratorExit, StopIteration):
             pass
+        else:
+            raise RuntimeError('generator ignored GeneratorExit')
 
     @classmethod
     def __subclasshook__(cls, C):

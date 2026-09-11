@@ -3,7 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
   "PASS": 31,
-  "SIG-DIFF": 9
+  "SIG-DIFF": 8,
+  "AST-PASS": 1
  },
  "results": [
   {
@@ -22,9 +23,9 @@
    "module": "_collections_abc",
    "ast_detail": "diff at token 275: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2817,
+   "ndiff": 177,
    "ntotal": 3672,
-   "detail": "line 787: orig ('SETUP_FINALLY', 'to 22') | got ('LOAD_GLOBAL', 'RuntimeError')\nline 788: orig ('LOAD_FAST', 'self') | got ('LOAD_CONST', \"'coroutine ignored GeneratorExit'\")\nline 789: orig ('LOAD_METHOD', 'throw') | got ('CALL_FUNCTION', '')"
+   "detail": "line 3245: orig ('JUMP_IF_NOT_EXC_MATCH', 'to 38') | got ('JUMP_IF_NOT_EXC_MATCH', 'to 40')\nline 3253: orig ('POP_EXCEPT', '') | got ('LOAD_FAST', 'default')\nline 3254: orig ('LOAD_FAST', 'default') | got ('ROT_FOUR', '')"
   },
   {
    "module": "_compat_pickle",
@@ -184,11 +185,7 @@
   },
   {
    "module": "contextlib",
-   "ast_detail": "diff at token 409: orig  body=[Try(body=[Expr(value=Call(func=Name(id='next' | dec  body=[Raise(exc=Call(func=Name(id='RuntimeError'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1308,
-   "ntotal": 1874,
-   "detail": "line 551: orig ('POP_JUMP_IF_FALSE', 'to 50') | got ('POP_JUMP_IF_FALSE', 'to 16')\nline 552: orig ('SETUP_FINALLY', 'to 30') | got ('LOAD_GLOBAL', 'RuntimeError')\nline 553: orig ('LOAD_GLOBAL', 'next') | got ('LOAD_CONST', '\"generator didn\\'t stop\"')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "copy",
