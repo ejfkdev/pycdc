@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
   "PASS": 30,
-  "SIG-DIFF": 7,
-  "AST-PASS": 3
+  "SIG-DIFF": 6,
+  "AST-PASS": 4
  },
  "results": [
   {
@@ -117,11 +117,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 1503: orig  keywords=[]))] | dec  keywords=[]))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 610,
-   "ntotal": 2873,
-   "detail": "line 2246: orig ('POP_JUMP_IF_NONE', 'to 126') | got ('POP_JUMP_IF_NONE', 'to 142')\nline 2250: orig ('SWAP', '') | got ('COMPARE_OP', '<=')\nline 2251: orig ('COPY', '') | got ('POP_JUMP_IF_FALSE', 'to 142')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "cgitb",

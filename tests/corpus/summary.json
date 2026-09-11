@@ -19,8 +19,8 @@
   "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
   "counts": {
    "PASS": 31,
-   "AST-PASS": 3,
-   "SIG-DIFF": 6
+   "AST-PASS": 4,
+   "SIG-DIFF": 5
   }
  },
  "3.11.16": {
@@ -35,8 +35,8 @@
   "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
   "counts": {
    "PASS": 30,
-   "SIG-DIFF": 7,
-   "AST-PASS": 3
+   "SIG-DIFF": 6,
+   "AST-PASS": 4
   }
  },
  "3.13.15": {

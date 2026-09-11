@@ -209,6 +209,50 @@ def _sunk_return_orelse(stmts):
     return stmts
 
 
+def _sunk_bare_return_tail(stmts):
+    """Bare-return + duplicated function-tail variant of the sunk
+    re-attachment: [Try(orelse=[], last handler = H + T +
+    Return(None)), M + T] where T (>=1 stmts) is duplicated at the end
+    of the followers becomes [Try(orelse=[M], handler=H), T]. The
+    handler's bare return exits the function exactly like falling off
+    after T, and M runs only on the success path in both forms (cgi
+    3.12 print_directory: the dec sank `print(); return` into the
+    OSError handler and flattened the else arm to siblings)."""
+    if not (TRY_TYPES and stmts):
+        return stmts
+    for i, s in enumerate(stmts):
+        if not (TRY_TYPES and isinstance(s, TRY_TYPES)):
+            continue
+        handlers = getattr(s, 'handlers', None) or []
+        if not handlers or getattr(s, 'orelse', None) \
+                or getattr(s, 'finalbody', None):
+            continue
+        h = handlers[-1]
+        if len(h.body) < 2 or not isinstance(h.body[-1], ast.Return) \
+                or h.body[-1].value is not None:
+            continue
+        rest = stmts[i + 1:]
+        if not rest:
+            continue
+        if any(isinstance(x, (ast.Return, ast.Raise, ast.Break,
+                              ast.Continue)) for x in rest):
+            continue
+        maxk = min(len(h.body) - 1, len(rest))
+        for k in range(maxk, 0, -1):
+            tail_h = h.body[-1 - k:-1]
+            tail_r = rest[len(rest) - k:]
+            if all(ast.dump(a) == ast.dump(b)
+                   for a, b in zip(tail_h, tail_r)):
+                mid = rest[:len(rest) - k]
+                h.body = h.body[:-1 - k]
+                if not h.body:
+                    h.body = [ast.Pass()]
+                if mid:
+                    s.orelse = mid
+                return stmts[:i + 1] + list(tail_r)
+    return stmts
+
+
 def flatten_try_else(stmts, at_loop_tail=False, _chg=None):
     """When every handler ends terminally (return/raise/break/continue),
     'try: B else: O' followed by S is the same as 'try: B' with O and S
@@ -783,6 +827,37 @@ class Normalizer(ast.NodeTransformer):
             # produce None / StopIteration(None)); the renderer drops
             # it as implicit, so the comparator must too
             body.pop()
+        # a function-tail try: bare returns at the end of its arms are
+        # the decompiler materializing the function epilogue (3.12+
+        # RETURN_CONST None) into each exit path - observationally the
+        # fall-off-end the source has (cgi 3.12 FieldStorage.__del__:
+        # dec `try: close(); return except AttributeError: return` vs
+        # source `try: close() except AttributeError: pass`)
+        # py3 only: the materialized-epilogue returns are a 3.x
+        # compiler artifact; in py2 a bare return ending a
+        # function-tail try arm is real source code whose presence
+        # differs between the sides' renderings, and stripping it
+        # flipped handler-termination states asymmetrically (py2
+        # Cookie/cmd/asyncore regressed under the unconditional form)
+        if body and TRY_TYPES and isinstance(body[-1], TRY_TYPES) \
+                and sys.version_info[0] >= 3:
+            t = body[-1]
+            for _ in range(4):
+                changed = False
+                seqs = [t.body, t.orelse, t.finalbody]
+                seqs += [h.body for h in (getattr(t, 'handlers', None) or [])]
+                for seq in seqs:
+                    if (seq and isinstance(seq[-1], ast.Return)
+                            and seq[-1].value is None):
+                        seq.pop()
+                        changed = True
+                for h in (getattr(t, 'handlers', None) or []):
+                    if not h.body:
+                        h.body = [ast.Pass()]
+                if not t.body:
+                    t.body = [ast.Pass()]
+                if not changed:
+                    break
         if not body:
             node.body = [ast.Pass()]
         return node
@@ -1258,6 +1333,27 @@ def _normalize_func_tail_loop(node):
         _bare_return_to_break(last.body)
         _bare_return_to_break(getattr(last, 'orelse', []) or [])
         return
+    # descend through trailing If arms: a loop ending the last arm of
+    # a function-tail if/elif/else chain is still a function-tail loop
+    # (every loop exit falls to the function end), so bare returns
+    # inside it canonicalize to breaks (cgi 3.12 read_binary:
+    # `if todo >= 0: while todo > 0: ... return` vs the source break)
+    def _tail_loops(stmts, out):
+        if not stmts:
+            return
+        lst = stmts[-1]
+        if isinstance(lst, _LOOP_TYPES):
+            out.append(lst)
+        elif isinstance(lst, ast.If):
+            _tail_loops(lst.body, out)
+            _tail_loops(lst.orelse, out)
+    loops = []
+    _tail_loops(body, loops)
+    if loops:
+        for lp in loops:
+            _bare_return_to_break(lp.body)
+            _bare_return_to_break(getattr(lp, 'orelse', []) or [])
+        return
     for i, s in enumerate(body):
         if (isinstance(s, ast.While) and _is_const_true(s.test)
                 and i + 1 < len(body)):
@@ -1289,6 +1385,17 @@ def fold_while_head_guard(node):
     if not isinstance(node, ast.While) or not node.body:
         return None
     first = node.body[0]
+    if isinstance(first, ast.If) and not first.orelse \
+            and len(first.body) == 1 and isinstance(first.body[0], ast.If):
+        # merge nested single-If guards first so the dec's split
+        # `if a: if b: if c: break` folds like the source's combined
+        # `if a and b and c: break` (cgi 3.12
+        # read_lines_to_outerboundary limit guard)
+        for _ in range(5):
+            merged = merge_nested_ifs([first])
+            if not merged or ast.dump(merged[0]) == ast.dump(first):
+                break
+            first = merged[0]
     if not (isinstance(first, ast.If) and not first.orelse
             and len(first.body) == 1
             and isinstance(first.body[0], (ast.Break, ast.Continue))):
@@ -1983,7 +2090,8 @@ def dump(src):
                              getattr(ast, 'AsyncFunctionDef',
                                      ast.FunctionDef))):
                         val = flatten_tail_if_else(val)
-                    val = _sunk_return_orelse(val)
+                    val = _sunk_bare_return_tail(
+                        _sunk_return_orelse(val))
                     _lat = ('loop' if is_loop_body
                             else _in_loop_arm.get(id(node), False))
                     if _lat:
