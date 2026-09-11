@@ -63,7 +63,8 @@ Constructor arguments:
                 is_forwardref_format = False
             case Format.FORWARDREF:
                 is_forwardref_format = True
-        raise NotImplementedError(format)
+            case _:
+                raise NotImplementedError(format)
         if isinstance(self.__cell__, types.CellType):
             return self.__cell__.cell_contents
         if not owner is not None:
@@ -671,7 +672,8 @@ default, contingent on type(obj):
                 return annotations_to_string(ann)
         case Format.VALUE_WITH_FAKE_GLOBALS:
             raise ValueError('The VALUE_WITH_FAKE_GLOBALS format is for internal use only')
-    raise ValueError(f'Unsupported format {format!r}')
+        case _:
+            raise ValueError(f'Unsupported format {format!r}')
     if not ann is not None:
         if isinstance(obj, type) or callable(obj):
             return {}

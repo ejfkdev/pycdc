@@ -125,11 +125,11 @@
   },
   {
    "module": "annotationlib",
-   "ast_detail": "diff at token 191: orig  value=Constant(value=True))]) | dec  value=Constant(value=True))])])",
+   "ast_detail": "diff at token 207: orig  body=[Try(body=[Return(value=Attribute(value=Attribute(value=Name(id='self' | dec  body=[Return(value=Attribute(value=Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
-   "ndiff": 3761,
+   "ndiff": 3505,
    "ntotal": 4144,
-   "detail": "line 334: orig ('JUMP_FORWARD', 'to L4') | got ('JUMP_FORWARD', 'to L3')\nline 342: orig ('JUMP_FORWARD', 'to L4') | got ('LOAD_GLOBAL', 'NotImplementedError + NULL')\nline 343: orig ('LOAD_GLOBAL', 'NotImplementedError + NULL') | got ('LOAD_FAST', 'format')"
+   "detail": "line 552: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'cell_name, cell_value') | got ('LOAD_FAST', 'cell_name')\nline 553: orig ('CALL', '') | got ('LOAD_FAST', 'cell_value')\nline 554: orig ('POP_TOP', '') | got ('CALL', '')"
   },
   {
    "module": "ast",

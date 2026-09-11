@@ -41889,6 +41889,30 @@ impl<'a> Ctx<'a> {
     /// Parse a whole match statement whose first case head is at index
     /// `i0`, with `subject` already evaluated. Returns the statement and
     /// the offset just past the match.
+    /// The post-match merge offset: the nearest forward JUMP_FORWARD/JUMP
+    /// target from a fall-through case body that lands at/after `from`.
+    /// A `case _:` wildcard sits at the last value case's PJIF fail target,
+    /// while the post-match code sits at the fall-through bodies' jump
+    /// target — scanning back for that target distinguishes them.
+    fn match_post_merge(&self, from: usize) -> Option<usize> {
+        let from_off = self.instrs.get(from).map(|x| x.offset)?;
+        let mut best: Option<usize> = None;
+        for k in (0..from).rev() {
+            let x = &self.instrs[k];
+            if matches!(x.op, Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE)
+                && !x.is_backward
+            {
+                if let Some(t) = x.target {
+                    if t >= from_off {
+                        best = Some(t);
+                        break;
+                    }
+                }
+            }
+        }
+        best
+    }
+
     fn parse_match_region(&mut self, subject: ExprRef, i0: usize) -> Option<(Stmt, usize)> {
         let mut cases: Vec<MatchCase> = Vec::new();
         let mut i = i0;
@@ -42087,7 +42111,61 @@ impl<'a> Ctx<'a> {
                     }
                     found
                 };
-                if (popped_cleanup || body_loop_back)
+                // A `case _:` wildcard whose body TERMINATES (raise/return)
+                // has NO subject POP_TOP (the terminator discards the
+                // stack) and its predecessor body fell through (no loop
+                // back), so neither popped_cleanup nor body_loop_back
+                // holds. Recognize it: nk holds a terminator BEFORE the
+                // post-match merge (the fall-through bodies' JUMP_FORWARD
+                // target). annotationlib 3.14 ForwardRef.evaluate
+                // `match format: case STRING: return ..; case VALUE: ..;
+                // case _: raise NotImplementedError(format)` — the wildcard
+                // raise detached to a top-level unconditional raise,
+                // breaking the VALUE/FORWARDREF fall-through.
+                let no_pop_term_wildcard = !popped_cleanup
+                    && !body_loop_back
+                    && {
+                        let post_match = self.match_post_merge(nk);
+                        let mut m = nk;
+                        let mut term_before_merge = false;
+                        while m < self.instrs.len() {
+                            let mo = self.instrs[m].offset;
+                            if post_match == Some(mo) {
+                                break;
+                            }
+                            match self.instrs[m].op {
+                                Op::RAISE_VARARGS
+                                | Op::RETURN_VALUE
+                                | Op::RETURN_CONST => {
+                                    // REQUIRE a distinct post-match merge:
+                                    // a fall-through case body's
+                                    // JUMP_FORWARD target. Without it the
+                                    // "wildcard" is just the post-match
+                                    // tail-duplicated return (the last
+                                    // case's fail target IS the post-match
+                                    // code) — _strptime 3.13 TimeRE repl
+                                    // `match format_char: case 'Y'|..:
+                                    // year=True; case 'd': ..` + post
+                                    // `return self[format_char]` grew a
+                                    // spurious `case _:`. annotationlib's
+                                    // genuine wildcard raise sits BEFORE the
+                                    // VALUE/FORWARDREF arms' JUMP_FORWARD
+                                    // merge.
+                                    term_before_merge = post_match
+                                        .map_or(false, |pm| mo < pm);
+                                    break;
+                                }
+                                Op::CHECK_EXC_MATCH
+                                | Op::PUSH_EXC_INFO
+                                | Op::MATCH_CLASS
+                                | Op::MATCH_SEQUENCE
+                                | Op::MATCH_MAPPING => break,
+                                _ => m += 1,
+                            }
+                        }
+                        term_before_merge
+                    };
+                if (popped_cleanup || body_loop_back || no_pop_term_wildcard)
                     && !inverted_head
                     // the advance hopped through an explicit forward
                     // jump (the or-chain's no-match exit JF): what it
