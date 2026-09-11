@@ -83,8 +83,8 @@
    "module": "_py_warnings",
    "ast_detail": "diff at token 528: orig  Constant(value='\\n')]))])])] | dec  Constant(value='\\n')]))])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1982,
-   "ntotal": 3156,
+   "ndiff": 1950,
+   "ntotal": 3152,
    "detail": "line 1121: orig ('LOAD_CONST', 'slice(None, None, None)') | got ('LOAD_GLOBAL', 'slice + NULL')\nline 1122: orig ('DELETE_SUBSCR', '') | got ('LOAD_CONST', 'None')\nline 1123: orig ('LOAD_GLOBAL', '_wm') | got ('LOAD_CONST', 'None')"
   },
   {

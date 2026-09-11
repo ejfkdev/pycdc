@@ -305,8 +305,6 @@ class Cmd:
                         return
                 except AttributeError:
                     pass
-                else:
-                    return
             self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
             return
             func()

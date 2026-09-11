@@ -4410,6 +4410,26 @@ impl<'a> Ctx<'a> {
         {
             if let Some(handler) = tc.except_handler {
                 if let Some(&bi) = self.idx_of.get(&tc.body_end) {
+                    // a NON-HEAD fragment of a shared-handler region set
+                    // never owns an else span: the fragments are pieces of
+                    // ONE source try split around a with/comprehension, and
+                    // recovering from a middle/last piece fabricates a
+                    // phantom else out of the sibling machinery after it
+                    // (compileall 3.14 compile_file: the with-split
+                    // fragment [1956,1962) grew `else: while expect !=
+                    // actual: return success; try: return` from the
+                    // for/with exit material — the old full-span with scan
+                    // blocked it only by accident, via the with handler's
+                    // WITH_EXCEPT_START lying between the fragment and the
+                    // tail handler)
+                    let is_split_fragment = self
+                        .try_ctxs
+                        .values()
+                        .filter(|t| {
+                            t.except_handler == Some(handler)
+                                && t.start != tc.start
+                        })
+                        .any(|t| t.start < tc.start);
                     // Skip WITH-statement protection regions: a `with` inside
                     // the try splits the protected range around BEFORE_WITH /
                     // the __exit__ call, and those regions also reach here.
@@ -4418,11 +4438,30 @@ impl<'a> Ctx<'a> {
                     // can't tell them apart — detect the with protocol ops in
                     // the region instead. A real try/except/else body never
                     // contains the with protocol.
-                    let is_with_region = self.instrs.iter().any(|x| {
-                        matches!(x.op, Op::BEFORE_WITH | Op::WITH_EXCEPT_START)
-                            && x.offset >= tc.start
-                            && x.offset < handler
-                    });
+                    // Scope: the PROTECTED BODY [start, body_end] only (the
+                    // split's BEFORE_WITH sits AT the fragment's body_end).
+                    // The old full [start, handler) span predates the
+                    // out-of-line handler path: in 3.12+ the handler lies at
+                    // the function END, so an unrelated `with` ANYWHERE in
+                    // the post-try mainline tripped the check and killed the
+                    // else recovery (compileall 3.12/3.13 compile_dir: the
+                    // `else: from concurrent.futures import
+                    // ProcessPoolExecutor` flattened to an unconditional
+                    // sibling because the later `with
+                    // ProcessPoolExecutor(...)` sits before the tail
+                    // handler). The else span keeps its own has_with check
+                    // below.
+                    // with-protocol scan, early bound = the protected
+                    // body [start, body_end] (the split's BEFORE_WITH
+                    // sits AT the fragment's body_end). Used by the
+                    // inline-JF fallback scan below; the final gate
+                    // re-checks with the merge-bounded span.
+                    let is_with_region = is_split_fragment
+                        || self.instrs.iter().any(|x| {
+                            matches!(x.op, Op::BEFORE_WITH | Op::WITH_EXCEPT_START)
+                                && x.offset >= tc.start
+                                && x.offset <= tc.body_end
+                        });
                     // Recover the MERGE point where the try-success path and
                     // the handler both converge. Two layouts:
                     //  * out-of-line handler (3.12+): the handler is laid out
@@ -4873,63 +4912,248 @@ impl<'a> Ctx<'a> {
                     {
                         self.handler_sunk_tail.clear();
                     }
-                    if let Some((else_end, merge)) = merge {
-                        if else_end > tc.body_end && !is_with_region {
+                    if let Some((else_end, merge_start)) = merge {
+                        // a span whose LAST meaningful instruction is a
+                        // terminator or a jump does not fall through to
+                        // the merge — it is loop-exit machinery of a loop
+                        // inside the try body (fused back edge, for-else
+                        // return copy), NOT an else arm. A genuine else
+                        // arm always falls through to the merge, even
+                        // when loop glue (the body loop's back edge /
+                        // END_FOR) sits between the merged fragments and
+                        // the arm (_py_warnings 3.14 warn keeps its else;
+                        // compileall 3.14 compile_file's head fragment
+                        // recovery spanned the for-else exit [1942,1964)
+                        // ending in RETURN_VALUE 1962 and grew a phantom
+                        // `else: while expect != actual: return success`
+                        // — 3.14 with uses LOAD_SPECIAL so the
+                        // with-protocol scans cannot see the split)
+                        // the else arm starts after the LAST same-handler
+                        // fragment, not after the head's body_end: the
+                        // gap between merged fragments holds loop
+                        // back-edge / END_FOR / raise-fragment machinery
+                        // that must not be decompiled as else content
+                        // (_py_warnings 3.14 warn: the head fragment
+                        // [376,620) recovered the span from 620 and the
+                        // else grew `if not frame is None: pass; try:
+                        // raise ValueError except: ...` from the
+                        // machinery at [620,646); the genuine arm starts
+                        // at the last fragment's end 646)
+                        let span_start = self
+                            .try_ctxs
+                            .values()
+                            .filter(|t| t.except_handler == Some(handler))
+                            .map(|t| t.body_end)
+                            .max()
+                            .unwrap_or(tc.body_end)
+                            .max(tc.body_end);
+                        let span_falls_through = self
+                            .idx_of
+                            .get(&span_start)
+                            .zip(self.idx_of.get(&else_end))
+                            .map_or(false, |(&a, &b)| {
+                                if b <= a {
+                                    return false;
+                                }
+                                let span = &self.instrs[a..b];
+                                // tail guard: a back edge into the
+                                // protected body followed only by
+                                // pads/terminators is loop-exit
+                                // machinery of a loop inside the try
+                                // (compileall 3.14 compile_file:
+                                // JB 1948->1836 then END_FOR; POP_ITER;
+                                // LOAD; RETURN grew a phantom else) —
+                                // a genuine arm ending in a fused
+                                // `continue` has real statements after
+                                // its back edge (_sitebuiltins 3.11
+                                // _Printer.__call__)
+                                if let Some(bi) = span.iter().position(|x| {
+                                    x.is_backward
+                                        && x.target.map_or(false, |t| {
+                                            t >= tc.start && t < span_start
+                                        })
+                                }) {
+                                    if span[bi + 1..].iter().all(|x| {
+                                        matches!(
+                                            x.op,
+                                            Op::NOP
+                                                | Op::NOT_TAKEN
+                                                | Op::CACHE
+                                                | Op::EXTENDED_ARG
+                                                | Op::RESUME
+                                                | Op::END_FOR
+                                                | Op::POP_ITER
+                                                | Op::RETURN_VALUE
+                                                | Op::RETURN_CONST
+                                                | Op::RAISE_VARARGS
+                                                | Op::RERAISE
+                                                | Op::LOAD_CONST
+                                                | Op::LOAD_FAST
+                                                | Op::LOAD_NAME
+                                                | Op::LOAD_GLOBAL
+                                                | Op::LOAD_DEREF
+                                                | Op::LOAD_FAST_CHECK
+                                                | Op::LOAD_FAST_BORROW
+                                        )
+                                    }) {
+                                        return false;
+                                    }
+                                }
+                                span.iter().all(|x| {
+                                    match x.target {
+                                        Some(t) => {
+                                            if x.is_backward {
+                                                // onto the arm's OWN
+                                                // loop top (the `while
+                                                // key is None` inside
+                                                // _sitebuiltins' else
+                                                // arm) or an ENCLOSING
+                                                // loop top (a fused
+                                                // `continue` ending the
+                                                // arm, csv 3.11
+                                                // has_header); never
+                                                // into the protected
+                                                // body (checked above)
+                                                t >= span_start
+                                                    || t < tc.start
+                                            } else {
+                                                // forward jumps stay in
+                                                // the span or land on
+                                                // the arm end
+                                                t >= span_start
+                                                    && t <= else_end
+                                            }
+                                        }
+                                        None => !matches!(
+                                            x.op,
+                                            Op::RETURN_VALUE
+                                                | Op::RETURN_CONST
+                                                | Op::RAISE_VARARGS
+                                                | Op::RERAISE
+                                        ) || {
+                                            // a terminator mid-span is
+                                            // an if-arm's `raise`/
+                                            // `return`: a forward cond
+                                            // jump must skip over it
+                                            // (copyreg 3.12 _reduce_ex
+                                            // `else: if ...: raise
+                                            // TypeError; dict =
+                                            // getstate()` — PJFF 472->
+                                            // 496 over RAISE 494;
+                                            // _sitebuiltins PJFF
+                                            // 246->252 over RETURN 250)
+                                            span.iter().any(|y| {
+                                                !y.is_backward
+                                                    && y.target.map_or(
+                                                        false,
+                                                        |yt| {
+                                                            yt > x.offset
+                                                                && yt <= else_end
+                                                        },
+                                                    )
+                                                    && matches!(
+                                                        y.op,
+                                                        Op::JUMP_FORWARD
+                                                            | Op::JUMP
+                                                            | Op::POP_JUMP_IF_FALSE
+                                                            | Op::POP_JUMP_IF_TRUE
+                                                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                            | Op::POP_JUMP_BACKWARD_IF_FALSE
+                                                            | Op::POP_JUMP_BACKWARD_IF_TRUE
+                                                            | Op::POP_JUMP_IF_NONE
+                                                            | Op::POP_JUMP_IF_NOT_NONE
+                                                            | Op::POP_JUMP_FORWARD_IF_NONE
+                                                            | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                                                            | Op::POP_JUMP_BACKWARD_IF_NONE
+                                                            | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
+                                                            | Op::JUMP_IF_FALSE
+                                                            | Op::JUMP_IF_TRUE
+                                                    )
+                                            })
+                                        },
+                                    }
+                                })
+                            });
+                        // the recovered "else" holding ONLY a bare
+                        // `return None` is the try body's own tail
+                        // return: 3.12 excludes the non-raising RETURN
+                        // from the protected range, so it lands in
+                        // [body_end, merge) and mimics an else
+                        // (chunk.skip). Fold it back into the body - it
+                        // recompiles to the identical narrowed range. A
+                        // genuine `else: return` with the same shape
+                        // also recompiles identically, so the fold is
+                        // sig-safe. Computed BEFORE the gate: the sunk
+                        // tail return is the span's last instruction, so
+                        // the fall-through check alone would veto it.
+                        let bare_tail_span = {
+                            let be = self.idx_of.get(&span_start).copied();
+                            let ee = self.idx_of.get(&else_end).copied();
+                            match (be, ee) {
+                                (Some(b), Some(e)) if e > b => {
+                                    let mut rets = 0;
+                                    let mut only = true;
+                                    for x in &self.instrs[b..e] {
+                                        match x.op {
+                                            Op::NOP | Op::NOT_TAKEN
+                                            | Op::CACHE => {}
+                                            Op::RETURN_CONST => {
+                                                rets += 1;
+                                                if !matches!(
+                                                    self.code
+                                                        .consts
+                                                        .get(x.arg as usize)
+                                                        .map(|o| &**o),
+                                                    Some(PyObject::None)
+                                                ) {
+                                                    only = false;
+                                                }
+                                            }
+                                            Op::RETURN_VALUE => {
+                                                rets += 1;
+                                            }
+                                            _ => {
+                                                only = false;
+                                            }
+                                        }
+                                    }
+                                    only && rets == 1
+                                }
+                                _ => false,
+                            }
+                        };
+                        // with-protocol scan, gate bound = the else
+                        // MERGE start, not the tail handler — in 3.12+
+                        // the handler sits at the function end, so the
+                        // full [start, handler) span catches unrelated
+                        // mainline withs (compileall 3.12/3.13
+                        // compile_dir lost its else to the later `with
+                        // ProcessPoolExecutor(...)`), while a with
+                        // genuinely INSIDE the try body still trips
+                        // before the merge (annotationlib 3.14
+                        // ForwardRef.__init__: `with self._lock:`).
+                        let body_has_with = self.instrs.iter().any(|x| {
+                            matches!(
+                                x.op,
+                                Op::BEFORE_WITH | Op::WITH_EXCEPT_START
+                            ) && x.offset >= tc.start
+                                && x.offset < merge_start
+                        });
+                        if else_end > span_start
+                            && !is_with_region
+                            && !body_has_with
+                            && (span_falls_through || bare_tail_span)
+                        {
                             let has_with = self.instrs.iter().any(|x| {
                                 matches!(
                                     x.op,
                                     Op::BEFORE_WITH | Op::WITH_EXCEPT_START
-                                ) && x.offset >= tc.body_end
+                                ) && x.offset >= span_start
                                     && x.offset < else_end
                             });
                             if !has_with {
-                                // the recovered "else" holding ONLY a bare
-                                // `return None` is the try body's own tail
-                                // return: 3.12 excludes the non-raising
-                                // RETURN from the protected range, so it
-                                // lands in [body_end, merge) and mimics an
-                                // else (chunk.skip). Fold it back into the
-                                // body - it recompiles to the identical
-                                // narrowed range. A genuine `else: return`
-                                // with the same shape also recompiles
-                                // identically, so the fold is sig-safe.
-                                let bare_tail_return = {
-                                    let be = self.idx_of.get(&tc.body_end).copied();
-                                    let ee = self.idx_of.get(&else_end).copied();
-                                    match (be, ee) {
-                                        (Some(b), Some(e)) if e > b => {
-                                            let mut rets = 0;
-                                            let mut only = true;
-                                            for x in &self.instrs[b..e] {
-                                                match x.op {
-                                                    Op::NOP | Op::NOT_TAKEN
-                                                    | Op::CACHE => {}
-                                                    Op::RETURN_CONST => {
-                                                        rets += 1;
-                                                        if !matches!(
-                                                            self.code
-                                                                .consts
-                                                                .get(x.arg as usize)
-                                                                .map(|o| &**o),
-                                                            Some(PyObject::None)
-                                                        ) {
-                                                            only = false;
-                                                        }
-                                                    }
-                                                    Op::RETURN_VALUE => {
-                                                        rets += 1;
-                                                    }
-                                                    _ => {
-                                                        only = false;
-                                                    }
-                                                }
-                                            }
-                                            only && rets == 1
-                                        }
-                                        _ => false,
-                                    }
-                                };
-                                if bare_tail_return {
+                                if bare_tail_span {
                                     body.push(Stmt::Return(None));
                                 } else {
                                     // 3.14 narrows protected ranges at
@@ -4970,13 +5194,13 @@ impl<'a> Ctx<'a> {
                                             )
                                         })
                                     };
-                                    let mut region_from = tc.body_end;
+                                    let mut region_from = span_start;
                                     let mut net_push = 0usize;
-                                    if else_end > tc.body_end
-                                        && consumes(tc.body_end)
+                                    if else_end > span_start
+                                        && consumes(span_start)
                                     {
                                         if let Some(&bi) =
-                                            self.idx_of.get(&tc.body_end)
+                                            self.idx_of.get(&span_start)
                                         {
                                             let mut k = bi;
                                             let mut steps = 0;
@@ -5012,14 +5236,14 @@ impl<'a> Ctx<'a> {
                                             }
                                             if steps > 0
                                                 && self.instrs[k].offset
-                                                    < tc.body_end
+                                                    < span_start
                                             {
                                                 region_from =
                                                     self.instrs[k].offset;
                                             }
                                         }
                                     }
-                                    if region_from < tc.body_end {
+                                    if region_from < span_start {
                                         for _ in 0..net_push {
                                             self.stack.pop();
                                         }
@@ -5027,8 +5251,8 @@ impl<'a> Ctx<'a> {
                                     orelse = self
                                         .decompile_region(region_from, else_end);
                                 }
-                                if self.skip_until.map_or(true, |s| s < merge) {
-                                                                        self.skip_until = Some(merge);
+                                if self.skip_until.map_or(true, |s| s < merge_start) {
+                                                                        self.skip_until = Some(merge_start);
                                 }
                             }
                         }

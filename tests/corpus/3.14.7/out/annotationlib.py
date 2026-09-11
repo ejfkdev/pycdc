@@ -797,10 +797,13 @@ def _get_dunder_annotations(obj):
             ann = _BASE_GET_ANNOTATIONS(obj)
         except AttributeError:
             pass
-        else:
-            ann = getattr(obj, '__annotations__', None)
-            if not ann is not None:
-                pass
+    else:
+        ann = getattr(obj, '__annotations__', None)
+        if not ann is not None:
+            return
+    if not isinstance(ann, dict):
+        raise ValueError(f'{obj!r}.__annotations__ is neither a dict nor None')
+    return ann
 
 class _ExtraNameFixer(ast.NodeTransformer):
     '''Fixer for __extra_names__ items in ForwardRef __repr__ and string evaluation'''

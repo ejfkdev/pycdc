@@ -136,7 +136,7 @@
    "ast_detail": "diff at token 317: orig  ctx=Load())]))]) | dec  ctx=Load())]))])]",
    "verdict": "SIG-DIFF",
    "ndiff": 1124,
-   "ntotal": 1461,
+   "ntotal": 1462,
    "detail": "line 317: orig ('LOAD_ATTR', 'postloop + NULL|self') | got ('LOAD_ATTR', 'use_rawinput')\nline 318: orig ('CALL', '') | got ('TO_BOOL', '')\nline 319: orig ('POP_TOP', '') | got ('POP_JUMP_IF_FALSE', 'to L13')"
   },
   {
@@ -157,9 +157,9 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 246: orig  value=Constant(value=1))])] | dec  value=Constant(value=1))])])",
+   "ast_detail": "diff at token 837: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 636,
+   "ndiff": 623,
    "ntotal": 1551,
    "detail": "line 179: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 180: orig ('POP_JUMP_IF_TRUE', 'to L8') | got ('POP_JUMP_IF_FALSE', 'to L8')\nline 185: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')"
   },

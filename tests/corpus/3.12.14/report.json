@@ -140,7 +140,7 @@
    "ast_detail": "diff at token 327: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 1069,
-   "ntotal": 1366,
+   "ntotal": 1365,
    "detail": "line 276: orig ('LOAD_ATTR', 'NULL|self + postloop') | got ('LOAD_ATTR', 'use_rawinput')\nline 277: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 1010')\nline 278: orig ('POP_TOP', '') | got ('LOAD_FAST', 'self')"
   },
   {
@@ -161,9 +161,9 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 283: orig  orelse=[ImportFrom(module='concurrent.futures' | dec  orelse=[]",
+   "ast_detail": "diff at token 1073: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 595,
+   "ndiff": 594,
    "ntotal": 1484,
    "detail": "line 78: orig ('POP_JUMP_IF_FALSE', 'to 242') | got ('POP_JUMP_IF_FALSE', 'to 224')\nline 167: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 168: orig ('POP_JUMP_IF_TRUE', 'to 452') | got ('POP_JUMP_IF_FALSE', 'to 452')"
   },

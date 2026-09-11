@@ -315,8 +315,6 @@ class Cmd:
                         self.stdout.write('%s\n' % str(doc))
                 except AttributeError:
                     pass
-                else:
-                    return
             func()
             return
         names = self.get_names()
