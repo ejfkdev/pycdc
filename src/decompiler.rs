@@ -40049,9 +40049,17 @@ impl<'a> Ctx<'a> {
     /// py2/3.0-3.5 CALL_FUNCTION_KW: [callable, pos*na, (name,val)*nk,
     /// kwdict] — the **kwargs dict always rides on top
     fn call_function_py2_kw(&mut self, argc: usize) {
+        // [callable, pos*na, (name,val)*nk, kwdict]: dict on top, then
+        // the named pairs, then the positionals — 2.7/3.5 both compile
+        // `f(a, k=v)` WITHOUT a dict as CALL_FUNCTION na|nk<<8, so
+        // CALL_FUNCTION_KW only appears when ** rides along. Popping
+        // positionals before the pairs scrambled mixed calls
+        // (configparser 3.5 _get_conv: `self._get(section, conv,
+        // option, raw=raw, vars=vars, **kwargs)` rendered `_get(raw,
+        // 'vars', vars, conv, 'raw', **kwargs)` — the under-pop also
+        // left the receiver on the stack).
         let kwargs = self.pop_expr();
         let (npos, nkw) = (argc & 0xFF, (argc >> 8) & 0xFF);
-        let args = self.pop_n_exprs(npos as usize);
         let mut keywords = Vec::new();
         for _ in 0..nkw {
             let v = self.pop_expr();
@@ -40067,6 +40075,7 @@ impl<'a> Ctx<'a> {
             keywords.push((ks, v));
         }
         keywords.reverse();
+        let args = self.pop_n_exprs(npos as usize);
         let func = self.pop_callable();
         self.push(Rc::new(Expr::Call {
             func,
@@ -40078,10 +40087,12 @@ impl<'a> Ctx<'a> {
     }
 
     fn call_function_py2_varkw(&mut self, argc: usize) {
+        // [callable, pos*na, (name,val)*nk, *seq, **dict]: dict, seq,
+        // then the named pairs, then the positionals (same pairing fix
+        // as call_function_py2_kw)
         let kwargs = self.pop_expr();
         let star = self.pop_expr();
         let (npos, nkw) = (argc & 0xFF, (argc >> 8) & 0xFF);
-        let args = self.pop_n_exprs(npos as usize);
         let mut keywords = Vec::new();
         for _ in 0..nkw {
             let v = self.pop_expr();
@@ -40097,6 +40108,7 @@ impl<'a> Ctx<'a> {
             keywords.push((ks, v));
         }
         keywords.reverse();
+        let args = self.pop_n_exprs(npos as usize);
         let func = self.pop_callable();
         self.push(Rc::new(Expr::Call {
             func,

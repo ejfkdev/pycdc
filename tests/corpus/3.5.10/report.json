@@ -157,11 +157,11 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 3163: orig  args=[Name(id='section' | dec  args=[Name(id='raw'",
+   "ast_detail": "diff at token 4002: orig  ctx=Del())]) | dec  ctx=Del())",
    "verdict": "SIG-DIFF",
-   "ndiff": 1789,
-   "ntotal": 4295,
-   "detail": "line 2464: orig ('SETUP_EXCEPT', 'to 41') | got ('SETUP_EXCEPT', 'to 35')\nline 2467: orig ('LOAD_FAST', 'section') | got ('LOAD_FAST', 'raw')\nline 2468: orig ('LOAD_FAST', 'conv') | got ('LOAD_CONST', \"'vars'\")"
+   "ndiff": 600,
+   "ntotal": 4296,
+   "detail": "line 3690: orig ('POP_JUMP_IF_TRUE', '') | got ('UNARY_NOT', '')\nline 3691: orig ('LOAD_GLOBAL', 'TypeError') | got ('POP_JUMP_IF_FALSE', '')\nline 3692: orig ('LOAD_CONST', \"'option values must be strings'\") | got ('LOAD_GLOBAL', 'TypeError')"
   },
   {
    "module": "contextlib",
