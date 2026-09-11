@@ -61,7 +61,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 406: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
+   "ast_detail": "diff at token 760: orig  ctx=Load())]))]) | dec  ctx=Load())]))",
    "verdict": "SIG-DIFF",
    "ndiff": 627,
    "ntotal": 1362,

@@ -671,6 +671,17 @@ class Normalizer(ast.NodeTransformer):
             node.value = ast.Name(id='None', ctx=ast.Load())
         return node
 
+    def visit_Set(self, node):
+        self.generic_visit(node)
+        # set literals have no source order: sort constant elements so
+        # both renders compare equal (_markupbase 3.14
+        # `c in {'attlist', 'link', ...}` element order)
+        try:
+            node.elts.sort(key=lambda e: ast.dump(e))
+        except TypeError:
+            pass
+        return node
+
     def visit_Compare(self, node):
         self.generic_visit(node)
         # compilers flatten `a < b <= c` into `a < b and b <= c` (each
@@ -1281,6 +1292,62 @@ def fold_while_head_guard(node):
         orelse=node.orelse)
 
 
+def _is_assertion_error(t):
+    if isinstance(t, ast.Name):
+        return t.id == 'AssertionError'
+    if isinstance(t, ast.Attribute):
+        return t.attr == 'AssertionError'
+    return False
+
+
+def _invert_test(t):
+    if isinstance(t, ast.UnaryOp) and isinstance(t.op, ast.Not):
+        return t.operand
+    if isinstance(t, ast.Compare) and len(t.ops) == 1:
+        inv = {ast.Is: ast.IsNot, ast.IsNot: ast.Is,
+               ast.In: ast.NotIn, ast.NotIn: ast.In,
+               ast.Eq: ast.NotEq, ast.NotEq: ast.Eq}
+        for k, v in inv.items():
+            if isinstance(t.ops[0], k):
+                return ast.Compare(left=t.left, ops=[v()],
+                                   comparators=t.comparators)
+    return None
+
+
+def fold_if_raise_assert(stmts):
+    """`if <guard>: raise AssertionError[(msg)]` IS `assert <not
+    guard>[, msg]` - the compiler emits the same shape and the
+    decompiler legitimately picks either render (asyncore 2.7/3.x
+    compact_traceback `if not tb: raise AssertionError(...)` vs
+    `assert tb, ...`). Fold to the Assert form on both sides."""
+    out = []
+    for s in stmts:
+        if (isinstance(s, ast.If) and not s.orelse
+                and len(s.body) == 1
+                and isinstance(s.body[0], ast.Raise)):
+            r = s.body[0]
+            exc = getattr(r, 'exc', None) or getattr(r, 'type', None)
+            test = None
+            msg = None
+            if isinstance(exc, ast.Call) \
+                    and _is_assertion_error(exc.func) \
+                    and len(exc.args) <= 1 and not exc.keywords \
+                    and getattr(r, 'cause', None) is None:
+                test = s.test
+                msg = exc.args[0] if exc.args else None
+            elif exc is not None and not isinstance(exc, ast.Call) \
+                    and _is_assertion_error(exc):
+                test = s.test
+                msg = getattr(r, 'inst', None)
+            if test is not None:
+                inv = _invert_test(test)
+                if inv is not None:
+                    out.append(ast.Assert(test=inv, msg=msg))
+                    continue
+        out.append(s)
+    return out
+
+
 def flatten_tail_if_else(stmts):
     """A function-tail `if c: A else: B` (the If is the LAST
     statement of the body) is observationally identical to the
@@ -1885,6 +1952,7 @@ def dump(src):
                     is_loop_body = isinstance(node, _LOOP_TYPES) and field == 'body'
                     val = _fold_try_body_tail_return(val)
                     val = _normalize_handler_break_raise(val)
+                    val = fold_if_raise_assert(val)
                     # the tail-return flatten is only sound at a
                     # FUNCTION tail (falling off the end == return
                     # None); in a loop/handler body the added Return

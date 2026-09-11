@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
   "PASS": 28,
-  "AST-PASS": 6,
-  "SIG-DIFF": 6
+  "AST-PASS": 7,
+  "SIG-DIFF": 5
  },
  "results": [
   {
@@ -33,7 +33,7 @@
   },
   {
    "module": "HTMLParser",
-   "ast_detail": "diff at token 1008: orig  Assert(test=Num(n=0) | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 2366: orig  comparators=[List(elts=[Str(s='x') | dec  comparators=[Tuple(elts=[Str(s='x')",
    "verdict": "SIG-DIFF",
    "ndiff": 1025,
    "ntotal": 1607,
@@ -141,11 +141,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 2562: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 298,
-   "ntotal": 2185,
-   "detail": "line 133: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 165: orig ('BUILD_TUPLE', '0') | got ('LOAD_CONST', '()')\nline 1869: orig ('POP_JUMP_IF_TRUE', '#16') | got ('POP_JUMP_IF_TRUE', '#15')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "atexit",

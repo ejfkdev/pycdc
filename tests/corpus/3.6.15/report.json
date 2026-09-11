@@ -33,7 +33,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 504: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Set(elts=[Str(s='linktype')",
+   "ast_detail": "diff at token 920: orig  orelse=[Assign(targets=[Tuple(elts=[Name(id='name' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 701,
    "ntotal": 1408,

@@ -32,7 +32,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 594: orig  Constant(value='linktype' | dec  Constant(value='link'",
+   "ast_detail": "diff at token 1096: orig  orelse=[Assign(targets=[Tuple(elts=[Name(id='name' | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 681,
    "ntotal": 1389,
