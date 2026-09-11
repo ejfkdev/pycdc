@@ -16644,7 +16644,7 @@ impl<'a> Ctx<'a> {
                                 BlockType::If | BlockType::Else
                             ) && b.start <= self.cur_offset
                                 && b.end > self.cur_offset
-                                && b.else_end.map_or(false, |ee| {
+                                && (b.else_end.map_or(false, |ee| {
                                     // the else arm either ends with
                                     // its own back edge at ee-2 or
                                     // falls through into the loop's
@@ -16673,7 +16673,7 @@ impl<'a> Ctx<'a> {
                                                                 == Some(target)
                                                     })
                                             })
-                                })
+                                }))
                         });
                     if !lands_on_back_edge
                         && !chain_body_hop
@@ -30167,6 +30167,67 @@ if split_cond {
         blk.jump_if_true = jump_if_true;
         blk.stack_depth = self.stack.len();
         blk.else_end = shared_exit_else;
+        if blk.else_end.is_none() && self.version.major == 2 {
+            // py2 fused if/else at a loop tail: the non-popping cond
+            // jump (JUMP_IF_FALSE/TRUE - the value is POP_TOPped at
+            // BOTH arm heads) targets the else arm head, the then arm
+            // ends on the loop back edge (no forward skip exists to
+            // trigger the generic else marking), and the else arm
+            // ends on the very same back edge. Without this the arm
+            // flattens into the loop body (calendar 2.6
+            // itermonthdays2: `if c: yield a else: yield b` rendered
+            // `yield a; continue` + flat `yield b` - equivalent but
+            // recompiles with an extra dead JUMP_FORWARD; suppressing
+            // the Continue alone strands the arm and double-yields).
+            // The fused then-arm end is what separates this from a
+            // genuine source `continue`: with `if c: A; continue` +
+            // tail S, S must stay unconditional (b16_loopflow), and
+            // py3 POP_-style conds compile the tail as an explicit
+            // JUMP_FORWARD, never a fused back edge.
+            let cur_op = self
+                .idx_of
+                .get(&self.cur_offset)
+                .map(|&ci| self.instrs[ci].op);
+            if matches!(
+                cur_op,
+                Some(
+                    Op::JUMP_IF_FALSE
+                        | Op::JUMP_IF_TRUE
+                        | Op::JUMP_IF_FALSE_OR_POP
+                        | Op::JUMP_IF_TRUE_OR_POP
+                )
+            ) && self
+                .idx_of
+                .get(&target)
+                .map_or(false, |&ti| ti > 0)
+            {
+                let ti = self.idx_of[&target];
+                // the normalized target sits past the arm-head
+                // POP_TOPs that discard py2's surviving cond value -
+                // step back over them to the then arm's terminator
+                let mut pi = ti;
+                while pi > 0 && matches!(self.instrs[pi - 1].op, Op::POP_TOP) {
+                    pi -= 1;
+                }
+                let prev = &self.instrs[pi - 1];
+                if pi > 0
+                    && prev.is_backward
+                    && matches!(
+                        prev.op,
+                        Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                            | Op::JUMP
+                    )
+                    && prev
+                        .target
+                        .map_or(false, |t| self.is_loop_top_target(t))
+                {
+                    blk.else_end =
+                        self.fused_else_region_converges(target);
+                }
+            }
+        }
         self.blocks.push(blk);
     }
 
@@ -32632,6 +32693,45 @@ if split_cond {
             k += 1;
         }
         saw_real
+    }
+
+    /// Walk the region right after an open If's then-arm end (`start`
+    /// = the cond jump's target / block end) looking for the loop back
+    /// edge `target`. The region converges when its FIRST jump is that
+    /// same back edge — the else arm is the loop body's last statement
+    /// and both arms rejoin at the loop top, so a Continue closing the
+    /// then arm is the compiler's fused arm-end jump, not source
+    /// (calendar 2.6 itermonthdays2: py2.6 fuses
+    /// `if c: yield a else: yield b` with the then arm ending JABS->loop
+    /// top and the else arm ending on the same edge; rendering the
+    /// Continue recompiles to an extra dead JUMP_FORWARD). Any other
+    /// jump first (a cond jump, an edge elsewhere) means the region is
+    /// not a plain converging arm — bail and keep the historic path.
+    fn fused_else_region_converges(&self, start: usize) -> Option<usize> {
+        let &si = self.idx_of.get(&start)?;
+        for ins in &self.instrs[si..] {
+            if ins.is_jump() {
+                // a non-empty region whose FIRST jump is a back edge to
+                // a loop top: the arm is the loop body's last statement
+                if ins.offset > start
+                    && ins.is_backward
+                    && matches!(
+                        ins.op,
+                        Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                            | Op::JUMP
+                    )
+                    && ins
+                        .target
+                        .map_or(false, |t| self.is_loop_top_target(t))
+                {
+                    return Some(ins.offset);
+                }
+                return None;
+            }
+        }
+        None
     }
 
     fn is_continue_jump(&self, target: usize) -> bool {

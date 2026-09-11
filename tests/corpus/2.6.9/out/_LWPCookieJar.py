@@ -129,8 +129,8 @@ class LWPCookieJar(FileCookieJar):
                             continue
                         if k in value_attrs:
                             standard[k] = v
-                            continue
-                        rest[k] = v
+                        else:
+                            rest[k] = v
                     h = standard.get
                     expires = h('expires')
                     discard = h('discard')

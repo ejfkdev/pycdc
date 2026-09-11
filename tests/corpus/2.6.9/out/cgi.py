@@ -229,8 +229,8 @@ def parse_multipart(fp, pdict):
             continue
         if name in partdict:
             partdict[name].append(data)
-            continue
-        partdict[name] = [data]
+        else:
+            partdict[name] = [data]
     return partdict
 
 def _parseparam(s):
@@ -749,8 +749,8 @@ class SvFormContentDict(FormContentDict):
         for value in self.dict.values():
             if len(value) == 1:
                 result.append(value[0])
-                continue
-            result.append(value)
+            else:
+                result.append(value)
         return result
 
     def items(self):
@@ -758,8 +758,8 @@ class SvFormContentDict(FormContentDict):
         for key, value in self.dict.items():
             if len(value) == 1:
                 result.append((key, value[0]))
-                continue
-            result.append((key, value))
+            else:
+                result.append((key, value))
         return result
 
 

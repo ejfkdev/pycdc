@@ -99,8 +99,9 @@ class async_chat(asyncore.dispatcher):
                         self.collect_incoming_data(self.ac_in_buffer[:-index])
                         self.ac_in_buffer = self.ac_in_buffer[-index:]
                     break
-                self.collect_incoming_data(self.ac_in_buffer)
-                self.ac_in_buffer = ''
+                else:
+                    self.collect_incoming_data(self.ac_in_buffer)
+                    self.ac_in_buffer = ''
 
     def handle_write(self):
         self.initiate_send()

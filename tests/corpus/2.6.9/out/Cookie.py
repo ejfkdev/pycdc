@@ -216,10 +216,10 @@ def _unquote(str):
             res.append(str[i:k])
             res.append(str[k + 1])
             i = k + 2
-            continue
-        res.append(str[i:j])
-        res.append(chr(int(str[j + 1:j + 4], 8)))
-        i = j + 4
+        else:
+            res.append(str[i:j])
+            res.append(chr(int(str[j + 1:j + 4], 8)))
+            i = j + 4
     return _nulljoin(res)
 
 _weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -290,8 +290,8 @@ class Morsel(dict):
                 continue
             if K == 'httponly':
                 RA(str(self._reserved[K]))
-                continue
-            RA('%s=%s' % (self._reserved[K], V))
+            else:
+                RA('%s=%s' % (self._reserved[K], V))
         return _semispacejoin(result)
 
 

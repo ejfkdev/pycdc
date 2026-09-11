@@ -108,8 +108,8 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             if os.path.isdir(scriptdir):
                 dir, rest = nextdir, nextrest
                 i = path.find('/', len(dir) + 1)
-                continue
-            break
+            else:
+                break
         i = rest.rfind('?')
         if i >= 0:
             rest, query = rest[:i], rest[i + 1:]
@@ -183,8 +183,8 @@ class CGIHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         for line in self.headers.getallmatchingheaders('accept'):
             if line[:1] in '\t\n\r ':
                 accept.append(line.strip())
-                continue
-            accept = accept + line[7:].split(',')
+            else:
+                accept = accept + line[7:].split(',')
         env['HTTP_ACCEPT'] = ','.join(accept)
         ua = self.headers.getheader('user-agent')
         if ua:

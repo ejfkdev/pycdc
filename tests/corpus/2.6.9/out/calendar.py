@@ -150,8 +150,8 @@ class Calendar(object):
         for date in self.itermonthdates(year, month):
             if date.month != month:
                 yield (0, date.weekday())
-                continue
-            yield (date.day, date.weekday())
+            else:
+                yield (date.day, date.weekday())
 
     def itermonthdays(self, year, month):
         '''
@@ -162,8 +162,8 @@ class Calendar(object):
         for date in self.itermonthdates(year, month):
             if date.month != month:
                 yield 0
-                continue
-            yield date.day
+            else:
+                yield date.day
 
     def monthdatescalendar(self, year, month):
         """
@@ -335,8 +335,8 @@ class TextCalendar(Calendar):
                 for cal in row:
                     if j >= len(cal):
                         weeks.append('')
-                        continue
-                    weeks.append(self.formatweek(cal[j], w))
+                    else:
+                        weeks.append(self.formatweek(cal[j], w))
                 a(formatstring(weeks, colwidth, c).rstrip())
                 a('\n' * l)
         return ''.join(v)

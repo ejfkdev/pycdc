@@ -124,7 +124,8 @@ def resolve_dotted_attribute(obj, attr, allow_dotted_names=True):
     for i in attrs:
         if i.startswith('_'):
             raise AttributeError('attempt to access private attribute "%s"' % i)
-        obj = getattr(obj, i)
+        else:
+            obj = getattr(obj, i)
     return obj
 
 def list_public_methods(obj):
