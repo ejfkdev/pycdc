@@ -16924,6 +16924,53 @@ impl<'a> Ctx<'a> {
                                         .any(|&t| {
                                             t >= self.cur_next
                                                 && t < b.end
+                                                // not the block's OWN
+                                                // else entry: py2's
+                                                // value-preserving
+                                                // cond jumps target a
+                                                // POP_TOP one (or
+                                                // more) instructions
+                                                // before the normalized
+                                                // block end, so the
+                                                // else entry sits
+                                                // INSIDE [cur_next,
+                                                // end) and the pure-POP
+                                                // span from it to the
+                                                // end is arm-head glue,
+                                                // not a sibling chain
+                                                // arm (cmd 2.6 do_help:
+                                                // the do_ guard's
+                                                // JIF->439 POP entry
+                                                // counted as a sibling
+                                                // and the continue's
+                                                // close flattened the
+                                                // rest out of the arm)
+                                                && !self
+                                                    .idx_of
+                                                    .get(&t)
+                                                    .map_or(
+                                                        false,
+                                                        |&ti2| {
+                                                            self.instrs
+                                                                [ti2..]
+                                                                .iter()
+                                                                .take_while(|x| x.offset < b.end)
+                                                                .all(|x| {
+                                                                    matches!(
+                                                                        x.op,
+                                                                        Op::POP_TOP
+                                                                            | Op::NOP
+                                                                            | Op::NOT_TAKEN
+                                                                            | Op::CACHE
+                                                                    )
+                                                                })
+                                                                && self
+                                                                    .instrs
+                                                                    [ti2..]
+                                                                    .iter()
+                                                                    .any(|x| x.offset >= b.end)
+                                                        },
+                                                    )
                                                 && self
                                                     .instrs
                                                     .iter()

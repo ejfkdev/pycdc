@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "PASS": 16,
-  "AST-PASS": 13,
-  "SIG-DIFF": 11
+  "AST-PASS": 14,
+  "SIG-DIFF": 10
  },
  "results": [
   {
@@ -37,11 +37,11 @@
   },
   {
    "module": "HTMLParser",
-   "ast_detail": "diff at token 763: orig  orelse=[If(test=Compare(left=Str(s=';') | dec  orelse=[])]",
+   "ast_detail": "diff at token 898: orig  Assert(test=Num(n=0) | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 895,
-   "ntotal": 1416,
-   "detail": "line 339: orig ('SETUP_LOOP', '#380') | got ('SETUP_LOOP', '#242')\nline 343: orig ('JUMP_IF_FALSE', '#378') | got ('JUMP_IF_FALSE', '#240')\nline 399: orig ('JUMP_IF_FALSE', '#181') | got ('JUMP_IF_FALSE', '#182')"
+   "ndiff": 902,
+   "ntotal": 1424,
+   "detail": "line 339: orig ('SETUP_LOOP', '#380') | got ('SETUP_LOOP', '#382')\nline 343: orig ('JUMP_IF_FALSE', '#378') | got ('JUMP_IF_FALSE', '#380')\nline 399: orig ('JUMP_IF_FALSE', '#181') | got ('JUMP_IF_FALSE', '#182')"
   },
   {
    "module": "MimeWriter",
@@ -127,8 +127,8 @@
    "module": "ast",
    "ast_detail": "diff at token 360: orig  body=[AugAssign(target=Name(id='rv' | dec  body=[If(test=Name(id='fields'",
    "verdict": "SIG-DIFF",
-   "ndiff": 658,
-   "ntotal": 1009,
+   "ndiff": 671,
+   "ntotal": 1023,
    "detail": "line 274: orig ('JUMP_IF_FALSE', '#90') | got ('JUMP_IF_FALSE', '#94')\nline 323: orig ('JUMP_IF_FALSE', '#85') | got ('JUMP_IF_FALSE', '#89')\nline 327: orig ('JUMP_IF_FALSE', '#85') | got ('JUMP_IF_FALSE', '#87')"
   },
   {
@@ -159,8 +159,8 @@
    "module": "bdb",
    "ast_detail": "diff at token 534: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='frame'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1633,
-   "ntotal": 2242,
+   "ndiff": 1632,
+   "ntotal": 2247,
    "detail": "line 537: orig ('SETUP_LOOP', '#49') | got ('SETUP_LOOP', '#43')\nline 541: orig ('JUMP_IF_FALSE', '#47') | got ('JUMP_IF_FALSE', '#41')\nline 545: orig ('LOAD_ATTR', 'stopframe') | got ('LOAD_ATTR', 'botframe')"
   },
   {
@@ -185,19 +185,19 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 660: orig  orelse=[Assign(targets=[Name(id='data' | dec  orelse=[])]",
+   "ast_detail": "diff at token 3995: orig  body=[Print(dest=None | dec  body=[Assign(targets=[Name(id='value'",
    "verdict": "SIG-DIFF",
    "ndiff": 2467,
    "ntotal": 3221,
-   "detail": "line 570: orig ('SETUP_LOOP', '#276') | got ('SETUP_LOOP', '#279')\nline 574: orig ('JUMP_IF_FALSE', '#274') | got ('JUMP_IF_FALSE', '#277')\nline 581: orig ('JUMP_IF_FALSE', '#114') | got ('JUMP_IF_FALSE', '#113')"
+   "detail": "line 570: orig ('SETUP_LOOP', '#276') | got ('SETUP_LOOP', '#279')\nline 574: orig ('JUMP_IF_FALSE', '#274') | got ('JUMP_IF_FALSE', '#277')\nline 581: orig ('JUMP_IF_FALSE', '#114') | got ('JUMP_IF_FALSE', '#115')"
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 245: orig  values=[Compare(left=Name(id='token' | dec  values=[Compare(left=Name(id='lasttoken'",
+   "ast_detail": "diff at token 244: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='ttype'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1258,
-   "ntotal": 1541,
-   "detail": "line 209: orig ('SETUP_LOOP', '#125') | got ('SETUP_LOOP', '#93')\nline 215: orig ('FOR_ITER', '#124') | got ('FOR_ITER', '#92')\nline 235: orig ('JUMP_IF_FALSE', '#101') | got ('JUMP_IF_FALSE', '#88')"
+   "ndiff": 1249,
+   "ntotal": 1559,
+   "detail": "line 209: orig ('SETUP_LOOP', '#125') | got ('SETUP_LOOP', '#129')\nline 215: orig ('FOR_ITER', '#124') | got ('FOR_ITER', '#128')\nline 235: orig ('JUMP_IF_FALSE', '#101') | got ('JUMP_IF_FALSE', '#124')"
   },
   {
    "module": "chunk",
@@ -205,11 +205,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 1168: orig  ops=[NotEq()] | dec  ops=[Eq()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 452,
-   "ntotal": 1351,
-   "detail": "line 869: orig ('JUMP_FORWARD', '#224') | got ('JUMP_FORWARD', '#225')\nline 881: orig ('SETUP_LOOP', '#114') | got ('SETUP_LOOP', '#115')\nline 884: orig ('FOR_ITER', '#113') | got ('FOR_ITER', '#114')"
+   "verdict": "AST-PASS"
   }
  ]
 }
