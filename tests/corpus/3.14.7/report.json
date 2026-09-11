@@ -29,7 +29,7 @@
   },
   {
    "module": "_ast_unparse",
-   "ast_detail": "diff at token 198: orig  body=[Pass()])] | dec  body=[Return()])])",
+   "ast_detail": "diff at token 196: orig  body=[Pass()])] | dec  body=[Return()])])",
    "verdict": "SIG-DIFF",
    "ndiff": 1167,
    "ntotal": 7138,
@@ -81,7 +81,7 @@
   },
   {
    "module": "_py_warnings",
-   "ast_detail": "diff at token 528: orig  Constant(value='\\n')]))])])] | dec  Constant(value='\\n')]))])])",
+   "ast_detail": "diff at token 523: orig  Constant(value='\\n')]))])])] | dec  Constant(value='\\n')]))])])",
    "verdict": "SIG-DIFF",
    "ndiff": 1950,
    "ntotal": 3152,
@@ -89,7 +89,7 @@
   },
   {
    "module": "_pylong",
-   "ast_detail": "diff at token 819: orig  If(test=Constant(value=0) | dec  Assign(targets=[Tuple(elts=[Name(id='p256'",
+   "ast_detail": "diff at token 814: orig  If(test=Constant(value=0) | dec  Assign(targets=[Tuple(elts=[Name(id='p256'",
    "verdict": "SIG-DIFF",
    "ndiff": 517,
    "ntotal": 1551,
@@ -125,7 +125,7 @@
   },
   {
    "module": "annotationlib",
-   "ast_detail": "diff at token 448: orig  body=[Pass()])] | dec  body=[Continue()])])",
+   "ast_detail": "diff at token 446: orig  body=[Pass()])] | dec  body=[Continue()])])",
    "verdict": "SIG-DIFF",
    "ndiff": 1613,
    "ntotal": 4144,
@@ -173,7 +173,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 758: orig  value=SetComp(elt=Subscript(value=Name(id='a' | dec  value=SetComp(elt=BinOp(left=Name(id='a'",
+   "ast_detail": "diff at token 751: orig  value=SetComp(elt=Subscript(value=Name(id='a' | dec  value=SetComp(elt=BinOp(left=Name(id='a'",
    "verdict": "SIG-DIFF",
    "ndiff": 569,
    "ntotal": 1411,
@@ -197,7 +197,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 837: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 835: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1236,
    "ntotal": 1660,

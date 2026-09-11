@@ -81,7 +81,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 982: orig  finalbody=[])] | dec  finalbody=[])",
+   "ast_detail": "diff at token 979: orig  finalbody=[])] | dec  finalbody=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 1664,
    "ntotal": 3362,
@@ -121,7 +121,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 1536: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 1460: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 610,
    "ntotal": 2873,
@@ -161,7 +161,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 1073: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 1112: orig  keywords=[]))]) | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 594,
    "ntotal": 1484,

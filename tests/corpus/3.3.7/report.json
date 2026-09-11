@@ -97,7 +97,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 956: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 884: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
    "ndiff": 2355,
    "ntotal": 3046,
@@ -125,7 +125,7 @@
   },
   {
    "module": "codecs",
-   "ast_detail": "diff at token 1762: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 1770: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
    "ndiff": 1110,
    "ntotal": 2177,
@@ -145,7 +145,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 4469: orig  ctx=Del())]) | dec  ctx=Del())",
+   "ast_detail": "diff at token 4460: orig  ctx=Del())]) | dec  ctx=Del())",
    "verdict": "SIG-DIFF",
    "ndiff": 825,
    "ntotal": 4129,

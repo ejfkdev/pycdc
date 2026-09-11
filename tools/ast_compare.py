@@ -932,8 +932,19 @@ def flatten_terminating_else(stmts, loop_body=False):
         while changed:
             changed = False
             out = []
-            for s in stmts:
-                if (isinstance(s, ast.If) and s.orelse and s.body
+            n = len(stmts)
+            for si, s in enumerate(stmts):
+                # ONLY the statement right before the tail may absorb
+                # it: sinking past intermediate statements would skip
+                # them on the then path (3.11 compileall main(): the
+                # tail return got absorbed into an earlier
+                # `if args.recursion is not None:` guard, jumping over
+                # the whole try body). After the absorbing If is
+                # released, its former else statements sit between the
+                # new If and the tail, so the while loop re-runs and
+                # walks the absorption leftward one level per round.
+                if (si == n - 2
+                        and isinstance(s, ast.If) and s.orelse and s.body
                         and not isinstance(s.body[-1], (ast.Return, ast.Raise))):
                     body = list(s.body) + [tail]
                     orelse = list(s.orelse)
@@ -1339,6 +1350,17 @@ def _fold_try_body_tail_return(stmts):
     try_types = tuple(
         t for t in (getattr(ast, 'Try', None), getattr(ast, 'TryExcept', None))
         if t is not None)
+    # dead code after a terminator: statements following a Return/Raise
+    # at the same level are unreachable and CPython's optimizer deletes
+    # them, so the bytecode-driven decompiled output can never carry
+    # them (3.11 compileall main(): the trailing `return True` after
+    # the all-returning try is absent from the bytecode; rule 1's
+    # extraction also produces Return-after-Return here). Drop the
+    # tail; applied to both sides so they converge.
+    for ti in range(len(stmts) - 1):
+        if isinstance(stmts[ti], (ast.Return, ast.Raise)):
+            del stmts[ti + 1:]
+            break
     i = 0
     while i < len(stmts):
         s = stmts[i]
@@ -1382,6 +1404,39 @@ def _fold_try_body_tail_return(stmts):
             for j, m in enumerate(moved):
                 stmts.insert(i + 1 + j, m)
             i += len(moved)
+            # rule 1/2 extractions can expose a Return-after-Return
+            # dead tail (the source's post-try return sits behind the
+            # extracted one) - re-drop
+            for ti in range(len(stmts) - 1):
+                if isinstance(stmts[ti], (ast.Return, ast.Raise)):
+                    del stmts[ti + 1:]
+                    break
+            # rule 3: a try that CANNOT fall through (body terminates
+            # and every handler terminates; an If tail counts when
+            # both arms terminate) makes following siblings dead -
+            # CPython's optimizer deletes them, so the bytecode-driven
+            # decompiled output can never reproduce them (3.11
+            # compileall main(): the trailing `return True` after the
+            # all-returning try is absent from the module's own
+            # bytecode). Drop the tail when it is a single Return.
+            def _terms(seq):
+                if not seq:
+                    return False
+                last = seq[-1]
+                if isinstance(last, (ast.Return, ast.Raise)):
+                    return True
+                if isinstance(last, ast.If):
+                    return _terms(last.body) and bool(last.orelse) \
+                        and _terms(last.orelse)
+                return False
+            if try_types and isinstance(s, try_types) \
+                    and _terms(s.body) \
+                    and (getattr(s, 'handlers', None) or []) \
+                    and all(_terms(h.body) for h in s.handlers) \
+                    and not getattr(s, 'finalbody', None) \
+                    and i + 2 == len(stmts) \
+                    and isinstance(stmts[i + 1], ast.Return):
+                del stmts[i + 1]
         i += 1
     return stmts
 

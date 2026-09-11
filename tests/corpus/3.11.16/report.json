@@ -3,8 +3,8 @@
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
   "PASS": 31,
-  "SIG-DIFF": 8,
-  "AST-PASS": 1
+  "SIG-DIFF": 7,
+  "AST-PASS": 2
  },
  "results": [
   {
@@ -93,7 +93,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 257: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 253: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 1546,
    "ntotal": 2319,
@@ -145,7 +145,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 1013: orig  keywords=[])) | dec  keywords=[]))])]",
+   "ast_detail": "diff at token 1005: orig  keywords=[])) | dec  keywords=[]))])]",
    "verdict": "SIG-DIFF",
    "ndiff": 1,
    "ntotal": 1443,
@@ -169,11 +169,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 1529: orig  Return(value=Constant(value=True))] | dec  Return(value=Call(func=Name(id='compile_path'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1,
-   "ntotal": 1548,
-   "detail": "line 78: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 254') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 236')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "configparser",

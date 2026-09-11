@@ -157,7 +157,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 837: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 835: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 623,
    "ntotal": 1551,

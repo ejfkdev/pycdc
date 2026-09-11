@@ -149,7 +149,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 4002: orig  ctx=Del())]) | dec  ctx=Del())",
+   "ast_detail": "diff at token 3997: orig  ctx=Del())]) | dec  ctx=Del())",
    "verdict": "SIG-DIFF",
    "ndiff": 430,
    "ntotal": 4295,

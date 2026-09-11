@@ -21,7 +21,7 @@
   },
   {
    "module": "ConfigParser",
-   "ast_detail": "diff at token 1886: orig  ctx=Load()))] | dec  ctx=Load()))",
+   "ast_detail": "diff at token 1883: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
    "ndiff": 990,
    "ntotal": 2161,
@@ -37,7 +37,7 @@
   },
   {
    "module": "DocXMLRPCServer",
-   "ast_detail": "diff at token 369: orig  body=[Assign(targets=[Name(id='anchor' | dec  body=[If(test=Name(id='cl'",
+   "ast_detail": "diff at token 368: orig  body=[Assign(targets=[Name(id='anchor' | dec  body=[If(test=Name(id='cl'",
    "verdict": "SIG-DIFF",
    "ndiff": 612,
    "ntotal": 906,
@@ -121,7 +121,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 2020: orig  values=[Str(s='Warning: MARK chunk contains only')] | dec  values=[Str(s='Warning: MARK chunk contains only')",
+   "ast_detail": "diff at token 2017: orig  values=[Str(s='Warning: MARK chunk contains only')] | dec  values=[Str(s='Warning: MARK chunk contains only')",
    "verdict": "SIG-DIFF",
    "ndiff": 3044,
    "ntotal": 3380,
@@ -149,7 +149,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 2368: orig  values=[UnaryOp(op=Not() | dec  values=[Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 2345: orig  values=[UnaryOp(op=Not() | dec  values=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
    "ndiff": 1738,
    "ntotal": 2270,
@@ -201,7 +201,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 701: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 659: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
    "ndiff": 2467,
    "ntotal": 3221,
@@ -221,7 +221,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 1216: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 1208: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 452,
    "ntotal": 1351,

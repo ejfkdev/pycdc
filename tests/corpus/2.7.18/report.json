@@ -21,7 +21,7 @@
   },
   {
    "module": "ConfigParser",
-   "ast_detail": "diff at token 2145: orig  ctx=Load()))] | dec  ctx=Load()))",
+   "ast_detail": "diff at token 2142: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
    "ndiff": 774,
    "ntotal": 2274,
@@ -61,7 +61,7 @@
   },
   {
    "module": "SimpleXMLRPCServer",
-   "ast_detail": "diff at token 115: orig  ifs=[BoolOp(op=And() | dec  ifs=[Call(func=Attribute(value=Name(id='member'",
+   "ast_detail": "diff at token 112: orig  ifs=[BoolOp(op=And() | dec  ifs=[Call(func=Attribute(value=Name(id='member'",
    "verdict": "SIG-DIFF",
    "ndiff": 1400,
    "ntotal": 1550,
@@ -149,7 +149,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 2573: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
+   "ast_detail": "diff at token 2550: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
    "verdict": "SIG-DIFF",
    "ndiff": 298,
    "ntotal": 2185,
@@ -193,7 +193,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 837: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 795: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
    "ndiff": 2127,
    "ntotal": 3035,
