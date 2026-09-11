@@ -63,7 +63,7 @@
    "module": "_markupbase",
    "ast_detail": "diff at token 406: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
    "verdict": "SIG-DIFF",
-   "ndiff": 623,
+   "ndiff": 627,
    "ntotal": 1362,
    "detail": "line 596: orig ('POP_JUMP_IF_FALSE', 'to L22') | got ('POP_JUMP_IF_FALSE', 'to L21')\nline 605: orig ('POP_JUMP_IF_FALSE', 'to L11') | got ('POP_JUMP_IF_FALSE', 'to L10')\nline 734: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'c')"
   },
@@ -101,11 +101,11 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 2464: orig  body=[Assign(targets=[Name(id='hour' | dec  body=[Pass()])",
+   "ast_detail": "diff at token 2466: orig  value=Constant(value=0))])] | dec  value=Constant(value=0))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 846,
+   "ndiff": 888,
    "ntotal": 3207,
-   "detail": "line 2145: orig ('FOR_ITER', 'to L52') | got ('FOR_ITER', 'to L53')\nline 2330: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'ampm')\nline 2331: orig ('JUMP_BACKWARD', 'to L13') | got ('LOAD_DEREF', 'locale_time')"
+   "detail": "line 2294: orig ('POP_JUMP_IF_FALSE', 'to L28') | got ('POP_JUMP_IF_TRUE', 'to L24')\nline 2296: orig ('LOAD_FAST', 'parse_int') | got ('EXTENDED_ARG', '')\nline 2297: orig ('PUSH_NULL', '') | got ('JUMP_BACKWARD', 'to L13')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

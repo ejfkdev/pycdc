@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 32,
-  "SIG-DIFF": 6,
+  "PASS": 33,
+  "SIG-DIFF": 5,
   "AST-PASS": 2
  },
  "results": [
@@ -61,11 +61,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 2104: orig  For(target=Tuple(elts=[Name(id='value' | dec  Continue()]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1,
-   "ntotal": 2246,
-   "detail": "line 1910: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 3836') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 3656')"
+   "verdict": "PASS"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",

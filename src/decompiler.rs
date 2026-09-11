@@ -26281,6 +26281,18 @@ return None;
             .get(&target)
             .and_then(|&ti| {
                 let ins = self.instrs.get(ti)?;
+                // idx_of also maps instruction END offsets (623-624);
+                // a jump target always lands on an instruction START -
+                // an end-offset collision resolves to the NEIGHBOR
+                // instruction and threading then follows the wrong
+                // back edge (_strptime 3.11 Z arm: PJF->3836 landed on
+                // a folded EXTENDED_ARG prefix; idx_of[3836] resolved
+                // to the JUMP_BACKWARD ENDING at 3836 and threaded
+                // the guard to the inner for's FOR_ITER, truncating
+                // the arm and ejecting the timezone loop)
+                if ins.offset != target {
+                    return None;
+                }
                 if self.version.at_least(3, 8)
                     && ins.is_backward
                     && matches!(
