@@ -2,8 +2,8 @@
  "version": "3.12.14",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
  "counts": {
-  "PASS": 29,
-  "SIG-DIFF": 9,
+  "PASS": 30,
+  "SIG-DIFF": 8,
   "AST-PASS": 2
  },
  "results": [
@@ -33,11 +33,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 467: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
-   "verdict": "SIG-DIFF",
-   "ndiff": 3,
-   "ntotal": 1299,
-   "detail": "line 697: orig ('POP_JUMP_IF_FALSE', 'to 948') | got ('POP_JUMP_IF_FALSE', 'to 504')\nline 963: orig ('POP_JUMP_IF_TRUE', 'to 426') | got ('POP_JUMP_IF_TRUE', 'to 384')\nline 1164: orig ('JUMP_FORWARD', 'to 134') | got ('JUMP_FORWARD', 'to 130')"
+   "verdict": "PASS"
   },
   {
    "module": "_osx_support",

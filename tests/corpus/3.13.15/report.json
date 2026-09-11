@@ -2,8 +2,8 @@
  "version": "3.13.15",
  "interp": "/opt/homebrew/bin/python3.13",
  "counts": {
-  "PASS": 31,
-  "SIG-DIFF": 7,
+  "PASS": 32,
+  "SIG-DIFF": 6,
   "AST-PASS": 2
  },
  "results": [
@@ -49,11 +49,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 406: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
-   "verdict": "SIG-DIFF",
-   "ndiff": 9,
-   "ntotal": 1326,
-   "detail": "line 1188: orig ('JUMP_FORWARD', 'to L6') | got ('JUMP_FORWARD', 'to L5')\nline 1203: orig ('POP_JUMP_IF_FALSE', 'to L7') | got ('POP_JUMP_IF_FALSE', 'to L6')\nline 1216: orig ('POP_JUMP_IF_TRUE', 'to L9') | got ('POP_JUMP_IF_TRUE', 'to L8')"
+   "verdict": "PASS"
   },
   {
    "module": "_opcode_metadata",

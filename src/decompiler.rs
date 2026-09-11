@@ -29227,6 +29227,135 @@ if split_cond {
             _ => None,
         };
         let blk_end = chain_merge.unwrap_or(if_end);
+        // shared-exit elif: the then body's terminal exit is a forward
+        // conditional jump (a nested guard like `if j < 0: return j`)
+        // flying PAST the else-arm head to a merge M that the arm also
+        // reaches. The compiler fused the arm-end skip with the guard's
+        // exit, so no JUMP_FORWARD out of the body marks the else region
+        // and the chain detaches — the arm renders as top-level ifs that
+        // RE-RUN after the then body (_markupbase 3.12/3.13
+        // _parse_doctype_subset: `if c == '<': ... elif c == '%'` lost
+        // the elif and raised "unexpected char '<'" on fall-through).
+        // Mark else_end = M at creation so close attaches the Else arm
+        // (the generic forward-jump marking at the body's JUMP_FORWARD
+        // never fires — the body has none, only the guard's cond jump).
+        let mut shared_exit_else: Option<usize> = None;
+        if !jump_if_true
+            && value_merge.is_none()
+            && chain_merge.is_none()
+            && blk_end == target
+            && target > self.cur_next
+        {
+            if let (Some(&bi), Some(&ti)) =
+                (self.idx_of.get(&self.cur_next), self.idx_of.get(&target))
+            {
+                // collect the merge M: every forward cond jump in the
+                // body flying past the arm head must agree on one M, and
+                // the body must not fall through into the arm (its last
+                // meaningful instruction is a terminator or an
+                // unconditional forward jump)
+                let mut guard: Option<usize> = None;
+                let mut guard_ok = true;
+                let mut last_term = false;
+                for k in bi..ti {
+                    let x = &self.instrs[k];
+                    if matches!(
+                        x.op,
+                        Op::NOP
+                            | Op::NOT_TAKEN
+                            | Op::CACHE
+                            | Op::EXTENDED_ARG
+                            | Op::RESUME
+                    ) {
+                        continue;
+                    }
+                    if matches!(
+                        x.op,
+                        Op::POP_JUMP_IF_FALSE
+                            | Op::POP_JUMP_IF_TRUE
+                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                    ) {
+                        if let Some(t) = x.target {
+                            if t > target {
+                                match guard {
+                                    Some(m) if m == t => {}
+                                    None => guard = Some(t),
+                                    _ => guard_ok = false,
+                                }
+                            }
+                        }
+                    }
+                    last_term = matches!(
+                        x.op,
+                        Op::RETURN_VALUE
+                            | Op::RETURN_CONST
+                            | Op::RAISE_VARARGS
+                            | Op::RERAISE
+                    ) || (!x.is_backward
+                        && matches!(
+                            x.op,
+                            Op::JUMP_FORWARD | Op::JUMP_ABSOLUTE | Op::JUMP
+                        ));
+                }
+                if !guard_ok || !last_term {
+                    guard = None;
+                }
+                if let Some(m) = guard {
+                    let body_start = self.cur_next;
+                    // every body jump that reaches the arm head lands
+                    // exactly on M (a jump onto `target` itself or past
+                    // M would split/escape the arm region)
+                    let body_exits_ok = self.instrs[bi..ti].iter().all(|x| {
+                        x.is_backward
+                            || x.target.map_or(true, |t| t < target || t == m)
+                    });
+                    let arm_ok = body_exits_ok
+                        && self.idx_of.get(&m).map_or(false, |&mi| {
+                        mi > ti
+                            // the arm reaches M either by a forward jump
+                            // landing on it (min_elif: the `%` arm's JF)
+                            // or by pure fall-through (a straight-line
+                            // else arm: _markupbase 3.12
+                            // _parse_doctype_attlist `else: name,j=…`)
+                            && (self.instrs[ti..mi].iter().any(|x| {
+                                !x.is_backward
+                                    && matches!(
+                                        x.op,
+                                        Op::JUMP_FORWARD
+                                            | Op::JUMP_ABSOLUTE
+                                            | Op::JUMP
+                                    )
+                                    && x.target == Some(m)
+                            }) || self.is_straight_line_span(target, m))
+                            // arm jumps never enter the then body and
+                            // never fly past M (backward edges are
+                            // continue back-edges, always fine)
+                            && self.instrs[ti..mi].iter().all(|x| {
+                                x.target.map_or(true, |t| {
+                                    x.is_backward
+                                        || (t < body_start || t >= target)
+                                            && t <= m
+                                })
+                            })
+                            // no OUTSIDE instruction (other than this
+                            // If's own cond jump, already consumed)
+                            // jumps into the arm region — the arm is
+                            // entered only at its head
+                            && self.instrs.iter().all(|x| {
+                                (x.offset >= target && x.offset < m)
+                                    || x.offset == self.cur_offset
+                                    || !x.target.map_or(false, |t| {
+                                        t >= target && t < m
+                                    })
+                            })
+                    });
+                    if arm_ok {
+                        shared_exit_else = Some(m);
+                    }
+                }
+            }
+        }
         let mut blk = Block::new(BlockType::If, self.cur_next, blk_end);
         blk.clamp_from = chain_exit_clamp.filter(|_| blk_end == if_end);
         blk.merge_pos = value_merge.is_some();
@@ -29237,6 +29366,7 @@ if split_cond {
         blk.cond_set = true;
         blk.jump_if_true = jump_if_true;
         blk.stack_depth = self.stack.len();
+        blk.else_end = shared_exit_else;
         self.blocks.push(blk);
     }
 
@@ -30246,6 +30376,27 @@ if split_cond {
         }
     }
 
+    /// True when [from, to) is pure straight-line code: at least one
+    /// instruction, no jumps (any target), no backward edges, no
+    /// terminators — the region only falls through to `to`.
+    fn is_straight_line_span(&self, from: usize, to: usize) -> bool {
+        let (Some(&si), Some(&ei)) = (self.idx_of.get(&from), self.idx_of.get(&to)) else {
+            return false;
+        };
+        si < ei
+            && self.instrs[si..ei].iter().all(|x| {
+                x.target.is_none()
+                    && !x.is_backward
+                    && !matches!(
+                        x.op,
+                        Op::RETURN_VALUE
+                            | Op::RETURN_CONST
+                            | Op::RAISE_VARARGS
+                            | Op::RERAISE
+                    )
+            })
+    }
+
     fn register_break_over_else(&mut self, target: usize) {
         for b in self.blocks.iter_mut().rev() {
             if matches!(b.kind, BlockType::While | BlockType::For) {
@@ -30341,6 +30492,35 @@ if split_cond {
                 && b.end > self.cur_offset
             {
                 b.else_end = Some(target);
+            }
+        }
+        // break-over-else: a `break` (forward jump to the enclosing
+        // loop's exit) flying over an open If's else arm. The generic
+        // marking above is vetoed by `to_loop_exit` because the jump
+        // says nothing about a branch's else region in general (3.11
+        // _compression.read `if eof:`). But when the overflown arm
+        // [end, target) is PURE straight-line code — no jumps, no
+        // terminators, falling through exactly to the break target —
+        // it is unambiguously the If's else arm sharing the loop-exit
+        // merge, and leaving it unmarked drops it to a post-if sibling
+        // that re-runs after the then-body (_markupbase 3.12/3.13
+        // _parse_doctype_entity: `if rawdata[i:i+1]=='%': while…: break
+        // else: j=i` rendered `j=i` unconditionally after the loop).
+        if to_loop_exit {
+            let mut to_mark: Vec<usize> = Vec::new();
+            for (i, b) in self.blocks.iter().enumerate().rev().skip(1) {
+                if matches!(b.kind, BlockType::If)
+                    && b.short_circuit.is_none()
+                    && b.else_end.is_none()
+                    && b.end < target
+                    && b.end > self.cur_offset
+                    && self.is_straight_line_span(b.end, target)
+                {
+                    to_mark.push(i);
+                }
+            }
+            for i in to_mark {
+                self.blocks[i].else_end = Some(target);
             }
         }
         // 3.6 elif scaffolding: `if c1: continue elif c2: body2` — the
