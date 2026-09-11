@@ -179,17 +179,17 @@
    "module": "cgi",
    "ast_detail": "diff at token 3995: orig  body=[Print(dest=None | dec  body=[Assign(targets=[Name(id='value'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2467,
-   "ntotal": 3221,
-   "detail": "line 570: orig ('SETUP_LOOP', '#276') | got ('SETUP_LOOP', '#279')\nline 574: orig ('JUMP_IF_FALSE', '#274') | got ('JUMP_IF_FALSE', '#277')\nline 581: orig ('JUMP_IF_FALSE', '#114') | got ('JUMP_IF_FALSE', '#115')"
+   "ndiff": 2430,
+   "ntotal": 3219,
+   "detail": "line 570: orig ('SETUP_LOOP', '#276') | got ('SETUP_LOOP', '#277')\nline 574: orig ('JUMP_IF_FALSE', '#274') | got ('JUMP_IF_FALSE', '#275')\nline 647: orig ('SETUP_LOOP', '#159') | got ('SETUP_LOOP', '#160')"
   },
   {
    "module": "cgitb",
    "ast_detail": "diff at token 244: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='ttype'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1242,
-   "ntotal": 1545,
-   "detail": "line 209: orig ('SETUP_LOOP', '#125') | got ('SETUP_LOOP', '#129')\nline 215: orig ('FOR_ITER', '#124') | got ('FOR_ITER', '#128')\nline 235: orig ('JUMP_IF_FALSE', '#101') | got ('JUMP_IF_FALSE', '#124')"
+   "ndiff": 1263,
+   "ntotal": 1544,
+   "detail": "line 209: orig ('SETUP_LOOP', '#125') | got ('SETUP_LOOP', '#128')\nline 215: orig ('FOR_ITER', '#124') | got ('FOR_ITER', '#127')\nline 235: orig ('JUMP_IF_FALSE', '#101') | got ('JUMP_IF_FALSE', '#123')"
   },
   {
    "module": "chunk",

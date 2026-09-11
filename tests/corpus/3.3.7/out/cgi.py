@@ -225,7 +225,6 @@ def parse_multipart(fp, pdict):
                 line = line[:-1]
             lines[-1] = line
             data = b''.join(lines)
-            continue
         line = headers['content-disposition']
         if not line:
             continue

@@ -212,7 +212,6 @@ def parse_multipart(fp, pdict):
                 line = line[:-1]
             lines[-1] = line
             data = ''.join(lines)
-            continue
         line = headers['content-disposition']
         if not line:
             continue
@@ -568,7 +567,6 @@ class FieldStorage:
                     max_num_fields -= len(part.list)
                 if max_num_fields < 0:
                     raise ValueError('Max number of fields exceeded')
-                    continue
             self.list.append(part)
         self.skip_lines()
 

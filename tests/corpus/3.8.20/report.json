@@ -2,8 +2,8 @@
  "version": "3.8.20",
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
-  "PASS": 35,
-  "AST-PASS": 1,
+  "PASS": 34,
+  "AST-PASS": 2,
   "SIG-DIFF": 4
  },
  "results": [
@@ -37,7 +37,7 @@
   },
   {
    "module": "_osx_support",
-   "verdict": "PASS"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_py_abc",
@@ -87,9 +87,9 @@
    "module": "base64",
    "ast_detail": "diff at token 1769: orig  type_comment=None) | dec  type_comment=None)]",
    "verdict": "SIG-DIFF",
-   "ndiff": 70,
+   "ndiff": 72,
    "ntotal": 1917,
-   "detail": "line 1166: orig ('JUMP_FORWARD', 'to 254') | got ('JUMP_FORWARD', 'to 198')\nline 1192: orig ('SETUP_FINALLY', 'to 214') | got ('JUMP_FORWARD', 'to 248')\nline 1193: orig ('LOAD_FAST', 'decoded_append') | got ('SETUP_FINALLY', 'to 216')"
+   "detail": "line 1163: orig ('POP_JUMP_IF_FALSE', '#127') | got ('POP_JUMP_IF_FALSE', '#99')\nline 1166: orig ('JUMP_FORWARD', '#127') | got ('JUMP_FORWARD', '#99')\nline 1176: orig ('POP_JUMP_IF_FALSE', '#126') | got ('POP_JUMP_IF_FALSE', '#124')"
   },
   {
    "module": "bdb",
@@ -131,9 +131,9 @@
    "module": "cmd",
    "ast_detail": "diff at token 241: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1068,
+   "ndiff": 1070,
    "ntotal": 1305,
-   "detail": "line 219: orig ('SETUP_FINALLY', 'to 320') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 221: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', '')"
+   "detail": "line 219: orig ('SETUP_FINALLY', '#160') | got ('LOAD_FAST', 'self')\nline 220: orig ('LOAD_FAST', 'intro') | got ('LOAD_ATTR', 'use_rawinput')\nline 221: orig ('LOAD_CONST', 'None') | got ('POP_JUMP_IF_FALSE', '#75')"
   },
   {
    "module": "code",
@@ -159,17 +159,17 @@
    "module": "configparser",
    "ast_detail": "diff at token 1820: orig  If(test=BoolOp(op=Or() | dec  Assign(targets=[Name(id='replace'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2818,
+   "ndiff": 2823,
    "ntotal": 4350,
-   "detail": "line 1472: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')\nline 1473: orig ('POP_JUMP_IF_FALSE', '') | got ('LOAD_ATTR', 'partial')\nline 1474: orig ('LOAD_CONST', \"'%('\") | got ('LOAD_FAST', 'self')"
+   "detail": "line 1467: orig ('POP_JUMP_IF_FALSE', '#69') | got ('POP_JUMP_IF_FALSE', '#26')\nline 1472: orig ('LOAD_FAST', 'value') | got ('LOAD_GLOBAL', 'functools')\nline 1473: orig ('POP_JUMP_IF_FALSE', '#69') | got ('LOAD_ATTR', 'partial')"
   },
   {
    "module": "contextlib",
    "ast_detail": "diff at token 523: orig  Try(body=[Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self' | dec  If(test=Compare(left=Subscript(value=Call(func=Attribute(value=Name(id='sys'",
    "verdict": "SIG-DIFF",
-   "ndiff": 938,
-   "ntotal": 1828,
-   "detail": "line 472: orig ('JUMP_FORWARD', 'to 260') | got ('JUMP_FORWARD', 'to 258')\nline 480: orig ('SETUP_FINALLY', 'to 92') | got ('LOAD_GLOBAL', 'sys')\nline 481: orig ('LOAD_FAST', 'self') | got ('LOAD_METHOD', 'exc_info')"
+   "ndiff": 936,
+   "ntotal": 1825,
+   "detail": "line 472: orig ('JUMP_FORWARD', '#128') | got ('JUMP_FORWARD', '#127')\nline 480: orig ('SETUP_FINALLY', '#46') | got ('LOAD_GLOBAL', 'sys')\nline 481: orig ('LOAD_FAST', 'self') | got ('LOAD_METHOD', 'exc_info')"
   },
   {
    "module": "copy",

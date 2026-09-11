@@ -2,9 +2,9 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 33,
+  "PASS": 34,
   "SIG-DIFF": 5,
-  "AST-PASS": 2
+  "AST-PASS": 1
  },
  "results": [
   {
@@ -29,7 +29,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 2858,
    "ntotal": 3876,
-   "detail": "line 958: orig ('LOAD_GLOBAL', 'NULL + RuntimeError') | got ('JUMP_FORWARD', 'to 106')\nline 959: orig ('LOAD_CONST', \"'coroutine ignored GeneratorExit'\") | got ('PUSH_EXC_INFO', '')\nline 960: orig ('PRECALL', '') | got ('LOAD_GLOBAL', 'GeneratorExit')"
+   "detail": "line 958: orig ('LOAD_GLOBAL', 'NULL + RuntimeError') | got ('JUMP_FORWARD', '#22')\nline 959: orig ('LOAD_CONST', \"'coroutine ignored GeneratorExit'\") | got ('PUSH_EXC_INFO', '')\nline 960: orig ('PRECALL', '') | got ('LOAD_GLOBAL', 'GeneratorExit')"
   },
   {
    "module": "_compat_pickle",
@@ -49,7 +49,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1188,
    "ntotal": 1554,
-   "detail": "line 293: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 400') | got ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 440')\nline 329: orig ('LOAD_FAST', 'm') | got ('LOAD_FAST', 'f')\nline 330: orig ('POP_JUMP_FORWARD_IF_NONE', 'to 366') | got ('LOAD_METHOD', 'close')"
+   "detail": "line 293: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', '#70') | got ('POP_JUMP_FORWARD_IF_NOT_NONE', '#75')\nline 329: orig ('LOAD_FAST', 'm') | got ('LOAD_FAST', 'f')\nline 330: orig ('POP_JUMP_FORWARD_IF_NONE', '#58') | got ('LOAD_METHOD', 'close')"
   },
   {
    "module": "_py_abc",
@@ -93,7 +93,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1546,
    "ntotal": 2319,
-   "detail": "line 711: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 140') | got ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 136')\nline 713: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 136') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 132')\nline 725: orig ('LOAD_CONST', 'None') | got ('LOAD_FAST', 'map')"
+   "detail": "line 711: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', '#35') | got ('POP_JUMP_FORWARD_IF_NOT_NONE', '#33')\nline 713: orig ('POP_JUMP_FORWARD_IF_FALSE', '#33') | got ('POP_JUMP_FORWARD_IF_FALSE', '#31')\nline 725: orig ('LOAD_CONST', 'None') | got ('LOAD_FAST', 'map')"
   },
   {
    "module": "base64",
@@ -101,7 +101,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 729,
    "ntotal": 2107,
-   "detail": "line 1292: orig ('FOR_ITER', 'to 828') | got ('FOR_ITER', 'to 826')\nline 1302: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 638') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 636')\nline 1305: orig ('JUMP_FORWARD', 'to 638') | got ('JUMP_FORWARD', 'to 636')"
+   "detail": "line 1292: orig ('FOR_ITER', '#191') | got ('FOR_ITER', '#190')\nline 1302: orig ('POP_JUMP_FORWARD_IF_FALSE', '#141') | got ('POP_JUMP_FORWARD_IF_FALSE', '#140')\nline 1305: orig ('JUMP_FORWARD', '#141') | got ('JUMP_FORWARD', '#140')"
   },
   {
    "module": "bdb",
@@ -109,7 +109,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 701,
    "ntotal": 2537,
-   "detail": "line 602: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 130') | got ('POP_JUMP_FORWARD_IF_TRUE', 'to 130')\nline 1795: orig ('LOAD_GLOBAL', 'NULL + eval') | got ('JUMP_FORWARD', 'to 162')\nline 1796: orig ('LOAD_FAST', 'expr') | got ('PUSH_EXC_INFO', '')"
+   "detail": "line 602: orig ('POP_JUMP_FORWARD_IF_FALSE', '#23') | got ('POP_JUMP_FORWARD_IF_TRUE', '#23')\nline 1795: orig ('LOAD_GLOBAL', 'NULL + eval') | got ('JUMP_FORWARD', '#38')\nline 1796: orig ('LOAD_FAST', 'expr') | got ('PUSH_EXC_INFO', '')"
   },
   {
    "module": "bisect",
@@ -161,7 +161,7 @@
   },
   {
    "module": "compileall",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "configparser",

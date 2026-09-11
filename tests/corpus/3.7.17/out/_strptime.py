@@ -388,9 +388,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
                 if z.startswith('-'):
                     gmtoff = -gmtoff
                     gmtoff_fraction = -gmtoff_fraction
-        else:
-            if group_key == 'Z':
-                pass
+        elif group_key == 'Z':
             found_zone = found_dict['Z'].lower()
             for value, tz_values in enumerate(locale_time.timezone):
                 if found_zone in tz_values:

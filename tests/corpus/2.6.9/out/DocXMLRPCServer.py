@@ -150,13 +150,11 @@ class XMLRPCDocGenerator:
                 method_info = tuple(method_info)
                 if method_info != (None, None):
                     method = method_info
-                    continue
-                if not hasattr(self.instance, '_dispatch'):
+                elif not hasattr(self.instance, '_dispatch'):
                     try:
                         method = resolve_dotted_attribute(self.instance, method_name)
                     except AttributeError:
                         method = method_info
-                    continue
                 else:
                     method = method_info
             else:

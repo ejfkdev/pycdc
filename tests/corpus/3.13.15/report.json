@@ -79,9 +79,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 2466: orig  value=Constant(value=0))])] | dec  value=Constant(value=0))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 639,
+   "ndiff": 641,
    "ntotal": 2986,
-   "detail": "line 2195: orig ('POP_JUMP_IF_FALSE', 'to L28') | got ('POP_JUMP_IF_TRUE', 'to L24')\nline 2196: orig ('LOAD_FAST', 'parse_int') | got ('EXTENDED_ARG', '')\nline 2197: orig ('PUSH_NULL', '') | got ('JUMP_BACKWARD', 'to L13')"
+   "detail": "line 2058: orig ('FOR_ITER', '#747') | got ('FOR_ITER', '#743')\nline 2195: orig ('POP_JUMP_IF_FALSE', '#385') | got ('POP_JUMP_IF_TRUE', '#332')\nline 2196: orig ('LOAD_FAST', 'parse_int') | got ('EXTENDED_ARG', '')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -111,7 +111,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 202: orig  body=[Return()]) | dec  body=[Return()])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2334,
+   "ndiff": 2335,
    "ntotal": 2803,
    "detail": "line 416: orig ('LOAD_FAST', 'event') | got ('LOAD_CONST', 'None')\nline 417: orig ('LOAD_CONST', \"'line'\") | got ('LOAD_CONST', 'None')\nline 418: orig ('COMPARE_OP', 'bool(==)') | got ('LOAD_CONST', 'None')"
   },
@@ -137,7 +137,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1138,
    "ntotal": 1478,
-   "detail": "line 317: orig ('LOAD_ATTR', 'postloop + NULL|self') | got ('LOAD_ATTR', 'use_rawinput')\nline 318: orig ('CALL', '') | got ('TO_BOOL', '')\nline 319: orig ('POP_TOP', '') | got ('POP_JUMP_IF_FALSE', 'to L13')"
+   "detail": "line 317: orig ('LOAD_ATTR', 'postloop + NULL|self') | got ('LOAD_ATTR', 'use_rawinput')\nline 318: orig ('CALL', '') | got ('TO_BOOL', '')\nline 319: orig ('POP_TOP', '') | got ('POP_JUMP_IF_FALSE', '#176')"
   },
   {
    "module": "code",
@@ -159,9 +159,9 @@
    "module": "compileall",
    "ast_detail": "diff at token 833: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 623,
+   "ndiff": 634,
    "ntotal": 1551,
-   "detail": "line 179: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 180: orig ('POP_JUMP_IF_TRUE', 'to L8') | got ('POP_JUMP_IF_FALSE', 'to L8')\nline 185: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')"
+   "detail": "line 179: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')\nline 180: orig ('POP_JUMP_IF_TRUE', '#79') | got ('POP_JUMP_IF_FALSE', '#79')\nline 185: orig ('COMPARE_OP', 'bool(!=)') | got ('COMPARE_OP', 'bool(==)')"
   },
   {
    "module": "configparser",

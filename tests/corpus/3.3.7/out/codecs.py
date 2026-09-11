@@ -469,7 +469,6 @@ class StreamReader(Codec):
             if data:
                 if isinstance(data, str) and data.endswith('\r') or isinstance(data, bytes) and data.endswith(b'\r'):
                     data += self.read(size=1, chars=1)
-                    continue
             line += data
             lines = line.splitlines(keepends=True)
             if lines:

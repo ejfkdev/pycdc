@@ -147,9 +147,9 @@
    "module": "configparser",
    "ast_detail": "diff at token 4042: orig  body=[If(test=Attribute(value=Name(id='self' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 430,
+   "ndiff": 436,
    "ntotal": 4295,
-   "detail": "line 3115: orig ('SETUP_LOOP', 'to 1068') | got ('SETUP_LOOP', 'to 1065')\nline 3122: orig ('FOR_ITER', 'to 1067') | got ('FOR_ITER', 'to 1064')\nline 3261: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_GLOBAL', 'sys')"
+   "detail": "line 3115: orig ('SETUP_LOOP', '#374') | got ('SETUP_LOOP', '#373')\nline 3122: orig ('FOR_ITER', '#373') | got ('FOR_ITER', '#372')\nline 3234: orig ('POP_JUMP_IF_TRUE', '#166') | got ('POP_JUMP_IF_TRUE', '#165')"
   },
   {
    "module": "contextlib",

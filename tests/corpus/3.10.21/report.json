@@ -41,7 +41,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 916,
    "ntotal": 1418,
-   "detail": "line 473: orig ('FOR_ITER', 'to 126') | got ('FOR_ITER', 'to 124')\nline 482: orig ('JUMP_ABSOLUTE', 'to 40') | got ('JUMP_FORWARD', 'to 74')\nline 487: orig ('POP_JUMP_IF_FALSE', 'to 76') | got ('POP_JUMP_IF_FALSE', 'to 74')"
+   "detail": "line 473: orig ('FOR_ITER', '#63') | got ('FOR_ITER', '#62')\nline 482: orig ('JUMP_ABSOLUTE', '#20') | got ('JUMP_FORWARD', '#37')\nline 487: orig ('POP_JUMP_IF_FALSE', '#38') | got ('POP_JUMP_IF_FALSE', '#37')"
   },
   {
    "module": "_py_abc",
@@ -81,7 +81,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 6948,
    "ntotal": 7851,
-   "detail": "line 611: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 617: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')\nline 623: orig ('POP_JUMP_IF_FALSE', 'to 158') | got ('POP_JUMP_IF_FALSE', 'to 156')"
+   "detail": "line 611: orig ('POP_JUMP_IF_FALSE', '#79') | got ('POP_JUMP_IF_FALSE', '#78')\nline 617: orig ('POP_JUMP_IF_FALSE', '#79') | got ('POP_JUMP_IF_FALSE', '#78')\nline 623: orig ('POP_JUMP_IF_FALSE', '#79') | got ('POP_JUMP_IF_FALSE', '#78')"
   },
   {
    "module": "asynchat",
@@ -91,9 +91,9 @@
    "module": "asyncore",
    "ast_detail": "diff at token 270: orig  keywords=[]))])]) | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1770,
-   "ntotal": 2191,
-   "detail": "line 309: orig ('SETUP_FINALLY', 'to 98') | got ('SETUP_FINALLY', 'to 92')\nline 347: orig ('POP_JUMP_IF_FALSE', 'to 92') | got ('POP_JUMP_IF_FALSE', 'to 86')\nline 355: orig ('POP_BLOCK', '') | got ('DUP_TOP', '')"
+   "ndiff": 1776,
+   "ntotal": 2188,
+   "detail": "line 309: orig ('SETUP_FINALLY', '#49') | got ('SETUP_FINALLY', '#46')\nline 347: orig ('POP_JUMP_IF_FALSE', '#46') | got ('POP_JUMP_IF_FALSE', '#43')\nline 355: orig ('POP_BLOCK', '') | got ('DUP_TOP', '')"
   },
   {
    "module": "base64",
@@ -101,7 +101,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 646,
    "ntotal": 1931,
-   "detail": "line 1211: orig ('FOR_ITER', 'to 334') | got ('FOR_ITER', 'to 248')\nline 1221: orig ('POP_JUMP_IF_FALSE', 'to 248') | got ('POP_JUMP_IF_FALSE', 'to 246')\nline 1224: orig ('JUMP_FORWARD', 'to 248') | got ('JUMP_FORWARD', 'to 246')"
+   "detail": "line 1211: orig ('FOR_ITER', '#167') | got ('FOR_ITER', '#124')\nline 1221: orig ('POP_JUMP_IF_FALSE', '#124') | got ('POP_JUMP_IF_FALSE', '#123')\nline 1224: orig ('JUMP_FORWARD', '#124') | got ('JUMP_FORWARD', '#123')"
   },
   {
    "module": "bdb",
@@ -163,9 +163,9 @@
    "module": "compileall",
    "ast_detail": "diff at token 1084: orig  keywords=[]))]) | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 600,
+   "ndiff": 599,
    "ntotal": 1505,
-   "detail": "line 82: orig ('POP_JUMP_IF_FALSE', 'to 208') | got ('POP_JUMP_IF_FALSE', 'to 190')\nline 595: orig ('POP_JUMP_IF_FALSE', 'to 1130') | got ('POP_JUMP_IF_FALSE', 'to 1134')\nline 662: orig ('POP_JUMP_IF_FALSE', 'to 1130') | got ('POP_JUMP_IF_FALSE', 'to 1134')"
+   "detail": "line 595: orig ('POP_JUMP_IF_FALSE', '#565') | got ('POP_JUMP_IF_FALSE', '#567')\nline 662: orig ('POP_JUMP_IF_FALSE', '#565') | got ('POP_JUMP_IF_FALSE', '#567')\nline 817: orig ('JUMP_FORWARD', '#558') | got ('JUMP_FORWARD', '#560')"
   },
   {
    "module": "configparser",

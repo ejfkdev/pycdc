@@ -35,9 +35,9 @@
    "module": "HTMLParser",
    "ast_detail": "diff at token 2366: orig  comparators=[List(elts=[Str(s='x') | dec  comparators=[Tuple(elts=[Str(s='x')",
    "verdict": "SIG-DIFF",
-   "ndiff": 1025,
+   "ndiff": 786,
    "ntotal": 1607,
-   "detail": "line 359: orig ('SETUP_LOOP', '#378') | got ('SETUP_LOOP', '#380')\nline 363: orig ('POP_JUMP_IF_FALSE', '#377') | got ('POP_JUMP_IF_FALSE', '#379')\nline 417: orig ('POP_JUMP_IF_FALSE', '#199') | got ('POP_JUMP_IF_FALSE', '#200')"
+   "detail": "line 359: orig ('SETUP_LOOP', '#378') | got ('SETUP_LOOP', '#379')\nline 363: orig ('POP_JUMP_IF_FALSE', '#377') | got ('POP_JUMP_IF_FALSE', '#378')\nline 597: orig ('JUMP_ABSOLUTE', '#376') | got ('JUMP_ABSOLUTE', '#377')"
   },
   {
    "module": "MimeWriter",
@@ -181,11 +181,11 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 795: orig  orelse=[]) | dec  orelse=[Assign(targets=[Name(id='line'",
+   "ast_detail": "diff at token 3597: orig  body=[If(test=Compare(left=Name(id='key' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 2127,
+   "ndiff": 1205,
    "ntotal": 3035,
-   "detail": "line 664: orig ('JUMP_ABSOLUTE', '#187') | got ('JUMP_ABSOLUTE', '#37')\nline 804: orig ('SETUP_LOOP', '#87') | got ('SETUP_LOOP', '#88')\nline 807: orig ('FOR_ITER', '#86') | got ('FOR_ITER', '#87')"
+   "detail": "line 515: orig ('SETUP_LOOP', '#236') | got ('SETUP_LOOP', '#235')\nline 519: orig ('POP_JUMP_IF_FALSE', '#235') | got ('POP_JUMP_IF_FALSE', '#234')\nline 626: orig ('POP_JUMP_IF_FALSE', '#187') | got ('POP_JUMP_IF_FALSE', '#186')"
   }
  ]
 }

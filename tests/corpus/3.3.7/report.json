@@ -2,9 +2,8 @@
  "version": "3.3.7",
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
-  "PASS": 24,
-  "AST-PASS": 14,
-  "SIG-DIFF": 2
+  "PASS": 25,
+  "AST-PASS": 15
  },
  "results": [
   {
@@ -93,19 +92,11 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 884: orig  orelse=[]) | dec  orelse=[Assign(targets=[Name(id='line'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 2355,
-   "ntotal": 3046,
-   "detail": "line 523: orig ('SETUP_LOOP', '#250') | got ('SETUP_LOOP', '#251')\nline 527: orig ('POP_JUMP_IF_FALSE', '#249') | got ('POP_JUMP_IF_FALSE', '#250')\nline 591: orig ('SETUP_LOOP', '#144') | got ('SETUP_LOOP', '#145')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 296: orig  body=[If(test=Compare(left=Name(id='lasttoken' | dec  body=[If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1144,
-   "ntotal": 1437,
-   "detail": "line 224: orig ('SETUP_LOOP', '#106') | got ('SETUP_LOOP', '#108')\nline 230: orig ('FOR_ITER', '#105') | got ('FOR_ITER', '#107')\nline 248: orig ('POP_JUMP_IF_FALSE', '#85') | got ('POP_JUMP_IF_FALSE', '#87')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "chunk",
@@ -161,7 +152,7 @@
   },
   {
    "module": "dis",
-   "verdict": "AST-PASS"
+   "verdict": "PASS"
   },
   {
    "module": "dummy_threading",

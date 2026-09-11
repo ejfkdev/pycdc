@@ -191,8 +191,8 @@ def parse_multipart(fp, pdict):
                 if maxlen and bytes > maxlen:
                     raise ValueError, 'Maximum content length exceeded'
                 data = fp.read(bytes)
-                continue
-            data = ''
+            else:
+                data = ''
         lines = []
         while 1:
             line = fp.readline()
@@ -216,7 +216,6 @@ def parse_multipart(fp, pdict):
                     line = line[:-1]
                 lines[-1] = line
                 data = ''.join(lines)
-                continue
         line = headers['content-disposition']
         if not line:
             continue

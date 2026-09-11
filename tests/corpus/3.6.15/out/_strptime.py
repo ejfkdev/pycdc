@@ -371,9 +371,7 @@ def _strptime(data_string, format='%a %b %d %H:%M:%S %Y'):
             tzoffset = int(z[1:3]) * 60 + int(z[3:5])
             if z.startswith('-'):
                 tzoffset = -tzoffset
-        else:
-            if group_key == 'Z':
-                pass
+        elif group_key == 'Z':
             found_zone = found_dict['Z'].lower()
             for value, tz_values in enumerate(locale_time.timezone):
                 if found_zone in tz_values:

@@ -523,6 +523,30 @@ def _collect_scope_decls(body):
 
 
 class Normalizer(ast.NodeTransformer):
+    def visit_Try(self, node):
+        self.generic_visit(node)
+        # `try: {try: X except: H [else: E]} finally: F` ==
+        # `try: X except: H [else: E] finally: F` when the outer try
+        # has no handlers/orelse of its own and the sole inner try has
+        # no finalbody: both run X, service H (then E on the clean
+        # path), and run F on EVERY exit path - normal completion,
+        # return inside body/except, and propagating exceptions alike.
+        # The compiler expands a single try/except/finally into this
+        # nested block form and the decompiler reconstructs it
+        # literally (bdb 3.5-3.9 run/runeval/runcall: the source's one
+        # statement renders as Try(body=[Try(exec, except: pass)],
+        # finalbody=restore-trace)). py3 only: py2's split
+        # TryExcept/TryFinally nodes cannot represent the merged form.
+        if (hasattr(ast, 'Try') and isinstance(node, ast.Try)
+                and not node.handlers and not node.orelse and node.finalbody
+                and len(node.body) == 1
+                and isinstance(node.body[0], ast.Try)
+                and not node.body[0].finalbody):
+            inner = node.body[0]
+            inner.finalbody = node.finalbody
+            return inner
+        return node
+
     def visit_List(self, node):
         self.generic_visit(node)
         # py2.6 parses tuple-unpack targets (`a, b = x`) as List; pycdc
@@ -1941,6 +1965,122 @@ def prune_globals(tree):
     return tree
 
 
+def _free_names(node):
+    """Names LOADed by an expression (its free reads)."""
+    out = set()
+    for n in ast.walk(node):
+        if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load):
+            out.add(n.id)
+    return out
+
+
+def _stores_in_scope(body):
+    """Names ASSIGNED/augmented anywhere in a statement list. Descends
+    into nested function/class scopes too (ast.walk does not prune) -
+    over-collecting stores only makes the invariance test MORE
+    conservative, never unsound."""
+    out = set()
+    for s in body:
+        for n in ast.walk(s):
+            if isinstance(n, ast.Name) and isinstance(
+                    n.ctx, (ast.Store, ast.Del)):
+                out.add(n.id)
+            elif isinstance(n, ast.Global):
+                out.update(n.names)
+            elif isinstance(n, ast.ExceptHandler) and n.name:
+                if isinstance(n.name, str):
+                    out.add(n.name)
+                elif isinstance(n.name, ast.Name):
+                    out.add(n.name.id)
+    return out
+
+
+def _has_call_or_yield(node):
+    _types = tuple(t for t in (ast.Call, ast.Yield,
+                               getattr(ast, 'YieldFrom', None),
+                               getattr(ast, 'Await', None)) if t is not None)
+    for n in ast.walk(node):
+        if isinstance(n, _types):
+            return True
+    return False
+
+
+def _has_break_shallow(body):
+    """A Break belonging to THIS loop (not a nested loop's)."""
+    for s in body:
+        if isinstance(s, ast.Break):
+            return True
+        if isinstance(s, _LOOP_TYPES):
+            continue  # nested loop's breaks are its own
+        for fld in ('body', 'orelse', 'finalbody'):
+            sub = getattr(s, fld, None)
+            if isinstance(sub, list) and _has_break_shallow(sub):
+                return True
+        for h in getattr(s, 'handlers', None) or []:
+            if _has_break_shallow(h.body):
+                return True
+    return False
+
+
+def _has_attr_or_sub(node):
+    for n in ast.walk(node):
+        if isinstance(n, (ast.Attribute, ast.Subscript)):
+            return True
+    return False
+
+
+def _mutates_container(body):
+    """Any attribute/subscript store or mutating call target in the
+    statement list (sound over-approximation for 'could this change an
+    attribute-based loop test')."""
+    for s in body:
+        for n in ast.walk(s):
+            if isinstance(n, (ast.Attribute, ast.Subscript)) and \
+                    isinstance(n.ctx, (ast.Store, ast.Del)):
+                return True
+    return False
+
+
+def unfold_invariant_while(stmts):
+    """`while G: B` where G is a side-effect-free test that B never
+    rebinds is equivalent to `if G: while True: B` - G is loop-invariant
+    so re-testing it each iteration is a no-op, and B must hold a break
+    (else both forms spin forever identically). The decompiler fuses a
+    pre-loop guard into the following while-True (the rotated-while
+    idiom); the source keeps them separate. Canonicalize the fused form
+    INTO the split form so they compare equal (_osx_support 3.8/3.9
+    compiler_fixup: `if stripSysroot: while True: ... break` rendered
+    `while stripSysroot: ... break`; stripSysroot is set once before the
+    loop). Only fires when B contains a break, so a genuine
+    condition-driven `while G: B` (no break, exits on G turning false)
+    is left untouched."""
+    out = []
+    for s in stmts:
+        if (isinstance(s, ast.While) and not s.orelse
+                and not _is_const_true(s.test)
+                and not _has_call_or_yield(s.test)
+                and _has_break_shallow(s.body)
+                and not (_free_names(s.test) & _stores_in_scope(s.body))
+                # an attribute/subscript-based test (`while self.a and
+                # self.b:`) is NOT provably invariant from name-level
+                # stores alone: any attribute/subscript mutation in the
+                # body could flip it (asynchat 3.10 initiate_send's
+                # `while self.producer_fifo and self.connected:` got
+                # unfolded on one side only, sinking the function tail
+                # into nested orelse). Require a pure-NAME test, or a
+                # body with no container mutations at all.
+                and (not _has_attr_or_sub(s.test)
+                     or not _mutates_container(s.body))):
+            # the Normalizer canonicalizes True/False/None constants to
+            # Name nodes (py2 has no True constant); this transform runs
+            # after it, so build the canonical form directly
+            inner = ast.While(test=ast.Name(id='True', ctx=ast.Load()),
+                              body=s.body, orelse=[])
+            s = ast.If(test=s.test, body=[inner], orelse=[])
+        out.append(s)
+    return out
+
+
 def dump(src):
     tree = ast.parse(src)
     tree = Normalizer().visit(tree)
@@ -1954,6 +2094,18 @@ def dump(src):
     # observable end as a `break` there (3.13+ fuses a tail-loop break
     # into RETURN_CONST None) - canonicalize so the fused form compares
     # equal. Runs after the Normalizer so `return None` is already bare.
+    # pre-merge nested single-stmt guards (`if a: if b: X` -> `if a and
+    # b: X`) BEFORE the tail-loop rewrite: _break_to_tail_return copies
+    # the tail into the innermost break arm, freezing the nesting depth,
+    # so a nested-guard source and a merged-guard decompile stop
+    # converging afterwards (codecs 3.7-3.9 StreamReader.read: the
+    # `if chars>=0: if len>=chars: break` tail-sink diverged from the
+    # decompiler's merged `if chars>=0 and len>=chars: break`).
+    for node in ast.walk(tree):
+        for field, value in ast.iter_fields(node):
+            if (isinstance(value, list) and value
+                    and isinstance(value[0], ast.stmt)):
+                setattr(node, field, merge_nested_ifs(value))
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef,
                              getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):
@@ -2123,9 +2275,11 @@ def dump(src):
                             # under an unconditional re-merge)
                             val = merge_guard_continues(val)
                     setattr(node, field,
-                            split_tail_ternary_return(
-                                flatten_terminating_else(merge_nested_ifs(val),
-                                                         loop_body=is_loop_body)))
+                            unfold_invariant_while(
+                                split_tail_ternary_return(
+                                    flatten_terminating_else(
+                                        merge_nested_ifs(val),
+                                        loop_body=is_loop_body))))
         if ast.dump(tree) == _before:
             break
         # a docstring-only body normalizes to empty; the source may have

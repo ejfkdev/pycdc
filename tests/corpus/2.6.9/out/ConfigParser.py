@@ -453,7 +453,6 @@ class RawConfigParser:
                         pos = optval.find(';')
                         if pos != -1 and optval[pos - 1].isspace():
                             optval = optval[:pos]
-                            continue
                     optval = optval.strip()
                     if optval == '""':
                         optval = ''

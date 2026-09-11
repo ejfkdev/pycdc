@@ -10487,6 +10487,28 @@ impl<'a> Ctx<'a> {
                                     )
                                     && x.target == Some(pos)
                             })
+                            // shared diamond merge, not this guard's
+                            // else: an OUTER branch block still open
+                            // ends at exactly this pos (its cond jump
+                            // lands on the same label this guard's
+                            // PJIF does), so [pos, pair_at) is the
+                            // post-merge mainline both arms flow into.
+                            // Rebuilding traps it inside the outer
+                            // block's then arm and the merge becomes
+                            // unreachable on the outer guard's false
+                            // path (bdb 3.5-3.9 break_here: the inner
+                            // `if lineno not in breaks[filename]:
+                            // return False` swallowed `(bp, flag) =
+                            // effective(...)` into its else — a lineno
+                            // found directly in breaks never called
+                            // effective and fell off returning None
+                            // instead of True/False).
+                            && !self.blocks.iter().any(|ob| {
+                                matches!(
+                                    ob.kind,
+                                    BlockType::If | BlockType::Else
+                                ) && ob.end == pos
+                            })
                             // the span must not cross a try structure: a
                             // function ending in try/except(/else) also
                             // grows the implicit tail pair, but the pair
@@ -20772,6 +20794,42 @@ impl<'a> Ctx<'a> {
         })
     }
 
+    /// True when `t` sits on the EXTENDED_ARG prefix feeding the
+    /// instruction at the loop's recorded `start`: the loader folds
+    /// EXTENDED_ARG into the fed instruction, so `t` has no entry in
+    /// idx_of while `start` (the fed instruction) does. SETUP_LOOP-era
+    /// back edges and elif-chain false exits target the prefix offset,
+    /// not the fed instruction (3.6 _strptime: the for's top is
+    /// EXTENDED_ARG@464 feeding FOR_ITER@466, and the chain's shared
+    /// exit is 464 while the For block records start=466).
+    fn is_loop_top_prefix(&self, t: usize, start: usize) -> bool {
+        // 3.11+ folds inline CACHE entries into each instruction's size,
+        // so offsets inside a cached instruction have no idx_of entry
+        // either - a back edge landing <=8 bytes before the loop top
+        // would falsely match a CACHE tail (compileall 3.13 main tore
+        // into an INCOMPLETE stub). The EXTENDED_ARG-prefix shape this
+        // recognizes is pre-3.11 wordcode only (no CACHE gaps).
+        if self.version.at_least(3, 11) {
+            return false;
+        }
+        if t >= start || start - t > 8 {
+            return false;
+        }
+        // no instruction STARTS at t (idx_of also maps END offsets: the
+        // preceding instruction's end lands on t and must not count as
+        // an instruction start)
+        if self
+            .idx_of
+            .get(&t)
+            .map_or(false, |&ti| self.instrs[ti].offset == t)
+        {
+            return false;
+        }
+        self.idx_of
+            .get(&start)
+            .map_or(false, |&si| self.instrs[si].offset == start)
+    }
+
     fn try_fwd_or_continue(&self, target: usize, first: &ExprRef) -> Option<(ExprRef, usize)> {
         let dbg = std::env::var("PYCDC_FOC_DBG").is_ok();
         // pre-3.8 has no back-edge redirect: the target may be the back
@@ -26959,7 +27017,29 @@ return None;
                     t.jump_if_true,
                 )
             });
-            if let Some((true, true, Some(blk_cond), body_start, depth, true, true)) = top_info {
+            // The block's opening-jump polarity (`t.jump_if_true`, the
+            // last field) is normally required TRUE: `A or B` opens the
+            // operand block with a PJIT. The NEGATED first operand
+            // (`not A or B`) opens it with a PJF instead, and
+            // negate_cond(blk_cond) below still recovers the right
+            // operand. Admit that case ONLY for 3.7-3.9: pre-3.7 the
+            // py2/3.5/3.6 value-preserving + and-chain shapes reuse the
+            // same PJF-first layout and merging them inverts semantics
+            // (b10_boolops 3.5/3.6 dropped the inner print; ast/crypt
+            // 3.3/3.5/3.6 and CGIHTTPServer 2.7 regressed under the
+            // unconditional form). codecs 3.7-3.9 StreamReader.readline
+            // `if not data or size is not None:` is the shape this
+            // recovers (degraded to nested `if data: if size is not
+            // None:`, dropping the break on the not-data path).
+            // the opening jump's polarity (last field): `A or B` opens
+            // the operand block with a PJIT (jit=true); the negated
+            // first operand `not A or B` opens it with a PJF (jit=false)
+            // and negate_cond(blk_cond) below still recovers operand A.
+            let first_jit = match &top_info {
+                Some((true, true, Some(_), _, _, true, jit)) => *jit,
+                _ => true,
+            };
+            if let Some((true, true, Some(blk_cond), body_start, depth, true, _)) = top_info {
                 // The C-operand's false jump normally lands PAST the body
                 // (target > body_start). For `if B or C: <last stmt of a
                 // loop>` the compiler fuses the body-skip and the loop
@@ -27051,9 +27131,36 @@ return None;
                                 )
                             })
                     });
+                // negated-first-operand merge (`not A or B`, codecs 3.7-
+                // 3.9 readline) is admitted only on 3.7-3.9 and only when
+                // A is a SIMPLE operand: a block cond that is already a
+                // BoolOp chain is an and-of-or whose merge point other
+                // jumps also reach, and folding it as an or-operand flips
+                // the operators (compileall 3.7 compile_path `(not dir or
+                // dir == os.curdir) and skip_curdir` became Or[And[!=]]).
+                // py2/3.3-3.6 value-preserving + and-chain shapes reuse
+                // the PJF-first layout (b10_boolops, ast, crypt,
+                // CGIHTTPServer regressed under the unconditional form).
+                let neg_first_ok = first_jit
+                    || (self.version.major == 3
+                        && self.version.at_least(3, 7)
+                        && !self.version.at_least(3, 10)
+                        && !matches!(&*blk_cond, Expr::BoolOp { .. }));
+                // the fused variant additionally requires the FIRST
+                // operand's jump to be a PJIT (a genuine or
+                // short-circuits TRUE onto the body top). PJF-first with
+                // both false-exits on the loop top is an AND-guard chain
+                // (`if A and B: <tail stmt>` - each operand's skip fused
+                // with the loop continue); or-merging it inverts the
+                // polarity and skips the body (_osx_support 3.8/3.9
+                // compiler_fixup: `if compiler_so[idx] == '-arch' and
+                // compiler_so[idx+1] == 'arm64': del compiler_so[idx:
+                // idx+2]` rendered `if != '-arch' or == 'arm64': pass`,
+                // dropping the delete entirely).
                 if !jump_if_true
+                    && neg_first_ok
                     && ((target > body_start && !self.version.at_least(3, 8))
-                        || fused_continue)
+                        || (fused_continue && first_jit))
                     && !gap_has_cond_jump
                     && !gap_has_stmt
                     && body_start > self.cur_offset
@@ -28139,7 +28246,22 @@ return None;
                     // merge is the source shape
                     || (self.version.major == 3
                         && !self.version.at_least(3, 12)
-                        && top.end == target))
+                        && (top.end == target
+                            // SETUP_LOOP-era negated and-operand
+                            // (`while A and not B:` = PJF(A)->POP_BLOCK;
+                            // <B>; PJIT(B)->POP_BLOCK): the exit is the
+                            // loop's POP_BLOCK one instruction before the
+                            // block end, not top.end itself. Without this
+                            // the PJIT lands as an in-body `if not B:`
+                            // guard, dropping the loop's B exit and
+                            // spinning forever when B is true (asynchat
+                            // 3.5-3.7 find_prefix_at_end `while l and not
+                            // haystack.endswith(needle[:l]):`). A real
+                            // in-body `if c: break` guard targets the
+                            // back edge / a JABS, never the exit
+                            // POP_BLOCK, so the exit-scoped reading is
+                            // unambiguous.
+                            || self.is_pop_block_before(target, top.end))))
                 // SETUP_LOOP-era exits land on the loop's POP_BLOCK, one
                 // instruction before the block end
                 && (top.end == target
@@ -29112,7 +29234,15 @@ if split_cond {
                     let b = &self.blocks[i];
                     let matches_loop = b.start == target
                         || b.cond_end == target
-                        || (b.start <= target && target < b.cond_end);
+                        || (b.start <= target && target < b.cond_end)
+                        // SETUP_LOOP-era chains exit onto the loop top's
+                        // EXTENDED_ARG prefix, one (or more) instructions
+                        // before the recorded start (3.6/3.7 _strptime:
+                        // the Z arm's PJF->464 vs For.start=466 opened a
+                        // degenerate If[1266,464] — `if group_key=='Z':
+                        // pass` with the arm body ejected, running the
+                        // timezone scan for EVERY group_key)
+                        || self.is_loop_top_prefix(target, b.start);
                     if !matches_loop {
                         continue;
                     }
@@ -29307,7 +29437,10 @@ if split_cond {
                     if let Some(&ci) = self.idx_of.get(&self.cur_offset) {
                         for inst in self.instrs.iter().skip(ci + 1) {
                             if inst.is_backward
-                                && inst.target == Some(loop_start)
+                                && inst.target.map_or(false, |t| {
+                                    t == loop_start
+                                        || self.is_loop_top_prefix(t, loop_start)
+                                })
                                 && matches!(
                                     inst.op,
                                     Op::JUMP_ABSOLUTE
@@ -30619,6 +30752,16 @@ if split_cond {
                         })
                     });
                 if arm_plain && then_terminates && span_clean {
+                    // record the clamp so the block vetoes forward-jump
+                    // else marking: the [outer_end, target) span is the
+                    // OUTER guard's else arm - marking this clamped block
+                    // with it re-steals the arm as the inner's else
+                    // (codecs 3.7-3.9 StreamReader.read: `if firstline:`
+                    // else `raise` attached to `if len(lines)<=1:` so a
+                    // multi-line firstline decode wrongly raised)
+                    if chain_exit_clamp.is_none() {
+                        chain_exit_clamp = Some(if_end);
+                    }
                     if_end = outer_end;
                 }
             }
@@ -32107,6 +32250,13 @@ if split_cond {
             if matches!(b.kind, BlockType::If)
                 && b.short_circuit.is_none()
                 && b.else_end.is_none()
+                // a chain-exit clamped guard's end was pulled IN below
+                // the real merge: the span [end, target) is the OUTER
+                // guard's else arm, not this block's (codecs 3.7-3.9
+                // StreamReader.read: the fused inner arm-end JF->100
+                // marked the clamped `if len(lines)<=1:` with the
+                // `if firstline:` else `raise` at [98,100))
+                && b.clamp_from.is_none()
                 && !to_loop_exit
                 && b.end < target
                 && b.end > self.cur_offset
@@ -32208,6 +32358,18 @@ if split_cond {
                     }
                     if target > top.end {
                         // end of then-body jumping over the else branch
+                        // — but NOT for a chain-exit clamped guard: its
+                        // end was pulled IN below this target, so
+                        // [top.end, target) is the OUTER guard's else
+                        // arm (already marked by the loop above), not
+                        // this block's. Marking it here re-steals the
+                        // arm (codecs 3.7-3.9 StreamReader.read: the
+                        // fused inner arm-end JF->100 gave `if
+                        // len(lines)<=1:` the `if firstline:` else
+                        // `raise`, so a multi-line firstline raised).
+                        if top.clamp_from == Some(target) {
+                            return true;
+                        }
                         if let Some(t) = self.blocks.last_mut() {
                             t.else_end = Some(target);
                         }
@@ -33669,7 +33831,47 @@ if split_cond {
                             && t.start <= target
                             && target < t.end
                     });
-                    return depth > 0 && !into_open_try;
+                    // a FORWARD edge landing on a mainline statement
+                    // inside the loop body is an if-arm-end merge, not
+                    // a continue: a real `continue` targets the loop
+                    // top, its back edge, or a bare trampoline that
+                    // hops to the top. When the target offset holds a
+                    // non-glue (statement) instruction the jump is the
+                    // arm-end skip over sibling else/elif arms and must
+                    // route through handle_jump_forward so the skipped
+                    // else region gets marked (cgitb 3.8 scanvars: the
+                    // `if d:` then-arm JABS->58 landed on the merge
+                    // statement `lasttoken = token` and the decompiler
+                    // rendered a spurious `continue` + dead else body).
+                    let fwd_mainline_merge = target > self.cur_offset
+                        && !self.is_loop_top_target(target)
+                        && self
+                            .idx_of
+                            .get(&target)
+                            .and_then(|&ti| self.instrs.get(ti))
+                            .map_or(false, |x| {
+                                x.offset == target
+                                    && !matches!(
+                                        x.op,
+                                        Op::NOP
+                                            | Op::NOT_TAKEN
+                                            | Op::CACHE
+                                            | Op::POP_TOP
+                                            | Op::POP_BLOCK
+                                            | Op::POP_EXCEPT
+                                            | Op::END_FINALLY
+                                            | Op::BEGIN_FINALLY
+                                            | Op::RERAISE
+                                            | Op::JUMP_FORWARD
+                                            | Op::JUMP_ABSOLUTE
+                                            | Op::JUMP
+                                            | Op::JUMP_BACKWARD
+                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                    )
+                            });
+                    return depth > 0
+                        && !into_open_try
+                        && !fwd_mainline_merge;
                 }
                 depth += 1;
             }

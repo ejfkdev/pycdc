@@ -2,8 +2,8 @@
  "version": "3.6.15",
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
-  "PASS": 34,
-  "AST-PASS": 4,
+  "PASS": 33,
+  "AST-PASS": 5,
   "SIG-DIFF": 2
  },
  "results": [
@@ -45,7 +45,7 @@
   },
   {
    "module": "_strptime",
-   "verdict": "PASS"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_sysconfigdata_m_darwin_darwin",
@@ -85,7 +85,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 773,
    "ntotal": 1949,
-   "detail": "line 1157: orig ('SETUP_LOOP', 'to 374') | got ('SETUP_LOOP', 'to 370')\nline 1162: orig ('EXTENDED_ARG', '') | got ('FOR_ITER', 'to 368')\nline 1163: orig ('FOR_ITER', 'to 372') | got ('STORE_FAST', 'x')"
+   "detail": "line 1157: orig ('SETUP_LOOP', '#187') | got ('SETUP_LOOP', '#185')\nline 1162: orig ('EXTENDED_ARG', '') | got ('FOR_ITER', '#184')\nline 1163: orig ('FOR_ITER', '#186') | got ('STORE_FAST', 'x')"
   },
   {
    "module": "bdb",
@@ -151,7 +151,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 2806: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(arg=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 1057,
+   "ndiff": 1061,
    "ntotal": 4337,
    "detail": "line 2490: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')\nline 2525: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')\nline 2541: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')"
   },

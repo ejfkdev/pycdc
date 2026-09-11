@@ -81,7 +81,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1664,
    "ntotal": 3362,
-   "detail": "line 1173: orig ('COMPARE_OP', '==') | got ('COMPARE_OP', '!=')\nline 1174: orig ('POP_JUMP_IF_TRUE', 'to 50') | got ('POP_JUMP_IF_FALSE', 'to 50')\nline 1521: orig ('POP_JUMP_IF_FALSE', 'to 1046') | got ('POP_JUMP_IF_FALSE', 'to 1086')"
+   "detail": "line 1173: orig ('COMPARE_OP', '==') | got ('COMPARE_OP', '!=')\nline 1174: orig ('POP_JUMP_IF_TRUE', '#13') | got ('POP_JUMP_IF_FALSE', '#13')\nline 1521: orig ('POP_JUMP_IF_FALSE', '#171') | got ('POP_JUMP_IF_FALSE', '#179')"
   },
   {
    "module": "base64",
@@ -89,7 +89,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1007,
    "ntotal": 1926,
-   "detail": "line 905: orig ('GET_ITER', '') | got ('STORE_FAST', 'chunks')\nline 906: orig ('LOAD_FAST_AND_CLEAR', 'word') | got ('LOAD_FAST', 'padding')\nline 907: orig ('SWAP', '') | got ('POP_JUMP_IF_FALSE', 'to 310')"
+   "detail": "line 905: orig ('GET_ITER', '') | got ('STORE_FAST', 'chunks')\nline 906: orig ('LOAD_FAST_AND_CLEAR', 'word') | got ('LOAD_FAST', 'padding')\nline 907: orig ('SWAP', '') | got ('POP_JUMP_IF_FALSE', '#71')"
   },
   {
    "module": "bdb",
@@ -133,7 +133,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1079,
    "ntotal": 1382,
-   "detail": "line 276: orig ('LOAD_ATTR', 'NULL|self + postloop') | got ('LOAD_ATTR', 'use_rawinput')\nline 277: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 1010')\nline 278: orig ('POP_TOP', '') | got ('LOAD_FAST', 'self')"
+   "detail": "line 276: orig ('LOAD_ATTR', 'NULL|self + postloop') | got ('LOAD_ATTR', 'use_rawinput')\nline 277: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', '#140')\nline 278: orig ('POP_TOP', '') | got ('LOAD_FAST', 'self')"
   },
   {
    "module": "code",
@@ -155,9 +155,9 @@
    "module": "compileall",
    "ast_detail": "diff at token 1109: orig  keywords=[]))]) | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
-   "ndiff": 594,
+   "ndiff": 593,
    "ntotal": 1484,
-   "detail": "line 78: orig ('POP_JUMP_IF_FALSE', 'to 242') | got ('POP_JUMP_IF_FALSE', 'to 224')\nline 167: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 168: orig ('POP_JUMP_IF_TRUE', 'to 452') | got ('POP_JUMP_IF_FALSE', 'to 452')"
+   "detail": "line 167: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')\nline 168: orig ('POP_JUMP_IF_TRUE', '#74') | got ('POP_JUMP_IF_FALSE', '#74')\nline 173: orig ('COMPARE_OP', '!=') | got ('COMPARE_OP', '==')"
   },
   {
    "module": "configparser",

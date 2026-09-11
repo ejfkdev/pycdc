@@ -2,7 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 38,
+  "PASS": 36,
+  "AST-PASS": 2,
   "SIG-DIFF": 2
  },
  "results": [
@@ -48,7 +49,7 @@
   },
   {
    "module": "_strptime",
-   "verdict": "PASS"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_sysconfigdata_m_darwin_darwin",
@@ -86,9 +87,9 @@
    "module": "base64",
    "ast_detail": "diff at token 1472: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 781,
+   "ndiff": 783,
    "ntotal": 1946,
-   "detail": "line 1153: orig ('EXTENDED_ARG', '') | got ('SETUP_LOOP', 'to 364')\nline 1154: orig ('SETUP_LOOP', 'to 372') | got ('LOAD_FAST', 'b')\nline 1155: orig ('LOAD_FAST', 'b') | got ('LOAD_CONST', \"b'uuuu'\")"
+   "detail": "line 1153: orig ('EXTENDED_ARG', '') | got ('SETUP_LOOP', '#182')\nline 1154: orig ('SETUP_LOOP', '#186') | got ('LOAD_FAST', 'b')\nline 1155: orig ('LOAD_FAST', 'b') | got ('LOAD_CONST', \"b'uuuu'\")"
   },
   {
    "module": "bdb",
@@ -116,7 +117,7 @@
   },
   {
    "module": "cgi",
-   "verdict": "PASS"
+   "verdict": "AST-PASS"
   },
   {
    "module": "cgitb",
@@ -154,7 +155,7 @@
    "module": "configparser",
    "ast_detail": "diff at token 2789: orig  keywords=[keyword(arg='raw' | dec  keywords=[keyword(arg=None",
    "verdict": "SIG-DIFF",
-   "ndiff": 1092,
+   "ndiff": 1095,
    "ntotal": 4369,
    "detail": "line 2479: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')\nline 2514: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')\nline 2530: orig ('BUILD_MAP_UNPACK_WITH_CALL', '') | got ('BUILD_MAP_UNPACK', '')"
   },

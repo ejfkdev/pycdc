@@ -212,15 +212,14 @@ class Bdb:
                 lineno = frame.f_code.co_firstlineno
                 if lineno not in self.breaks[filename]:
                     return False
-                else:
-                    bp, flag = effective(filename, lineno, frame)
-                    if bp:
-                        self.currentbp = bp.number
-                        if flag and bp.temporary:
-                            self.do_clear(str(bp.number))
-                        return True
-                    else:
-                        return False
+            bp, flag = effective(filename, lineno, frame)
+            if bp:
+                self.currentbp = bp.number
+                if flag and bp.temporary:
+                    self.do_clear(str(bp.number))
+                return True
+            else:
+                return False
 
     def do_clear(self, arg):
         '''Remove temporary breakpoint.

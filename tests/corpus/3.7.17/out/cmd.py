@@ -391,9 +391,8 @@ class Cmd:
                 else:
                     x = list[i]
                 texts.append(x)
-            while texts:
-                if not texts[-1]:
-                    del texts[-1]
+            while texts and not texts[-1]:
+                del texts[-1]
             for col in range(len(texts)):
                 texts[col] = texts[col].ljust(colwidths[col])
             self.stdout.write('%s\n' % str('  '.join(texts)))

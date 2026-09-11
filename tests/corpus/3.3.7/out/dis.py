@@ -185,7 +185,6 @@ def disassemble(co, lasti=-1):
                 print('(' + free[oparg] + ')', end=' ')
             elif op in hasnargs:
                 print('(%d positional, %d keyword pair)' % (code[i - 2], code[i - 1]), end=' ')
-                continue
         print()
 
 def _disassemble_bytes(code, lasti=-1, varnames=None, names=None, constants=None):
@@ -214,13 +213,11 @@ def _disassemble_bytes(code, lasti=-1, varnames=None, names=None, constants=None
                     print('(' + repr(constants[oparg]) + ')', end=' ')
                 else:
                     print('(%d)' % oparg, end=' ')
-                    continue
             elif op in hasname:
                 if names is not None:
                     print('(' + names[oparg] + ')', end=' ')
                 else:
                     print('(%d)' % oparg, end=' ')
-                    continue
             elif op in hasjrel:
                 print('(to ' + repr(i + oparg) + ')', end=' ')
             elif op in haslocal:
@@ -228,12 +225,10 @@ def _disassemble_bytes(code, lasti=-1, varnames=None, names=None, constants=None
                     print('(' + varnames[oparg] + ')', end=' ')
                 else:
                     print('(%d)' % oparg, end=' ')
-                    continue
             elif op in hascompare:
                 print('(' + cmp_op[oparg] + ')', end=' ')
             elif op in hasnargs:
                 print('(%d positional, %d keyword pair)' % (code[i - 2], code[i - 1]), end=' ')
-                continue
         print()
 
 def _disassemble_str(source):

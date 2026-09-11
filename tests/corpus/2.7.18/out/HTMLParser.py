@@ -143,7 +143,6 @@ class HTMLParser(markupbase.ParserBase):
                         k = rawdata.find('<', i + 1)
                         if k < 0:
                             k = i + 1
-                            continue
                     else:
                         k += 1
                     self.handle_data(rawdata[i:k])

@@ -86,7 +86,15 @@ def sig2(code, out):
         if op >= opcode.HAVE_ARGUMENT:
             i += 2
         bounds.append((start, i, op))
-    off2idx = dict((b[0], k) for k, b in enumerate(bounds))
+    # labels = ordinal among EMITTED (non-NOP) instructions, so line-table
+    # NOP padding cannot shift jump labels (same scheme as sig3)
+    off2idx = {}
+    ordv = 0
+    for start, end, op in bounds:
+        off2idx[start] = ordv
+        if opcode.opname[op] != "NOP":
+            ordv += 1
+    off2idx[n] = ordv
     # second pass: emit with jump labels = target instruction index
     for k, (start, end, op) in enumerate(bounds):
         name = opcode.opname[op]
@@ -136,7 +144,14 @@ def sig3_manual(code, out):
         if op >= opcode.HAVE_ARGUMENT:
             i += 2
         bounds.append((start, i, op))
-    off2idx = dict((b[0], k) for k, b in enumerate(bounds))
+    # labels = ordinal among EMITTED (non-NOP) instructions (see sig2)
+    off2idx = {}
+    ordv = 0
+    for start, end, op in bounds:
+        off2idx[start] = ordv
+        if opcode.opname[op] != "NOP":
+            ordv += 1
+    off2idx[n] = ordv
     for k, (start, end, op) in enumerate(bounds):
         name = opcode.opname[op]
         if name == "NOP":
@@ -184,13 +199,17 @@ def sig3_manual(code, out):
 
 def sig3(code, out):
     import dis
+    import opcode as _opc
     if not hasattr(dis, "get_instructions"):
         return sig3_manual(code, out)
     out.append((code.co_name, code.co_argcount))
     insts = list(dis.get_instructions(code))
-    off2idx = {}
-    for k, inst in enumerate(insts):
-        off2idx[inst.offset] = k
+    # dis.hasjrel/hasjabs hold OPCODE NUMBERS through 3.11 and NAMES from
+    # 3.12 on, so `opname in dis.hasjrel` silently never matched on the
+    # older interpreters and raw "to <offset>" argreprs leaked into the
+    # sig -- any NOP/cache padding then shifted every downstream jump
+    # label. Test the numeric sets via inst.opcode instead.
+    _jump_ops = set(_opc.hasjrel) | set(_opc.hasjabs)
     skip = set()
     for i, inst in enumerate(insts):
         if inst.opname == "STORE_NAME" and inst.argrepr in (
@@ -200,6 +219,60 @@ def sig3(code, out):
             skip.add(i)
             if i > 0 and insts[i - 1].opname in ("LOAD_CONST", "LOAD_SMALL_INT"):
                 skip.add(i - 1)
+    # compiler-version dead-raise artifact: in 3.5-3.10 a bare raise in
+    # a conditional inside try/except compiles to
+    #   cond-jump ->L ; RAISE_VARARGS 0 ; JUMP_FORWARD ->L ; L: RAISE_VARARGS 0
+    # where the ORIGINAL compiler aims the false-branch at L (the next
+    # live op) while a recompilation of equivalent source aims it at the
+    # duplicate raise -- executed instruction streams are identical
+    # because the duplicate is unreachable. Drop bare raises that are
+    # dead by fall-through (only reachable via an unconditional transfer)
+    # unless a genuine live jump targets them.
+    _uncond = set()
+    for nm in ("JUMP_FORWARD", "JUMP_ABSOLUTE", "RAISE_VARARGS",
+               "RETURN_VALUE", "BREAK_LOOP", "CONTINUE_LOOP", "RERAISE"):
+        if nm in _opc.opmap:
+            _uncond.add(_opc.opmap[nm])
+    _condj = set()
+    for nm in ("POP_JUMP_IF_FALSE", "POP_JUMP_IF_TRUE",
+               "JUMP_IF_FALSE_OR_POP", "JUMP_IF_TRUE_OR_POP",
+               "JUMP_IF_NOT_EXC_MATCH"):
+        if nm in _opc.opmap:
+            _condj.add(_opc.opmap[nm])
+    targets = {}
+    for inst in insts:
+        if inst.opcode in _jump_ops and isinstance(inst.argval, int):
+            targets.setdefault(inst.argval, []).append(inst)
+    for i, inst in enumerate(insts):
+        if inst.opname != "RAISE_VARARGS" or inst.argval != 0 or i == 0:
+            continue
+        prev = insts[i - 1]
+        if prev.opcode not in _uncond:
+            continue
+        # a cond jump targeting it is part of the artifact (false-branch
+        # == skip-to-next-live-op); only an unconditional jump proves it
+        # is genuinely reachable code and must keep the raise alive
+        live = [t for t in targets.get(inst.offset, [])
+                if t.opcode not in _condj]
+        if not live:
+            skip.add(i)
+    # jump labels = ordinal among EMITTED lines of this code object, so
+    # skipped padding (NOPs, __firstlineno__ pairs) cannot shift them.
+    # Skipped instructions contribute 0 lines, so a jump landing on
+    # padding automatically resolves to the next emitted line.
+    def _emit_count(idx, inst):
+        if idx in skip or inst.opname == "NOP":
+            return 0
+        if inst.opname in ("STORE_FAST_LOAD_FAST", "LOAD_FAST_LOAD_FAST",
+                           "STORE_FAST_STORE_FAST"):
+            return 2
+        return 1
+    off2ord = {}
+    n = 0
+    for i, inst in enumerate(insts):
+        off2ord[inst.offset] = n
+        n += _emit_count(i, inst)
+    off2ord[len(code.co_code)] = n
     for i, inst in enumerate(insts):
         if i in skip:
             continue
@@ -208,10 +281,10 @@ def sig3(code, out):
             r = _norm_const(inst.argval)
         if r.startswith("<code object"):
             r = "<code %s>" % r.split()[2]
-        if inst.opname in dis.hasjrel or inst.opname in dis.hasjabs:
+        if inst.opcode in _jump_ops:
             tgt = inst.argval
             if isinstance(tgt, int):
-                r = "#%s" % off2idx.get(tgt, "?")
+                r = "#%s" % off2ord.get(tgt, "?")
         name = inst.opname
         # module-level STORE_GLOBAL vs STORE_NAME: a `global X` decl in
         # any function makes the compiler use STORE_GLOBAL for the

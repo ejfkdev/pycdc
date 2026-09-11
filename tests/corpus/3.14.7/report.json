@@ -33,7 +33,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1166,
    "ntotal": 7138,
-   "detail": "line 3880: orig ('LOAD_FAST', 'value') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'value, quote_types')\nline 3881: orig ('LOAD_FAST', 'quote_types') | got ('LOAD_CONST', 'True')\nline 3882: orig ('LOAD_CONST', 'True') | got ('LOAD_CONST', \"('quote_types', 'escape_special_whitespace')\")"
+   "detail": "line 3870: orig ('FOR_ITER', '#110') | got ('FOR_ITER', '#109')\nline 3876: orig ('POP_JUMP_IF_FALSE', '#45') | got ('POP_JUMP_IF_FALSE', '#44')\nline 3880: orig ('LOAD_FAST', 'value') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'value, quote_types')"
   },
   {
    "module": "_collections_abc",
@@ -65,7 +65,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 627,
    "ntotal": 1362,
-   "detail": "line 596: orig ('POP_JUMP_IF_FALSE', 'to L22') | got ('POP_JUMP_IF_FALSE', 'to L21')\nline 605: orig ('POP_JUMP_IF_FALSE', 'to L11') | got ('POP_JUMP_IF_FALSE', 'to L10')\nline 734: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'c')"
+   "detail": "line 596: orig ('POP_JUMP_IF_FALSE', '#269') | got ('POP_JUMP_IF_FALSE', '#267')\nline 605: orig ('POP_JUMP_IF_FALSE', '#153') | got ('POP_JUMP_IF_FALSE', '#151')\nline 734: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'c')"
   },
   {
    "module": "_opcode_metadata",
@@ -103,9 +103,9 @@
    "module": "_strptime",
    "ast_detail": "diff at token 2466: orig  value=Constant(value=0))])] | dec  value=Constant(value=0))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 888,
+   "ndiff": 890,
    "ntotal": 3207,
-   "detail": "line 2294: orig ('POP_JUMP_IF_FALSE', 'to L28') | got ('POP_JUMP_IF_TRUE', 'to L24')\nline 2296: orig ('LOAD_FAST', 'parse_int') | got ('EXTENDED_ARG', '')\nline 2297: orig ('PUSH_NULL', '') | got ('JUMP_BACKWARD', 'to L13')"
+   "detail": "line 2145: orig ('FOR_ITER', '#793') | got ('FOR_ITER', '#788')\nline 2294: orig ('POP_JUMP_IF_FALSE', '#414') | got ('POP_JUMP_IF_TRUE', '#357')\nline 2296: orig ('LOAD_FAST', 'parse_int') | got ('EXTENDED_ARG', '')"
   },
   {
    "module": "_sysconfigdata__darwin_darwin",
@@ -127,9 +127,9 @@
    "module": "annotationlib",
    "ast_detail": "diff at token 446: orig  body=[Pass() | dec  body=[Continue()])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1613,
+   "ndiff": 1616,
    "ntotal": 4144,
-   "detail": "line 552: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'cell_name, cell_value') | got ('LOAD_FAST', 'cell_name')\nline 553: orig ('CALL', '') | got ('LOAD_FAST', 'cell_value')\nline 554: orig ('POP_TOP', '') | got ('CALL', '')"
+   "detail": "line 536: orig ('POP_JUMP_IF_FALSE', '#245') | got ('POP_JUMP_IF_FALSE', '#246')\nline 543: orig ('FOR_ITER', '#243') | got ('FOR_ITER', '#244')\nline 552: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'cell_name, cell_value') | got ('LOAD_FAST', 'cell_name')"
   },
   {
    "module": "ast",
@@ -137,7 +137,7 @@
    "verdict": "SIG-DIFF",
    "ndiff": 1831,
    "ntotal": 2536,
-   "detail": "line 487: orig ('POP_JUMP_IF_FALSE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L5')\nline 495: orig ('POP_JUMP_IF_FALSE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L5')\nline 502: orig ('POP_JUMP_IF_FALSE', 'to L6') | got ('POP_JUMP_IF_FALSE', 'to L5')"
+   "detail": "line 487: orig ('POP_JUMP_IF_FALSE', '#96') | got ('POP_JUMP_IF_FALSE', '#95')\nline 495: orig ('POP_JUMP_IF_FALSE', '#96') | got ('POP_JUMP_IF_FALSE', '#95')\nline 502: orig ('POP_JUMP_IF_FALSE', '#96') | got ('POP_JUMP_IF_FALSE', '#95')"
   },
   {
    "module": "base64",
@@ -195,9 +195,9 @@
    "module": "compileall",
    "ast_detail": "diff at token 833: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1236,
+   "ndiff": 1239,
    "ntotal": 1660,
-   "detail": "line 399: orig ('LOAD_FAST', 'legacy') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'legacy, optimize')\nline 400: orig ('LOAD_FAST', 'optimize') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'invalidation_mode, stripdir')\nline 401: orig ('LOAD_FAST', 'invalidation_mode') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'prependdir, limit_sl_dest')"
+   "detail": "line 348: orig ('POP_JUMP_IF_FALSE', '#152') | got ('POP_JUMP_IF_FALSE', '#149')\nline 351: orig ('POP_JUMP_IF_NONE', '#152') | got ('POP_JUMP_IF_NONE', '#149')\nline 399: orig ('LOAD_FAST', 'legacy') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'legacy, optimize')"
   },
   {
    "module": "configparser",
