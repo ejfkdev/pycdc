@@ -19222,6 +19222,49 @@ impl<'a> Ctx<'a> {
                 p += 1;
             }
             if !more {
+                // py2 `assert B` as the if body's first statement: the
+                // body compiles [B]; JIT skip; POP; LOAD AssertionError;
+                // RAISE — the JIT link + its POP_TOP skip target mimic a
+                // boolop tail link whose "then body" is the raise block.
+                // Accepting it folds the outer if and the assert into
+                // `if A and B: raise AssertionError` (polarity inverted!)
+                // and sinks the rest of the function into a phantom else
+                // (abc 2.6 ABCMeta.__subclasscheck__: everything after
+                // `return ok` — the mro check, registry loop, negative
+                // cache, `return False` — vanished). Veto when the
+                // link's fall-through is exactly the canonical
+                // assert-raise block ending AT the link's own skip
+                // target; a genuine `if A and B: raise AssertionError`
+                // keeps its tail (the raise lands on the else-arm POP,
+                // not on the statement jump's skip target).
+                let assert_tail = self.instrs.get(k).map_or(false, |x| {
+                    matches!(x.op, Op::LOAD_GLOBAL | Op::LOAD_NAME)
+                        && self.store_like_name(x) == "AssertionError"
+                }) && {
+                    let mut q = k + 1;
+                    let mut hops = 0;
+                    let mut raise_end = None;
+                    while let Some(ins) = self.instrs.get(q) {
+                        if ins.op == Op::RAISE_VARARGS {
+                            raise_end = Some(ins.end());
+                            break;
+                        }
+                        if !is_pure_value_op(ins.op)
+                            && !matches!(ins.op, Op::CALL_FUNCTION)
+                        {
+                            break;
+                        }
+                        hops += 1;
+                        if hops > 8 {
+                            break;
+                        }
+                        q += 1;
+                    }
+                    raise_end == Some(lt)
+                };
+                if assert_tail {
+                    return None;
+                }
                 // this link was the statement jump: its fall-through POP
                 // was just consumed; the operand is the chain tail.
                 // Coherence check: in a real boolop chain every JIF link

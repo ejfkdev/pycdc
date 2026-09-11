@@ -136,12 +136,25 @@ class ABCMeta(type):
         elif subclass in cls._abc_negative_cache:
             return False
         ok = cls.__subclasshook__(subclass)
-        if ok is not NotImplemented and isinstance(ok, bool):
-            raise AssertionError
-        if ok:
+        if ok is not NotImplemented:
+            assert isinstance(ok, bool)
+            if ok:
+                cls._abc_cache.add(subclass)
+            else:
+                cls._abc_negative_cache.add(subclass)
+            return ok
+        if cls in getattr(subclass, '__mro__', ()):
             cls._abc_cache.add(subclass)
-        else:
-            cls._abc_negative_cache.add(subclass)
-        return ok
+            return True
+        for rcls in cls._abc_registry:
+            if issubclass(subclass, rcls):
+                cls._abc_cache.add(subclass)
+                return True
+        for scls in cls.__subclasses__():
+            if issubclass(subclass, scls):
+                cls._abc_cache.add(subclass)
+                return True
+        cls._abc_negative_cache.add(subclass)
+        return False
 
 
