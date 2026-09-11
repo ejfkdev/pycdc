@@ -1717,6 +1717,7 @@ pub fn decompile_in_scope(
 
     let tail_pair = bytecode_tail_return_pair(code, &ctx.instrs, version);
     let mut body = postprocess_body(body, code);
+    strip_break_continue(&mut body);
     // `from __future__ import annotations` leaves NO bytecode — only the
     // CO_FUTURE_ANNOTATIONS flag. Re-emit it at the module head (after a
     // leading docstring) so the annotations we rendered as raw source
@@ -19528,6 +19529,29 @@ impl<'a> Ctx<'a> {
                     })
                     .map_or(false, |t| t != lt);
                 if !coherent {
+                    return None;
+                }
+                // convergence: in a genuine peek-style chain every
+                // opposite-polarity link lands on the SAME POP_TOP the
+                // tail link falls through (the shared body pop). Queue
+                // 2.6 put's `if not block: if qsize==maxsize: raise
+                // Full` compiles JIT(block)->74 (the elif arm head) +
+                // JIF(qsize==max)->70 (POP; JABS past the chain) — the
+                // mixed-polarity coherence check accepted the distinct
+                // targets and folded `if block or qsize==max: raise
+                // Full`, raising on the DEFAULT block=True path and
+                // flattening the elif chain.
+                let converges = self
+                    .instrs
+                    .get(lk + 1)
+                    .map(|x| x.offset)
+                    .map_or(false, |bp| {
+                        pending
+                            .iter()
+                            .filter(|(_, j, _)| *j != ljit)
+                            .all(|(_, _, t)| *t == bp)
+                    });
+                if !converges {
                     return None;
                 }
                 tail = operand;
@@ -41268,6 +41292,48 @@ fn bytecode_tail_return_pair(
     version: PythonVersion,
 ) -> bool {
     tail_pair_load_offset(code, instrs, version).is_some()
+}
+
+/// A `continue` immediately after a `break` in the same statement list
+/// is the loop back edge rendered past a terminating break — dead code
+/// that recompiles to an extra jump (CGIHTTPServer 2.6 run_cgi:
+/// `if not self.rfile.read(1): break; continue`). Recursively drop it.
+fn strip_break_continue(stmts: &mut Vec<Stmt>) {
+    let mut i = 0;
+    while i + 1 < stmts.len() {
+        if matches!(stmts[i], Stmt::Break) && matches!(stmts[i + 1], Stmt::Continue) {
+            stmts.remove(i + 1);
+            continue;
+        }
+        i += 1;
+    }
+    for s in stmts.iter_mut() {
+        match s {
+            Stmt::If { body, orelse, .. }
+            | Stmt::While { body, orelse, .. }
+            | Stmt::For { body, orelse, .. } => {
+                strip_break_continue(body);
+                strip_break_continue(orelse);
+            }
+            Stmt::Try { body, handlers, orelse, finalbody, .. } => {
+                strip_break_continue(body);
+                for h in handlers.iter_mut() {
+                    strip_break_continue(&mut h.body);
+                }
+                strip_break_continue(orelse);
+                strip_break_continue(finalbody);
+            }
+            Stmt::With { body, .. } => strip_break_continue(body),
+            Stmt::ClassDef { body, .. } => strip_break_continue(body),
+            Stmt::Match { cases, .. } => {
+                for c in cases.iter_mut() {
+                    strip_break_continue(&mut c.body);
+                }
+            }
+            Stmt::FuncDef(_, body) => strip_break_continue(body),
+            _ => {}
+        }
+    }
 }
 
 fn postprocess_body(mut body: Vec<Stmt>, code: &CodeObject) -> Vec<Stmt> {

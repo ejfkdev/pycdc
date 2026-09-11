@@ -411,10 +411,8 @@ class StreamReader(Codec):
             if chars >= 0:
                 if len(self.charbuffer) >= chars:
                     break
-                    continue
             elif size >= 0 and len(self.charbuffer) >= size:
                 break
-                continue
             if size < 0:
                 newdata = self.stream.read()
             else:
@@ -496,7 +494,6 @@ class StreamReader(Codec):
                     else:
                         line = line0withoutend
                     break
-                    continue
             if not data or size is not None:
                 if line and not keepends:
                     line = line.splitlines(keepends=False)[0]

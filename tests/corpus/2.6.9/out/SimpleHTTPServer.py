@@ -62,19 +62,19 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         path = self.translate_path(self.path)
         f = None
-        if os.path.isdir(path) and self.path.endswith('/'):
-            self.send_response(301)
-            self.send_header('Location', self.path + '/')
-            self.end_headers()
-            return
-        for index in ('index.html', 'index.htm'):
-            index = os.path.join(path, index)
-            if os.path.exists(index):
-                path = index
-                break
-                continue
-        else:
-            return self.list_directory(path)
+        if os.path.isdir(path):
+            if not self.path.endswith('/'):
+                self.send_response(301)
+                self.send_header('Location', self.path + '/')
+                self.end_headers()
+                return
+            for index in ('index.html', 'index.htm'):
+                index = os.path.join(path, index)
+                if os.path.exists(index):
+                    path = index
+                    break
+            else:
+                return self.list_directory(path)
         ctype = self.guess_type(path)
         try:
             f = open(path, 'rb')

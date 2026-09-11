@@ -203,7 +203,6 @@ def parse_multipart(fp, pdict):
                 terminator = line.strip()
                 if terminator in (nextpart, lastpart):
                     break
-                    continue
             lines.append(line)
             continue
         if data is None:
@@ -638,7 +637,6 @@ class FieldStorage:
                 if strippedline == last:
                     self.done = 1
                     break
-                    continue
             odelim = delim
             if line[-2:] == '\r\n':
                 delim = '\r\n'
@@ -674,7 +672,6 @@ class FieldStorage:
                 if strippedline == last:
                     self.done = 1
                     break
-                    continue
             last_line_lfend = line.endswith('\n')
             continue
 

@@ -120,8 +120,8 @@ class Cmd:
             if self.intro:
                 self.stdout.write(str(self.intro) + '\n')
             stop = None
-            while 1:
-                if stop or self.cmdqueue:
+            while not stop:
+                if self.cmdqueue:
                     line = self.cmdqueue.pop(0)
                 elif self.use_rawinput:
                     try:
@@ -139,8 +139,8 @@ class Cmd:
                 line = self.precmd(line)
                 stop = self.onecmd(line)
                 stop = self.postcmd(stop, line)
-        finally:
             self.postloop()
+        finally:
             if self.use_rawinput and self.completekey:
                 try:
                     import readline
@@ -382,10 +382,8 @@ class Cmd:
                 totwidth += colwidth + 2
                 if totwidth > displaywidth:
                     break
-                    continue
             if totwidth <= displaywidth:
                 break
-                continue
         else:
             nrows = len(list)
             ncols = 1

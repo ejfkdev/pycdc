@@ -650,14 +650,16 @@ class Aifc_write:
 
     def _ensure_header_written(self, datasize):
         if not self._nframeswritten:
-            if self._comptype in ('ULAW', 'ALAW') and self._sampwidth:
-                self._sampwidth = 2
-            if self._sampwidth != 2:
-                raise Error, 'sample width must be 2 when compressing with ULAW or ALAW'
-            if self._comptype == 'G722' and self._sampwidth:
-                self._sampwidth = 2
-            if self._sampwidth != 2:
-                raise Error, 'sample width must be 2 when compressing with G7.22 (ADPCM)'
+            if self._comptype in ('ULAW', 'ALAW'):
+                if not self._sampwidth:
+                    self._sampwidth = 2
+                if self._sampwidth != 2:
+                    raise Error, 'sample width must be 2 when compressing with ULAW or ALAW'
+            if self._comptype == 'G722':
+                if not self._sampwidth:
+                    self._sampwidth = 2
+                if self._sampwidth != 2:
+                    raise Error, 'sample width must be 2 when compressing with G7.22 (ADPCM)'
             if not self._nchannels:
                 raise Error, '# channels not specified'
             if not self._sampwidth:

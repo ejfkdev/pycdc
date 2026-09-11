@@ -112,9 +112,10 @@ class Queue:
         self.not_full.acquire()
         try:
             if self.maxsize > 0:
-                if block or self._qsize() == self.maxsize:
-                    raise Full
-                if timeout is None:
+                if not block:
+                    if self._qsize() == self.maxsize:
+                        raise Full
+                elif timeout is None:
                     while self._qsize() == self.maxsize:
                         self.not_full.wait()
                 elif timeout < 0:

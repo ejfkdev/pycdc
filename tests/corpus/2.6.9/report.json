@@ -2,8 +2,8 @@
  "version": "2.6.9",
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
-  "PASS": 11,
-  "SIG-DIFF": 18,
+  "PASS": 13,
+  "SIG-DIFF": 16,
   "AST-PASS": 11
  },
  "results": [
@@ -19,7 +19,7 @@
    "module": "CGIHTTPServer",
    "ast_detail": "diff at token 794: orig  If(test=Compare(left=Call(func=Attribute(value=Subscript(value=Name(id='authorization' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 937,
+   "ndiff": 935,
    "ntotal": 1241,
    "detail": "line 243: orig ('SETUP_LOOP', '#67') | got ('SETUP_LOOP', '#68')\nline 247: orig ('JUMP_IF_FALSE', '#65') | got ('JUMP_IF_FALSE', '#66')\nline 269: orig ('JUMP_IF_FALSE', '#62') | got ('JUMP_IF_FALSE', '#63')"
   },
@@ -61,19 +61,11 @@
   },
   {
    "module": "Queue",
-   "ast_detail": "diff at token 391: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=BoolOp(op=Or()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 349,
-   "ntotal": 718,
-   "detail": "line 346: orig ('SETUP_FINALLY', '#122') | got ('SETUP_FINALLY', '#120')\nline 351: orig ('JUMP_IF_FALSE', '#102') | got ('JUMP_IF_FALSE', '#100')\nline 354: orig ('JUMP_IF_TRUE', '#28') | got ('JUMP_IF_TRUE', '#22')"
+   "verdict": "PASS"
   },
   {
    "module": "SimpleHTTPServer",
-   "ast_detail": "diff at token 138: orig  If(test=Call(func=Attribute(value=Attribute(value=Name(id='os' | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 410,
-   "ntotal": 676,
-   "detail": "line 210: orig ('JUMP_IF_FALSE', '#75') | got ('JUMP_IF_FALSE', '#42')\nline 217: orig ('JUMP_IF_TRUE', '#42') | got ('JUMP_IF_FALSE', '#42')\nline 240: orig ('SETUP_LOOP', '#76') | got ('SETUP_LOOP', '#75')"
+   "verdict": "PASS"
   },
   {
    "module": "SimpleXMLRPCServer",
@@ -135,8 +127,8 @@
    "module": "aifc",
    "ast_detail": "diff at token 2017: orig  values=[Str(s='Warning: MARK chunk contains only')] | dec  values=[Str(s='Warning: MARK chunk contains only')",
    "verdict": "SIG-DIFF",
-   "ndiff": 2956,
-   "ntotal": 3376,
+   "ndiff": 3044,
+   "ntotal": 3380,
    "detail": "line 84: orig ('JUMP_IF_FALSE', '#222') | got ('JUMP_IF_FALSE', '#223')\nline 166: orig ('JUMP_IF_FALSE', '#220') | got ('JUMP_IF_FALSE', '#221')\nline 190: orig ('SETUP_LOOP', '#208') | got ('SETUP_LOOP', '#209')"
   },
   {
@@ -147,17 +139,17 @@
    "module": "ast",
    "ast_detail": "diff at token 360: orig  body=[AugAssign(target=Name(id='rv' | dec  body=[If(test=Name(id='fields'",
    "verdict": "SIG-DIFF",
-   "ndiff": 660,
-   "ntotal": 1006,
+   "ndiff": 658,
+   "ntotal": 1009,
    "detail": "line 274: orig ('JUMP_IF_FALSE', '#90') | got ('JUMP_IF_FALSE', '#94')\nline 323: orig ('JUMP_IF_FALSE', '#85') | got ('JUMP_IF_FALSE', '#89')\nline 327: orig ('JUMP_IF_FALSE', '#85') | got ('JUMP_IF_FALSE', '#87')"
   },
   {
    "module": "asynchat",
    "ast_detail": "diff at token 883: orig  ctx=Load()))] | dec  ctx=Load()))",
    "verdict": "SIG-DIFF",
-   "ndiff": 595,
-   "ntotal": 853,
-   "detail": "line 222: orig ('SETUP_LOOP', '#210') | got ('SETUP_LOOP', '#213')\nline 225: orig ('JUMP_IF_FALSE', '#208') | got ('JUMP_IF_FALSE', '#211')\nline 237: orig ('JUMP_IF_TRUE', '#59') | got ('JUMP_IF_TRUE', '#60')"
+   "ndiff": 587,
+   "ntotal": 852,
+   "detail": "line 222: orig ('SETUP_LOOP', '#210') | got ('SETUP_LOOP', '#212')\nline 225: orig ('JUMP_IF_FALSE', '#208') | got ('JUMP_IF_FALSE', '#210')\nline 237: orig ('JUMP_IF_TRUE', '#59') | got ('JUMP_IF_TRUE', '#60')"
   },
   {
    "module": "asyncore",
@@ -183,7 +175,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 534: orig  While(test=BoolOp(op=And() | dec  While(test=Compare(left=Name(id='frame'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1632,
+   "ndiff": 1633,
    "ntotal": 2242,
    "detail": "line 537: orig ('SETUP_LOOP', '#49') | got ('SETUP_LOOP', '#43')\nline 541: orig ('JUMP_IF_FALSE', '#47') | got ('JUMP_IF_FALSE', '#41')\nline 545: orig ('LOAD_ATTR', 'stopframe') | got ('LOAD_ATTR', 'botframe')"
   },
@@ -191,9 +183,9 @@
    "module": "binhex",
    "ast_detail": "diff at token 19: orig  Assign(targets=[List(elts=[Name(id='_DID_HEADER' | dec  Assign(targets=[Tuple(elts=[Name(id='_DID_HEADER'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1684,
-   "ntotal": 2022,
-   "detail": "line 271: orig ('SETUP_LOOP', '#45') | got ('SETUP_LOOP', '#46')\nline 274: orig ('FOR_ITER', '#41') | got ('FOR_ITER', '#42')\nline 280: orig ('JUMP_IF_FALSE', '#39') | got ('JUMP_IF_FALSE', '#40')"
+   "ndiff": 931,
+   "ntotal": 2021,
+   "detail": "line 1021: orig ('SETUP_LOOP', '#32') | got ('SETUP_LOOP', '#33')\nline 1039: orig ('LOAD_FAST', 'ofp') | got ('JUMP_ABSOLUTE', '#15')\nline 1040: orig ('LOAD_ATTR', 'close_data') | got ('LOAD_FAST', 'ofp')"
   },
   {
    "module": "bisect",
@@ -207,17 +199,17 @@
    "module": "calendar",
    "ast_detail": "diff at token 1020: orig  body=[Assign(targets=[Name(id='months' | dec  body=[For(target=Name(id='i'",
    "verdict": "SIG-DIFF",
-   "ndiff": 2101,
+   "ndiff": 2069,
    "ntotal": 2868,
-   "detail": "line 704: orig ('SETUP_LOOP', '#61') | got ('SETUP_LOOP', '#62')\nline 706: orig ('JUMP_IF_FALSE', '#59') | got ('JUMP_IF_FALSE', '#60')\nline 719: orig ('JUMP_IF_FALSE', '#57') | got ('JUMP_IF_FALSE', '#58')"
+   "detail": "line 738: orig ('SETUP_LOOP', '#34') | got ('SETUP_LOOP', '#35')\nline 745: orig ('FOR_ITER', '#33') | got ('FOR_ITER', '#34')\nline 751: orig ('JUMP_IF_FALSE', '#23') | got ('JUMP_IF_FALSE', '#24')"
   },
   {
    "module": "cgi",
    "ast_detail": "diff at token 701: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2506,
-   "ntotal": 3227,
-   "detail": "line 570: orig ('SETUP_LOOP', '#276') | got ('SETUP_LOOP', '#281')\nline 574: orig ('JUMP_IF_FALSE', '#274') | got ('JUMP_IF_FALSE', '#279')\nline 581: orig ('JUMP_IF_FALSE', '#114') | got ('JUMP_IF_FALSE', '#113')"
+   "ndiff": 2501,
+   "ntotal": 3224,
+   "detail": "line 570: orig ('SETUP_LOOP', '#276') | got ('SETUP_LOOP', '#280')\nline 574: orig ('JUMP_IF_FALSE', '#274') | got ('JUMP_IF_FALSE', '#278')\nline 581: orig ('JUMP_IF_FALSE', '#114') | got ('JUMP_IF_FALSE', '#113')"
   },
   {
    "module": "cgitb",
@@ -233,11 +225,11 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 240: orig  While(test=UnaryOp(op=Not() | dec  While(test=Name(id='True'",
+   "ast_detail": "diff at token 1215: orig  body=[If(test=BoolOp(op=Or() | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 984,
+   "ndiff": 452,
    "ntotal": 1351,
-   "detail": "line 210: orig ('SETUP_FINALLY', '#180') | got ('SETUP_FINALLY', '#174')\nline 240: orig ('SETUP_LOOP', '#174') | got ('SETUP_LOOP', '#172')\nline 242: orig ('JUMP_IF_TRUE', '#172') | got ('JUMP_IF_TRUE', '#88')"
+   "detail": "line 869: orig ('JUMP_FORWARD', '#224') | got ('JUMP_FORWARD', '#225')\nline 881: orig ('SETUP_LOOP', '#114') | got ('SETUP_LOOP', '#115')\nline 884: orig ('FOR_ITER', '#113') | got ('FOR_ITER', '#114')"
   }
  ]
 }

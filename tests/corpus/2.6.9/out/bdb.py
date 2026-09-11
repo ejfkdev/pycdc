@@ -452,7 +452,15 @@ class Breakpoint:
 def checkfuncname(b, frame):
     '''Check whether we should break here because of `b.funcname`.'''
 
-    if b.funcname or b.line != frame.f_lineno:
+    if not b.funcname:
+        if b.line != frame.f_lineno:
+            return False
+        return True
+    if frame.f_code.co_name != b.funcname:
+        return False
+    if not b.func_first_executable_line:
+        b.func_first_executable_line = frame.f_lineno
+    if b.func_first_executable_line != frame.f_lineno:
         return False
     return True
 
@@ -473,20 +481,10 @@ def effective(file, line, frame):
         if not checkfuncname(b, frame):
             continue
         b.hits = b.hits + 1
-        if b.cond or b.ignore > 0:
-            b.ignore = b.ignore - 1
-            continue
-        else:
-            return b, 1
-        try:
-            val = eval(b.cond, frame.f_globals, frame.f_locals)
-            if val:
-                if b.ignore > 0:
-                    b.ignore = b.ignore - 1
-                else:
-                    return b, 1
-        except:
-            return b, 0
+        if not b.cond:
+            if b.ignore > 0:
+                b.ignore = b.ignore - 1
+                continue
     return (None, None)
 
 class Tdb(Bdb):

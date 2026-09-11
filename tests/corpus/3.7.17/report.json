@@ -2,8 +2,8 @@
  "version": "3.7.17",
  "interp": "/Users/e/.pyenv/versions/3.7.17/bin/python3",
  "counts": {
-  "PASS": 36,
-  "SIG-DIFF": 4
+  "PASS": 37,
+  "SIG-DIFF": 3
  },
  "results": [
   {
@@ -120,11 +120,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 2797: orig  If(test=BoolOp(op=Or() | dec  If(test=BoolOp(op=And()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 940,
-   "ntotal": 3013,
-   "detail": "line 1899: orig ('SETUP_LOOP', 'to 584') | got ('SETUP_LOOP', 'to 588')\nline 2054: orig ('JUMP_FORWARD', 'to 578') | got ('JUMP_FORWARD', 'to 582')\nline 2058: orig ('POP_BLOCK', '') | got ('EXTENDED_ARG', '')"
+   "verdict": "PASS"
   },
   {
    "module": "cgitb",

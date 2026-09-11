@@ -99,7 +99,6 @@ class async_chat(asyncore.dispatcher):
                         self.collect_incoming_data(self.ac_in_buffer[:-index])
                         self.ac_in_buffer = self.ac_in_buffer[-index:]
                     break
-                    continue
                 self.collect_incoming_data(self.ac_in_buffer)
                 self.ac_in_buffer = ''
 

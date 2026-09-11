@@ -103,9 +103,9 @@
    "module": "cgi",
    "ast_detail": "diff at token 956: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2347,
-   "ntotal": 3049,
-   "detail": "line 523: orig ('SETUP_LOOP', '#250') | got ('SETUP_LOOP', '#252')\nline 527: orig ('POP_JUMP_IF_FALSE', '#249') | got ('POP_JUMP_IF_FALSE', '#251')\nline 591: orig ('SETUP_LOOP', '#144') | got ('SETUP_LOOP', '#146')"
+   "ndiff": 2355,
+   "ntotal": 3046,
+   "detail": "line 523: orig ('SETUP_LOOP', '#250') | got ('SETUP_LOOP', '#251')\nline 527: orig ('POP_JUMP_IF_FALSE', '#249') | got ('POP_JUMP_IF_FALSE', '#250')\nline 591: orig ('SETUP_LOOP', '#144') | got ('SETUP_LOOP', '#145')"
   },
   {
    "module": "cgitb",
@@ -131,9 +131,9 @@
    "module": "codecs",
    "ast_detail": "diff at token 1762: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 1123,
-   "ntotal": 2180,
-   "detail": "line 990: orig ('SETUP_LOOP', '#149') | got ('SETUP_LOOP', '#152')\nline 994: orig ('POP_JUMP_IF_FALSE', '#30') | got ('POP_JUMP_IF_FALSE', '#31')\nline 1001: orig ('POP_JUMP_IF_FALSE', '#44') | got ('POP_JUMP_IF_FALSE', '#45')"
+   "ndiff": 1110,
+   "ntotal": 2177,
+   "detail": "line 990: orig ('SETUP_LOOP', '#149') | got ('SETUP_LOOP', '#150')\nline 1001: orig ('POP_JUMP_IF_FALSE', '#44') | got ('POP_JUMP_IF_FALSE', '#43')\nline 1003: orig ('JUMP_ABSOLUTE', '#44') | got ('JUMP_ABSOLUTE', '#43')"
   },
   {
    "module": "codeop",

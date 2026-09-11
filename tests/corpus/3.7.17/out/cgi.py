@@ -586,7 +586,6 @@ class FieldStorage:
             if not part.done:
                 if self.bytes_read >= self.length > 0:
                     break
-                    continue
         self.skip_lines()
 
     def read_single(self):

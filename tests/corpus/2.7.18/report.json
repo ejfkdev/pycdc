@@ -195,9 +195,9 @@
    "module": "cgi",
    "ast_detail": "diff at token 837: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
-   "ndiff": 2386,
-   "ntotal": 3036,
-   "detail": "line 515: orig ('SETUP_LOOP', '#236') | got ('SETUP_LOOP', '#237')\nline 519: orig ('POP_JUMP_IF_FALSE', '#235') | got ('POP_JUMP_IF_FALSE', '#236')\nline 580: orig ('SETUP_LOOP', '#138') | got ('SETUP_LOOP', '#139')"
+   "ndiff": 2127,
+   "ntotal": 3035,
+   "detail": "line 664: orig ('JUMP_ABSOLUTE', '#187') | got ('JUMP_ABSOLUTE', '#37')\nline 804: orig ('SETUP_LOOP', '#87') | got ('SETUP_LOOP', '#88')\nline 807: orig ('FOR_ITER', '#86') | got ('FOR_ITER', '#87')"
   }
  ]
 }

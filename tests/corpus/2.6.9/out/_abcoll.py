@@ -30,7 +30,6 @@ class Hashable:
                         if B.__dict__['__hash__']:
                             return True
                         break
-                        continue
             except AttributeError:
                 if getattr(C, '__hash__', None):
                     return True

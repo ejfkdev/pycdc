@@ -175,7 +175,6 @@ class TimeRE(dict):
         for value in to_convert:
             if value != '':
                 break
-                continue
         else:
             return ''
         regex = '|'.join((re_escape(stuff) for stuff in to_convert))
