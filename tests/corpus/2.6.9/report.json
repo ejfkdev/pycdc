@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "PASS": 16,
-  "AST-PASS": 15,
-  "SIG-DIFF": 9
+  "AST-PASS": 16,
+  "SIG-DIFF": 8
  },
  "results": [
   {
@@ -29,19 +29,15 @@
   },
   {
    "module": "DocXMLRPCServer",
-   "ast_detail": "diff at token 823: orig  orelse=[Assert(test=Num(n=0) | dec  orelse=[If(test=UnaryOp(op=Not()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 625,
-   "ntotal": 900,
-   "detail": "line 116: orig ('SETUP_LOOP', '#167') | got ('SETUP_LOOP', '#168')\nline 268: orig ('LOAD_FAST', 'results') | got ('JUMP_ABSOLUTE', '#16')\nline 269: orig ('LOAD_ATTR', 'append') | got ('LOAD_FAST', 'results')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "HTMLParser",
-   "ast_detail": "diff at token 898: orig  Assert(test=Num(n=0) | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 1907: orig  comparators=[List(elts=[Str(s='x') | dec  comparators=[Tuple(elts=[Str(s='x')",
    "verdict": "SIG-DIFF",
-   "ndiff": 902,
-   "ntotal": 1424,
-   "detail": "line 339: orig ('SETUP_LOOP', '#380') | got ('SETUP_LOOP', '#382')\nline 343: orig ('JUMP_IF_FALSE', '#378') | got ('JUMP_IF_FALSE', '#380')\nline 399: orig ('JUMP_IF_FALSE', '#181') | got ('JUMP_IF_FALSE', '#182')"
+   "ndiff": 906,
+   "ntotal": 1420,
+   "detail": "line 339: orig ('SETUP_LOOP', '#380') | got ('SETUP_LOOP', '#381')\nline 343: orig ('JUMP_IF_FALSE', '#378') | got ('JUMP_IF_FALSE', '#379')\nline 399: orig ('JUMP_IF_FALSE', '#181') | got ('JUMP_IF_FALSE', '#182')"
   },
   {
    "module": "MimeWriter",

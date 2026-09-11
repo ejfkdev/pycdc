@@ -31111,12 +31111,20 @@ if split_cond {
         // find the terminating RAISE_VARARGS 1; jumps (other than in msg
         // expressions we don't expect) invalidate the shape
         let mut raise_idx = None;
+        let mut raise_msg = false;
         let mut call_idx = None;
         let mut j = msg_start;
         while j < self.instrs.len() && j <= i0 + 60 {
             let ins = &self.instrs[j];
-            if ins.op == Op::RAISE_VARARGS && ins.arg == 1 {
+            if ins.op == Op::RAISE_VARARGS
+                && (ins.arg == 1 || ins.arg == 2)
+            {
                 raise_idx = Some(j);
+                // arg 2 = `raise AssertionError, msg` (py2 assert
+                // with a message: DocXMLRPCServer 2.6 `assert 0,
+                // "Could not find method..."` rendered as an If +
+                // raise instead of Assert)
+                raise_msg = ins.arg == 2;
                 break;
             }
             if matches!(ins.op, Op::CALL | Op::CALL_FUNCTION) && ins.arg <= 1 {
@@ -31168,11 +31176,16 @@ if split_cond {
                 return None;
             }
         }
-        let msg = match call_idx {
-            Some(ci2) if ci2 > msg_start && ci2 < ri => {
-                self.sim_value_region(msg_start, ci2)
+        let msg = if raise_msg {
+            // the message expression spans [msg_start, ri)
+            self.sim_value_region(msg_start, ri)
+        } else {
+            match call_idx {
+                Some(ci2) if ci2 > msg_start && ci2 < ri => {
+                    self.sim_value_region(msg_start, ci2)
+                }
+                _ => None,
             }
-            _ => None,
         };
         Some(msg)
     }

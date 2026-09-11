@@ -172,8 +172,8 @@ class HTMLParser(markupbase.ParserBase):
                     i = self.updatepos(i, i + 1)
                 else:
                     break
-            elif not 0:
-                raise AssertionError, 'interesting.search() lied'
+            else:
+                assert 0, 'interesting.search() lied'
         if end and i < n:
             self.handle_data(rawdata[i:n])
             i = self.updatepos(i, n)
@@ -181,8 +181,7 @@ class HTMLParser(markupbase.ParserBase):
 
     def parse_pi(self, i):
         rawdata = self.rawdata
-        if rawdata[i:i + 2] != '<?':
-            raise AssertionError, 'unexpected call to parse_pi()'
+        assert rawdata[i:i + 2] == '<?', 'unexpected call to parse_pi()'
         match = piclose.search(rawdata, i + 2)
         if not match:
             return -1
@@ -200,8 +199,7 @@ class HTMLParser(markupbase.ParserBase):
         self.__starttag_text = rawdata[i:endpos]
         attrs = []
         match = tagfind.match(rawdata, i + 1)
-        if not match:
-            raise AssertionError, 'unexpected call to parse_starttag()'
+        assert match, 'unexpected call to parse_starttag()'
         k = match.end()
         self.lasttag = tag = rawdata[i + 1:k].lower()
         while k < endpos:
@@ -258,8 +256,7 @@ class HTMLParser(markupbase.ParserBase):
 
     def parse_endtag(self, i):
         rawdata = self.rawdata
-        if rawdata[i:i + 2] != '</':
-            raise AssertionError, 'unexpected call to parse_endtag'
+        assert rawdata[i:i + 2] == '</', 'unexpected call to parse_endtag'
         match = endendtag.search(rawdata, i + 1)
         if not match:
             return -1
