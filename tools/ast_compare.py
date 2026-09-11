@@ -1550,6 +1550,20 @@ def merge_guard_continues(stmts):
                 out.extend(seq[i:k])
                 return out
             s = seq[i]
+            # `if c: A else: break` == `if not c: break` + A anywhere
+            # in a loop body (c-true runs A and falls on; c-false
+            # exits the loop) - canonicalize to the guard shape the
+            # decompiler renders (_markupbase 3.8/3.9
+            # parse_declaration's isspace skip)
+            if (isinstance(s, ast.If) and s.body
+                    and len(s.orelse) == 1
+                    and isinstance(s.orelse[0], ast.Break)):
+                out.append(ast.If(
+                    test=ast.UnaryOp(op=ast.Not(), operand=s.test),
+                    body=[ast.Break()], orelse=[]))
+                out.extend(canon_arm(s.body))
+                i += 1
+                continue
             # an arm-end continue/break followed by sibling statements
             # is the guard shape of an if/ELSE at the arm tail: fold
             # the remainder into the else (the terminator only skips

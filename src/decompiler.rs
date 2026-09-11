@@ -14986,6 +14986,32 @@ impl<'a> Ctx<'a> {
             // ---------- control flow ----------
             Op::JUMP_FORWARD => {
                 let target = inst.target.unwrap_or(inst.end());
+                // a forward jump landing exactly on an open loop's
+                // end is that loop's final exit (pre-3.8 SETUP_LOOP
+                // blocks carry the break/exit merge as their end, and
+                // the enclosing if's then-arm skip flies to it):
+                // close the loop FIRST so an else-arm region between
+                // the jump and the target is not swallowed into the
+                // loop body (_markupbase 3.3 _parse_doctype_entity:
+                // `j = i` parsed as dead code inside the while after
+                // the break - NameError on the non-% path)
+                if !self.version.at_least(3, 8) && target > self.cur_offset {
+                    if let Some(bi) = self.blocks.iter().rposition(|b| {
+                        matches!(
+                            b.kind,
+                            BlockType::While | BlockType::For
+                        ) && b.end == target
+                    }) {
+                        while self.blocks.len() > bi {
+                            let e = self
+                                .blocks
+                                .last()
+                                .map(|b| b.end.min(self.cur_offset))
+                                .unwrap_or(self.cur_offset);
+                            self.force_close_top(e);
+                        }
+                    }
+                }
                 if self.is_dead_forward_glue() {
                     return true;
                 }

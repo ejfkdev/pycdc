@@ -3,7 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.8.20/bin/python3",
  "counts": {
   "PASS": 35,
-  "SIG-DIFF": 5
+  "AST-PASS": 1,
+  "SIG-DIFF": 4
  },
  "results": [
   {
@@ -32,11 +33,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 1901: orig  If(test=Call(func=Attribute(value=Name(id='c' | dec  If(test=UnaryOp(op=Not()",
-   "verdict": "SIG-DIFF",
-   "ndiff": 150,
-   "ntotal": 1389,
-   "detail": "line 1236: orig ('POP_JUMP_IF_FALSE', '') | got ('POP_JUMP_IF_TRUE', '')\nline 1237: orig ('LOAD_FAST', 'j') | got ('JUMP_ABSOLUTE', '')\nline 1238: orig ('LOAD_CONST', '1') | got ('LOAD_FAST', 'j')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_osx_support",
@@ -160,7 +157,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 1820: orig  If(test=BoolOp(op=And() | dec  Assign(targets=[Name(id='replace'",
+   "ast_detail": "diff at token 1820: orig  If(test=BoolOp(op=Or() | dec  Assign(targets=[Name(id='replace'",
    "verdict": "SIG-DIFF",
    "ndiff": 2818,
    "ntotal": 4350,

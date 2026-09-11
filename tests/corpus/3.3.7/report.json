@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
   "PASS": 24,
-  "AST-PASS": 13,
-  "SIG-DIFF": 3
+  "AST-PASS": 14,
+  "SIG-DIFF": 2
  },
  "results": [
   {
@@ -21,11 +21,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 1767: orig  right=Num(n=1))) | dec  right=Num(n=1)))]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 145,
-   "ntotal": 1384,
-   "detail": "line 1206: orig ('POP_JUMP_IF_FALSE', '#42') | got ('POP_JUMP_IF_FALSE', '#46')\nline 1211: orig ('SETUP_LOOP', '#44') | got ('SETUP_LOOP', '#46')\nline 1235: orig ('JUMP_FORWARD', '#44') | got ('BREAK_LOOP', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_osx_support",

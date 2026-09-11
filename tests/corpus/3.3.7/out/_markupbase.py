@@ -278,8 +278,8 @@ class ParserBase:
                 else:
                     break
                 continue
-                break
-                j = i
+        else:
+            j = i
         name, j = self._scan_name(j, declstartpos)
         if j < 0:
             return j
