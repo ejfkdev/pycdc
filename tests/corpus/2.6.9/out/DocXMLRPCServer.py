@@ -57,9 +57,7 @@ class ServerHTMLDoc(pydoc.HTMLDoc):
     def docroutine(self, object, name, mod=None, funcs={}, classes={}, methods={}, cl=None):
         '''Produce HTML documentation for a function or method object.'''
 
-        if cl:
-            pass
-        anchor = (cl.__name__ if cl.__name__ else '') + '-' + name
+        anchor = (cl and cl.__name__ or '') + '-' + name
         note = ''
         title = '<a name="%s"><strong>%s</strong></a>' % (self.escape(anchor), self.escape(name))
         if inspect.ismethod(object):

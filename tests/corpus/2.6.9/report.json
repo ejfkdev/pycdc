@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "PASS": 16,
-  "AST-PASS": 14,
-  "SIG-DIFF": 10
+  "AST-PASS": 15,
+  "SIG-DIFF": 9
  },
  "results": [
   {
@@ -29,10 +29,10 @@
   },
   {
    "module": "DocXMLRPCServer",
-   "ast_detail": "diff at token 161: orig  body=[Assign(targets=[Name(id='anchor' | dec  body=[If(test=Name(id='cl'",
+   "ast_detail": "diff at token 823: orig  orelse=[Assert(test=Num(n=0) | dec  orelse=[If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
-   "ndiff": 612,
-   "ntotal": 906,
+   "ndiff": 625,
+   "ntotal": 900,
    "detail": "line 116: orig ('SETUP_LOOP', '#167') | got ('SETUP_LOOP', '#168')\nline 268: orig ('LOAD_FAST', 'results') | got ('JUMP_ABSOLUTE', '#16')\nline 269: orig ('LOAD_ATTR', 'append') | got ('LOAD_FAST', 'results')"
   },
   {
@@ -125,11 +125,7 @@
   },
   {
    "module": "ast",
-   "ast_detail": "diff at token 360: orig  body=[AugAssign(target=Name(id='rv' | dec  body=[If(test=Name(id='fields'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 671,
-   "ntotal": 1023,
-   "detail": "line 274: orig ('JUMP_IF_FALSE', '#90') | got ('JUMP_IF_FALSE', '#94')\nline 323: orig ('JUMP_IF_FALSE', '#85') | got ('JUMP_IF_FALSE', '#89')\nline 327: orig ('JUMP_IF_FALSE', '#85') | got ('JUMP_IF_FALSE', '#87')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "asynchat",
@@ -195,8 +191,8 @@
    "module": "cgitb",
    "ast_detail": "diff at token 244: orig  If(test=BoolOp(op=And() | dec  If(test=Compare(left=Name(id='ttype'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1249,
-   "ntotal": 1559,
+   "ndiff": 1242,
+   "ntotal": 1545,
    "detail": "line 209: orig ('SETUP_LOOP', '#125') | got ('SETUP_LOOP', '#129')\nline 215: orig ('FOR_ITER', '#124') | got ('FOR_ITER', '#128')\nline 235: orig ('JUMP_IF_FALSE', '#101') | got ('JUMP_IF_FALSE', '#124')"
   },
   {

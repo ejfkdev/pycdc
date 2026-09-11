@@ -83,9 +83,7 @@ def dump(node, annotate_fields=True, include_attributes=False):
             rv = '%s(%s' % (node.__class__.__name__, ', '.join(('%s=%s' % field for field in fields) if annotate_fields else (b for a, b in fields)))
             if include_attributes:
                 if node._attributes:
-                    if fields:
-                        pass
-                    rv += ', ' if ', ' else ' '
+                    rv += fields and ', ' or ' '
                     rv += ', '.join(('%s=%s' % (a, _format(getattr(node, a))) for a in node._attributes))
             return rv + ')'
         if isinstance(node, list):

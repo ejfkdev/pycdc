@@ -188,9 +188,7 @@ def text(einfo, context=5):
     frames = []
     records = inspect.getinnerframes(etb, context)
     for frame, file, lnum, func, lines, index in records:
-        if file:
-            pass
-        file = os.path.abspath(file) if os.path.abspath(file) else '?'
+        file = file and os.path.abspath(file) or '?'
         args, varargs, varkw, locals = inspect.getargvalues(frame)
         call = ''
         if func != '?':
@@ -251,9 +249,7 @@ class Hook:
         info = info or sys.exc_info()
         if self.format == 'html':
             self.file.write(reset())
-        if self.format == 'html':
-            pass
-        formatter = html if html else text
+        formatter = self.format == 'html' and html or text
         plain = False
         try:
             doc = formatter(info, self.context)

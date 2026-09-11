@@ -17152,6 +17152,23 @@ impl<'a> Ctx<'a> {
                                                 self.skip_until = Some(merge);
                         return true;
                     }
+                    // py2 and/or value chain:
+                    //   and-then-or: JIF T; POP; <B>; JIT M; T: POP; <C>; M:
+                    //   or-then-and: JIT M; POP; <B>; JIF T; T: POP; <C>; M:
+                    // with A already on the stack (DocXMLRPCServer 2.6
+                    // docroutine `cl and cl.__name__ or ''` fell through
+                    // to the if-statement shape: a phantom `if cl: pass`
+                    // plus a ternary over the WRONG condition)
+                    if let Some(ci) = ci {
+                        if let Some(merge) = self.py2_value_chain(
+                            ci,
+                            jump_if_true,
+                            target,
+                        ) {
+                            self.skip_until = Some(merge);
+                            return true;
+                        }
+                    }
                     // if-statement shape: both paths discard the value
                     let cond = self.pop_expr();
                     let else_body = self
@@ -25856,6 +25873,167 @@ return None;
             _ => return None,
         };
         Some(e)
+    }
+
+    /// py2 value-preserving and/or chain over the dispatching jump.
+    /// Returns the merge offset and leaves the merged BoolOp on the
+    /// value stack. Layout (and-then-or; the dual swaps JIF/JIT):
+    ///   A; JIF T; POP; B; JIT M; T: POP; C; M:
+    /// == `BoolOp(Or, [And([A, B]), C])`. B and C regions must be
+    /// pure value ops (single expression each); anything else bails
+    /// to the caller's next shape.
+    fn py2_value_chain(
+        &mut self,
+        ci: usize,
+        jump_if_true: bool,
+        target: usize,
+    ) -> Option<usize> {
+        if self.version.major != 2 {
+            return None;
+        }
+        let first = self.instrs.get(ci)?;
+        if !matches!(first.op, Op::JUMP_IF_FALSE | Op::JUMP_IF_TRUE) {
+            return None;
+        }
+        if first.target != Some(target) || first.is_backward {
+            return None;
+        }
+        let (pop1_op, pop1_end) = {
+            let pop1 = self.instrs.get(ci + 1)?;
+            (pop1.op, pop1.end())
+        };
+        if pop1_op != Op::POP_TOP {
+            return None;
+        }
+        let ti = *self.idx_of.get(&target)?;
+        if self.instrs[ti].op != Op::POP_TOP {
+            return None;
+        }
+        // the B region's terminating jump has the opposite polarity
+        let second_op = if jump_if_true {
+            Op::JUMP_IF_FALSE
+        } else {
+            Op::JUMP_IF_TRUE
+        };
+        let bi = *self.idx_of.get(&pop1_end)?;
+        let mut merge: Option<usize> = None;
+        let mut b_end: Option<usize> = None;
+        let mut k = bi;
+        while k < ti {
+            let ins = &self.instrs[k];
+            if ins.op == second_op && !ins.is_backward {
+                if merge.is_some() {
+                    return None;
+                }
+                let mt = ins.target?;
+                if mt <= target {
+                    return None;
+                }
+                merge = Some(mt);
+                b_end = Some(ins.offset);
+                k += 1;
+                while k < ti {
+                    if !matches!(
+                        self.instrs[k].op,
+                        Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                    ) {
+                        return None;
+                    }
+                    k += 1;
+                }
+                break;
+            }
+            if ins.is_jump() {
+                return None;
+            }
+            if !is_pure_value_op(ins.op)
+                && !matches!(
+                    ins.op,
+                    Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::TO_BOOL
+                )
+            {
+                return None;
+            }
+            k += 1;
+        }
+        let m = merge?;
+        let b_end = b_end?;
+        let mi = *self.idx_of.get(&m)?;
+        if mi <= ti + 1 {
+            return None;
+        }
+        // the C region (past the target POP, up to the merge) is a
+        // single jump-free pure-value expression
+        let cs = self.instrs[ti].end();
+        let mut k2 = *self.idx_of.get(&cs)?;
+        while k2 < mi {
+            let ins = &self.instrs[k2];
+            if ins.is_jump() {
+                return None;
+            }
+            if !is_pure_value_op(ins.op)
+                && !matches!(
+                    ins.op,
+                    Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::TO_BOOL
+                )
+            {
+                return None;
+            }
+            k2 += 1;
+        }
+        // no outside jump may land inside the C region (shared entry
+        // means the span is not this chain's private operand)
+        for x in self.instrs.iter() {
+            if let Some(t) = x.target {
+                if t > cs && t < m {
+                    return None;
+                }
+            }
+        }
+        // speculative: snapshot, evaluate B and C as values, restore
+        // on any deviation
+        let stack = self.stack.clone();
+        let blocks = self.blocks.clone();
+        let skip = self.skip_until;
+        let pend = self.pending_stores.clone();
+        if !matches!(self.stack.last(), Some(Sv::E(_))) {
+            return None;
+        }
+        let a = self.pop_expr();
+        self.region_result_expr = None;
+        let stmts_b = self.decompile_region(pop1_end, b_end);
+        let b = self.region_result_expr.take();
+        if !stmts_b.is_empty() || b.is_none() {
+            self.stack = stack;
+            self.blocks = blocks;
+            self.skip_until = skip;
+            self.pending_stores = pend;
+            return None;
+        }
+        self.region_result_expr = None;
+        let stmts_c = self.decompile_region(cs, m);
+        let c = self.region_result_expr.take();
+        if !stmts_c.is_empty() || c.is_none() {
+            self.stack = stack;
+            self.blocks = blocks;
+            self.skip_until = skip;
+            self.pending_stores = pend;
+            return None;
+        }
+        let (inner, outer) = if jump_if_true {
+            (BoolOpKind::Or, BoolOpKind::And)
+        } else {
+            (BoolOpKind::And, BoolOpKind::Or)
+        };
+        let inner_e = Rc::new(Expr::BoolOp {
+            op: inner,
+            values: vec![a, b.unwrap()],
+        });
+        self.push(Rc::new(Expr::BoolOp {
+            op: outer,
+            values: vec![inner_e, c.unwrap()],
+        }));
+        Some(m)
     }
 
     fn try_and_or_value_chain(
