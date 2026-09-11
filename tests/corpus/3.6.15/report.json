@@ -149,7 +149,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 195: orig  ctx=Load())]) | dec  ctx=Load())])])",
+   "ast_detail": "diff at token 865: orig  Name(id='skip_curdir' | dec  Compare(left=Name(id='quiet'",
    "verdict": "SIG-DIFF",
    "ndiff": 817,
    "ntotal": 1030,

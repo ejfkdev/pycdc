@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "PASS": 11,
-  "SIG-DIFF": 20,
-  "AST-PASS": 9
+  "SIG-DIFF": 18,
+  "AST-PASS": 11
  },
  "results": [
   {
@@ -89,11 +89,7 @@
   },
   {
    "module": "StringIO",
-   "ast_detail": "diff at token 477: orig  values=[Compare(left=BinOp(left=Attribute(value=Name(id='self' | dec  values=[Compare(left=Name(id='length'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 563,
-   "ntotal": 976,
-   "detail": "line 383: orig ('JUMP_IF_FALSE', '#73') | got ('JUMP_IF_FALSE', '#75')\nline 405: orig ('JUMP_FORWARD', '#74') | got ('JUMP_ABSOLUTE', '#76')\nline 407: orig ('LOAD_FAST', 'self') | got ('JUMP_FORWARD', '#76')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "UserDict",
@@ -125,11 +121,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 2135: orig  comparators=[Num(n=-1)]) | dec  comparators=[Num(n=-1)])])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1198,
-   "ntotal": 1709,
-   "detail": "line 448: orig ('SETUP_LOOP', '#172') | got ('SETUP_LOOP', '#173')\nline 454: orig ('FOR_ITER', '#171') | got ('FOR_ITER', '#172')\nline 462: orig ('SETUP_LOOP', '#142') | got ('SETUP_LOOP', '#143')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_threading_local",
@@ -229,7 +221,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 297: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 245: orig  values=[Compare(left=Name(id='token' | dec  values=[Compare(left=Name(id='lasttoken'",
    "verdict": "SIG-DIFF",
    "ndiff": 1254,
    "ntotal": 1541,

@@ -1386,17 +1386,27 @@ def dump(src):
                              getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):
             if node.body and isinstance(node.body[-1], _LOOP_TYPES):
                 node.body[-1].body = _merge_tail_arm_guards(node.body[-1].body)
-    for node in ast.walk(tree):
-        for field in ('body', 'orelse', 'finalbody'):
-            val = getattr(node, field, None)
-            if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
-                # the loop-tail if/else -> continue canonicalization inside
-                # flatten_terminating_else is only valid for a LOOP body
-                is_loop_body = isinstance(node, _LOOP_TYPES) and field == 'body'
-                setattr(node, field,
-                        split_tail_ternary_return(
-                            flatten_terminating_else(merge_nested_ifs(val),
-                                                     loop_body=is_loop_body)))
+    # iterate to a fixpoint (bounded): each merge_nested_ifs pass fuses
+    # ONE nesting level per element, so a source `if a and b: if c and d:
+    # if e or f: X` vs the decompiler's fully split `if a and b: if c:
+    # if d: if e: if f: X` needs several rounds (csv 3.3
+    # _guess_delimiter stopped after two levels and compared unequal)
+    for _round in range(6):
+        _before = ast.dump(tree)
+        for node in ast.walk(tree):
+            for field in ('body', 'orelse', 'finalbody'):
+                val = getattr(node, field, None)
+                if isinstance(val, list) and val and isinstance(val[0], ast.stmt):
+                    # the loop-tail if/else -> continue canonicalization
+                    # inside flatten_terminating_else is only valid for a
+                    # LOOP body
+                    is_loop_body = isinstance(node, _LOOP_TYPES) and field == 'body'
+                    setattr(node, field,
+                            split_tail_ternary_return(
+                                flatten_terminating_else(merge_nested_ifs(val),
+                                                         loop_body=is_loop_body)))
+        if ast.dump(tree) == _before:
+            break
         # a docstring-only body normalizes to empty; the source may have
         # carried a redundant `pass` after it (no bytecode) - canonicalize
         # an empty statement body to [Pass()] on both sides
