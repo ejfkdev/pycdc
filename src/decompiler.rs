@@ -24241,6 +24241,12 @@ return None;
         target: usize,
     ) -> Option<ExprRef> {
         self.dup_tail_ternary_skip = None;
+        // the live stack at entry is the full preload the arms consume
+        // (cond already popped by the PJIF handler) — record its length so
+        // the cleanup below drains ALL of it (base_depth counts ExprRefs
+        // and drops the Null callable markers, under-popping the live
+        // stack and stranding the callable as a stray statement)
+        let stack_len_at_entry = self.stack.len();
         let ci = *self.idx_of.get(&self.cur_offset)?;
         let ti = *self.idx_of.get(&target)?;
         if ti <= ci + 1 {
@@ -24359,15 +24365,24 @@ return None;
         if dt_d != de_d || dt_d < 1 {
             return None;
         }
-        // simulate: base preload (minus the cond value the jump pops),
-        // then each arm up to its middle end
-        let mut base = self.sim_stack_region(rs, ci, Vec::new())?;
-        let popped = base.pop()?;
-        if !expr_eq(&popped, &cond)
-            && !expr_eq(&popped, &simplify_not(cond.clone()))
-        {
-            return None;
-        }
+        // Use the LIVE simulation stack as the base, not a re-simulation of
+        // the preload region. The preload walk above stops at any non-pure
+        // op, so for a NESTED dup-tail ternary (annotationlib 3.14
+        // __hash__ `hash((a, b, id(c), d, <ternary4>, e, <ternary6>))`) it
+        // halts at the inner ternary's arm jump/call and the re-simulated
+        // base loses the outer operands (hash/a/inner-value) that the real
+        // walk already stacked. The PJIF handler popped the cond before
+        // calling, so the live stack IS exactly the base the arms consume
+        // (Null callable markers are dropped — sim_stack_region models
+        // values only).
+        let base: Vec<ExprRef> = self
+            .stack
+            .iter()
+            .filter_map(|sv| match sv {
+                Sv::E(e) => Some(e.clone()),
+                _ => None,
+            })
+            .collect();
         // the preload (values under the cond) must be NON-EMPTY: with an
         // empty base this is the plain `if C: return A` + `return B`
         // shape, whose ternary rendering recompiles differently (cabc
@@ -24381,7 +24396,6 @@ return None;
         if st_t.len() != st_e.len() || st_t.is_empty() {
             return None;
         }
-        let base_depth = st_t.len() - 1;
         let slot_t = st_t.last()?.clone();
         let slot_e = st_e.last()?.clone();
         // compare the UNDER-stack only — the tops are the slot values
@@ -24409,8 +24423,12 @@ return None;
         let merged = Self::ternary_merge_slot(&expr_t, &expr_e, &tern)?;
         let _ = jump_if_true;
         // the preloaded base operands were executed by the real walk and
-        // sit under the popped cond — the simulated arms consumed them
-        for _ in 0..base_depth {
+        // sit under the popped cond — the simulated arms consumed them.
+        // Drain the FULL live preload (stack_len_at_entry), not base_depth:
+        // base_depth counts ExprRefs and drops the Null callable markers,
+        // so popping only base_depth strands the callable (`hash`) as a
+        // stray post-return statement (annotationlib 3.14 __hash__).
+        for _ in 0..stack_len_at_entry {
             self.stack.pop();
         }
         self.dup_tail_ternary_skip = Some(self.instrs[re].end());

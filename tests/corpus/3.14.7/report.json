@@ -3,8 +3,7 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 24,
-  "SIG-DIFF": 13,
-  "INCOMPLETE": 1,
+  "SIG-DIFF": 14,
   "AST-PASS": 2
  },
  "results": [
@@ -126,7 +125,8 @@
   },
   {
    "module": "annotationlib",
-   "verdict": "INCOMPLETE",
+   "ast_detail": "diff at token 191: orig  value=Constant(value=True))]) | dec  value=Constant(value=True))])])",
+   "verdict": "SIG-DIFF",
    "ndiff": 3761,
    "ntotal": 4144,
    "detail": "line 334: orig ('JUMP_FORWARD', 'to L4') | got ('JUMP_FORWARD', 'to L3')\nline 342: orig ('JUMP_FORWARD', 'to L4') | got ('LOAD_GLOBAL', 'NotImplementedError + NULL')\nline 343: orig ('LOAD_GLOBAL', 'NotImplementedError + NULL') | got ('LOAD_FAST', 'format')"

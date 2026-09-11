@@ -178,9 +178,7 @@ Constructor arguments:
         return self.__forward_arg__ == other.__forward_arg__ and self.__forward_module__ == other.__forward_module__ and self.__globals__ is other.__globals__ and self.__forward_is_class__ == other.__forward_is_class__ and ({name: id(cell) for name, cell in self.__cell__.items()} == {name: id(cell) for name, cell in other.__cell__.items()} if isinstance(self.__cell__, dict) and isinstance(other.__cell__, dict) else self.__cell__ is other.__cell__) and self.__owner__ == other.__owner__ and (tuple(sorted(self.__extra_names__.items())) if self.__extra_names__ else None) == (tuple(sorted(other.__extra_names__.items())) if other.__extra_names__ else None)
 
     def __hash__(self):
-        if self.__extra_names__:
-            return hash((self.__forward_arg__, self.__forward_module__, id(self.__globals__), self.__forward_is_class__, (tuple(sorted([(name, id(cell)) for name, cell in self.__cell__.items()])) if isinstance(self.__cell__, dict) else id(self.__cell__),), self.__owner__, tuple(sorted(self.__extra_names__.items()))))
-        return None((None, None, None, None, None, None, None))
+        return hash((self.__forward_arg__, self.__forward_module__, id(self.__globals__), self.__forward_is_class__, (tuple(sorted([(name, id(cell)) for name, cell in self.__cell__.items()])) if isinstance(self.__cell__, dict) else id(self.__cell__),), self.__owner__, tuple(sorted(self.__extra_names__.items())) if self.__extra_names__ else None))
 
     def __or__(self, other):
         return types.UnionType[self, other]
@@ -811,4 +809,3 @@ class _ExtraNameFixer(ast.NodeTransformer):
         return node
 
 
-# WARNING: Decompyle incomplete
