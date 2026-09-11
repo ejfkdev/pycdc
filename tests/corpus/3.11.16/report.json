@@ -25,7 +25,7 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "diff at token 275: orig  body=Yield()) | dec  body=Yield(value=Constant(value=None)))",
+   "ast_detail": "diff at token 552: orig  body=[Pass()])] | dec  body=[Return()])]",
    "verdict": "SIG-DIFF",
    "ndiff": 2858,
    "ntotal": 3876,
@@ -93,7 +93,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 256: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 257: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 1546,
    "ntotal": 2319,
@@ -101,7 +101,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 1532: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 1534: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 729,
    "ntotal": 2107,
@@ -145,7 +145,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 1012: orig  keywords=[])) | dec  keywords=[]))])]",
+   "ast_detail": "diff at token 1013: orig  keywords=[])) | dec  keywords=[]))])]",
    "verdict": "SIG-DIFF",
    "ndiff": 1,
    "ntotal": 1443,
@@ -169,7 +169,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 1528: orig  ctx=Load())) | dec  ctx=Load()))]",
+   "ast_detail": "diff at token 1529: orig  Return(value=Constant(value=True))] | dec  Return(value=Call(func=Name(id='compile_path'",
    "verdict": "SIG-DIFF",
    "ndiff": 1,
    "ntotal": 1548,

@@ -37,7 +37,7 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "diff at token 220: orig  body=Yield()))])) | dec  body=Yield(value=Constant(value=None))))]))",
+   "ast_detail": "diff at token 274: orig  ops=[In()] | dec  ops=[NotIn()]",
    "verdict": "SIG-DIFF",
    "ndiff": 864,
    "ntotal": 4049,

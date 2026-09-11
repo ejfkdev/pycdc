@@ -109,7 +109,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 203: orig  body=[Return()]) | dec  body=[Return()])])",
+   "ast_detail": "diff at token 202: orig  body=[Return()]) | dec  body=[Return()])])",
    "verdict": "SIG-DIFF",
    "ndiff": 2332,
    "ntotal": 2803,

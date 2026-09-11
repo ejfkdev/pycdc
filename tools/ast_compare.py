@@ -1137,6 +1137,30 @@ def _count_breaks(body):
     return n
 
 
+def _normalize_func_tail_handler_return(node):
+    """When a function body's LAST statement is a try whose handler
+    clause ends in a bare `return` (nothing follows the try), the
+    return is observationally identical to `pass` - both leave the
+    function with None (_collections_abc 3.10 ItemsView.__iter__
+    generator: orig `except IndexError: return` vs dec `except
+    IndexError: pass`)."""
+    if not isinstance(node, (ast.FunctionDef,
+                             getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):
+        return
+    if not node.body:
+        return
+    last = node.body[-1]
+    try_t = getattr(ast, 'Try', None) or getattr(ast, 'TryExcept', None)
+    if try_t is None or not isinstance(last, try_t):
+        return
+    if not getattr(last, 'handlers', None):
+        return
+    for h in last.handlers:
+        if (len(h.body) == 1 and isinstance(h.body[0], ast.Return)
+                and h.body[0].value is None):
+            h.body = [ast.Pass()]
+
+
 def _normalize_func_tail_loop(node):
     """If a function/method body's LAST statement is a loop, a bare
     `return` inside that loop is observationally identical to a `break`
@@ -1266,6 +1290,129 @@ class BoolCanonicalizer(ast.NodeTransformer):
         node.test = canonical_bool(node.test)
         return node
 
+    def visit_Yield(self, node):
+        self.generic_visit(node)
+        # bare `yield` and `yield None` compile identically
+        # (LOAD_CONST None; YIELD_VALUE) - canonicalize the value
+        # (_collections_abc 3.10 items-view generators)
+        v = node.value
+        if hasattr(ast, 'Constant') and isinstance(v, ast.Constant) \
+                and v.value is None:
+            node.value = None
+        elif hasattr(ast, 'NameConstant') and isinstance(
+                v, getattr(ast, 'NameConstant')) and v.value is None:
+            node.value = None
+        elif isinstance(v, ast.Name) and v.id == 'None':
+            node.value = None
+        return node
+
+
+def _fold_try_body_tail_return(stmts):
+    """Canonicalize value returns around a try/except with no else:
+
+    1. a value Return as the LAST statement of the try body is moved to
+       right AFTER the try (if the body completed the return runs either
+       way; an exception skips it in both forms). CPython 3.10 narrows
+       the protected range to exclude the return, so 'try: X; return v
+       except E: Y' and 'try: X except E: Y' + 'return v' compile
+       indistinguishably (emit_return's routing comment documents the
+       LOAD-const ambiguity).
+    2. a value Return as the LAST statement of EACH handler clause (all
+       identical, no orelse/finalbody) is likewise moved to after the
+       try: falling out of the handler reaches the same return
+       (Mapping.setdefault: source 'except KeyError: self[key]=default'
+       + function-level 'return default' vs the decompiler's
+       clause-sunk 'return default').
+
+    Applied to both sides, the two renderings converge
+    (_collections_abc 3.10)."""
+    try_types = tuple(
+        t for t in (getattr(ast, 'Try', None), getattr(ast, 'TryExcept', None))
+        if t is not None)
+    i = 0
+    while i < len(stmts):
+        s = stmts[i]
+        if try_types and isinstance(s, try_types):
+            _fold_try_body_tail_return(s.body)
+            for h in getattr(s, 'handlers', None) or []:
+                h.body = _fold_try_body_tail_return(h.body)
+            _fold_try_body_tail_return(getattr(s, 'orelse', None) or [])
+            _fold_try_body_tail_return(getattr(s, 'finalbody', None) or [])
+            moved = []
+            # body-tail value return extracts FIRST (rule 1)
+            if not getattr(s, 'orelse', None) \
+                    and s.body and isinstance(s.body[-1], ast.Return) \
+                    and s.body[-1].value is not None:
+                moved.append(s.body.pop())
+            # the handler-tail return may only move out when the body
+            # STILL terminates after rule 1 (success never falls
+            # through to the sibling): __contains__ (body=[subscript],
+            # the `return True` just extracted) keeps `return False` in
+            # the handler; setdefault (body was [return self[key]], now
+            # empty but terminated) canonicalizes to the sibling form
+            body_terminates = (not s.body and bool(moved)) or (
+                bool(s.body) and isinstance(
+                    s.body[-1],
+                    (ast.Return, ast.Raise, ast.Break, ast.Continue)))
+            handlers = getattr(s, 'handlers', None) or []
+            if body_terminates \
+                    and not getattr(s, 'orelse', None) \
+                    and not getattr(s, 'finalbody', None) and handlers:
+                tails = []
+                for h in handlers:
+                    if h.body and isinstance(h.body[-1], ast.Return) \
+                            and h.body[-1].value is not None:
+                        tails.append(ast.dump(h.body[-1].value))
+                    else:
+                        tails = None
+                        break
+                if tails and len(set(tails)) == 1:
+                    for h in handlers:
+                        moved.append(h.body.pop())
+            for j, m in enumerate(moved):
+                stmts.insert(i + 1 + j, m)
+            i += len(moved)
+        i += 1
+    return stmts
+
+
+def _normalize_handler_break_raise(stmts):
+    """A handler clause `except E: raise X` inside a loop, where the
+    statement right AFTER the loop is the identical `raise X`, is
+    observationally a `break`: both leave the loop and raise X (the
+    compiler fuses the break-to-raise, 3.10 _collections_abc
+    Sequence.index `except IndexError: break` + post-loop
+    `raise ValueError` renders as the fused raise). Canonicalize the
+    handler body to Break so both forms compare equal."""
+    for i in range(len(stmts) - 1):
+        loop, nxt = stmts[i], stmts[i + 1]
+        if not isinstance(loop, _LOOP_TYPES) or not isinstance(nxt, ast.Raise):
+            continue
+        # py2 Raise carries .type/.inst/.tback; py3 carries .exc/.cause
+        nxt_exc = getattr(nxt, 'exc', None) or getattr(nxt, 'type', None)
+        want = ast.dump(nxt_exc) if nxt_exc is not None else None
+        if want is None:
+            continue
+
+        def fix(node):
+            for sub in ast.walk(node):
+                h_list = getattr(sub, 'handlers', None)
+                if not h_list:
+                    continue
+                for h in h_list:
+                    if len(h.body) != 1 or not isinstance(h.body[0], ast.Raise):
+                        continue
+                    r = h.body[0]
+                    r_exc = getattr(r, 'exc', None) or getattr(r, 'type', None)
+                    if (r_exc is not None
+                            and ast.dump(r_exc) == want
+                            and getattr(r, 'cause', None) is None
+                            and getattr(r, 'inst', None) is None
+                            and getattr(r, 'tback', None) is None):
+                        h.body = [ast.Break()]
+        fix(loop)
+    return stmts
+
 
 def _scope_assigned_names(node):
     """Names bound by Store/Del anywhere in the scope body (including
@@ -1330,6 +1477,7 @@ def dump(src):
         if isinstance(node, (ast.FunctionDef,
                              getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):
             _normalize_func_tail_loop(node)
+            _normalize_func_tail_handler_return(node)
     # merge loop-tail guard-continue chains back into the combined
     # `if not c1 and not c2: S` the compiler short-circuited them from.
     # Loop bodies get at_loop_tail=True (their tail falls through to the
@@ -1401,6 +1549,8 @@ def dump(src):
                     # inside flatten_terminating_else is only valid for a
                     # LOOP body
                     is_loop_body = isinstance(node, _LOOP_TYPES) and field == 'body'
+                    val = _fold_try_body_tail_return(val)
+                    val = _normalize_handler_break_raise(val)
                     setattr(node, field,
                             split_tail_ternary_return(
                                 flatten_terminating_else(merge_nested_ifs(val),

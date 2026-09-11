@@ -69,7 +69,7 @@
   },
   {
    "module": "SocketServer",
-   "ast_detail": "diff at token 94: orig  orelse=[])])] | dec  orelse=[])",
+   "ast_detail": "diff at token 88: orig  orelse=[])])] | dec  orelse=[])",
    "verdict": "SIG-DIFF",
    "ndiff": 1111,
    "ntotal": 1389,
@@ -149,7 +149,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 2572: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
+   "ast_detail": "diff at token 2573: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
    "verdict": "SIG-DIFF",
    "ndiff": 298,
    "ntotal": 2185,

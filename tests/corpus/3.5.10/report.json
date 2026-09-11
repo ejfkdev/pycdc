@@ -85,7 +85,7 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 1513: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 1515: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 653,
    "ntotal": 1970,
@@ -157,7 +157,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 3146: orig  args=[Name(id='section' | dec  args=[Name(id='raw'",
+   "ast_detail": "diff at token 3163: orig  args=[Name(id='section' | dec  args=[Name(id='raw'",
    "verdict": "SIG-DIFF",
    "ndiff": 1789,
    "ntotal": 4295,

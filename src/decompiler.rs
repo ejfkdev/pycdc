@@ -26296,7 +26296,7 @@ return None;
         // (_collections_abc 3.13 Sequence.index `while stop is None
         // or i < stop:` rendered `if stop is not None: while i <
         // stop:` — semantically wrong for stop=None)
-        if self.version.at_least(3, 12)
+        if self.version.at_least(3, 8)
             && jump_if_true
             && self.try_pre_rot_or(&cond, target)
         {
@@ -33466,6 +33466,128 @@ if split_cond {
                 == self.effective_offset(target)
         });
         if !ft_ok {
+            return false;
+        }
+        // 3.8-3.10 tail variant: the re-eval is TWO backward cond
+        // jumps onto the body top with NO unconditional back edge
+        // (`[A' run; PJIT->top] [B' run; PJIT->top] fall-through ->
+        // exit`) — _collections_abc 3.8-3.10 Sequence.index `while stop
+        // is None or i < stop:` rendered as an If with the re-eval
+        // guards leaked as `if stop is not None: pass` statements and
+        // the loop body running at most once.
+        if !self.version.at_least(3, 12) {
+            let bwd: Vec<usize> = self
+                .instrs
+                .iter()
+                .filter(|x| {
+                    x.offset > self.instrs[jb].offset
+                        && x.offset < exit
+                        && x.is_backward
+                        && x.target == Some(target)
+                        && matches!(
+                            x.op,
+                            Op::POP_JUMP_IF_FALSE
+                                | Op::POP_JUMP_IF_TRUE
+                                | Op::POP_JUMP_FORWARD_IF_FALSE
+                                | Op::POP_JUMP_FORWARD_IF_TRUE
+                        )
+                })
+                .map(|x| x.offset)
+                .collect();
+            if bwd.len() == 2 {
+                let (Some(&a2i), Some(&b2i)) =
+                    (self.idx_of.get(&bwd[0]), self.idx_of.get(&bwd[1]))
+                else {
+                    return false;
+                };
+                // A' jump: same op as this A jump; operand run mirrors
+                if self.instrs[a2i].op != self.instrs[ci].op {
+                    return false;
+                }
+                let a_run: Vec<u8> = self.instrs[a_lo..ci]
+                    .iter()
+                    .filter(|x| !is_pad(x))
+                    .map(|x| x.op as u8)
+                    .collect();
+                let mut a2_lo = a2i;
+                let mut arun: Vec<u8> = Vec::new();
+                while a2_lo > 0 {
+                    let p = &self.instrs[a2_lo - 1];
+                    if is_pad(p) {
+                        a2_lo -= 1;
+                        continue;
+                    }
+                    if is_pure_value_op(p.op) || matches!(p.op, Op::TO_BOOL) {
+                        arun.push(p.op as u8);
+                        a2_lo -= 1;
+                        continue;
+                    }
+                    break;
+                }
+                arun.reverse();
+                if arun != a_run || a_run.is_empty() {
+                    return false;
+                }
+                // B' jump: polarity-inverse of the top B jump
+                let inv_ok = matches!(
+                    (self.instrs[jb].op, self.instrs[b2i].op),
+                    (Op::POP_JUMP_IF_FALSE, Op::POP_JUMP_IF_TRUE)
+                        | (Op::POP_JUMP_IF_TRUE, Op::POP_JUMP_IF_FALSE)
+                        | (
+                            Op::POP_JUMP_FORWARD_IF_FALSE,
+                            Op::POP_JUMP_FORWARD_IF_TRUE
+                        )
+                        | (
+                            Op::POP_JUMP_FORWARD_IF_TRUE,
+                            Op::POP_JUMP_FORWARD_IF_FALSE
+                        )
+                );
+                if !inv_ok || self.instrs[a2i].end() > self.instrs[b2i].offset
+                {
+                    return false;
+                }
+                // B' operand run mirrors the top B run
+                let b_run: Vec<u8> = self.instrs[ni..jb]
+                    .iter()
+                    .filter(|x| !is_pad(x))
+                    .map(|x| x.op as u8)
+                    .collect();
+                let b2_start = self.instrs[a2i].end();
+                let Some(&b2si) = self.idx_of.get(&b2_start) else {
+                    return false;
+                };
+                if b2si >= b2i {
+                    return false;
+                }
+                let b2_run: Vec<u8> = self.instrs[b2si..b2i]
+                    .iter()
+                    .filter(|x| !is_pad(x))
+                    .map(|x| x.op as u8)
+                    .collect();
+                if b2_run != b_run || b_run.is_empty() {
+                    return false;
+                }
+                let b_expr = match self.sim_value_region(ni, jb) {
+                    Some(e) => e,
+                    None => return false,
+                };
+                let merged: ExprRef = Rc::new(Expr::BoolOp {
+                    op: BoolOpKind::Or,
+                    values: vec![cond.clone(), b_expr],
+                });
+                self.while_true_loops.retain(|(t, _)| *t != target);
+                let mut blk = Block::new(BlockType::While, target, exit);
+                blk.cond = Some(merged);
+                blk.cond_set = true;
+                blk.cond_end = self.instrs[ci].end();
+                blk.jump_if_true = false;
+                blk.stack_depth = self.stack.len();
+                self.blocks.push(blk);
+                self.or_rot_revals
+                    .push((self.instrs[a2_lo].offset, exit));
+                self.skip_until = Some(target);
+                return true;
+            }
             return false;
         }
         // final back edge: the LAST backward unconditional jump onto the
