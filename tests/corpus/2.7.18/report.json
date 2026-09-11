@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
  "counts": {
   "PASS": 28,
-  "AST-PASS": 5,
-  "SIG-DIFF": 7
+  "AST-PASS": 6,
+  "SIG-DIFF": 6
  },
  "results": [
   {
@@ -25,11 +25,7 @@
   },
   {
    "module": "Cookie",
-   "ast_detail": "diff at token 693: orig  right=Num(n=2))) | dec  right=Num(n=2)))]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 987,
-   "ntotal": 1874,
-   "detail": "line 787: orig ('SETUP_LOOP', '#157') | got ('SETUP_LOOP', '#158')\nline 799: orig ('POP_JUMP_IF_FALSE', '#156') | got ('POP_JUMP_IF_FALSE', '#157')\nline 848: orig ('POP_JUMP_IF_FALSE', '#126') | got ('POP_JUMP_IF_FALSE', '#127')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "DocXMLRPCServer",
@@ -37,7 +33,7 @@
   },
   {
    "module": "HTMLParser",
-   "ast_detail": "diff at token 1020: orig  Assert(test=Num(n=0) | dec  If(test=UnaryOp(op=Not()",
+   "ast_detail": "diff at token 1008: orig  Assert(test=Num(n=0) | dec  If(test=UnaryOp(op=Not()",
    "verdict": "SIG-DIFF",
    "ndiff": 1025,
    "ntotal": 1607,
@@ -145,7 +141,7 @@
   },
   {
    "module": "asyncore",
-   "ast_detail": "diff at token 2566: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
+   "ast_detail": "diff at token 2562: orig  If(test=UnaryOp(op=Not() | dec  Assert(test=Name(id='tb'",
    "verdict": "SIG-DIFF",
    "ndiff": 298,
    "ntotal": 2185,
@@ -189,7 +185,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 795: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 795: orig  orelse=[]) | dec  orelse=[Assign(targets=[Name(id='line'",
    "verdict": "SIG-DIFF",
    "ndiff": 2127,
    "ntotal": 3035,

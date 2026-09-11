@@ -77,7 +77,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 2467: orig  value=Constant(value=0))])] | dec  value=Constant(value=0))",
+   "ast_detail": "diff at token 2466: orig  value=Constant(value=0))])] | dec  value=Constant(value=0))]",
    "verdict": "SIG-DIFF",
    "ndiff": 639,
    "ntotal": 2986,
@@ -133,7 +133,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 290: orig  ctx=Load())]))]) | dec  ctx=Load())]))])]",
+   "ast_detail": "diff at token 288: orig  ctx=Load())]))]) | dec  ctx=Load())]))])]",
    "verdict": "SIG-DIFF",
    "ndiff": 1138,
    "ntotal": 1478,
@@ -157,7 +157,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 836: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 833: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 623,
    "ntotal": 1551,

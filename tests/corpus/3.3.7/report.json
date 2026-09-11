@@ -21,7 +21,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 562: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Set(elts=[Str(s='element')",
+   "ast_detail": "diff at token 556: orig  comparators=[Set(elts=[Str(s='attlist') | dec  comparators=[Set(elts=[Str(s='element')",
    "verdict": "SIG-DIFF",
    "ndiff": 686,
    "ntotal": 1383,
@@ -97,7 +97,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 884: orig  kwargs=None))] | dec  kwargs=None))",
+   "ast_detail": "diff at token 884: orig  orelse=[]) | dec  orelse=[Assign(targets=[Name(id='line'",
    "verdict": "SIG-DIFF",
    "ndiff": 2355,
    "ntotal": 3046,
@@ -105,7 +105,7 @@
   },
   {
    "module": "cgitb",
-   "ast_detail": "diff at token 298: orig  body=[If(test=Compare(left=Name(id='lasttoken' | dec  body=[If(test=BoolOp(op=And()",
+   "ast_detail": "diff at token 296: orig  body=[If(test=Compare(left=Name(id='lasttoken' | dec  body=[If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 1144,
    "ntotal": 1437,
@@ -141,7 +141,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 4466: orig  ctx=Del())]) | dec  ctx=Del())",
+   "ast_detail": "diff at token 4008: orig  ctx=Del())]) | dec  ctx=Del())",
    "verdict": "SIG-DIFF",
    "ndiff": 825,
    "ntotal": 4129,

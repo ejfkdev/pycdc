@@ -3,24 +3,24 @@
   "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
   "counts": {
    "PASS": 16,
-   "AST-PASS": 12,
-   "SIG-DIFF": 12
+   "AST-PASS": 13,
+   "SIG-DIFF": 11
   }
  },
  "2.7.18": {
   "interp": "/Users/e/.pyenv/versions/2.7.18/bin/python",
   "counts": {
    "PASS": 28,
-   "AST-PASS": 5,
-   "SIG-DIFF": 7
+   "AST-PASS": 6,
+   "SIG-DIFF": 6
   }
  },
  "3.10.21": {
   "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
   "counts": {
    "PASS": 31,
-   "AST-PASS": 2,
-   "SIG-DIFF": 7
+   "AST-PASS": 3,
+   "SIG-DIFF": 6
   }
  },
  "3.11.16": {

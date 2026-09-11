@@ -77,7 +77,7 @@
   },
   {
    "module": "aifc",
-   "ast_detail": "diff at token 1854: orig  value=Constant(value=2))] | dec  value=Constant(value=2))",
+   "ast_detail": "diff at token 1840: orig  value=Constant(value=2))] | dec  value=Constant(value=2))",
    "verdict": "SIG-DIFF",
    "ndiff": 1664,
    "ntotal": 3362,
@@ -117,7 +117,7 @@
   },
   {
    "module": "cgi",
-   "ast_detail": "diff at token 1509: orig  keywords=[]))] | dec  keywords=[]))",
+   "ast_detail": "diff at token 1503: orig  keywords=[]))] | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 610,
    "ntotal": 2873,
@@ -133,7 +133,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 294: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 292: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
    "ndiff": 1079,
    "ntotal": 1382,
@@ -157,7 +157,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 1113: orig  keywords=[]))]) | dec  keywords=[]))",
+   "ast_detail": "diff at token 1109: orig  keywords=[]))]) | dec  keywords=[]))",
    "verdict": "SIG-DIFF",
    "ndiff": 594,
    "ntotal": 1484,

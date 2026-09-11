@@ -209,20 +209,45 @@ def _sunk_return_orelse(stmts):
     return stmts
 
 
-def flatten_try_else(stmts):
+def flatten_try_else(stmts, at_loop_tail=False, _chg=None):
     """When every handler ends terminally (return/raise/break/continue),
     'try: B else: O' followed by S is the same as 'try: B' with O and S
-    sequential - compilers pick either layout."""
+    sequential - compilers pick either layout.
+
+    At a LOOP tail, a fall-through handler can also be hoisted when
+    the matching loop exit is appended to each non-terminating handler
+    (the nested else never runs after a handler, so the flat followers
+    must be gated by the handler exiting the loop): Break inside If
+    arms, Continue at the direct loop-body level (asynchat 3.10
+    initiate_send: dec's try/except/else with the TypeError arm
+    falling through vs the source's handler-continue + flat rest)."""
     out = []
     for s in stmts:
         if TRY_TYPES and isinstance(s, TRY_TYPES):
             handlers = getattr(s, 'handlers', [])
             orelse = getattr(s, 'orelse', [])
-            if orelse and handlers and all(ends_terminal(h.body) for h in handlers):
-                s.orelse = []
-                out.append(s)
-                out.extend(flatten_try_else(orelse))
-                continue
+            if orelse and handlers:
+                if all(ends_terminal(h.body) for h in handlers):
+                    s.orelse = []
+                    if _chg is not None:
+                        _chg.append(1)
+                    out.append(s)
+                    out.extend(flatten_try_else(orelse, at_loop_tail,
+                                                _chg))
+                    continue
+                if at_loop_tail:
+                    for h in handlers:
+                        if not ends_terminal(h.body):
+                            arm = at_loop_tail != 'loop'
+                            h.body.append(ast.Break() if arm
+                                          else ast.Continue())
+                    s.orelse = []
+                    if _chg is not None:
+                        _chg.append(1)
+                    out.append(s)
+                    out.extend(flatten_try_else(orelse, at_loop_tail,
+                                                _chg))
+                    continue
         out.append(s)
     return out
 
@@ -1333,11 +1358,15 @@ def merge_guard_continues(stmts):
                 out.extend(seq[i:k])
                 return out
             s = seq[i]
-            # an arm-end continue followed by sibling statements is
-            # the guard shape of an if/ELSE at the arm tail: fold the
-            # remainder into the else (the continue is a no-op there)
-            if (isinstance(s, ast.If) and not s.orelse and s.body
-                    and isinstance(s.body[-1], ast.Continue)
+            # an arm-end continue/break followed by sibling statements
+            # is the guard shape of an if/ELSE at the arm tail: fold
+            # the remainder into the else (the terminator only skips
+            # the siblings, exactly what the else gate does). A LONE
+            # `if c: break` guard is left alone (no A to keep)
+            if (isinstance(s, ast.If) and not s.orelse
+                    and len(s.body) >= 2
+                    and isinstance(s.body[-1],
+                                   (ast.Continue, ast.Break))
                     and i < m - 1):
                 out.append(ast.If(test=s.test,
                                   body=canon_arm(s.body[:-1]),
@@ -1724,6 +1753,40 @@ def dump(src):
                              getattr(ast, 'AsyncFunctionDef', ast.FunctionDef))):
             _normalize_func_tail_loop(node)
             _normalize_func_tail_handler_return(node)
+            # function-tail loop: a handler-tail `break` and the
+            # loop-tail `continue` (or the source's stripped bare
+            # `return`) all leave the function with None when the
+            # handler sits at the loop body's tail - canonicalize the
+            # handler tail to Continue so the forms converge
+            # (asynchat 3.10 initiate_send: orig `except OSError:
+            # handle_error(); return` vs dec `break`)
+            if node.body and isinstance(node.body[-1], _LOOP_TYPES):
+                _lp = node.body[-1]
+
+                def _brk2cont(sel):
+                    for _s in sel:
+                        if isinstance(_s, _TRY_TYPES):
+                            for _h in getattr(_s, 'handlers',
+                                              None) or []:
+                                if _h.body and isinstance(
+                                        _h.body[-1], ast.Break):
+                                    _h.body[-1] = ast.Continue()
+                                _brk2cont(_h.body)
+                            _brk2cont(_s.body)
+                            _brk2cont(getattr(_s, 'orelse',
+                                              None) or [])
+                            _brk2cont(getattr(_s, 'finalbody',
+                                              None) or [])
+                        elif isinstance(_s, (ast.If, ast.With,
+                                             getattr(ast, 'AsyncWith',
+                                                     ast.With))):
+                            _brk2cont(_s.body)
+                            _brk2cont(getattr(_s, 'orelse',
+                                              None) or [])
+                        # nested loops scope their own breaks - skip
+
+                _brk2cont(_lp.body)
+                _brk2cont(getattr(_lp, 'orelse', None) or [])
     # merge loop-tail guard-continue chains back into the combined
     # `if not c1 and not c2: S` the compiler short-circuited them from.
     # Loop bodies get at_loop_tail=True (their tail falls through to the
@@ -1799,6 +1862,17 @@ def dump(src):
     # if e or f: X` vs the decompiler's fully split `if a and b: if c:
     # if d: if e: if f: X` needs several rounds (csv 3.3
     # _guess_delimiter stopped after two levels and compared unequal)
+    _in_loop_arm = {}
+    for _lp in ast.walk(tree):
+        if isinstance(_lp, _LOOP_TYPES):
+            _stack = [(_lp.body, 'loop')]
+            while _stack:
+                _lst, _mode = _stack.pop()
+                for _s in _lst:
+                    if isinstance(_s, ast.If):
+                        _in_loop_arm[id(_s)] = _mode
+                        _stack.append((_s.body, True))
+                        _stack.append((_s.orelse, True))
     for _round in range(6):
         _before = ast.dump(tree)
         for node in ast.walk(tree):
@@ -1811,7 +1885,35 @@ def dump(src):
                     is_loop_body = isinstance(node, _LOOP_TYPES) and field == 'body'
                     val = _fold_try_body_tail_return(val)
                     val = _normalize_handler_break_raise(val)
-                    val = _sunk_return_orelse(flatten_tail_if_else(val))
+                    # the tail-return flatten is only sound at a
+                    # FUNCTION tail (falling off the end == return
+                    # None); in a loop/handler body the added Return
+                    # changes control flow (asynchat 3.10
+                    # initiate_send's handler-tail if/else grew a
+                    # phantom Return)
+                    if field == 'body' and isinstance(
+                            node,
+                            (ast.FunctionDef,
+                             getattr(ast, 'AsyncFunctionDef',
+                                     ast.FunctionDef))):
+                        val = flatten_tail_if_else(val)
+                    val = _sunk_return_orelse(val)
+                    _lat = ('loop' if is_loop_body
+                            else _in_loop_arm.get(id(node), False))
+                    if _lat:
+                        _chg = []
+                        val = flatten_try_else(val, at_loop_tail=_lat,
+                                               _chg=_chg)
+                        if _chg:
+                            # the hoist released flat followers that
+                            # may re-form a guard chain - re-canonicalize
+                            # (asynchat 3.10 initiate_send). Skipping
+                            # the re-merge when nothing was hoisted
+                            # keeps already-converged chain shapes
+                            # untouched (compileall 3.5/3.6, codecs
+                            # 3.3, cgi 3.6, _strptime 3.12 regressed
+                            # under an unconditional re-merge)
+                            val = merge_guard_continues(val)
                     setattr(node, field,
                             split_tail_ternary_return(
                                 flatten_terminating_else(merge_nested_ifs(val),

@@ -61,7 +61,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 409: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
+   "ast_detail": "diff at token 406: orig  comparators=[Set(elts=[Constant(value='attlist') | dec  comparators=[Set(elts=[Constant(value='link')",
    "verdict": "SIG-DIFF",
    "ndiff": 627,
    "ntotal": 1362,
@@ -81,7 +81,7 @@
   },
   {
    "module": "_py_warnings",
-   "ast_detail": "diff at token 525: orig  Return()]) | dec  Return(value=Name(id='s'",
+   "ast_detail": "diff at token 523: orig  Constant(value='\\n')]))])])] | dec  Constant(value='\\n')]))])])",
    "verdict": "SIG-DIFF",
    "ndiff": 1950,
    "ntotal": 3152,
@@ -89,7 +89,7 @@
   },
   {
    "module": "_pylong",
-   "ast_detail": "diff at token 816: orig  If(test=Constant(value=0) | dec  Assign(targets=[Tuple(elts=[Name(id='p256'",
+   "ast_detail": "diff at token 814: orig  If(test=Constant(value=0) | dec  Assign(targets=[Tuple(elts=[Name(id='p256'",
    "verdict": "SIG-DIFF",
    "ndiff": 517,
    "ntotal": 1551,
@@ -101,7 +101,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 2467: orig  value=Constant(value=0))])] | dec  value=Constant(value=0))",
+   "ast_detail": "diff at token 2466: orig  value=Constant(value=0))])] | dec  value=Constant(value=0))]",
    "verdict": "SIG-DIFF",
    "ndiff": 888,
    "ntotal": 3207,
@@ -125,7 +125,7 @@
   },
   {
    "module": "annotationlib",
-   "ast_detail": "diff at token 448: orig  body=[Pass()])] | dec  body=[Continue()])])",
+   "ast_detail": "diff at token 446: orig  body=[Pass() | dec  body=[Continue()])])",
    "verdict": "SIG-DIFF",
    "ndiff": 1613,
    "ntotal": 4144,
@@ -149,7 +149,7 @@
   },
   {
    "module": "bdb",
-   "ast_detail": "diff at token 493: orig  body=[Return(value=Attribute(value=Attribute(value=Name(id='sys' | dec  body=[Assign(targets=[Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 492: orig  body=[Return(value=Attribute(value=Attribute(value=Name(id='sys' | dec  body=[Assign(targets=[Attribute(value=Name(id='self'",
    "verdict": "SIG-DIFF",
    "ndiff": 3356,
    "ntotal": 3996,
@@ -193,7 +193,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 836: orig  ops=[NotEq()] | dec  ops=[Eq()]",
+   "ast_detail": "diff at token 833: orig  ops=[NotEq()] | dec  ops=[Eq()]",
    "verdict": "SIG-DIFF",
    "ndiff": 1236,
    "ntotal": 1660,
@@ -201,7 +201,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 1141: orig  JoinedStr(values=[Constant(value=\"'%%' must be followed by '%%' or '(' | dec  JoinedStr(values=[Constant(value=\"'%' must be followed by '%' or '('",
+   "ast_detail": "diff at token 1192: orig  body=[AnnAssign(target=Name(id='elements_added' | dec  body=[Assign(targets=[Name(id='cursect'",
    "verdict": "SIG-DIFF",
    "ndiff": 3264,
    "ntotal": 5081,
