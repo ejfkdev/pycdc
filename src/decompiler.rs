@@ -5032,6 +5032,21 @@ impl<'a> Ctx<'a> {
         {
             return;
         }
+        // A bare `return` (Return(None)) trailing a value `return X` in the
+        // body is unreachable dead code — the nested-try-return relaxation
+        // (RETURN-in-try handler now firing for an if-nested `try: return
+        // X except E: ..`) can leave the function's sunk tail return
+        // appended after the body's own return. Strip it (safe: nothing
+        // after a value return executes).
+        if body.len() >= 2
+            && matches!(body.last(), Some(Stmt::Return(None)))
+            && matches!(
+                body.get(body.len() - 2),
+                Some(Stmt::Return(Some(_))) | Some(Stmt::Raise { .. })
+            )
+        {
+            body.pop();
+        }
         if let Some(inner_fin) = nested_inner_fin.take() {
             // two nested finally levels merged into one region: the body
             // plus the first level's copy form the inner try
@@ -38141,9 +38156,67 @@ impl<'a> Ctx<'a> {
         // protected). If the pending body is empty and the value was
         // computed inside the region, this return IS the try body — flush
         // the chain first so the return lands inside it.
+        // The try may sit at function top (blocks == [Main]) or be nested
+        // in guard If/Else blocks (`if cond: try: return X except E: ..`)
+        // — accept any stack of If/Else over the Main base. Restricting to
+        // Main-only dropped the whole try for an if-nested `try: return X`
+        // (t_b: `except ValueError: self.log()` lost; annotationlib 3.14
+        // evaluate's `if isinstance(cell, CellType): try: return
+        // cell.cell_contents except ValueError: pass`). Loops/Try/With
+        // tops still take their own paths.
+        let main_or_guards = {
+            let mut ok = false;
+            for (bi, b) in self.blocks.iter().enumerate() {
+                if bi == 0 {
+                    if b.kind != BlockType::Main {
+                        ok = false;
+                        break;
+                    }
+                    ok = true;
+                } else if !matches!(b.kind, BlockType::If | BlockType::Else) {
+                    ok = false;
+                    break;
+                }
+            }
+            ok
+        };
+        // main-only is the original (always-fire) shape; the nested-guard
+        // relaxation must veto a TERMINATING handler (`except E: raise ..`
+        // / `except E: return ..`): there the if-branch always terminates
+        // and the post-if continuation is a sibling reached via the guard's
+        // false edge, so the skip-to-chain-extent below would swallow it
+        // (base64 3.12 _bytes_from_decode_data `if isinstance(s,str): try:
+        // return s.encode(..) except UnicodeEncodeError: raise ValueError(..)`
+        // lost the sibling `if isinstance(s,bytes_types)` + memoryview try).
+        // A fall-through handler (pass / non-terminating body) flows to the
+        // continuation, so the relaxation is safe there (t_b self.log(),
+        // min_trypass / annotationlib evaluate `except ValueError: pass`).
+        let main_only = self.blocks.len() == 1
+            && matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main));
+        let nested_handler_terminates = self
+            .pending_try_ctx
+            .as_ref()
+            .and_then(|tc| tc.except_handler)
+            .map_or(false, |h| {
+                let ext = self.chain_extent(h);
+                // ONLY a clause-level `raise <expr>` (RAISE_VARARGS arg>0)
+                // marks a terminating handler. A RETURN in the span is the
+                // fall-through continuation inlined after a non-terminating
+                // clause (t_b `except ValueError: self.log()` then the
+                // function's `return self.owner` sits inside chain_extent),
+                // and the chain's trailing RERAISE is the no-match cleanup
+                // (arg-less) — neither means the clause terminates.
+                self.instrs.iter().any(|x| {
+                    x.offset >= h
+                        && x.offset < ext
+                        && x.op == Op::RAISE_VARARGS
+                        && x.arg > 0
+                })
+            });
         if self.version.at_least(3, 11)
             && self.legacy_handler.is_none()
-            && matches!(self.blocks.last().map(|b| b.kind), Some(BlockType::Main))
+            && main_or_guards
+            && (main_only || !nested_handler_terminates)
         {
             let at_region_edge = self
                 .pending_try_ctx

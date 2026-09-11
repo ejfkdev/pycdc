@@ -125,9 +125,9 @@
   },
   {
    "module": "annotationlib",
-   "ast_detail": "diff at token 207: orig  body=[Try(body=[Return(value=Attribute(value=Attribute(value=Name(id='self' | dec  body=[Return(value=Attribute(value=Attribute(value=Name(id='self'",
+   "ast_detail": "diff at token 448: orig  body=[Pass()])] | dec  body=[Continue()])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 3505,
+   "ndiff": 1613,
    "ntotal": 4144,
    "detail": "line 552: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'cell_name, cell_value') | got ('LOAD_FAST', 'cell_name')\nline 553: orig ('CALL', '') | got ('LOAD_FAST', 'cell_value')\nline 554: orig ('POP_TOP', '') | got ('CALL', '')"
   },

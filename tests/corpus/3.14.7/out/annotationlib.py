@@ -66,7 +66,10 @@ Constructor arguments:
             case _:
                 raise NotImplementedError(format)
         if isinstance(self.__cell__, types.CellType):
-            return self.__cell__.cell_contents
+            try:
+                return self.__cell__.cell_contents
+            except ValueError:
+                pass
         if not owner is not None:
             owner = self.__owner__
         if not globals is not None and self.__forward_module__ is not None:
