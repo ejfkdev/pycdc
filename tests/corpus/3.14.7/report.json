@@ -175,9 +175,9 @@
    "module": "cmd",
    "ast_detail": "diff at token 852: orig  Constant(value='\\n')])])) | dec  Constant(value='\\n')])]))])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 49,
+   "ndiff": 48,
    "ntotal": 1407,
-   "detail": "line 1169: orig ('POP_JUMP_IF_FALSE', 'to L3') | got ('POP_JUMP_IF_TRUE', 'to L3')\nline 1317: orig ('FOR_ITER', 'to L28') | got ('FOR_ITER', 'to L29')\nline 1352: orig ('POP_JUMP_IF_FALSE', 'to L25') | got ('POP_JUMP_IF_FALSE', 'to L26')"
+   "detail": "line 1317: orig ('FOR_ITER', 'to L28') | got ('FOR_ITER', 'to L29')\nline 1352: orig ('POP_JUMP_IF_FALSE', 'to L25') | got ('POP_JUMP_IF_FALSE', 'to L26')\nline 1358: orig ('POP_JUMP_IF_TRUE', 'to L25') | got ('POP_JUMP_IF_FALSE', 'to L25')"
   },
   {
    "module": "code",

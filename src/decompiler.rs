@@ -27714,12 +27714,76 @@ return None;
             .unwrap_or(false);
         if let Some(comp) = &mut self.inline_comp {
             if self.cur_offset < comp.end {
-                // NB: no negate_cond here — the push below cancels the
-                // polarity flip (simplify_not(Not(c)) == c); folding the
-                // comparison would invert the filter
-                let c = if jump_if_true { cond } else { simplify_not(cond) };
+                // 3.12+ inline filters come in two layouts:
+                // - INVERTED (same-line 3.12; ALL of 3.13/3.14): the
+                //   jump lands ON the append (target is
+                //   LIST_APPEND/SET_ADD/MAP_ADD/YIELD after pads) and
+                //   the fall-through is the skip back edge. The jump
+                //   polarity IS the filter polarity: PJT->`if C`,
+                //   PJF->`if not C`.
+                // - CLASSIC (3.12 line-broken filters): PJF->shared
+                //   back edge (skip), fall-through appends:
+                //   PJF->`if C`, PJT->`if not C`.
+                // The old code treated every PJF as classic and every
+                // PJIT as inverted-by-construction, so 3.13/3.14
+                // `if not C` filters (PJF->append) lost their Not
+                // (cmd 3.14 columnize: `if not isinstance(list[i],
+                // str)` rendered positive - a semantic inversion).
+                // the raw jump must be FORWARD onto the append
+                // region: handle_cond_jump's 3.8+ threading retargets
+                // classic skip jumps (PJF->shared back edge) to the
+                // loop TOP, and scanning from there would wrap around
+                // and find the append after the filter again
+                // (_py_abc 3.12 __new__ line-broken setcomp)
+                let target_is_append = target > self.cur_offset
+                    && self
+                    .idx_of
+                    .get(&target)
+                    .map_or(false, |&ti| {
+                        // the inverted layout's target is the START OF
+                        // THE ELT/APPEND region (elt value ops may
+                        // precede the *_ADD); the classic layout's
+                        // target is the skip back edge itself or pure
+                        // glue before it. Scan until the append, a
+                        // backward jump, or the comp end.
+                        self.instrs[ti..]
+                            .iter()
+                            .take_while(|x| {
+                                self.cur_offset < x.offset
+                                    || x.offset < comp.end
+                            })
+                            .find(|x| {
+                                matches!(
+                                    x.op,
+                                    Op::LIST_APPEND
+                                        | Op::SET_ADD
+                                        | Op::MAP_ADD
+                                        | Op::YIELD_VALUE
+                                ) || x.is_backward
+                            })
+                            .map_or(false, |x| {
+                                matches!(
+                                    x.op,
+                                    Op::LIST_APPEND
+                                        | Op::SET_ADD
+                                        | Op::MAP_ADD
+                                        | Op::YIELD_VALUE
+                                )
+                            })
+                    });
+                let c = if target_is_append {
+                    if jump_if_true {
+                        cond
+                    } else {
+                        negate_cond(cond)
+                    }
+                } else if jump_if_true {
+                    negate_cond(cond)
+                } else {
+                    simplify_not(cond)
+                };
                 if let Some(cur) = &mut comp.cur {
-                    if comp_if_break {
+                    if comp_if_break && !target_is_append {
                         cur.if_break = true;
                     }
                     cur.ifs.push(c);
@@ -44826,12 +44890,52 @@ fn genexpr_ternary_merge(
                                 || instrs
                                     .iter()
                                     .any(|x| x.offset == target && x.op == Op::FOR_ITER));
-                        let mut f = if to_loop_top {
+                        // 3.12+ INLINE comprehension `if not C` form:
+                        // the filter's PJT skips straight to the
+                        // append merge with nothing but pads between
+                        // jump and target - no or-chain partner
+                        // operand can live there, so this is a lone
+                        // negated filter, not an or-hop (cmd 3.14
+                        // columnize: `[i for i in ... if not
+                        // isinstance(list[i], str)]` rendered WITHOUT
+                        // the Not - a semantic filter inversion; the
+                        // classic non-inline form has the PJT flying
+                        // to the loop top and is handled by
+                        // to_loop_top)
+                        let bare_skip = jump_true
+                            && !to_loop_top
+                            && {
+                                let ai = instrs
+                                    .iter()
+                                    .position(|x| x.offset == inst.offset);
+                                let bi = instrs
+                                    .iter()
+                                    .position(|x| x.offset == target);
+                                match (ai, bi) {
+                                    (Some(a), Some(b)) if b > a => {
+                                        instrs[a + 1..b].iter().all(|x| {
+                                            matches!(
+                                                x.op,
+                                                Op::NOP
+                                                    | Op::NOT_TAKEN
+                                                    | Op::CACHE
+                                                    | Op::POP_TOP
+                                            )
+                                        })
+                                    }
+                                    _ => false,
+                                }
+                            };
+                        let mut f = if to_loop_top || bare_skip {
                             negate_cond(c.clone())
                         } else {
                             c.clone()
                         };
-                        if jump_true && !to_loop_top && target < gen_end {
+                        if jump_true
+                            && !to_loop_top
+                            && !bare_skip
+                            && target < gen_end
+                        {
                             if let Some(p) = pending_or_filter.take() {
                                 f = Rc::new(Expr::BoolOp {
                                     op: BoolOpKind::Or,

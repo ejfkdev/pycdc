@@ -548,7 +548,7 @@ def call_annotate_function(annotate, format, *, owner=None, _is_evaluate=False):
             if isinstance(result, ForwardRef):
                 return result.evaluate(format=Format.FORWARDREF)
             return result
-        return {val.evaluate(format=Format.FORWARDREF): val for key, val in result.items() if isinstance(val, ForwardRef)}
+        return {val.evaluate(format=Format.FORWARDREF): val for key, val in result.items() if not isinstance(val, ForwardRef)}
     if format == Format.VALUE:
         raise RuntimeError('annotate function does not support VALUE format')
     raise ValueError(f'Invalid format: {format!r}')
@@ -760,7 +760,7 @@ def annotations_to_string(annotations):
     Always returns a fresh a dictionary.
     '''
 
-    return {n: t for n, t in annotations.items() if isinstance(t, str)}
+    return {n: t for n, t in annotations.items() if not isinstance(t, str)}
 
 def _rewrite_star_unpack(arg):
     """If the given argument annotation expression is a star unpack e.g. `'*Ts'`
