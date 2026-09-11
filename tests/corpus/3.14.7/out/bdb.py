@@ -31,7 +31,7 @@ class _MonitoringTracer:
         self._tracefunc = tracefunc
         self._tracing_thread = threading.current_thread()
         curr_tool = sys.monitoring.get_tool(self._tool_id)
-        if not curr_tool is not None:
+        if curr_tool is None:
             sys.monitoring.use_tool_id(self._tool_id, self._name)
         elif curr_tool == self._name:
             sys.monitoring.clear_tool_id(self._tool_id)
@@ -95,7 +95,7 @@ class _MonitoringTracer:
 
     def call_callback(self, frame, code, *args):
         local_tracefunc = self._tracefunc(frame, 'call', None)
-        if not local_tracefunc is None:
+        if local_tracefunc is not None:
             frame.f_trace = local_tracefunc
             if self._enabled:
                 sys.monitoring.set_local_events(self._tool_id, code, self.LOCAL_EVENTS)
@@ -139,10 +139,10 @@ class _MonitoringTracer:
     def update_local_events(self, frame=None):
         if sys.monitoring.get_tool(self._tool_id) != self._name:
             return
-        if not frame is not None:
+        if frame is None:
             frame = sys._getframe().f_back
         while frame is not None:
-            if not frame.f_trace is None:
+            if frame.f_trace is not None:
                 if frame.f_trace_opcodes:
                     events = self.LOCAL_EVENTS | E.INSTRUCTION
                 else:
@@ -311,7 +311,7 @@ The arg parameter depends on the previous event.
         Return self.trace_dispatch to continue tracing in this scope.
         '''
 
-        if not self.botframe is not None:
+        if self.botframe is None:
             self.botframe = frame.f_back
             return self.trace_dispatch
         if not (self.stop_here(frame) or self.break_anywhere(frame)):
@@ -393,7 +393,7 @@ The arg parameter depends on the previous event.
     def is_skipped_module(self, module_name):
         '''Return True if module_name matches any skip pattern.'''
 
-        if not module_name is not None:
+        if module_name is None:
             return False
         for pattern in self.skip:
             if not fnmatch.fnmatch(module_name, pattern):
@@ -522,7 +522,7 @@ The arg parameter depends on the previous event.
         '''Stop when the line with the lineno greater than the current one is
         reached or when returning from current frame.'''
 
-        if not lineno is not None:
+        if lineno is None:
             lineno = frame.f_lineno + 1
         self._set_stopinfo(frame, frame, lineno)
 
@@ -556,7 +556,7 @@ The arg parameter depends on the previous event.
         """
 
         self.stop_trace()
-        if not frame is not None:
+        if frame is None:
             frame = sys._getframe().f_back
         self.reset()
         with self.set_enterframe(frame):
@@ -726,7 +726,7 @@ The arg parameter depends on the previous event.
             bp = Breakpoint.bpbynumber[number]
         except IndexError:
             raise ValueError('Breakpoint number %d out of range' % number) from None
-        if not bp is not None:
+        if bp is None:
             raise ValueError('Breakpoint %d already deleted' % number)
         return bp
 
@@ -781,7 +781,7 @@ The arg parameter depends on the previous event.
         while t is not None:
             stack.append((t.tb_frame, t.tb_lineno))
             t = t.tb_next
-        if not f is not None:
+        if f is None:
             i = max(0, len(stack) - 1)
         return stack, i
 
@@ -809,7 +809,7 @@ The arg parameter depends on the previous event.
             rv = frame.f_locals['__return__']
             s += '->'
             s += reprlib.repr(rv)
-        if not lineno is None:
+        if lineno is not None:
             line = linecache.getline(filename, lineno, frame.f_globals)
             if line:
                 s += lprefix + line.strip()
@@ -835,10 +835,10 @@ The arg parameter depends on the previous event.
         globals defaults to __main__.dict; locals defaults to globals.
         '''
 
-        if not globals is not None:
+        if globals is None:
             import __main__
             globals = __main__.__dict__
-        if not locals is not None:
+        if locals is None:
             locals = globals
         self.reset()
         if isinstance(cmd, str):
@@ -857,10 +857,10 @@ The arg parameter depends on the previous event.
         globals defaults to __main__.dict; locals defaults to globals.
         '''
 
-        if not globals is not None:
+        if globals is None:
             import __main__
             globals = __main__.__dict__
-        if not locals is not None:
+        if locals is None:
             locals = globals
         self.reset()
         self.start_trace()
@@ -975,7 +975,7 @@ class Breakpoint:
         and defaults to standard output.
         '''
 
-        if not out is not None:
+        if out is None:
             out = sys.stdout
         print(self.bpformat(), file=out)
 

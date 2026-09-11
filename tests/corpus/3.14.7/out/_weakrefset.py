@@ -7,11 +7,11 @@ class WeakSet:
         self.data = set()
         def _remove(item, selfref=ref(self)):
             self = selfref()
-            if not self is None:
+            if self is not None:
                 self.data.discard(item)
 
         self._remove = _remove
-        if not data is None:
+        if data is not None:
             self.update(data)
 
     def __iter__(self):

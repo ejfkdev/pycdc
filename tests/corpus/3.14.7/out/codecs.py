@@ -43,7 +43,7 @@ class CodecInfo(tuple):
         self.incrementaldecoder = incrementaldecoder
         self.streamwriter = streamwriter
         self.streamreader = streamreader
-        if not _is_text_encoding is None:
+        if _is_text_encoding is not None:
             self._is_text_encoding = _is_text_encoding
         return self
 
@@ -697,7 +697,7 @@ class StreamRecoder:
         return data
 
     def readline(self, size=None):
-        if not size is not None:
+        if size is None:
             data = self.reader.readline()
         else:
             data = self.reader.readline(size)
@@ -784,10 +784,10 @@ def open(filename, mode='r', encoding=None, errors='strict', buffering=-1):
 
     import warnings
     warnings.warn('codecs.open() is deprecated. Use open() instead.', DeprecationWarning, stacklevel=2)
-    if not encoding is None and 'b' not in mode:
+    if encoding is not None and 'b' not in mode:
         mode = mode + 'b'
     file = builtins.open(filename, mode, buffering)
-    if not encoding is not None:
+    if encoding is None:
         return file
     try:
         info = lookup(encoding)
@@ -823,7 +823,7 @@ def EncodedFile(file, data_encoding, file_encoding=None, errors='strict'):
 
     """
 
-    if not file_encoding is not None:
+    if file_encoding is None:
         file_encoding = data_encoding
     data_info = lookup(data_encoding)
     file_info = lookup(file_encoding)
@@ -862,7 +862,7 @@ def getincrementalencoder(encoding):
     """
 
     encoder = lookup(encoding).incrementalencoder
-    if not encoder is not None:
+    if encoder is None:
         raise LookupError(encoding)
     return encoder
 
@@ -876,7 +876,7 @@ def getincrementaldecoder(encoding):
     """
 
     decoder = lookup(encoding).incrementaldecoder
-    if not decoder is not None:
+    if decoder is None:
         raise LookupError(encoding)
     return decoder
 

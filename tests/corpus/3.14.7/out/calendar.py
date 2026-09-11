@@ -523,7 +523,7 @@ class HTMLCalendar(Calendar):
         Return a formatted year as a complete HTML page.
         '''
 
-        if not encoding is not None:
+        if encoding is None:
             encoding = sys.getdefaultencoding()
         v = []
         a = v.append
@@ -532,7 +532,7 @@ class HTMLCalendar(Calendar):
         a('<html>\n')
         a('<head>\n')
         a('<meta http-equiv="Content-Type" content="text/html; charset=%s" />\n' % encoding)
-        if not css is None:
+        if css is not None:
             a('<link rel="stylesheet" type="text/css" href="%s" />\n' % css)
         a('<title>Calendar for %d</title>\n' % theyear)
         a('</head>\n')
@@ -572,7 +572,7 @@ class LocaleTextCalendar(TextCalendar):
 
     def __init__(self, firstweekday=0, locale=None):
         TextCalendar.__init__(self, firstweekday)
-        if not locale is not None:
+        if locale is None:
             locale = _get_default_locale()
         self.locale = locale
 
@@ -593,7 +593,7 @@ class LocaleHTMLCalendar(HTMLCalendar):
 
     def __init__(self, firstweekday=0, locale=None):
         HTMLCalendar.__init__(self, firstweekday)
-        if not locale is not None:
+        if locale is None:
             locale = _get_default_locale()
         self.locale = locale
 
@@ -769,11 +769,11 @@ def main(args=None):
             cal = HTMLCalendar()
         cal.setfirstweekday(options.first_weekday)
         encoding = options.encoding
-        if not encoding is not None:
+        if encoding is None:
             encoding = sys.getdefaultencoding()
         optdict = dict(encoding=encoding, css=options.css)
         write = sys.stdout.buffer.write
-        if not options.year is not None:
+        if options.year is None:
             write(cal.formatyearpage(today.year, **optdict))
             return
         write(cal.formatyearpage(options.year, **optdict))
@@ -784,14 +784,14 @@ def main(args=None):
         cal = _CLIDemoCalendar(highlight_day=today)
     cal.setfirstweekday(options.first_weekday)
     optdict = dict(w=options.width, l=options.lines)
-    if not options.month is not None:
+    if options.month is None:
         optdict['c'] = options.spacing
         optdict['m'] = options.months
     else:
         _validate_month(options.month)
-    if not options.year is not None:
+    if options.year is None:
         result = cal.formatyear(today.year, **optdict)
-    elif not options.month is not None:
+    elif options.month is None:
         result = cal.formatyear(options.year, **optdict)
     else:
         result = cal.formatmonth(options.year, options.month, **optdict)

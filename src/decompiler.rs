@@ -30312,7 +30312,25 @@ if split_cond {
         // simplify_not cannot recover it (calendar 3.13 isleap)
         let c = if jump_if_true && value_merge.is_none() {
             if self.version.at_least(3, 14) {
-                simplify_not_or_wrap(cond)
+                // 3.14 TO_BOOL chains want the plain wrap, but the
+                // POP_JUMP_IF_NONE/NOT_NONE idiom must fold back to
+                // the source comparison: PJNONE compiles from
+                // `x is not None` guards, and the wrapped form
+                // rendered `if not stdin is None:` (cmd 3.14
+                // __init__) which recompiles to flipped polarity
+                match &*cond {
+                    Expr::Compare { operands, ops }
+                        if ops.len() == 1
+                            && matches!(ops[0], CmpOp::Is | CmpOp::IsNot)
+                            && operands.len() == 2
+                            && operands
+                                .iter()
+                                .any(|o| matches!(&**o, Expr::Const(c) if matches!(&**c, PyObject::None))) =>
+                    {
+                        negate_cond(cond)
+                    }
+                    _ => simplify_not_or_wrap(cond),
+                }
             } else {
                 negate_cond(cond)
             }

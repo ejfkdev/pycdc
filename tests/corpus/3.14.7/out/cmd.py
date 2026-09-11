@@ -83,11 +83,11 @@ class Cmd:
 
         """
 
-        if not stdin is None:
+        if stdin is not None:
             self.stdin = stdin
         else:
             self.stdin = sys.stdin
-        if not stdout is None:
+        if stdout is not None:
             self.stdout = stdout
         else:
             self.stdout = sys.stdout
@@ -118,7 +118,7 @@ class Cmd:
             except ImportError:
                 pass
         try:
-            if not intro is None:
+            if intro is not None:
                 self.intro = intro
             if self.intro:
                 self.stdout.write(str(self.intro) + '\n')
@@ -209,7 +209,7 @@ class Cmd:
         cmd, arg, line = self.parseline(line)
         if not line:
             return self.emptyline()
-        if not cmd is not None:
+        if cmd is None:
             return self.default(line)
         self.lastcmd = line
         if line == 'EOF':
@@ -217,7 +217,7 @@ class Cmd:
         if cmd == '':
             return self.default(line)
         func = getattr(self, 'do_' + cmd, None)
-        if not func is not None:
+        if func is None:
             return self.default(line)
         return func(arg)
 

@@ -11,7 +11,7 @@ def pickle(ob_type, pickle_function, constructor_ob=None):
     if not callable(pickle_function):
         raise TypeError('reduction functions must be callable')
     dispatch_table[ob_type] = pickle_function
-    if not constructor_ob is None:
+    if constructor_ob is not None:
         constructor(constructor_ob)
 
 def constructor(object):
@@ -104,7 +104,7 @@ def _slotnames(cls):
     """
 
     names = cls.__dict__.get('__slotnames__')
-    if not names is None:
+    if names is not None:
         return names
     names = []
     if not hasattr(cls, '__slots__'):

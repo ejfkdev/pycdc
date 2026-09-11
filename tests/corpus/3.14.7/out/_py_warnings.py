@@ -24,7 +24,7 @@ class _Context:
 
     def copy(self):
         context = _Context(self._filters[:])
-        if not self.log is None:
+        if self.log is not None:
             context.log = self.log
         return context
 
@@ -89,13 +89,13 @@ def formatwarning(message, category, filename, lineno, line=None):
 
 def _showwarnmsg_impl(msg):
     context = _wm._get_context()
-    if not context.log is None:
+    if context.log is not None:
         context._record_warning(msg)
         return
     file = msg.file
-    if not file is not None:
+    if file is None:
         file = sys.stderr
-        if not file is not None:
+        if file is None:
             return
     text = _wm._formatwarnmsg(msg)
     try:
@@ -106,7 +106,7 @@ def _showwarnmsg_impl(msg):
 def _formatwarnmsg_impl(msg):
     category = msg.category.__name__
     s = f'{msg.filename}:{msg.lineno}: {category}: {msg.message}\n'
-    if not msg.line is not None:
+    if msg.line is None:
         try:
             import linecache
             line = linecache.getline(msg.filename, msg.lineno)
@@ -118,7 +118,7 @@ def _formatwarnmsg_impl(msg):
     if line:
         line = line.strip()
         s += '  %s\n' % line
-    if not msg.source is None:
+    if msg.source is not None:
         try:
             import tracemalloc
         except Exception:
@@ -131,12 +131,12 @@ def _formatwarnmsg_impl(msg):
             except Exception:
                 suggest_tracemalloc = False
                 tb = None
-        if not tb is None:
+        if tb is not None:
             s += 'Object allocated at (most recent call last):\n'
             for frame in tb:
                 s += f'  File "{frame.filename!s}", lineno {frame.lineno!s}\n'
                 try:
-                    if not linecache is None:
+                    if linecache is not None:
                         line = linecache.getline(frame.filename, frame.lineno)
                     else:
                         line = None
@@ -353,7 +353,7 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
 
     if isinstance(message, Warning):
         category = message.__class__
-    if not category is not None:
+    if category is None:
         category = UserWarning
     if not (isinstance(category, type) and issubclass(category, Warning)):
         raise TypeError("category must be a Warning subclass, not '{:s}'".format(type(category).__name__))
@@ -388,7 +388,7 @@ def warn(message, category=None, stacklevel=1, source=None, *, skip_file_prefixe
 
 def warn_explicit(message, category, filename, lineno, module=None, registry=None, module_globals=None, source=None):
     lineno = int(lineno)
-    if not module is not None:
+    if module is None:
         module = filename or '<unknown>'
         if module[-3:].lower() == '.py':
             module = module[:-3]
@@ -400,7 +400,7 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
         message = category(message)
     key = text, category, lineno
     with _wm._lock:
-        if not registry is not None:
+        if registry is None:
             registry = {}
         if registry.get('version', 0) != _wm._filters_version:
             registry.clear()
@@ -494,9 +494,9 @@ class catch_warnings(object):
         """
 
         self._record = record
-        self._module = sys.modules['warnings'] if not module is not None else module
+        self._module = sys.modules['warnings'] if module is None else module
         self._entered = False
-        if not action is not None:
+        if action is None:
             self._filter = None
             return
         self._filter = action, category, lineno, append
@@ -533,7 +533,7 @@ class catch_warnings(object):
                 self._module.showwarning = self._module._showwarning_orig
             else:
                 log = None
-        if not self._filter is None:
+        if self._filter is not None:
             self._module.simplefilter(*self._filter)
         return log
 
@@ -604,7 +604,7 @@ See PEP 702 for details.
         msg = self.message
         category = self.category
         stacklevel = self.stacklevel
-        if not category is not None:
+        if category is None:
             arg.__deprecated__ = msg
             return arg
         if isinstance(arg, type):
@@ -678,7 +678,7 @@ def _deprecated(name, message=_DEPRECATED_MSG, *, remove, _version=sys.version_i
 
 def _warn_unawaited_coroutine(coro):
     msg_lines = [f"coroutine '{coro.__qualname__}' was never awaited\n"]
-    if not coro.cr_origin is None:
+    if coro.cr_origin is not None:
         import linecache
         import traceback
         def extract():

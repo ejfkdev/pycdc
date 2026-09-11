@@ -27,7 +27,7 @@ class InteractiveInterpreter:
 
         '''
 
-        if not locals is not None:
+        if locals is None:
             locals = {'__name__': '__console__', '__doc__': None}
         self.locals = locals
         self.compile = CommandCompiler()
@@ -62,7 +62,7 @@ class InteractiveInterpreter:
         except (OverflowError, SyntaxError, ValueError):
             self.showsyntaxerror(filename, source=source)
         else:
-            if not code is not None:
+            if code is None:
                 return True
             self.runcode(code)
         return False
@@ -223,7 +223,7 @@ class InteractiveConsole(InteractiveInterpreter):
             sys.ps2 = '... '
             delete_ps2_after = True
         cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
-        if not banner is not None:
+        if banner is None:
             self.write(f'Python {sys.version!s} on {sys.platform!s}\n{cprt!s}\n({self.__class__.__name__!s})\n')
         elif banner:
             self.write('%s\n' % str(banner))
@@ -293,7 +293,7 @@ class InteractiveConsole(InteractiveInterpreter):
 
         self.buffer.append(line)
         source = '\n'.join(self.buffer)
-        if not filename is not None:
+        if filename is None:
             filename = self.filename
         more = self.runsource(source, filename, symbol=_symbol)
         if not more:
@@ -348,7 +348,7 @@ def interact(banner=None, readfunc=None, local=None, exitmsg=None, local_exit=Fa
     '''
 
     console = InteractiveConsole(local, local_exit=local_exit)
-    if not readfunc is None:
+    if readfunc is not None:
         console.raw_input = readfunc
     else:
         try:

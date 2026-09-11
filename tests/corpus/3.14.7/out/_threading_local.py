@@ -34,12 +34,12 @@ class _localimpl:
         idt = id(thread)
         def local_deleted(_, key=key):
             thread = wrthread()
-            if not thread is None:
+            if thread is not None:
                 del thread.__dict__[key]
 
         def thread_deleted(_, idt=idt):
             local = wrlocal()
-            if not local is None:
+            if local is not None:
                 dct = local.dicts.pop(idt)
 
         wrlocal = ref(self, local_deleted)
