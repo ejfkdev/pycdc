@@ -175,8 +175,8 @@
    "module": "cmd",
    "ast_detail": "diff at token 319: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()])",
    "verdict": "SIG-DIFF",
-   "ndiff": 1047,
-   "ntotal": 1406,
+   "ndiff": 1049,
+   "ntotal": 1408,
    "detail": "line 321: orig ('POP_JUMP_IF_FALSE', 'to L14') | got ('POP_JUMP_IF_FALSE', 'to L13')\nline 340: orig ('LOAD_CONST', 'None') | got ('PUSH_EXC_INFO', '')\nline 341: orig ('RETURN_VALUE', '') | got ('LOAD_GLOBAL', 'ImportError')"
   },
   {

@@ -1924,7 +1924,20 @@ impl<'a> Ctx<'a> {
                                                 after, fh,
                                             )))
                             });
-                        if !copy_span {
+                        // mid-skip: this chain head lies INSIDE an
+                        // active longer skip — the enclosing chain's
+                        // extent already accounts for this nested
+                        // chain's material (the clause-tail statements
+                        // between the nested extent and the enclosing
+                        // extent were folded into the handler by the
+                        // clause region walk). Lowering re-walks them
+                        // as dead top-level duplicates (cmd 3.11
+                        // do_help: skip 356->246 re-emitted the nohelp
+                        // write + return after the Try and stranded
+                        // func() as dead code). A stale skip already
+                        // consumed (pos >= sk) still lowers.
+                        let mid_skip = pos < sk;
+                        if !copy_span && !mid_skip {
                             self.skip_until = Some(after);
                         }
                     }
@@ -5415,9 +5428,20 @@ impl<'a> Ctx<'a> {
                     }
                     after = t;
                 }
-                self.close_blocks_at(pos);
-                if after > pos {
-                    self.skip_until = Some(after);
+                // mid-skip guard: when an active skip already covers
+                // this head (the enclosing chain's extent spans the
+                // nested chain), the walk is flying over BOTH — do not
+                // re-target the skip down to the nested chain's extent
+                // (cmd 3.11 do_help: the main walk skipping the outer
+                // chain [48,356) passed the inner head 214 and the
+                // skipper lowered 356 to 246, re-walking the outer
+                // clause tail 246-352 as dead top-level statements
+                // after the Try)
+                if !self.skip_until.map_or(false, |s| pos < s) {
+                    self.close_blocks_at(pos);
+                    if after > pos {
+                        self.skip_until = Some(after);
+                    }
                 }
                 pc += 1;
                 continue;
@@ -6156,8 +6180,65 @@ impl<'a> Ctx<'a> {
                 break;
             }
             if ins.op == Op::POP_EXCEPT {
-                pop_idx = Some(k);
-                break;
+                // an in-handler `return` exits through its own
+                // POP_EXCEPT; LOAD None; RETURN_VALUE mid-clause (the
+                // 3.11+ handler-return protocol) — it is NOT the
+                // clause terminator when a LATER POP_EXCEPT exists
+                // before the limit (cmd 3.11 do_help: the return
+                // inside a nested try's body hijacked the scan, the
+                // legacy-shape path cut the clause at that return and
+                // the clause-tail statements leaked out after the Try
+                // while the post-try continuation sank below them as
+                // dead code). A clause that IS `except E: return` has
+                // no later POP_EXCEPT before its limit and terminates
+                // here as before.
+                let ret_follows = self.instrs[k + 1..]
+                    .iter()
+                    .take(4)
+                    .skip_while(|x| {
+                        matches!(
+                            x.op,
+                            Op::LOAD_CONST | Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                        )
+                    })
+                    .next()
+                    .map_or(false, |x| {
+                        matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST)
+                    });
+                // ...and a nested chain (PUSH_EXC_INFO) lies between
+                // this POP_EXCEPT+RETURN and the later one: the return
+                // is then mid-clause (inside the nested try's body,
+                // cmd 3.11 do_help's `if doc: write; return`). Without
+                // a nested chain in between, this IS the clause's own
+                // `except E: <tail>; return` terminator — its final
+                // POP_EXCEPT follows the tail statements directly
+                // (cm3-shape: taking the later pop instead ran the
+                // legacy trail scan over the tail, stranding it past
+                // the chain where the main walk duplicated it)
+                let later_pop = ret_follows
+                    && {
+                        let mut saw_push = false;
+                        let mut found = false;
+                        for x in &self.instrs[k + 1..] {
+                            if x.offset >= limit {
+                                break;
+                            }
+                            if x.op == Op::PUSH_EXC_INFO {
+                                saw_push = true;
+                            }
+                            if x.op == Op::POP_EXCEPT && saw_push {
+                                found = true;
+                                break;
+                            }
+                        }
+                        found
+                    };
+                if !later_pop {
+                    pop_idx = Some(k);
+                    break;
+                }
+                k += 1;
+                continue;
             }
             if ins.op == Op::PUSH_EXC_INFO {
                 // a nested handler chain starts inside this clause: the

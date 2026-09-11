@@ -47,9 +47,9 @@
    "module": "_osx_support",
    "ast_detail": "diff at token 334: orig  If(test=Compare(left=Name(id='m' | dec  Expr(value=Call(func=Attribute(value=Name(id='f'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1252,
-   "ntotal": 1575,
-   "detail": "line 293: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 400') | got ('EXTENDED_ARG', '')\nline 294: orig ('LOAD_CONST', \"''\") | got ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 580')\nline 295: orig ('STORE_GLOBAL', '_SYSTEM_VERSION') | got ('LOAD_CONST', \"''\")"
+   "ndiff": 1188,
+   "ntotal": 1554,
+   "detail": "line 293: orig ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 400') | got ('POP_JUMP_FORWARD_IF_NOT_NONE', 'to 440')\nline 329: orig ('LOAD_FAST', 'm') | got ('LOAD_FAST', 'f')\nline 330: orig ('POP_JUMP_FORWARD_IF_NONE', 'to 366') | got ('LOAD_METHOD', 'close')"
   },
   {
    "module": "_py_abc",
@@ -147,7 +147,7 @@
    "module": "cmd",
    "ast_detail": "diff at token 344: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1040,
+   "ndiff": 1051,
    "ntotal": 1443,
    "detail": "line 328: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1116') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1018')\nline 331: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1120') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1018')\nline 348: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1108') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1110')"
   },

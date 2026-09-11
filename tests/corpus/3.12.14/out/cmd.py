@@ -313,8 +313,11 @@ class Cmd:
                     doc = getattr(self, 'do_' + arg).__doc__
                     if doc:
                         self.stdout.write('%s\n' % str(doc))
+                        return
                 except AttributeError:
                     pass
+                self.stdout.write('%s\n' % str(self.nohelp % (arg,)))
+                return
             func()
             return
         names = self.get_names()
