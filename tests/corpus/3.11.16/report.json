@@ -2,8 +2,8 @@
  "version": "3.11.16",
  "interp": "/Users/e/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11",
  "counts": {
-  "PASS": 31,
-  "SIG-DIFF": 7,
+  "PASS": 32,
+  "SIG-DIFF": 6,
   "AST-PASS": 2
  },
  "results": [
@@ -145,11 +145,7 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 1005: orig  keywords=[])) | dec  keywords=[]))])]",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1,
-   "ntotal": 1443,
-   "detail": "line 998: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 898') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 652')"
+   "verdict": "PASS"
   },
   {
    "module": "code",

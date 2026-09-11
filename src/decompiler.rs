@@ -28961,6 +28961,95 @@ if split_cond {
                                         | Op::JUMP_BACKWARD_NO_INTERRUPT
                                 )
                             {
+                                // truncation guard: a forward cond jump
+                                // between this guard and the candidate
+                                // back edge that escapes PAST the
+                                // candidate means the body continues
+                                // there - the candidate is an inner
+                                // `continue`, not the fused body end.
+                                // Keep scanning to the loop's real
+                                // back edge (cmd 3.11 do_help:
+                                // `if name[:3] == 'do_': {if name ==
+                                // prevname: continue; <rest>}` clamped
+                                // at the inner continue and flattened
+                                // <rest> to loop level - prevname/cmd
+                                // ran for non-do_ names; 3.13 case (c)
+                                // above applies the same LAST-back-edge
+                                // insight).
+                                let body_ci = ci + 1;
+                                let cand_i = self
+                                    .instrs
+                                    .iter()
+                                    .position(|x| {
+                                        std::ptr::eq(x, inst)
+                                    })
+                                    .unwrap_or(body_ci);
+                                // dedicated-trampoline exemption: a
+                                // candidate back edge immediately
+                                // followed by a forward glue hop is a
+                                // break arm's dedicated exit (py2-style
+                                // layout pads `JABS break; JF glue` -
+                                // dis 3.3 pretty_flags: candidate 96
+                                // followed by JF->99). The escapes
+                                // past it (the inner guard's skip to
+                                // the shared trampoline) do not prove
+                                // the body continues - the candidate
+                                // IS the arm end. A candidate with no
+                                // such hop is a shared back edge
+                                // (continue/loop tail): escapes past
+                                // it mean a real continuation (cmd
+                                // 3.11 do_help: the inner continue's
+                                // JUMP_BACKWARD is followed directly
+                                // by `prevname = name`).
+                                let dedicated_tramp = self
+                                    .idx_of
+                                    .get(&inst.offset)
+                                    .and_then(|&k| {
+                                        self.instrs
+                                            .get(k + 1)
+                                            .filter(|y| {
+                                                !y.is_backward
+                                                    && matches!(
+                                                        y.op,
+                                                        Op::JUMP_FORWARD
+                                                            | Op::JUMP_ABSOLUTE
+                                                            | Op::JUMP
+                                                            | Op::JUMP_NO_INTERRUPT
+                                                    )
+                                            })
+                                            .map(|y| y.offset)
+                                    })
+                                    .is_some();
+                                let escapes_past =
+                                    self.instrs[body_ci..cand_i]
+                                        .iter()
+                                        .any(|x| {
+                                            !x.is_backward
+                                                && matches!(
+                                                    x.op,
+                                                    Op::POP_JUMP_IF_FALSE
+                                                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                                                        | Op::POP_JUMP_IF_TRUE
+                                                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                                                        | Op::JUMP_IF_FALSE
+                                                        | Op::JUMP_IF_TRUE
+                                                        | Op::JUMP_IF_FALSE_OR_POP
+                                                        | Op::JUMP_IF_TRUE_OR_POP
+                                                )
+                                                && x.target
+                                                    .map_or(false, |t| {
+                                                        t > inst.offset
+                                                            && t < loop_end
+                                                            && !dedicated_tramp
+                                                            && !self
+                                                                .escape_is_loop_glue(
+                                                                    t,
+                                                                )
+                                                    })
+                                        });
+                                if escapes_past {
+                                    continue;
+                                }
                                 // fused and-chain: the PREVIOUS operand's
                                 // jump-to-loop-top opened a fused If over
                                 // the SAME then-body (its end == this back
@@ -29778,6 +29867,58 @@ if split_cond {
                     // not base.__flags__ & _HEAPTYPE: break` rendered as
                     // two nested ifs: PJIT+JABS glue instead of
                     // UNARY_NOT+PJF)
+                    // truncation guard: an inner cond jump escaping
+                    // PAST the candidate then-end means the body
+                    // continues there (a nested guard's false path
+                    // merges downstream) - the first back edge is an
+                    // inner `continue`, not the body end (cmd 3.11
+                    // do_help: `if name[:3] == 'do_': {if name ==
+                    // prevname: continue; ...}` had its body clamped
+                    // at the continue and the rest flattened to loop
+                    // level - prevname/cmd ran for non-do_ names).
+                    // Without inner cond escapes the candidate stays:
+                    // `if c: continue` (then_end IS the continue) and
+                    // straight-line `if c: stmt` (then_end is the
+                    // loop's own back edge).
+                    if let Some(te) = then_end {
+                        let clamp_loop_end = self
+                            .blocks
+                            .iter()
+                            .rev()
+                            .find(|b| {
+                                matches!(
+                                    b.kind,
+                                    BlockType::While | BlockType::For
+                                )
+                            })
+                            .map(|b| b.end)
+                            .unwrap_or(usize::MAX);
+                        let ci = self.idx_of.get(&self.cur_offset).copied();
+                        let ti = self.idx_of.get(&te).copied();
+                        if let (Some(a), Some(b)) = (ci, ti) {
+                            if self.instrs[a + 1..b].iter().any(|x| {
+                                !x.is_backward
+                                    && matches!(
+                                        x.op,
+                                        Op::POP_JUMP_IF_FALSE
+                                            | Op::POP_JUMP_FORWARD_IF_FALSE
+                                            | Op::POP_JUMP_IF_TRUE
+                                            | Op::POP_JUMP_FORWARD_IF_TRUE
+                                            | Op::JUMP_IF_FALSE
+                                            | Op::JUMP_IF_TRUE
+                                            | Op::JUMP_IF_FALSE_OR_POP
+                                            | Op::JUMP_IF_TRUE_OR_POP
+                                    )
+                                    && x.target.map_or(false, |t| {
+                                        t > te
+                                            && t < clamp_loop_end
+                                            && !self.escape_is_loop_glue(t)
+                                    })
+                            }) {
+                                then_end = None;
+                            }
+                        }
+                    }
                     if let Some(te) = then_end {
                         let mergeable = self.blocks.last().map_or(false, |top| {
                             matches!(top.kind, BlockType::If)
@@ -32881,6 +33022,44 @@ if split_cond {
     /// Continue recompiles to an extra dead JUMP_FORWARD). Any other
     /// jump first (a cond jump, an edge elsewhere) means the region is
     /// not a plain converging arm — bail and keep the historic path.
+    /// True when landing at `from` executes nothing but unconditional
+    /// jump glue ending at a loop top: an escaping cond target that
+    /// only hops to the loop top does NOT prove the body continues
+    /// past the candidate back edge (dis 3.3 pretty_flags:
+    /// `if not flags: break`'s skip jump lands on the back-edge
+    /// trampoline 99, one JABS hop from the loop top - rejecting the
+    /// candidate 96 extended the guard over the trampoline and grew a
+    /// phantom tail continue). A real continuation target executes
+    /// statements (cmd 3.11 do_help: the escape lands on
+    /// `prevname = name`).
+    fn escape_is_loop_glue(&self, from: usize) -> bool {
+        let mut cur = from;
+        for _ in 0..16 {
+            if self.is_loop_top_target(cur) {
+                return true;
+            }
+            let Some(&i) = self.idx_of.get(&cur) else {
+                return false;
+            };
+            let ins = &self.instrs[i];
+            if matches!(
+                ins.op,
+                Op::JUMP_ABSOLUTE
+                    | Op::JUMP_FORWARD
+                    | Op::JUMP
+                    | Op::JUMP_NO_INTERRUPT
+            ) {
+                match ins.target {
+                    Some(t) if t != cur => cur = t,
+                    _ => return false,
+                }
+            } else {
+                return false;
+            }
+        }
+        false
+    }
+
     fn fused_else_region_converges(&self, start: usize) -> Option<usize> {
         let &si = self.idx_of.get(&start)?;
         for ins in &self.instrs[si..] {

@@ -111,7 +111,7 @@
    "module": "bdb",
    "ast_detail": "diff at token 202: orig  body=[Return()]) | dec  body=[Return()])])",
    "verdict": "SIG-DIFF",
-   "ndiff": 2332,
+   "ndiff": 2334,
    "ntotal": 2803,
    "detail": "line 416: orig ('LOAD_FAST', 'event') | got ('LOAD_CONST', 'None')\nline 417: orig ('LOAD_CONST', \"'line'\") | got ('LOAD_CONST', 'None')\nline 418: orig ('COMPARE_OP', 'bool(==)') | got ('LOAD_CONST', 'None')"
   },
