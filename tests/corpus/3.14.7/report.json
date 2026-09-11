@@ -101,7 +101,7 @@
   },
   {
    "module": "_strptime",
-   "ast_detail": "diff at token 1830: orig  body=[Assign(targets=[Name(id='format_char' | dec  body=[Nonlocal(names=['day_of_month_in_format'",
+   "ast_detail": "diff at token 2006: orig  body=[If(test=UnaryOp(op=Not() | dec  body=[If(test=Call(func=Name(id='isinstance'",
    "verdict": "SIG-DIFF",
    "ndiff": 845,
    "ntotal": 3207,

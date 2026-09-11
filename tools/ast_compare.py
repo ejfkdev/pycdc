@@ -401,6 +401,58 @@ def _canon_percent_format(node):
     return js if js is not None else node
 
 
+def _collect_scope_decls(body):
+    """Collect (and remove) Global/Nonlocal declarations anywhere in a
+    single scope's statement lists (descending into If/Match/Try/For/
+    While/With containers but NOT into nested function/class scopes).
+    Declaration position within a scope has no runtime effect, so both
+    sides canonicalize to one merged pair at the scope head."""
+    globs = []
+    nonlocs = []
+    scope_kinds = tuple(
+        k for k in (
+            ast.FunctionDef,
+            getattr(ast, 'AsyncFunctionDef', None),
+            ast.ClassDef,
+            getattr(ast, 'Lambda', None),
+        ) if k is not None
+    )
+
+    def walk(b):
+        out = []
+        for s in b:
+            if isinstance(s, ast.Global):
+                globs.extend(s.names)
+                continue
+            if hasattr(ast, 'Nonlocal') and isinstance(s, ast.Nonlocal):
+                nonlocs.extend(s.names)
+                continue
+            if isinstance(s, scope_kinds):
+                # nested scopes bind their own declarations
+                out.append(s)
+                continue
+            for f in ('body', 'orelse', 'finalbody'):
+                v = getattr(s, f, None)
+                if isinstance(v, list) and v and isinstance(v[0], ast.stmt):
+                    setattr(s, f, walk(v))
+            for h in getattr(s, 'handlers', None) or []:
+                if isinstance(getattr(h, 'body', None), list):
+                    h.body = walk(h.body)
+            for c in getattr(s, 'cases', None) or []:
+                if isinstance(getattr(c, 'body', None), list):
+                    c.body = walk(c.body)
+            out.append(s)
+        return out
+
+    body = walk(body)
+    head = []
+    if globs:
+        head.append(ast.Global(names=sorted(set(globs))))
+    if nonlocs and hasattr(ast, 'Nonlocal'):
+        head.append(ast.Nonlocal(names=sorted(set(nonlocs))))
+    return head + body
+
+
 class Normalizer(ast.NodeTransformer):
     def generic_visit(self, node):
         # normalize every statement-list field (body/orelse/finalbody) on
@@ -425,6 +477,15 @@ class Normalizer(ast.NodeTransformer):
                 setattr(node, field, new)
             elif isinstance(value, ast.AST):
                 setattr(node, field, self.visit(value))
+        scope_kinds = [ast.FunctionDef, ast.Module]
+        for opt in ('AsyncFunctionDef', 'ClassDef'):
+            k = getattr(ast, opt, None)
+            if k is not None:
+                scope_kinds.append(k)
+        if isinstance(node, tuple(scope_kinds)) and isinstance(
+            getattr(node, 'body', None), list
+        ):
+            node.body = _collect_scope_decls(node.body)
         return node
 
     def visit_While(self, node):
