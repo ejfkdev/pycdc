@@ -87,9 +87,9 @@
    "module": "base64",
    "ast_detail": "diff at token 1769: orig  type_comment=None) | dec  type_comment=None)]",
    "verdict": "SIG-DIFF",
-   "ndiff": 696,
+   "ndiff": 70,
    "ntotal": 1917,
-   "detail": "line 1153: orig ('FOR_ITER', 'to 356') | got ('FOR_ITER', 'to 256')\nline 1166: orig ('JUMP_FORWARD', 'to 254') | got ('JUMP_FORWARD', 'to 198')\nline 1192: orig ('SETUP_FINALLY', 'to 214') | got ('JUMP_FORWARD', 'to 248')"
+   "detail": "line 1166: orig ('JUMP_FORWARD', 'to 254') | got ('JUMP_FORWARD', 'to 198')\nline 1192: orig ('SETUP_FINALLY', 'to 214') | got ('JUMP_FORWARD', 'to 248')\nline 1193: orig ('LOAD_FAST', 'decoded_append') | got ('SETUP_FINALLY', 'to 216')"
   },
   {
    "module": "bdb",

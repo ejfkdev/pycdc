@@ -99,9 +99,9 @@
    "module": "base64",
    "ast_detail": "diff at token 1555: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 634,
+   "ndiff": 646,
    "ntotal": 1931,
-   "detail": "line 1211: orig ('FOR_ITER', 'to 334') | got ('FOR_ITER', 'to 248')\nline 1221: orig ('POP_JUMP_IF_FALSE', 'to 248') | got ('POP_JUMP_IF_FALSE', 'to 246')\nline 1224: orig ('JUMP_FORWARD', 'to 248') | got ('JUMP_ABSOLUTE', 'to 118')"
+   "detail": "line 1211: orig ('FOR_ITER', 'to 334') | got ('FOR_ITER', 'to 248')\nline 1221: orig ('POP_JUMP_IF_FALSE', 'to 248') | got ('POP_JUMP_IF_FALSE', 'to 246')\nline 1224: orig ('JUMP_FORWARD', 'to 248') | got ('JUMP_FORWARD', 'to 246')"
   },
   {
    "module": "bdb",

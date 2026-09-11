@@ -35332,6 +35332,167 @@ if split_cond {
                             return;
                         }
                     }
+                    // 3.8+ FOR_ITER-style loops carry the exhaustion
+                    // target as their end: a back edge to the top with
+                    // real loop body still AHEAD (b.end > this jump) is
+                    // an arm-end continue, not the final back edge -
+                    // closing here ejects the remaining elif arms out
+                    // of the loop (base64 3.6-3.11 a85decode: the
+                    // z/y/ignorechars arms ran ONCE after the loop
+                    // with a stale x instead of per character). The
+                    // loop closes when the walk reaches its end.
+                    // gate: ANOTHER back edge to this top must exist
+                    // ahead within the loop region - the mid-body
+                    // arm-end edges of a multi-arm loop (base64
+                    // a85decode's four arms) always have siblings;
+                    // a genuine final back edge (rotated whiles,
+                    // single-arm fors) has none and keeps the
+                    // historic close
+                    let next_edge = self
+                        .instrs
+                        .iter()
+                        .find(|x| {
+                            x.offset > self.cur_offset
+                                && x.offset < b.end
+                                && x.is_backward
+                                && x.target == Some(target)
+                                && matches!(
+                                    x.op,
+                                    Op::JUMP_ABSOLUTE
+                                        | Op::JUMP_BACKWARD
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                        | Op::JUMP
+                                )
+                        })
+                        .map(|x| x.offset);
+                    // ...and REAL statements must separate this edge
+                    // from the next one: a try's success/handler edge
+                    // pair has only clause glue between (configparser
+                    // 3.11 ConverterMapping.__delitem__: the handler's
+                    // own `continue` must not become a flat loop-level
+                    // one, costing sig-exactness)
+                    let more_edges = next_edge.map_or(false, |ne| {
+                        let (a, b2) =
+                            match (self.idx_of.get(&self.cur_offset),
+                                   self.idx_of.get(&ne)) {
+                                (Some(&x1), Some(&x2)) => (x1 + 1, x2),
+                                _ => return false,
+                            };
+                        self.instrs[a..b2].iter().any(|x| {
+                            !x.is_jump()
+                                && !matches!(
+                                    x.op,
+                                    Op::NOP
+                                        | Op::NOT_TAKEN
+                                        | Op::CACHE
+                                        | Op::POP_TOP
+                                        | Op::POP_EXCEPT
+                                        | Op::POP_BLOCK
+                                        | Op::END_FINALLY
+                                        | Op::RERAISE
+                                        | Op::PUSH_EXC_INFO
+                                        | Op::CHECK_EXC_MATCH
+                                        | Op::CHECK_EG_MATCH
+                                        | Op::COPY
+                                        | Op::SWAP
+                                        | Op::EXTENDED_ARG
+                                        | Op::RESUME
+                                )
+                        })
+                    });
+                    // fused chain-arm end (3.8+): a forward cond jump
+                    // targets THIS back edge - an arm's false exit
+                    // flows through the edge itself, and more loop
+                    // body follows before the exhaustion end. The
+                    // edge is a mid-body continue, never the loop's
+                    // close (base64 3.6-3.11 a85decode: closing at
+                    // the first arm's edge ejected the z/y/ignore
+                    // elif chain to function level - they ran once
+                    // after the loop with a stale x, a real semantic
+                    // bug). The Continue lands in the arm block when
+                    // one is still open; when the arm already closed
+                    // at this offset it renders flat and the ast
+                    // canonicalizer folds it back into the chain.
+                    if self.version.at_least(3, 8)
+                        && b.end > self.cur_offset
+                        && self.instrs.iter().any(|x| {
+                            !x.is_backward
+                                && x.target == Some(self.cur_offset)
+                                && matches!(
+                                    x.op,
+                                    Op::POP_JUMP_IF_FALSE
+                                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                                        | Op::POP_JUMP_IF_TRUE
+                                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                                )
+                        })
+                    {
+                        // AND another back edge to this top must lie
+                        // ahead with REAL statements between: the
+                        // common fused-guard shape targets the loop's
+                        // FINAL back edge (nothing real after) and
+                        // must keep the historic close (20 modules
+                        // grew flat continues under the ungated form)
+                        let next_edge = self
+                            .instrs
+                            .iter()
+                            .find(|x| {
+                                x.offset > self.cur_offset
+                                    && x.offset < b.end
+                                    && x.is_backward
+                                    && x.target == Some(target)
+                                    && matches!(
+                                        x.op,
+                                        Op::JUMP_ABSOLUTE
+                                            | Op::JUMP_BACKWARD
+                                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                            | Op::JUMP
+                                    )
+                            })
+                            .map(|x| x.offset);
+                        let stmts_between = next_edge.map_or(
+                            false,
+                            |ne| {
+                                match (
+                                    self.idx_of.get(&self.cur_offset),
+                                    self.idx_of.get(&ne),
+                                ) {
+                                    (Some(&x1), Some(&x2)) => {
+                                        self.instrs[x1 + 1..x2]
+                                            .iter()
+                                            .any(|x| {
+                                                !x.is_jump()
+                                                    && !matches!(
+                                                        x.op,
+                                                        Op::NOP
+                                                            | Op::NOT_TAKEN
+                                                            | Op::CACHE
+                                                            | Op::POP_TOP
+                                                            | Op::POP_EXCEPT
+                                                            | Op::POP_BLOCK
+                                                            | Op::END_FINALLY
+                                                            | Op::END_FOR
+                                                            | Op::POP_ITER
+                                                            | Op::RERAISE
+                                                            | Op::PUSH_EXC_INFO
+                                                            | Op::CHECK_EXC_MATCH
+                                                            | Op::CHECK_EG_MATCH
+                                                            | Op::COPY
+                                                            | Op::SWAP
+                                                            | Op::EXTENDED_ARG
+                                                            | Op::RESUME
+                                                    )
+                                            })
+                                    }
+                                    _ => false,
+                                }
+                            },
+                        );
+                        if stmts_between {
+                            self.push_stmt(Stmt::Continue);
+                            return;
+                        }
+                    }
                     self.closed_loop_tops.push(b.start);
                     // async-for: the back edge is followed by the
                     // CLEANUP_THROW paths and END_ASYNC_FOR — dead for the
