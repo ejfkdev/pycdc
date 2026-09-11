@@ -173,11 +173,11 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 319: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()])",
+   "ast_detail": "diff at token 758: orig  value=SetComp(elt=Subscript(value=Name(id='a' | dec  value=SetComp(elt=BinOp(left=Name(id='a'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1049,
-   "ntotal": 1408,
-   "detail": "line 321: orig ('POP_JUMP_IF_FALSE', 'to L14') | got ('POP_JUMP_IF_FALSE', 'to L13')\nline 340: orig ('LOAD_CONST', 'None') | got ('PUSH_EXC_INFO', '')\nline 341: orig ('RETURN_VALUE', '') | got ('LOAD_GLOBAL', 'ImportError')"
+   "ndiff": 569,
+   "ntotal": 1411,
+   "detail": "line 829: orig ('BINARY_OP', '[]') | got ('BINARY_OP', '+')\nline 837: orig ('LOAD_CONST', 'slice(5, None, None)') | got ('LOAD_GLOBAL', 'slice + NULL')\nline 838: orig ('BINARY_OP', '[]') | got ('LOAD_SMALL_INT', '')"
   },
   {
    "module": "code",

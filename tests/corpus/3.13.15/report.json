@@ -135,8 +135,8 @@
    "module": "cmd",
    "ast_detail": "diff at token 317: orig  ctx=Load())]))]) | dec  ctx=Load())]))])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1142,
-   "ntotal": 1476,
+   "ndiff": 1138,
+   "ntotal": 1478,
    "detail": "line 317: orig ('LOAD_ATTR', 'postloop + NULL|self') | got ('LOAD_ATTR', 'use_rawinput')\nline 318: orig ('CALL', '') | got ('TO_BOOL', '')\nline 319: orig ('POP_TOP', '') | got ('POP_JUMP_IF_FALSE', 'to L13')"
   },
   {

@@ -3450,11 +3450,14 @@ impl<'a> Ctx<'a> {
                     stop = fh;
                 }
             }
-            let finalbody = if stop > pos {
+            let mut finalbody = if stop > pos {
                 self.decompile_region(pos, stop)
             } else {
                 Vec::new()
             };
+            // sunk-epilogue returns inside an INLINE finally copy (see
+            // strip_sunk_finally_returns)
+            self.strip_sunk_finally_returns(tc.finally_handler, &mut finalbody);
             if self.skip_until.map_or(true, |s| s < stop) {
                                 self.skip_until = Some(stop);
             }
@@ -5292,9 +5295,12 @@ impl<'a> Ctx<'a> {
         {
             body.pop();
         }
+        self.strip_sunk_finally_returns(tc.finally_handler, &mut finalbody);
         if let Some(inner_fin) = nested_inner_fin.take() {
             // two nested finally levels merged into one region: the body
             // plus the first level's copy form the inner try
+            let mut inner_fin = inner_fin;
+            self.strip_sunk_finally_returns(tc.finally_handler, &mut inner_fin);
             let inner = Stmt::Try {
                 body,
                 handlers,
@@ -5514,6 +5520,28 @@ impl<'a> Ctx<'a> {
             self.legacy_handler_end = None;
         }
         while self.blocks.len() > 1 {
+            // a deferred nested-try tail whose lexically ENCLOSING
+            // block is about to fold: emit it first so the Try lands
+            // inside that block instead of the region root (cmd 3.11+
+            // cmdloop / rl: `finally: ...; if completekey and
+            // use_rawinput: try: import readline; ... except
+            // ImportError: pass` — folding first closed the guards as
+            // `pass` shells and the Try fell out as an unconditional
+            // sibling, running the completer restore even when
+            // rawinput was off)
+            let encloses_pending = self
+                .pending_try_ctx
+                .as_ref()
+                .zip(self.blocks.last())
+                .map_or(false, |(tc, top)| {
+                    tc.start >= top.start && tc.start < top.end
+                });
+            if encloses_pending {
+                if let Some(tc) = self.pending_try_ctx.take() {
+                    self.emit_try_tail(tc, to);
+                    continue;
+                }
+            }
             let p = self.blocks.last().map(|b| b.start).unwrap_or(to);
             self.force_close_top(p);
         }
@@ -30892,6 +30920,65 @@ if split_cond {
                 b.else_end = Some(target);
             }
         }
+    }
+
+    /// Strip bare `return None` statements sunk by the compiler into an
+    /// INLINE finally copy's exits. Mirror check: a source-level return
+    /// inside a finally appears in BOTH copies, so when the whole
+    /// out-of-line finally handler span holds no RETURN at all, every
+    /// bare return rendered from the inline copy is epilogue machinery
+    /// (cmd 3.11+ cmdloop: the readline-restore `except ImportError:
+    /// pass` inside the finally rendered `return`, which would swallow
+    /// an in-flight exception). Value returns are left alone.
+    fn strip_sunk_finally_returns(&self, fh: Option<usize>, fb: &mut Vec<Stmt>) {
+        let Some(fh) = fh else { return };
+        let Some(&fi) = self.idx_of.get(&fh) else { return };
+        if self.instrs[fi..]
+            .iter()
+            .any(|x| matches!(x.op, Op::RETURN_VALUE | Op::RETURN_CONST))
+        {
+            return;
+        }
+        fn strip(stmts: &mut Vec<Stmt>) {
+            let mut i = 0;
+            while i < stmts.len() {
+                if matches!(stmts[i], Stmt::Return(None)) {
+                    stmts.remove(i);
+                    continue;
+                }
+                match &mut stmts[i] {
+                    Stmt::If { body, orelse, .. }
+                    | Stmt::While { body, orelse, .. }
+                    | Stmt::For { body, orelse, .. } => {
+                        strip(body);
+                        strip(orelse);
+                    }
+                    Stmt::Try {
+                        body,
+                        handlers,
+                        orelse,
+                        finalbody,
+                        ..
+                    } => {
+                        strip(body);
+                        for h in handlers.iter_mut() {
+                            strip(&mut h.body);
+                            if h.body.is_empty() {
+                                h.body.push(Stmt::Pass);
+                            }
+                        }
+                        strip(orelse);
+                        strip(finalbody);
+                    }
+                    Stmt::With { body, .. } => {
+                        strip(body);
+                    }
+                    _ => {}
+                }
+                i += 1;
+            }
+        }
+        strip(fb);
     }
 
     /// True when [from, to) is pure straight-line code: at least one

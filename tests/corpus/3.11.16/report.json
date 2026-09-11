@@ -145,11 +145,11 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 344: orig  body=[Try(body=[Import(names=[alias(name='readline')]) | dec  body=[Pass()]",
+   "ast_detail": "diff at token 1012: orig  keywords=[])) | dec  keywords=[]))])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1051,
+   "ndiff": 1,
    "ntotal": 1443,
-   "detail": "line 328: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1116') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1018')\nline 331: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1120') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1018')\nline 348: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 1108') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 1110')"
+   "detail": "line 998: orig ('POP_JUMP_FORWARD_IF_FALSE', 'to 898') | got ('POP_JUMP_FORWARD_IF_FALSE', 'to 652')"
   },
   {
    "module": "code",

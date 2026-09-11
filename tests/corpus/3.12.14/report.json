@@ -139,8 +139,8 @@
    "module": "cmd",
    "ast_detail": "diff at token 327: orig  orelse=[]) | dec  orelse=[])]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1081,
-   "ntotal": 1380,
+   "ndiff": 1079,
+   "ntotal": 1382,
    "detail": "line 276: orig ('LOAD_ATTR', 'NULL|self + postloop') | got ('LOAD_ATTR', 'use_rawinput')\nline 277: orig ('CALL', '') | got ('POP_JUMP_IF_FALSE', 'to 1010')\nline 278: orig ('POP_TOP', '') | got ('LOAD_FAST', 'self')"
   },
   {
