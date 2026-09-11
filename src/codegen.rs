@@ -1406,11 +1406,15 @@ impl Printer {
                 self.write("j)");
             }
             PyObject::Str(s) => {
+                // py2: PyObject::Str is TYPE_UNICODE — a distinct type
+                // from TYPE_STRING (PyObject::Bytes). It must ALWAYS
+                // render with the `u` prefix, ASCII or not: `u"'"` and
+                // `"'"` are different objects in py2, and dropping the
+                // prefix on ASCII unicode silently changes the constant
+                // type on recompile (HTMLParser 2.6/2.7 `entitydefs =
+                // {'apos': u"'"}` rendered as bytes `'apos': "'"`).
                 if self.version.major == 2 {
-                    let all_ascii = s.is_ascii();
-                    if !all_ascii {
-                        self.write("u");
-                    }
+                    self.write("u");
                 }
                 self.write_str_literal(s, false);
             }

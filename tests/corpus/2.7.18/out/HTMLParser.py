@@ -373,7 +373,7 @@ class HTMLParser(markupbase.ParserBase):
                 return '&#' + s + ';'
             if HTMLParser.entitydefs is None:
                 import htmlentitydefs
-                entitydefs = {'apos': "'"}
+                entitydefs = {'apos': u"'"}
                 for k, v in htmlentitydefs.name2codepoint.iteritems():
                     entitydefs[k] = unichr(v)
                 HTMLParser.entitydefs = entitydefs

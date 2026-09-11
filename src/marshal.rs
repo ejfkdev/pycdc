@@ -232,7 +232,26 @@ impl<'a> MarshalReader<'a> {
                 let b = self.bytes(n)?.to_vec();
                 Rc::new(PyObject::Bytes(b))
             }
-            TYPE_INTERNED | TYPE_UNICODE => self.load_utf8_string(code)?,
+            TYPE_INTERNED => {
+                // py2: TYPE_INTERNED is an interned BYTESTRING (str),
+                // type-distinct from TYPE_UNICODE (u'...'). Load the RAW
+                // bytes (py2 bytestrings need not be valid UTF-8;
+                // lossy-decoding them corrupted constants) as
+                // PyObject::Bytes and keep the STRINGREF registration.
+                // py3: TYPE_INTERNED is an interned unicode str.
+                if self.version.major == 2 {
+                    let n = self.size()?;
+                    let b = self.bytes(n)?.to_vec();
+                    let obj = Rc::new(PyObject::Bytes(b));
+                    if self.version.at_least(2, 4) {
+                        self.interned.push(obj.clone());
+                    }
+                    obj
+                } else {
+                    self.load_utf8_string(code)?
+                }
+            }
+            TYPE_UNICODE => self.load_utf8_string(code)?,
             TYPE_ASCII | TYPE_SHORT_ASCII => {
                 if !self.version.at_least(3, 4) {
                     return Err(PycError::BadMarshalType(code, code as char, start));

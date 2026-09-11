@@ -770,6 +770,21 @@ class Normalizer(ast.NodeTransformer):
 
     def visit_Compare(self, node):
         self.generic_visit(node)
+        # `x in ['a','b']` and `x in ('a','b')` are the same membership
+        # test (both build the collection once, then a linear equality
+        # scan); the decompiler renders py2 BUILD_LIST constant
+        # collections as tuples (HTMLParser 2.6/2.7 unhex `s[0] in
+        # ['x','X']` vs dec `in ('x','X')`). Sets are NOT normalized -
+        # they add a hashability requirement.
+        if any(isinstance(o, (ast.In, ast.NotIn)) for o in node.ops):
+            node.comparators = [
+                ast.Tuple(elts=c.elts, ctx=ast.Load())
+                if isinstance(c, ast.List) else c
+                for c in node.comparators
+            ]
+            if isinstance(node.left, ast.List):
+                node.left = ast.Tuple(elts=node.left.elts,
+                                      ctx=ast.Load())
         # compilers flatten `a < b <= c` into `a < b and b <= c` (each
         # link re-evaluating the shared middle only in the AST sense);
         # expand both sides so a flattened decompile compares equal.

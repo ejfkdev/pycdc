@@ -33,7 +33,7 @@
   },
   {
    "module": "HTMLParser",
-   "ast_detail": "diff at token 1907: orig  comparators=[List(elts=[Str(s='x') | dec  comparators=[Tuple(elts=[Str(s='x')",
+   "ast_detail": "diff at token 1959: orig  ctx=Store()) | dec  ctx=Store())]",
    "verdict": "SIG-DIFF",
    "ndiff": 906,
    "ntotal": 1420,
