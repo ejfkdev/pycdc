@@ -454,6 +454,16 @@ def _collect_scope_decls(body):
 
 
 class Normalizer(ast.NodeTransformer):
+    def visit_List(self, node):
+        self.generic_visit(node)
+        # py2.6 parses tuple-unpack targets (`a, b = x`) as List; pycdc
+        # renders Tuple. A Store-context List and Tuple unpack identically
+        # on every version (even py3's `[a, b] = x`), so canonicalize
+        # (binhex 2.6/3.3 `_DID_HEADER, _DID_DATA, _DID_RSRC = range(3)`)
+        if isinstance(getattr(node, 'ctx', None), ast.Store):
+            return ast.Tuple(elts=node.elts, ctx=ast.Store())
+        return node
+
     def generic_visit(self, node):
         # normalize every statement-list field (body/orelse/finalbody) on
         # every node kind -- including py2 TryExcept/TryFinally and ExceptHandler

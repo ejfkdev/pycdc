@@ -181,7 +181,7 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "diff at token 19: orig  Assign(targets=[List(elts=[Name(id='_DID_HEADER' | dec  Assign(targets=[Tuple(elts=[Name(id='_DID_HEADER'",
+   "ast_detail": "diff at token 2165: orig  kwargs=None))] | dec  kwargs=None))",
    "verdict": "SIG-DIFF",
    "ndiff": 931,
    "ntotal": 2021,

@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.3.7/bin/python3",
  "counts": {
   "PASS": 24,
-  "AST-PASS": 9,
-  "SIG-DIFF": 7
+  "AST-PASS": 10,
+  "SIG-DIFF": 6
  },
  "results": [
   {
@@ -77,11 +77,7 @@
   },
   {
    "module": "binhex",
-   "ast_detail": "diff at token 22: orig  Assign(targets=[List(elts=[Name(id='_DID_HEADER' | dec  Assign(targets=[Tuple(elts=[Name(id='_DID_HEADER'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 872,
-   "ntotal": 1846,
-   "detail": "line 939: orig ('SETUP_LOOP', '#31') | got ('SETUP_LOOP', '#32')\nline 955: orig ('LOAD_FAST', 'ofp') | got ('JUMP_ABSOLUTE', '#16')\nline 956: orig ('LOAD_ATTR', 'close_data') | got ('LOAD_FAST', 'ofp')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "bisect",
