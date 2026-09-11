@@ -425,6 +425,10 @@ struct Ctx<'a> {
     legacy_handler_name_store: bool,
     /// next STORE_*/DELETE_* is the implicit handler-name cleanup
     legacy_handler_cleanup: bool,
+    /// clamp-created fused guards whose end back edge is dead padding
+    /// standing in for the guard's source `continue` (see
+    /// fused_pad_continues_region)
+    fused_guard_pad_at: std::collections::HashSet<usize>,
     /// a swallowed implicit-cleanup STORE (`e = None`) expects the
     /// matching `del e` right after - only THAT delete is cleanup; a
     /// bare DELETE of the handler name is an explicit source `del`
@@ -804,6 +808,7 @@ pub fn decompile_in_scope(
         legacy_handler_end: None,
         legacy_handler_name_store: false,
         legacy_handler_cleanup: false,
+        fused_guard_pad_at: std::collections::HashSet::new(),
         swallowed_cleanup_del: None,
         in_handler_prelude: false,
         pending_then: Vec::new(),
@@ -10952,12 +10957,14 @@ impl<'a> Ctx<'a> {
                             orelse: Vec::new(),
                         });
                     }
+                    self.maybe_record_fused_pad(b.start, b.end);
                 } else {
                     self.push_stmt(Stmt::If {
                         cond,
                         body,
                         orelse: Vec::new(),
                     });
+                    self.maybe_record_fused_pad(b.start, b.end);
                 }
             }
             BlockType::Else => {
@@ -11046,6 +11053,11 @@ impl<'a> Ctx<'a> {
                 // codegen renders `else: <single if>` as `elif` anyway
                 // (which also covers folded elif chains).
                 self.push_stmt(Stmt::If { cond, body, orelse });
+                // a fused guard (cond jump flying straight to the
+                // loop top) whose end is dead padding: record the
+                // padding so its dispatch emits the source-level
+                // `continue` instead of swallowing it
+                self.maybe_record_fused_pad(b.start, b.end);
             }
             BlockType::While => {
                 let cond = b.cond.take().unwrap_or_else(|| self.true_cond_expr());
@@ -16530,6 +16542,21 @@ impl<'a> Ctx<'a> {
                                         | Op::RETURN_CONST
                                 ) && !self.targets.contains(&inst.offset)
                                 {
+                                    // a fused guard's dead padding stands
+                                    // in for its source `continue`: the
+                                    // guard already rendered, the false
+                                    // exit flew to the loop top, and real
+                                    // statements follow - emit the
+                                    // Continue into the enclosing arm
+                                    // instead of swallowing silently
+                                    // (_markupbase _parse_doctype_subset)
+                                    if self
+                                        .fused_guard_pad_at
+                                        .remove(&inst.offset)
+                                    {
+                                        self.push_stmt(Stmt::Continue);
+                                        return true;
+                                    }
                                     // the dead edge may still be the loop's
                                     // LAST physical back edge (configparser
                                     // 3.6 _interpolate_some: raise, dead
@@ -33364,6 +33391,128 @@ if split_cond {
     /// phantom tail continue). A real continuation target executes
     /// statements (cmd 3.11 do_help: the escape lands on
     /// `prevname = name`).
+    /// A clamp-created fused guard's end may be DEAD PADDING: an
+    /// untargeted backward loop-top jump after a terminating arm
+    /// (3.8 compiles `if j < 0: return j` + `continue` with the false
+    /// exit flying straight to the loop top and a dead JABS padding
+    /// the arm end). The padding handler swallows that jump, so when
+    /// the parent region continues with real statements past it, the
+    /// source-level `continue` (the guard's false path) must be
+    /// emitted after the rendered If (_markupbase 3.3-3.9
+    /// _parse_doctype_subset).
+    /// A clamp-created fused guard's end may be DEAD PADDING: an
+    /// untargeted backward loop-top jump after a terminating arm
+    /// (3.8 compiles `if j < 0: return j` + `continue` with the false
+    /// exit flying straight to the loop top and a dead JABS padding
+    /// the arm end). True when real statements follow the padding
+    /// before the loop's exit machinery - the guard's false path is
+    /// then a source-level `continue` that must survive the padding
+    /// swallow (_markupbase 3.3-3.9 _parse_doctype_subset: without it
+    /// _scan_name re-ran on the comment position).
+    fn maybe_record_fused_pad(&mut self, start: usize, end: usize) {
+        if self.targets.contains(&end) {
+            return;
+        }
+        let Some(&ei) = self.idx_of.get(&end) else {
+            return;
+        };
+        {
+            let e = &self.instrs[ei];
+            if !(e.is_backward
+                && matches!(
+                    e.op,
+                    Op::JUMP_ABSOLUTE
+                        | Op::JUMP_BACKWARD
+                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                        | Op::JUMP
+                )
+                && e.target
+                    .map_or(false, |t| self.is_loop_top_target(t)))
+            {
+                return;
+            }
+        }
+        // the block's own cond jump (right before its start, past
+        // arm-head POPs) must fly to the loop top - the false exit
+        // IS the continue
+        let Some(&si) = self.idx_of.get(&start) else {
+            return;
+        };
+        let mut k = si;
+        let mut cj = None;
+        while k > 0 {
+            k -= 1;
+            let x = &self.instrs[k];
+            if matches!(
+                x.op,
+                Op::NOP | Op::NOT_TAKEN | Op::CACHE | Op::POP_TOP
+            ) {
+                continue;
+            }
+            cj = Some((x.op, x.target));
+            break;
+        }
+        let Some((op, tgt)) = cj else {
+            return;
+        };
+        if !matches!(
+            op,
+            Op::POP_JUMP_IF_FALSE
+                | Op::POP_JUMP_FORWARD_IF_FALSE
+                | Op::POP_JUMP_IF_TRUE
+                | Op::POP_JUMP_FORWARD_IF_TRUE
+                | Op::JUMP_IF_FALSE
+                | Op::JUMP_IF_TRUE
+        ) {
+            return;
+        }
+        let cond_to_top = tgt.map_or(false, |t| {
+            self.is_loop_top_target(t)
+                || self
+                    .idx_of
+                    .get(&t)
+                    .map_or(false, |&ti2| {
+                        let y = &self.instrs[ti2];
+                        y.is_backward
+                            && y.target
+                                .map_or(false, |t2| {
+                                    self.is_loop_top_target(t2)
+                                })
+                    })
+        });
+        if !cond_to_top {
+            return;
+        }
+        if self.fused_pad_continues_region(end) {
+            self.fused_guard_pad_at.insert(end);
+        }
+    }
+
+    fn fused_pad_continues_region(&self, end: usize) -> bool {
+        let Some(&ei) = self.idx_of.get(&end) else {
+            return false;
+        };
+        if self.targets.contains(&end) {
+            return false;
+        }
+        let nxt = self.instrs[ei + 1..].iter().find(|x| {
+            !matches!(
+                x.op,
+                Op::NOP
+                    | Op::NOT_TAKEN
+                    | Op::CACHE
+                    | Op::POP_TOP
+                    | Op::EXTENDED_ARG
+                    | Op::END_FOR
+                    | Op::POP_BLOCK
+                    | Op::POP_ITER
+            ) && !(x.is_backward
+                && x.target
+                    .map_or(false, |t| self.is_loop_top_target(t)))
+        });
+        nxt.is_some()
+    }
+
     fn escape_is_loop_glue(&self, from: usize) -> bool {
         let mut cur = from;
         for _ in 0..16 {

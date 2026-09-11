@@ -2,9 +2,9 @@
  "version": "3.6.15",
  "interp": "/Users/e/.pyenv/versions/3.6.15/bin/python3",
  "counts": {
-  "PASS": 33,
+  "PASS": 34,
   "AST-PASS": 4,
-  "SIG-DIFF": 3
+  "SIG-DIFF": 2
  },
  "results": [
   {
@@ -33,11 +33,7 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 920: orig  orelse=[Assign(targets=[Tuple(elts=[Name(id='name' | dec  orelse=[])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 701,
-   "ntotal": 1408,
-   "detail": "line 610: orig ('SETUP_LOOP', 'to 560') | got ('SETUP_LOOP', 'to 558')\nline 697: orig ('JUMP_ABSOLUTE', '') | got ('LOAD_FAST', 'self')\nline 698: orig ('LOAD_FAST', 'self') | got ('LOAD_ATTR', '_scan_name')"
+   "verdict": "PASS"
   },
   {
    "module": "_osx_support",

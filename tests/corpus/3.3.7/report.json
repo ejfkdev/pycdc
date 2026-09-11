@@ -21,11 +21,11 @@
   },
   {
    "module": "_markupbase",
-   "ast_detail": "diff at token 1016: orig  orelse=[Assign(targets=[Tuple(elts=[Name(id='name' | dec  orelse=[])",
+   "ast_detail": "diff at token 1767: orig  right=Num(n=1))) | dec  right=Num(n=1)))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 686,
-   "ntotal": 1383,
-   "detail": "line 605: orig ('SETUP_LOOP', '#268') | got ('SETUP_LOOP', '#267')\nline 609: orig ('POP_JUMP_IF_FALSE', '#267') | got ('POP_JUMP_IF_FALSE', '#266')\nline 617: orig ('POP_JUMP_IF_FALSE', '#152') | got ('POP_JUMP_IF_FALSE', '#151')"
+   "ndiff": 145,
+   "ntotal": 1384,
+   "detail": "line 1206: orig ('POP_JUMP_IF_FALSE', '#42') | got ('POP_JUMP_IF_FALSE', '#46')\nline 1211: orig ('SETUP_LOOP', '#44') | got ('SETUP_LOOP', '#46')\nline 1235: orig ('JUMP_FORWARD', '#44') | got ('BREAK_LOOP', '')"
   },
   {
    "module": "_osx_support",

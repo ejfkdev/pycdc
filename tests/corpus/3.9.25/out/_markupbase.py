@@ -149,6 +149,7 @@ class ParserBase:
                     j = self.parse_comment(j, report=0)
                     if j < 0:
                         return j
+                    continue
                 name, j = self._scan_name(j + 2, declstartpos)
                 if j == -1:
                     return -1
