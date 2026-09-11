@@ -197,9 +197,9 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 1020: orig  body=[Assign(targets=[Name(id='months' | dec  body=[For(target=Name(id='i'",
+   "ast_detail": "diff at token 1225: orig  body=[Print(dest=None | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 2069,
+   "ndiff": 2068,
    "ntotal": 2868,
    "detail": "line 738: orig ('SETUP_LOOP', '#34') | got ('SETUP_LOOP', '#35')\nline 745: orig ('FOR_ITER', '#33') | got ('FOR_ITER', '#34')\nline 751: orig ('JUMP_IF_FALSE', '#23') | got ('JUMP_IF_FALSE', '#24')"
   },

@@ -44910,6 +44910,37 @@ impl<'a> Ctx<'a> {
                 | Op::BUILD_TUPLE
                 | Op::BUILD_LIST
                 | Op::DUP_TOP
+                // iter-expression value ops: `for i in range(January,
+                // January + 12)` puts BINARY_ADD between the BUILD_LIST
+                // anchor and the FOR_ITER — without these the scan
+                // bailed and the listcomp rendered as an empty loop
+                // (calendar 2.6/2.7 yeardatescalendar lost `months`)
+                | Op::BINARY_OP
+                | Op::BINARY_ADD
+                | Op::BINARY_SUBTRACT
+                | Op::BINARY_MULTIPLY
+                | Op::BINARY_DIVIDE
+                | Op::BINARY_FLOOR_DIVIDE
+                | Op::BINARY_TRUE_DIVIDE
+                | Op::BINARY_MODULO
+                | Op::BINARY_POWER
+                | Op::BINARY_LSHIFT
+                | Op::BINARY_RSHIFT
+                | Op::BINARY_AND
+                | Op::BINARY_OR
+                | Op::BINARY_XOR
+                | Op::BINARY_MATRIX_MULTIPLY
+                | Op::BINARY_SUBSCR
+                | Op::BINARY_SLICE
+                | Op::UNARY_NOT
+                | Op::UNARY_NEGATIVE
+                | Op::UNARY_POSITIVE
+                | Op::UNARY_INVERT
+                | Op::UNARY_CONVERT
+                | Op::BUILD_SLICE
+                | Op::COMPARE_OP
+                | Op::CONTAINS_OP
+                | Op::IS_OP
                 | Op::COPY => {
                     // 2.6 stashes the accumulator in a synthetic `_[N]`
                     // name between BUILD_LIST and the loop

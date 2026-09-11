@@ -202,9 +202,7 @@ class Calendar(object):
         days. Days are datetime.date objects.
         '''
 
-        for i in range(January, January + 12):
-            pass
-        months = []
+        months = [self.monthdatescalendar(year, i) for i in range(January, January + 12)]
         return [months[i:i + width] for i in range(0, len(months), width)]
 
     def yeardays2calendar(self, year, width=3):
@@ -215,9 +213,7 @@ class Calendar(object):
         zero.
         '''
 
-        for i in range(January, January + 12):
-            pass
-        months = []
+        months = [self.monthdays2calendar(year, i) for i in range(January, January + 12)]
         return [months[i:i + width] for i in range(0, len(months), width)]
 
     def yeardayscalendar(self, year, width=3):
@@ -227,9 +223,7 @@ class Calendar(object):
         Day numbers outside this month are zero.
         '''
 
-        for i in range(January, January + 12):
-            pass
-        months = []
+        months = [self.monthdayscalendar(year, i) for i in range(January, January + 12)]
         return [months[i:i + width] for i in range(0, len(months), width)]
 
 

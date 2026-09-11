@@ -185,11 +185,11 @@
   },
   {
    "module": "calendar",
-   "ast_detail": "diff at token 1060: orig  body=[Assign(targets=[Name(id='months' | dec  body=[For(target=Name(id='i'",
+   "ast_detail": "diff at token 1265: orig  body=[Print(dest=None | dec  body=[Pass()]",
    "verdict": "SIG-DIFF",
-   "ndiff": 1796,
+   "ndiff": 1586,
    "ntotal": 2732,
-   "detail": "line 897: orig ('BUILD_LIST', '0') | got ('SETUP_LOOP', '#12')\nline 905: orig ('FOR_ITER', '#17') | got ('FOR_ITER', '#11')\nline 907: orig ('LOAD_FAST', 'self') | got ('JUMP_ABSOLUTE', '#8')"
+   "detail": "line 1064: orig ('LOAD_FAST', 'self') | got ('LOAD_CONST', 'None')\nline 1065: orig ('LOAD_ATTR', 'formatweek') | got ('RETURN_VALUE', '')\nline 1066: orig ('LOAD_FAST', 'theweek') | got ('formatday', 4)"
   },
   {
    "module": "cgi",
