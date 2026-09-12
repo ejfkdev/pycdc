@@ -465,6 +465,10 @@ struct Ctx<'a> {
     /// body closed — the else region starts there; statements BEFORE the
     /// mark are pre-try code and must not be stolen as orelse
     pending_orelse_mark: Option<usize>,
+    /// offsets where the MAIN walk emitted a return (emit_return):
+    /// the try-tail rebuild's bare-tail fold must not duplicate a
+    /// return the walk already rendered
+    return_offsets: std::collections::HashSet<usize>,
     /// legacy swap-in fold: handler_start of the chain whose BODY should
     /// receive the next push_legacy_try statement (the swapped-out chain
     /// that was active while this one parsed)
@@ -1091,6 +1095,7 @@ pub fn decompile_in_scope(
         pending_handlers: Vec::new(),
         pending_try_body: Vec::new(),
         pending_orelse_mark: None,
+        return_offsets: std::collections::HashSet::new(),
         legacy_body_redirect: None,
         pending_loop_close_at_chain: None,
         chain_absorb_body: None,
@@ -1377,21 +1382,121 @@ pub fn decompile_in_scope(
                 return false;
             }
             let span = &ctx.instrs[fi..ti];
-            let backs: Vec<&Instruction> = span
+            let real: Vec<&Instruction> = span
                 .iter()
                 .filter(|x| !matches!(x.op, Op::NOP | Op::NOT_TAKEN | Op::CACHE))
                 .collect();
-            !backs.is_empty()
-                && backs.iter().all(|x| {
-                    x.is_backward
+            let mut saw_back = false;
+            real.iter().all(|x| {
+                if x.is_backward
+                    && matches!(
+                        x.op,
+                        Op::JUMP_BACKWARD
+                            | Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    )
+                    && x.target.map_or(false, |t| t >= rstart && t < to)
+                {
+                    saw_back = true;
+                    return true;
+                }
+                // the break stub's iterator drop: [POP_TOP] followed by
+                // the forward hop out to the merge
+                if matches!(x.op, Op::POP_TOP) {
+                    let mut k2 = ctx
+                        .instrs
+                        .partition_point(|y| y.offset <= x.offset);
+                    while k2 < ctx.instrs.len()
                         && matches!(
-                            x.op,
-                            Op::JUMP_BACKWARD
-                                | Op::JUMP_ABSOLUTE
-                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                            ctx.instrs[k2].op,
+                            Op::NOP | Op::NOT_TAKEN | Op::CACHE
                         )
-                        && x.target.map_or(false, |t| t >= rstart && t < to)
-                })
+                    {
+                        k2 += 1;
+                    }
+                    return ctx.instrs.get(k2).map_or(false, |y| {
+                        !y.is_backward
+                            && matches!(
+                                y.op,
+                                Op::JUMP_FORWARD | Op::JUMP | Op::JUMP_ABSOLUTE
+                            )
+                            && y.target.map_or(false, |t2| t2 >= to)
+                    });
+                }
+                // a loop-tail break guard: a forward jump whose target
+                // is the merge head itself, or the break stub that hops
+                // to it ([POP_TOP] + a forward jump landing at/past the
+                // merge) - the compiler's break exit out of a loop that
+                // sits inside the protected body (compileall 3.14
+                // compile_file: the gap holds PJIT->break-stub + the
+                // back edge, and the stub's JF flies to the merge)
+                if !x.is_backward {
+                    if let Some(t) = x.target {
+                        if t == to {
+                            return true;
+                        }
+                        if t > from {
+                            // the jump lands INSIDE a later fragment of
+                            // the same family (the tiling cursor may sit
+                            // past an already-swallowed stub): hop the
+                            // stub when it is [POP_TOP] + forward jump
+                            // onward (compileall 3.14 compile_file: the
+                            // break PJIT->1952 lands on the POP_TOP;JF
+                            // stub that flies to the merge at 1964)
+                            let mut probe = t;
+                            let mut hops = 0;
+                            while hops < 4 {
+                                let ti2 = ctx
+                                    .instrs
+                                    .partition_point(|y| y.offset < probe);
+                                let at = |k: usize| ctx.instrs.get(k);
+                                let mut k = ti2;
+                                if at(k).map_or(true, |y| y.offset != probe)
+                                    && k > 0
+                                    && at(k - 1).map_or(false, |y| {
+                                        y.offset == probe
+                                    })
+                                {
+                                    k -= 1;
+                                }
+                                let Some(ins) = at(k) else {
+                                    return false;
+                                };
+                                if ins.offset != probe {
+                                    return false;
+                                }
+                                if matches!(ins.op, Op::POP_TOP) {
+                                    if let Some(nj) = at(k + 1) {
+                                        if !nj.is_backward
+                                            && matches!(
+                                                nj.op,
+                                                Op::JUMP_FORWARD
+                                                    | Op::JUMP
+                                                    | Op::JUMP_ABSOLUTE
+                                            )
+                                        {
+                                            if let Some(t2) = nj.target {
+                                                if t2 >= to && t2 != probe {
+                                                    probe = t2;
+                                                    hops += 1;
+                                                    continue;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    return false;
+                                }
+                                // landed on a real instruction at/after
+                                // the merge: the break exit reaches the
+                                // continuation flow
+                                return probe >= to;
+                            }
+                            return false;
+                        }
+                    }
+                }
+                false
+            }) && saw_back
         };
         // with-in-try: a `with` inside the try body splits the protected
         // range around BEFORE_WITH / the with body (protected by the
@@ -5737,12 +5842,19 @@ impl<'a> Ctx<'a> {
                                 (Some(b), Some(e)) if e > b => {
                                     let mut rets = 0;
                                     let mut only = true;
+                                    let mut walked = false;
                                     for x in &self.instrs[b..e] {
                                         match x.op {
                                             Op::NOP | Op::NOT_TAKEN
                                             | Op::CACHE => {}
                                             Op::RETURN_CONST => {
                                                 rets += 1;
+                                                if self
+                                                    .return_offsets
+                                                    .contains(&x.offset)
+                                                {
+                                                    walked = true;
+                                                }
                                                 if !matches!(
                                                     self.code
                                                         .consts
@@ -5755,13 +5867,24 @@ impl<'a> Ctx<'a> {
                                             }
                                             Op::RETURN_VALUE => {
                                                 rets += 1;
+                                                if self
+                                                    .return_offsets
+                                                    .contains(&x.offset)
+                                                {
+                                                    walked = true;
+                                                }
                                             }
                                             _ => {
                                                 only = false;
                                             }
                                         }
                                     }
-                                    only && rets == 1
+                                    // a return the MAIN walk already
+                                    // rendered (the for-else arm's
+                                    // `return success` in compileall
+                                    // 3.14 compile_file) must not be
+                                    // duplicated as a bare tail return
+                                    only && rets == 1 && !walked
                                 }
                                 _ => false,
                             }
@@ -43102,7 +43225,7 @@ impl<'a> Ctx<'a> {
     }
 
     fn emit_return(&mut self, e: Option<ExprRef>) {
-
+        self.return_offsets.insert(self.cur_offset);
         // 3.10 sunk tail terminator: drop both implicit copies (this
         // arm) and let the chain fold at its RERAISE
         let is_none_value = match &e {

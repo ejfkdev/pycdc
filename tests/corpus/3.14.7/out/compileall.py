@@ -188,7 +188,6 @@ hardlink_dupes: hardlink duplicated pyc files
                             break
                     else:
                         return success
-                    return
                 except OSError:
                     pass
             if not quiet:

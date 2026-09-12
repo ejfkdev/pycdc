@@ -70,62 +70,6 @@ Constructor arguments:
                 return self.__cell__.cell_contents
             except ValueError:
                 pass
-        if owner is None:
-            owner = self.__owner__
-        if globals is None and self.__forward_module__ is not None:
-            globals = getattr(sys.modules.get(self.__forward_module__, None), '__dict__', None)
-        if globals is None:
-            globals = self.__globals__
-        if globals is None:
-            if isinstance(owner, type):
-                module_name = getattr(owner, '__module__', None)
-                if module_name:
-                    module = sys.modules.get(module_name, None)
-                    if module:
-                        globals = getattr(module, '__dict__', None)
-            elif isinstance(owner, types.ModuleType):
-                globals = getattr(owner, '__dict__', None)
-            elif callable(owner):
-                globals = getattr(owner, '__globals__', None)
-        if globals is None:
-            globals = {}
-        if type_params is None and owner is not None:
-            type_params = getattr(owner, '__type_params__', None)
-        if locals is None:
-            locals = {}
-            if isinstance(owner, type):
-                locals.update(vars(owner))
-        elif type_params is not None or isinstance(self.__cell__, dict) or self.__extra_names__:
-            locals = dict(locals)
-        if type_params is not None:
-            for param in type_params:
-                locals.setdefault(param.__name__, param)
-        if isinstance(self.__cell__, dict):
-            for cell_name, cell in self.__cell__.items():
-                try:
-                    cell_value = cell.cell_contents
-                except ValueError:
-                    continue
-                locals.setdefault(cell_name, cell_value)
-        if self.__extra_names__:
-            locals.update(self.__extra_names__)
-        arg = self.__forward_arg__
-        if arg.isidentifier() and not keyword.iskeyword(arg):
-            if arg in locals:
-                return locals[arg]
-            if arg in globals:
-                return globals[arg]
-            if hasattr(builtins, arg):
-                return getattr(builtins, arg)
-            if is_forwardref_format:
-                return self
-            raise NameError(_NAME_ERROR_MSG.format(name=arg), name=arg)
-        code = self.__forward_code__
-        try:
-            return eval(code, globals=globals, locals=locals)
-        except Exception:
-            if not is_forwardref_format:
-                raise
         new_locals = _StringifierDict({**builtins.__dict__, **globals, **locals}, globals=globals, owner=owner, is_class=self.__forward_is_class__, format=format)
         try:
             result = eval(code, globals=globals, locals=new_locals)

@@ -101,11 +101,11 @@
   },
   {
    "module": "annotationlib",
-   "ast_detail": "diff at token 3249: orig  While(test=Name(id='True' | dec  While(test=Call(func=Name(id='hasattr'",
+   "ast_detail": "diff at token 216: orig  If(test=Compare(left=Name(id='owner' | dec  Assign(targets=[Name(id='new_locals'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1531,
+   "ndiff": 3734,
    "ntotal": 4144,
-   "detail": "line 536: orig ('POP_JUMP_IF_FALSE', '#245') | got ('POP_JUMP_IF_FALSE', '#246')\nline 543: orig ('FOR_ITER', '#243') | got ('FOR_ITER', '#244')\nline 552: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'cell_name, cell_value') | got ('LOAD_FAST', 'cell_name')"
+   "detail": "line 360: orig ('LOAD_FAST', 'owner') | got ('LOAD_GLOBAL', '_StringifierDict + NULL')\nline 361: orig ('POP_JUMP_IF_NOT_NONE', '#53') | got ('BUILD_MAP', '')\nline 362: orig ('NOT_TAKEN', '') | got ('LOAD_GLOBAL', 'builtins')"
   },
   {
    "module": "ast",
@@ -157,9 +157,9 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 836: orig  ctx=Load()))])] | dec  ctx=Load()))])",
+   "ast_detail": "diff at token 1066: orig  values=[BoolOp(op=Or() | dec  values=[Compare(left=Name(id='dir'",
    "verdict": "SIG-DIFF",
-   "ndiff": 1233,
+   "ndiff": 1234,
    "ntotal": 1660,
    "detail": "line 348: orig ('POP_JUMP_IF_FALSE', '#152') | got ('POP_JUMP_IF_FALSE', '#149')\nline 351: orig ('POP_JUMP_IF_NONE', '#152') | got ('POP_JUMP_IF_NONE', '#149')\nline 399: orig ('LOAD_FAST', 'legacy') | got ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'legacy, optimize')"
   },
