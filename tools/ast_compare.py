@@ -349,7 +349,8 @@ def _sunk_valued_return_tail(stmts):
     return stmts
 
 
-def flatten_try_else(stmts, at_loop_tail=False, _chg=None):
+def flatten_try_else(stmts, at_loop_tail=False, _chg=None,
+                     at_func_tail=False):
     """When every handler ends terminally (return/raise/break/continue),
     'try: B else: O' followed by S is the same as 'try: B' with O and S
     sequential - compilers pick either layout.
@@ -362,18 +363,36 @@ def flatten_try_else(stmts, at_loop_tail=False, _chg=None):
     initiate_send: dec's try/except/else with the TypeError arm
     falling through vs the source's handler-continue + flat rest)."""
     out = []
-    for s in stmts:
+    n_stmts = len(stmts)
+    for si, s in enumerate(stmts):
         if TRY_TYPES and isinstance(s, TRY_TYPES):
             handlers = getattr(s, 'handlers', [])
             orelse = getattr(s, 'orelse', [])
             if orelse and handlers:
+                # function-tail pass-handlers: falling off `[Pass]`
+                # ends the function exactly like the decompiler's sunk
+                # bare `return`, so the else arm still only runs on
+                # success and flattens - canonicalize the handler to
+                # the bare Return both sides then share
+                # (_collections_abc 3.14 Coroutine.close: source
+                # `except (GeneratorExit, StopIteration): pass` +
+                # `else: raise RuntimeError` vs the decompile's
+                # handler `return` + flat raise sibling)
+                func_tail_pass = (
+                    at_func_tail and si == n_stmts - 1
+                    and all(len(h.body) == 1
+                            and isinstance(h.body[0], ast.Pass)
+                            for h in handlers))
+                if func_tail_pass:
+                    for h in handlers:
+                        h.body = [ast.Return(value=None)]
                 if all(ends_terminal(h.body) for h in handlers):
                     s.orelse = []
                     if _chg is not None:
                         _chg.append(1)
                     out.append(s)
                     out.extend(flatten_try_else(orelse, at_loop_tail,
-                                                _chg))
+                                                _chg, at_func_tail))
                     continue
                 if at_loop_tail:
                     for h in handlers:
@@ -386,7 +405,7 @@ def flatten_try_else(stmts, at_loop_tail=False, _chg=None):
                         _chg.append(1)
                     out.append(s)
                     out.extend(flatten_try_else(orelse, at_loop_tail,
-                                                _chg))
+                                                _chg, at_func_tail))
                     continue
         out.append(s)
     return out
@@ -2802,10 +2821,16 @@ def dump(src):
                             _sunk_return_orelse(val)))
                     _lat = ('loop' if is_loop_body
                             else _in_loop_arm.get(id(node), False))
-                    if _lat:
+                    _fat = (field == 'body' and isinstance(
+                        node,
+                        (ast.FunctionDef,
+                         getattr(ast, 'AsyncFunctionDef',
+                                 ast.FunctionDef))))
+                    if _lat or _fat:
                         _chg = []
                         val = flatten_try_else(val, at_loop_tail=_lat,
-                                               _chg=_chg)
+                                               _chg=_chg,
+                                               at_func_tail=_fat)
                         if _chg:
                             # the hoist released flat followers that
                             # may re-form a guard chain - re-canonicalize

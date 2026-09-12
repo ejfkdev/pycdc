@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 24,
-  "SIG-DIFF": 12,
-  "AST-PASS": 4
+  "SIG-DIFF": 11,
+  "AST-PASS": 5
  },
  "results": [
   {
@@ -29,7 +29,7 @@
   },
   {
    "module": "_ast_unparse",
-   "ast_detail": "diff at token 196: orig  body=[Pass()])] | dec  body=[Return()])])",
+   "ast_detail": "diff at token 1397: orig  args=[JoinedStr(values=[Constant(value=\"Node can't use cause without an exception.\")])])) | dec  args=[Constant(value=\"Node can't use cause without an exception.\")]))])",
    "verdict": "SIG-DIFF",
    "ndiff": 1166,
    "ntotal": 7138,
@@ -37,11 +37,7 @@
   },
   {
    "module": "_collections_abc",
-   "ast_detail": "diff at token 421: orig  body=[Pass()])] | dec  body=[Return()])])",
-   "verdict": "SIG-DIFF",
-   "ndiff": 864,
-   "ntotal": 4049,
-   "detail": "line 3166: orig ('LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'v, value') | got ('LOAD_FAST', 'v')\nline 3167: orig ('IS_OP', 'is') | got ('LOAD_FAST', 'value')\nline 3168: orig ('COPY', '') | got ('IS_OP', 'is')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_colorize",
