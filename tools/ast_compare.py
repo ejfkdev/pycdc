@@ -1701,6 +1701,25 @@ def _expr_ternary_to_if(node):
                         test=ie.test,
                         body=[ast.Expr(value=ie.body)],
                         orelse=[ast.Expr(value=ie.orelse)])
+                elif isinstance(s, ast.Assign) and len(s.targets) == 1 \
+                        and isinstance(s.value, ast.IfExp) \
+                        and isinstance(s.targets[0],
+                                       (ast.Name, ast.Attribute,
+                                        ast.Subscript)):
+                    # a single-target assignment of a ternary equals the
+                    # statement if/else assigning the same target in each
+                    # arm (the target is a plain name/attribute/subscript,
+                    # so re-evaluating it is side-effect free) - the
+                    # decompiler renders the branch form (_py_warnings
+                    # 3.14 WarningMessage.__init__: `self._category_name
+                    # = category.__name__ if category else None`)
+                    ie = s.value
+                    value[i] = ast.If(
+                        test=ie.test,
+                        body=[ast.Assign(targets=[copy.deepcopy(s.targets[0])],
+                                         value=ie.body)],
+                        orelse=[ast.Assign(targets=[copy.deepcopy(s.targets[0])],
+                                           value=ie.orelse)])
     return node
 
 
