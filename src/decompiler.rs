@@ -28339,7 +28339,15 @@ return None;
                 } else if jump_if_true {
                     negate_cond(cond)
                 } else {
-                    simplify_not(cond)
+                    // classic skip-layout PJF: the item is kept exactly
+                    // when cond is true - the filter IS cond. Do NOT
+                    // simplify_not here: py2.7 materializes `if not A`
+                    // filters as UNARY_NOT + PJF, and the strip flipped
+                    // the filter (SimpleXMLRPCServer 2.7
+                    // list_public_methods lost the Not on
+                    // `not member.startswith('_')`, returning private
+                    // members instead of public ones)
+                    cond
                 };
                 if let Some(cur) = &mut comp.cur {
                     if comp_if_break && !target_is_append {

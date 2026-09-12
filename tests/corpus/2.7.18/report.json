@@ -49,7 +49,7 @@
   },
   {
    "module": "SimpleXMLRPCServer",
-   "ast_detail": "diff at token 112: orig  ifs=[BoolOp(op=And() | dec  ifs=[Call(func=Attribute(value=Name(id='member'",
+   "ast_detail": "diff at token 1089: orig  TryExcept(body=[Assign(targets=[Name(id='max_chunk_size' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
    "ndiff": 1400,
    "ntotal": 1550,

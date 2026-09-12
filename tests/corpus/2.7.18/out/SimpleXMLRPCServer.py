@@ -134,7 +134,7 @@ def list_public_methods(obj):
     '''Returns a list of attribute strings, found in the specified
     object, which represent callable attributes'''
 
-    return [member for member in dir(obj) if member.startswith('_') if hasattr(getattr(obj, member), '__call__')]
+    return [member for member in dir(obj) if not member.startswith('_') if hasattr(getattr(obj, member), '__call__')]
 
 def remove_duplicates(lst):
     '''remove_duplicates([2,2,2,1,3,3]) => [3,1,2]

@@ -551,6 +551,20 @@ def _collect_scope_decls(body):
 
 
 class Normalizer(ast.NodeTransformer):
+    def visit_comprehension(self, node):
+        self.generic_visit(node)
+        # multiple `if` filters on one generator are a conjunction:
+        # `[x for y in z if A if B]` == `[x for y in z if A and B]`.
+        # py2 renders an and-filter as stacked clauses, the source may
+        # use one BoolOp (SimpleXMLRPCServer 2.7 list_public_methods).
+        if len(node.ifs) > 1:
+            merged = node.ifs[0]
+            for extra in node.ifs[1:]:
+                merged = ast.BoolOp(op=ast.And(),
+                                    values=[merged, extra])
+            node.ifs = [merged]
+        return node
+
     def visit_Try(self, node):
         self.generic_visit(node)
         # `try: {try: X except: H [else: E]} finally: F` ==
