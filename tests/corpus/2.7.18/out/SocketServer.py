@@ -142,7 +142,7 @@ def _eintr_retry(func, *args):
         except (OSError, select.error), e:
             if e.args[0] != errno.EINTR:
                 raise
-            break
+                continue
 
 class BaseServer:
     '''Base class for server classes.
@@ -529,15 +529,15 @@ class ForkingMixIn:
             self.close_request(request)
             return
         try:
-            self.handle_error(request, client_address)
-            self.shutdown_request(request)
-        finally:
-            os._exit(1)
-        try:
             self.finish_request(request, client_address)
             self.shutdown_request(request)
             os._exit(0)
         except:
+            try:
+                self.handle_error(request, client_address)
+                self.shutdown_request(request)
+            finally:
+                os._exit(1)
             return
 
 

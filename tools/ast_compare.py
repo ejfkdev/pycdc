@@ -925,6 +925,43 @@ class Normalizer(ast.NodeTransformer):
                     t.body = [ast.Pass()]
                 if not changed:
                     break
+        # py2 narrow variant: a bare `return` at the end of a
+        # FUNCTION-TAIL try's arm chain is the decompiler materializing
+        # the epilogue after the outermost END_FINALLY (SocketServer
+        # 2.6/2.7 ForkingMixIn.process_request: the handler's nested
+        # try/finally grew a trailing `return`). At the function tail
+        # it is observationally identical to falling off the end. Only
+        # strips when the bare return is the LAST thing in the
+        # function via nested try arms - the unconditional py3 form
+        # regressed py2 Cookie/cmd/asyncore (handler-termination
+        # states flipped asymmetrically), so descent is exact-shape.
+        # py2 only: py3's unified Try is handled by the loop above.
+        if (sys.version_info[0] == 2 and body
+                and TRY_TYPES and isinstance(body[-1], TRY_TYPES)):
+            for _ in range(6):
+                t = body[-1]
+                cands = [t.body, getattr(t, 'orelse', None) or [],
+                         getattr(t, 'finalbody', None) or []]
+                cands += [h.body for h in (getattr(t, 'handlers', None) or [])]
+                cands = [c for c in cands if c]
+                stripped = False
+                for c in cands:
+                    if (isinstance(c[-1], ast.Return)
+                            and c[-1].value is None):
+                        c.pop()
+                        if not c:
+                            c.append(ast.Pass())
+                        stripped = True
+                if not stripped:
+                    break
+                nxt = None
+                for c in cands:
+                    if c and TRY_TYPES and isinstance(c[-1], TRY_TYPES):
+                        nxt = c[-1]
+                        break
+                if nxt is None:
+                    break
+                body[-1] = nxt
         if not body:
             node.body = [ast.Pass()]
         return node

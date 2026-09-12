@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/2.6.9/bin/python",
  "counts": {
   "PASS": 16,
-  "AST-PASS": 18,
-  "SIG-DIFF": 6
+  "AST-PASS": 19,
+  "SIG-DIFF": 5
  },
  "results": [
   {
@@ -53,11 +53,7 @@
   },
   {
    "module": "SocketServer",
-   "ast_detail": "diff at token 1046: orig  TryExcept(body=[Expr(value=Call(func=Attribute(value=Name(id='self' | dec  TryFinally(body=[Expr(value=Call(func=Attribute(value=Name(id='self'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 931,
-   "ntotal": 1270,
-   "detail": "line 288: orig ('SETUP_FINALLY', '#39') | got ('SETUP_FINALLY', '#40')\nline 289: orig ('SETUP_LOOP', '#37') | got ('SETUP_LOOP', '#38')\nline 292: orig ('JUMP_IF_TRUE', '#35') | got ('JUMP_IF_TRUE', '#36')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "StringIO",

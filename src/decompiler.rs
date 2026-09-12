@@ -12060,6 +12060,36 @@ impl<'a> Ctx<'a> {
                     h.body.push(stmt);
                     return;
                 }
+                // a NESTED try's apex statement is pushed while its own
+                // pre-3.8 machinery blocks (Container/Try/Finally from
+                // SETUP_FINALLY) are still open - those are the nested
+                // construct's scaffolding, not lexical handler-body
+                // blocks. When every block above the handler depth is
+                // try machinery, the Try belongs in the stashed
+                // handler's body (py2 SocketServer
+                // ForkingMixIn.process_request: `except: {try:
+                // handle_error finally: os._exit(1)}` escaped to
+                // function level BEFORE the outer try and the bare
+                // except rendered empty - the child ran handle_error
+                // unconditionally). A real lexical block (If/While...)
+                // above the depth keeps the normal block routing.
+                if matches!(stmt, Stmt::Try { .. })
+                    && self
+                        .blocks
+                        .iter()
+                        .skip(h.block_depth)
+                        .all(|b| {
+                            matches!(
+                                b.kind,
+                                BlockType::Container
+                                    | BlockType::Try
+                                    | BlockType::Finally
+                            )
+                        })
+                {
+                    h.body.push(stmt);
+                    return;
+                }
             }
         }
         // a `break` emitted while the chain is still collecting (after the
@@ -33432,6 +33462,54 @@ if split_cond {
     fn back_edge_exit(&self, loop_start: usize) -> Option<usize> {
         for inst in self.instrs.iter() {
             if inst.is_backward && inst.target == Some(loop_start) {
+                // skip DEAD back edges: a backward edge directly after a
+                // terminator (RETURN/RAISE) or after an unconditional
+                // forward jump is unreachable fall-through glue - py2
+                // emits it after an in-try `return` (the try-body-exit
+                // JABS). Reading the exit off the glue edge yields the
+                // HANDLER head as the "loop exit", and the loop_else_end
+                // range test then misclassifies every forward jump in
+                // the handler region as a break (SocketServer 2.6/2.7
+                // _eintr_retry: the EINTR guard's arm-end glue JABS->73
+                // rendered `break`, exiting the retry loop instead of
+                // re-running the call).
+                let dead = self
+                    .idx_of
+                    .get(&inst.offset)
+                    .map_or(false, |&bi| {
+                        // walk back over block-pop glue: the py2 in-try
+                        // `return` exit shape is RETURN; POP_BLOCK; JABS
+                        let mut k = bi;
+                        while k > 0
+                            && matches!(
+                                self.instrs[k - 1].op,
+                                Op::POP_BLOCK | Op::NOP | Op::NOT_TAKEN | Op::CACHE
+                            )
+                        {
+                            k -= 1;
+                        }
+                        if k == 0 {
+                            return false;
+                        }
+                        let p = &self.instrs[k - 1];
+                        matches!(
+                            p.op,
+                            Op::RETURN_VALUE
+                                | Op::RETURN_CONST
+                                | Op::RAISE_VARARGS
+                                | Op::RERAISE
+                        ) || (matches!(
+                            p.op,
+                            Op::JUMP_FORWARD
+                                | Op::JUMP_ABSOLUTE
+                                | Op::JUMP
+                                | Op::JUMP_BACKWARD
+                                | Op::JUMP_BACKWARD_NO_INTERRUPT
+                        ) && !self.targets.contains(&inst.offset))
+                    });
+                if dead {
+                    continue;
+                }
                 return self.instrs.iter().find(|i| i.start > inst.end()).map(|i| i.start);
             }
         }
