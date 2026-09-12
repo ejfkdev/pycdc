@@ -10753,10 +10753,14 @@ impl<'a> Ctx<'a> {
     /// with handler]), extend the end to the last fragment's end — the
     /// chain-head skipper handles the handler material inside.
     fn extend_with_frag_end(&self, frag_start: usize, end: usize) -> usize {
+        // Key the fragment chain on the START alone: the with-region merge
+        // stops at gap material it cannot classify (a guard-chain link's
+        // pure operand run), so `end` may be a mid-merge fragment end that
+        // no exc entry records (_py_warnings 3.14 warn_explicit)
         let Some(handler) = self
             .exc_entries
             .iter()
-            .find(|e| e.start == frag_start && e.end == end)
+            .find(|e| e.start == frag_start)
             .map(|e| e.target)
         else {
             return end;
@@ -10781,14 +10785,19 @@ impl<'a> Ctx<'a> {
                 .find(|x| x.offset < handler && x.op == Op::PUSH_EXC_INFO)
                 .map(|x| x.offset)
         });
-        let chainy = zone_start.map_or(false, |zs| {
-            self.exc_entries
-                .iter()
-                .filter(|e| {
-                    e.start >= end && e.end <= span_end && e.target != handler
-                })
-                .all(|e| e.target >= zs && e.target <= handler)
-        });
+        let inner: Vec<_> = self
+            .exc_entries
+            .iter()
+            .filter(|e| e.start >= end && e.end <= span_end && e.target != handler)
+            .collect();
+        // No inner entries at all: the fragments split around plain
+        // statement material (3.14 sunk __exit__ copies split the with
+        // body at every early return) - extending is safe, the gaps hold
+        // no chain infrastructure to mis-attribute
+        let chainy = inner.is_empty()
+            || zone_start.map_or(false, |zs| {
+                inner.iter().all(|e| e.target >= zs && e.target <= handler)
+            });
         if chainy && span_end > end {
             span_end
         } else {
@@ -25918,6 +25927,106 @@ impl<'a> Ctx<'a> {
         ))
     }
 
+    /// or-group continuation members for a 3.12+ guard chain: from `k0`
+    /// (the fall-through of the first member's cond jump), collect
+    /// pure-value runs each ending in a cond jump whose target is the
+    /// SHARED `shared` label; the run after the LAST member's jump must
+    /// be the continue trampoline (an unconditional backward jump to a
+    /// registered loop top). FALSE-family member jumps are refused (the
+    /// shared FALSE target is the AND-group shape). Returns the member
+    /// exprs oriented positively, the trampoline index and its loop top.
+    fn scan_or_group_members(
+        &self,
+        k0: usize,
+        shared: usize,
+    ) -> Option<(Vec<ExprRef>, usize, usize)> {
+        let mut k = k0;
+        let mut members: Vec<ExprRef> = Vec::new();
+        loop {
+            while matches!(
+                self.instrs.get(k).map(|x| x.op),
+                Some(Op::NOT_TAKEN) | Some(Op::NOP) | Some(Op::CACHE)
+            ) {
+                k += 1;
+            }
+            if let Some(x) = self.instrs.get(k) {
+                if x.is_backward
+                    && matches!(
+                        x.op,
+                        Op::JUMP_BACKWARD
+                            | Op::JUMP_ABSOLUTE
+                            | Op::JUMP_BACKWARD_NO_INTERRUPT
+                    )
+                {
+                    let lt = x.target?;
+                    if !self.blocks.iter().any(|b| {
+                        matches!(b.kind, BlockType::While | BlockType::For)
+                            && (b.start == lt
+                                || (b.cond_end != usize::MAX && b.cond_end == lt))
+                    }) {
+                        return None;
+                    }
+                    if members.is_empty() {
+                        return None;
+                    }
+                    return Some((members, k, lt));
+                }
+            }
+            let rs = k;
+            loop {
+                let ins = self.instrs.get(k)?;
+                if matches!(
+                    ins.op,
+                    Op::POP_JUMP_IF_FALSE
+                        | Op::POP_JUMP_IF_TRUE
+                        | Op::POP_JUMP_FORWARD_IF_FALSE
+                        | Op::POP_JUMP_FORWARD_IF_TRUE
+                        | Op::POP_JUMP_IF_NONE
+                        | Op::POP_JUMP_IF_NOT_NONE
+                        | Op::POP_JUMP_FORWARD_IF_NONE
+                        | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                ) {
+                    break;
+                }
+                if !is_pure_value_op(ins.op) && ins.op != Op::TO_BOOL {
+                    return None;
+                }
+                k += 1;
+            }
+            let ins = self.instrs.get(k)?;
+            if ins.target != Some(shared) {
+                return None;
+            }
+            if matches!(
+                ins.op,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+            ) {
+                return None;
+            }
+            let operand = self.sim_value_region(rs, k)?;
+            let none_const: ExprRef =
+                Rc::new(Expr::Const(Rc::new(PyObject::None)));
+            let member = match ins.op {
+                Op::POP_JUMP_IF_NONE | Op::POP_JUMP_FORWARD_IF_NONE => {
+                    Rc::new(Expr::Compare {
+                        operands: vec![operand, none_const],
+                        ops: vec![CmpOp::Is],
+                    })
+                }
+                Op::POP_JUMP_IF_NOT_NONE | Op::POP_JUMP_FORWARD_IF_NOT_NONE => {
+                    Rc::new(Expr::Compare {
+                        operands: vec![operand, none_const],
+                        ops: vec![CmpOp::IsNot],
+                    })
+                }
+                _ => operand,
+            };
+            members.push(member);
+            k += 1;
+        }
+    }
+
     fn try_guard_chain(&self, cond: &ExprRef, jump_if_true: bool, target: usize)
         -> Option<(ExprRef, usize, usize, usize)>
     {
@@ -25928,6 +26037,17 @@ impl<'a> Ctx<'a> {
                     | Op::POP_JUMP_IF_TRUE
                     | Op::POP_JUMP_FORWARD_IF_FALSE
                     | Op::POP_JUMP_FORWARD_IF_TRUE
+            )
+        };
+        let is_none_jump = |o: Op| {
+            matches!(
+                o,
+                Op::POP_JUMP_IF_NONE
+                    | Op::POP_JUMP_IF_NOT_NONE
+                    | Op::POP_JUMP_FORWARD_IF_NONE
+                    | Op::POP_JUMP_FORWARD_IF_NOT_NONE
+                    | Op::POP_JUMP_BACKWARD_IF_NONE
+                    | Op::POP_JUMP_BACKWARD_IF_NOT_NONE
             )
         };
         // the enclosing loop top: the trampoline's back-jump target
@@ -25950,12 +26070,28 @@ impl<'a> Ctx<'a> {
             t += 1;
         }
         let tramp = self.instrs.get(t)?;
-        if !tramp.is_backward
-            || !matches!(
+        // or-group head attempt: this jump = member 1, subsequent members
+        // share its target, the last member's fall-through is the trampoline
+        let or_head = if std::env::var("PYCDC_NO_A").is_ok() {
+            None
+        } else if !(tramp.is_backward
+            && matches!(
                 tramp.op,
                 Op::JUMP_BACKWARD | Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD_NO_INTERRUPT
             )
-            || !pad_present
+            && pad_present)
+        {
+            self.scan_or_group_members(t, target)
+        } else {
+            None
+        };
+        if or_head.is_none()
+            && (!tramp.is_backward
+                || !matches!(
+                    tramp.op,
+                    Op::JUMP_BACKWARD | Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD_NO_INTERRUPT
+                )
+                || !pad_present)
         {
             // shape B (3.11+ statement chain-compare ifs): the FAIL
             // trampoline lives at this jump's TARGET ([POP_TOP;]
@@ -25970,8 +26106,10 @@ return self
             }
 return None;
         }
-        let loop_top = tramp.target?;
-        let tramp_off = tramp.offset;
+        let (loop_top, tramp_off) = match &or_head {
+            Some((_, gti, glt)) => (*glt, self.instrs[*gti].offset),
+            None => (tramp.target?, tramp.offset),
+        };
         if !self.blocks.iter().any(|b| {
             matches!(b.kind, BlockType::While | BlockType::For)
                 && (b.start == loop_top
@@ -26148,6 +26286,19 @@ return None;
                     ) {
                         return true;
                     }
+                    // a NONE-family jump here continues the chain only when
+                    // it heads an or-group (its continuation shares the
+                    // target and ends at the trampoline - csv 3.12
+                    // _guess_delimiter); body-material None tests
+                    // (`if columnTypes[col] is not None: del ... else: ...`
+                    // - has_header 334) must keep the historical
+                    // chain_continues=false polarity
+                    if is_none_jump(ins.op) {
+                        if let Some(gt) = ins.target {
+                            return self.scan_or_group_members(s + 1, gt).is_some();
+                        }
+                        return false;
+                    }
                     // a trampoline INSIDE the lookahead span means the
                     // target begins a NEW statement, not another link of
                     // this and-chain: the sequential per-link trampoline
@@ -26296,40 +26447,112 @@ return None;
                 }
             }
         }
-        let first = if chain_continues {
-            if jump_if_true {
+        if let Some((m2, _, _)) = &or_head {
+            // head or-group: the group is ONE and-chain member; the
+            // single-member `first` seeding is skipped
+            let m1 = if jump_if_true {
                 cond.clone()
             } else {
-                negate_cond(cond.clone())
+                match &**cond {
+                    Expr::Unary { op: UnaryOp::Not, operand: inner } => inner.clone(),
+                    _ => Rc::new(Expr::Unary { op: UnaryOp::Not, operand: cond.clone() }),
+                }
+            };
+            let mut or_vals = Vec::new();
+            flatten_boolop(m1, BoolOpKind::Or, &mut or_vals);
+            for m in m2 {
+                flatten_boolop(m.clone(), BoolOpKind::Or, &mut or_vals);
             }
-        } else if jump_if_true {
-            // 3.13+ keeps the operand's comparison op and flips the
-            // JUMP for a negated guard (`if not X == Y:` -> ==; PJIT) —
-            // rendering the folded compare flips the recompiled polarity
-            // (_strptime 3.13/3.14 loop guards); the explicit Not form
-            // recompiles back to op + inverted jump
-            if self.version.at_least(3, 13) {
-                simplify_not_or_wrap(cond.clone())
-            } else {
-                negate_cond(cond.clone())
-            }
+            values.push(Rc::new(Expr::BoolOp { op: BoolOpKind::Or, values: or_vals }));
         } else {
-            cond.clone()
-        };
-        flatten_boolop(first, BoolOpKind::And, &mut values);
+            let first = if chain_continues {
+                if jump_if_true {
+                    cond.clone()
+                } else {
+                    negate_cond(cond.clone())
+                }
+            } else if jump_if_true {
+                // 3.13+ keeps the operand's comparison op and flips the
+                // JUMP for a negated guard (`if not X == Y:` -> ==; PJIT) —
+                // rendering the folded compare flips the recompiled polarity
+                // (_strptime 3.13/3.14 loop guards); the explicit Not form
+                // recompiles back to op + inverted jump
+                if self.version.at_least(3, 13) {
+                    simplify_not_or_wrap(cond.clone())
+                } else {
+                    negate_cond(cond.clone())
+                }
+            } else {
+                cond.clone()
+            };
+            flatten_boolop(first, BoolOpKind::And, &mut values);
+        }
         let mut next = target;
         let mut body_start;
         loop {
             let Some(&ni) = self.idx_of.get(&next) else {
 return None;
             };
-            // scan the operand region up to its cond jump
+            // scan the operand region up to its cond jump. A NONE-family
+            // jump inside the run may head an or-group (`(x is None or
+            // y.match(z)) and ...`): when the continuation vets out (its
+            // members share this jump's target and end at the trampoline),
+            // consume the member run as ONE or-group and keep the chain
+            // advancing (_py_warnings 3.14 warn_explicit mod/ln links,
+            // csv 3.12+ _guess_delimiter delimiters guard); otherwise keep
+            // scanning - the jump is body material (csv 3.12 has_header
+            // `if columnTypes[col] is not None: del ... else: ...`)
             let region_start = ni;
             let mut jk = ni;
+            let mut none_group: Option<(ExprRef, usize)> = None;
             while jk < self.instrs.len() {
                 let ins = &self.instrs[jk];
                 if is_cond_jump(ins.op) {
                     break;
+                }
+                if is_none_jump(ins.op) {
+                    let mut consumed = false;
+                    if let Some(gt) = ins.target {
+                        if let Some((m2, _, _)) =
+                            self.scan_or_group_members(jk + 1, gt)
+                        {
+                            let operand =
+                                self.sim_value_region(region_start, jk)?;
+                            let none_const: ExprRef =
+                                Rc::new(Expr::Const(Rc::new(PyObject::None)));
+                            let m1 = Rc::new(Expr::Compare {
+                                operands: vec![operand, none_const],
+                                ops: if matches!(
+                                    ins.op,
+                                    Op::POP_JUMP_IF_NONE
+                                        | Op::POP_JUMP_FORWARD_IF_NONE
+                                        | Op::POP_JUMP_BACKWARD_IF_NONE
+                                ) {
+                                    vec![CmpOp::Is]
+                                } else {
+                                    vec![CmpOp::IsNot]
+                                },
+                            });
+                            let mut or_vals = Vec::new();
+                            flatten_boolop(m1, BoolOpKind::Or, &mut or_vals);
+                            for m in m2 {
+                                flatten_boolop(m, BoolOpKind::Or, &mut or_vals);
+                            }
+                            none_group = Some((
+                                Rc::new(Expr::BoolOp {
+                                    op: BoolOpKind::Or,
+                                    values: or_vals,
+                                }),
+                                gt,
+                            ));
+                            consumed = true;
+                        }
+                    }
+                    if consumed {
+                        break;
+                    }
+                    jk += 1;
+                    continue;
                 }
                 if !is_pure_value_op(ins.op) {
                     // not another guard: `next` is the body start
@@ -26337,8 +26560,61 @@ return None;
                 }
                 jk += 1;
             }
+            if let Some((group, gt)) = none_group {
+                values.push(group);
+                next = gt;
+                continue;
+            }
             if jk >= self.instrs.len() || !is_cond_jump(self.instrs[jk].op) {
                 if next == target {
+                    // or-group head whose advance target IS the body (no
+                    // further links): the body runs to the loop's own back
+                    // edge - return the plain direct form. The negating
+                    // heuristics below are single-guard shapes and invert
+                    // the group (aifc 3.12 _readmark `if pos or name:`
+                    // rendered And(Not(name), Not(pos)))
+                    if or_head.is_some() {
+                        let bi2 = *self.idx_of.get(&target)?;
+                        let lb2 = self
+                            .blocks
+                            .iter()
+                            .rev()
+                            .find(|b| {
+                                matches!(b.kind, BlockType::While | BlockType::For)
+                                    && (b.start == loop_top
+                                        || (b.cond_end != usize::MAX
+                                            && b.cond_end == loop_top))
+                            })
+                            .map(|b| b.end)
+                            .filter(|e| *e != usize::MAX);
+                        let mut body_end2 = None;
+                        for ins in self.instrs[bi2..].iter() {
+                            if lb2.map_or(false, |bnd| ins.offset >= bnd) {
+                                break;
+                            }
+                            if ins.is_backward
+                                && ins.target == Some(loop_top)
+                                && matches!(
+                                    ins.op,
+                                    Op::JUMP_BACKWARD
+                                        | Op::JUMP_ABSOLUTE
+                                        | Op::JUMP_BACKWARD_NO_INTERRUPT
+                                )
+                            {
+                                // LAST back edge before the loop end
+                                body_end2 = Some(ins.offset);
+                                continue;
+                            }
+                        }
+                        let Some(be2) = body_end2 else {
+                            return None;
+                        };
+                        if be2 <= target {
+                            return None;
+                        }
+                        let merged = self.merge_guard_values(std::mem::take(&mut values));
+                        return Some((merged, target, be2, loop_top));
+                    }
                     // the chain never advanced: every guard's pass side
                     // exits through the fall-through continue trampoline
                     // and the jump target is the LOOP-LEVEL body —
@@ -26975,6 +27251,52 @@ return None;
                     Op::JUMP_BACKWARD | Op::JUMP_ABSOLUTE | Op::JUMP_BACKWARD_NO_INTERRUPT
                 )
             {
+                // or-group continuation: the members after this jump share
+                // its target and end at the continue trampoline
+                if let Some(gt) = self.instrs[jk].target {
+                    if let Some((m2, _, _)) = self.scan_or_group_members(ft, gt) {
+                        let operand = self.sim_value_region(region_start, jk)?;
+                        let none_const: ExprRef =
+                            Rc::new(Expr::Const(Rc::new(PyObject::None)));
+                        let m1 = match self.instrs[jk].op {
+                            Op::POP_JUMP_IF_FALSE | Op::POP_JUMP_FORWARD_IF_FALSE => {
+                                match &*operand {
+                                    Expr::Unary { op: UnaryOp::Not, operand: inner } => {
+                                        inner.clone()
+                                    }
+                                    _ => Rc::new(Expr::Unary {
+                                        op: UnaryOp::Not,
+                                        operand,
+                                    }),
+                                }
+                            }
+                            Op::POP_JUMP_IF_NONE | Op::POP_JUMP_FORWARD_IF_NONE => {
+                                Rc::new(Expr::Compare {
+                                    operands: vec![operand, none_const],
+                                    ops: vec![CmpOp::Is],
+                                })
+                            }
+                            Op::POP_JUMP_IF_NOT_NONE | Op::POP_JUMP_FORWARD_IF_NOT_NONE => {
+                                Rc::new(Expr::Compare {
+                                    operands: vec![operand, none_const],
+                                    ops: vec![CmpOp::IsNot],
+                                })
+                            }
+                            _ => operand,
+                        };
+                        let mut or_vals = Vec::new();
+                        flatten_boolop(m1, BoolOpKind::Or, &mut or_vals);
+                        for m in m2 {
+                            flatten_boolop(m, BoolOpKind::Or, &mut or_vals);
+                        }
+                        values.push(Rc::new(Expr::BoolOp {
+                            op: BoolOpKind::Or,
+                            values: or_vals,
+                        }));
+                        next = gt;
+                        continue;
+                    }
+                }
                 // no trampoline: this jump heads to the body
                 body_start = self.instrs[jk].target?;
                 // the operand region belongs to the body, not a guard —

@@ -409,38 +409,32 @@ def warn_explicit(message, category, filename, lineno, module=None, registry=Non
             return
         for item in _wm._get_filters():
             action, msg, cat, mod, ln = item
-            if msg is None or msg.match(text):
-                if not issubclass(category, cat):
-                    continue
-            if mod is None or mod.match(module):
-                if not ln == 0:
-                    if not lineno == ln:
-                        continue
-            break
+            if (msg is None or msg.match(text)) and issubclass(category, cat) and (mod is None or mod.match(module)) and (ln == 0 or lineno == ln):
+                break
         else:
             action = _wm.defaultaction
-    if action == 'ignore':
-        return
-    if action == 'error':
-        raise message
-    if action == 'once':
-        registry[key] = 1
-        oncekey = text, category
-        if _wm.onceregistry.get(oncekey):
+        if action == 'ignore':
             return
-        _wm.onceregistry[oncekey] = 1
-    elif action in {'all', 'always'}:
-        pass
-    elif action == 'module':
-        registry[key] = 1
-        altkey = text, category, 0
-        if registry.get(altkey):
-            return
-        registry[altkey] = 1
-    elif action == 'default':
-        registry[key] = 1
-    else:
-        raise RuntimeError(f'Unrecognized action ({action!r}) in warnings.filters:\n {item!s}')
+        if action == 'error':
+            raise message
+        if action == 'once':
+            registry[key] = 1
+            oncekey = text, category
+            if _wm.onceregistry.get(oncekey):
+                return
+            _wm.onceregistry[oncekey] = 1
+        elif action in {'all', 'always'}:
+            pass
+        elif action == 'module':
+            registry[key] = 1
+            altkey = text, category, 0
+            if registry.get(altkey):
+                return
+            registry[altkey] = 1
+        elif action == 'default':
+            registry[key] = 1
+        else:
+            raise RuntimeError(f'Unrecognized action ({action!r}) in warnings.filters:\n {item!s}')
     import linecache
     linecache.getlines(filename, module_globals)
     msg = _wm.WarningMessage(message, category, filename, lineno, source=source)
