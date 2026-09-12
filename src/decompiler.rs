@@ -24578,6 +24578,203 @@ impl<'a> Ctx<'a> {
         ))
     }
 
+    /// 3.12+ mixed `A or (not B and C)` statement guard: the or-head's
+    /// PJIT joins the body directly; the and-group's links each carry
+    /// TO_BOOL and jump FORWARD to one shared exit (PJIT = negated
+    /// link, PJIF = positive), and the LAST link's fall-through is the
+    /// body start. try_or_and_chain bails on the and-group's PJIT
+    /// links and try_merge_or_cond on the multi-link exit, so the head
+    /// fell to the generic opener which inverted it into a nested
+    /// guard chain (_colorize 3.14 get_theme: `if force_color or (not
+    /// force_no_color and can_colorize(...)):` rendered
+    /// `if not force_color: if not force_no_color: if can_colorize:`
+    /// — force_color=True returned the NO-COLOR theme, polarity
+    /// inverted). Returns (merged cond, body_start, exit).
+    fn try_or_and_mixed_join(
+        &self,
+        cond: &ExprRef,
+        target: usize,
+    ) -> Option<(ExprRef, usize, usize)> {
+        if !self.version.at_least(3, 12) {
+            return None;
+        }
+        let pad = |o: Op| {
+            matches!(o, Op::NOT_TAKEN | Op::NOP | Op::CACHE)
+        };
+        let cj = |o: Op| {
+            matches!(
+                o,
+                Op::POP_JUMP_IF_FALSE
+                    | Op::POP_JUMP_IF_TRUE
+                    | Op::POP_JUMP_FORWARD_IF_FALSE
+                    | Op::POP_JUMP_FORWARD_IF_TRUE
+            )
+        };
+        let ci = *self.idx_of.get(&self.cur_offset)?;
+        let bi = *self.idx_of.get(&target)?;
+        if bi <= ci + 1 {
+            return None;
+        }
+        // walk the and-group: pure-value/TO_BOOL regions each ending in
+        // a cond jump to ONE shared exit; the final jump's
+        // fall-through (after pads) must be the body start
+        let mut k = ci + 1;
+        let mut exit: Option<usize> = None;
+        let mut links = 0usize;
+        let mut last_jump = None;
+        while k < bi {
+            let ins = &self.instrs[k];
+            if cj(ins.op) {
+                let t = ins.target?;
+                match exit {
+                    None => exit = Some(t),
+                    Some(e) if e == t => {}
+                    _ => return None,
+                }
+                links += 1;
+                last_jump = Some((k, ins.op));
+                k += 1;
+                while matches!(self.instrs.get(k).map(|x| x.op), Some(o) if pad(o))
+                {
+                    k += 1;
+                }
+                continue;
+            }
+            if pad(ins.op)
+                || ins.op == Op::TO_BOOL
+                || (is_pure_value_op(ins.op) && ins.target.is_none())
+            {
+                k += 1;
+                continue;
+            }
+            return None;
+        }
+        let exit = exit?;
+        if links == 0 || last_jump.is_none() {
+            return None;
+        }
+        // a rotated while's tail re-eval has the same link layout but
+        // its head PJIT re-enters the loop BODY: the span to the shared
+        // exit then holds the body's own back edge (_py_warnings 3.14
+        // _next_external_frame: `while frame is not None and (A or B):`
+        // folded into an if-guard, dropping the loop exit — infinite
+        // loop on the first external frame)
+        if self.is_loop_top_target(target)
+            || self.blocks.iter().any(|b| {
+                matches!(b.kind, BlockType::While | BlockType::For)
+                    && self.is_loop_top_prefix(target, b.start)
+            })
+        {
+            return None;
+        }
+        {
+            let top = self
+                .blocks
+                .iter()
+                .rev()
+                .find(|b| matches!(b.kind, BlockType::While | BlockType::For))
+                .map(|b| self.effective_offset(b.start));
+            if let Some(top) = top {
+                let (Some(&bsi), Some(&eii)) =
+                    (self.idx_of.get(&target), self.idx_of.get(&exit))
+                else {
+                    return None;
+                };
+                if self.instrs[bsi..eii].iter().any(|x| {
+                    x.is_backward && x.target == Some(top)
+                }) {
+                    return None;
+                }
+            }
+        }
+        // the chain must run right up to the body start
+        let (lj, _) = last_jump?;
+        let mut t2 = lj + 1;
+        while matches!(self.instrs.get(t2).map(|x| x.op), Some(o) if pad(o)) {
+            t2 += 1;
+        }
+        if t2 != bi {
+            return None;
+        }
+        if exit <= target {
+            return None;
+        }
+        // collect the and-group operands
+        let mut and_vals: Vec<ExprRef> = Vec::new();
+        let mut region_start = ci + 1;
+        let mut k = ci + 1;
+        while k < bi {
+            let ins = &self.instrs[k];
+            if cj(ins.op) {
+                let operand = self.sim_value_region(region_start, k)?;
+                let neg = matches!(
+                    ins.op,
+                    Op::POP_JUMP_IF_TRUE | Op::POP_JUMP_FORWARD_IF_TRUE
+                );
+                and_vals.push(if neg {
+                    // PJIT link fires on TRUE to the shared exit: the
+                    // and-group advances on FALSE - the operand joins
+                    // NEGATED (explicit Not; an operand that is itself
+                    // Not(Y) folds to Y; negate_cond would flip compare
+                    // ops and recompile to inverted polarity)
+                    match &*operand {
+                        Expr::Unary {
+                            op: UnaryOp::Not,
+                            operand: inner,
+                        } => inner.clone(),
+                        _ => Rc::new(Expr::Unary {
+                            op: UnaryOp::Not,
+                            operand,
+                        }),
+                    }
+                } else {
+                    operand
+                });
+                k += 1;
+                while matches!(self.instrs.get(k).map(|x| x.op), Some(o) if pad(o))
+                {
+                    k += 1;
+                }
+                region_start = k;
+                continue;
+            }
+            k += 1;
+        }
+        if and_vals.is_empty() {
+            return None;
+        }
+        // the body must hold no jump escaping past the exit (a break/
+        // inner-chain escape means this recognizer cannot bound it)
+        let ei = *self.idx_of.get(&exit)?;
+        if self.instrs[bi..ei].iter().any(|x| {
+            x.target.map_or(false, |t| t > exit)
+        }) {
+            return None;
+        }
+        let mut or_vals: Vec<ExprRef> = Vec::new();
+        flatten_boolop(cond.clone(), BoolOpKind::Or, &mut or_vals);
+        let mut flat_and = Vec::new();
+        for v in and_vals {
+            flatten_boolop(v, BoolOpKind::And, &mut flat_and);
+        }
+        let group: ExprRef = if flat_and.len() == 1 {
+            flat_and.pop().unwrap()
+        } else {
+            Rc::new(Expr::BoolOp {
+                op: BoolOpKind::And,
+                values: flat_and,
+            })
+        };
+        let mut or_flat = Vec::new();
+        flatten_boolop(group, BoolOpKind::Or, &mut or_flat);
+        or_vals.extend(or_flat);
+        let merged = Rc::new(Expr::BoolOp {
+            op: BoolOpKind::Or,
+            values: or_vals,
+        });
+        Some((merged, target, exit))
+    }
+
     fn try_or_join(
         &self,
         cond: &ExprRef,
@@ -28009,6 +28206,22 @@ return None;
         // 3.12+: pre-3.12 shapes (fused PJIF->loop-top) belong to the
         // or-merge/try_or_and_chain machinery, and running this there
         // scrambled csv _sniffer 3.5/3.6 (+350 sig lines).
+        if self.version.at_least(3, 12) && jump_if_true {
+            if let Some((merged, body_start, exit)) =
+                self.try_or_and_mixed_join(&cond, target)
+            {
+                let mut blk =
+                    Block::new(BlockType::If, body_start, exit);
+                blk.cond = Some(merged);
+                blk.cond_set = true;
+                blk.jump_if_true = false;
+                blk.else_end = Some(exit);
+                blk.stack_depth = self.stack.len();
+                self.blocks.push(blk);
+                self.skip_until = Some(body_start);
+                return;
+            }
+        }
         if self.version.at_least(3, 12) {
             if let Some((merged, body_end, tramp_end)) =
                 self.try_or_join(&cond, jump_if_true, target)

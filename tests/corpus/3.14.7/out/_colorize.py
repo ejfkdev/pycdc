@@ -324,10 +324,8 @@ def get_theme(*, tty_file: IO[str] | IO[bytes] | None=None, force_color: bool=Fa
     on Windows) can also change in the course of the application life cycle.
     '''
 
-    if not force_color:
-        if not force_no_color:
-            if can_colorize(file=tty_file):
-                return _theme
+    if force_color or not force_no_color and can_colorize(file=tty_file):
+        return _theme
     return theme_no_color
 
 def set_theme(t: Theme) -> None:

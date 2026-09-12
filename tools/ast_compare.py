@@ -2563,8 +2563,66 @@ def unfold_invariant_while(stmts):
     return out
 
 
+class _ArtifactFolder(ast.NodeTransformer):
+    """(1) 3.14 PEP 649 deferred-annotation machinery: `def
+    __annotate__` and `__conditional_annotations__ = ...` are
+    compiler-generated module/class preamble that never exists in any
+    source (_colorize 3.14: the decompiled module carried them ahead
+    of the imports, misaligning every later sibling).
+    (2) constant-condition if folds: `if False: X` compiles to NOTHING
+    (X survives only inside the __annotate__ machinery), so the source
+    side's dead block must fold to compare equal with the
+    bytecode-driven decompile; `if True: X` folds to X. Name-based
+    True/False (py2) fold too."""
+    def visit_FunctionDef(self, node):
+        self.generic_visit(node)
+        # module level `__annotate__`, class level `__annotate_func__`
+        if node.name.startswith('__annotate'):
+            return None
+        return node
+
+    def visit_AsyncFunctionDef(self, node):
+        return self.visit_FunctionDef(node)
+
+    def visit_Assign(self, node):
+        if (len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id == '__conditional_annotations__'):
+            return None
+        return node
+
+    def visit_AnnAssign(self, node):
+        # a value-less annotation statement emits NO bytecode (3.14
+        # defers it into __annotate__; pre-3.14 it only touches
+        # __annotations__), and a valued one's annotation is likewise
+        # source-only - canonicalize to the plain assignment shape the
+        # decompile can show (_colorize 3.14 ThemeSection's
+        # `__dataclass_fields__: ClassVar[...]` bare annotations).
+        # Never reached on py2 (no AnnAssign node type there).
+        if node.value is None:
+            return None
+        return ast.Assign(targets=[node.target], value=node.value)
+
+    def visit_If(self, node):
+        self.generic_visit(node)
+        t = node.test
+        flag = None
+        _const_t = getattr(ast, 'Constant', None)
+        if _const_t is not None and isinstance(t, _const_t) \
+                and isinstance(t.value, bool):
+            flag = t.value
+        elif isinstance(t, ast.Name) and t.id in ('True', 'False'):
+            flag = t.id == 'True'
+        if flag is True:
+            return list(node.body) if node.body else None
+        if flag is False:
+            return list(node.orelse) if node.orelse else None
+        return node
+
+
 def dump(src):
     tree = ast.parse(src)
+    tree = _ArtifactFolder().visit(tree)
     tree = Normalizer().visit(tree)
     tree = BoolCanonicalizer().visit(tree)
     # re-run body normalization so merged/canonical forms settle

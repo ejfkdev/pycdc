@@ -3,8 +3,8 @@
  "interp": "/opt/homebrew/bin/python3.14",
  "counts": {
   "PASS": 24,
-  "SIG-DIFF": 13,
-  "AST-PASS": 3
+  "SIG-DIFF": 12,
+  "AST-PASS": 4
  },
  "results": [
   {
@@ -45,11 +45,7 @@
   },
   {
    "module": "_colorize",
-   "ast_detail": "diff at token 0: orig Module(body=[Import(names=[alias(name='os') | dec Module(body=[FunctionDef(name='__annotate__'",
-   "verdict": "SIG-DIFF",
-   "ndiff": 1652,
-   "ntotal": 1683,
-   "detail": "line 1: orig ('MAKE_CELL', '__conditional_annotations__') | got ('RESUME', '')\nline 2: orig ('RESUME', '') | got ('LOAD_CONST', '<code __annotate__>')\nline 3: orig ('LOAD_CONST', '<code __annotate__>') | got ('MAKE_FUNCTION', '')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "_compat_pickle",
@@ -201,7 +197,7 @@
   },
   {
    "module": "configparser",
-   "ast_detail": "diff at token 1188: orig  body=[AnnAssign(target=Name(id='elements_added' | dec  body=[Assign(targets=[Name(id='cursect'",
+   "ast_detail": "diff at token 3361: orig  Expr(value=IfExp(test=Name(id='mo' | dec  If(test=Name(id='mo'",
    "verdict": "SIG-DIFF",
    "ndiff": 3264,
    "ntotal": 5081,
