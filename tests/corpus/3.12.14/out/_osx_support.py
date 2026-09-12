@@ -125,11 +125,15 @@ def _default_sysroot(cc):
             in_incdirs = True
         elif line.startswith('End of search list'):
             in_incdirs = False
-        elif in_incdirs:
+        else:
+            if not in_incdirs:
+                continue
             line = line.strip()
             if line == '/usr/include':
                 _cache_default_sysroot = '/'
-            elif line.endswith('.sdk/usr/include'):
+            else:
+                if not line.endswith('.sdk/usr/include'):
+                    continue
                 _cache_default_sysroot = line[:-12]
     if _cache_default_sysroot is None:
         _cache_default_sysroot = '/'

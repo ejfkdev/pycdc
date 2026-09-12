@@ -25388,9 +25388,44 @@ return None;
                                         } else {
                                             // (A): plain threaded body —
                                             // the back edge is the body's
-                                            // last real instruction
+                                            // last real instruction. The
+                                            // guard must be the loop's
+                                            // LAST statement: an open
+                                            // If/Else arm ending before
+                                            // the loop end means the
+                                            // [target, lb_end) span
+                                            // straddles that arm's
+                                            // boundary and swallows its
+                                            // else region (compileall
+                                            // 3.12 compile_path: the
+                                            // `quiet < 2` guard inside
+                                            // the skip_curdir chain arm
+                                            // grew a body covering the
+                                            // chain's `success = ...
+                                            // and compile_dir` else arm
+                                            // — the flat render then ran
+                                            // compile_dir on the SKIPPED
+                                            // current directory when
+                                            // quiet >= 2)
                                             accept = back_off.is_some()
-                                                && back_off == last_real;
+                                                && back_off == last_real
+                                                && !self.blocks.iter().any(
+                                                    |b| {
+                                                        matches!(
+                                                            b.kind,
+                                                            BlockType::If
+                                                                | BlockType::Else
+                                                        ) && b.start
+                                                            <= self
+                                                                .cur_offset
+                                                            && b.end
+                                                                > self
+                                                                    .cur_offset
+                                                            && b.end
+                                                                != usize::MAX
+                                                            && b.end < lb_end
+                                                    },
+                                                );
                                         }
                                             if !accept {
                                                 // (C): body contains a
@@ -25565,6 +25600,29 @@ return None;
                                 if ret_idx.is_none()
                                     && self.version.at_least(3, 12)
                                     && !self.version.at_least(3, 13)
+                                    // the guard must be the loop's LAST
+                                    // statement: an open If/Else arm
+                                    // ending before the loop end means
+                                    // the [target, lb_end) span
+                                    // straddles that arm's boundary and
+                                    // swallows its else region
+                                    // (compileall 3.12 compile_path: the
+                                    // `quiet < 2` guard inside the
+                                    // skip_curdir chain arm returned a
+                                    // body covering the chain's whole
+                                    // `success = ... and compile_dir`
+                                    // else arm — the flat render then
+                                    // ran compile_dir on the SKIPPED
+                                    // current directory when quiet >= 2)
+                                    && !self.blocks.iter().any(|b| {
+                                        matches!(
+                                            b.kind,
+                                            BlockType::If | BlockType::Else
+                                        ) && b.start <= self.cur_offset
+                                            && b.end > self.cur_offset
+                                            && b.end != usize::MAX
+                                            && b.end < lb_end
+                                    })
                                 {
                                     let mut back_off = None;
                                     let mut last_real = None;
