@@ -848,6 +848,22 @@ class Normalizer(ast.NodeTransformer):
             return node.value
         return None
 
+    def visit_JoinedStr(self, node):
+        self.generic_visit(node)
+        # an f-string with no FormattedValue parts compiles to a plain
+        # string constant (3.12+ peephole; the decompile shows the
+        # Constant where the source carried `f"..."`) - fold the
+        # all-constant JoinedStr to the concatenation (ast 3.9 /
+        # _ast_unparse 3.14: `f"Node can't use cause without an
+        # exception."` vs the decompiled plain string)
+        if _JOINED_STR is not None and isinstance(node, _JOINED_STR) \
+                and node.values and all(
+                    isinstance(v, getattr(ast, 'Constant', ()))
+                    and isinstance(v.value, str)
+                    for v in node.values):
+            return ast.Constant(value=''.join(v.value for v in node.values))
+        return node
+
     def visit_BinOp(self, node):
         self.generic_visit(node)
         # 3.12+ folds `template % operands` (simple positional %s/%r/%a)

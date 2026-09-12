@@ -29,7 +29,7 @@
   },
   {
    "module": "_ast_unparse",
-   "ast_detail": "diff at token 1397: orig  args=[JoinedStr(values=[Constant(value=\"Node can't use cause without an exception.\")])])) | dec  args=[Constant(value=\"Node can't use cause without an exception.\")]))])",
+   "ast_detail": "diff at token 3095: orig  args=[Constant(value=' ')]))]) | dec  args=[Constant(value=' ')]))])])",
    "verdict": "SIG-DIFF",
    "ndiff": 1166,
    "ntotal": 7138,
