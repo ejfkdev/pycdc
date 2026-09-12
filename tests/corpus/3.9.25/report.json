@@ -137,11 +137,11 @@
   },
   {
    "module": "cmd",
-   "ast_detail": "diff at token 178: orig  orelse=[]) | dec  orelse=[])]",
+   "ast_detail": "diff at token 179: orig  Try(body=[If(test=Compare(left=Name(id='intro' | dec  If(test=BoolOp(op=And()",
    "verdict": "SIG-DIFF",
-   "ndiff": 1088,
+   "ndiff": 1057,
    "ntotal": 1329,
-   "detail": "line 218: orig ('EXTENDED_ARG', '') | got ('LOAD_CONST', 'None')\nline 219: orig ('SETUP_FINALLY', '#190') | got ('RETURN_VALUE', '')\nline 220: orig ('LOAD_FAST', 'intro') | got ('precmd', 2)"
+   "detail": "line 218: orig ('EXTENDED_ARG', '') | got ('LOAD_FAST', 'self')\nline 219: orig ('SETUP_FINALLY', '#190') | got ('LOAD_ATTR', 'use_rawinput')\nline 220: orig ('LOAD_FAST', 'intro') | got ('EXTENDED_ARG', '')"
   },
   {
    "module": "code",

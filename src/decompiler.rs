@@ -11348,93 +11348,81 @@ impl<'a> Ctx<'a> {
                                     | Op::SETUP_CLEANUP
                                     | Op::SETUP_LOOP
                             );
-                            let mut setup_depth = 0i32;
+                            // HEAD-PATTERN classification: an except
+                            // chain's match head sits AT the region
+                            // start - typed (DUP_TOP + exc-match within
+                            // 8) or bare (the 3.8-3.10 POP_TOP x3
+                            // prelude). Anything else (plain statements,
+                            // a nested SETUP) is a FINALLY copy: scan to
+                            // its OWN depth-0 RERAISE/END_FINALLY,
+                            // stepping over nested chain interiors.
+                            // Scanning for match heads at ANY position
+                            // misread an outer try/finally whose finally
+                            // body holds a nested try/except as an
+                            // except chain (cmd 3.9-3.13 cmdloop: the
+                            // whole try body and main loop vanished, the
+                            // finally rendered twice at function level;
+                            // contextlib 3.8 __exit__ same family).
                             let mut first_break: Option<usize> = None;
-                            for k in hi..(hi + 160).min(self.instrs.len()) {
-                                let ins = &self.instrs[k];
-                                match ins.op {
-                                    Op::SETUP_FINALLY
-                                    | Op::SETUP_EXCEPT
-                                    | Op::SETUP_CLEANUP
-                                    | Op::SETUP_LOOP => {
-                                        setup_depth += 1;
-                                    }
-                                    Op::POP_BLOCK => {
-                                        if setup_depth > 0 {
-                                            setup_depth -= 1;
-                                        } else if !head_setup {
-                                            if first_break.is_none() {
-                                                first_break =
-                                                    Some(ins.offset);
-                                            }
-                                            break;
-                                        }
-                                    }
-                                    Op::JUMP_IF_NOT_EXC_MATCH
-                                    | Op::POP_EXCEPT => {
-                                        if !head_setup {
-                                            if first_break.is_none() {
-                                                first_break =
-                                                    Some(ins.offset);
-                                            }
-                                            break;
-                                        }
-                                    }
-                                    // a DUP_TOP only ends the scan when it
-                                    // heads an except match (pattern loads
-                                    // then COMPARE_OP(exc)/JUMP_IF_NOT_EXC_
-                                    // MATCH follow); the chained-assign dup
-                                    // inside a finally copy (`err1 = err2 =
-                                    // None` = LOAD None; DUP_TOP; STORE;
-                                    // STORE; END_FINALLY, codeop
-                                    // _maybe_compile) must scan through to
-                                    // the END_FINALLY
-                                    Op::DUP_TOP => {
-                                        let match_head = self.instrs[k + 1..]
-                                            .iter()
-                                            .take(8)
-                                            .any(|x| {
-                                                x.op
-                                                    == Op::JUMP_IF_NOT_EXC_MATCH
-                                                    || (x.op == Op::COMPARE_OP
-                                                        && cmp_from_index(
-                                                            compare_op_index(
-                                                                x.arg as u32,
-                                                                self.version,
-                                                            ),
-                                                        ) == CmpOp::ExceptionMatch)
-                                            });
-                                        if match_head && !head_setup {
-                                            if first_break.is_none() {
-                                                first_break =
-                                                    Some(ins.offset);
-                                            }
-                                            break;
-                                        }
-                                    }
-                                    Op::COMPARE_OP
-                                        if cmp_from_index(compare_op_index(
-                                            ins.arg as u32,
-                                            self.version,
-                                        )) == CmpOp::ExceptionMatch =>
-                                    {
-                                        if !head_setup {
-                                            if first_break.is_none() {
-                                                first_break =
-                                                    Some(ins.offset);
-                                            }
-                                            break;
-                                        }
-                                    }
-                                    Op::RERAISE | Op::END_FINALLY => {
-                                        if setup_depth == 0 {
-                                            has_finally = true;
-                                            break;
-                                        }
-                                    }
-                                    _ => {}
+                            if !head_setup {
+                                let h = &self.instrs[hi];
+                                let head_typed = h.op == Op::DUP_TOP
+                                    && self.instrs[hi + 1..]
+                                        .iter()
+                                        .take(8)
+                                        .any(|x| {
+                                            x.op
+                                                == Op::JUMP_IF_NOT_EXC_MATCH
+                                                || (x.op == Op::COMPARE_OP
+                                                    && cmp_from_index(
+                                                        compare_op_index(
+                                                            x.arg as u32,
+                                                            self.version,
+                                                        ),
+                                                    ) == CmpOp::ExceptionMatch)
+                                        });
+                                let head_bare = h.op == Op::POP_TOP
+                                    && self
+                                        .instrs
+                                        .get(hi + 1)
+                                        .map(|x| x.op == Op::POP_TOP)
+                                        .unwrap_or(false)
+                                    && self
+                                        .instrs
+                                        .get(hi + 2)
+                                        .map(|x| x.op == Op::POP_TOP)
+                                        .unwrap_or(false);
+                                if head_typed || head_bare {
+                                    first_break = Some(scan_off);
                                 }
                             }
+                            if head_setup || first_break.is_none() {
+                                let mut setup_depth = 0i32;
+                                for k in hi..(hi + 160).min(self.instrs.len()) {
+                                    let ins = &self.instrs[k];
+                                    match ins.op {
+                                        Op::SETUP_FINALLY
+                                        | Op::SETUP_EXCEPT
+                                        | Op::SETUP_CLEANUP
+                                        | Op::SETUP_LOOP => {
+                                            setup_depth += 1;
+                                        }
+                                        Op::POP_BLOCK => {
+                                            if setup_depth > 0 {
+                                                setup_depth -= 1;
+                                            }
+                                        }
+                                        Op::RERAISE | Op::END_FINALLY => {
+                                            if setup_depth == 0 {
+                                                has_finally = true;
+                                                break;
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            }
+
                             if !has_finally {
                                 if let Some(fb) = first_break {
                                     // except chain: bound the inline_end
@@ -11463,7 +11451,66 @@ impl<'a> Ctx<'a> {
                             // POP_BLOCK stranded the inner finally's
                             // stores outside the outer chain)
                             let mut setup_depth = 0i32;
-                            for ins in self.instrs.iter() {
+                            // does the inline region START with a nested
+                            // chain (SETUP head)? Then the nested level's
+                            // own body-exit jump bounds the region (the
+                            // early-fold machinery assembles the nested
+                            // Try from there - _bootsubprocess 3.9/3.10
+                            // check_output `finally: {try: os.unlink
+                            // except OSError: pass}`); hopping past the
+                            // clauses would redirect the raw nested body
+                            // into the outer finalbody and strand an
+                            // empty shell Try. A region with statements
+                            // BEFORE and AFTER the nested chain (cmd
+                            // cmdloop's readline-restore guard) needs
+                            // the hop.
+                            let starts_with_chain = self
+                                .instrs
+                                .get(
+                                    self.idx_of
+                                        .get(&self.cur_next)
+                                        .copied()
+                                        .unwrap_or(0),
+                                )
+                                .map_or(false, |x| {
+                                    matches!(
+                                        x.op,
+                                        Op::SETUP_FINALLY
+                                            | Op::SETUP_EXCEPT
+                                            | Op::SETUP_CLEANUP
+                                    )
+                                });
+                            let has_clause_head = |a: usize, b: usize| {
+                                // any except-clause head (DUP_TOP +
+                                // exc-match / bare JINEM) inside [a, b)
+                                self.instrs[a..b].iter().enumerate().any(
+                                    |(j, x)| {
+                                        x.op == Op::JUMP_IF_NOT_EXC_MATCH
+                                            || (x.op == Op::DUP_TOP
+                                                && self.instrs[a + j + 1..b]
+                                                    .iter()
+                                                    .take(8)
+                                                    .any(|y| {
+                                                        y.op
+                                                            == Op::JUMP_IF_NOT_EXC_MATCH
+                                                            || (y.op
+                                                                == Op::COMPARE_OP
+                                                                && cmp_from_index(
+                                                                    compare_op_index(
+                                                                        y.arg
+                                                                            as u32,
+                                                                        self
+                                                                            .version,
+                                                                    ),
+                                                                ) == CmpOp::ExceptionMatch)
+                                                    }))
+                                    },
+                                )
+                            };
+                            let mut k = 0usize;
+                            while k < self.instrs.len() {
+                                let ins = &self.instrs[k];
+                                k += 1;
                                 if ins.offset < self.cur_next {
                                     continue;
                                 }
@@ -11475,8 +11522,10 @@ impl<'a> Ctx<'a> {
                                         setup_depth += 1;
                                     }
                                     Op::RETURN_VALUE | Op::RETURN_CONST => {
-                                        inline_end = ins.offset;
-                                        break;
+                                        if setup_depth == 0 {
+                                            inline_end = ins.offset;
+                                            break;
+                                        }
                                     }
                                     // a nested try/finally runs the
                                     // enclosing level's POP_BLOCK right
@@ -11493,6 +11542,58 @@ impl<'a> Ctx<'a> {
                                         if setup_depth == 0
                                             && ins.target.unwrap_or(0) > pos
                                         {
+                                            // a nested chain's body-exit
+                                            // jump flies over its own
+                                            // except clauses to the
+                                            // shared merge: hop past the
+                                            // clause span and keep
+                                            // scanning the OUTER finally
+                                            // body (cmd 3.9-3.13 cmdloop:
+                                            // stopping at the readline-
+                                            // restore chain's body-exit
+                                            // cut the inline copy short,
+                                            // dropping the rest of the
+                                            // finally and losing the
+                                            // guard If around it)
+                                            let t = ins.target.unwrap();
+                                            // the hop only skips a
+                                            // NESTED chain INSIDE the
+                                            // inline copy: its merge
+                                            // must stay below the
+                                            // handler-copy start - a
+                                            // body-exit jump flying to
+                                            // the function tail over
+                                            // the HANDLER copy (whose
+                                            // clauses also match the
+                                            // head pattern) is the
+                                            // region's own end
+                                            // (fin1: hopping there
+                                            // stretched inline_end to
+                                            // the final RETURN and the
+                                            // guard If closed past the
+                                            // region, stranding the
+                                            // nested try flat)
+                                            let hop = if starts_with_chain {
+                                                None
+                                            } else {
+                                                self.idx_of
+                                                    .get(&t)
+                                                    .and_then(|&ti2| {
+                                                        (ti2 > k
+                                                            // pos IS the
+                                                            // handler-copy
+                                                            // start here
+                                                            && t < pos
+                                                            && has_clause_head(
+                                                                k, ti2,
+                                                            ))
+                                                        .then_some(ti2)
+                                                    })
+                                            };
+                                            if let Some(ti2) = hop {
+                                                k = ti2;
+                                                continue;
+                                            }
                                             inline_end = ins.offset;
                                             break;
                                         }
@@ -12173,6 +12274,10 @@ impl<'a> Ctx<'a> {
         // there (cur_offset == else_stop) before taking the try, so those
         // stores still belong to orelse. (Matches the inclusive checks used
         // by the else-region probes elsewhere.)
+        if std::env::var("PYCDC_OM_DBG").is_ok() {
+            let (es_dbg, stop_dbg, fin_dbg) = self.legacy_try.as_ref().map(|l| (l.else_start, l.else_stop, l.finalbody.len())).unwrap_or((None, 0, 0));
+            eprintln!("PS fn={} off={} kind={} erbo={} es={:?} stop={} fin={} blocks={:?}", self.code.name, self.cur_offset, match &stmt { Stmt::If { .. } => "If", Stmt::Try { .. } => "Try", Stmt::Expr(_) => "Expr", Stmt::Assign { .. } => "Assign", _ => "other" }, else_region_block_open, es_dbg, stop_dbg, fin_dbg, self.blocks.iter().map(|b| (b.kind as u8, b.start, b.end)).collect::<Vec<_>>());
+        }
         if !else_region_block_open {
             if let Some(lt) = self.legacy_try.as_mut() {
                 if let Some(es) = lt.else_start {
@@ -19671,6 +19776,9 @@ impl<'a> Ctx<'a> {
     }
 
     fn push_legacy_try(&mut self, l: LegacyTry) {
+        if std::env::var("PYCDC_OM_DBG").is_ok() {
+            eprintln!("PLT fn={} off={} hs={} fin={} body={} blocks={:?}", self.code.name, self.cur_offset, l.handler_start, l.finalbody.len(), l.body.len(), self.blocks.iter().map(|b| (b.kind as u8, b.start, b.end)).collect::<Vec<_>>());
+        }
         let l_handler_start = l.handler_start;
         let mut try_stmt = Stmt::Try {
             body: l.body,
