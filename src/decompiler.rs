@@ -38821,67 +38821,32 @@ if split_cond {
         let Some(after) = self.with_return_tail_end(ki) else {
             return false;
         };
-        // probe the target shape BEFORE popping so a failed fold leaves
-        // the stack untouched. Two shapes:
-        // - the With statement is the container's last statement: the
-        //   return folds into its body
-        // - a sunk exit INSIDE an open branch arm of the with body (bdb
-        //   3.14 trace_dispatch: `if event == 'line': return
-        //   self.dispatch_line(frame)` — SWAP 3; SWAP 2; exit; RETURN):
-        //   the return belongs to the open arm; fold it there. Without
-        //   this the SWAPs mis-route the modeled placeholder slots and
-        //   every arm returns the PREVIOUS arm's value.
-        let arm_fold = !matches!(
-            self.blocks.last().and_then(|b| b.stmts.last()),
-            Some(Stmt::With { .. })
-        ) && matches!(
+        // 3.14 guard-arm sunk exits: the With is still OPEN (its merged
+        // region spans every arm) and this exit sits inside an open If
+        // arm — the value return belongs to the ARM, not the with body
+        // (bdb 3.14 trace_dispatch: every `if event == X: return
+        // self.dispatch_X(..)` arm carries its own sunk exit; the
+        // generic SWAP sim mis-routed the placeholder slots and each
+        // arm rendered the PREVIOUS arm's value). Fold the return into
+        // the open arm and let it close normally at its end.
+        let top_is_arm = matches!(
             self.blocks.last().map(|b| b.kind),
             Some(BlockType::If) | Some(BlockType::Else)
-        ) && self
+        );
+        let with_open = self
             .blocks
             .iter()
             .any(|b| b.kind == BlockType::With);
-        if arm_fold {
-            // fold the return into the OPEN arm, then let the arm close
-            // normally at its end (closing here would render the return
-            // as a sibling AFTER the arm: `if c: pass` + `return v`).
-            // The modeled exit-placeholder slots (Const None + Null
-            // pushed at the with header) sit UNDER the value and are
-            // never consumed when the protocol is skipped — drop them
-            // here or every later CALL/RETURN pops them instead of real
-            // values (bdb 3.14 trace_dispatch: arm values shifted by
-            // one slot per skipped exit).
+        if top_is_arm && with_open {
+            // pop ONLY the return value: the exit-protocol slots under
+            // it (Const None + Null pushed at the with header) are
+            // PER-WITH, not per-exit — every sunk arm exit reuses them,
+            // and the with's own final exit still needs them modeled.
+            // Draining them here starved the next arm's CALL swallow
+            // (bdb 3.14 trace_dispatch leaked None(None, None, None)
+            // from the second arm on); decrementing with_exits here
+            // disabled the swallow recognizer entirely.
             let value = self.pop_expr();
-            while matches!(self.stack.last(), Some(Sv::Null)) {
-                self.stack.pop();
-            }
-            while let Some(Sv::E(e)) = self.stack.last() {
-                let is_none_ph = matches!(&**e, Expr::Const(o)
-                    if matches!(&**o, PyObject::None));
-                if !is_none_ph {
-                    break;
-                }
-                // only placeholders that belong to an open with's exit
-                // protocol: count them against live with blocks
-                let open_withs = self
-                    .blocks
-                    .iter()
-                    .filter(|b| b.kind == BlockType::With)
-                    .count();
-                let trailing_nones = self
-                    .stack
-                    .iter()
-                    .filter(|s: &&Sv| {
-                        matches!(s, Sv::E(e2)
-                            if matches!(&**e2, Expr::Const(o)
-                                if matches!(&**o, PyObject::None)))
-                    })
-                    .count();
-                if trailing_nones + 1 <= open_withs {
-                    break;
-                }
-                self.stack.pop();
-            }
             let ret = match &*value {
                 Expr::Const(o) if matches!(&**o, PyObject::None) => Stmt::Return(None),
                 _ => Stmt::Return(Some(value)),
@@ -38895,6 +38860,8 @@ if split_cond {
             }
             return true;
         }
+        // probe the target shape BEFORE popping so a failed fold leaves
+        // the stack untouched
         if !matches!(
             self.blocks.last().and_then(|b| b.stmts.last()),
             Some(Stmt::With { .. })
