@@ -317,10 +317,30 @@ def _sunk_valued_return_tail(stmts):
             continue
         if getattr(s, 'orelse', None) or getattr(s, 'finalbody', None):
             continue
+        # try-ELSE flattening: when EVERY handler terminates (a valued
+        # return), the siblings between the try and the tail return run
+        # exactly on the success path - re-attach them as the orelse
+        # before stripping the sunk handler returns (compileall 3.10
+        # compile_file: `if ok == 0: success = False` is the flattened
+        # else clause; stripping without the re-attach would run it on
+        # handler fall-through with a stale `ok`)
         nxt = stmts[i + 1] if i + 1 < len(stmts) else None
         if not isinstance(nxt, ast.Return) or nxt.value is None:
             continue
         want = ast.dump(nxt)
+        all_term = all(
+            h.body and isinstance(h.body[-1], (ast.Return, ast.Raise))
+            for h in handlers)
+        mids = stmts[i + 1:-1]
+        if (all_term and isinstance(nxt, ast.Return)
+                and nxt.value is not None
+                and ast.dump(nxt) == want
+                and mids
+                and not any(isinstance(x, (ast.Return, ast.Raise,
+                                            ast.Break, ast.Continue))
+                            for x in mids)):
+            s.orelse = list(mids)
+            del stmts[i + 1:-1]
         for h in handlers:
             if h.body and isinstance(h.body[-1], ast.Return) \
                     and ast.dump(h.body[-1]) == want:
@@ -1622,6 +1642,42 @@ def _normalize_func_tail_handler_return(node):
             h.body = [ast.Pass()]
 
 
+def _reattach_tail_try_else(stmts, want):
+    """Tail-position try whose handlers ALL end with a copy of the
+    function-tail return V: the non-terminal siblings after it are the
+    flattened else clause - re-attach them as the orelse and strip the
+    handler-tail copies (falling off a handler skips the else in both
+    forms and reaches the shared tail return; on success the else runs
+    in both forms). compileall 3.10 compile_file: `if ok == 0: success
+    = False` is the flattened else and the tail `return success` lives
+    at the FUNCTION level, so the same-list _sunk_return_orelse cannot
+    see it."""
+    if not (TRY_TYPES and stmts):
+        return
+    for i, s in enumerate(stmts):
+        if not (TRY_TYPES and isinstance(s, TRY_TYPES)):
+            continue
+        handlers = getattr(s, 'handlers', None) or []
+        if not handlers or getattr(s, 'orelse', None) \
+                or getattr(s, 'finalbody', None):
+            continue
+        if not all(h.body and isinstance(h.body[-1], ast.Return)
+                   and h.body[-1].value is not None
+                   and ast.dump(h.body[-1]) == want
+                   for h in handlers):
+            continue
+        mids = stmts[i + 1:]
+        if any(isinstance(x, (ast.Return, ast.Raise, ast.Break,
+                              ast.Continue)) for x in mids):
+            continue
+        if mids:
+            s.orelse = list(mids)
+            del stmts[i + 1:]
+        for h in handlers:
+            h.body = h.body[:-1] or [ast.Pass()]
+        return
+
+
 def _strip_dup_tail_returns(node):
     """A valued `return V` at the END of a tail-position if-arm that
     duplicates the function's own trailing `return V` is a sunk copy
@@ -1638,11 +1694,12 @@ def _strip_dup_tail_returns(node):
     tail = body[-1]
     if not (isinstance(tail, ast.Return) and tail.value is not None):
         return
-    want = ast.dump(tail.value)
+    want = ast.dump(tail)
     cur = body[:-1]
     for _ in range(16):
         if not cur:
             return
+        _reattach_tail_try_else(cur, want)
         last = cur[-1]
         if isinstance(last, ast.If) and not last.orelse and last.body:
             arm = last.body
@@ -1655,7 +1712,7 @@ def _strip_dup_tail_returns(node):
                 # only the duplicated tail Return may follow the try
                 tail_ok = all(
                     isinstance(x, ast.Return) and x.value is not None
-                    and ast.dump(x.value) == want
+                    and ast.dump(x) == want
                     for x in arm[ai + 1:])
                 if (TRY_TYPES and isinstance(a_s, TRY_TYPES)
                         and tail_ok
@@ -1664,11 +1721,11 @@ def _strip_dup_tail_returns(node):
                     for h in a_s.handlers:
                         if (h.body and isinstance(h.body[-1], ast.Return)
                                 and h.body[-1].value is not None
-                                and ast.dump(h.body[-1].value) == want):
+                                and ast.dump(h.body[-1]) == want):
                             h.body = h.body[:-1] or [ast.Pass()]
             if (len(arm) > 1 and isinstance(arm[-1], ast.Return)
                     and arm[-1].value is not None
-                    and ast.dump(arm[-1].value) == want):
+                    and ast.dump(arm[-1]) == want):
                 arm.pop()
                 return
             cur = arm

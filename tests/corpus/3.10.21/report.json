@@ -3,8 +3,8 @@
  "interp": "/Users/e/.pyenv/versions/3.10.21/bin/python3",
  "counts": {
   "PASS": 32,
-  "AST-PASS": 5,
-  "SIG-DIFF": 3
+  "AST-PASS": 6,
+  "SIG-DIFF": 2
  },
  "results": [
   {
@@ -153,11 +153,7 @@
   },
   {
    "module": "compileall",
-   "ast_detail": "diff at token 1080: orig  keywords=[]))]) | dec  keywords=[]))",
-   "verdict": "SIG-DIFF",
-   "ndiff": 599,
-   "ntotal": 1505,
-   "detail": "line 595: orig ('POP_JUMP_IF_FALSE', '#565') | got ('POP_JUMP_IF_FALSE', '#567')\nline 662: orig ('POP_JUMP_IF_FALSE', '#565') | got ('POP_JUMP_IF_FALSE', '#567')\nline 817: orig ('JUMP_FORWARD', '#558') | got ('JUMP_FORWARD', '#560')"
+   "verdict": "AST-PASS"
   },
   {
    "module": "configparser",
