@@ -23968,6 +23968,38 @@ impl<'a> Ctx<'a> {
                         }
                     }
                 }
+                // 3.11+ exception-table handlers: the table protects
+                // [entry.start, entry.end) with the handler at
+                // entry.target — terminators inside the handler stub
+                // are off the normal path and must not end the body
+                // scan (base64 3.11 a85decode: the handler's `raise
+                // ValueError('Ascii85 overflow')` at 606 ended the scan
+                // at 608, truncating the arm before curr_clear and
+                // sibling-ing the whole elif chain). The stub ends at
+                // its RERAISE tail; bound the search at body_bound.
+                if self.version.at_least(3, 11) {
+                    for e in &self.exc_entries {
+                        if e.target > bs && e.target < body_bound {
+                            let mut hi = e.target;
+                            for x in self.instrs.iter() {
+                                if x.offset < e.target {
+                                    continue;
+                                }
+                                if x.offset >= body_bound {
+                                    hi = body_bound;
+                                    break;
+                                }
+                                hi = x.end();
+                                if matches!(x.op, Op::RERAISE | Op::END_FINALLY) {
+                                    break;
+                                }
+                            }
+                            if hi > e.target {
+                                handler_spans.push((e.target, hi));
+                            }
+                        }
+                    }
+                }
                 let in_handler = |off: usize| {
                     handler_spans.iter().any(|&(h, e)| h <= off && off < e)
                 };

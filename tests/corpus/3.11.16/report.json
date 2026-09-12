@@ -97,11 +97,11 @@
   },
   {
    "module": "base64",
-   "ast_detail": "diff at token 1535: orig  orelse=[If(test=Compare(left=Name(id='x' | dec  orelse=[])",
+   "ast_detail": "diff at token 2300: orig  keywords=[])) | dec  keywords=[]))]",
    "verdict": "SIG-DIFF",
-   "ndiff": 729,
+   "ndiff": 75,
    "ntotal": 2107,
-   "detail": "line 1292: orig ('FOR_ITER', '#191') | got ('FOR_ITER', '#190')\nline 1302: orig ('POP_JUMP_FORWARD_IF_FALSE', '#141') | got ('POP_JUMP_FORWARD_IF_FALSE', '#140')\nline 1305: orig ('JUMP_FORWARD', '#141') | got ('JUMP_FORWARD', '#140')"
+   "detail": "line 2002: orig ('POP_JUMP_FORWARD_IF_FALSE', '#167') | got ('POP_JUMP_FORWARD_IF_FALSE', '#166')\nline 2008: orig ('POP_JUMP_FORWARD_IF_FALSE', '#167') | got ('POP_JUMP_FORWARD_IF_FALSE', '#166')\nline 2033: orig ('LOAD_CONST', 'None') | got ('JUMP_FORWARD', '#164')"
   },
   {
    "module": "bdb",
